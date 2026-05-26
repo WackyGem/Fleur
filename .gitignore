@@ -1,6 +1,9 @@
 .venv/
 **/.venv/
 
+__pycache__/
+*.py[cod]
+
 target/
 logs/
 dbt_packages/

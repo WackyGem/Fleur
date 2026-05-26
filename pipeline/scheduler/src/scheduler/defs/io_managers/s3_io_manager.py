@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from datetime import date
 from typing import Any
 
 import boto3
@@ -10,8 +9,23 @@ import pyarrow.parquet as pq
 from botocore.config import Config
 from botocore.exceptions import ClientError
 
-SINA_TRADE_CALENDAR_KEY = "raw/sina__trade_calendar/000000_0.parquet"
 PARQUET_CONTENT_TYPE = "application/vnd.apache.parquet"
+
+
+def asset_key_to_parquet_object_key(
+    asset_key: dg.AssetKey,
+    object_prefix: str,
+) -> str:
+    asset_path = "/".join(asset_key.path)
+    if object_prefix:
+        return f"{object_prefix.strip('/')}/{asset_path}/000000_0.parquet"
+    return f"{asset_path}/000000_0.parquet"
+
+
+def table_to_parquet_bytes(table: pa.Table) -> bytes:
+    sink = pa.BufferOutputStream()
+    pq.write_table(table, sink, compression="zstd")
+    return sink.getvalue().to_pybytes()
 
 
 class S3IOManager(dg.ConfigurableIOManager):
@@ -20,10 +34,11 @@ class S3IOManager(dg.ConfigurableIOManager):
     access_key: str = dg.EnvVar("RUSTFS_ACCESS_KEY")
     secret_key: str = dg.EnvVar("RUSTFS_SECRET_KEY")
     region_name: str = "us-east-1"
+    object_prefix: str = "raw"
 
     def handle_output(self, context: dg.OutputContext, obj: Any) -> None:
-        rows = self._validate_trade_calendar_rows(obj)
-        parquet_bytes = trade_calendar_rows_to_parquet_bytes(rows)
+        table = self._validate_table(obj)
+        parquet_bytes = table_to_parquet_bytes(table)
         key = self._object_key(context)
         bucket = self._bucket()
         endpoint = self._endpoint()
@@ -36,35 +51,22 @@ class S3IOManager(dg.ConfigurableIOManager):
             ContentType=PARQUET_CONTENT_TYPE,
         )
 
-        trade_dates = [row[0] for row in rows]
         context.add_output_metadata(
             {
                 "s3_bucket": bucket,
                 "s3_key": key,
                 "s3_endpoint": endpoint,
-                "row_count": len(rows),
-                "min_trade_date": min(trade_dates),
-                "max_trade_date": max(trade_dates),
                 "content_type": PARQUET_CONTENT_TYPE,
                 "file_format": "parquet",
                 "compression": "zstd",
+                "row_count": table.num_rows,
+                "column_count": table.num_columns,
             }
         )
 
     def load_input(self, context: dg.InputContext) -> Any:
         msg = "S3IOManager does not implement input loading yet"
         raise NotImplementedError(msg)
-
-    def _object_key(self, context: dg.OutputContext) -> str:
-        if context.asset_key is None:
-            msg = "S3IOManager requires an asset output"
-            raise RuntimeError(msg)
-
-        if context.asset_key.to_user_string() == "sina__trade_calendar":
-            return SINA_TRADE_CALENDAR_KEY
-
-        msg = f"No S3 object key configured for asset {context.asset_key.to_user_string()}"
-        raise RuntimeError(msg)
 
     def _client(self) -> Any:
         return boto3.client(
@@ -91,33 +93,20 @@ class S3IOManager(dg.ConfigurableIOManager):
                 raise
             client.create_bucket(Bucket=bucket)
 
-    def _validate_trade_calendar_rows(self, obj: Any) -> list[list[str]]:
-        if not isinstance(obj, list):
-            msg = "S3IOManager expected a list of trade-date rows"
+    def _object_key(self, context: dg.OutputContext) -> str:
+        if context.asset_key is None:
+            msg = "S3IOManager requires an asset output"
+            raise RuntimeError(msg)
+
+        return asset_key_to_parquet_object_key(context.asset_key, self.object_prefix)
+
+    def _validate_table(self, obj: Any) -> pa.Table:
+        if not isinstance(obj, pa.Table):
+            msg = "S3IOManager expected a pyarrow.Table"
             raise TypeError(msg)
 
-        rows: list[list[str]] = []
-        for row in obj:
-            if not isinstance(row, list) or len(row) != 1 or not isinstance(row[0], str):
-                msg = "S3IOManager expected rows shaped like [['YYYY-MM-DD']]"
-                raise TypeError(msg)
-            date.fromisoformat(row[0])
-            rows.append(row)
-
-        if not rows:
-            msg = "S3IOManager refuses to write an empty trade calendar"
+        if obj.num_rows == 0:
+            msg = "S3IOManager refuses to write an empty pyarrow.Table"
             raise ValueError(msg)
 
-        return rows
-
-
-def trade_calendar_rows_to_parquet_bytes(rows: list[list[str]]) -> bytes:
-    trade_dates = [date.fromisoformat(row[0]) for row in rows]
-    schema = pa.schema([pa.field("trade_date", pa.date32())])
-    table = pa.Table.from_arrays(
-        [pa.array(trade_dates, type=pa.date32())],
-        schema=schema,
-    )
-    sink = pa.BufferOutputStream()
-    pq.write_table(table, sink, compression="zstd")
-    return sink.getvalue().to_pybytes()
+        return obj

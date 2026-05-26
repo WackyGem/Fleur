@@ -8,6 +8,7 @@ from dataclasses import dataclass, field
 from datetime import date, timedelta
 
 import dagster as dg
+import pyarrow as pa
 import requests
 
 BASE64_CHARS = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"
@@ -30,7 +31,7 @@ SINA_KNOWN_MISSING_DATE = date(1992, 5, 4)
 WEEKEND_SKIP_DAYS_BY_REMAINDER = (0, 0, 0, 2, 1, 0, 0)
 DATELIST_PATTERN = re.compile(r'var datelist="([^"]+)"')
 
-TradeCalendarRows = list[list[str]]
+TradeCalendarDates = list[date]
 RequestGet = Callable[..., requests.Response]
 Sleep = Callable[[float], None]
 RandomUniform = Callable[[float, float], float]
@@ -88,6 +89,15 @@ class ExponentialBackoffPolicy:
 
 
 DEFAULT_RETRY_POLICY = ExponentialBackoffPolicy(jitter=False)
+TRADE_CALENDAR_AUTOMATION_CONDITION = (
+    dg.AutomationCondition.on_missing()
+    | (
+        dg.AutomationCondition.initial_evaluation()
+        & dg.AutomationCondition.missing()
+        & ~dg.AutomationCondition.any_deps_missing()
+        & ~dg.AutomationCondition.in_progress()
+    ).with_label("on_initial_missing")
+)
 
 
 @dataclass
@@ -213,7 +223,7 @@ class SinaBitReader:
 
 @dataclass(frozen=True)
 class SinaCalendarParseResult:
-    rows: TradeCalendarRows
+    dates: TradeCalendarDates
     missing_date_added: bool = False
     error_message: str | None = None
 
@@ -221,25 +231,25 @@ class SinaCalendarParseResult:
 class SinaCalendarParser:
     """Parse Sina's compact A-share trade-calendar payload."""
 
-    def parse(self, content: str) -> TradeCalendarRows:
-        return self.parse_with_diagnostics(content).rows
+    def parse(self, content: str) -> TradeCalendarDates:
+        return self.parse_with_diagnostics(content).dates
 
     def parse_with_diagnostics(self, content: str) -> SinaCalendarParseResult:
         match = DATELIST_PATTERN.search(content)
         if match is None:
             return SinaCalendarParseResult(
-                rows=[],
+                dates=[],
                 error_message="Sina calendar response did not contain var datelist",
             )
 
         try:
             dates = self._decode_sina_data(match.group(1))
         except SinaCalendarDecodeError as error:
-            return SinaCalendarParseResult(rows=[], error_message=str(error))
+            return SinaCalendarParseResult(dates=[], error_message=str(error))
 
         if not dates:
             return SinaCalendarParseResult(
-                rows=[],
+                dates=[],
                 error_message="Sina calendar decoded to an empty date list",
             )
 
@@ -250,7 +260,7 @@ class SinaCalendarParser:
             missing_date_added = True
 
         return SinaCalendarParseResult(
-            rows=[[trade_date.isoformat()] for trade_date in dates],
+            dates=dates,
             missing_date_added=missing_date_added,
         )
 
@@ -328,16 +338,25 @@ def fetch_sina_trade_calendar(
     raise RuntimeError(msg) from last_error
 
 
+def trade_calendar_dates_to_table(trade_dates: TradeCalendarDates) -> pa.Table:
+    schema = pa.schema([pa.field("trade_date", pa.date32())])
+    return pa.Table.from_arrays(
+        [pa.array(trade_dates, type=pa.date32())],
+        schema=schema,
+    )
+
+
 @dg.asset(
     group_name="http_sources",
     io_manager_key="s3_io_manager",
+    automation_condition=TRADE_CALENDAR_AUTOMATION_CONDITION,
     tags={
         "source": "sina",
         "layer": "raw",
         "storage": "s3",
     },
 )
-def sina__trade_calendar(context) -> dg.MaterializeResult[TradeCalendarRows]:
+def sina__trade_calendar(context) -> dg.MaterializeResult[pa.Table]:
     """A-share trade calendar decoded from Sina Finance."""
 
     retry_policy = DEFAULT_RETRY_POLICY
@@ -347,7 +366,7 @@ def sina__trade_calendar(context) -> dg.MaterializeResult[TradeCalendarRows]:
         max_attempts=max_attempts,
     )
     parse_result = SinaCalendarParser().parse_with_diagnostics(content)
-    if not parse_result.rows:
+    if not parse_result.dates:
         context.log.warning(
             "Sina trade-calendar parser returned no rows: %s",
             parse_result.error_message or "unknown parser failure",
@@ -357,17 +376,20 @@ def sina__trade_calendar(context) -> dg.MaterializeResult[TradeCalendarRows]:
     if parse_result.missing_date_added:
         context.log.debug("Added known missing Sina trade date %s", SINA_KNOWN_MISSING_DATE)
 
-    rows = parse_result.rows
-    trade_dates = [row[0] for row in rows]
+    trade_dates = parse_result.dates
+    table = trade_calendar_dates_to_table(trade_dates)
     metadata = {
         "source_url": dg.MetadataValue.url(SINA_TRADE_CALENDAR_URL),
-        "row_count": len(rows),
-        "min_trade_date": min(trade_dates),
-        "max_trade_date": max(trade_dates),
+        "row_count": len(trade_dates),
+        "min_trade_date": min(trade_dates).isoformat(),
+        "max_trade_date": max(trade_dates).isoformat(),
         "file_format": "parquet",
         "compression": "zstd",
         "retry_policy": dg.MetadataValue.json(retry_policy.metadata(max_attempts=max_attempts)),
     }
-    context.log.info("Parsed %s Sina trade-calendar rows", len(rows))
+    context.log.info("Parsed %s Sina trade-calendar rows", len(trade_dates))
 
-    return dg.MaterializeResult(value=rows, metadata=metadata)
+    return dg.MaterializeResult(
+        value=table,
+        metadata=metadata,
+    )

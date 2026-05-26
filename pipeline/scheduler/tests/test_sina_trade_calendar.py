@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import unittest
+from datetime import date
 
+import dagster as dg
 import pyarrow as pa
 import pyarrow.parquet as pq
 import requests
@@ -13,8 +15,13 @@ from scheduler.defs.http_resources.sina__trade_calendar import (
     ExponentialBackoffPolicy,
     SinaCalendarParser,
     fetch_sina_trade_calendar,
+    sina__trade_calendar,
+    trade_calendar_dates_to_table,
 )
-from scheduler.defs.io_managers.s3_io_manager import trade_calendar_rows_to_parquet_bytes
+from scheduler.defs.io_managers.s3_io_manager import (
+    asset_key_to_parquet_object_key,
+    table_to_parquet_bytes,
+)
 
 
 SAMPLE_RESPONSE = (
@@ -40,26 +47,25 @@ class FakeResponse:
 
 class SinaCalendarParserTest(unittest.TestCase):
     def test_parser_decodes_sample_and_adds_known_missing_date(self) -> None:
-        rows = SinaCalendarParser().parse(SAMPLE_RESPONSE)
+        dates = SinaCalendarParser().parse(SAMPLE_RESPONSE)
 
-        self.assertGreater(len(rows), 1)
-        self.assertEqual(rows[0], ["1990-12-19"])
-        self.assertIn(["1992-05-04"], rows)
+        self.assertGreater(len(dates), 1)
+        self.assertEqual(dates[0], date(1990, 12, 19))
+        self.assertIn(date(1992, 5, 4), dates)
 
-    def test_parser_returns_empty_rows_for_missing_datelist(self) -> None:
-        rows = SinaCalendarParser().parse("var KLC_TD_SH='invalid';")
+    def test_parser_returns_empty_dates_for_missing_datelist(self) -> None:
+        dates = SinaCalendarParser().parse("var KLC_TD_SH='invalid';")
 
-        self.assertEqual(rows, [])
+        self.assertEqual(dates, [])
 
-    def test_parquet_writer_uses_trade_date_column(self) -> None:
-        parquet_bytes = trade_calendar_rows_to_parquet_bytes(
-            [["1990-12-19"], ["1990-12-20"]]
+    def test_trade_calendar_table_uses_trade_date_column(self) -> None:
+        table = trade_calendar_dates_to_table(
+            [date(1990, 12, 19), date(1990, 12, 20)]
         )
-
-        table = pq.read_table(pa.BufferReader(parquet_bytes))
 
         self.assertEqual(table.column_names, ["trade_date"])
         self.assertEqual(table.num_rows, 2)
+        self.assertTrue(pa.types.is_date32(table.schema.field("trade_date").type))
 
 
 class FetchSinaTradeCalendarTest(unittest.TestCase):
@@ -128,6 +134,54 @@ class FetchSinaTradeCalendarTest(unittest.TestCase):
         )
 
         self.assertEqual(policy.delays(max_attempts=3), [1.25, 2.5])
+
+
+class S3TableIOTest(unittest.TestCase):
+    def test_asset_key_to_parquet_object_key_uses_raw_prefix_by_default(self) -> None:
+        key = asset_key_to_parquet_object_key(
+            dg.AssetKey(["sina__trade_calendar"]),
+            object_prefix="raw",
+        )
+
+        self.assertEqual(key, "raw/sina__trade_calendar/000000_0.parquet")
+
+    def test_table_to_parquet_bytes_round_trips_pyarrow_table(self) -> None:
+        table = trade_calendar_dates_to_table(
+            [date(1990, 12, 19), date(1990, 12, 20)]
+        )
+
+        parquet_bytes = table_to_parquet_bytes(table)
+        round_tripped = pq.read_table(pa.BufferReader(parquet_bytes))
+
+        self.assertEqual(round_tripped.column_names, ["trade_date"])
+        self.assertEqual(round_tripped.num_rows, 2)
+        self.assertTrue(pa.types.is_date32(round_tripped.schema.field("trade_date").type))
+
+
+class SinaTradeCalendarAutomationTest(unittest.TestCase):
+    def test_automation_requests_never_materialized_calendar_once(self) -> None:
+        instance = dg.DagsterInstance.ephemeral()
+        defs = dg.Definitions(
+            assets=[sina__trade_calendar],
+            resources={"s3_io_manager": dg.InMemoryIOManager()},
+        )
+
+        result = dg.evaluate_automation_conditions(
+            defs=defs,
+            instance=instance,
+            asset_selection=dg.AssetSelection.assets(sina__trade_calendar),
+        )
+
+        self.assertEqual(result.total_requested, 1)
+
+        next_result = dg.evaluate_automation_conditions(
+            defs=defs,
+            instance=instance,
+            asset_selection=dg.AssetSelection.assets(sina__trade_calendar),
+            cursor=result.cursor,
+        )
+
+        self.assertEqual(next_result.total_requested, 0)
 
 
 if __name__ == "__main__":
