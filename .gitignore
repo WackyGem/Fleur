@@ -1,0 +1,14 @@
+.venv/
+**/.venv/
+
+target/
+logs/
+dbt_packages/
+
+.dagster/
+.dg/
+
+# Local agent and client configuration
+.agents/
+.codex/
+skills-lock.json
