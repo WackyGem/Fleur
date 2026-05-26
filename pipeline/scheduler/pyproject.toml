@@ -3,7 +3,10 @@ name = "scheduler"
 requires-python = ">=3.10,<3.15"
 version = "0.1.0"
 dependencies = [
+    "boto3>=1.41.0",
     "dagster==1.13.6",
+    "pyarrow>=22.0.0",
+    "requests>=2.34.0",
 ]
 
 [dependency-groups]
@@ -27,5 +30,4 @@ root_module = "scheduler"
 registry_modules = [
     "scheduler.components.*",
 ]
-
 
