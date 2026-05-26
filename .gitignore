@@ -12,3 +12,6 @@ dbt_packages/
 .agents/
 .codex/
 skills-lock.json
+
+# env
+env

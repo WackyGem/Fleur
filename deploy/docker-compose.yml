@@ -1,0 +1,136 @@
+services:
+  rustfs:
+    image: rustfs/rustfs:latest
+    container_name: mono-fleur-rustfs
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: "0.50"
+          memory: 512m
+    environment:
+      RUSTFS_ACCESS_KEY: ${RUSTFS_ACCESS_KEY}
+      RUSTFS_SECRET_KEY: ${RUSTFS_SECRET_KEY}
+    ports:
+      - "${RUSTFS_API_PORT:-34050}:9000"
+      - "${RUSTFS_CONSOLE_PORT:-34051}:9001"
+    volumes:
+      - rustfs-data:/data
+      - rustfs-logs:/logs
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - curl -fsS http://127.0.0.1:9000/health || exit 1
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    networks:
+      - mono-fleur
+
+  clickhouse:
+    image: clickhouse/clickhouse-server:latest-alpine
+    container_name: mono-fleur-clickhouse
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: "1.00"
+          memory: 1g
+    environment:
+      CLICKHOUSE_DB: ${CLICKHOUSE_DB}
+      CLICKHOUSE_USER: ${CLICKHOUSE_USER}
+      CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD}
+      CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT: ${CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT}
+    ports:
+      - "${CLICKHOUSE_HTTP_PORT:-34052}:8123"
+      - "${CLICKHOUSE_NATIVE_PORT:-34053}:9000"
+    volumes:
+      - clickhouse-data:/var/lib/clickhouse
+      - clickhouse-logs:/var/log/clickhouse-server
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - clickhouse-client --host 127.0.0.1 --user "$$CLICKHOUSE_USER" --password "$$CLICKHOUSE_PASSWORD" --query "SELECT 1"
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    networks:
+      - mono-fleur
+
+  postgres:
+    image: postgres:18-alpine
+    container_name: mono-fleur-postgres
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: "1.00"
+          memory: 1g
+    command:
+      - "postgres"
+      - "-c"
+      - "config_file=/etc/postgresql/postgresql.conf"
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-postgres}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres-change-me}
+    ports:
+      - "${POSTGRES_PORT:-34054}:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql
+      - ./postgres/postgresql.conf:/etc/postgresql/postgresql.conf:ro
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - pg_isready -U "$$POSTGRES_USER" -d "$$POSTGRES_DB"
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+    networks:
+      - mono-fleur
+
+  nats:
+    image: nats:2-alpine
+    container_name: mono-fleur-nats
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: "0.25"
+          memory: 128m
+    command:
+      - "-js"
+      - "-sd"
+      - "/data"
+      - "-m"
+      - "8222"
+    ports:
+      - "${NATS_CLIENT_PORT:-34055}:4222"
+      - "${NATS_MONITOR_PORT:-34056}:8222"
+    volumes:
+      - nats-data:/data
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - wget -qO- http://127.0.0.1:8222/healthz || exit 1
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    networks:
+      - mono-fleur
+
+networks:
+  mono-fleur:
+    name: mono-fleur
+
+volumes:
+  rustfs-data:
+  rustfs-logs:
+  clickhouse-data:
+  clickhouse-logs:
+  postgres-data:
+  nats-data:
