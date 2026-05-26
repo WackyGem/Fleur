@@ -1,0 +1,46 @@
+openapi: 3.0.0
+info:
+  title: 新浪财经交易日历
+  description: '新浪财经 A 股交易日历接口。
+
+    返回 JavaScript 变量声明，变量中包含新浪自定义紧凑编码的交易日历数据，需解码后使用。
+
+    注意：该字符串使用 `ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/` 字符表，但不是标准 Base64 编码，不能直接用标准 Base64 解码。
+
+    使用 Chrome User-Agent 请求时，响应 Content-Type 为 text/plain。
+
+
+    ## 解码流程
+
+    1. 提取 `var datelist="..."` 中的编码字符串
+
+    2. 将字符串按新浪自定义编码规则转换为比特流
+
+    3. 解析比特流得到日期序列
+
+
+    ## 返回数据
+
+    解码后返回从 1990-12-19 至当前年份年末的 A 股交易日，格式 YYYY-MM-DD。
+
+    注意：1992-05-04 日期缺失（编码数据中遗漏）。'
+  version: 1.0.0
+servers:
+- url: https://finance.sina.com.cn
+  description: The default server
+paths:
+  /realstock/company/klc_td_sh.txt:
+    get:
+      summary: 获取 A 股交易日历
+      operationId: getTradeCalendar
+      description: 返回新浪自定义编码的交易日历数据（JavaScript 变量格式）
+      parameters: []
+      responses:
+        '200':
+          description: OK — JavaScript 变量声明，包含新浪自定义编码的交易日历
+          content:
+            text/plain:
+              schema:
+                type: string
+                description: '格式: var datelist="<sina_encoded_calendar>";var KLC_TD_SH=datelist;'
+                example: var datelist="LC/AAApNDXCw6mHba...";var KLC_TD_SH=datelist;

@@ -1,0 +1,282 @@
+openapi: 3.0.0
+info:
+  title: 韭研公社 异动板块接口
+  description: '韭研公社 APP 端异动板块列表，按题材分类展示当日异动股票及解析。
+
+    POST 请求，Content-Type: application/json。
+
+    必填 Headers: token, cookie(SESSION), platform(3), timestamp(毫秒级)
+
+    每 SESSION 每日 80 个交易日请求配额。
+
+    '
+  version: 1.0.0
+servers:
+- url: https://app.jiuyangongshe.com
+  description: The default server
+security:
+- JIUYANAuth: []
+paths:
+  /jystock-app/api/v1/action/field:
+    post:
+      summary: POST field
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                pc:
+                  type: string
+                date:
+                  type: string
+            example:
+              pc: '1'
+              date: '2026-05-15'
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  msg:
+                    type: string
+                    description: 状态消息
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        action_field_id:
+                          type: string
+                          description: 所属板块 ID
+                        name:
+                          type: string
+                          description: 股票简称
+                        date:
+                          type: string
+                          description: 日期 YYYY-MM-DD
+                        reason:
+                          type: string
+                          description: null`
+                        status:
+                          type: integer
+                          description: 状态标志（通常为 0）
+                        sort_no:
+                          type: integer
+                          description: 排序序号
+                        is_delete:
+                          type: string
+                          description: '"0" = 未删除'
+                        delete_time:
+                          type: string
+                          nullable: true
+                          description: null`
+                        create_time:
+                          type: string
+                          description: 创建时间
+                        update_time:
+                          type: string
+                          nullable: true
+                          description: null`
+                        count:
+                          type: integer
+                          description: 该板块下异动股票数量
+                        list:
+                          type: array
+                          items:
+                            type: object
+                            properties:
+                              code:
+                                type: string
+                                description: 带市场前缀的股票代码（sh = 上海, sz = 深圳）
+                              name:
+                                type: string
+                                description: 股票简称
+                              article:
+                                type: object
+                                properties:
+                                  article_id:
+                                    type: string
+                                    description: 关联文章 ID
+                                  comment_count:
+                                    type: integer
+                                    description: 评论数
+                                  like_count:
+                                    type: integer
+                                    description: 点赞数
+                                  create_time:
+                                    type: string
+                                    description: 创建时间
+                                  user_id:
+                                    type: string
+                                    description: 作者用户 ID
+                                  is_like:
+                                    type: integer
+                                    description: 当前用户是否已点赞（0/1）
+                                  action_info:
+                                    type: object
+                                    properties:
+                                      article_id:
+                                        type: string
+                                        description: 关联文章 ID
+                                      action_info_id:
+                                        type: string
+                                        description: 异动记录唯一 ID
+                                      stock_id:
+                                        type: string
+                                        description: 股票唯一 ID
+                                      action_field_id:
+                                        type: string
+                                        description: 所属板块 ID
+                                      time:
+                                        type: string
+                                        description: 异动发生时间 HH:mm:ss
+                                      num:
+                                        type: string
+                                        description: null`
+                                      price:
+                                        type: integer
+                                        description: 价格，单位：分（6214 = 62.14 元）
+                                      day:
+                                        type: integer
+                                        description: null`
+                                      edition:
+                                        type: integer
+                                        description: null`
+                                      shares_range:
+                                        type: number
+                                        description: 涨跌幅，单位：‱（1000.0 = 10.00%）
+                                      reason:
+                                        type: string
+                                        nullable: true
+                                        description: null`
+                                      expound:
+                                        type: string
+                                        description: 异动原因详细说明（多行文本，含题材标签 + 公告/新闻摘要）
+                                      is_crawl:
+                                        type: integer
+                                        description: 是否为爬取内容（1 = 是）
+                                      is_recommend:
+                                        type: integer
+                                        description: 是否为推荐/一字板（0/1）
+                                      is_delete:
+                                        type: string
+                                        description: '"0" = 未删除'
+                                      delete_time:
+                                        type: string
+                                        nullable: true
+                                        description: null`
+                                      create_time:
+                                        type: string
+                                        description: 创建时间
+                                      update_time:
+                                        type: string
+                                        nullable: true
+                                        description: null`
+                                      sort_no:
+                                        type: integer
+                                        description: 排序序号
+                                    description: 异动详情（见下表）
+                                  forward_count:
+                                    type: integer
+                                    description: 转发数
+                                  step_count:
+                                    type: integer
+                                    description: 收藏数
+                                  title:
+                                    type: string
+                                    description: 异动解析标题（如 "05月08日福达合金股票异动解析"）
+                                  is_step:
+                                    type: integer
+                                    description: 当前用户是否已收藏（0/1）
+                                  user:
+                                    type: object
+                                    properties:
+                                      user_id:
+                                        type: string
+                                        description: 作者用户 ID
+                                      avatar:
+                                        type: string
+                                        description: 作者头像 URL
+                                      nickname:
+                                        type: string
+                                        description: 作者昵称
+                                    description: 作者信息（user_id, avatar, nickname）
+                                description: 异动解析文章（见下表）
+                          description: 板块下异动股票列表（仅 pc=1 时存在）
+                    description: 返回数据
+                  errCode:
+                    type: string
+                    description: 错误码，"0" = 成功
+                  serverTime:
+                    type: number
+                    description: 服务端时间戳
+              example:
+                errCode: '0'
+                msg: ''
+                serverTime: 1778309697
+                data:
+                - action_field_id: ''
+                  name: 简图
+                  date: '2026-05-15'
+                  reason: ''
+                  count: 0
+                - action_field_id: b976e33994654d5a8ad0dce8db704a7f
+                  name: 公告
+                  date: '2026-05-15'
+                  reason: ''
+                  status: 0
+                  sort_no: 0
+                  is_delete: '0'
+                  delete_time: null
+                  create_time: '2026-05-15 12:05:34'
+                  update_time: null
+                  count: 2
+                  list:
+                  - code: sz001259
+                    name: 利仁科技
+                    article:
+                      article_id: 3fjp47rlbvm
+                      title: 05月15日利仁科技股票异动解析
+                      create_time: '2026-05-15 12:05:36'
+                      comment_count: 1
+                      like_count: 37
+                      forward_count: 4
+                      step_count: 4
+                      is_like: 0
+                      is_step: 0
+                      user_id: '1'
+                      action_info:
+                        article_id: 3fjp47rlbvm
+                        action_info_id: b93f97ddd1864824af07cda0fbdfa8d5
+                        stock_id: 7834dd65b3f04f9f97b584373b91487e
+                        action_field_id: b976e33994654d5a8ad0dce8db704a7f
+                        time: '09:25:00'
+                        num: null
+                        price: 2345
+                        day: null
+                        edition: null
+                        shares_range: 1001.0
+                        reason: null
+                        expound: 异动原因详细说明...
+                        is_crawl: 1
+                        is_recommend: 0
+                        is_delete: '0'
+                        delete_time: null
+                        create_time: '2026-05-15 15:43:38'
+                        update_time: null
+                        sort_no: 0
+                      user:
+                        user_id: '1'
+                        avatar: https://cdn.jiuyangongshe.com/merchant/xxx.png
+                        nickname: 韭菜团子
+components:
+  securitySchemes:
+    JIUYANAuth:
+      type: apiKey
+      in: header
+      name: token
+      description: '必填 Headers: token, cookie(SESSION), platform(3), timestamp(毫秒级)'

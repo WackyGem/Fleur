@@ -1,0 +1,1133 @@
+openapi: 3.0.0
+info:
+  title: 东方财富 F10 利润表（累计）
+  description: '东方财富数据中心接口。使用 `data/get`，参数名: `type/sty/p/ps/sr/st`。无需认证。
+
+    ## Filter DSL
+
+    - 按证券代码: `(SECUCODE="601088.SH")`
+
+    - 按证券代码批量: `(SECUCODE in ("601088.SH","000001.SZ"))`
+
+    - 按报告期区间: `(REPORT_DATE>=''2025-01-01'')(REPORT_DATE<=''2025-12-31'')`
+
+    - 按公告日期区间: `(NOTICE_DATE>=''2025-01-01'')(NOTICE_DATE<=''2025-12-31'')`
+
+    ## 排序
+
+    - 多字段排序避免分页重复: `st=REPORT_DATE,SECURITY_CODE&sr=-1,-1`
+
+    '
+  version: 1.0.0
+servers:
+- url: https://datacenter.eastmoney.com
+  description: The default server
+paths:
+  /securities/api/data/get:
+    get:
+      summary: GET data get
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  version:
+                    type: string
+                    description: 数据版本标识
+                  result:
+                    type: object
+                    properties:
+                      pages:
+                        type: number
+                        description: 总页数
+                      data:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            SECUCODE:
+                              type: string
+                              description: 证券代码（含市场后缀）
+                            SECURITY_CODE:
+                              type: string
+                              description: 证券代码（纯数字）
+                            SECURITY_NAME_ABBR:
+                              type: string
+                              description: 证券简称
+                            ORG_CODE:
+                              type: string
+                              description: 机构代码
+                            ORG_TYPE:
+                              type: string
+                              description: 机构类型
+                            REPORT_DATE:
+                              type: string
+                              description: 报告期
+                            REPORT_TYPE:
+                              type: string
+                              description: 报告类型
+                            REPORT_DATE_NAME:
+                              type: string
+                              description: 报告期名称
+                            SECURITY_TYPE_CODE:
+                              type: string
+                              description: 证券类型代码
+                            NOTICE_DATE:
+                              type: string
+                              description: 公告日期
+                            UPDATE_DATE:
+                              type: string
+                              description: 更新日期
+                            CURRENCY:
+                              type: string
+                              description: 币种
+                            TOTAL_OPERATE_INCOME:
+                              type: number
+                              description: 营业总收入
+                            TOTAL_OPERATE_INCOME_YOY:
+                              type: number
+                              description: 营业总收入同比增长率(%)
+                            OPERATE_INCOME:
+                              type: number
+                              description: 营业收入
+                            OPERATE_INCOME_YOY:
+                              type: number
+                              description: 营业收入同比增长率(%)
+                            INTEREST_INCOME:
+                              type: number
+                              nullable: true
+                              description: 利息收入
+                            INTEREST_INCOME_YOY:
+                              type: number
+                              nullable: true
+                              description: INTEREST_INCOME 同比增长率(%)
+                            EARNED_PREMIUM:
+                              type: number
+                              nullable: true
+                              description: 已赚保费
+                            EARNED_PREMIUM_YOY:
+                              type: number
+                              nullable: true
+                              description: EARNED_PREMIUM 同比增长率(%)
+                            FEE_COMMISSION_INCOME:
+                              type: number
+                              nullable: true
+                              description: 手续费及佣金收入
+                            FEE_COMMISSION_INCOME_YOY:
+                              type: number
+                              nullable: true
+                              description: FEE_COMMISSION_INCOME 同比增长率(%)
+                            OTHER_BUSINESS_INCOME:
+                              type: number
+                              nullable: true
+                              description: 其他业务收入
+                            OTHER_BUSINESS_INCOME_YOY:
+                              type: number
+                              nullable: true
+                              description: OTHER_BUSINESS_INCOME 同比增长率(%)
+                            TOI_OTHER:
+                              type: number
+                              nullable: true
+                              description: 营业总收入其他
+                            TOI_OTHER_YOY:
+                              type: number
+                              nullable: true
+                              description: TOI_OTHER 同比增长率(%)
+                            TOTAL_OPERATE_COST:
+                              type: number
+                              description: 营业总成本
+                            TOTAL_OPERATE_COST_YOY:
+                              type: number
+                              description: 营业总成本同比增长率(%)
+                            OPERATE_COST:
+                              type: number
+                              description: 营业成本
+                            OPERATE_COST_YOY:
+                              type: number
+                              description: 营业成本同比增长率(%)
+                            INTEREST_EXPENSE:
+                              type: number
+                              nullable: true
+                              description: 利息支出
+                            INTEREST_EXPENSE_YOY:
+                              type: number
+                              nullable: true
+                              description: INTEREST_EXPENSE 同比增长率(%)
+                            FEE_COMMISSION_EXPENSE:
+                              type: number
+                              nullable: true
+                              description: 手续费及佣金支出
+                            FEE_COMMISSION_EXPENSE_YOY:
+                              type: number
+                              nullable: true
+                              description: FEE_COMMISSION_EXPENSE 同比增长率(%)
+                            RESEARCH_EXPENSE:
+                              type: number
+                              description: 研发费用
+                            RESEARCH_EXPENSE_YOY:
+                              type: number
+                              description: 研发费用同比增长率(%)
+                            SURRENDER_VALUE:
+                              type: number
+                              nullable: true
+                              description: 退保金
+                            SURRENDER_VALUE_YOY:
+                              type: number
+                              nullable: true
+                              description: SURRENDER_VALUE 同比增长率(%)
+                            NET_COMPENSATE_EXPENSE:
+                              type: number
+                              nullable: true
+                              description: 分保费用
+                            NET_COMPENSATE_EXPENSE_YOY:
+                              type: number
+                              nullable: true
+                              description: NET_COMPENSATE_EXPENSE 同比增长率(%)
+                            NET_CONTRACT_RESERVE:
+                              type: number
+                              nullable: true
+                              description: 提取保险合同准备金
+                            NET_CONTRACT_RESERVE_YOY:
+                              type: number
+                              nullable: true
+                              description: NET_CONTRACT_RESERVE 同比增长率(%)
+                            POLICY_BONUS_EXPENSE:
+                              type: number
+                              nullable: true
+                              description: 保单红利支出
+                            POLICY_BONUS_EXPENSE_YOY:
+                              type: number
+                              nullable: true
+                              description: POLICY_BONUS_EXPENSE 同比增长率(%)
+                            REINSURE_EXPENSE:
+                              type: number
+                              nullable: true
+                              description: 分保费用支出
+                            REINSURE_EXPENSE_YOY:
+                              type: number
+                              nullable: true
+                              description: REINSURE_EXPENSE 同比增长率(%)
+                            OTHER_BUSINESS_COST:
+                              type: number
+                              nullable: true
+                              description: 其他业务成本
+                            OTHER_BUSINESS_COST_YOY:
+                              type: number
+                              nullable: true
+                              description: OTHER_BUSINESS_COST 同比增长率(%)
+                            OPERATE_TAX_ADD:
+                              type: number
+                              description: 营业税金及附加
+                            OPERATE_TAX_ADD_YOY:
+                              type: number
+                              description: 营业税金及附加同比增长率(%)
+                            SALE_EXPENSE:
+                              type: number
+                              description: 销售费用
+                            SALE_EXPENSE_YOY:
+                              type: number
+                              description: 销售费用同比增长率(%)
+                            MANAGE_EXPENSE:
+                              type: number
+                              description: 管理费用
+                            MANAGE_EXPENSE_YOY:
+                              type: number
+                              description: 管理费用同比增长率(%)
+                            ME_RESEARCH_EXPENSE:
+                              type: number
+                              nullable: true
+                              description: 管理费用中的研发费用
+                            ME_RESEARCH_EXPENSE_YOY:
+                              type: number
+                              nullable: true
+                              description: ME_RESEARCH_EXPENSE 同比增长率(%)
+                            FINANCE_EXPENSE:
+                              type: number
+                              description: 财务费用
+                            FINANCE_EXPENSE_YOY:
+                              type: number
+                              description: 财务费用同比增长率(%)
+                            FE_INTEREST_EXPENSE:
+                              type: number
+                              description: 财务费用之利息费用
+                            FE_INTEREST_EXPENSE_YOY:
+                              type: number
+                              description: 财务费用之利息费用同比增长率(%)
+                            FE_INTEREST_INCOME:
+                              type: number
+                              description: 财务费用之利息收入
+                            FE_INTEREST_INCOME_YOY:
+                              type: number
+                              description: 财务费用之利息收入同比增长率(%)
+                            ASSET_IMPAIRMENT_LOSS:
+                              type: number
+                              nullable: true
+                              description: 资产减值损失
+                            ASSET_IMPAIRMENT_LOSS_YOY:
+                              type: number
+                              nullable: true
+                              description: ASSET_IMPAIRMENT_LOSS 同比增长率(%)
+                            CREDIT_IMPAIRMENT_LOSS:
+                              type: number
+                              nullable: true
+                              description: 信用减值损失
+                            CREDIT_IMPAIRMENT_LOSS_YOY:
+                              type: number
+                              nullable: true
+                              description: CREDIT_IMPAIRMENT_LOSS 同比增长率(%)
+                            TOC_OTHER:
+                              type: number
+                              nullable: true
+                              description: 营业总成本其他
+                            TOC_OTHER_YOY:
+                              type: number
+                              nullable: true
+                              description: TOC_OTHER 同比增长率(%)
+                            FAIRVALUE_CHANGE_INCOME:
+                              type: number
+                              description: 公允价值变动收益
+                            FAIRVALUE_CHANGE_INCOME_YOY:
+                              type: number
+                              description: 公允价值变动收益同比增长率(%)
+                            INVEST_INCOME:
+                              type: number
+                              description: 投资收益
+                            INVEST_INCOME_YOY:
+                              type: number
+                              description: 投资收益同比增长率(%)
+                            INVEST_JOINT_INCOME:
+                              type: number
+                              description: 对联营企业和合营企业的投资收益
+                            INVEST_JOINT_INCOME_YOY:
+                              type: number
+                              description: 对联营企业和合营企业的投资收益同比增长率(%)
+                            NET_EXPOSURE_INCOME:
+                              type: number
+                              nullable: true
+                              description: 净敞口收益
+                            NET_EXPOSURE_INCOME_YOY:
+                              type: number
+                              nullable: true
+                              description: NET_EXPOSURE_INCOME 同比增长率(%)
+                            EXCHANGE_INCOME:
+                              type: number
+                              nullable: true
+                              description: 汇兑收益
+                            EXCHANGE_INCOME_YOY:
+                              type: number
+                              nullable: true
+                              description: EXCHANGE_INCOME 同比增长率(%)
+                            ASSET_DISPOSAL_INCOME:
+                              type: number
+                              description: 资产处置收益
+                            ASSET_DISPOSAL_INCOME_YOY:
+                              type: number
+                              description: 资产处置收益同比增长率(%)
+                            ASSET_IMPAIRMENT_INCOME:
+                              type: number
+                              description: 资产减值收益
+                            ASSET_IMPAIRMENT_INCOME_YOY:
+                              type: number
+                              description: ASSET_IMPAIRMENT_INCOME 同比增长率(%)
+                            CREDIT_IMPAIRMENT_INCOME:
+                              type: number
+                              description: 信用减值收益
+                            CREDIT_IMPAIRMENT_INCOME_YOY:
+                              type: number
+                              description: CREDIT_IMPAIRMENT_INCOME 同比增长率(%)
+                            OTHER_INCOME:
+                              type: number
+                              description: 其他收益
+                            OTHER_INCOME_YOY:
+                              type: number
+                              description: 其他收益同比增长率(%)
+                            OPERATE_PROFIT_OTHER:
+                              type: number
+                              nullable: true
+                              description: 营业利润其他
+                            OPERATE_PROFIT_OTHER_YOY:
+                              type: number
+                              nullable: true
+                              description: OPERATE_PROFIT_OTHER 同比增长率(%)
+                            OPERATE_PROFIT_BALANCE:
+                              type: number
+                              description: 营业利润平衡项
+                            OPERATE_PROFIT_BALANCE_YOY:
+                              type: number
+                              nullable: true
+                              description: OPERATE_PROFIT_BALANCE 同比增长率(%)
+                            OPERATE_PROFIT:
+                              type: number
+                              description: 营业利润
+                            OPERATE_PROFIT_YOY:
+                              type: number
+                              description: 营业利润同比增长率(%)
+                            NONBUSINESS_INCOME:
+                              type: number
+                              description: 营业外收入
+                            NONBUSINESS_INCOME_YOY:
+                              type: number
+                              description: 营业外收入同比增长率(%)
+                            NONCURRENT_DISPOSAL_INCOME:
+                              type: number
+                              nullable: true
+                              description: 非流动资产处置净收益
+                            NONCURRENT_DISPOSAL_INCOME_YOY:
+                              type: number
+                              nullable: true
+                              description: NONCURRENT_DISPOSAL_INCOME 同比增长率(%)
+                            NONBUSINESS_EXPENSE:
+                              type: number
+                              description: 营业外支出
+                            NONBUSINESS_EXPENSE_YOY:
+                              type: number
+                              description: 营业外支出同比增长率(%)
+                            NONCURRENT_DISPOSAL_LOSS:
+                              type: number
+                              nullable: true
+                              description: 非流动资产处置净损失
+                            NONCURRENT_DISPOSAL_LOSS_YOY:
+                              type: number
+                              nullable: true
+                              description: NONCURRENT_DISPOSAL_LOSS 同比增长率(%)
+                            EFFECT_TP_OTHER:
+                              type: number
+                              nullable: true
+                              description: 影响利润总额其他
+                            EFFECT_TP_OTHER_YOY:
+                              type: number
+                              nullable: true
+                              description: EFFECT_TP_OTHER 同比增长率(%)
+                            TOTAL_PROFIT_BALANCE:
+                              type: number
+                              description: 利润总额平衡项
+                            TOTAL_PROFIT_BALANCE_YOY:
+                              type: number
+                              nullable: true
+                              description: TOTAL_PROFIT_BALANCE 同比增长率(%)
+                            TOTAL_PROFIT:
+                              type: number
+                              description: 利润总额
+                            TOTAL_PROFIT_YOY:
+                              type: number
+                              description: 利润总额同比增长率(%)
+                            INCOME_TAX:
+                              type: number
+                              description: 所得税费用
+                            INCOME_TAX_YOY:
+                              type: number
+                              description: 所得税费用同比增长率(%)
+                            EFFECT_NETPROFIT_OTHER:
+                              type: number
+                              nullable: true
+                              description: 影响净利润其他
+                            EFFECT_NETPROFIT_OTHER_YOY:
+                              type: number
+                              nullable: true
+                              description: EFFECT_NETPROFIT_OTHER 同比增长率(%)
+                            EFFECT_NETPROFIT_BALANCE:
+                              type: number
+                              nullable: true
+                              description: 净利润平衡项
+                            EFFECT_NETPROFIT_BALANCE_YOY:
+                              type: number
+                              nullable: true
+                              description: EFFECT_NETPROFIT_BALANCE 同比增长率(%)
+                            UNCONFIRM_INVEST_LOSS:
+                              type: number
+                              nullable: true
+                              description: 未确认投资损失
+                            UNCONFIRM_INVEST_LOSS_YOY:
+                              type: number
+                              nullable: true
+                              description: UNCONFIRM_INVEST_LOSS 同比增长率(%)
+                            NETPROFIT:
+                              type: number
+                              description: 净利润
+                            NETPROFIT_YOY:
+                              type: number
+                              description: 净利润同比增长率(%)
+                            PRECOMBINE_PROFIT:
+                              type: number
+                              nullable: true
+                              description: 合并前净损益
+                            PRECOMBINE_PROFIT_YOY:
+                              type: number
+                              nullable: true
+                              description: PRECOMBINE_PROFIT 同比增长率(%)
+                            CONTINUED_NETPROFIT:
+                              type: number
+                              description: 持续经营净利润
+                            CONTINUED_NETPROFIT_YOY:
+                              type: number
+                              description: 持续经营净利润同比增长率(%)
+                            DISCONTINUED_NETPROFIT:
+                              type: number
+                              description: 终止经营净利润
+                            DISCONTINUED_NETPROFIT_YOY:
+                              type: number
+                              nullable: true
+                              description: 终止经营净利润同比增长率(%)
+                            PARENT_NETPROFIT:
+                              type: number
+                              description: 归属于母公司股东的净利润
+                            PARENT_NETPROFIT_YOY:
+                              type: number
+                              description: 归属于母公司股东的净利润同比增长率(%)
+                            MINORITY_INTEREST:
+                              type: number
+                              description: 少数股东损益
+                            MINORITY_INTEREST_YOY:
+                              type: number
+                              description: 少数股东损益同比增长率(%)
+                            DEDUCT_PARENT_NETPROFIT:
+                              type: number
+                              description: 扣除非经常性损益后归属于母公司股东的净利润
+                            DEDUCT_PARENT_NETPROFIT_YOY:
+                              type: number
+                              description: 扣非归母净利润同比增长率(%)
+                            NETPROFIT_OTHER:
+                              type: number
+                              nullable: true
+                              description: 净利润其他
+                            NETPROFIT_OTHER_YOY:
+                              type: number
+                              nullable: true
+                              description: NETPROFIT_OTHER 同比增长率(%)
+                            NETPROFIT_BALANCE:
+                              type: number
+                              nullable: true
+                              description: 净利润平衡项
+                            NETPROFIT_BALANCE_YOY:
+                              type: number
+                              nullable: true
+                              description: NETPROFIT_BALANCE 同比增长率(%)
+                            BASIC_EPS:
+                              type: number
+                              description: 基本每股收益（元/股）
+                            BASIC_EPS_YOY:
+                              type: number
+                              description: 基本每股收益（元/股）同比增长率(%)
+                            DILUTED_EPS:
+                              type: number
+                              description: 稀释每股收益（元/股）
+                            DILUTED_EPS_YOY:
+                              type: number
+                              description: 稀释每股收益（元/股）同比增长率(%)
+                            OTHER_COMPRE_INCOME:
+                              type: number
+                              description: 其他综合收益总额
+                            OTHER_COMPRE_INCOME_YOY:
+                              type: number
+                              description: 其他综合收益总额同比增长率(%)
+                            PARENT_OCI:
+                              type: number
+                              description: 归属于母公司股东的其他综合收益
+                            PARENT_OCI_YOY:
+                              type: number
+                              description: 归母其他综合收益同比增长率(%)
+                            MINORITY_OCI:
+                              type: number
+                              description: 归属于少数股东的其他综合收益
+                            MINORITY_OCI_YOY:
+                              type: number
+                              description: 少数股东其他综合收益同比增长率(%)
+                            PARENT_OCI_OTHER:
+                              type: number
+                              nullable: true
+                              description: 归母其他综合收益其他
+                            PARENT_OCI_OTHER_YOY:
+                              type: number
+                              nullable: true
+                              description: PARENT_OCI_OTHER 同比增长率(%)
+                            PARENT_OCI_BALANCE:
+                              type: number
+                              nullable: true
+                              description: 归母其他综合收益平衡项
+                            PARENT_OCI_BALANCE_YOY:
+                              type: number
+                              nullable: true
+                              description: PARENT_OCI_BALANCE 同比增长率(%)
+                            UNABLE_OCI:
+                              type: number
+                              description: 以后将重分类进损益的其他综合收益
+                            UNABLE_OCI_YOY:
+                              type: number
+                              description: UNABLE_OCI 同比增长率(%)
+                            CREDITRISK_FAIRVALUE_CHANGE:
+                              type: number
+                              nullable: true
+                              description: 信用风险引起的公允价值变动
+                            CREDITRISK_FAIRVALUE_CHANGE_YOY:
+                              type: number
+                              nullable: true
+                              description: CREDITRISK_FAIRVALUE_CHANGE 同比增长率(%)
+                            OTHERRIGHT_FAIRVALUE_CHANGE:
+                              type: number
+                              nullable: true
+                              description: 其他权益工具公允价值变动
+                            OTHERRIGHT_FAIRVALUE_CHANGE_YOY:
+                              type: number
+                              nullable: true
+                              description: OTHERRIGHT_FAIRVALUE_CHANGE 同比增长率(%)
+                            SETUP_PROFIT_CHANGE:
+                              type: number
+                              description: 重分类调整变动
+                            SETUP_PROFIT_CHANGE_YOY:
+                              type: number
+                              nullable: true
+                              description: SETUP_PROFIT_CHANGE 同比增长率(%)
+                            RIGHTLAW_UNABLE_OCI:
+                              type: number
+                              description: 权益法下不能重分类的其他综合收益
+                            RIGHTLAW_UNABLE_OCI_YOY:
+                              type: number
+                              description: RIGHTLAW_UNABLE_OCI 同比增长率(%)
+                            UNABLE_OCI_OTHER:
+                              type: number
+                              nullable: true
+                              description: 不能重分类其他综合收益其他
+                            UNABLE_OCI_OTHER_YOY:
+                              type: number
+                              nullable: true
+                              description: UNABLE_OCI_OTHER 同比增长率(%)
+                            UNABLE_OCI_BALANCE:
+                              type: number
+                              nullable: true
+                              description: 不能重分类其他综合收益平衡项
+                            UNABLE_OCI_BALANCE_YOY:
+                              type: number
+                              nullable: true
+                              description: UNABLE_OCI_BALANCE 同比增长率(%)
+                            ABLE_OCI:
+                              type: number
+                              description: 以后将重分类进损益的其他综合收益（可重分类）
+                            ABLE_OCI_YOY:
+                              type: number
+                              description: ABLE_OCI 同比增长率(%)
+                            RIGHTLAW_ABLE_OCI:
+                              type: number
+                              description: 权益法下可重分类的其他综合收益
+                            RIGHTLAW_ABLE_OCI_YOY:
+                              type: number
+                              description: RIGHTLAW_ABLE_OCI 同比增长率(%)
+                            AFA_FAIRVALUE_CHANGE:
+                              type: number
+                              nullable: true
+                              description: 可供出售金融资产公允价值变动
+                            AFA_FAIRVALUE_CHANGE_YOY:
+                              type: number
+                              nullable: true
+                              description: AFA_FAIRVALUE_CHANGE 同比增长率(%)
+                            HMI_AFA:
+                              type: number
+                              nullable: true
+                              description: 持有有待售资产公允价值变动
+                            HMI_AFA_YOY:
+                              type: number
+                              nullable: true
+                              description: HMI_AFA 同比增长率(%)
+                            CASHFLOW_HEDGE_VALID:
+                              type: number
+                              nullable: true
+                              description: 现金流量套期有效部分
+                            CASHFLOW_HEDGE_VALID_YOY:
+                              type: number
+                              nullable: true
+                              description: CASHFLOW_HEDGE_VALID 同比增长率(%)
+                            CREDITOR_FAIRVALUE_CHANGE:
+                              type: number
+                              nullable: true
+                              description: 债权投资公允价值变动
+                            CREDITOR_FAIRVALUE_CHANGE_YOY:
+                              type: number
+                              nullable: true
+                              description: CREDITOR_FAIRVALUE_CHANGE 同比增长率(%)
+                            CREDITOR_IMPAIRMENT_RESERVE:
+                              type: number
+                              nullable: true
+                              description: 债权投资减值准备
+                            CREDITOR_IMPAIRMENT_RESERVE_YOY:
+                              type: number
+                              nullable: true
+                              description: CREDITOR_IMPAIRMENT_RESERVE 同比增长率(%)
+                            FINANCE_OCI_AMT:
+                              type: number
+                              nullable: true
+                              description: 金融资产重分类金额
+                            FINANCE_OCI_AMT_YOY:
+                              type: number
+                              nullable: true
+                              description: FINANCE_OCI_AMT 同比增长率(%)
+                            CONVERT_DIFF:
+                              type: number
+                              description: 外币报表折算差额
+                            CONVERT_DIFF_YOY:
+                              type: number
+                              description: CONVERT_DIFF 同比增长率(%)
+                            ABLE_OCI_OTHER:
+                              type: number
+                              nullable: true
+                              description: 可重分类其他综合收益其他
+                            ABLE_OCI_OTHER_YOY:
+                              type: number
+                              nullable: true
+                              description: ABLE_OCI_OTHER 同比增长率(%)
+                            ABLE_OCI_BALANCE:
+                              type: number
+                              nullable: true
+                              description: 可重分类其他综合收益平衡项
+                            ABLE_OCI_BALANCE_YOY:
+                              type: number
+                              nullable: true
+                              description: ABLE_OCI_BALANCE 同比增长率(%)
+                            OCI_OTHER:
+                              type: number
+                              nullable: true
+                              description: 其他综合收益其他
+                            OCI_OTHER_YOY:
+                              type: number
+                              nullable: true
+                              description: OCI_OTHER 同比增长率(%)
+                            OCI_BALANCE:
+                              type: number
+                              nullable: true
+                              description: 其他综合收益平衡项
+                            OCI_BALANCE_YOY:
+                              type: number
+                              nullable: true
+                              description: OCI_BALANCE 同比增长率(%)
+                            TOTAL_COMPRE_INCOME:
+                              type: number
+                              description: 综合收益总额
+                            TOTAL_COMPRE_INCOME_YOY:
+                              type: number
+                              description: 综合收益总额同比增长率(%)
+                            PARENT_TCI:
+                              type: number
+                              description: 归属于母公司股东的综合收益总额
+                            PARENT_TCI_YOY:
+                              type: number
+                              description: 归母综合收益总额同比增长率(%)
+                            MINORITY_TCI:
+                              type: number
+                              description: 归属于少数股东的综合收益总额
+                            MINORITY_TCI_YOY:
+                              type: number
+                              description: 少数股东综合收益总额同比增长率(%)
+                            PRECOMBINE_TCI:
+                              type: number
+                              nullable: true
+                              description: 合并前综合收益总额
+                            PRECOMBINE_TCI_YOY:
+                              type: number
+                              nullable: true
+                              description: PRECOMBINE_TCI 同比增长率(%)
+                            EFFECT_TCI_BALANCE:
+                              type: number
+                              nullable: true
+                              description: 综合收益总额平衡项
+                            EFFECT_TCI_BALANCE_YOY:
+                              type: number
+                              nullable: true
+                              description: EFFECT_TCI_BALANCE 同比增长率(%)
+                            TCI_OTHER:
+                              type: number
+                              nullable: true
+                              description: 综合收益总额其他
+                            TCI_OTHER_YOY:
+                              type: number
+                              nullable: true
+                              description: TCI_OTHER 同比增长率(%)
+                            TCI_BALANCE:
+                              type: number
+                              nullable: true
+                              description: 综合收益总额平衡项
+                            TCI_BALANCE_YOY:
+                              type: number
+                              nullable: true
+                              description: TCI_BALANCE 同比增长率(%)
+                            ACF_END_INCOME:
+                              type: number
+                              nullable: true
+                              description: 持续经营终止经营净损益
+                            ACF_END_INCOME_YOY:
+                              type: number
+                              nullable: true
+                              description: ACF_END_INCOME 同比增长率(%)
+                            OPINION_TYPE:
+                              type: number
+                              nullable: true
+                              description: 审计意见类型
+                        description: 返回数据
+                      count:
+                        type: number
+                        description: 总记录数
+                    description: 返回数据
+                  success:
+                    type: boolean
+                    description: 请求是否成功
+                  message:
+                    type: string
+                    description: 状态消息
+                  code:
+                    type: number
+                    description: 状态码，0 = 正常
+              example:
+                version: 8744d8819bca8189da9800373e5b4f62
+                result:
+                  pages: 41
+                  data:
+                  - SECUCODE: 601088.SH
+                    SECURITY_CODE: '601088'
+                    SECURITY_NAME_ABBR: 中国神华
+                    ORG_CODE: '10032705'
+                    ORG_TYPE: 通用
+                    REPORT_DATE: '2026-03-31 00:00:00'
+                    REPORT_TYPE: 一季报
+                    REPORT_DATE_NAME: 2026一季报
+                    SECURITY_TYPE_CODE: 058001001
+                    NOTICE_DATE: '2026-04-25 00:00:00'
+                    UPDATE_DATE: '2026-04-25 00:00:00'
+                    CURRENCY: CNY
+                    TOTAL_OPERATE_INCOME: 70397000000
+                    TOTAL_OPERATE_INCOME_YOY: 1.1669181576
+                    OPERATE_INCOME: 70397000000
+                    OPERATE_INCOME_YOY: 1.1669181576
+                    INTEREST_INCOME: null
+                    INTEREST_INCOME_YOY: null
+                    EARNED_PREMIUM: null
+                    EARNED_PREMIUM_YOY: null
+                    FEE_COMMISSION_INCOME: null
+                    FEE_COMMISSION_INCOME_YOY: null
+                    OTHER_BUSINESS_INCOME: null
+                    OTHER_BUSINESS_INCOME_YOY: null
+                    TOI_OTHER: null
+                    TOI_OTHER_YOY: null
+                    TOTAL_OPERATE_COST: 54277000000
+                    TOTAL_OPERATE_COST_YOY: 2.2531602645
+                    OPERATE_COST: 47244000000
+                    OPERATE_COST_YOY: 2.968484373
+                    INTEREST_EXPENSE: null
+                    INTEREST_EXPENSE_YOY: null
+                    FEE_COMMISSION_EXPENSE: null
+                    FEE_COMMISSION_EXPENSE_YOY: null
+                    RESEARCH_EXPENSE: 333000000
+                    RESEARCH_EXPENSE_YOY: 38.1742738589
+                    SURRENDER_VALUE: null
+                    SURRENDER_VALUE_YOY: null
+                    NET_COMPENSATE_EXPENSE: null
+                    NET_COMPENSATE_EXPENSE_YOY: null
+                    NET_CONTRACT_RESERVE: null
+                    NET_CONTRACT_RESERVE_YOY: null
+                    POLICY_BONUS_EXPENSE: null
+                    POLICY_BONUS_EXPENSE_YOY: null
+                    REINSURE_EXPENSE: null
+                    REINSURE_EXPENSE_YOY: null
+                    OTHER_BUSINESS_COST: null
+                    OTHER_BUSINESS_COST_YOY: null
+                    OPERATE_TAX_ADD: 3884000000
+                    OPERATE_TAX_ADD_YOY: -2.2155085599
+                    SALE_EXPENSE: 114000000
+                    SALE_EXPENSE_YOY: -12.9770992366
+                    MANAGE_EXPENSE: 2410000000
+                    MANAGE_EXPENSE_YOY: -10.6083086053
+                    ME_RESEARCH_EXPENSE: null
+                    ME_RESEARCH_EXPENSE_YOY: null
+                    FINANCE_EXPENSE: 292000000
+                    FINANCE_EXPENSE_YOY: 83.6477987421
+                    FE_INTEREST_EXPENSE: 634000000
+                    FE_INTEREST_EXPENSE_YOY: -4.084720121
+                    FE_INTEREST_INCOME: 455000000
+                    FE_INTEREST_INCOME_YOY: -27.4322169059
+                    ASSET_IMPAIRMENT_LOSS: null
+                    ASSET_IMPAIRMENT_LOSS_YOY: null
+                    CREDIT_IMPAIRMENT_LOSS: null
+                    CREDIT_IMPAIRMENT_LOSS_YOY: null
+                    TOC_OTHER: null
+                    TOC_OTHER_YOY: null
+                    FAIRVALUE_CHANGE_INCOME: 0
+                    FAIRVALUE_CHANGE_INCOME_YOY: -100
+                    INVEST_INCOME: 443000000
+                    INVEST_INCOME_YOY: -62.2335890878
+                    INVEST_JOINT_INCOME: 438000000
+                    INVEST_JOINT_INCOME_YOY: -50.8417508418
+                    NET_EXPOSURE_INCOME: null
+                    NET_EXPOSURE_INCOME_YOY: null
+                    EXCHANGE_INCOME: null
+                    EXCHANGE_INCOME_YOY: null
+                    ASSET_DISPOSAL_INCOME: -8000000
+                    ASSET_DISPOSAL_INCOME_YOY: -300
+                    ASSET_IMPAIRMENT_INCOME: -3000000
+                    ASSET_IMPAIRMENT_INCOME_YOY: -125
+                    CREDIT_IMPAIRMENT_INCOME: 23000000
+                    CREDIT_IMPAIRMENT_INCOME_YOY: 43.75
+                    OTHER_INCOME: 62000000
+                    OTHER_INCOME_YOY: -6.0606060606
+                    OPERATE_PROFIT_OTHER: null
+                    OPERATE_PROFIT_OTHER_YOY: null
+                    OPERATE_PROFIT_BALANCE: 0
+                    OPERATE_PROFIT_BALANCE_YOY: null
+                    OPERATE_PROFIT: 16637000000
+                    OPERATE_PROFIT_YOY: -6.4285714286
+                    NONBUSINESS_INCOME: 64000000
+                    NONBUSINESS_INCOME_YOY: -54.9295774648
+                    NONCURRENT_DISPOSAL_INCOME: null
+                    NONCURRENT_DISPOSAL_INCOME_YOY: null
+                    NONBUSINESS_EXPENSE: 107000000
+                    NONBUSINESS_EXPENSE_YOY: 233.75
+                    NONCURRENT_DISPOSAL_LOSS: null
+                    NONCURRENT_DISPOSAL_LOSS_YOY: null
+                    EFFECT_TP_OTHER: null
+                    EFFECT_TP_OTHER_YOY: null
+                    TOTAL_PROFIT_BALANCE: 0
+                    TOTAL_PROFIT_BALANCE_YOY: null
+                    TOTAL_PROFIT: 16594000000
+                    TOTAL_PROFIT_YOY: -7.821353183
+                    INCOME_TAX: 3282000000
+                    INCOME_TAX_YOY: -1.7365269461
+                    EFFECT_NETPROFIT_OTHER: null
+                    EFFECT_NETPROFIT_OTHER_YOY: null
+                    EFFECT_NETPROFIT_BALANCE: null
+                    EFFECT_NETPROFIT_BALANCE_YOY: null
+                    UNCONFIRM_INVEST_LOSS: null
+                    UNCONFIRM_INVEST_LOSS_YOY: null
+                    NETPROFIT: 13312000000
+                    NETPROFIT_YOY: -9.2074751057
+                    PRECOMBINE_PROFIT: null
+                    PRECOMBINE_PROFIT_YOY: null
+                    CONTINUED_NETPROFIT: 13312000000
+                    CONTINUED_NETPROFIT_YOY: -9.2074751057
+                    DISCONTINUED_NETPROFIT: 0
+                    DISCONTINUED_NETPROFIT_YOY: null
+                    PARENT_NETPROFIT: 10667000000
+                    PARENT_NETPROFIT_YOY: -10.7289312913
+                    MINORITY_INTEREST: 2645000000
+                    MINORITY_INTEREST_YOY: -2.5064504239
+                    DEDUCT_PARENT_NETPROFIT: 10712000000
+                    DEDUCT_PARENT_NETPROFIT_YOY: -8.4835540367
+                    NETPROFIT_OTHER: null
+                    NETPROFIT_OTHER_YOY: null
+                    NETPROFIT_BALANCE: null
+                    NETPROFIT_BALANCE_YOY: null
+                    BASIC_EPS: 0.53
+                    BASIC_EPS_YOY: -11.8136439268
+                    DILUTED_EPS: 0.53
+                    DILUTED_EPS_YOY: -11.8136439268
+                    OTHER_COMPRE_INCOME: -347000000
+                    OTHER_COMPRE_INCOME_YOY: -1752.380952381
+                    PARENT_OCI: -296000000
+                    PARENT_OCI_YOY: -1025
+                    MINORITY_OCI: -51000000
+                    MINORITY_OCI_YOY: -363.6363636364
+                    PARENT_OCI_OTHER: null
+                    PARENT_OCI_OTHER_YOY: null
+                    PARENT_OCI_BALANCE: null
+                    PARENT_OCI_BALANCE_YOY: null
+                    UNABLE_OCI: -165000000
+                    UNABLE_OCI_YOY: -235.2459016393
+                    CREDITRISK_FAIRVALUE_CHANGE: null
+                    CREDITRISK_FAIRVALUE_CHANGE_YOY: null
+                  - SECUCODE: 601088.SH
+                    SECURITY_CODE: '601088'
+                    SECURITY_NAME_ABBR: 中国神华
+                    ORG_CODE: '10032705'
+                    ORG_TYPE: 通用
+                    REPORT_DATE: '2025-12-31 00:00:00'
+                    REPORT_TYPE: 年报
+                    REPORT_DATE_NAME: 2025年报
+                    SECURITY_TYPE_CODE: 058001001
+                    NOTICE_DATE: '2026-03-31 00:00:00'
+                    UPDATE_DATE: '2026-03-31 00:00:00'
+                    CURRENCY: CNY
+                    TOTAL_OPERATE_INCOME: 294916000000
+                    TOTAL_OPERATE_INCOME_YOY: -13.2058813142
+                    OPERATE_INCOME: 294916000000
+                    OPERATE_INCOME_YOY: -13.2058813142
+                    INTEREST_INCOME: null
+                    INTEREST_INCOME_YOY: null
+                    EARNED_PREMIUM: null
+                    EARNED_PREMIUM_YOY: null
+                    FEE_COMMISSION_INCOME: null
+                    FEE_COMMISSION_INCOME_YOY: null
+                    OTHER_BUSINESS_INCOME: null
+                    OTHER_BUSINESS_INCOME_YOY: null
+                    TOI_OTHER: null
+                    TOI_OTHER_YOY: null
+                    TOTAL_OPERATE_COST: 223649000000
+                    TOTAL_OPERATE_COST_YOY: -12.8957002648
+                    OPERATE_COST: 191465000000
+                    OPERATE_COST_YOY: -14.4951612831
+                    INTEREST_EXPENSE: null
+                    INTEREST_EXPENSE_YOY: null
+                    FEE_COMMISSION_EXPENSE: null
+                    FEE_COMMISSION_EXPENSE_YOY: null
+                    RESEARCH_EXPENSE: 2854000000
+                    RESEARCH_EXPENSE_YOY: 4.1605839416
+                    SURRENDER_VALUE: null
+                    SURRENDER_VALUE_YOY: null
+                    NET_COMPENSATE_EXPENSE: null
+                    NET_COMPENSATE_EXPENSE_YOY: null
+                    NET_CONTRACT_RESERVE: null
+                    NET_CONTRACT_RESERVE_YOY: null
+                    POLICY_BONUS_EXPENSE: null
+                    POLICY_BONUS_EXPENSE_YOY: null
+                    REINSURE_EXPENSE: null
+                    REINSURE_EXPENSE_YOY: null
+                    OTHER_BUSINESS_COST: null
+                    OTHER_BUSINESS_COST_YOY: null
+                    OPERATE_TAX_ADD: 16978000000
+                    OPERATE_TAX_ADD_YOY: -6.8013394082
+                    SALE_EXPENSE: 527000000
+                    SALE_EXPENSE_YOY: -8.1881533101
+                    MANAGE_EXPENSE: 11380000000
+                    MANAGE_EXPENSE_YOY: 4.17429513
+                    ME_RESEARCH_EXPENSE: null
+                    ME_RESEARCH_EXPENSE_YOY: null
+                    FINANCE_EXPENSE: 445000000
+                    FINANCE_EXPENSE_YOY: 16.4921465969
+                    FE_INTEREST_EXPENSE: 2385000000
+                    FE_INTEREST_EXPENSE_YOY: -19.2346766001
+                    FE_INTEREST_INCOME: 2270000000
+                    FE_INTEREST_INCOME_YOY: -17.6043557169
+                    ASSET_IMPAIRMENT_LOSS: null
+                    ASSET_IMPAIRMENT_LOSS_YOY: null
+                    CREDIT_IMPAIRMENT_LOSS: null
+                    CREDIT_IMPAIRMENT_LOSS_YOY: null
+                    TOC_OTHER: null
+                    TOC_OTHER_YOY: null
+                    FAIRVALUE_CHANGE_INCOME: 1000000
+                    FAIRVALUE_CHANGE_INCOME_YOY: -50
+                    INVEST_INCOME: 4155000000
+                    INVEST_INCOME_YOY: -14.7167487685
+                    INVEST_JOINT_INCOME: 3762000000
+                    INVEST_JOINT_INCOME_YOY: -13.417721519
+                    NET_EXPOSURE_INCOME: null
+                    NET_EXPOSURE_INCOME_YOY: null
+                    EXCHANGE_INCOME: null
+                    EXCHANGE_INCOME_YOY: null
+                    ASSET_DISPOSAL_INCOME: 7000000
+                    ASSET_DISPOSAL_INCOME_YOY: -93.4579439252
+                    ASSET_IMPAIRMENT_INCOME: -191000000
+                    ASSET_IMPAIRMENT_INCOME_YOY: 83.1272084806
+                    CREDIT_IMPAIRMENT_INCOME: -4000000
+                    CREDIT_IMPAIRMENT_INCOME_YOY: 96.9465648855
+                    OTHER_INCOME: 297000000
+                    OTHER_INCOME_YOY: -11.6071428571
+                    OPERATE_PROFIT_OTHER: null
+                    OPERATE_PROFIT_OTHER_YOY: null
+                    OPERATE_PROFIT_BALANCE: 0
+                    OPERATE_PROFIT_BALANCE_YOY: null
+                    OPERATE_PROFIT: 75532000000
+                    OPERATE_PROFIT_YOY: -13.2633609701
+                    NONBUSINESS_INCOME: 685000000
+                    NONBUSINESS_INCOME_YOY: -17.7671068427
+                    NONCURRENT_DISPOSAL_INCOME: null
+                    NONCURRENT_DISPOSAL_INCOME_YOY: null
+                    NONBUSINESS_EXPENSE: -3122000000
+                    NONBUSINESS_EXPENSE_YOY: -162.6027671947
+                    NONCURRENT_DISPOSAL_LOSS: null
+                    NONCURRENT_DISPOSAL_LOSS_YOY: null
+                    EFFECT_TP_OTHER: null
+                    EFFECT_TP_OTHER_YOY: null
+                    TOTAL_PROFIT_BALANCE: 0
+                    TOTAL_PROFIT_BALANCE_YOY: null
+                    TOTAL_PROFIT: 79339000000
+                    TOTAL_PROFIT_YOY: -4.3278506656
+                    INCOME_TAX: 16556000000
+                    INCOME_TAX_YOY: -2.2033197472
+                    EFFECT_NETPROFIT_OTHER: null
+                    EFFECT_NETPROFIT_OTHER_YOY: null
+                    EFFECT_NETPROFIT_BALANCE: null
+                    EFFECT_NETPROFIT_BALANCE_YOY: null
+                    UNCONFIRM_INVEST_LOSS: null
+                    UNCONFIRM_INVEST_LOSS_YOY: null
+                    NETPROFIT: 62783000000
+                    NETPROFIT_YOY: -4.872801103
+                    PRECOMBINE_PROFIT: null
+                    PRECOMBINE_PROFIT_YOY: null
+                    CONTINUED_NETPROFIT: 62783000000
+                    CONTINUED_NETPROFIT_YOY: -4.872801103
+                    DISCONTINUED_NETPROFIT: null
+                    DISCONTINUED_NETPROFIT_YOY: null
+                    PARENT_NETPROFIT: 52849000000
+                    PARENT_NETPROFIT_YOY: -5.2970163964
+                    MINORITY_INTEREST: 9934000000
+                    MINORITY_INTEREST_YOY: -2.5505199137
+                    DEDUCT_PARENT_NETPROFIT: 48589000000
+                    DEDUCT_PARENT_NETPROFIT_YOY: -19.1866943867
+                    NETPROFIT_OTHER: null
+                    NETPROFIT_OTHER_YOY: null
+                    NETPROFIT_BALANCE: null
+                    NETPROFIT_BALANCE_YOY: null
+                    BASIC_EPS: 2.66
+                    BASIC_EPS_YOY: -5.3043787825
+                    DILUTED_EPS: 2.66
+                    DILUTED_EPS_YOY: -5.3043787825
+                    OTHER_COMPRE_INCOME: 16000000
+                    OTHER_COMPRE_INCOME_YOY: -97.4193548387
+                    PARENT_OCI: 94000000
+                    PARENT_OCI_YOY: -83.1238779174
+                    MINORITY_OCI: -78000000
+                    MINORITY_OCI_YOY: -223.8095238095
+                    PARENT_OCI_OTHER: null
+                    PARENT_OCI_OTHER_YOY: null
+                    PARENT_OCI_BALANCE: null
+                    PARENT_OCI_BALANCE_YOY: null
+                    UNABLE_OCI: 415000000
+                    UNABLE_OCI_YOY: 95.7547169811
+                    CREDITRISK_FAIRVALUE_CHANGE: null
+                    CREDITRISK_FAIRVALUE_CHANGE_YOY: null
+                  count: 81
+                success: true
+                message: ok
+                code: 0
+      parameters:
+      - name: type
+        in: query
+        required: true
+        schema:
+          type: string
+      - name: sty
+        in: query
+        required: true
+        schema:
+          type: string
+      - name: filter
+        in: query
+        required: true
+        schema:
+          type: string
+      - name: p
+        in: query
+        required: true
+        schema:
+          type: number
+      - name: ps
+        in: query
+        required: true
+        schema:
+          type: number
+      - name: sr
+        in: query
+        required: true
+        schema:
+          type: string
+      - name: st
+        in: query
+        required: true
+        schema:
+          type: string
+      - name: source
+        in: query
+        required: true
+        schema:
+          type: string
+      - name: client
+        in: query
+        required: true
+        schema:
+          type: string

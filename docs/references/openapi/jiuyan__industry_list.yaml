@@ -1,0 +1,204 @@
+openapi: 3.0.0
+info:
+  title: 韭研公社 产业研究接口
+  description: '韭研公社 APP 端产业研究列表，按关键词或全量分页获取行业研究报告。
+
+    POST 请求，Content-Type: application/json。
+
+    必填 Headers: token, cookie(SESSION), platform(3), timestamp(当前 Unix 毫秒时间戳)
+
+    timestamp 必须在请求发送时动态计算，例如 Python 中使用 str(int(time.time() * 1000)); 不要写死固定值。
+
+    配额: 无限制。
+
+
+    ## 分页
+
+    - 翻页必须以 hasNext=false 为准，不要依赖 totalCount/totalPages（不可靠）
+
+    - start 参数: "0" 和 "1" 都返回第 1 页
+
+    - 翻页状态机: 第一次请求 start="0"; 若当前响应 hasNext=true, 下一次请求 start 使用当前响应 nextPage 的字符串值; 若当前响应 hasNext=false, 停止翻页
+
+    - 不要用本地页码、自增计数器或 start + 1 推导下一页
+
+    - 建议 limit=500
+
+
+    ## totalCount / totalPages 不可靠
+
+    totalCount ≈ pageNo × limit + 1，与实际数据量无关。翻页务必以 hasNext=false 为准。
+
+
+    ## keyword 搜索
+
+    keyword 参数执行多字段模糊匹配（标题+正文+关联股票字段）。
+
+    - imgs 是 JSON 字符串而非数组，需二次解析
+
+    - 标题日期格式 YYMMDD（如 260422 = 2026-04-22）'
+  version: 1.0.0
+servers:
+- url: https://app.jiuyangongshe.com
+  description: The default server
+security:
+- JIUYANAuth: []
+paths:
+  /jystock-app/api/v1/industry/list:
+    post:
+      summary: 获取产业研究列表
+      operationId: getIndustryList
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+              - start
+              - limit
+              properties:
+                keyword:
+                  type: string
+                  description: 关键词搜索（多字段模糊匹配：标题、正文、关键词），空字符串返回全部
+                  example: 光通信
+                start:
+                  type: string
+                  description: 页码参数。"0"和"1"都返回第1页；下一页使用响应中的nextPage
+                  example: '0'
+                limit:
+                  type: string
+                  description: 每页条数，建议"500"
+                  example: '500'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  errCode:
+                    type: string
+                    description: '"0" = 成功'
+                  msg:
+                    type: string
+                    description: 状态消息
+                  serverTime:
+                    type: integer
+                    description: 服务端时间戳
+                  data:
+                    type: object
+                    properties:
+                      pageNo:
+                        type: integer
+                        description: 当前页码（start=0 和 start=1 都返回 1）
+                      pageSize:
+                        type: integer
+                        description: 每页条数（与请求 limit 一致）
+                      totalCount:
+                        type: integer
+                        description: 总记录数（不可靠，翻页不要依赖此字段）
+                      totalPages:
+                        type: integer
+                        description: 总页数（不可靠，翻页不要依赖此字段）
+                      hasNext:
+                        type: boolean
+                        description: 是否有下一页（翻页唯一可靠依据）
+                      nextPage:
+                        type: integer
+                        description: 下一页页码
+                      hasPre:
+                        type: boolean
+                        description: 是否有上一页
+                      prePage:
+                        type: integer
+                        description: 上一页页码
+                      first:
+                        type: integer
+                        description: 首页页码（始终为 1）
+                      orderBy:
+                        type: string
+                        nullable: true
+                        description: 未使用（始终为 null）
+                      order:
+                        type: string
+                        nullable: true
+                        description: 未使用（始终为 null）
+                      autoCount:
+                        type: boolean
+                        description: 服务端是否自动计算总数（始终为 true）
+                      map:
+                        type: string
+                        nullable: true
+                        description: 未使用（始终为 null）
+                      params:
+                        type: string
+                        description: 未使用（始终为空字符串）
+                      result:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            industry_id:
+                              type: string
+                              description: 产业研究唯一 ID
+                            title_red:
+                              type: integer
+                              description: 标题是否红色（1=是）
+                            title_bold:
+                              type: integer
+                              description: 标题是否加粗（1=是）
+                            title:
+                              type: string
+                              description: 标题，格式 题材名(YYMMDD) 或 题材名(YYMMDD)更新
+                            author:
+                              type: string
+                              nullable: true
+                              description: 作者
+                            imgs:
+                              type: string
+                              description: 图片 URL 数组的 JSON 字符串，需二次解析
+                            keyword:
+                              type: string
+                              description: 关联股票/关键词，制表符 \t 分隔
+                            content:
+                              type: string
+                              description: 正文（多行纯文本）
+                            is_top:
+                              type: integer
+                              description: 是否置顶（1 = 置顶，排在最前）
+                            status:
+                              type: integer
+                              description: 状态标志
+                            sort_no:
+                              type: integer
+                              description: 排序序号
+                            forward_count:
+                              type: integer
+                              description: 转发数
+                            browsers_count:
+                              type: integer
+                              description: 浏览数
+                            is_delete:
+                              type: string
+                              description: '"0" = 未删除'
+                            delete_time:
+                              type: string
+                              nullable: true
+                              description: 删除时间
+                            create_time:
+                              type: string
+                              description: 首次发布时间 YYYY-MM-DD HH:mm:ss
+                            update_time:
+                              type: string
+                              description: 最后更新时间
+                        description: 返回数据
+                    description: 返回数据
+components:
+  securitySchemes:
+    JIUYANAuth:
+      type: apiKey
+      in: header
+      name: token
+      description: '必填 Headers: token, cookie(SESSION), platform(3), timestamp(当前 Unix 毫秒时间戳；请求发送时动态计算，不要写死固定值)'

@@ -1,0 +1,193 @@
+openapi: 3.0.0
+info:
+  title: 东方财富 F10 配股明细
+  description: '东方财富数据中心接口。使用 `data/v1/get`，参数名: `reportName/pageNumber/pageSize/sortColumns/sortTypes`。无需认证。
+
+    ## Filter DSL
+
+    - 按证券代码: `(SECUCODE="601088.SH")`
+
+    - 按证券代码批量: `(SECUCODE in ("601088.SH","000001.SZ"))`
+
+    - 按报告期区间: `(REPORT_DATE>=''2025-01-01'')(REPORT_DATE<=''2025-12-31'')`
+
+    - 按公告日期区间: `(NOTICE_DATE>=''2025-01-01'')(NOTICE_DATE<=''2025-12-31'')`
+
+    ## 排序
+
+    - 多字段排序避免分页重复: `st=REPORT_DATE,SECURITY_CODE&sr=-1,-1`
+
+    '
+  version: 1.1.0
+servers:
+- url: https://datacenter.eastmoney.com
+  description: The default server
+paths:
+  /securities/api/data/v1/get:
+    get:
+      summary: 获取配股明细数据
+      description: '东方财富 F10 配股明细接口。
+
+        无需认证，直接 GET 请求。
+
+        注意: 当无数据时返回 `result: null, code: 9201`。
+
+        '
+      operationId: getDividendAllotment
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  version:
+                    type: string
+                    nullable: true
+                    description: 数据版本标识
+                  result:
+                    type: object
+                    nullable: true
+                    properties:
+                      pages:
+                        type: number
+                        description: 总页数
+                      data:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            SECUCODE:
+                              type: string
+                              description: 证券代码（含市场后缀）
+                            SECURITY_CODE:
+                              type: string
+                              description: 证券代码（纯数字）
+                            SECURITY_NAME_ABBR:
+                              type: string
+                              description: 证券简称
+                            NOTICE_DATE:
+                              type: string
+                              description: 公告日期
+                            ISSUE_NUM:
+                              type: number
+                              description: 配股数量
+                            TOTAL_RAISE_FUNDS:
+                              type: number
+                              description: 配股募集资金总额
+                            ISSUE_PRICE:
+                              type: number
+                              description: 配股价格
+                            EQUITY_RECORD_DATE:
+                              type: string
+                              description: 股权登记日
+                            EX_DIVIDEND_DATEE:
+                              type: string
+                              description: 除权除息日
+                            EVENT_EXPLAIN:
+                              type: string
+                              description: 配股方案说明（如 "每10股配3股"）
+                        description: 返回数据
+                      count:
+                        type: number
+                        description: 总记录数
+                    description: 返回数据（无数据时为 null）
+                  success:
+                    type: boolean
+                    description: 请求是否成功
+                  message:
+                    type: string
+                    description: 状态消息
+                  code:
+                    type: number
+                    description: '状态码，0 = 正常；9201 + result=null 表示空响应（无配股历史）'
+              example:
+                version: e61a8392fe1be58de71e560163954d00
+                result:
+                  pages: 1
+                  data:
+                  - SECUCODE: 000001.SZ
+                    SECURITY_CODE: '000001'
+                    SECURITY_NAME_ABBR: 平安银行
+                    NOTICE_DATE: '2000-10-21 00:00:00'
+                    ISSUE_NUM: 393975057
+                    TOTAL_RAISE_FUNDS: 3151800456
+                    ISSUE_PRICE: 8
+                    EQUITY_RECORD_DATE: '2000-11-03 00:00:00'
+                    EX_DIVIDEND_DATEE: '2000-11-06 00:00:00'
+                    EVENT_EXPLAIN: 每10股配3股
+                  count: 3
+                success: true
+                message: ok
+                code: 0
+      parameters:
+      - name: reportName
+        in: query
+        required: true
+        description: 报表标识，固定值 RPT_F10_DIVIDEND_ALLOTMENT
+        schema:
+          type: string
+          example: RPT_F10_DIVIDEND_ALLOTMENT
+      - name: columns
+        in: query
+        required: true
+        description: 返回字段，ALL 表示全部
+        schema:
+          type: string
+          example: ALL
+      - name: filter
+        in: query
+        required: true
+        description: 'DataCenter DSL 过滤条件。
+
+          - 按证券代码: `(SECUCODE="601088.SH")`
+
+          - 按报告期区间: `(REPORT_DATE>=''2024-01-01'')(REPORT_DATE<=''2024-12-31'')`
+
+          '
+        schema:
+          type: string
+          example: (SECUCODE="000001.SZ")
+      - name: pageNumber
+        in: query
+        required: true
+        description: 页码，从 1 开始
+        schema:
+          type: integer
+          example: 1
+      - name: pageSize
+        in: query
+        required: true
+        description: 每页条数
+        schema:
+          type: integer
+          example: 5
+      - name: sortColumns
+        in: query
+        required: true
+        description: 排序字段
+        schema:
+          type: string
+          example: NOTICE_DATE
+      - name: sortTypes
+        in: query
+        required: true
+        description: 排序方向，-1 降序
+        schema:
+          type: string
+          example: '-1'
+      - name: source
+        in: query
+        required: true
+        description: 数据来源标识
+        schema:
+          type: string
+          example: HSF10
+      - name: client
+        in: query
+        required: true
+        description: 客户端标识
+        schema:
+          type: string
+          example: PC

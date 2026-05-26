@@ -1,0 +1,364 @@
+openapi: 3.0.0
+info:
+  title: 东方财富 F10 分红方案明细
+  description: '东方财富数据中心接口。使用 `data/v1/get`，参数名: `reportName/pageNumber/pageSize/sortColumns/sortTypes`。无需认证。
+
+    ## Filter DSL
+
+    - 按证券代码: `(SECUCODE="601088.SH")`
+
+    - 按证券代码批量: `(SECUCODE in ("601088.SH","000001.SZ"))`
+
+    - 按报告期区间: `(REPORT_DATE>=''2025-01-01'')(REPORT_DATE<=''2025-12-31'')`
+
+    - 按公告日期区间: `(NOTICE_DATE>=''2025-01-01'')(NOTICE_DATE<=''2025-12-31'')`
+
+    ## 排序
+
+    - 多字段排序避免分页重复: `st=REPORT_DATE,SECURITY_CODE&sr=-1,-1`
+
+    '
+  version: 1.0.0
+servers:
+- url: https://datacenter.eastmoney.com
+  description: The default server
+paths:
+  /securities/api/data/v1/get:
+    get:
+      summary: GET v1 get
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  version:
+                    type: string
+                    description: 数据版本标识
+                  result:
+                    type: object
+                    properties:
+                      pages:
+                        type: number
+                        description: 总页数
+                      data:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            SECUCODE:
+                              type: string
+                              description: 证券代码（含市场后缀）
+                            SECURITY_CODE:
+                              type: string
+                              description: 证券代码（纯数字）
+                            SECURITY_NAME_ABBR:
+                              type: string
+                              description: 证券简称
+                            NOTICE_DATE:
+                              type: string
+                              description: 公告日期
+                            IMPL_PLAN_PROFILE:
+                              type: string
+                              description: 分红方案简述
+                            ASSIGN_PROGRESS:
+                              type: string
+                              description: 分配进度
+                            EQUITY_RECORD_DATE:
+                              type: number
+                              nullable: true
+                              description: 股权登记日
+                            EX_DIVIDEND_DATE:
+                              type: number
+                              nullable: true
+                              description: 除权除息日
+                            PAY_CASH_DATE:
+                              type: number
+                              nullable: true
+                              description: 派息日
+                            IS_UNASSIGN:
+                              type: string
+                              description: 是否不分配："0" 否，"1" 是
+                            REPORT_DATE:
+                              type: string
+                              description: 报告期
+                            ASSIGN_OBJECT:
+                              type: string
+                              description: 分配对象
+                            IMPL_PLAN_NEWPROFILE:
+                              type: string
+                              description: 方案简介 + 进度后缀
+                            NEW_PROFILE:
+                              type: string
+                              description: 分红方案（含税）
+                            GMDECISION_NOTICE_DATE:
+                              type: number
+                              nullable: true
+                              description: 股东大会决议公告日
+                            INFO_CODE:
+                              type: string
+                              description: 公告编号
+                            DAT_YAGGR:
+                              type: string
+                              description: 年度股东大会日期
+                            TOTAL_DIVIDEND:
+                              type: number
+                              description: 分红总额（元）
+                            TOTAL_DIVIDEND_A:
+                              type: number
+                              description: A股分红总额（元）
+                            REPORT_TIME:
+                              type: string
+                              description: 报告期截止日
+                            DAT_YAGGR_TODAY:
+                              type: string
+                              description: 是否今日年度股东大会
+                            NOTICE_TODAY:
+                              type: string
+                              description: 是否今日公告
+                            GMDECISION_TODAY:
+                              type: string
+                              description: 是否今日股东大会决议
+                            DIRECTORSUPERVISOR_TODAY:
+                              type: string
+                              description: 是否今日监事会决议
+                            EQUITY_TODAY:
+                              type: string
+                              description: 是否今日股权登记
+                            EX_DIVIDEND_TODAY:
+                              type: string
+                              description: 是否今日除权除息
+                            PAYCASH_TODAY:
+                              type: string
+                              description: 是否今日派息
+                            IS_PAYCASH:
+                              type: string
+                              description: 是否派息
+                            IS_EQUITY_RECENT:
+                              type: string
+                              description: 是否近期股权登记
+                            LAST_TRADE_DATE:
+                              type: number
+                              nullable: true
+                              description: 最后交易日
+                        description: 返回数据
+                      count:
+                        type: number
+                        description: 总记录数
+                    description: 返回数据
+                  success:
+                    type: boolean
+                    description: 请求是否成功
+                  message:
+                    type: string
+                    description: 状态消息
+                  code:
+                    type: number
+                    description: 0 = 正常；9201 + result=null 表示空响应
+              example:
+                version: fee40296f0c0d924ded0eadf93893a7c
+                result:
+                  pages: 8
+                  data:
+                  - SECUCODE: 601088.SH
+                    SECURITY_CODE: '601088'
+                    SECURITY_NAME_ABBR: 中国神华
+                    NOTICE_DATE: '2026-03-31 00:00:00'
+                    IMPL_PLAN_PROFILE: 10派10.3元
+                    ASSIGN_PROGRESS: 董事会预案
+                    EQUITY_RECORD_DATE: null
+                    EX_DIVIDEND_DATE: null
+                    PAY_CASH_DATE: null
+                    IS_UNASSIGN: '0'
+                    REPORT_DATE: 2025年报
+                    ASSIGN_OBJECT: 全体股东
+                    IMPL_PLAN_NEWPROFILE: 10派10.3元
+                    NEW_PROFILE: 10派10.3元(含税)
+                    GMDECISION_NOTICE_DATE: null
+                    INFO_CODE: AN202603301820880241
+                    DAT_YAGGR: '2026-03-31 00:00:00'
+                    TOTAL_DIVIDEND: 19471149555.9
+                    TOTAL_DIVIDEND_A: 16161217195.9
+                    REPORT_TIME: '2025-12-31 00:00:00'
+                    DAT_YAGGR_TODAY: '0'
+                    NOTICE_TODAY: '0'
+                    GMDECISION_TODAY: '0'
+                    DIRECTORSUPERVISOR_TODAY: '0'
+                    EQUITY_TODAY: '0'
+                    EX_DIVIDEND_TODAY: '0'
+                    PAYCASH_TODAY: '0'
+                    IS_PAYCASH: '0'
+                    IS_EQUITY_RECENT: '0'
+                    LAST_TRADE_DATE: null
+                  - SECUCODE: 601088.SH
+                    SECURITY_CODE: '601088'
+                    SECURITY_NAME_ABBR: 中国神华
+                    NOTICE_DATE: '2025-11-04 00:00:00'
+                    IMPL_PLAN_PROFILE: 10派9.8元
+                    ASSIGN_PROGRESS: 实施方案
+                    EQUITY_RECORD_DATE: '2025-11-07 00:00:00'
+                    EX_DIVIDEND_DATE: '2025-11-10 00:00:00'
+                    PAY_CASH_DATE: '2025-11-10 00:00:00'
+                    IS_UNASSIGN: '0'
+                    REPORT_DATE: 2025半年报
+                    ASSIGN_OBJECT: A股股东
+                    IMPL_PLAN_NEWPROFILE: 10派9.8元(实施方案)
+                    NEW_PROFILE: 10派9.8元(含税)
+                    GMDECISION_NOTICE_DATE: '2025-10-25 00:00:00'
+                    INFO_CODE: AN202511031774433064
+                    DAT_YAGGR: '2025-08-30 00:00:00'
+                    TOTAL_DIVIDEND: 19471149555.9
+                    TOTAL_DIVIDEND_A: 16161217195.9
+                    REPORT_TIME: '2025-06-30 00:00:00'
+                    DAT_YAGGR_TODAY: '0'
+                    NOTICE_TODAY: '0'
+                    GMDECISION_TODAY: '0'
+                    DIRECTORSUPERVISOR_TODAY: '0'
+                    EQUITY_TODAY: '0'
+                    EX_DIVIDEND_TODAY: '0'
+                    PAYCASH_TODAY: '0'
+                    IS_PAYCASH: '0'
+                    IS_EQUITY_RECENT: '0'
+                    LAST_TRADE_DATE: null
+                  - SECUCODE: 601088.SH
+                    SECURITY_CODE: '601088'
+                    SECURITY_NAME_ABBR: 中国神华
+                    NOTICE_DATE: '2025-06-30 00:00:00'
+                    IMPL_PLAN_PROFILE: 10派22.6元
+                    ASSIGN_PROGRESS: 实施方案
+                    EQUITY_RECORD_DATE: '2025-07-04 00:00:00'
+                    EX_DIVIDEND_DATE: '2025-07-07 00:00:00'
+                    PAY_CASH_DATE: '2025-07-07 00:00:00'
+                    IS_UNASSIGN: '0'
+                    REPORT_DATE: 2024年报
+                    ASSIGN_OBJECT: A股股东
+                    IMPL_PLAN_NEWPROFILE: 10派22.6元(实施方案)
+                    NEW_PROFILE: 10派22.6元(含税)
+                    GMDECISION_NOTICE_DATE: '2025-06-21 00:00:00'
+                    INFO_CODE: AN202506291699764326
+                    DAT_YAGGR: '2025-03-22 00:00:00'
+                    TOTAL_DIVIDEND: 44902855098.3
+                    TOTAL_DIVIDEND_A: 37269745778.3
+                    REPORT_TIME: '2024-12-31 00:00:00'
+                    DAT_YAGGR_TODAY: '0'
+                    NOTICE_TODAY: '0'
+                    GMDECISION_TODAY: '0'
+                    DIRECTORSUPERVISOR_TODAY: '0'
+                    EQUITY_TODAY: '0'
+                    EX_DIVIDEND_TODAY: '0'
+                    PAYCASH_TODAY: '0'
+                    IS_PAYCASH: '0'
+                    IS_EQUITY_RECENT: '0'
+                    LAST_TRADE_DATE: null
+                  - SECUCODE: 601088.SH
+                    SECURITY_CODE: '601088'
+                    SECURITY_NAME_ABBR: 中国神华
+                    NOTICE_DATE: '2024-08-31 00:00:00'
+                    IMPL_PLAN_PROFILE: 不分配不转增
+                    ASSIGN_PROGRESS: 董事会预案
+                    EQUITY_RECORD_DATE: null
+                    EX_DIVIDEND_DATE: null
+                    PAY_CASH_DATE: null
+                    IS_UNASSIGN: '1'
+                    REPORT_DATE: 2024半年报
+                    ASSIGN_OBJECT: null
+                    IMPL_PLAN_NEWPROFILE: 不分配不转增
+                    NEW_PROFILE: 不分配不转增
+                    GMDECISION_NOTICE_DATE: null
+                    INFO_CODE: AN202408301639647357
+                    DAT_YAGGR: null
+                    TOTAL_DIVIDEND: 44902855098.3
+                    TOTAL_DIVIDEND_A: 37269745778.3
+                    REPORT_TIME: '2024-06-30 00:00:00'
+                    DAT_YAGGR_TODAY: '0'
+                    NOTICE_TODAY: '0'
+                    GMDECISION_TODAY: '0'
+                    DIRECTORSUPERVISOR_TODAY: '0'
+                    EQUITY_TODAY: '0'
+                    EX_DIVIDEND_TODAY: '0'
+                    PAYCASH_TODAY: '0'
+                    IS_PAYCASH: '0'
+                    IS_EQUITY_RECENT: '0'
+                    LAST_TRADE_DATE: null
+                  - SECUCODE: 601088.SH
+                    SECURITY_CODE: '601088'
+                    SECURITY_NAME_ABBR: 中国神华
+                    NOTICE_DATE: '2024-07-01 00:00:00'
+                    IMPL_PLAN_PROFILE: 10派22.6元
+                    ASSIGN_PROGRESS: 实施方案
+                    EQUITY_RECORD_DATE: '2024-07-05 00:00:00'
+                    EX_DIVIDEND_DATE: '2024-07-08 00:00:00'
+                    PAY_CASH_DATE: '2024-07-08 00:00:00'
+                    IS_UNASSIGN: '0'
+                    REPORT_DATE: 2023年报
+                    ASSIGN_OBJECT: A股股东
+                    IMPL_PLAN_NEWPROFILE: 10派22.6元(实施方案)
+                    NEW_PROFILE: 10派22.6元(含税)
+                    GMDECISION_NOTICE_DATE: '2024-06-22 00:00:00'
+                    INFO_CODE: AN202406301637107523
+                    DAT_YAGGR: '2024-03-23 00:00:00'
+                    TOTAL_DIVIDEND: 44902855098.3
+                    TOTAL_DIVIDEND_A: 37269745778.3
+                    REPORT_TIME: '2023-12-31 00:00:00'
+                    DAT_YAGGR_TODAY: '0'
+                    NOTICE_TODAY: '0'
+                    GMDECISION_TODAY: '0'
+                    DIRECTORSUPERVISOR_TODAY: '0'
+                    EQUITY_TODAY: '0'
+                    EX_DIVIDEND_TODAY: '0'
+                    PAYCASH_TODAY: '0'
+                    IS_PAYCASH: '0'
+                    IS_EQUITY_RECENT: '0'
+                    LAST_TRADE_DATE: null
+                  count: 38
+                success: true
+                message: ok
+                code: 0
+      parameters:
+      - name: reportName
+        in: query
+        required: true
+        schema:
+          type: string
+      - name: columns
+        in: query
+        required: true
+        schema:
+          type: string
+      - name: filter
+        in: query
+        required: true
+        schema:
+          type: string
+      - name: pageNumber
+        in: query
+        required: true
+        schema:
+          type: number
+      - name: pageSize
+        in: query
+        required: true
+        schema:
+          type: number
+      - name: sortTypes
+        in: query
+        required: true
+        schema:
+          type: string
+      - name: sortColumns
+        in: query
+        required: true
+        schema:
+          type: string
+      - name: source
+        in: query
+        required: true
+        schema:
+          type: string
+      - name: client
+        in: query
+        required: true
+        schema:
+          type: string

@@ -1,0 +1,697 @@
+openapi: 3.0.0
+info:
+  title: 东方财富 F10 股本变动历史
+  description: '东方财富数据中心接口。使用 `data/v1/get`，参数名: `reportName/pageNumber/pageSize/sortColumns/sortTypes`。无需认证。
+
+    ## Filter DSL
+
+    - 按证券代码: `(SECUCODE="601088.SH")`
+
+    - 按证券代码批量: `(SECUCODE in ("601088.SH","000001.SZ"))`
+
+    - 按报告期区间: `(REPORT_DATE>=''2025-01-01'')(REPORT_DATE<=''2025-12-31'')`
+
+    - 按公告日期区间: `(NOTICE_DATE>=''2025-01-01'')(NOTICE_DATE<=''2025-12-31'')`
+
+    ## 排序
+
+    - 多字段排序避免分页重复: `st=REPORT_DATE,SECURITY_CODE&sr=-1,-1`
+
+    '
+  version: 1.0.0
+servers:
+- url: https://datacenter.eastmoney.com
+  description: The default server
+paths:
+  /securities/api/data/v1/get:
+    get:
+      summary: GET v1 get
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  version:
+                    type: string
+                    description: 数据版本标识
+                  result:
+                    type: object
+                    properties:
+                      pages:
+                        type: number
+                        description: 总页数
+                      data:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            SECUCODE:
+                              type: string
+                              description: 证券代码（含市场后缀）
+                            SECURITY_CODE:
+                              type: string
+                              description: 证券代码（纯数字）
+                            ORG_CODE:
+                              type: string
+                              description: 机构代码
+                            END_DATE:
+                              type: string
+                              description: 股本变动截止日
+                            CHANGE_REASON:
+                              type: string
+                              description: 变动原因
+                            LIMITED_SHARES:
+                              type: number
+                              description: 有限售条件股份
+                            UNLIMITED_SHARES:
+                              type: number
+                              description: 无限售条件股份（已流通）
+                            TOTAL_SHARES:
+                              type: number
+                              description: 总股本
+                            LIMITED_SHARES_RATIO:
+                              type: number
+                              description: 限售股比例（%）
+                            LISTED_SHARES_RATIO:
+                              type: number
+                              description: 已流通股比例（%）
+                            TOTAL_SHARES_RATIO:
+                              type: string
+                              description: 总股本比例(%)
+                            LISTED_A_SHARES:
+                              type: number
+                              description: 已上市流通 A 股
+                            LIMITED_A_SHARES:
+                              type: number
+                              description: 限售 A 股
+                            LISTED_A_SHARES_RATIO:
+                              type: number
+                              description: A 股流通比例（%）
+                            LIMITED_A_SHARES_RATIO:
+                              type: number
+                              description: 限售A股比例(%)
+                            B_FREE_SHARE:
+                              type: number
+                              nullable: true
+                              description: 已上市流通 B 股
+                            H_FREE_SHARE:
+                              type: number
+                              description: 已上市流通 H 股
+                            B_FREE_SHARE_RATIO:
+                              type: number
+                              nullable: true
+                              description: B股流通比例(%)
+                            H_FREE_SHARE_RATIO:
+                              type: number
+                              description: H 股流通比例（%）
+                            SECURITY_TYPE_CODE:
+                              type: string
+                              description: 证券类型代码
+                            NON_FREE_SHARES:
+                              type: number
+                              nullable: true
+                              description: 非自由流通股
+                            NON_FREESHARES_RATIO:
+                              type: number
+                              nullable: true
+                              description: 非流通股比例(%)
+                            LIMITED_B_SHARES:
+                              type: number
+                              nullable: true
+                              description: 限售 B 股
+                            LIMITED_BSHARES_RATIO:
+                              type: number
+                              nullable: true
+                              description: 限售B股比例(%)
+                            OTHER_FREE_SHARES:
+                              type: number
+                              nullable: true
+                              description: 其他已上市流通股
+                            OTHER_FREESHARES_RATIO:
+                              type: number
+                              nullable: true
+                              description: 其他流通股比例(%)
+                            LIMITED_STATE_SHARES:
+                              type: number
+                              description: 国家持股（限售）
+                            LIMITED_STATE_LEGAL:
+                              type: number
+                              nullable: true
+                              description: 国有法人持股（限售）
+                            LIMITED_OTHARS:
+                              type: number
+                              description: 其他限售股份
+                            LIMITED_DOMESTIC_NOSTATE:
+                              type: number
+                              description: 境内非国有法人持股（限售）
+                            LIMITED_DOMESTIC_NATURAL:
+                              type: number
+                              description: 境内自然人持股（限售）
+                            LOCK_SHARES:
+                              type: number
+                              nullable: true
+                              description: 锁定股份
+                            LIMITED_FOREIGN_SHARES:
+                              type: number
+                              description: 外资持股（限售）
+                            LIMITED_OVERSEAS_NOSTATE:
+                              type: number
+                              description: 境外非国有法人持股（限售）
+                            LIMITED_OVERSEAS_NATURAL:
+                              type: number
+                              nullable: true
+                              description: 境外自然人持股（限售）
+                            LIMITED_H_SHARES:
+                              type: number
+                              nullable: true
+                              description: 限售 H 股
+                            SPONSOR_SHARES:
+                              type: number
+                              nullable: true
+                              description: 发起人股份
+                            STATE_SPONSOR_SHARES:
+                              type: number
+                              nullable: true
+                              description: 国家发起人股份
+                            SPONSOR_SOCIAL_SHARES:
+                              type: number
+                              nullable: true
+                              description: 社会发起人股份
+                            RAISE_SHARES:
+                              type: number
+                              nullable: true
+                              description: 募集法人股份
+                            RAISE_STATE_SHARES:
+                              type: number
+                              nullable: true
+                              description: 国家募集法人股份
+                            RAISE_DOMESTIC_SHARES:
+                              type: number
+                              nullable: true
+                              description: 境内募集法人股份
+                            RAISE_OVERSEAS_SHARES:
+                              type: number
+                              nullable: true
+                              description: 境外募集法人股份
+                            NOTICE_DATE:
+                              type: string
+                              description: 公告披露日
+                            LISTING_DATE:
+                              type: string
+                              description: 上市流通日期
+                            LIMITED_SHARES_CHANGE:
+                              type: number
+                              description: 限售股变动量
+                            UNLIMITED_SHARES_CHANGE:
+                              type: number
+                              description: 流通股变动量
+                            TOTAL_SHARES_CHANGE:
+                              type: number
+                              description: 总股本变动量
+                            LISTED_ASHARES_CHANGE:
+                              type: number
+                              description: 已上市流通A股变动量
+                            LIMITED_ASHARES_CHANGE:
+                              type: number
+                              description: 限售A股变动量
+                            B_FREESHARE_CHANGE:
+                              type: number
+                              nullable: true
+                              description: B股流通变动量
+                            H_FREESHARE_CHANGE:
+                              type: number
+                              description: H股流通变动量
+                            LIMITED_BSHARES_CHANGE:
+                              type: number
+                              description: 限售B股变动量
+                            NONFREE_SHARES_CHANGE:
+                              type: number
+                              nullable: true
+                              description: 非流通股变动量
+                            OTHERFREE_SHARES_CHANGE:
+                              type: number
+                              nullable: true
+                              description: 其他流通股变动量
+                            FREE_SHARES:
+                              type: number
+                              description: 流通股（通常 = TOTAL_SHARES）
+                            CHANGE_REASON_EXPLAIN:
+                              type: string
+                              description: 变动原因详细说明
+                            LIMITED_H_SHARES_RATIO:
+                              type: number
+                              nullable: true
+                              description: 限售H股比例(%)
+                            LIMITED_H_SHARES_CHANGE:
+                              type: number
+                              nullable: true
+                              description: 限售H股变动量
+                            IS_FREE_WINDOW:
+                              type: string
+                              description: 是否为自由流通窗口
+                            IS_LIMITED_WINDOW:
+                              type: string
+                              description: 是否限售窗口
+                            LISTED_A_RATIOPC:
+                              type: number
+                              description: A 股占已流通比例（%）
+                            LISTED_B_RATIOPC:
+                              type: number
+                              nullable: true
+                              description: B股占已流通比例(%)
+                            LISTED_H_RATIOPC:
+                              type: number
+                              description: H 股占已流通比例（%）
+                            LISTED_OTHER_RATIOPC:
+                              type: number
+                              nullable: true
+                              description: 其他占已流通比例(%)
+                            LISTED_SUM_RATIOPC:
+                              type: number
+                              description: 合计占已流通比例(%)
+                            MARKET_CODE:
+                              type: string
+                              description: 市场代码
+                            IS_USE:
+                              type: string
+                              description: 是否有效
+                            SECURITY_NAME_ABBR:
+                              type: string
+                              description: 证券简称
+                        description: 返回数据
+                      count:
+                        type: number
+                        description: 总记录数
+                    description: 返回数据
+                  success:
+                    type: boolean
+                    description: 请求是否成功
+                  message:
+                    type: string
+                    description: 状态消息
+                  code:
+                    type: number
+                    description: 0 = 正常；9201 + result=null 表示空响应
+              example:
+                version: a536fb5e86b7dc5e39d85420f89bd12d
+                result:
+                  pages: 2
+                  data:
+                  - SECUCODE: 601088.SH
+                    SECURITY_CODE: '601088'
+                    ORG_CODE: '10032705'
+                    END_DATE: '2026-04-07 00:00:00'
+                    CHANGE_REASON: 增发A股上市
+                    LIMITED_SHARES: 1820914349
+                    UNLIMITED_SHARES: 19868519955
+                    TOTAL_SHARES: 21689434304
+                    LIMITED_SHARES_RATIO: 8.395398070222
+                    LISTED_SHARES_RATIO: 91.604601929778
+                    TOTAL_SHARES_RATIO: '100.00'
+                    LISTED_A_SHARES: 16491037955
+                    LIMITED_A_SHARES: 1820914349
+                    LISTED_A_SHARES_RATIO: 76.032586760267
+                    LIMITED_A_SHARES_RATIO: 8.395398070222
+                    B_FREE_SHARE: null
+                    H_FREE_SHARE: 3377482000
+                    B_FREE_SHARE_RATIO: null
+                    H_FREE_SHARE_RATIO: 15.572015169511
+                    SECURITY_TYPE_CODE: 058001001
+                    NON_FREE_SHARES: null
+                    NON_FREESHARES_RATIO: null
+                    LIMITED_B_SHARES: null
+                    LIMITED_BSHARES_RATIO: null
+                    OTHER_FREE_SHARES: null
+                    OTHER_FREESHARES_RATIO: null
+                    LIMITED_STATE_SHARES: 1363248446
+                    LIMITED_STATE_LEGAL: null
+                    LIMITED_OTHARS: 436842105
+                    LIMITED_DOMESTIC_NOSTATE: 423569794
+                    LIMITED_DOMESTIC_NATURAL: 13272311
+                    LOCK_SHARES: null
+                    LIMITED_FOREIGN_SHARES: 20823798
+                    LIMITED_OVERSEAS_NOSTATE: 20823798
+                    LIMITED_OVERSEAS_NATURAL: null
+                    LIMITED_H_SHARES: null
+                    SPONSOR_SHARES: null
+                    STATE_SPONSOR_SHARES: null
+                    SPONSOR_SOCIAL_SHARES: null
+                    RAISE_SHARES: null
+                    RAISE_STATE_SHARES: null
+                    RAISE_DOMESTIC_SHARES: null
+                    RAISE_OVERSEAS_SHARES: null
+                    NOTICE_DATE: '2026-04-09 00:00:00'
+                    LISTING_DATE: '2026-04-08 00:00:00'
+                    LIMITED_SHARES_CHANGE: 457665903
+                    UNLIMITED_SHARES_CHANGE: 0
+                    TOTAL_SHARES_CHANGE: 457665903
+                    LISTED_ASHARES_CHANGE: 0
+                    LIMITED_ASHARES_CHANGE: 457665903
+                    B_FREESHARE_CHANGE: null
+                    H_FREESHARE_CHANGE: 0
+                    LIMITED_BSHARES_CHANGE: 0
+                    NONFREE_SHARES_CHANGE: null
+                    OTHERFREE_SHARES_CHANGE: null
+                    FREE_SHARES: 21689434304
+                    CHANGE_REASON_EXPLAIN: 非公开增发A股上市
+                    LIMITED_H_SHARES_RATIO: null
+                    LIMITED_H_SHARES_CHANGE: null
+                    IS_FREE_WINDOW: '1'
+                    IS_LIMITED_WINDOW: '0'
+                    LISTED_A_RATIOPC: 83.000837467262
+                    LISTED_B_RATIOPC: null
+                    LISTED_H_RATIOPC: 16.999162532738
+                    LISTED_OTHER_RATIOPC: null
+                    LISTED_SUM_RATIOPC: 100
+                    MARKET_CODE: '1'
+                    IS_USE: '1'
+                    SECURITY_NAME_ABBR: 中国神华
+                  - SECUCODE: 601088.SH
+                    SECURITY_CODE: '601088'
+                    ORG_CODE: '10032705'
+                    END_DATE: '2026-03-16 00:00:00'
+                    CHANGE_REASON: 增发A股上市
+                    LIMITED_SHARES: 1363248446
+                    UNLIMITED_SHARES: 19868519955
+                    TOTAL_SHARES: 21231768401
+                    LIMITED_SHARES_RATIO: 6.420795575068
+                    LISTED_SHARES_RATIO: 93.579204424932
+                    TOTAL_SHARES_RATIO: '100.00'
+                    LISTED_A_SHARES: 16491037955
+                    LIMITED_A_SHARES: 1363248446
+                    LISTED_A_SHARES_RATIO: 77.671523367895
+                    LIMITED_A_SHARES_RATIO: 6.420795575068
+                    B_FREE_SHARE: null
+                    H_FREE_SHARE: 3377482000
+                    B_FREE_SHARE_RATIO: null
+                    H_FREE_SHARE_RATIO: 15.907681057038
+                    SECURITY_TYPE_CODE: 058001001
+                    NON_FREE_SHARES: null
+                    NON_FREESHARES_RATIO: null
+                    LIMITED_B_SHARES: null
+                    LIMITED_BSHARES_RATIO: null
+                    OTHER_FREE_SHARES: null
+                    OTHER_FREESHARES_RATIO: null
+                    LIMITED_STATE_SHARES: 1363248446
+                    LIMITED_STATE_LEGAL: null
+                    LIMITED_OTHARS: null
+                    LIMITED_DOMESTIC_NOSTATE: null
+                    LIMITED_DOMESTIC_NATURAL: null
+                    LOCK_SHARES: null
+                    LIMITED_FOREIGN_SHARES: null
+                    LIMITED_OVERSEAS_NOSTATE: null
+                    LIMITED_OVERSEAS_NATURAL: null
+                    LIMITED_H_SHARES: null
+                    SPONSOR_SHARES: null
+                    STATE_SPONSOR_SHARES: null
+                    SPONSOR_SOCIAL_SHARES: null
+                    RAISE_SHARES: null
+                    RAISE_STATE_SHARES: null
+                    RAISE_DOMESTIC_SHARES: null
+                    RAISE_OVERSEAS_SHARES: null
+                    NOTICE_DATE: '2026-03-18 00:00:00'
+                    LISTING_DATE: '2026-03-16 00:00:00'
+                    LIMITED_SHARES_CHANGE: 1363248446
+                    UNLIMITED_SHARES_CHANGE: 0
+                    TOTAL_SHARES_CHANGE: 1363248446
+                    LISTED_ASHARES_CHANGE: 0
+                    LIMITED_ASHARES_CHANGE: 1363248446
+                    B_FREESHARE_CHANGE: null
+                    H_FREESHARE_CHANGE: 0
+                    LIMITED_BSHARES_CHANGE: 0
+                    NONFREE_SHARES_CHANGE: null
+                    OTHERFREE_SHARES_CHANGE: null
+                    FREE_SHARES: 21231768401
+                    CHANGE_REASON_EXPLAIN: 非公开增发A股上市
+                    LIMITED_H_SHARES_RATIO: null
+                    LIMITED_H_SHARES_CHANGE: null
+                    IS_FREE_WINDOW: '1'
+                    IS_LIMITED_WINDOW: '0'
+                    LISTED_A_RATIOPC: 83.000837467262
+                    LISTED_B_RATIOPC: null
+                    LISTED_H_RATIOPC: 16.999162532738
+                    LISTED_OTHER_RATIOPC: null
+                    LISTED_SUM_RATIOPC: 100
+                    MARKET_CODE: '1'
+                    IS_USE: '1'
+                    SECURITY_NAME_ABBR: 中国神华
+                  - SECUCODE: 601088.SH
+                    SECURITY_CODE: '601088'
+                    ORG_CODE: '10032705'
+                    END_DATE: '2021-03-08 00:00:00'
+                    CHANGE_REASON: 回购
+                    LIMITED_SHARES: null
+                    UNLIMITED_SHARES: 19868519955
+                    TOTAL_SHARES: 19868519955
+                    LIMITED_SHARES_RATIO: null
+                    LISTED_SHARES_RATIO: 100
+                    TOTAL_SHARES_RATIO: '100.00'
+                    LISTED_A_SHARES: 16491037955
+                    LIMITED_A_SHARES: null
+                    LISTED_A_SHARES_RATIO: 83.000837467262
+                    LIMITED_A_SHARES_RATIO: null
+                    B_FREE_SHARE: null
+                    H_FREE_SHARE: 3377482000
+                    B_FREE_SHARE_RATIO: null
+                    H_FREE_SHARE_RATIO: 16.999162532738
+                    SECURITY_TYPE_CODE: 058001001
+                    NON_FREE_SHARES: null
+                    NON_FREESHARES_RATIO: null
+                    LIMITED_B_SHARES: null
+                    LIMITED_BSHARES_RATIO: null
+                    OTHER_FREE_SHARES: null
+                    OTHER_FREESHARES_RATIO: null
+                    LIMITED_STATE_SHARES: null
+                    LIMITED_STATE_LEGAL: null
+                    LIMITED_OTHARS: 0
+                    LIMITED_DOMESTIC_NOSTATE: null
+                    LIMITED_DOMESTIC_NATURAL: 0
+                    LOCK_SHARES: null
+                    LIMITED_FOREIGN_SHARES: null
+                    LIMITED_OVERSEAS_NOSTATE: null
+                    LIMITED_OVERSEAS_NATURAL: null
+                    LIMITED_H_SHARES: null
+                    SPONSOR_SHARES: null
+                    STATE_SPONSOR_SHARES: null
+                    SPONSOR_SOCIAL_SHARES: null
+                    RAISE_SHARES: null
+                    RAISE_STATE_SHARES: null
+                    RAISE_DOMESTIC_SHARES: null
+                    RAISE_OVERSEAS_SHARES: null
+                    NOTICE_DATE: '2021-03-09 00:00:00'
+                    LISTING_DATE: '2021-03-08 00:00:00'
+                    LIMITED_SHARES_CHANGE: null
+                    UNLIMITED_SHARES_CHANGE: -21100500
+                    TOTAL_SHARES_CHANGE: -21100500
+                    LISTED_ASHARES_CHANGE: 0
+                    LIMITED_ASHARES_CHANGE: null
+                    B_FREESHARE_CHANGE: null
+                    H_FREESHARE_CHANGE: -21100500
+                    LIMITED_BSHARES_CHANGE: 0
+                    NONFREE_SHARES_CHANGE: null
+                    OTHERFREE_SHARES_CHANGE: null
+                    FREE_SHARES: 19868519955
+                    CHANGE_REASON_EXPLAIN: 回购H股
+                    LIMITED_H_SHARES_RATIO: null
+                    LIMITED_H_SHARES_CHANGE: null
+                    IS_FREE_WINDOW: '1'
+                    IS_LIMITED_WINDOW: '0'
+                    LISTED_A_RATIOPC: 83.000837467262
+                    LISTED_B_RATIOPC: null
+                    LISTED_H_RATIOPC: 16.999162532738
+                    LISTED_OTHER_RATIOPC: null
+                    LISTED_SUM_RATIOPC: 100
+                    MARKET_CODE: '1'
+                    IS_USE: '1'
+                    SECURITY_NAME_ABBR: 中国神华
+                  - SECUCODE: 601088.SH
+                    SECURITY_CODE: '601088'
+                    ORG_CODE: '10032705'
+                    END_DATE: '2013-10-09 00:00:00'
+                    CHANGE_REASON: 首发限售股份上市
+                    LIMITED_SHARES: null
+                    UNLIMITED_SHARES: 19889620455
+                    TOTAL_SHARES: 19889620455
+                    LIMITED_SHARES_RATIO: null
+                    LISTED_SHARES_RATIO: 100
+                    TOTAL_SHARES_RATIO: '100.00'
+                    LISTED_A_SHARES: 16491037955
+                    LIMITED_A_SHARES: null
+                    LISTED_A_SHARES_RATIO: 82.912783541098
+                    LIMITED_A_SHARES_RATIO: null
+                    B_FREE_SHARE: null
+                    H_FREE_SHARE: 3398582500
+                    B_FREE_SHARE_RATIO: null
+                    H_FREE_SHARE_RATIO: 17.087216458903
+                    SECURITY_TYPE_CODE: 058001001
+                    NON_FREE_SHARES: null
+                    NON_FREESHARES_RATIO: null
+                    LIMITED_B_SHARES: null
+                    LIMITED_BSHARES_RATIO: null
+                    OTHER_FREE_SHARES: null
+                    OTHER_FREESHARES_RATIO: null
+                    LIMITED_STATE_SHARES: null
+                    LIMITED_STATE_LEGAL: null
+                    LIMITED_OTHARS: 0
+                    LIMITED_DOMESTIC_NOSTATE: null
+                    LIMITED_DOMESTIC_NATURAL: 0
+                    LOCK_SHARES: null
+                    LIMITED_FOREIGN_SHARES: null
+                    LIMITED_OVERSEAS_NOSTATE: null
+                    LIMITED_OVERSEAS_NATURAL: null
+                    LIMITED_H_SHARES: null
+                    SPONSOR_SHARES: null
+                    STATE_SPONSOR_SHARES: null
+                    SPONSOR_SOCIAL_SHARES: null
+                    RAISE_SHARES: null
+                    RAISE_STATE_SHARES: null
+                    RAISE_DOMESTIC_SHARES: null
+                    RAISE_OVERSEAS_SHARES: null
+                    NOTICE_DATE: '2013-09-27 00:00:00'
+                    LISTING_DATE: '2013-10-09 00:00:00'
+                    LIMITED_SHARES_CHANGE: -180000000
+                    UNLIMITED_SHARES_CHANGE: 180000000
+                    TOTAL_SHARES_CHANGE: 0
+                    LISTED_ASHARES_CHANGE: 180000000
+                    LIMITED_ASHARES_CHANGE: -180000000
+                    B_FREESHARE_CHANGE: 0
+                    H_FREESHARE_CHANGE: 0
+                    LIMITED_BSHARES_CHANGE: 0
+                    NONFREE_SHARES_CHANGE: 0
+                    OTHERFREE_SHARES_CHANGE: 0
+                    FREE_SHARES: 19889620455
+                    CHANGE_REASON_EXPLAIN: 首发限售股份上市
+                    LIMITED_H_SHARES_RATIO: null
+                    LIMITED_H_SHARES_CHANGE: 0
+                    IS_FREE_WINDOW: '1'
+                    IS_LIMITED_WINDOW: '0'
+                    LISTED_A_RATIOPC: 82.912783541098
+                    LISTED_B_RATIOPC: null
+                    LISTED_H_RATIOPC: 17.087216458903
+                    LISTED_OTHER_RATIOPC: null
+                    LISTED_SUM_RATIOPC: 100
+                    MARKET_CODE: '1'
+                    IS_USE: '1'
+                    SECURITY_NAME_ABBR: 中国神华
+                  - SECUCODE: 601088.SH
+                    SECURITY_CODE: '601088'
+                    ORG_CODE: '10032705'
+                    END_DATE: '2010-10-11 00:00:00'
+                    CHANGE_REASON: 首发限售股份上市
+                    LIMITED_SHARES: 180000000
+                    UNLIMITED_SHARES: 19709620455
+                    TOTAL_SHARES: 19889620455
+                    LIMITED_SHARES_RATIO: 0.904994644856
+                    LISTED_SHARES_RATIO: 99.095005355144
+                    TOTAL_SHARES_RATIO: '100.00'
+                    LISTED_A_SHARES: 16311037955
+                    LIMITED_A_SHARES: 180000000
+                    LISTED_A_SHARES_RATIO: 82.007788896241
+                    LIMITED_A_SHARES_RATIO: 0.904994644856
+                    B_FREE_SHARE: 0
+                    H_FREE_SHARE: 3398582500
+                    B_FREE_SHARE_RATIO: 0
+                    H_FREE_SHARE_RATIO: 17.087216458903
+                    SECURITY_TYPE_CODE: 058001001
+                    NON_FREE_SHARES: 0
+                    NON_FREESHARES_RATIO: 0
+                    LIMITED_B_SHARES: 0
+                    LIMITED_BSHARES_RATIO: 0
+                    OTHER_FREE_SHARES: 0
+                    OTHER_FREESHARES_RATIO: 0
+                    LIMITED_STATE_SHARES: 180000000
+                    LIMITED_STATE_LEGAL: 0
+                    LIMITED_OTHARS: 0
+                    LIMITED_DOMESTIC_NOSTATE: 0
+                    LIMITED_DOMESTIC_NATURAL: 0
+                    LOCK_SHARES: 0
+                    LIMITED_FOREIGN_SHARES: 0
+                    LIMITED_OVERSEAS_NOSTATE: 0
+                    LIMITED_OVERSEAS_NATURAL: 0
+                    LIMITED_H_SHARES: 0
+                    SPONSOR_SHARES: 0
+                    STATE_SPONSOR_SHARES: 0
+                    SPONSOR_SOCIAL_SHARES: 0
+                    RAISE_SHARES: 0
+                    RAISE_STATE_SHARES: 0
+                    RAISE_DOMESTIC_SHARES: 0
+                    RAISE_OVERSEAS_SHARES: 0
+                    NOTICE_DATE: '2010-09-28 00:00:00'
+                    LISTING_DATE: '2010-10-11 00:00:00'
+                    LIMITED_SHARES_CHANGE: -14511037955
+                    UNLIMITED_SHARES_CHANGE: 14511037955
+                    TOTAL_SHARES_CHANGE: 0
+                    LISTED_ASHARES_CHANGE: 14511037955
+                    LIMITED_ASHARES_CHANGE: -14511037955
+                    B_FREESHARE_CHANGE: 0
+                    H_FREESHARE_CHANGE: 0
+                    LIMITED_BSHARES_CHANGE: 0
+                    NONFREE_SHARES_CHANGE: 0
+                    OTHERFREE_SHARES_CHANGE: 0
+                    FREE_SHARES: 19889620455
+                    CHANGE_REASON_EXPLAIN: 首发限售股份上市
+                    LIMITED_H_SHARES_RATIO: 0
+                    LIMITED_H_SHARES_CHANGE: 0
+                    IS_FREE_WINDOW: '1'
+                    IS_LIMITED_WINDOW: '0'
+                    LISTED_A_RATIOPC: 82.756732897219
+                    LISTED_B_RATIOPC: 0
+                    LISTED_H_RATIOPC: 17.243267102781
+                    LISTED_OTHER_RATIOPC: 0
+                    LISTED_SUM_RATIOPC: 100
+                    MARKET_CODE: '1'
+                    IS_USE: '1'
+                    SECURITY_NAME_ABBR: 中国神华
+                  count: 8
+                success: true
+                message: ok
+                code: 0
+      parameters:
+      - name: reportName
+        in: query
+        required: true
+        schema:
+          type: string
+      - name: columns
+        in: query
+        required: true
+        schema:
+          type: string
+      - name: filter
+        in: query
+        required: true
+        schema:
+          type: string
+      - name: pageNumber
+        in: query
+        required: true
+        schema:
+          type: number
+      - name: pageSize
+        in: query
+        required: true
+        schema:
+          type: number
+      - name: sortTypes
+        in: query
+        required: true
+        schema:
+          type: string
+      - name: sortColumns
+        in: query
+        required: true
+        schema:
+          type: string
+      - name: source
+        in: query
+        required: true
+        schema:
+          type: string
+      - name: client
+        in: query
+        required: true
+        schema:
+          type: string

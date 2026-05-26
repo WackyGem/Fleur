@@ -1,0 +1,473 @@
+openapi: 3.0.0
+info:
+  title: 同花顺 涨停板数据
+  description: '同花顺涨停板池接口。无需认证，GET 请求。
+
+    需要 User-Agent 等浏览器 headers，否则返回 403。
+
+    注意: date 参数格式为 YYYYMMDD，省略则返回当天数据。
+
+
+    ## 数据保留
+
+    服务端最大保留 **380 天**数据。超出后返回 `status_code: -1, status_msg: "date参数不合法"`。
+
+
+    ## 响应结构
+
+    - `page.count` = **总页数**（非当前页记录数），当前页记录数 = `len(data.info[])`
+
+    - 非交易日返回 `status_code: 0` 但 `info: []`, `total: 0`，同时返回 `yesterday` 统计
+
+    - 有效 filter: `HS`(沪深), `GEM2STAR`(创业板+科创板), `HS,GEM2STAR`(全部)
+
+    - `SH`/`SZ`/`BJ` 不是有效 filter 值
+
+    '
+  version: 1.0.0
+servers:
+- url: https://data.10jqka.com.cn
+  description: The default server
+paths:
+  /dataapi/limit_up/limit_up_pool:
+    get:
+      summary: 获取涨停板数据
+      operationId: getLimitUpPool
+      parameters:
+      - name: page
+        in: query
+        required: false
+        schema:
+          type: number
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: number
+      - name: field
+        in: query
+        required: false
+        schema:
+          type: string
+      - name: filter
+        in: query
+        required: false
+        schema:
+          type: string
+      - name: order_field
+        in: query
+        required: false
+        schema:
+          type: number
+      - name: order_type
+        in: query
+        required: false
+        schema:
+          type: number
+      - name: date
+        in: query
+        required: false
+        schema:
+          type: number
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status_code:
+                    type: number
+                    description: 状态码，0 = 成功，-1 = 参数错误
+                  data:
+                    type: object
+                    properties:
+                      page:
+                        type: object
+                        properties:
+                          limit:
+                            type: number
+                            description: 每页记录数
+                          total:
+                            type: number
+                            description: 总记录数
+                          count:
+                            type: number
+                            description: 当前页返回记录数
+                          page:
+                            type: number
+                            description: 当前页码
+                        description: 当前页码
+                      info:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            open_num:
+                              type: number
+                              description: 开板次数
+                            first_limit_up_time:
+                              type: string
+                              description: 首次涨停时间 (Unix timestamp)
+                            last_limit_up_time:
+                              type: string
+                              description: 最后涨停时间 (Unix timestamp)
+                            code:
+                              type: string
+                              description: 股票代码
+                            limit_up_type:
+                              type: string
+                              description: 涨停类型（如 "换手板"）
+                            order_volume:
+                              type: number
+                              description: 封单量 (手)
+                            is_new:
+                              type: number
+                              description: 是否新股 (1=是)
+                            limit_up_suc_rate:
+                              type: number
+                              description: 涨停成功率
+                            currency_value:
+                              type: number
+                              description: 流通市值 (元)
+                            market_id:
+                              type: number
+                              description: 市场 ID
+                            is_again_limit:
+                              type: number
+                              description: 是否回封 (1=是)
+                            change_rate:
+                              type: number
+                              description: 涨跌幅 (%)
+                            turnover_rate:
+                              type: number
+                              description: 换手率 (%)
+                            reason_type:
+                              type: string
+                              description: 涨停原因标签
+                            order_amount:
+                              type: number
+                              description: 封单金额 (元)
+                            high_days:
+                              type: string
+                              description: 连板天数描述（如 "首板"）
+                            name:
+                              type: string
+                              description: 状态名称
+                            high_days_value:
+                              type: number
+                              description: 连板天数数值
+                            change_tag:
+                              type: string
+                              description: 变动标签（如 "LIMIT_BACK"）
+                            market_type:
+                              type: string
+                              description: 市场类型（"HS"=沪深）
+                            latest:
+                              type: number
+                              description: 最新价
+                            time_preview:
+                              type: array
+                              items:
+                                type: number
+                              description: 分时涨跌幅预览数组
+                        description: 涨停个股明细数组
+                      limit_up_count:
+                        type: object
+                        properties:
+                          today:
+                            type: object
+                            properties:
+                              num:
+                                type: number
+                                description: 今日涨停数
+                              history_num:
+                                type: number
+                                description: 今日历史涨停数
+                              rate:
+                                type: number
+                                description: 今日涨停比率
+                              open_num:
+                                type: number
+                                description: 开板次数
+                            description: 今日涨停统计
+                          yesterday:
+                            type: object
+                            properties:
+                              num:
+                                type: number
+                                description: 昨日涨停数
+                              history_num:
+                                type: number
+                                description: 昨日历史涨停数
+                              rate:
+                                type: number
+                                description: 昨日涨停比率
+                              open_num:
+                                type: number
+                                description: 开板次数
+                            description: 昨日涨停统计
+                        description: 涨停统计
+                      limit_down_count:
+                        type: object
+                        properties:
+                          today:
+                            type: object
+                            properties:
+                              num:
+                                type: number
+                                description: 今日跌停数
+                              history_num:
+                                type: number
+                                description: 今日历史跌停数
+                              rate:
+                                type: number
+                                description: 今日跌停比率
+                              open_num:
+                                type: number
+                                description: 开板次数
+                            description: 今日跌停统计
+                          yesterday:
+                            type: object
+                            properties:
+                              num:
+                                type: number
+                                description: 昨日跌停数
+                              history_num:
+                                type: number
+                                description: 昨日历史跌停数
+                              rate:
+                                type: number
+                                description: 昨日跌停比率
+                              open_num:
+                                type: number
+                                description: 开板次数
+                            description: 昨日跌停统计
+                        description: 跌停统计
+                      date:
+                        type: string
+                        description: 查询日期
+                      msg:
+                        type: number
+                        nullable: true
+                        description: 状态消息
+                      trade_status:
+                        type: object
+                        properties:
+                          id:
+                            type: string
+                            description: 状态标识（"no_open"=未开盘）
+                          name:
+                            type: string
+                            description: 状态名称
+                          start_time:
+                            type: string
+                            description: 状态开始时间
+                          end_time:
+                            type: string
+                            description: 状态结束时间
+                        description: 交易状态
+                    description: 返回数据
+                  status_msg:
+                    type: string
+                    description: 状态消息
+              example:
+                status_code: 0
+                data:
+                  page:
+                    limit: 5
+                    total: 55
+                    count: 11
+                    page: 1
+                  info:
+                  - open_num: 18
+                    first_limit_up_time: '1776130842'
+                    last_limit_up_time: '1776149736'
+                    code: 002990
+                    limit_up_type: 换手板
+                    order_volume: 170200.0
+                    is_new: 0
+                    limit_up_suc_rate: 0.8
+                    currency_value: 5133171500.0
+                    market_id: 33
+                    is_again_limit: 1
+                    change_rate: 10.0
+                    turnover_rate: 20.3539
+                    reason_type: 存储芯片+人形机器人+智慧口岸
+                    order_amount: 6515256.0
+                    high_days: 首板
+                    name: 盛视科技
+                    high_days_value: 65537
+                    change_tag: LIMIT_BACK
+                    market_type: HS
+                    latest: 38.28
+                    time_preview:
+                    - 0.6034
+                    - 6.6092
+                    - 8.1034
+                    - 9.3103
+                    - 10.0
+                    - 5.8908
+                    - 6.1494
+                    - 6.7529
+                    - 7.5287
+                    - 7.931
+                  - open_num: 58
+                    first_limit_up_time: '1776130200'
+                    last_limit_up_time: '1776149550'
+                    code: 000967
+                    limit_up_type: 换手板
+                    order_volume: 1989900.0
+                    is_new: 0
+                    limit_up_suc_rate: 0.0
+                    currency_value: 37003819000.0
+                    market_id: 33
+                    is_again_limit: 1
+                    change_rate: 9.9718
+                    turnover_rate: 8.4194
+                    reason_type: 算力+新能源环卫+机器人
+                    order_amount: 23261931.0
+                    high_days: 首板
+                    name: 盈峰环境
+                    high_days_value: 65537
+                    change_tag: LIMIT_BACK
+                    market_type: HS
+                    latest: 11.69
+                    time_preview:
+                    - 8.5607
+                    - 9.9718
+                    - 9.9718
+                    - 9.9718
+                    - 9.9718
+                    - 9.9718
+                    - 9.9718
+                    - 9.9718
+                    - 9.9718
+                    - 9.9718
+                  - open_num: 7
+                    first_limit_up_time: '1776131745'
+                    last_limit_up_time: '1776149541'
+                    code: '301219'
+                    limit_up_type: 换手板
+                    order_volume: 200774.0
+                    is_new: 0
+                    limit_up_suc_rate: 0.0
+                    currency_value: 16785013000.0
+                    market_id: 33
+                    is_again_limit: 1
+                    change_rate: 20.0
+                    turnover_rate: 17.6923
+                    reason_type: 一季度业绩预增+钴铜涨价+能源金属
+                    order_amount: 16467483.0
+                    high_days: 首板
+                    name: 腾远钴业
+                    high_days_value: 65537
+                    change_tag: LIMIT_BACK
+                    market_type: GEM
+                    latest: 82.02
+                    time_preview:
+                    - 13.8259
+                    - 12.3921
+                    - 14.6306
+                    - 16.4594
+                    - 18.2004
+                    - 18.7564
+                    - 19.1661
+                    - 18.771
+                    - 19.1661
+                    - 20.0
+                  - open_num: null
+                    first_limit_up_time: '1776149289'
+                    last_limit_up_time: '1776149289'
+                    code: '301292'
+                    limit_up_type: 换手板
+                    order_volume: 1496059.0
+                    is_new: 0
+                    limit_up_suc_rate: 0.7272727272727273
+                    currency_value: 9090435600.0
+                    market_id: 33
+                    is_again_limit: 0
+                    change_rate: 20.0
+                    turnover_rate: 39.0797
+                    reason_type: 电解液龙头+固态电池+比亚迪大单
+                    order_amount: 159868860.0
+                    high_days: 首板
+                    name: 海科新源
+                    high_days_value: 65537
+                    change_tag: FIRST_LIMIT
+                    market_type: GEM
+                    latest: 106.86
+                    time_preview:
+                    - -0.9545
+                    - 2.8748
+                    - 3.3127
+                    - 3.3801
+                    - 3.8405
+                    - 4.2673
+                    - 4.3796
+                    - 2.5154
+                    - 1.954
+                    - 2.8411
+                  - open_num: null
+                    first_limit_up_time: '1776148864'
+                    last_limit_up_time: '1776148864'
+                    code: '600664'
+                    limit_up_type: 换手板
+                    order_volume: 22644468.0
+                    is_new: 0
+                    limit_up_suc_rate: 1.0
+                    currency_value: 10174779900.0
+                    market_id: 17
+                    is_again_limit: 0
+                    change_rate: 10.0817
+                    turnover_rate: 10.1922
+                    reason_type: 创新药+保健品+仿制药一致性评价
+                    order_amount: 91483651.0
+                    high_days: 首板
+                    name: 哈药股份
+                    high_days_value: 65537
+                    change_tag: FIRST_LIMIT
+                    market_type: HS
+                    latest: 4.04
+                    time_preview:
+                    - 0.8174
+                    - -0.2725
+                    - 0.0
+                    - -1.0899
+                    - -1.0899
+                    - -0.8174
+                    - -0.8174
+                    - 0.8174
+                    - 1.6349
+                    - 1.6349
+                  limit_up_count:
+                    today:
+                      num: 55
+                      history_num: 73
+                      rate: 0.7534246575342466
+                      open_num: 18
+                    yesterday:
+                      num: 59
+                      history_num: 74
+                      rate: 0.7972972972972973
+                      open_num: 15
+                  limit_down_count:
+                    today:
+                      num: 4
+                      history_num: 8
+                      rate: 0.5
+                      open_num: 4
+                    yesterday:
+                      num: 4
+                      history_num: 10
+                      rate: 0.4
+                      open_num: 6
+                  date: '20260414'
+                  msg: null
+                  trade_status:
+                    id: close_at_noon
+                    name: 午间休市
+                    start_time: 690
+                    end_time: 780
+                status_msg: success

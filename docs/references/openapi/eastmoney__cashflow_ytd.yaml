@@ -1,0 +1,1342 @@
+openapi: 3.0.0
+info:
+  title: 东方财富 F10 现金流量表（累计）
+  description: '东方财富数据中心接口。使用 `data/get`，参数名: `type/sty/p/ps/sr/st`。无需认证。
+
+    ## Filter DSL
+
+    - 按证券代码: `(SECUCODE="601088.SH")`
+
+    - 按证券代码批量: `(SECUCODE in ("601088.SH","000001.SZ"))`
+
+    - 按报告期区间: `(REPORT_DATE>=''2025-01-01'')(REPORT_DATE<=''2025-12-31'')`
+
+    - 按公告日期区间: `(NOTICE_DATE>=''2025-01-01'')(NOTICE_DATE<=''2025-12-31'')`
+
+    ## 排序
+
+    - 多字段排序避免分页重复: `st=REPORT_DATE,SECURITY_CODE&sr=-1,-1`
+
+    '
+  version: 1.0.0
+servers:
+- url: https://datacenter.eastmoney.com
+  description: The default server
+paths:
+  /securities/api/data/get:
+    get:
+      summary: GET data get
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  version:
+                    type: string
+                    description: 数据版本标识
+                  result:
+                    type: object
+                    properties:
+                      pages:
+                        type: number
+                        description: 总页数
+                      data:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            SECUCODE:
+                              type: string
+                              description: 证券代码（含市场后缀）
+                            SECURITY_CODE:
+                              type: string
+                              description: 证券代码（纯数字）
+                            SECURITY_NAME_ABBR:
+                              type: string
+                              description: 证券简称
+                            ORG_CODE:
+                              type: string
+                              description: 机构代码
+                            ORG_TYPE:
+                              type: string
+                              description: 机构类型
+                            REPORT_DATE:
+                              type: string
+                              description: 报告期
+                            REPORT_TYPE:
+                              type: string
+                              description: 报告类型
+                            REPORT_DATE_NAME:
+                              type: string
+                              description: 报告期名称
+                            SECURITY_TYPE_CODE:
+                              type: string
+                              description: 证券类型代码
+                            NOTICE_DATE:
+                              type: string
+                              description: 公告日期
+                            UPDATE_DATE:
+                              type: string
+                              description: 更新日期
+                            CURRENCY:
+                              type: string
+                              description: 币种
+                            SALES_SERVICES:
+                              type: number
+                              description: 销售商品、提供劳务收到的现金
+                            DEPOSIT_INTERBANK_ADD:
+                              type: number
+                              nullable: true
+                              description: 同业存放净增加额
+                            LOAN_PBC_ADD:
+                              type: number
+                              nullable: true
+                              description: 向央行借款净增加额
+                            OFI_BF_ADD:
+                              type: number
+                              nullable: true
+                              description: 向其他金融机构拆入资金净增加额
+                            RECEIVE_ORIGIC_PREMIUM:
+                              type: number
+                              nullable: true
+                              description: 收到原保险合同保费现金
+                            RECEIVE_REINSURE_NET:
+                              type: number
+                              nullable: true
+                              description: 收到再保险业务现金净额
+                            INSURED_INVEST_ADD:
+                              type: number
+                              nullable: true
+                              description: 保户储金及投资款净增加额
+                            DISPOSAL_TFA_ADD:
+                              type: number
+                              nullable: true
+                              description: 处置交易性金融资产净增加额
+                            RECEIVE_INTEREST_COMMISSION:
+                              type: number
+                              nullable: true
+                              description: 收取利息和手续费现金
+                            BORROW_FUND_ADD:
+                              type: number
+                              nullable: true
+                              description: 拆入资金净增加额
+                            LOAN_ADVANCE_REDUCE:
+                              type: number
+                              nullable: true
+                              description: 发放贷款及垫款净减少额
+                            REPO_BUSINESS_ADD:
+                              type: number
+                              nullable: true
+                              description: 回购业务资金净增加额
+                            RECEIVE_TAX_REFUND:
+                              type: number
+                              nullable: true
+                              description: 收到的税费返还
+                            RECEIVE_OTHER_OPERATE:
+                              type: number
+                              description: 收到其他与经营活动有关的现金
+                            OPERATE_INFLOW_OTHER:
+                              type: number
+                              nullable: true
+                              description: 经营活动现金流入其他
+                            OPERATE_INFLOW_BALANCE:
+                              type: number
+                              description: 经营活动现金流入平衡项
+                            TOTAL_OPERATE_INFLOW:
+                              type: number
+                              description: 经营活动现金流入小计
+                            BUY_SERVICES:
+                              type: number
+                              description: 购买商品、接受劳务支付的现金
+                            LOAN_ADVANCE_ADD:
+                              type: number
+                              nullable: true
+                              description: 发放贷款及垫款净增加额
+                            PBC_INTERBANK_ADD:
+                              type: number
+                              nullable: true
+                              description: 向央行借款净增加额
+                            PAY_ORIGIC_COMPENSATE:
+                              type: number
+                              nullable: true
+                              description: 支付原保险合同赔付款项现金
+                            PAY_INTEREST_COMMISSION:
+                              type: number
+                              nullable: true
+                              description: 支付利息和手续费现金
+                            PAY_POLICY_BONUS:
+                              type: number
+                              nullable: true
+                              description: 保单红利支出
+                            PAY_STAFF_CASH:
+                              type: number
+                              description: 支付给职工以及为职工支付的现金
+                            PAY_ALL_TAX:
+                              type: number
+                              description: 支付的各项税费
+                            PAY_OTHER_OPERATE:
+                              type: number
+                              description: 支付其他与经营活动有关的现金
+                            OPERATE_OUTFLOW_OTHER:
+                              type: number
+                              nullable: true
+                              description: 经营活动现金流出其他
+                            OPERATE_OUTFLOW_BALANCE:
+                              type: number
+                              description: 经营活动现金流出平衡项
+                            TOTAL_OPERATE_OUTFLOW:
+                              type: number
+                              description: 经营活动现金流出小计
+                            OPERATE_NETCASH_OTHER:
+                              type: number
+                              nullable: true
+                              description: 经营活动净现金流量其他
+                            OPERATE_NETCASH_BALANCE:
+                              type: number
+                              description: 经营活动净现金流量平衡项
+                            NETCASH_OPERATE:
+                              type: number
+                              description: 经营活动产生的现金流量净额
+                            WITHDRAW_INVEST:
+                              type: number
+                              description: 收回投资收到的现金
+                            RECEIVE_INVEST_INCOME:
+                              type: number
+                              description: 取得投资收益收到的现金
+                            DISPOSAL_LONG_ASSET:
+                              type: number
+                              description: 处置固定资产等收回的现金净额
+                            DISPOSAL_SUBSIDIARY_OTHER:
+                              type: number
+                              description: 处置子公司及其他营业单位收到的现金净额
+                            REDUCE_PLEDGE_TIMEDEPOSITS:
+                              type: number
+                              nullable: true
+                              description: 减少质押定期存款
+                            RECEIVE_OTHER_INVEST:
+                              type: number
+                              description: 收到其他与投资活动有关的现金
+                            INVEST_INFLOW_OTHER:
+                              type: number
+                              nullable: true
+                              description: 投资活动现金流入其他
+                            INVEST_INFLOW_BALANCE:
+                              type: number
+                              description: 投资活动现金流入平衡项
+                            TOTAL_INVEST_INFLOW:
+                              type: number
+                              description: 投资活动现金流入小计
+                            CONSTRUCT_LONG_ASSET:
+                              type: number
+                              description: 购建固定资产等支付的现金
+                            INVEST_PAY_CASH:
+                              type: number
+                              description: 投资支付的现金
+                            PLEDGE_LOAN_ADD:
+                              type: number
+                              nullable: true
+                              description: 质押贷款净增加额
+                            OBTAIN_SUBSIDIARY_OTHER:
+                              type: number
+                              description: 取得子公司及其他营业单位支付的现金净额
+                            ADD_PLEDGE_TIMEDEPOSITS:
+                              type: number
+                              nullable: true
+                              description: 增加质押定期存款
+                            PAY_OTHER_INVEST:
+                              type: number
+                              description: 支付其他与投资活动有关的现金
+                            INVEST_OUTFLOW_OTHER:
+                              type: number
+                              nullable: true
+                              description: 投资活动现金流出其他
+                            INVEST_OUTFLOW_BALANCE:
+                              type: number
+                              description: 投资活动现金流出平衡项
+                            TOTAL_INVEST_OUTFLOW:
+                              type: number
+                              description: 投资活动现金流出小计
+                            INVEST_NETCASH_OTHER:
+                              type: number
+                              nullable: true
+                              description: 投资活动净现金流量其他
+                            INVEST_NETCASH_BALANCE:
+                              type: number
+                              description: 投资活动净现金流量平衡项
+                            NETCASH_INVEST:
+                              type: number
+                              description: 投资活动产生的现金流量净额
+                            ACCEPT_INVEST_CASH:
+                              type: number
+                              description: 吸收投资收到的现金
+                            SUBSIDIARY_ACCEPT_INVEST:
+                              type: number
+                              description: 子公司吸收少数股东投资收到的现金
+                            RECEIVE_LOAN_CASH:
+                              type: number
+                              description: 取得借款收到的现金
+                            ISSUE_BOND:
+                              type: number
+                              nullable: true
+                              description: 发行债券收到的现金
+                            RECEIVE_OTHER_FINANCE:
+                              type: number
+                              nullable: true
+                              description: 收到其他与筹资活动有关的现金
+                            FINANCE_INFLOW_OTHER:
+                              type: number
+                              nullable: true
+                              description: 筹资活动现金流入其他
+                            FINANCE_INFLOW_BALANCE:
+                              type: number
+                              description: 筹资活动现金流入平衡项
+                            TOTAL_FINANCE_INFLOW:
+                              type: number
+                              description: 筹资活动现金流入小计
+                            PAY_DEBT_CASH:
+                              type: number
+                              description: 偿还债务支付的现金
+                            ASSIGN_DIVIDEND_PORFIT:
+                              type: number
+                              description: 分配股利、利润或偿付利息支付的现金
+                            SUBSIDIARY_PAY_DIVIDEND:
+                              type: number
+                              description: 子公司向少数股东支付的现金股利
+                            BUY_SUBSIDIARY_EQUITY:
+                              type: number
+                              nullable: true
+                              description: 子公司减少现金
+                            PAY_OTHER_FINANCE:
+                              type: number
+                              description: 支付其他与筹资活动有关的现金
+                            SUBSIDIARY_REDUCE_CASH:
+                              type: number
+                              nullable: true
+                              description: 子公司减少现金
+                            FINANCE_OUTFLOW_OTHER:
+                              type: number
+                              nullable: true
+                              description: 筹资活动现金流出其他
+                            FINANCE_OUTFLOW_BALANCE:
+                              type: number
+                              description: 筹资活动现金流出平衡项
+                            TOTAL_FINANCE_OUTFLOW:
+                              type: number
+                              description: 筹资活动现金流出小计
+                            FINANCE_NETCASH_OTHER:
+                              type: number
+                              nullable: true
+                              description: 筹资活动净现金流量其他
+                            FINANCE_NETCASH_BALANCE:
+                              type: number
+                              description: 筹资活动净现金流量平衡项
+                            NETCASH_FINANCE:
+                              type: number
+                              description: 筹资活动产生的现金流量净额
+                            RATE_CHANGE_EFFECT:
+                              type: number
+                              description: 汇率变动对现金及现金等价物的影响
+                            CCE_ADD_OTHER:
+                              type: number
+                              nullable: true
+                              description: 现金及现金等价物净增加额其他
+                            CCE_ADD_BALANCE:
+                              type: number
+                              description: 现金及现金等价物净增加额平衡项
+                            CCE_ADD:
+                              type: number
+                              description: 现金及现金等价物净增加额
+                            BEGIN_CCE:
+                              type: number
+                              description: 期初现金及现金等价物余额
+                            END_CCE_OTHER:
+                              type: number
+                              nullable: true
+                              description: 期末现金及现金等价物余额其他
+                            END_CCE_BALANCE:
+                              type: number
+                              description: 期末现金及现金等价物余额平衡项
+                            END_CCE:
+                              type: number
+                              description: 期末现金及现金等价物余额
+                            NETPROFIT:
+                              type: number
+                              nullable: true
+                              description: 净利润（间接法起点）
+                            ASSET_IMPAIRMENT:
+                              type: number
+                              nullable: true
+                              description: 资产减值准备
+                            FA_IR_DEPR:
+                              type: number
+                              nullable: true
+                              description: 固定资产折旧、油气资产折耗、生产性生物资产折旧
+                            OILGAS_BIOLOGY_DEPR:
+                              type: number
+                              nullable: true
+                              description: 油气资产折耗、生产性生物资产折旧
+                            IR_DEPR:
+                              type: number
+                              nullable: true
+                              description: 折旧与摊销
+                            IA_AMORTIZE:
+                              type: number
+                              nullable: true
+                              description: 无形资产摊销
+                            LPE_AMORTIZE:
+                              type: number
+                              nullable: true
+                              description: 长期待摊费用摊销
+                            DEFER_INCOME_AMORTIZE:
+                              type: number
+                              nullable: true
+                              description: 待摊费用减少（减：增加）
+                            PREPAID_EXPENSE_REDUCE:
+                              type: number
+                              nullable: true
+                              description: 预提费用增加（减：减少）
+                            ACCRUED_EXPENSE_ADD:
+                              type: number
+                              nullable: true
+                              description: 预提费用变动
+                            DISPOSAL_LONGASSET_LOSS:
+                              type: number
+                              nullable: true
+                              description: 处置固定资产等的损失
+                            FA_SCRAP_LOSS:
+                              type: number
+                              nullable: true
+                              description: 固定资产报废损失
+                            FAIRVALUE_CHANGE_LOSS:
+                              type: number
+                              nullable: true
+                              description: 公允价值变动损失
+                            FINANCE_EXPENSE:
+                              type: number
+                              nullable: true
+                              description: 财务费用
+                            INVEST_LOSS:
+                              type: number
+                              nullable: true
+                              description: 投资损失
+                            DEFER_TAX:
+                              type: number
+                              nullable: true
+                              description: 递延所得税资产减少（增加以"-"号填列）
+                            DT_ASSET_REDUCE:
+                              type: number
+                              nullable: true
+                              description: 递延所得税资产减少
+                            DT_LIAB_ADD:
+                              type: number
+                              nullable: true
+                              description: 递延所得税负债增加
+                            PREDICT_LIAB_ADD:
+                              type: number
+                              nullable: true
+                              description: 预计负债增加
+                            INVENTORY_REDUCE:
+                              type: number
+                              nullable: true
+                              description: 存货的减少（增加以"-"号填列）
+                            OPERATE_RECE_REDUCE:
+                              type: number
+                              nullable: true
+                              description: 经营性应收项目的减少
+                            OPERATE_PAYABLE_ADD:
+                              type: number
+                              nullable: true
+                              description: 经营性应付项目的增加
+                            OTHER:
+                              type: number
+                              nullable: true
+                              description: 其他
+                            OPERATE_NETCASH_OTHERNOTE:
+                              type: number
+                              nullable: true
+                              description: 经营活动产生的现金流量净额（附注）
+                            OPERATE_NETCASH_BALANCENOTE:
+                              type: number
+                              nullable: true
+                              description: 经营活动净现金流量（附注）平衡项
+                            NETCASH_OPERATENOTE:
+                              type: number
+                              nullable: true
+                              description: 经营活动产生的现金流量净额（附注）
+                            DEBT_TRANSFER_CAPITAL:
+                              type: number
+                              nullable: true
+                              description: 债务转为资本
+                            CONVERT_BOND_1YEAR:
+                              type: number
+                              nullable: true
+                              description: 一年内到期的可转换公司债券
+                            FINLEASE_OBTAIN_FA:
+                              type: number
+                              nullable: true
+                              description: 融资租入固定资产
+                            UNINVOLVE_INVESTFIN_OTHER:
+                              type: number
+                              nullable: true
+                              description: 不涉及现金收支的投资和筹资活动其他
+                            END_CASH:
+                              type: number
+                              nullable: true
+                              description: 现金期末余额
+                            BEGIN_CASH:
+                              type: number
+                              nullable: true
+                              description: 现金期初余额
+                            END_CASH_EQUIVALENTS:
+                              type: number
+                              nullable: true
+                              description: 现金等价物期末余额
+                            BEGIN_CASH_EQUIVALENTS:
+                              type: number
+                              nullable: true
+                              description: 现金等价物期初余额
+                            CCE_ADD_OTHERNOTE:
+                              type: number
+                              nullable: true
+                              description: 现金及现金等价物净增加额（附注）
+                            CCE_ADD_BALANCENOTE:
+                              type: number
+                              nullable: true
+                              description: 现金及现金等价物净增加额（附注）平衡项
+                            CCE_ADDNOTE:
+                              type: number
+                              nullable: true
+                              description: 现金及现金等价物净增加额（附注）
+                            SALES_SERVICES_YOY:
+                              type: number
+                              description: 销售商品、提供劳务收到的现金同比增长率(%)
+                            DEPOSIT_INTERBANK_ADD_YOY:
+                              type: number
+                              nullable: true
+                              description: DEPOSIT_INTERBANK_ADD 同比增长率(%)
+                            LOAN_PBC_ADD_YOY:
+                              type: number
+                              nullable: true
+                              description: LOAN_PBC_ADD 同比增长率(%)
+                            OFI_BF_ADD_YOY:
+                              type: number
+                              nullable: true
+                              description: OFI_BF_ADD 同比增长率(%)
+                            RECEIVE_ORIGIC_PREMIUM_YOY:
+                              type: number
+                              nullable: true
+                              description: RECEIVE_ORIGIC_PREMIUM 同比增长率(%)
+                            RECEIVE_REINSURE_NET_YOY:
+                              type: number
+                              nullable: true
+                              description: RECEIVE_REINSURE_NET 同比增长率(%)
+                            INSURED_INVEST_ADD_YOY:
+                              type: number
+                              nullable: true
+                              description: INSURED_INVEST_ADD 同比增长率(%)
+                            DISPOSAL_TFA_ADD_YOY:
+                              type: number
+                              nullable: true
+                              description: DISPOSAL_TFA_ADD 同比增长率(%)
+                            RECEIVE_INTEREST_COMMISSION_YOY:
+                              type: number
+                              nullable: true
+                              description: RECEIVE_INTEREST_COMMISSION 同比增长率(%)
+                            BORROW_FUND_ADD_YOY:
+                              type: number
+                              nullable: true
+                              description: BORROW_FUND_ADD 同比增长率(%)
+                            LOAN_ADVANCE_REDUCE_YOY:
+                              type: number
+                              nullable: true
+                              description: LOAN_ADVANCE_REDUCE 同比增长率(%)
+                            REPO_BUSINESS_ADD_YOY:
+                              type: number
+                              nullable: true
+                              description: REPO_BUSINESS_ADD 同比增长率(%)
+                            RECEIVE_TAX_REFUND_YOY:
+                              type: number
+                              nullable: true
+                              description: RECEIVE_TAX_REFUND 同比增长率(%)
+                            RECEIVE_OTHER_OPERATE_YOY:
+                              type: number
+                              description: 收到其他与经营活动有关的现金同比增长率(%)
+                            OPERATE_INFLOW_OTHER_YOY:
+                              type: number
+                              nullable: true
+                              description: OPERATE_INFLOW_OTHER 同比增长率(%)
+                            OPERATE_INFLOW_BALANCE_YOY:
+                              type: number
+                              nullable: true
+                              description: OPERATE_INFLOW_BALANCE 同比增长率(%)
+                            TOTAL_OPERATE_INFLOW_YOY:
+                              type: number
+                              description: 经营活动现金流入小计同比增长率(%)
+                            BUY_SERVICES_YOY:
+                              type: number
+                              description: 购买商品、接受劳务支付的现金同比增长率(%)
+                            LOAN_ADVANCE_ADD_YOY:
+                              type: number
+                              nullable: true
+                              description: LOAN_ADVANCE_ADD 同比增长率(%)
+                            PBC_INTERBANK_ADD_YOY:
+                              type: number
+                              nullable: true
+                              description: PBC_INTERBANK_ADD 同比增长率(%)
+                            PAY_ORIGIC_COMPENSATE_YOY:
+                              type: number
+                              nullable: true
+                              description: PAY_ORIGIC_COMPENSATE 同比增长率(%)
+                            PAY_INTEREST_COMMISSION_YOY:
+                              type: number
+                              nullable: true
+                              description: PAY_INTEREST_COMMISSION 同比增长率(%)
+                            PAY_POLICY_BONUS_YOY:
+                              type: number
+                              nullable: true
+                              description: PAY_POLICY_BONUS 同比增长率(%)
+                            PAY_STAFF_CASH_YOY:
+                              type: number
+                              description: 支付给职工以及为职工支付的现金同比增长率(%)
+                            PAY_ALL_TAX_YOY:
+                              type: number
+                              description: 支付的各项税费同比增长率(%)
+                            PAY_OTHER_OPERATE_YOY:
+                              type: number
+                              description: 支付其他与经营活动有关的现金同比增长率(%)
+                            OPERATE_OUTFLOW_OTHER_YOY:
+                              type: number
+                              nullable: true
+                              description: OPERATE_OUTFLOW_OTHER 同比增长率(%)
+                            OPERATE_OUTFLOW_BALANCE_YOY:
+                              type: number
+                              nullable: true
+                              description: OPERATE_OUTFLOW_BALANCE 同比增长率(%)
+                            TOTAL_OPERATE_OUTFLOW_YOY:
+                              type: number
+                              description: 经营活动现金流出小计同比增长率(%)
+                            OPERATE_NETCASH_OTHER_YOY:
+                              type: number
+                              nullable: true
+                              description: OPERATE_NETCASH_OTHER 同比增长率(%)
+                            OPERATE_NETCASH_BALANCE_YOY:
+                              type: number
+                              nullable: true
+                              description: OPERATE_NETCASH_BALANCE 同比增长率(%)
+                            NETCASH_OPERATE_YOY:
+                              type: number
+                              description: 经营活动产生的现金流量净额同比增长率(%)
+                            WITHDRAW_INVEST_YOY:
+                              type: number
+                              description: 收回投资收到的现金同比增长率(%)
+                            RECEIVE_INVEST_INCOME_YOY:
+                              type: number
+                              description: 取得投资收益收到的现金同比增长率(%)
+                            DISPOSAL_LONG_ASSET_YOY:
+                              type: number
+                              description: 处置固定资产等收回的现金净额同比增长率(%)
+                            DISPOSAL_SUBSIDIARY_OTHER_YOY:
+                              type: number
+                              description: DISPOSAL_SUBSIDIARY_OTHER 同比增长率(%)
+                            REDUCE_PLEDGE_TIMEDEPOSITS_YOY:
+                              type: number
+                              nullable: true
+                              description: REDUCE_PLEDGE_TIMEDEPOSITS 同比增长率(%)
+                            RECEIVE_OTHER_INVEST_YOY:
+                              type: number
+                              description: 收到其他与投资活动有关的现金同比增长率(%)
+                            INVEST_INFLOW_OTHER_YOY:
+                              type: number
+                              nullable: true
+                              description: INVEST_INFLOW_OTHER 同比增长率(%)
+                            INVEST_INFLOW_BALANCE_YOY:
+                              type: number
+                              nullable: true
+                              description: INVEST_INFLOW_BALANCE 同比增长率(%)
+                            TOTAL_INVEST_INFLOW_YOY:
+                              type: number
+                              description: 投资活动现金流入小计同比增长率(%)
+                            CONSTRUCT_LONG_ASSET_YOY:
+                              type: number
+                              description: 购建固定资产等支付的现金同比增长率(%)
+                            INVEST_PAY_CASH_YOY:
+                              type: number
+                              description: 投资支付的现金同比增长率(%)
+                            PLEDGE_LOAN_ADD_YOY:
+                              type: number
+                              nullable: true
+                              description: PLEDGE_LOAN_ADD 同比增长率(%)
+                            OBTAIN_SUBSIDIARY_OTHER_YOY:
+                              type: number
+                              description: 取得子公司及其他营业单位支付的现金净额同比增长率(%)
+                            ADD_PLEDGE_TIMEDEPOSITS_YOY:
+                              type: number
+                              nullable: true
+                              description: ADD_PLEDGE_TIMEDEPOSITS 同比增长率(%)
+                            PAY_OTHER_INVEST_YOY:
+                              type: number
+                              description: 支付其他与投资活动有关的现金同比增长率(%)
+                            INVEST_OUTFLOW_OTHER_YOY:
+                              type: number
+                              nullable: true
+                              description: INVEST_OUTFLOW_OTHER 同比增长率(%)
+                            INVEST_OUTFLOW_BALANCE_YOY:
+                              type: number
+                              nullable: true
+                              description: INVEST_OUTFLOW_BALANCE 同比增长率(%)
+                            TOTAL_INVEST_OUTFLOW_YOY:
+                              type: number
+                              description: 投资活动现金流出小计同比增长率(%)
+                            INVEST_NETCASH_OTHER_YOY:
+                              type: number
+                              nullable: true
+                              description: INVEST_NETCASH_OTHER 同比增长率(%)
+                            INVEST_NETCASH_BALANCE_YOY:
+                              type: number
+                              nullable: true
+                              description: INVEST_NETCASH_BALANCE 同比增长率(%)
+                            NETCASH_INVEST_YOY:
+                              type: number
+                              description: 投资活动产生的现金流量净额同比增长率(%)
+                            ACCEPT_INVEST_CASH_YOY:
+                              type: number
+                              description: 吸收投资收到的现金同比增长率(%)
+                            SUBSIDIARY_ACCEPT_INVEST_YOY:
+                              type: number
+                              description: 子公司吸收少数股东投资收到的现金同比增长率(%)
+                            RECEIVE_LOAN_CASH_YOY:
+                              type: number
+                              description: 取得借款收到的现金同比增长率(%)
+                            ISSUE_BOND_YOY:
+                              type: number
+                              nullable: true
+                              description: ISSUE_BOND 同比增长率(%)
+                            RECEIVE_OTHER_FINANCE_YOY:
+                              type: number
+                              nullable: true
+                              description: RECEIVE_OTHER_FINANCE 同比增长率(%)
+                            FINANCE_INFLOW_OTHER_YOY:
+                              type: number
+                              nullable: true
+                              description: FINANCE_INFLOW_OTHER 同比增长率(%)
+                            FINANCE_INFLOW_BALANCE_YOY:
+                              type: number
+                              nullable: true
+                              description: FINANCE_INFLOW_BALANCE 同比增长率(%)
+                            TOTAL_FINANCE_INFLOW_YOY:
+                              type: number
+                              description: 筹资活动现金流入小计同比增长率(%)
+                            PAY_DEBT_CASH_YOY:
+                              type: number
+                              description: 偿还债务支付的现金同比增长率(%)
+                            ASSIGN_DIVIDEND_PORFIT_YOY:
+                              type: number
+                              description: 分配股利、利润或偿付利息支付的现金同比增长率(%)
+                            SUBSIDIARY_PAY_DIVIDEND_YOY:
+                              type: number
+                              description: 子公司向少数股东支付的现金股利同比增长率(%)
+                            BUY_SUBSIDIARY_EQUITY_YOY:
+                              type: number
+                              nullable: true
+                              description: BUY_SUBSIDIARY_EQUITY 同比增长率(%)
+                            PAY_OTHER_FINANCE_YOY:
+                              type: number
+                              description: 支付其他与筹资活动有关的现金同比增长率(%)
+                            SUBSIDIARY_REDUCE_CASH_YOY:
+                              type: number
+                              nullable: true
+                              description: SUBSIDIARY_REDUCE_CASH 同比增长率(%)
+                            FINANCE_OUTFLOW_OTHER_YOY:
+                              type: number
+                              nullable: true
+                              description: FINANCE_OUTFLOW_OTHER 同比增长率(%)
+                            FINANCE_OUTFLOW_BALANCE_YOY:
+                              type: number
+                              nullable: true
+                              description: FINANCE_OUTFLOW_BALANCE 同比增长率(%)
+                            TOTAL_FINANCE_OUTFLOW_YOY:
+                              type: number
+                              description: 筹资活动现金流出小计同比增长率(%)
+                            FINANCE_NETCASH_OTHER_YOY:
+                              type: number
+                              nullable: true
+                              description: FINANCE_NETCASH_OTHER 同比增长率(%)
+                            FINANCE_NETCASH_BALANCE_YOY:
+                              type: number
+                              nullable: true
+                              description: FINANCE_NETCASH_BALANCE 同比增长率(%)
+                            NETCASH_FINANCE_YOY:
+                              type: number
+                              description: 筹资活动产生的现金流量净额同比增长率(%)
+                            RATE_CHANGE_EFFECT_YOY:
+                              type: number
+                              description: 汇率变动对现金及现金等价物的影响同比增长率(%)
+                            CCE_ADD_OTHER_YOY:
+                              type: number
+                              nullable: true
+                              description: CCE_ADD_OTHER 同比增长率(%)
+                            CCE_ADD_BALANCE_YOY:
+                              type: number
+                              nullable: true
+                              description: CCE_ADD_BALANCE 同比增长率(%)
+                            CCE_ADD_YOY:
+                              type: number
+                              description: 现金及现金等价物净增加额同比增长率(%)
+                            BEGIN_CCE_YOY:
+                              type: number
+                              description: 期初现金及现金等价物余额同比增长率(%)
+                            END_CCE_OTHER_YOY:
+                              type: number
+                              nullable: true
+                              description: END_CCE_OTHER 同比增长率(%)
+                            END_CCE_BALANCE_YOY:
+                              type: number
+                              nullable: true
+                              description: END_CCE_BALANCE 同比增长率(%)
+                            END_CCE_YOY:
+                              type: number
+                              description: 期末现金及现金等价物余额同比增长率(%)
+                            NETPROFIT_YOY:
+                              type: number
+                              nullable: true
+                              description: 净利润同比增长率(%)
+                            ASSET_IMPAIRMENT_YOY:
+                              type: number
+                              nullable: true
+                              description: ASSET_IMPAIRMENT 同比增长率(%)
+                            FA_IR_DEPR_YOY:
+                              type: number
+                              nullable: true
+                              description: FA_IR_DEPR 同比增长率(%)
+                            OILGAS_BIOLOGY_DEPR_YOY:
+                              type: number
+                              nullable: true
+                              description: OILGAS_BIOLOGY_DEPR 同比增长率(%)
+                            IR_DEPR_YOY:
+                              type: number
+                              nullable: true
+                              description: IR_DEPR 同比增长率(%)
+                            IA_AMORTIZE_YOY:
+                              type: number
+                              nullable: true
+                              description: IA_AMORTIZE 同比增长率(%)
+                            LPE_AMORTIZE_YOY:
+                              type: number
+                              nullable: true
+                              description: LPE_AMORTIZE 同比增长率(%)
+                            DEFER_INCOME_AMORTIZE_YOY:
+                              type: number
+                              nullable: true
+                              description: DEFER_INCOME_AMORTIZE 同比增长率(%)
+                            PREPAID_EXPENSE_REDUCE_YOY:
+                              type: number
+                              nullable: true
+                              description: PREPAID_EXPENSE_REDUCE 同比增长率(%)
+                            ACCRUED_EXPENSE_ADD_YOY:
+                              type: number
+                              nullable: true
+                              description: ACCRUED_EXPENSE_ADD 同比增长率(%)
+                            DISPOSAL_LONGASSET_LOSS_YOY:
+                              type: number
+                              nullable: true
+                              description: DISPOSAL_LONGASSET_LOSS 同比增长率(%)
+                            FA_SCRAP_LOSS_YOY:
+                              type: number
+                              nullable: true
+                              description: FA_SCRAP_LOSS 同比增长率(%)
+                            FAIRVALUE_CHANGE_LOSS_YOY:
+                              type: number
+                              nullable: true
+                              description: FAIRVALUE_CHANGE_LOSS 同比增长率(%)
+                            FINANCE_EXPENSE_YOY:
+                              type: number
+                              nullable: true
+                              description: 财务费用同比增长率(%)
+                            INVEST_LOSS_YOY:
+                              type: number
+                              nullable: true
+                              description: INVEST_LOSS 同比增长率(%)
+                            DEFER_TAX_YOY:
+                              type: number
+                              nullable: true
+                              description: DEFER_TAX 同比增长率(%)
+                            DT_ASSET_REDUCE_YOY:
+                              type: number
+                              nullable: true
+                              description: DT_ASSET_REDUCE 同比增长率(%)
+                            DT_LIAB_ADD_YOY:
+                              type: number
+                              nullable: true
+                              description: DT_LIAB_ADD 同比增长率(%)
+                            PREDICT_LIAB_ADD_YOY:
+                              type: number
+                              nullable: true
+                              description: PREDICT_LIAB_ADD 同比增长率(%)
+                            INVENTORY_REDUCE_YOY:
+                              type: number
+                              nullable: true
+                              description: INVENTORY_REDUCE 同比增长率(%)
+                            OPERATE_RECE_REDUCE_YOY:
+                              type: number
+                              nullable: true
+                              description: OPERATE_RECE_REDUCE 同比增长率(%)
+                            OPERATE_PAYABLE_ADD_YOY:
+                              type: number
+                              nullable: true
+                              description: OPERATE_PAYABLE_ADD 同比增长率(%)
+                            OTHER_YOY:
+                              type: number
+                              nullable: true
+                              description: OTHER 同比增长率(%)
+                            OPERATE_NETCASH_OTHERNOTE_YOY:
+                              type: number
+                              nullable: true
+                              description: OPERATE_NETCASH_OTHERNOTE 同比增长率(%)
+                            OPERATE_NETCASH_BALANCENOTE_YOY:
+                              type: number
+                              nullable: true
+                              description: OPERATE_NETCASH_BALANCENOTE 同比增长率(%)
+                            NETCASH_OPERATENOTE_YOY:
+                              type: number
+                              nullable: true
+                              description: NETCASH_OPERATENOTE 同比增长率(%)
+                            DEBT_TRANSFER_CAPITAL_YOY:
+                              type: number
+                              nullable: true
+                              description: DEBT_TRANSFER_CAPITAL 同比增长率(%)
+                            CONVERT_BOND_1YEAR_YOY:
+                              type: number
+                              nullable: true
+                              description: CONVERT_BOND_1YEAR 同比增长率(%)
+                            FINLEASE_OBTAIN_FA_YOY:
+                              type: number
+                              nullable: true
+                              description: FINLEASE_OBTAIN_FA 同比增长率(%)
+                            UNINVOLVE_INVESTFIN_OTHER_YOY:
+                              type: number
+                              nullable: true
+                              description: UNINVOLVE_INVESTFIN_OTHER 同比增长率(%)
+                            END_CASH_YOY:
+                              type: number
+                              nullable: true
+                              description: END_CASH 同比增长率(%)
+                            BEGIN_CASH_YOY:
+                              type: number
+                              nullable: true
+                              description: BEGIN_CASH 同比增长率(%)
+                            END_CASH_EQUIVALENTS_YOY:
+                              type: number
+                              nullable: true
+                              description: END_CASH_EQUIVALENTS 同比增长率(%)
+                            BEGIN_CASH_EQUIVALENTS_YOY:
+                              type: number
+                              nullable: true
+                              description: BEGIN_CASH_EQUIVALENTS 同比增长率(%)
+                            CCE_ADD_OTHERNOTE_YOY:
+                              type: number
+                              nullable: true
+                              description: CCE_ADD_OTHERNOTE 同比增长率(%)
+                            CCE_ADD_BALANCENOTE_YOY:
+                              type: number
+                              nullable: true
+                              description: CCE_ADD_BALANCENOTE 同比增长率(%)
+                            CCE_ADDNOTE_YOY:
+                              type: number
+                              nullable: true
+                              description: CCE_ADDNOTE 同比增长率(%)
+                            OPINION_TYPE:
+                              type: number
+                              nullable: true
+                              description: 审计意见类型
+                            OSOPINION_TYPE:
+                              type: number
+                              nullable: true
+                              description: 内控审计意见类型
+                            MINORITY_INTEREST:
+                              type: number
+                              nullable: true
+                              description: 少数股东损益
+                            MINORITY_INTEREST_YOY:
+                              type: number
+                              nullable: true
+                              description: 少数股东损益同比增长率(%)
+                            USERIGHT_ASSET_AMORTIZE:
+                              type: number
+                              nullable: true
+                              description: 使用权资产摊销
+                            USERIGHT_ASSET_AMORTIZE_YOY:
+                              type: number
+                              nullable: true
+                              description: USERIGHT_ASSET_AMORTIZE 同比增长率(%)
+                        description: 返回数据
+                      count:
+                        type: number
+                        description: 总记录数
+                    description: 返回数据
+                  success:
+                    type: boolean
+                    description: 请求是否成功
+                  message:
+                    type: string
+                    description: 状态消息
+                  code:
+                    type: number
+                    description: 状态码，0 = 正常
+              example:
+                version: e35e4ffff141e2bda3a1c3b901e61d09
+                result:
+                  pages: 41
+                  data:
+                  - SECUCODE: 601088.SH
+                    SECURITY_CODE: '601088'
+                    SECURITY_NAME_ABBR: 中国神华
+                    ORG_CODE: '10032705'
+                    ORG_TYPE: 通用
+                    REPORT_DATE: '2026-03-31 00:00:00'
+                    REPORT_TYPE: 一季报
+                    REPORT_DATE_NAME: 2026一季报
+                    SECURITY_TYPE_CODE: 058001001
+                    NOTICE_DATE: '2026-04-25 00:00:00'
+                    UPDATE_DATE: '2026-04-25 00:00:00'
+                    CURRENCY: CNY
+                    SALES_SERVICES: 77839000000
+                    DEPOSIT_INTERBANK_ADD: null
+                    LOAN_PBC_ADD: null
+                    OFI_BF_ADD: null
+                    RECEIVE_ORIGIC_PREMIUM: null
+                    RECEIVE_REINSURE_NET: null
+                    INSURED_INVEST_ADD: null
+                    DISPOSAL_TFA_ADD: null
+                    RECEIVE_INTEREST_COMMISSION: null
+                    BORROW_FUND_ADD: null
+                    LOAN_ADVANCE_REDUCE: null
+                    REPO_BUSINESS_ADD: null
+                    RECEIVE_TAX_REFUND: null
+                    RECEIVE_OTHER_OPERATE: 2064000000
+                    OPERATE_INFLOW_OTHER: null
+                    OPERATE_INFLOW_BALANCE: 0
+                    TOTAL_OPERATE_INFLOW: 79903000000
+                    BUY_SERVICES: 35617000000
+                    LOAN_ADVANCE_ADD: null
+                    PBC_INTERBANK_ADD: null
+                    PAY_ORIGIC_COMPENSATE: null
+                    PAY_INTEREST_COMMISSION: null
+                    PAY_POLICY_BONUS: null
+                    PAY_STAFF_CASH: 9911000000
+                    PAY_ALL_TAX: 14196000000
+                    PAY_OTHER_OPERATE: 2816000000
+                    OPERATE_OUTFLOW_OTHER: null
+                    OPERATE_OUTFLOW_BALANCE: 0
+                    TOTAL_OPERATE_OUTFLOW: 62540000000
+                    OPERATE_NETCASH_OTHER: null
+                    OPERATE_NETCASH_BALANCE: 0
+                    NETCASH_OPERATE: 17363000000
+                    WITHDRAW_INVEST: 151000000
+                    RECEIVE_INVEST_INCOME: 704000000
+                    DISPOSAL_LONG_ASSET: 330000000
+                    DISPOSAL_SUBSIDIARY_OTHER: 0
+                    REDUCE_PLEDGE_TIMEDEPOSITS: null
+                    RECEIVE_OTHER_INVEST: 2685000000
+                    INVEST_INFLOW_OTHER: null
+                    INVEST_INFLOW_BALANCE: 0
+                    TOTAL_INVEST_INFLOW: 3870000000
+                    CONSTRUCT_LONG_ASSET: 9583000000
+                    INVEST_PAY_CASH: 2601000000
+                    PLEDGE_LOAN_ADD: null
+                    OBTAIN_SUBSIDIARY_OTHER: 90942000000
+                    ADD_PLEDGE_TIMEDEPOSITS: null
+                    PAY_OTHER_INVEST: 3090000000
+                    INVEST_OUTFLOW_OTHER: null
+                    INVEST_OUTFLOW_BALANCE: 0
+                    TOTAL_INVEST_OUTFLOW: 106216000000
+                    INVEST_NETCASH_OTHER: null
+                    INVEST_NETCASH_BALANCE: 0
+                    NETCASH_INVEST: -102346000000
+                    ACCEPT_INVEST_CASH: 20144000000
+                    SUBSIDIARY_ACCEPT_INVEST: 178000000
+                    RECEIVE_LOAN_CASH: 96057000000
+                    ISSUE_BOND: null
+                    RECEIVE_OTHER_FINANCE: null
+                    FINANCE_INFLOW_OTHER: null
+                    FINANCE_INFLOW_BALANCE: 0
+                    TOTAL_FINANCE_INFLOW: 116201000000
+                    PAY_DEBT_CASH: 8594000000
+                    ASSIGN_DIVIDEND_PORFIT: 921000000
+                    SUBSIDIARY_PAY_DIVIDEND: 541000000
+                    BUY_SUBSIDIARY_EQUITY: null
+                    PAY_OTHER_FINANCE: 151000000
+                    SUBSIDIARY_REDUCE_CASH: null
+                    FINANCE_OUTFLOW_OTHER: null
+                    FINANCE_OUTFLOW_BALANCE: 0
+                    TOTAL_FINANCE_OUTFLOW: 9666000000
+                    FINANCE_NETCASH_OTHER: null
+                    FINANCE_NETCASH_BALANCE: 0
+                    NETCASH_FINANCE: 106535000000
+                    RATE_CHANGE_EFFECT: -143000000
+                    CCE_ADD_OTHER: null
+                    CCE_ADD_BALANCE: 0
+                    CCE_ADD: 21409000000
+                    BEGIN_CCE: 23288000000
+                    END_CCE_OTHER: null
+                    END_CCE_BALANCE: 0
+                    END_CCE: 44697000000
+                    NETPROFIT: null
+                    ASSET_IMPAIRMENT: null
+                    FA_IR_DEPR: null
+                    OILGAS_BIOLOGY_DEPR: null
+                    IR_DEPR: null
+                    IA_AMORTIZE: null
+                    LPE_AMORTIZE: null
+                    DEFER_INCOME_AMORTIZE: null
+                    PREPAID_EXPENSE_REDUCE: null
+                    ACCRUED_EXPENSE_ADD: null
+                    DISPOSAL_LONGASSET_LOSS: null
+                    FA_SCRAP_LOSS: null
+                    FAIRVALUE_CHANGE_LOSS: null
+                    FINANCE_EXPENSE: null
+                    INVEST_LOSS: null
+                    DEFER_TAX: null
+                    DT_ASSET_REDUCE: null
+                    DT_LIAB_ADD: null
+                    PREDICT_LIAB_ADD: null
+                    INVENTORY_REDUCE: null
+                    OPERATE_RECE_REDUCE: null
+                    OPERATE_PAYABLE_ADD: null
+                    OTHER: null
+                    OPERATE_NETCASH_OTHERNOTE: null
+                    OPERATE_NETCASH_BALANCENOTE: null
+                    NETCASH_OPERATENOTE: null
+                    DEBT_TRANSFER_CAPITAL: null
+                    CONVERT_BOND_1YEAR: null
+                    FINLEASE_OBTAIN_FA: null
+                    UNINVOLVE_INVESTFIN_OTHER: null
+                    END_CASH: null
+                    BEGIN_CASH: null
+                    END_CASH_EQUIVALENTS: null
+                    BEGIN_CASH_EQUIVALENTS: null
+                    CCE_ADD_OTHERNOTE: null
+                    CCE_ADD_BALANCENOTE: null
+                    CCE_ADDNOTE: null
+                    SALES_SERVICES_YOY: 2.4966092991
+                    DEPOSIT_INTERBANK_ADD_YOY: null
+                    LOAN_PBC_ADD_YOY: null
+                    OFI_BF_ADD_YOY: null
+                    RECEIVE_ORIGIC_PREMIUM_YOY: null
+                    RECEIVE_REINSURE_NET_YOY: null
+                    INSURED_INVEST_ADD_YOY: null
+                    DISPOSAL_TFA_ADD_YOY: null
+                    RECEIVE_INTEREST_COMMISSION_YOY: null
+                    BORROW_FUND_ADD_YOY: null
+                    LOAN_ADVANCE_REDUCE_YOY: null
+                    REPO_BUSINESS_ADD_YOY: null
+                    RECEIVE_TAX_REFUND_YOY: null
+                    RECEIVE_OTHER_OPERATE_YOY: -12.0579463144
+                    OPERATE_INFLOW_OTHER_YOY: null
+                    OPERATE_INFLOW_BALANCE_YOY: null
+                    TOTAL_OPERATE_INFLOW_YOY: 2.0602886703
+                    BUY_SERVICES_YOY: 13.9780472975
+                    LOAN_ADVANCE_ADD_YOY: null
+                    PBC_INTERBANK_ADD_YOY: null
+                  - SECUCODE: 601088.SH
+                    SECURITY_CODE: '601088'
+                    SECURITY_NAME_ABBR: 中国神华
+                    ORG_CODE: '10032705'
+                    ORG_TYPE: 通用
+                    REPORT_DATE: '2025-12-31 00:00:00'
+                    REPORT_TYPE: 年报
+                    REPORT_DATE_NAME: 2025年报
+                    SECURITY_TYPE_CODE: 058001001
+                    NOTICE_DATE: '2026-03-31 00:00:00'
+                    UPDATE_DATE: '2026-03-31 00:00:00'
+                    CURRENCY: CNY
+                    SALES_SERVICES: 296161000000
+                    DEPOSIT_INTERBANK_ADD: null
+                    LOAN_PBC_ADD: null
+                    OFI_BF_ADD: null
+                    RECEIVE_ORIGIC_PREMIUM: null
+                    RECEIVE_REINSURE_NET: null
+                    INSURED_INVEST_ADD: null
+                    DISPOSAL_TFA_ADD: null
+                    RECEIVE_INTEREST_COMMISSION: null
+                    BORROW_FUND_ADD: null
+                    LOAN_ADVANCE_REDUCE: null
+                    REPO_BUSINESS_ADD: null
+                    RECEIVE_TAX_REFUND: 358000000
+                    RECEIVE_OTHER_OPERATE: 14325000000
+                    OPERATE_INFLOW_OTHER: null
+                    OPERATE_INFLOW_BALANCE: 0
+                    TOTAL_OPERATE_INFLOW: 310844000000
+                    BUY_SERVICES: 132813000000
+                    LOAN_ADVANCE_ADD: null
+                    PBC_INTERBANK_ADD: null
+                    PAY_ORIGIC_COMPENSATE: null
+                    PAY_INTEREST_COMMISSION: null
+                    PAY_POLICY_BONUS: null
+                    PAY_STAFF_CASH: 51500000000
+                    PAY_ALL_TAX: 37637000000
+                    PAY_OTHER_OPERATE: 13835000000
+                    OPERATE_OUTFLOW_OTHER: null
+                    OPERATE_OUTFLOW_BALANCE: 0
+                    TOTAL_OPERATE_OUTFLOW: 235785000000
+                    OPERATE_NETCASH_OTHER: null
+                    OPERATE_NETCASH_BALANCE: 0
+                    NETCASH_OPERATE: 75059000000
+                    WITHDRAW_INVEST: 48339000000
+                    RECEIVE_INVEST_INCOME: 4487000000
+                    DISPOSAL_LONG_ASSET: 2398000000
+                    DISPOSAL_SUBSIDIARY_OTHER: null
+                    REDUCE_PLEDGE_TIMEDEPOSITS: 22564000000
+                    RECEIVE_OTHER_INVEST: null
+                    INVEST_INFLOW_OTHER: null
+                    INVEST_INFLOW_BALANCE: 0
+                    TOTAL_INVEST_INFLOW: 77788000000
+                    CONSTRUCT_LONG_ASSET: 48398000000
+                    INVEST_PAY_CASH: 31529000000
+                    PLEDGE_LOAN_ADD: null
+                    OBTAIN_SUBSIDIARY_OTHER: 853000000
+                    ADD_PLEDGE_TIMEDEPOSITS: null
+                    PAY_OTHER_INVEST: 186000000
+                    INVEST_OUTFLOW_OTHER: 18616000000
+                    INVEST_OUTFLOW_BALANCE: 0
+                    TOTAL_INVEST_OUTFLOW: 99582000000
+                    INVEST_NETCASH_OTHER: null
+                    INVEST_NETCASH_BALANCE: 0
+                    NETCASH_INVEST: -21794000000
+                    ACCEPT_INVEST_CASH: 2630000000
+                    SUBSIDIARY_ACCEPT_INVEST: 2630000000
+                    RECEIVE_LOAN_CASH: 9697000000
+                    ISSUE_BOND: null
+                    RECEIVE_OTHER_FINANCE: 2152000000
+                    FINANCE_INFLOW_OTHER: null
+                    FINANCE_INFLOW_BALANCE: 0
+                    TOTAL_FINANCE_INFLOW: 14479000000
+                    PAY_DEBT_CASH: 22913000000
+                    ASSIGN_DIVIDEND_PORFIT: 87204000000
+                    SUBSIDIARY_PAY_DIVIDEND: 20588000000
+                    BUY_SUBSIDIARY_EQUITY: null
+                    PAY_OTHER_FINANCE: 604000000
+                    SUBSIDIARY_REDUCE_CASH: null
+                    FINANCE_OUTFLOW_OTHER: null
+                    FINANCE_OUTFLOW_BALANCE: 0
+                    TOTAL_FINANCE_OUTFLOW: 110721000000
+                    FINANCE_NETCASH_OTHER: null
+                    FINANCE_NETCASH_BALANCE: 0
+                    NETCASH_FINANCE: -96242000000
+                    RATE_CHANGE_EFFECT: -148000000
+                    CCE_ADD_OTHER: null
+                    CCE_ADD_BALANCE: 0
+                    CCE_ADD: -43125000000
+                    BEGIN_CCE: 66413000000
+                    END_CCE_OTHER: null
+                    END_CCE_BALANCE: 0
+                    END_CCE: 23288000000
+                    NETPROFIT: 62783000000
+                    ASSET_IMPAIRMENT: 191000000
+                    FA_IR_DEPR: 21284000000
+                    OILGAS_BIOLOGY_DEPR: 21284000000
+                    IR_DEPR: null
+                    IA_AMORTIZE: 2072000000
+                    LPE_AMORTIZE: 1155000000
+                    DEFER_INCOME_AMORTIZE: null
+                    PREPAID_EXPENSE_REDUCE: null
+                    ACCRUED_EXPENSE_ADD: null
+                    DISPOSAL_LONGASSET_LOSS: 326000000
+                    FA_SCRAP_LOSS: null
+                    FAIRVALUE_CHANGE_LOSS: -1000000
+                    FINANCE_EXPENSE: 419000000
+                    INVEST_LOSS: -4155000000
+                    DEFER_TAX: -9000000
+                    DT_ASSET_REDUCE: null
+                    DT_LIAB_ADD: null
+                    PREDICT_LIAB_ADD: null
+                    INVENTORY_REDUCE: 764000000
+                    OPERATE_RECE_REDUCE: -5331000000
+                    OPERATE_PAYABLE_ADD: -5987000000
+                    OTHER: null
+                    OPERATE_NETCASH_OTHERNOTE: 1213000000
+                    OPERATE_NETCASH_BALANCENOTE: 0
+                    NETCASH_OPERATENOTE: 75059000000
+                    DEBT_TRANSFER_CAPITAL: null
+                    CONVERT_BOND_1YEAR: null
+                    FINLEASE_OBTAIN_FA: null
+                    UNINVOLVE_INVESTFIN_OTHER: null
+                    END_CASH: 23288000000
+                    BEGIN_CASH: 66413000000
+                    END_CASH_EQUIVALENTS: null
+                    BEGIN_CASH_EQUIVALENTS: null
+                    CCE_ADD_OTHERNOTE: null
+                    CCE_ADD_BALANCENOTE: null
+                    CCE_ADDNOTE: -43125000000
+                    SALES_SERVICES_YOY: -16.9866269765
+                    DEPOSIT_INTERBANK_ADD_YOY: null
+                    LOAN_PBC_ADD_YOY: null
+                    OFI_BF_ADD_YOY: null
+                    RECEIVE_ORIGIC_PREMIUM_YOY: null
+                    RECEIVE_REINSURE_NET_YOY: null
+                    INSURED_INVEST_ADD_YOY: null
+                    DISPOSAL_TFA_ADD_YOY: null
+                    RECEIVE_INTEREST_COMMISSION_YOY: null
+                    BORROW_FUND_ADD_YOY: null
+                    LOAN_ADVANCE_REDUCE_YOY: null
+                    REPO_BUSINESS_ADD_YOY: null
+                    RECEIVE_TAX_REFUND_YOY: -33.2089552239
+                    RECEIVE_OTHER_OPERATE_YOY: -5.4767403497
+                    OPERATE_INFLOW_OTHER_YOY: null
+                    OPERATE_INFLOW_BALANCE_YOY: null
+                    TOTAL_OPERATE_INFLOW_YOY: -16.5416400415
+                    BUY_SERVICES_YOY: -23.2636341051
+                    LOAN_ADVANCE_ADD_YOY: null
+                    PBC_INTERBANK_ADD_YOY: null
+                  count: 81
+                success: true
+                message: ok
+                code: 0
+      parameters:
+      - name: type
+        in: query
+        required: true
+        schema:
+          type: string
+      - name: sty
+        in: query
+        required: true
+        schema:
+          type: string
+      - name: filter
+        in: query
+        required: true
+        schema:
+          type: string
+      - name: p
+        in: query
+        required: true
+        schema:
+          type: number
+      - name: ps
+        in: query
+        required: true
+        schema:
+          type: number
+      - name: sr
+        in: query
+        required: true
+        schema:
+          type: string
+      - name: st
+        in: query
+        required: true
+        schema:
+          type: string
+      - name: source
+        in: query
+        required: true
+        schema:
+          type: string
+      - name: client
+        in: query
+        required: true
+        schema:
+          type: string

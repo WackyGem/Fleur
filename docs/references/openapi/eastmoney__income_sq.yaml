@@ -1,0 +1,1476 @@
+openapi: 3.0.0
+info:
+  title: 东方财富 F10 利润表（单季度）
+  description: '东方财富数据中心接口。使用 `data/get`，参数名: `type/sty/p/ps/sr/st`。无需认证。
+
+    ## Filter DSL
+
+    - 按证券代码: `(SECUCODE="601088.SH")`
+
+    - 按证券代码批量: `(SECUCODE in ("601088.SH","000001.SZ"))`
+
+    - 按报告期区间: `(REPORT_DATE>=''2025-01-01'')(REPORT_DATE<=''2025-12-31'')`
+
+    - 按公告日期区间: `(NOTICE_DATE>=''2025-01-01'')(NOTICE_DATE<=''2025-12-31'')`
+
+    ## 排序
+
+    - 多字段排序避免分页重复: `st=REPORT_DATE,SECURITY_CODE&sr=-1,-1`
+
+    '
+  version: 1.0.0
+servers:
+- url: https://datacenter.eastmoney.com
+  description: The default server
+paths:
+  /securities/api/data/get:
+    get:
+      summary: GET data get
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  version:
+                    type: string
+                    description: 数据版本标识
+                  result:
+                    type: object
+                    properties:
+                      pages:
+                        type: number
+                        description: 总页数
+                      data:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            SECUCODE:
+                              type: string
+                              description: 证券代码（含市场后缀）
+                            SECURITY_CODE:
+                              type: string
+                              description: 证券代码（纯数字）
+                            SECURITY_NAME_ABBR:
+                              type: string
+                              description: 证券简称
+                            ORG_CODE:
+                              type: string
+                              description: 机构代码
+                            ORG_TYPE:
+                              type: string
+                              description: 机构类型
+                            REPORT_DATE:
+                              type: string
+                              description: 报告期
+                            REPORT_TYPE:
+                              type: string
+                              description: 报告类型
+                            REPORT_DATE_NAME:
+                              type: string
+                              description: 报告期名称
+                            SECURITY_TYPE_CODE:
+                              type: string
+                              description: 证券类型代码
+                            NOTICE_DATE:
+                              type: string
+                              description: 公告日期
+                            UPDATE_DATE:
+                              type: string
+                              description: 更新日期
+                            CURRENCY:
+                              type: string
+                              description: 币种
+                            OPINION_TYPE:
+                              type: number
+                              nullable: true
+                              description: 审计意见类型
+                            OSOPINION_TYPE:
+                              type: number
+                              nullable: true
+                              description: 内控审计意见类型
+                            TOTAL_OPERATE_INCOME:
+                              type: number
+                              description: 营业总收入
+                            TOTAL_OPERATE_INCOME_QOQ:
+                              type: number
+                              description: 营业总收入环比增长率(%)
+                            OPERATE_INCOME:
+                              type: number
+                              description: 营业收入
+                            OPERATE_INCOME_QOQ:
+                              type: number
+                              description: 营业收入环比增长率(%)
+                            INTEREST_INCOME:
+                              type: number
+                              nullable: true
+                              description: 利息收入
+                            INTEREST_INCOME_QOQ:
+                              type: number
+                              nullable: true
+                              description: INTEREST_INCOME 环比增长率(%)
+                            EARNED_PREMIUM:
+                              type: number
+                              nullable: true
+                              description: 已赚保费
+                            EARNED_PREMIUM_QOQ:
+                              type: number
+                              nullable: true
+                              description: EARNED_PREMIUM 环比增长率(%)
+                            FEE_COMMISSION_INCOME:
+                              type: number
+                              nullable: true
+                              description: 手续费及佣金收入
+                            FEE_COMMISSION_INCOME_QOQ:
+                              type: number
+                              nullable: true
+                              description: FEE_COMMISSION_INCOME 环比增长率(%)
+                            OTHER_BUSINESS_INCOME:
+                              type: number
+                              nullable: true
+                              description: 其他业务收入
+                            OTHER_BUSINESS_INCOME_QOQ:
+                              type: number
+                              nullable: true
+                              description: OTHER_BUSINESS_INCOME 环比增长率(%)
+                            TOI_OTHER:
+                              type: number
+                              nullable: true
+                              description: 营业总收入其他
+                            TOI_OTHER_QOQ:
+                              type: number
+                              nullable: true
+                              description: TOI_OTHER 环比增长率(%)
+                            TOTAL_OPERATE_COST:
+                              type: number
+                              description: 营业总成本
+                            TOTAL_OPERATE_COST_QOQ:
+                              type: number
+                              description: 营业总成本环比增长率(%)
+                            OPERATE_COST:
+                              type: number
+                              description: 营业成本
+                            OPERATE_COST_QOQ:
+                              type: number
+                              description: 营业成本环比增长率(%)
+                            INTEREST_EXPENSE:
+                              type: number
+                              nullable: true
+                              description: 利息支出
+                            INTEREST_EXPENSE_QOQ:
+                              type: number
+                              nullable: true
+                              description: INTEREST_EXPENSE 环比增长率(%)
+                            FEE_COMMISSION_EXPENSE:
+                              type: number
+                              nullable: true
+                              description: 手续费及佣金支出
+                            FEE_COMMISSION_EXPENSE_QOQ:
+                              type: number
+                              nullable: true
+                              description: FEE_COMMISSION_EXPENSE 环比增长率(%)
+                            RESEARCH_EXPENSE:
+                              type: number
+                              description: 研发费用
+                            RESEARCH_EXPENSE_QOQ:
+                              type: number
+                              description: 研发费用环比增长率(%)
+                            SURRENDER_VALUE:
+                              type: number
+                              nullable: true
+                              description: 退保金
+                            SURRENDER_VALUE_QOQ:
+                              type: number
+                              nullable: true
+                              description: SURRENDER_VALUE 环比增长率(%)
+                            NET_COMPENSATE_EXPENSE:
+                              type: number
+                              nullable: true
+                              description: 分保费用
+                            NET_COMPENSATE_EXPENSE_QOQ:
+                              type: number
+                              nullable: true
+                              description: NET_COMPENSATE_EXPENSE 环比增长率(%)
+                            NET_CONTRACT_RESERVE:
+                              type: number
+                              nullable: true
+                              description: 提取保险合同准备金
+                            NET_CONTRACT_RESERVE_QOQ:
+                              type: number
+                              nullable: true
+                              description: NET_CONTRACT_RESERVE 环比增长率(%)
+                            POLICY_BONUS_EXPENSE:
+                              type: number
+                              nullable: true
+                              description: 保单红利支出
+                            POLICY_BONUS_EXPENSE_QOQ:
+                              type: number
+                              nullable: true
+                              description: POLICY_BONUS_EXPENSE 环比增长率(%)
+                            REINSURE_EXPENSE:
+                              type: number
+                              nullable: true
+                              description: 分保费用支出
+                            REINSURE_EXPENSE_QOQ:
+                              type: number
+                              nullable: true
+                              description: REINSURE_EXPENSE 环比增长率(%)
+                            OTHER_BUSINESS_COST:
+                              type: number
+                              nullable: true
+                              description: 其他业务成本
+                            OTHER_BUSINESS_COST_QOQ:
+                              type: number
+                              nullable: true
+                              description: OTHER_BUSINESS_COST 环比增长率(%)
+                            OPERATE_TAX_ADD:
+                              type: number
+                              description: 营业税金及附加
+                            OPERATE_TAX_ADD_QOQ:
+                              type: number
+                              description: 营业税金及附加环比增长率(%)
+                            SALE_EXPENSE:
+                              type: number
+                              description: 销售费用
+                            SALE_EXPENSE_QOQ:
+                              type: number
+                              description: 销售费用环比增长率(%)
+                            MANAGE_EXPENSE:
+                              type: number
+                              description: 管理费用
+                            MANAGE_EXPENSE_QOQ:
+                              type: number
+                              description: 管理费用环比增长率(%)
+                            ME_RESEARCH_EXPENSE:
+                              type: number
+                              nullable: true
+                              description: 管理费用中的研发费用
+                            ME_RESEARCH_EXPENSE_QOQ:
+                              type: number
+                              nullable: true
+                              description: ME_RESEARCH_EXPENSE 环比增长率(%)
+                            FINANCE_EXPENSE:
+                              type: number
+                              description: 财务费用
+                            FINANCE_EXPENSE_QOQ:
+                              type: number
+                              description: 财务费用环比增长率(%)
+                            FE_INTEREST_EXPENSE:
+                              type: number
+                              description: 财务费用之利息费用
+                            FE_INTEREST_EXPENSE_QOQ:
+                              type: number
+                              description: 财务费用之利息费用环比增长率(%)
+                            FE_INTEREST_INCOME:
+                              type: number
+                              description: 财务费用之利息收入
+                            FE_INTEREST_INCOME_QOQ:
+                              type: number
+                              description: 财务费用之利息收入环比增长率(%)
+                            ASSET_IMPAIRMENT_LOSS:
+                              type: number
+                              nullable: true
+                              description: 资产减值损失
+                            ASSET_IMPAIRMENT_LOSS_QOQ:
+                              type: number
+                              nullable: true
+                              description: ASSET_IMPAIRMENT_LOSS 环比增长率(%)
+                            CREDIT_IMPAIRMENT_LOSS:
+                              type: number
+                              nullable: true
+                              description: 信用减值损失
+                            CREDIT_IMPAIRMENT_LOSS_QOQ:
+                              type: number
+                              nullable: true
+                              description: CREDIT_IMPAIRMENT_LOSS 环比增长率(%)
+                            OTHER_INCOME:
+                              type: number
+                              description: 其他收益
+                            OTHER_INCOME_QOQ:
+                              type: number
+                              description: 其他收益环比增长率(%)
+                            TOC_OTHER:
+                              type: number
+                              nullable: true
+                              description: 营业总成本其他
+                            TOC_OTHER_QOQ:
+                              type: number
+                              nullable: true
+                              description: TOC_OTHER 环比增长率(%)
+                            INVEST_INCOME:
+                              type: number
+                              description: 投资收益
+                            INVEST_INCOME_QOQ:
+                              type: number
+                              description: 投资收益环比增长率(%)
+                            INVEST_JOINT_INCOME:
+                              type: number
+                              description: 对联营企业和合营企业的投资收益
+                            INVEST_JOINT_INCOME_QOQ:
+                              type: number
+                              description: 对联营企业和合营企业的投资收益环比增长率(%)
+                            ACF_END_INCOME:
+                              type: number
+                              nullable: true
+                              description: 持续经营终止经营净损益
+                            ACF_END_INCOME_QOQ:
+                              type: number
+                              nullable: true
+                              description: ACF_END_INCOME 环比增长率(%)
+                            EXCHANGE_INCOME:
+                              type: number
+                              nullable: true
+                              description: 汇兑收益
+                            EXCHANGE_INCOME_QOQ:
+                              type: number
+                              nullable: true
+                              description: EXCHANGE_INCOME 环比增长率(%)
+                            NET_EXPOSURE_INCOME:
+                              type: number
+                              nullable: true
+                              description: 净敞口收益
+                            NET_EXPOSURE_INCOME_QOQ:
+                              type: number
+                              nullable: true
+                              description: NET_EXPOSURE_INCOME 环比增长率(%)
+                            FAIRVALUE_CHANGE_INCOME:
+                              type: number
+                              description: 公允价值变动收益
+                            FAIRVALUE_CHANGE_INCOME_QOQ:
+                              type: number
+                              description: 公允价值变动收益环比增长率(%)
+                            ASSET_DISPOSAL_INCOME:
+                              type: number
+                              description: 资产处置收益
+                            ASSET_DISPOSAL_INCOME_QOQ:
+                              type: number
+                              description: 资产处置收益环比增长率(%)
+                            CREDIT_IMPAIRMENT_INCOME:
+                              type: number
+                              description: 信用减值收益
+                            CREDIT_IMPAIRMENT_INCOME_QOQ:
+                              type: number
+                              description: CREDIT_IMPAIRMENT_INCOME 环比增长率(%)
+                            ASSET_IMPAIRMENT_INCOME:
+                              type: number
+                              description: 资产减值收益
+                            ASSET_IMPAIRMENT_INCOME_QOQ:
+                              type: number
+                              description: ASSET_IMPAIRMENT_INCOME 环比增长率(%)
+                            OPERATE_PROFIT:
+                              type: number
+                              description: 营业利润
+                            OPERATE_PROFIT_QOQ:
+                              type: number
+                              description: 营业利润环比增长率(%)
+                            NONBUSINESS_INCOME:
+                              type: number
+                              description: 营业外收入
+                            NONBUSINESS_INCOME_QOQ:
+                              type: number
+                              description: 营业外收入环比增长率(%)
+                            NONCURRENT_DISPOSAL_INCOME:
+                              type: number
+                              nullable: true
+                              description: 非流动资产处置净收益
+                            NONCURRENT_DISPOSAL_INCOME_QOQ:
+                              type: number
+                              nullable: true
+                              description: NONCURRENT_DISPOSAL_INCOME 环比增长率(%)
+                            NONBUSINESS_EXPENSE:
+                              type: number
+                              description: 营业外支出
+                            NONBUSINESS_EXPENSE_QOQ:
+                              type: number
+                              description: 营业外支出环比增长率(%)
+                            NONCURRENT_DISPOSAL_LOSS:
+                              type: number
+                              nullable: true
+                              description: 非流动资产处置净损失
+                            NONCURRENT_DISPOSAL_LOSS_QOQ:
+                              type: number
+                              nullable: true
+                              description: NONCURRENT_DISPOSAL_LOSS 环比增长率(%)
+                            OPERATE_PROFIT_OTHER:
+                              type: number
+                              nullable: true
+                              description: 营业利润其他
+                            OPERATE_PROFIT_OTHER_QOQ:
+                              type: number
+                              nullable: true
+                              description: OPERATE_PROFIT_OTHER 环比增长率(%)
+                            OPERATE_PROFIT_BALANCE:
+                              type: number
+                              description: 营业利润平衡项
+                            OPERATE_PROFIT_BALANCE_QOQ:
+                              type: number
+                              nullable: true
+                              description: OPERATE_PROFIT_BALANCE 环比增长率(%)
+                            TOTAL_PROFIT:
+                              type: number
+                              description: 利润总额
+                            TOTAL_PROFIT_QOQ:
+                              type: number
+                              description: 利润总额环比增长率(%)
+                            EFFECT_TP_OTHER:
+                              type: number
+                              nullable: true
+                              description: 影响利润总额其他
+                            EFFECT_TP_OTHER_QOQ:
+                              type: number
+                              nullable: true
+                              description: EFFECT_TP_OTHER 环比增长率(%)
+                            TOTAL_PROFIT_BALANCE:
+                              type: number
+                              description: 利润总额平衡项
+                            TOTAL_PROFIT_BALANCE_QOQ:
+                              type: number
+                              nullable: true
+                              description: TOTAL_PROFIT_BALANCE 环比增长率(%)
+                            INCOME_TAX:
+                              type: number
+                              description: 所得税费用
+                            INCOME_TAX_QOQ:
+                              type: number
+                              description: 所得税费用环比增长率(%)
+                            NETPROFIT:
+                              type: number
+                              description: 净利润
+                            NETPROFIT_QOQ:
+                              type: number
+                              description: 净利润环比增长率(%)
+                            CONTINUED_NETPROFIT:
+                              type: number
+                              description: 持续经营净利润
+                            CONTINUED_NETPROFIT_QOQ:
+                              type: number
+                              description: 持续经营净利润环比增长率(%)
+                            DISCONTINUED_NETPROFIT:
+                              type: number
+                              description: 终止经营净利润
+                            DISCONTINUED_NETPROFIT_QOQ:
+                              type: number
+                              nullable: true
+                              description: 终止经营净利润环比增长率(%)
+                            NETPROFIT_OTHER:
+                              type: number
+                              nullable: true
+                              description: 净利润其他
+                            NETPROFIT_OTHER_QOQ:
+                              type: number
+                              nullable: true
+                              description: NETPROFIT_OTHER 环比增长率(%)
+                            NETPROFIT_BALANCE:
+                              type: number
+                              nullable: true
+                              description: 净利润平衡项
+                            NETPROFIT_BALANCE_QOQ:
+                              type: number
+                              nullable: true
+                              description: NETPROFIT_BALANCE 环比增长率(%)
+                            EFFECT_NETPROFIT_OTHER:
+                              type: number
+                              nullable: true
+                              description: 影响净利润其他
+                            EFFECT_NETPROFIT_OTHER_QOQ:
+                              type: number
+                              nullable: true
+                              description: EFFECT_NETPROFIT_OTHER 环比增长率(%)
+                            EFFECT_NETPROFIT_BALANCE:
+                              type: number
+                              nullable: true
+                              description: 净利润平衡项
+                            EFFECT_NETPROFIT_BALANCE_QOQ:
+                              type: number
+                              nullable: true
+                              description: EFFECT_NETPROFIT_BALANCE 环比增长率(%)
+                            UNCONFIRM_INVEST_LOSS:
+                              type: number
+                              nullable: true
+                              description: 未确认投资损失
+                            UNCONFIRM_INVEST_LOSS_QOQ:
+                              type: number
+                              nullable: true
+                              description: UNCONFIRM_INVEST_LOSS 环比增长率(%)
+                            MINORITY_INTEREST:
+                              type: number
+                              description: 少数股东损益
+                            MINORITY_INTEREST_QOQ:
+                              type: number
+                              description: 少数股东损益环比增长率(%)
+                            PARENT_NETPROFIT:
+                              type: number
+                              description: 归属于母公司股东的净利润
+                            PARENT_NETPROFIT_QOQ:
+                              type: number
+                              description: 归属于母公司股东的净利润环比增长率(%)
+                            BASIC_EPS:
+                              type: number
+                              description: 基本每股收益（元/股）
+                            BASIC_EPS_QOQ:
+                              type: number
+                              description: 基本每股收益（元/股）环比增长率(%)
+                            DILUTED_EPS:
+                              type: number
+                              description: 稀释每股收益（元/股）
+                            DILUTED_EPS_QOQ:
+                              type: number
+                              description: 稀释每股收益（元/股）环比增长率(%)
+                            UNABLE_OCI:
+                              type: number
+                              description: 以后将重分类进损益的其他综合收益
+                            UNABLE_OCI_QOQ:
+                              type: number
+                              description: UNABLE_OCI 环比增长率(%)
+                            CREDITRISK_FAIRVALUE_CHANGE:
+                              type: number
+                              nullable: true
+                              description: 信用风险引起的公允价值变动
+                            CREDITRISK_FAIRVALUE_CHANGE_QOQ:
+                              type: number
+                              nullable: true
+                              description: CREDITRISK_FAIRVALUE_CHANGE 环比增长率(%)
+                            OTHERRIGHT_FAIRVALUE_CHANGE:
+                              type: number
+                              nullable: true
+                              description: 其他权益工具公允价值变动
+                            OTHERRIGHT_FAIRVALUE_CHANGE_QOQ:
+                              type: number
+                              nullable: true
+                              description: OTHERRIGHT_FAIRVALUE_CHANGE 环比增长率(%)
+                            SETUP_PROFIT_CHANGE:
+                              type: number
+                              description: 重分类调整变动
+                            SETUP_PROFIT_CHANGE_QOQ:
+                              type: number
+                              nullable: true
+                              description: SETUP_PROFIT_CHANGE 环比增长率(%)
+                            RIGHTLAW_UNABLE_OCI:
+                              type: number
+                              description: 权益法下不能重分类的其他综合收益
+                            RIGHTLAW_UNABLE_OCI_QOQ:
+                              type: number
+                              description: RIGHTLAW_UNABLE_OCI 环比增长率(%)
+                            UNABLE_OCI_OTHER:
+                              type: number
+                              nullable: true
+                              description: 不能重分类其他综合收益其他
+                            UNABLE_OCI_OTHER_QOQ:
+                              type: number
+                              nullable: true
+                              description: UNABLE_OCI_OTHER 环比增长率(%)
+                            UNABLE_OCI_BALANCE:
+                              type: number
+                              nullable: true
+                              description: 不能重分类其他综合收益平衡项
+                            UNABLE_OCI_BALANCE_QOQ:
+                              type: number
+                              nullable: true
+                              description: UNABLE_OCI_BALANCE 环比增长率(%)
+                            ABLE_OCI:
+                              type: number
+                              description: 以后将重分类进损益的其他综合收益（可重分类）
+                            ABLE_OCI_QOQ:
+                              type: number
+                              description: ABLE_OCI 环比增长率(%)
+                            RIGHTLAW_ABLE_OCI:
+                              type: number
+                              description: 权益法下可重分类的其他综合收益
+                            RIGHTLAW_ABLE_OCI_QOQ:
+                              type: number
+                              description: RIGHTLAW_ABLE_OCI 环比增长率(%)
+                            AFA_FAIRVALUE_CHANGE:
+                              type: number
+                              nullable: true
+                              description: 可供出售金融资产公允价值变动
+                            AFA_FAIRVALUE_CHANGE_QOQ:
+                              type: number
+                              nullable: true
+                              description: AFA_FAIRVALUE_CHANGE 环比增长率(%)
+                            HMI_AFA:
+                              type: number
+                              nullable: true
+                              description: 持有有待售资产公允价值变动
+                            HMI_AFA_QOQ:
+                              type: number
+                              nullable: true
+                              description: HMI_AFA 环比增长率(%)
+                            CASHFLOW_HEDGE_VALID:
+                              type: number
+                              nullable: true
+                              description: 现金流量套期有效部分
+                            CASHFLOW_HEDGE_VALID_QOQ:
+                              type: number
+                              nullable: true
+                              description: CASHFLOW_HEDGE_VALID 环比增长率(%)
+                            CREDITOR_FAIRVALUE_CHANGE:
+                              type: number
+                              nullable: true
+                              description: 债权投资公允价值变动
+                            CREDITOR_FAIRVALUE_CHANGE_QOQ:
+                              type: number
+                              nullable: true
+                              description: CREDITOR_FAIRVALUE_CHANGE 环比增长率(%)
+                            CREDITOR_IMPAIRMENT_RESERVE:
+                              type: number
+                              nullable: true
+                              description: 债权投资减值准备
+                            CREDITOR_IMPAIRMENT_RESERVE_QOQ:
+                              type: number
+                              nullable: true
+                              description: CREDITOR_IMPAIRMENT_RESERVE 环比增长率(%)
+                            FINANCE_OCI_AMT:
+                              type: number
+                              nullable: true
+                              description: 金融资产重分类金额
+                            FINANCE_OCI_AMT_QOQ:
+                              type: number
+                              nullable: true
+                              description: FINANCE_OCI_AMT 环比增长率(%)
+                            CONVERT_DIFF:
+                              type: number
+                              description: 外币报表折算差额
+                            CONVERT_DIFF_QOQ:
+                              type: number
+                              description: CONVERT_DIFF 环比增长率(%)
+                            ABLE_OCI_OTHER:
+                              type: number
+                              nullable: true
+                              description: 可重分类其他综合收益其他
+                            ABLE_OCI_OTHER_QOQ:
+                              type: number
+                              nullable: true
+                              description: ABLE_OCI_OTHER 环比增长率(%)
+                            ABLE_OCI_BALANCE:
+                              type: number
+                              nullable: true
+                              description: 可重分类其他综合收益平衡项
+                            ABLE_OCI_BALANCE_QOQ:
+                              type: number
+                              nullable: true
+                              description: ABLE_OCI_BALANCE 环比增长率(%)
+                            OCI_OTHER:
+                              type: number
+                              nullable: true
+                              description: 其他综合收益其他
+                            OCI_OTHER_QOQ:
+                              type: number
+                              nullable: true
+                              description: OCI_OTHER 环比增长率(%)
+                            OCI_BALANCE:
+                              type: number
+                              nullable: true
+                              description: 其他综合收益平衡项
+                            OCI_BALANCE_QOQ:
+                              type: number
+                              nullable: true
+                              description: OCI_BALANCE 环比增长率(%)
+                            OTHER_COMPRE_INCOME:
+                              type: number
+                              description: 其他综合收益总额
+                            OTHER_COMPRE_INCOME_QOQ:
+                              type: number
+                              description: 其他综合收益总额环比增长率(%)
+                            PARENT_OCI:
+                              type: number
+                              description: 归属于母公司股东的其他综合收益
+                            PARENT_OCI_QOQ:
+                              type: number
+                              description: 归母其他综合收益环比增长率(%)
+                            MINORITY_OCI:
+                              type: number
+                              description: 归属于少数股东的其他综合收益
+                            MINORITY_OCI_QOQ:
+                              type: number
+                              description: 少数股东其他综合收益环比增长率(%)
+                            PARENT_OCI_OTHER:
+                              type: number
+                              nullable: true
+                              description: 归母其他综合收益其他
+                            PARENT_OCI_OTHER_QOQ:
+                              type: number
+                              nullable: true
+                              description: PARENT_OCI_OTHER 环比增长率(%)
+                            PARENT_OCI_BALANCE:
+                              type: number
+                              nullable: true
+                              description: 归母其他综合收益平衡项
+                            PARENT_OCI_BALANCE_QOQ:
+                              type: number
+                              nullable: true
+                              description: PARENT_OCI_BALANCE 环比增长率(%)
+                            TOTAL_COMPRE_INCOME:
+                              type: number
+                              description: 综合收益总额
+                            TOTAL_COMPRE_INCOME_QOQ:
+                              type: number
+                              description: 综合收益总额环比增长率(%)
+                            PARENT_TCI:
+                              type: number
+                              description: 归属于母公司股东的综合收益总额
+                            PARENT_TCI_QOQ:
+                              type: number
+                              description: 归母综合收益总额环比增长率(%)
+                            MINORITY_TCI:
+                              type: number
+                              description: 归属于少数股东的综合收益总额
+                            MINORITY_TCI_QOQ:
+                              type: number
+                              description: 少数股东综合收益总额环比增长率(%)
+                            EFFECT_TCI_BALANCE:
+                              type: number
+                              nullable: true
+                              description: 综合收益总额平衡项
+                            EFFECT_TCI_BALANCE_QOQ:
+                              type: number
+                              nullable: true
+                              description: EFFECT_TCI_BALANCE 环比增长率(%)
+                            TCI_OTHER:
+                              type: number
+                              nullable: true
+                              description: 综合收益总额其他
+                            TCI_OTHER_QOQ:
+                              type: number
+                              nullable: true
+                              description: TCI_OTHER 环比增长率(%)
+                            TCI_BALANCE:
+                              type: number
+                              nullable: true
+                              description: 综合收益总额平衡项
+                            TCI_BALANCE_QOQ:
+                              type: number
+                              nullable: true
+                              description: TCI_BALANCE 环比增长率(%)
+                            PRECOMBINE_PROFIT:
+                              type: number
+                              nullable: true
+                              description: 合并前净损益
+                            PRECOMBINE_PROFIT_QOQ:
+                              type: number
+                              nullable: true
+                              description: PRECOMBINE_PROFIT 环比增长率(%)
+                            PRECOMBINE_TCI:
+                              type: number
+                              nullable: true
+                              description: 合并前综合收益总额
+                            PRECOMBINE_TCI_QOQ:
+                              type: number
+                              nullable: true
+                              description: PRECOMBINE_TCI 环比增长率(%)
+                            DEDUCT_PARENT_NETPROFIT:
+                              type: number
+                              description: 扣除非经常性损益后归属于母公司股东的净利润
+                            DEDUCT_PARENT_NETPROFIT_QOQ:
+                              type: number
+                              description: 扣非归母净利润环比增长率(%)
+                            TOTAL_OPERATE_INCOME_YOY:
+                              type: number
+                              description: 营业总收入同比增长率(%)
+                            OPERATE_INCOME_YOY:
+                              type: number
+                              description: 营业收入同比增长率(%)
+                            INTEREST_INCOME_YOY:
+                              type: number
+                              nullable: true
+                              description: INTEREST_INCOME 同比增长率(%)
+                            EARNED_PREMIUM_YOY:
+                              type: number
+                              nullable: true
+                              description: EARNED_PREMIUM 同比增长率(%)
+                            FEE_COMMISSION_INCOME_YOY:
+                              type: number
+                              nullable: true
+                              description: FEE_COMMISSION_INCOME 同比增长率(%)
+                            OTHER_BUSINESS_INCOME_YOY:
+                              type: number
+                              nullable: true
+                              description: OTHER_BUSINESS_INCOME 同比增长率(%)
+                            TOI_OTHER_YOY:
+                              type: number
+                              nullable: true
+                              description: TOI_OTHER 同比增长率(%)
+                            TOTAL_OPERATE_COST_YOY:
+                              type: number
+                              description: 营业总成本同比增长率(%)
+                            OPERATE_COST_YOY:
+                              type: number
+                              description: 营业成本同比增长率(%)
+                            INTEREST_EXPENSE_YOY:
+                              type: number
+                              nullable: true
+                              description: INTEREST_EXPENSE 同比增长率(%)
+                            FEE_COMMISSION_EXPENSE_YOY:
+                              type: number
+                              nullable: true
+                              description: FEE_COMMISSION_EXPENSE 同比增长率(%)
+                            RESEARCH_EXPENSE_YOY:
+                              type: number
+                              description: 研发费用同比增长率(%)
+                            SURRENDER_VALUE_YOY:
+                              type: number
+                              nullable: true
+                              description: SURRENDER_VALUE 同比增长率(%)
+                            NET_COMPENSATE_EXPENSE_YOY:
+                              type: number
+                              nullable: true
+                              description: NET_COMPENSATE_EXPENSE 同比增长率(%)
+                            NET_CONTRACT_RESERVE_YOY:
+                              type: number
+                              nullable: true
+                              description: NET_CONTRACT_RESERVE 同比增长率(%)
+                            POLICY_BONUS_EXPENSE_YOY:
+                              type: number
+                              nullable: true
+                              description: POLICY_BONUS_EXPENSE 同比增长率(%)
+                            REINSURE_EXPENSE_YOY:
+                              type: number
+                              nullable: true
+                              description: REINSURE_EXPENSE 同比增长率(%)
+                            OTHER_BUSINESS_COST_YOY:
+                              type: number
+                              nullable: true
+                              description: OTHER_BUSINESS_COST 同比增长率(%)
+                            OPERATE_TAX_ADD_YOY:
+                              type: number
+                              description: 营业税金及附加同比增长率(%)
+                            SALE_EXPENSE_YOY:
+                              type: number
+                              description: 销售费用同比增长率(%)
+                            MANAGE_EXPENSE_YOY:
+                              type: number
+                              description: 管理费用同比增长率(%)
+                            ME_RESEARCH_EXPENSE_YOY:
+                              type: number
+                              nullable: true
+                              description: ME_RESEARCH_EXPENSE 同比增长率(%)
+                            FINANCE_EXPENSE_YOY:
+                              type: number
+                              description: 财务费用同比增长率(%)
+                            FE_INTEREST_EXPENSE_YOY:
+                              type: number
+                              description: 财务费用之利息费用同比增长率(%)
+                            FE_INTEREST_INCOME_YOY:
+                              type: number
+                              description: 财务费用之利息收入同比增长率(%)
+                            ASSET_IMPAIRMENT_LOSS_YOY:
+                              type: number
+                              nullable: true
+                              description: ASSET_IMPAIRMENT_LOSS 同比增长率(%)
+                            CREDIT_IMPAIRMENT_LOSS_YOY:
+                              type: number
+                              nullable: true
+                              description: CREDIT_IMPAIRMENT_LOSS 同比增长率(%)
+                            OTHER_INCOME_YOY:
+                              type: number
+                              description: 其他收益同比增长率(%)
+                            TOC_OTHER_YOY:
+                              type: number
+                              nullable: true
+                              description: TOC_OTHER 同比增长率(%)
+                            INVEST_INCOME_YOY:
+                              type: number
+                              description: 投资收益同比增长率(%)
+                            INVEST_JOINT_INCOME_YOY:
+                              type: number
+                              description: 对联营企业和合营企业的投资收益同比增长率(%)
+                            ACF_END_INCOME_YOY:
+                              type: number
+                              nullable: true
+                              description: ACF_END_INCOME 同比增长率(%)
+                            EXCHANGE_INCOME_YOY:
+                              type: number
+                              nullable: true
+                              description: EXCHANGE_INCOME 同比增长率(%)
+                            NET_EXPOSURE_INCOME_YOY:
+                              type: number
+                              nullable: true
+                              description: NET_EXPOSURE_INCOME 同比增长率(%)
+                            FAIRVALUE_CHANGE_INCOME_YOY:
+                              type: number
+                              description: 公允价值变动收益同比增长率(%)
+                            ASSET_DISPOSAL_INCOME_YOY:
+                              type: number
+                              description: 资产处置收益同比增长率(%)
+                            CREDIT_IMPAIRMENT_INCOME_YOY:
+                              type: number
+                              description: CREDIT_IMPAIRMENT_INCOME 同比增长率(%)
+                            ASSET_IMPAIRMENT_INCOME_YOY:
+                              type: number
+                              description: ASSET_IMPAIRMENT_INCOME 同比增长率(%)
+                            OPERATE_PROFIT_YOY:
+                              type: number
+                              description: 营业利润同比增长率(%)
+                            NONBUSINESS_INCOME_YOY:
+                              type: number
+                              description: 营业外收入同比增长率(%)
+                            NONCURRENT_DISPOSAL_INCOME_YOY:
+                              type: number
+                              nullable: true
+                              description: NONCURRENT_DISPOSAL_INCOME 同比增长率(%)
+                            NONBUSINESS_EXPENSE_YOY:
+                              type: number
+                              description: 营业外支出同比增长率(%)
+                            NONCURRENT_DISPOSAL_LOSS_YOY:
+                              type: number
+                              nullable: true
+                              description: NONCURRENT_DISPOSAL_LOSS 同比增长率(%)
+                            OPERATE_PROFIT_OTHER_YOY:
+                              type: number
+                              nullable: true
+                              description: OPERATE_PROFIT_OTHER 同比增长率(%)
+                            OPERATE_PROFIT_BALANCE_YOY:
+                              type: number
+                              nullable: true
+                              description: OPERATE_PROFIT_BALANCE 同比增长率(%)
+                            TOTAL_PROFIT_YOY:
+                              type: number
+                              description: 利润总额同比增长率(%)
+                            EFFECT_TP_OTHER_YOY:
+                              type: number
+                              nullable: true
+                              description: EFFECT_TP_OTHER 同比增长率(%)
+                            TOTAL_PROFIT_BALANCE_YOY:
+                              type: number
+                              nullable: true
+                              description: TOTAL_PROFIT_BALANCE 同比增长率(%)
+                            INCOME_TAX_YOY:
+                              type: number
+                              description: 所得税费用同比增长率(%)
+                            NETPROFIT_YOY:
+                              type: number
+                              description: 净利润同比增长率(%)
+                            CONTINUED_NETPROFIT_YOY:
+                              type: number
+                              description: 持续经营净利润同比增长率(%)
+                            DISCONTINUED_NETPROFIT_YOY:
+                              type: number
+                              nullable: true
+                              description: 终止经营净利润同比增长率(%)
+                            NETPROFIT_OTHER_YOY:
+                              type: number
+                              nullable: true
+                              description: NETPROFIT_OTHER 同比增长率(%)
+                            NETPROFIT_BALANCE_YOY:
+                              type: number
+                              nullable: true
+                              description: NETPROFIT_BALANCE 同比增长率(%)
+                            EFFECT_NETPROFIT_OTHER_YOY:
+                              type: number
+                              nullable: true
+                              description: EFFECT_NETPROFIT_OTHER 同比增长率(%)
+                            EFFECT_NETPROFIT_BALANCE_YOY:
+                              type: number
+                              nullable: true
+                              description: EFFECT_NETPROFIT_BALANCE 同比增长率(%)
+                            UNCONFIRM_INVEST_LOSS_YOY:
+                              type: number
+                              nullable: true
+                              description: UNCONFIRM_INVEST_LOSS 同比增长率(%)
+                            MINORITY_INTEREST_YOY:
+                              type: number
+                              description: 少数股东损益同比增长率(%)
+                            PARENT_NETPROFIT_YOY:
+                              type: number
+                              description: 归属于母公司股东的净利润同比增长率(%)
+                            BASIC_EPS_YOY:
+                              type: number
+                              description: 基本每股收益（元/股）同比增长率(%)
+                            DILUTED_EPS_YOY:
+                              type: number
+                              description: 稀释每股收益（元/股）同比增长率(%)
+                            UNABLE_OCI_YOY:
+                              type: number
+                              description: UNABLE_OCI 同比增长率(%)
+                            CREDITRISK_FAIRVALUE_CHANGE_YOY:
+                              type: number
+                              nullable: true
+                              description: CREDITRISK_FAIRVALUE_CHANGE 同比增长率(%)
+                            OTHERRIGHT_FAIRVALUE_CHANGE_YOY:
+                              type: number
+                              nullable: true
+                              description: OTHERRIGHT_FAIRVALUE_CHANGE 同比增长率(%)
+                            SETUP_PROFIT_CHANGE_YOY:
+                              type: number
+                              nullable: true
+                              description: SETUP_PROFIT_CHANGE 同比增长率(%)
+                            RIGHTLAW_UNABLE_OCI_YOY:
+                              type: number
+                              description: RIGHTLAW_UNABLE_OCI 同比增长率(%)
+                            UNABLE_OCI_OTHER_YOY:
+                              type: number
+                              nullable: true
+                              description: UNABLE_OCI_OTHER 同比增长率(%)
+                            UNABLE_OCI_BALANCE_YOY:
+                              type: number
+                              nullable: true
+                              description: UNABLE_OCI_BALANCE 同比增长率(%)
+                            ABLE_OCI_YOY:
+                              type: number
+                              description: ABLE_OCI 同比增长率(%)
+                            RIGHTLAW_ABLE_OCI_YOY:
+                              type: number
+                              description: RIGHTLAW_ABLE_OCI 同比增长率(%)
+                            AFA_FAIRVALUE_CHANGE_YOY:
+                              type: number
+                              nullable: true
+                              description: AFA_FAIRVALUE_CHANGE 同比增长率(%)
+                            HMI_AFA_YOY:
+                              type: number
+                              nullable: true
+                              description: HMI_AFA 同比增长率(%)
+                            CASHFLOW_HEDGE_VALID_YOY:
+                              type: number
+                              nullable: true
+                              description: CASHFLOW_HEDGE_VALID 同比增长率(%)
+                            CREDITOR_FAIRVALUE_CHANGE_YOY:
+                              type: number
+                              nullable: true
+                              description: CREDITOR_FAIRVALUE_CHANGE 同比增长率(%)
+                            CREDITOR_IMPAIRMENT_RESERVE_YOY:
+                              type: number
+                              nullable: true
+                              description: CREDITOR_IMPAIRMENT_RESERVE 同比增长率(%)
+                            FINANCE_OCI_AMT_YOY:
+                              type: number
+                              nullable: true
+                              description: FINANCE_OCI_AMT 同比增长率(%)
+                            CONVERT_DIFF_YOY:
+                              type: number
+                              description: CONVERT_DIFF 同比增长率(%)
+                            ABLE_OCI_OTHER_YOY:
+                              type: number
+                              nullable: true
+                              description: ABLE_OCI_OTHER 同比增长率(%)
+                            ABLE_OCI_BALANCE_YOY:
+                              type: number
+                              nullable: true
+                              description: ABLE_OCI_BALANCE 同比增长率(%)
+                            OCI_OTHER_YOY:
+                              type: number
+                              nullable: true
+                              description: OCI_OTHER 同比增长率(%)
+                            OCI_BALANCE_YOY:
+                              type: number
+                              nullable: true
+                              description: OCI_BALANCE 同比增长率(%)
+                            OTHER_COMPRE_INCOME_YOY:
+                              type: number
+                              description: 其他综合收益总额同比增长率(%)
+                            PARENT_OCI_YOY:
+                              type: number
+                              description: 归母其他综合收益同比增长率(%)
+                            MINORITY_OCI_YOY:
+                              type: number
+                              description: 少数股东其他综合收益同比增长率(%)
+                            PARENT_OCI_OTHER_YOY:
+                              type: number
+                              nullable: true
+                              description: PARENT_OCI_OTHER 同比增长率(%)
+                            PARENT_OCI_BALANCE_YOY:
+                              type: number
+                              nullable: true
+                              description: PARENT_OCI_BALANCE 同比增长率(%)
+                            TOTAL_COMPRE_INCOME_YOY:
+                              type: number
+                              description: 综合收益总额同比增长率(%)
+                            PARENT_TCI_YOY:
+                              type: number
+                              description: 归母综合收益总额同比增长率(%)
+                            MINORITY_TCI_YOY:
+                              type: number
+                              description: 少数股东综合收益总额同比增长率(%)
+                            EFFECT_TCI_BALANCE_YOY:
+                              type: number
+                              nullable: true
+                              description: EFFECT_TCI_BALANCE 同比增长率(%)
+                            TCI_OTHER_YOY:
+                              type: number
+                              nullable: true
+                              description: TCI_OTHER 同比增长率(%)
+                            TCI_BALANCE_YOY:
+                              type: number
+                              nullable: true
+                              description: TCI_BALANCE 同比增长率(%)
+                            PRECOMBINE_PROFIT_YOY:
+                              type: number
+                              nullable: true
+                              description: PRECOMBINE_PROFIT 同比增长率(%)
+                            PRECOMBINE_TCI_YOY:
+                              type: number
+                              nullable: true
+                              description: PRECOMBINE_TCI 同比增长率(%)
+                            DEDUCT_PARENT_NETPROFIT_YOY:
+                              type: number
+                              description: 扣非归母净利润同比增长率(%)
+                        description: 返回数据
+                      count:
+                        type: number
+                        description: 总记录数
+                    description: 返回数据
+                  success:
+                    type: boolean
+                    description: 请求是否成功
+                  message:
+                    type: string
+                    description: 状态消息
+                  code:
+                    type: number
+                    description: 状态码，0 = 正常
+              example:
+                version: db1a32ba02c4c0a146c2280e7ed33364
+                result:
+                  pages: 39
+                  data:
+                  - SECUCODE: 601088.SH
+                    SECURITY_CODE: '601088'
+                    SECURITY_NAME_ABBR: 中国神华
+                    ORG_CODE: '10032705'
+                    ORG_TYPE: 通用
+                    REPORT_DATE: '2026-03-31 00:00:00'
+                    REPORT_TYPE: 一季度
+                    REPORT_DATE_NAME: 2026一季度
+                    SECURITY_TYPE_CODE: 058001001
+                    NOTICE_DATE: '2026-04-25 00:00:00'
+                    UPDATE_DATE: '2026-04-25 00:00:00'
+                    CURRENCY: CNY
+                    OPINION_TYPE: null
+                    OSOPINION_TYPE: null
+                    TOTAL_OPERATE_INCOME: 70397000000
+                    TOTAL_OPERATE_INCOME_QOQ: -13.903259340794
+                    OPERATE_INCOME: 70397000000
+                    OPERATE_INCOME_QOQ: -13.903259340794
+                    INTEREST_INCOME: null
+                    INTEREST_INCOME_QOQ: null
+                    EARNED_PREMIUM: null
+                    EARNED_PREMIUM_QOQ: null
+                    FEE_COMMISSION_INCOME: null
+                    FEE_COMMISSION_INCOME_QOQ: null
+                    OTHER_BUSINESS_INCOME: null
+                    OTHER_BUSINESS_INCOME_QOQ: null
+                    TOI_OTHER: null
+                    TOI_OTHER_QOQ: null
+                    TOTAL_OPERATE_COST: 54277000000
+                    TOTAL_OPERATE_COST_QOQ: -17.628579667036
+                    OPERATE_COST: 47244000000
+                    OPERATE_COST_QOQ: -14.326127955897
+                    INTEREST_EXPENSE: null
+                    INTEREST_EXPENSE_QOQ: null
+                    FEE_COMMISSION_EXPENSE: null
+                    FEE_COMMISSION_EXPENSE_QOQ: null
+                    RESEARCH_EXPENSE: 333000000
+                    RESEARCH_EXPENSE_QOQ: -78.005284015852
+                    SURRENDER_VALUE: null
+                    SURRENDER_VALUE_QOQ: null
+                    NET_COMPENSATE_EXPENSE: null
+                    NET_COMPENSATE_EXPENSE_QOQ: null
+                    NET_CONTRACT_RESERVE: null
+                    NET_CONTRACT_RESERVE_QOQ: null
+                    POLICY_BONUS_EXPENSE: null
+                    POLICY_BONUS_EXPENSE_QOQ: null
+                    REINSURE_EXPENSE: null
+                    REINSURE_EXPENSE_QOQ: null
+                    OTHER_BUSINESS_COST: null
+                    OTHER_BUSINESS_COST_QOQ: null
+                    OPERATE_TAX_ADD: 3884000000
+                    OPERATE_TAX_ADD_QOQ: -22.859980139027
+                    SALE_EXPENSE: 114000000
+                    SALE_EXPENSE_QOQ: -20.833333333333
+                    MANAGE_EXPENSE: 2410000000
+                    MANAGE_EXPENSE_QOQ: -37.918598660484
+                    ME_RESEARCH_EXPENSE: null
+                    ME_RESEARCH_EXPENSE_QOQ: null
+                    FINANCE_EXPENSE: 292000000
+                    FINANCE_EXPENSE_QOQ: 67.816091954023
+                    FE_INTEREST_EXPENSE: 634000000
+                    FE_INTEREST_EXPENSE_QOQ: 15.904936014625
+                    FE_INTEREST_INCOME: 455000000
+                    FE_INTEREST_INCOME_QOQ: -5.797101449275
+                    ASSET_IMPAIRMENT_LOSS: null
+                    ASSET_IMPAIRMENT_LOSS_QOQ: null
+                    CREDIT_IMPAIRMENT_LOSS: null
+                    CREDIT_IMPAIRMENT_LOSS_QOQ: null
+                    OTHER_INCOME: 62000000
+                    OTHER_INCOME_QOQ: -44.642857142857
+                    TOC_OTHER: null
+                    TOC_OTHER_QOQ: null
+                    INVEST_INCOME: 443000000
+                    INVEST_INCOME_QOQ: -55.7
+                    INVEST_JOINT_INCOME: 438000000
+                    INVEST_JOINT_INCOME_QOQ: -56.590683845391
+                    ACF_END_INCOME: null
+                    ACF_END_INCOME_QOQ: null
+                    EXCHANGE_INCOME: null
+                    EXCHANGE_INCOME_QOQ: null
+                    NET_EXPOSURE_INCOME: null
+                    NET_EXPOSURE_INCOME_QOQ: null
+                    FAIRVALUE_CHANGE_INCOME: 0
+                    FAIRVALUE_CHANGE_INCOME_QOQ: 100
+                    ASSET_DISPOSAL_INCOME: -8000000
+                    ASSET_DISPOSAL_INCOME_QOQ: 42.857142857143
+                    CREDIT_IMPAIRMENT_INCOME: 23000000
+                    CREDIT_IMPAIRMENT_INCOME_QOQ: 128.75
+                    ASSET_IMPAIRMENT_INCOME: -3000000
+                    ASSET_IMPAIRMENT_INCOME_QOQ: 98.728813559322
+                    OPERATE_PROFIT: 16637000000
+                    OPERATE_PROFIT_QOQ: -0.060070883643
+                    NONBUSINESS_INCOME: 64000000
+                    NONBUSINESS_INCOME_QOQ: -80.368098159509
+                    NONCURRENT_DISPOSAL_INCOME: null
+                    NONCURRENT_DISPOSAL_INCOME_QOQ: null
+                    NONBUSINESS_EXPENSE: 107000000
+                    NONBUSINESS_EXPENSE_QOQ: 103.239479261278
+                    NONCURRENT_DISPOSAL_LOSS: null
+                    NONCURRENT_DISPOSAL_LOSS_QOQ: null
+                    OPERATE_PROFIT_OTHER: null
+                    OPERATE_PROFIT_OTHER_QOQ: null
+                    OPERATE_PROFIT_BALANCE: 0
+                    OPERATE_PROFIT_BALANCE_QOQ: null
+                    TOTAL_PROFIT: 16594000000
+                    TOTAL_PROFIT_QOQ: -18.159400276189
+                    EFFECT_TP_OTHER: null
+                    EFFECT_TP_OTHER_QOQ: null
+                    TOTAL_PROFIT_BALANCE: 0
+                    TOTAL_PROFIT_BALANCE_QOQ: null
+                    INCOME_TAX: 3282000000
+                    INCOME_TAX_QOQ: -25.662514156285
+                    NETPROFIT: 13312000000
+                    NETPROFIT_QOQ: -16.070865645293
+                    CONTINUED_NETPROFIT: 13312000000
+                    CONTINUED_NETPROFIT_QOQ: -16.070865645293
+                    DISCONTINUED_NETPROFIT: 0
+                    DISCONTINUED_NETPROFIT_QOQ: null
+                    NETPROFIT_OTHER: null
+                    NETPROFIT_OTHER_QOQ: null
+                    NETPROFIT_BALANCE: null
+                    NETPROFIT_BALANCE_QOQ: null
+                    EFFECT_NETPROFIT_OTHER: null
+                    EFFECT_NETPROFIT_OTHER_QOQ: null
+                    EFFECT_NETPROFIT_BALANCE: null
+                    EFFECT_NETPROFIT_BALANCE_QOQ: null
+                    UNCONFIRM_INVEST_LOSS: null
+                    UNCONFIRM_INVEST_LOSS_QOQ: null
+                    MINORITY_INTEREST: 2645000000
+                    MINORITY_INTEREST_QOQ: 28.149224806202
+                    PARENT_NETPROFIT: 10667000000
+                    PARENT_NETPROFIT_QOQ: -22.686091179242
+                    BASIC_EPS: 0.53
+                    BASIC_EPS_QOQ: -23.741007194245
+                    DILUTED_EPS: 0.53
+                    DILUTED_EPS_QOQ: -23.741007194245
+                    UNABLE_OCI: -165000000
+                    UNABLE_OCI_QOQ: -160.21897810219
+                    CREDITRISK_FAIRVALUE_CHANGE: null
+                    CREDITRISK_FAIRVALUE_CHANGE_QOQ: null
+                    OTHERRIGHT_FAIRVALUE_CHANGE: null
+                    OTHERRIGHT_FAIRVALUE_CHANGE_QOQ: null
+                    SETUP_PROFIT_CHANGE: 0
+                    SETUP_PROFIT_CHANGE_QOQ: null
+                    RIGHTLAW_UNABLE_OCI: -165000000
+                    RIGHTLAW_UNABLE_OCI_QOQ: -16400
+                    UNABLE_OCI_OTHER: null
+                    UNABLE_OCI_OTHER_QOQ: null
+                    UNABLE_OCI_BALANCE: null
+                    UNABLE_OCI_BALANCE_QOQ: null
+                  - SECUCODE: 601088.SH
+                    SECURITY_CODE: '601088'
+                    SECURITY_NAME_ABBR: 中国神华
+                    ORG_CODE: '10032705'
+                    ORG_TYPE: 通用
+                    REPORT_DATE: '2025-12-31 00:00:00'
+                    REPORT_TYPE: 四季度
+                    REPORT_DATE_NAME: 2025四季度
+                    SECURITY_TYPE_CODE: 058001001
+                    NOTICE_DATE: '2026-03-31 00:00:00'
+                    UPDATE_DATE: '2026-03-31 00:00:00'
+                    CURRENCY: CNY
+                    OPINION_TYPE: 标准无保留意见
+                    OSOPINION_TYPE: null
+                    TOTAL_OPERATE_INCOME: 81765000000
+                    TOTAL_OPERATE_INCOME_QOQ: 8.958982969537
+                    OPERATE_INCOME: 81765000000
+                    OPERATE_INCOME_QOQ: 8.958982969537
+                    INTEREST_INCOME: null
+                    INTEREST_INCOME_QOQ: null
+                    EARNED_PREMIUM: null
+                    EARNED_PREMIUM_QOQ: null
+                    FEE_COMMISSION_INCOME: null
+                    FEE_COMMISSION_INCOME_QOQ: null
+                    OTHER_BUSINESS_INCOME: null
+                    OTHER_BUSINESS_INCOME_QOQ: null
+                    TOI_OTHER: null
+                    TOI_OTHER_QOQ: null
+                    TOTAL_OPERATE_COST: 65893000000
+                    TOTAL_OPERATE_COST_QOQ: 20.57714829454
+                    OPERATE_COST: 55144000000
+                    OPERATE_COST_QOQ: 16.055982321372
+                    INTEREST_EXPENSE: null
+                    INTEREST_EXPENSE_QOQ: null
+                    FEE_COMMISSION_EXPENSE: null
+                    FEE_COMMISSION_EXPENSE_QOQ: null
+                    RESEARCH_EXPENSE: 1514000000
+                    RESEARCH_EXPENSE_QOQ: 146.982055464927
+                    SURRENDER_VALUE: null
+                    SURRENDER_VALUE_QOQ: null
+                    NET_COMPENSATE_EXPENSE: null
+                    NET_COMPENSATE_EXPENSE_QOQ: null
+                    NET_CONTRACT_RESERVE: null
+                    NET_CONTRACT_RESERVE_QOQ: null
+                    POLICY_BONUS_EXPENSE: null
+                    POLICY_BONUS_EXPENSE_QOQ: null
+                    REINSURE_EXPENSE: null
+                    REINSURE_EXPENSE_QOQ: null
+                    OTHER_BUSINESS_COST: null
+                    OTHER_BUSINESS_COST_QOQ: null
+                    OPERATE_TAX_ADD: 5035000000
+                    OPERATE_TAX_ADD_QOQ: 27.018163471241
+                    SALE_EXPENSE: 144000000
+                    SALE_EXPENSE_QOQ: 20.0
+                    MANAGE_EXPENSE: 3882000000
+                    MANAGE_EXPENSE_QOQ: 64.770797962649
+                    ME_RESEARCH_EXPENSE: null
+                    ME_RESEARCH_EXPENSE_QOQ: null
+                    FINANCE_EXPENSE: 174000000
+                    FINANCE_EXPENSE_QOQ: 117.5
+                    FE_INTEREST_EXPENSE: 547000000
+                    FE_INTEREST_EXPENSE_QOQ: -6.174957118353
+                    FE_INTEREST_INCOME: 483000000
+                    FE_INTEREST_INCOME_QOQ: -14.513274336283
+                    ASSET_IMPAIRMENT_LOSS: null
+                    ASSET_IMPAIRMENT_LOSS_QOQ: null
+                    CREDIT_IMPAIRMENT_LOSS: null
+                    CREDIT_IMPAIRMENT_LOSS_QOQ: null
+                    OTHER_INCOME: 112000000
+                    OTHER_INCOME_QOQ: 80.645161290323
+                    TOC_OTHER: null
+                    TOC_OTHER_QOQ: null
+                    INVEST_INCOME: 1000000000
+                    INVEST_INCOME_QOQ: -0.596421471173
+                    INVEST_JOINT_INCOME: 1009000000
+                    INVEST_JOINT_INCOME_QOQ: 2.125506072874
+                    ACF_END_INCOME: null
+                    ACF_END_INCOME_QOQ: null
+                    EXCHANGE_INCOME: null
+                    EXCHANGE_INCOME_QOQ: null
+                    NET_EXPOSURE_INCOME: null
+                    NET_EXPOSURE_INCOME_QOQ: null
+                    FAIRVALUE_CHANGE_INCOME: -7000000
+                    FAIRVALUE_CHANGE_INCOME_QOQ: null
+                    ASSET_DISPOSAL_INCOME: -14000000
+                    ASSET_DISPOSAL_INCOME_QOQ: -216.666666666667
+                    CREDIT_IMPAIRMENT_INCOME: -80000000
+                    CREDIT_IMPAIRMENT_INCOME_QOQ: -420.0
+                    ASSET_IMPAIRMENT_INCOME: -236000000
+                    ASSET_IMPAIRMENT_INCOME_QOQ: -1172.727272727273
+                    OPERATE_PROFIT: 16647000000
+                    OPERATE_PROFIT_QOQ: -22.647646484829
+                    NONBUSINESS_INCOME: 326000000
+                    NONBUSINESS_INCOME_QOQ: 183.478260869565
+                    NONCURRENT_DISPOSAL_INCOME: null
+                    NONCURRENT_DISPOSAL_INCOME_QOQ: null
+                    NONBUSINESS_EXPENSE: -3303000000
+                    NONBUSINESS_EXPENSE_QOQ: -1987.428571428571
+                    NONCURRENT_DISPOSAL_LOSS: null
+                    NONCURRENT_DISPOSAL_LOSS_QOQ: null
+                    OPERATE_PROFIT_OTHER: null
+                    OPERATE_PROFIT_OTHER_QOQ: null
+                    OPERATE_PROFIT_BALANCE: null
+                    OPERATE_PROFIT_BALANCE_QOQ: null
+                    TOTAL_PROFIT: 20276000000
+                    TOTAL_PROFIT_QOQ: -5.521643912213
+                    EFFECT_TP_OTHER: null
+                    EFFECT_TP_OTHER_QOQ: null
+                    TOTAL_PROFIT_BALANCE: null
+                    TOTAL_PROFIT_BALANCE_QOQ: null
+                    INCOME_TAX: 4415000000
+                    INCOME_TAX_QOQ: 5.95152387809
+                    NETPROFIT: 15861000000
+                    NETPROFIT_QOQ: -8.286110789869
+                    CONTINUED_NETPROFIT: 15861000000
+                    CONTINUED_NETPROFIT_QOQ: -8.286110789869
+                    DISCONTINUED_NETPROFIT: null
+                    DISCONTINUED_NETPROFIT_QOQ: null
+                    NETPROFIT_OTHER: null
+                    NETPROFIT_OTHER_QOQ: null
+                    NETPROFIT_BALANCE: null
+                    NETPROFIT_BALANCE_QOQ: null
+                    EFFECT_NETPROFIT_OTHER: null
+                    EFFECT_NETPROFIT_OTHER_QOQ: null
+                    EFFECT_NETPROFIT_BALANCE: null
+                    EFFECT_NETPROFIT_BALANCE_QOQ: null
+                    UNCONFIRM_INVEST_LOSS: null
+                    UNCONFIRM_INVEST_LOSS_QOQ: null
+                    MINORITY_INTEREST: 2064000000
+                    MINORITY_INTEREST_QOQ: -28.40790842872
+                    PARENT_NETPROFIT: 13797000000
+                    PARENT_NETPROFIT_QOQ: -4.260634237735
+                    BASIC_EPS: 0.695
+                    BASIC_EPS_QOQ: -4.137931034483
+                    DILUTED_EPS: 0.695
+                    DILUTED_EPS_QOQ: -4.137931034483
+                    UNABLE_OCI: 274000000
+                    UNABLE_OCI_QOQ: null
+                    CREDITRISK_FAIRVALUE_CHANGE: null
+                    CREDITRISK_FAIRVALUE_CHANGE_QOQ: null
+                    OTHERRIGHT_FAIRVALUE_CHANGE: 275000000
+                    OTHERRIGHT_FAIRVALUE_CHANGE_QOQ: null
+                    SETUP_PROFIT_CHANGE: null
+                    SETUP_PROFIT_CHANGE_QOQ: null
+                    RIGHTLAW_UNABLE_OCI: -1000000
+                    RIGHTLAW_UNABLE_OCI_QOQ: null
+                    UNABLE_OCI_OTHER: null
+                    UNABLE_OCI_OTHER_QOQ: null
+                    UNABLE_OCI_BALANCE: null
+                    UNABLE_OCI_BALANCE_QOQ: null
+                  count: 77
+                success: true
+                message: ok
+                code: 0
+      parameters:
+      - name: type
+        in: query
+        required: true
+        schema:
+          type: string
+      - name: sty
+        in: query
+        required: true
+        schema:
+          type: string
+      - name: filter
+        in: query
+        required: true
+        schema:
+          type: string
+      - name: p
+        in: query
+        required: true
+        schema:
+          type: number
+      - name: ps
+        in: query
+        required: true
+        schema:
+          type: number
+      - name: sr
+        in: query
+        required: true
+        schema:
+          type: string
+      - name: st
+        in: query
+        required: true
+        schema:
+          type: string
+      - name: source
+        in: query
+        required: true
+        schema:
+          type: string
+      - name: client
+        in: query
+        required: true
+        schema:
+          type: string

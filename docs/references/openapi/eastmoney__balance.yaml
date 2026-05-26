@@ -1,0 +1,1601 @@
+openapi: 3.0.0
+info:
+  title: 东方财富 F10 资产负债表
+  description: "东方财富数据中心 — 资产负债表接口。\n无需认证，直接 GET 请求。\n使用 `data/get`（无版本号），参数名为 `type`/`sty`/`p`/`ps`/`sr`/`st`。\n\n## Filter\
+    \ DSL\n`filter` 参数使用 DataCenter DSL 查询表达式，多个条件直接拼接。\n- 按证券代码: `(SECUCODE=\"601088.SH\")`\n- 按证券代码批量: `(SECUCODE in (\"\
+    601088.SH\",\"000001.SZ\"))`\n- 按报告期区间: `(REPORT_DATE>='2025-01-01')(REPORT_DATE<='2025-12-31')`\n- 按公告日期区间: `(NOTICE_DATE>='2025-01-01')(NOTICE_DATE<='2025-12-31')`\n\
+    - 按报告期精确匹配: `(REPORT_DATE in ('2025-12-31','2025-09-30'))`\n\n## 排序\n- 单字段排序: `st=REPORT_DATE&sr=-1`\n- 多字段排序: `st=REPORT_DATE,SECURITY_CODE&sr=-1,-1`\n\
+    - **警告**: 仅用 REPORT_DATE 单字段排序时，日期区间查询 + 多股票场景下，\n  同一报告期记录跨越分页边界会导致分页数据重复。\n  始终添加第二排序字段（如 SECURITY_CODE）避免此问题。\n\n##\
+    \ 注意事项\n- filter 参数值需正确 URL 编码（单引号 `%27`，双引号 `%22`）\n- `>=`/`<=` 操作符需配合正确编码才可用\n- 响应无 `code`/`success`/`message` 包装字段\n"
+  version: 1.1.0
+servers:
+- url: https://datacenter.eastmoney.com
+  description: The default server
+paths:
+  /securities/api/data/get:
+    get:
+      summary: 获取资产负债表数据
+      description: '东方财富 F10 资产负债表接口。
+
+        无需认证，直接 GET 请求。
+
+        '
+      operationId: getBalanceSheet
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  version:
+                    type: string
+                    description: 数据版本标识
+                  result:
+                    type: object
+                    properties:
+                      pages:
+                        type: number
+                        description: 总页数
+                      data:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            SECUCODE:
+                              type: string
+                              description: 证券代码（含市场后缀）
+                            SECURITY_CODE:
+                              type: string
+                              description: 证券代码（纯数字）
+                            SECURITY_NAME_ABBR:
+                              type: string
+                              description: 证券简称
+                            ORG_CODE:
+                              type: string
+                              description: 机构代码
+                            ORG_TYPE:
+                              type: string
+                              description: 机构类型
+                            REPORT_DATE:
+                              type: string
+                              description: 报告期
+                            REPORT_TYPE:
+                              type: string
+                              description: 报告类型
+                            REPORT_DATE_NAME:
+                              type: string
+                              description: 报告期名称
+                            SECURITY_TYPE_CODE:
+                              type: string
+                              description: 证券类型代码
+                            NOTICE_DATE:
+                              type: string
+                              description: 公告日期
+                            UPDATE_DATE:
+                              type: string
+                              description: 更新日期
+                            CURRENCY:
+                              type: string
+                              description: 币种
+                            ACCEPT_DEPOSIT_INTERBANK:
+                              type: number
+                              nullable: true
+                              description: 同业存放
+                            ACCOUNTS_PAYABLE:
+                              type: number
+                              description: 应付账款
+                            ACCOUNTS_RECE:
+                              type: number
+                              description: 应收账款
+                            ACCRUED_EXPENSE:
+                              type: number
+                              nullable: true
+                              description: 预提费用
+                            ADVANCE_RECEIVABLES:
+                              type: number
+                              description: 预收款项
+                            AGENT_TRADE_SECURITY:
+                              type: number
+                              nullable: true
+                              description: 代理买卖证券款
+                            AGENT_UNDERWRITE_SECURITY:
+                              type: number
+                              nullable: true
+                              description: 代理承销证券款
+                            AMORTIZE_COST_FINASSET:
+                              type: number
+                              nullable: true
+                              description: 以摊余成本计量的金融资产
+                            AMORTIZE_COST_FINLIAB:
+                              type: number
+                              nullable: true
+                              description: 以摊余成本计量的金融负债
+                            AMORTIZE_COST_NCFINASSET:
+                              type: number
+                              nullable: true
+                              description: 非流动金融资产（摊余成本）
+                            AMORTIZE_COST_NCFINLIAB:
+                              type: number
+                              nullable: true
+                              description: 非流动金融负债（摊余成本）
+                            APPOINT_FVTPL_FINASSET:
+                              type: number
+                              nullable: true
+                              description: 指定为FVTPL的金融资产
+                            APPOINT_FVTPL_FINLIAB:
+                              type: number
+                              nullable: true
+                              description: 指定为FVTPL的金融负债
+                            ASSET_BALANCE:
+                              type: number
+                              description: 资产平衡项
+                            ASSET_OTHER:
+                              type: number
+                              nullable: true
+                              description: 资产其他项
+                            ASSIGN_CASH_DIVIDEND:
+                              type: number
+                              nullable: true
+                              description: 应付现金股利
+                            AVAILABLE_SALE_FINASSET:
+                              type: number
+                              nullable: true
+                              description: 可供出售金融资产
+                            BOND_PAYABLE:
+                              type: number
+                              nullable: true
+                              description: 应付债券
+                            BORROW_FUND:
+                              type: number
+                              nullable: true
+                              description: 拆入资金
+                            BUY_RESALE_FINASSET:
+                              type: number
+                              nullable: true
+                              description: 买入返售金融资产
+                            CAPITAL_RESERVE:
+                              type: number
+                              description: 资本公积
+                            CIP:
+                              type: number
+                              description: 在建工程
+                            CONSUMPTIVE_BIOLOGICAL_ASSET:
+                              type: number
+                              nullable: true
+                              description: 消耗性生物资产
+                            CONTRACT_ASSET:
+                              type: number
+                              nullable: true
+                              description: 合同资产
+                            CONTRACT_LIAB:
+                              type: number
+                              description: 合同负债
+                            CONVERT_DIFF:
+                              type: number
+                              nullable: true
+                              description: 外币报表折算差额
+                            CREDITOR_INVEST:
+                              type: number
+                              nullable: true
+                              description: 债权投资
+                            CURRENT_ASSET_BALANCE:
+                              type: number
+                              description: 流动资产平衡项
+                            CURRENT_ASSET_OTHER:
+                              type: number
+                              nullable: true
+                              description: 流动资产其他项
+                            CURRENT_LIAB_BALANCE:
+                              type: number
+                              description: 流动负债平衡项
+                            CURRENT_LIAB_OTHER:
+                              type: number
+                              nullable: true
+                              description: 流动负债其他项
+                            DEFER_INCOME:
+                              type: number
+                              nullable: true
+                              description: 递延收益
+                            DEFER_INCOME_1YEAR:
+                              type: number
+                              nullable: true
+                              description: 一年内到期递延收益
+                            DEFER_TAX_ASSET:
+                              type: number
+                              description: 递延所得税资产
+                            DEFER_TAX_LIAB:
+                              type: number
+                              description: 递延所得税负债
+                            DERIVE_FINASSET:
+                              type: number
+                              nullable: true
+                              description: 衍生金融资产
+                            DERIVE_FINLIAB:
+                              type: number
+                              nullable: true
+                              description: 衍生金融负债
+                            DEVELOP_EXPENSE:
+                              type: number
+                              nullable: true
+                              description: 开发支出
+                            DIV_HOLDSALE_ASSET:
+                              type: number
+                              nullable: true
+                              description: 持有待售资产（除）
+                            DIV_HOLDSALE_LIAB:
+                              type: number
+                              nullable: true
+                              description: 持有待售负债（除）
+                            DIVIDEND_PAYABLE:
+                              type: number
+                              description: 应付股利
+                            DIVIDEND_RECE:
+                              type: number
+                              description: 应收股利
+                            EQUITY_BALANCE:
+                              type: number
+                              description: 所有者权益平衡项
+                            EQUITY_OTHER:
+                              type: number
+                              nullable: true
+                              description: 所有者权益其他项
+                            EXPORT_REFUND_RECE:
+                              type: number
+                              nullable: true
+                              description: 应收出口退税
+                            FEE_COMMISSION_PAYABLE:
+                              type: number
+                              nullable: true
+                              description: 应付手续费及佣金
+                            FIN_FUND:
+                              type: number
+                              nullable: true
+                              description: 金融往来资金
+                            FINANCE_RECE:
+                              type: number
+                              description: 金融应收款
+                            FIXED_ASSET:
+                              type: number
+                              description: 固定资产
+                            FIXED_ASSET_DISPOSAL:
+                              type: number
+                              nullable: true
+                              description: 固定资产清理
+                            FVTOCI_FINASSET:
+                              type: number
+                              nullable: true
+                              description: 以公允价值计量且其变动计入其他综合收益的金融资产
+                            FVTOCI_NCFINASSET:
+                              type: number
+                              nullable: true
+                              description: 其他非流动金融资产（FVTOCI）
+                            FVTPL_FINASSET:
+                              type: number
+                              nullable: true
+                              description: 以公允价值计量且其变动计入当期损益的金融资产
+                            FVTPL_FINLIAB:
+                              type: number
+                              nullable: true
+                              description: 以公允价值计量且其变动计入当期损益的金融负债
+                            GENERAL_RISK_RESERVE:
+                              type: number
+                              nullable: true
+                              description: 一般风险准备
+                            GOODWILL:
+                              type: number
+                              nullable: true
+                              description: 商誉
+                            HOLD_MATURITY_INVEST:
+                              type: number
+                              nullable: true
+                              description: 持有至到期投资
+                            HOLDSALE_ASSET:
+                              type: number
+                              nullable: true
+                              description: 持有待售资产
+                            HOLDSALE_LIAB:
+                              type: number
+                              nullable: true
+                              description: 持有待售负债
+                            INSURANCE_CONTRACT_RESERVE:
+                              type: number
+                              nullable: true
+                              description: 保险合同准备金
+                            INTANGIBLE_ASSET:
+                              type: number
+                              description: 无形资产
+                            INTEREST_PAYABLE:
+                              type: number
+                              description: 应付利息
+                            INTEREST_RECE:
+                              type: number
+                              description: 应收利息
+                            INTERNAL_PAYABLE:
+                              type: number
+                              nullable: true
+                              description: 内部应付款
+                            INTERNAL_RECE:
+                              type: number
+                              nullable: true
+                              description: 内部应收款
+                            INVENTORY:
+                              type: number
+                              description: 存货
+                            INVEST_REALESTATE:
+                              type: number
+                              nullable: true
+                              description: 投资性房地产
+                            LEASE_LIAB:
+                              type: number
+                              description: 租赁负债
+                            LEND_FUND:
+                              type: number
+                              nullable: true
+                              description: 拆出资金
+                            LIAB_BALANCE:
+                              type: number
+                              description: 负债平衡项
+                            LIAB_EQUITY_BALANCE:
+                              type: number
+                              nullable: true
+                              description: 负债和所有者权益平衡项
+                            LIAB_EQUITY_OTHER:
+                              type: number
+                              nullable: true
+                              description: 负债和所有者权益其他项
+                            LIAB_OTHER:
+                              type: number
+                              nullable: true
+                              description: 负债其他项
+                            LOAN_ADVANCE:
+                              type: number
+                              nullable: true
+                              description: 发放贷款及垫款
+                            LOAN_PBC:
+                              type: number
+                              nullable: true
+                              description: 向央行借款
+                            LONG_EQUITY_INVEST:
+                              type: number
+                              description: 长期股权投资
+                            LONG_LOAN:
+                              type: number
+                              description: 长期借款
+                            LONG_PAYABLE:
+                              type: number
+                              description: 长期应付款
+                            LONG_PREPAID_EXPENSE:
+                              type: number
+                              description: 长期待摊费用
+                            LONG_RECE:
+                              type: number
+                              nullable: true
+                              description: 长期应收款
+                            LONG_STAFFSALARY_PAYABLE:
+                              type: number
+                              nullable: true
+                              description: 长期应付职工薪酬
+                            MINORITY_EQUITY:
+                              type: number
+                              description: 少数股东权益
+                            MONETARYFUNDS:
+                              type: number
+                              description: 货币资金
+                            NONCURRENT_ASSET_1YEAR:
+                              type: number
+                              nullable: true
+                              description: 一年内到期的非流动资产
+                            NONCURRENT_ASSET_BALANCE:
+                              type: number
+                              description: 非流动资产平衡项
+                            NONCURRENT_ASSET_OTHER:
+                              type: number
+                              nullable: true
+                              description: 非流动资产其他项
+                            NONCURRENT_LIAB_1YEAR:
+                              type: number
+                              description: 一年内到期的非流动负债
+                            NONCURRENT_LIAB_BALANCE:
+                              type: number
+                              description: 非流动负债平衡项
+                            NONCURRENT_LIAB_OTHER:
+                              type: number
+                              nullable: true
+                              description: 非流动负债其他项
+                            NOTE_ACCOUNTS_PAYABLE:
+                              type: number
+                              description: 应付票据及应付账款
+                            NOTE_ACCOUNTS_RECE:
+                              type: number
+                              description: 应收票据及应收账款
+                            NOTE_PAYABLE:
+                              type: number
+                              description: 应付票据
+                            NOTE_RECE:
+                              type: number
+                              description: 应收票据
+                            OIL_GAS_ASSET:
+                              type: number
+                              nullable: true
+                              description: 油气资产
+                            OTHER_COMPRE_INCOME:
+                              type: number
+                              description: 其他综合收益
+                            OTHER_CREDITOR_INVEST:
+                              type: number
+                              nullable: true
+                              description: 其他债权投资
+                            OTHER_CURRENT_ASSET:
+                              type: number
+                              description: 其他流动资产
+                            OTHER_CURRENT_LIAB:
+                              type: number
+                              description: 其他流动负债
+                            OTHER_EQUITY_INVEST:
+                              type: number
+                              description: 其他权益工具投资
+                            OTHER_EQUITY_OTHER:
+                              type: number
+                              nullable: true
+                              description: 其他权益其他项
+                            OTHER_EQUITY_TOOL:
+                              type: number
+                              nullable: true
+                              description: 其他权益工具
+                            OTHER_NONCURRENT_ASSET:
+                              type: number
+                              description: 其他非流动资产
+                            OTHER_NONCURRENT_FINASSET:
+                              type: number
+                              description: 其他非流动金融资产
+                            OTHER_NONCURRENT_LIAB:
+                              type: number
+                              description: 其他非流动负债
+                            OTHER_PAYABLE:
+                              type: number
+                              nullable: true
+                              description: 其他应付款
+                            OTHER_RECE:
+                              type: number
+                              nullable: true
+                              description: 其他应收款
+                            PARENT_EQUITY_BALANCE:
+                              type: number
+                              description: 归母权益平衡项
+                            PARENT_EQUITY_OTHER:
+                              type: number
+                              nullable: true
+                              description: 归母权益其他项
+                            PERPETUAL_BOND:
+                              type: number
+                              nullable: true
+                              description: 永续债
+                            PERPETUAL_BOND_PAYBALE:
+                              type: number
+                              nullable: true
+                              description: 永续债（负债端）
+                            PREDICT_CURRENT_LIAB:
+                              type: number
+                              nullable: true
+                              description: 预计流动负债
+                            PREDICT_LIAB:
+                              type: number
+                              description: 预计负债
+                            PREFERRED_SHARES:
+                              type: number
+                              nullable: true
+                              description: 优先股
+                            PREFERRED_SHARES_PAYBALE:
+                              type: number
+                              nullable: true
+                              description: 应付优先股
+                            PREMIUM_RECE:
+                              type: number
+                              nullable: true
+                              description: 预收保费
+                            PREPAYMENT:
+                              type: number
+                              description: 预付款项
+                            PRODUCTIVE_BIOLOGY_ASSET:
+                              type: number
+                              nullable: true
+                              description: 生产性生物资产
+                            PROJECT_MATERIAL:
+                              type: number
+                              nullable: true
+                              description: 工程物资
+                            RC_RESERVE_RECE:
+                              type: number
+                              nullable: true
+                              description: 再保合同应收准备金
+                            REINSURE_PAYABLE:
+                              type: number
+                              nullable: true
+                              description: 应付再保款
+                            REINSURE_RECE:
+                              type: number
+                              nullable: true
+                              description: 应收再保款
+                            SELL_REPO_FINASSET:
+                              type: number
+                              nullable: true
+                              description: 卖出回购金融资产款
+                            SETTLE_EXCESS_RESERVE:
+                              type: number
+                              nullable: true
+                              description: 清算备付金
+                            SHARE_CAPITAL:
+                              type: number
+                              description: 实收资本（股本）
+                            SHORT_BOND_PAYABLE:
+                              type: number
+                              nullable: true
+                              description: 短期应付债券
+                            SHORT_FIN_PAYABLE:
+                              type: number
+                              nullable: true
+                              description: 短期金融负债
+                            SHORT_LOAN:
+                              type: number
+                              description: 短期借款
+                            SPECIAL_PAYABLE:
+                              type: number
+                              nullable: true
+                              description: 专项应付款
+                            SPECIAL_RESERVE:
+                              type: number
+                              description: 专项储备
+                            STAFF_SALARY_PAYABLE:
+                              type: number
+                              description: 应付职工薪酬
+                            SUBSIDY_RECE:
+                              type: number
+                              nullable: true
+                              description: 应收补贴
+                            SURPLUS_RESERVE:
+                              type: number
+                              description: 盈余公积
+                            TAX_PAYABLE:
+                              type: number
+                              description: 应交税费
+                            TOTAL_ASSETS:
+                              type: number
+                              description: 资产总计
+                            TOTAL_CURRENT_ASSETS:
+                              type: number
+                              description: 流动资产合计
+                            TOTAL_CURRENT_LIAB:
+                              type: number
+                              description: 流动负债合计
+                            TOTAL_EQUITY:
+                              type: number
+                              description: 所有者权益合计
+                            TOTAL_LIAB_EQUITY:
+                              type: number
+                              description: 负债和所有者权益总计
+                            TOTAL_LIABILITIES:
+                              type: number
+                              description: 负债合计
+                            TOTAL_NONCURRENT_ASSETS:
+                              type: number
+                              description: 非流动资产合计
+                            TOTAL_NONCURRENT_LIAB:
+                              type: number
+                              description: 非流动负债合计
+                            TOTAL_OTHER_PAYABLE:
+                              type: number
+                              description: 其他应付款合计
+                            TOTAL_OTHER_RECE:
+                              type: number
+                              description: 其他应收款合计
+                            TOTAL_PARENT_EQUITY:
+                              type: number
+                              description: 归属于母公司股东权益合计
+                            TRADE_FINASSET:
+                              type: number
+                              nullable: true
+                              description: 交易性金融资产
+                            TRADE_FINASSET_NOTFVTPL:
+                              type: number
+                              description: 非FVTPL交易性金融资产
+                            TRADE_FINLIAB:
+                              type: number
+                              nullable: true
+                              description: 交易性金融负债
+                            TRADE_FINLIAB_NOTFVTPL:
+                              type: number
+                              nullable: true
+                              description: 非FVTPL交易性金融负债
+                            TREASURY_SHARES:
+                              type: number
+                              nullable: true
+                              description: 库存股
+                            UNASSIGN_RPOFIT:
+                              type: number
+                              description: 未分配利润
+                            UNCONFIRM_INVEST_LOSS:
+                              type: number
+                              nullable: true
+                              description: 未确认投资损失
+                            USERIGHT_ASSET:
+                              type: number
+                              description: 使用权资产
+                            ACCEPT_DEPOSIT_INTERBANK_YOY:
+                              type: number
+                              nullable: true
+                              description: ACCEPT_DEPOSIT_INTERBANK 同比增长率(%)
+                            ACCOUNTS_PAYABLE_YOY:
+                              type: number
+                              description: 应付账款同比增长率(%)
+                            ACCOUNTS_RECE_YOY:
+                              type: number
+                              description: 应收账款同比增长率(%)
+                            ACCRUED_EXPENSE_YOY:
+                              type: number
+                              nullable: true
+                              description: ACCRUED_EXPENSE 同比增长率(%)
+                            ADVANCE_RECEIVABLES_YOY:
+                              type: number
+                              description: 预收款项同比增长率(%)
+                            AGENT_TRADE_SECURITY_YOY:
+                              type: number
+                              nullable: true
+                              description: AGENT_TRADE_SECURITY 同比增长率(%)
+                            AGENT_UNDERWRITE_SECURITY_YOY:
+                              type: number
+                              nullable: true
+                              description: AGENT_UNDERWRITE_SECURITY 同比增长率(%)
+                            AMORTIZE_COST_FINASSET_YOY:
+                              type: number
+                              nullable: true
+                              description: AMORTIZE_COST_FINASSET 同比增长率(%)
+                            AMORTIZE_COST_FINLIAB_YOY:
+                              type: number
+                              nullable: true
+                              description: AMORTIZE_COST_FINLIAB 同比增长率(%)
+                            AMORTIZE_COST_NCFINASSET_YOY:
+                              type: number
+                              nullable: true
+                              description: AMORTIZE_COST_NCFINASSET 同比增长率(%)
+                            AMORTIZE_COST_NCFINLIAB_YOY:
+                              type: number
+                              nullable: true
+                              description: AMORTIZE_COST_NCFINLIAB 同比增长率(%)
+                            APPOINT_FVTPL_FINASSET_YOY:
+                              type: number
+                              nullable: true
+                              description: APPOINT_FVTPL_FINASSET 同比增长率(%)
+                            APPOINT_FVTPL_FINLIAB_YOY:
+                              type: number
+                              nullable: true
+                              description: APPOINT_FVTPL_FINLIAB 同比增长率(%)
+                            ASSET_BALANCE_YOY:
+                              type: number
+                              nullable: true
+                              description: ASSET_BALANCE 同比增长率(%)
+                            ASSET_OTHER_YOY:
+                              type: number
+                              nullable: true
+                              description: ASSET_OTHER 同比增长率(%)
+                            ASSIGN_CASH_DIVIDEND_YOY:
+                              type: number
+                              nullable: true
+                              description: ASSIGN_CASH_DIVIDEND 同比增长率(%)
+                            AVAILABLE_SALE_FINASSET_YOY:
+                              type: number
+                              nullable: true
+                              description: AVAILABLE_SALE_FINASSET 同比增长率(%)
+                            BOND_PAYABLE_YOY:
+                              type: number
+                              nullable: true
+                              description: BOND_PAYABLE 同比增长率(%)
+                            BORROW_FUND_YOY:
+                              type: number
+                              nullable: true
+                              description: BORROW_FUND 同比增长率(%)
+                            BUY_RESALE_FINASSET_YOY:
+                              type: number
+                              nullable: true
+                              description: BUY_RESALE_FINASSET 同比增长率(%)
+                            CAPITAL_RESERVE_YOY:
+                              type: number
+                              description: 资本公积同比增长率(%)
+                            CIP_YOY:
+                              type: number
+                              description: 在建工程同比增长率(%)
+                            CONSUMPTIVE_BIOLOGICAL_ASSET_YOY:
+                              type: number
+                              nullable: true
+                              description: CONSUMPTIVE_BIOLOGICAL_ASSET 同比增长率(%)
+                            CONTRACT_ASSET_YOY:
+                              type: number
+                              nullable: true
+                              description: CONTRACT_ASSET 同比增长率(%)
+                            CONTRACT_LIAB_YOY:
+                              type: number
+                              description: 合同负债同比增长率(%)
+                            CONVERT_DIFF_YOY:
+                              type: number
+                              nullable: true
+                              description: CONVERT_DIFF 同比增长率(%)
+                            CREDITOR_INVEST_YOY:
+                              type: number
+                              nullable: true
+                              description: CREDITOR_INVEST 同比增长率(%)
+                            CURRENT_ASSET_BALANCE_YOY:
+                              type: number
+                              nullable: true
+                              description: CURRENT_ASSET_BALANCE 同比增长率(%)
+                            CURRENT_ASSET_OTHER_YOY:
+                              type: number
+                              nullable: true
+                              description: CURRENT_ASSET_OTHER 同比增长率(%)
+                            CURRENT_LIAB_BALANCE_YOY:
+                              type: number
+                              nullable: true
+                              description: CURRENT_LIAB_BALANCE 同比增长率(%)
+                            CURRENT_LIAB_OTHER_YOY:
+                              type: number
+                              nullable: true
+                              description: CURRENT_LIAB_OTHER 同比增长率(%)
+                            DEFER_INCOME_1YEAR_YOY:
+                              type: number
+                              nullable: true
+                              description: DEFER_INCOME_1YEAR 同比增长率(%)
+                            DEFER_INCOME_YOY:
+                              type: number
+                              nullable: true
+                              description: DEFER_INCOME 同比增长率(%)
+                            DEFER_TAX_ASSET_YOY:
+                              type: number
+                              description: 递延所得税资产同比增长率(%)
+                            DEFER_TAX_LIAB_YOY:
+                              type: number
+                              description: 递延所得税负债同比增长率(%)
+                            DERIVE_FINASSET_YOY:
+                              type: number
+                              nullable: true
+                              description: DERIVE_FINASSET 同比增长率(%)
+                            DERIVE_FINLIAB_YOY:
+                              type: number
+                              nullable: true
+                              description: DERIVE_FINLIAB 同比增长率(%)
+                            DEVELOP_EXPENSE_YOY:
+                              type: number
+                              nullable: true
+                              description: DEVELOP_EXPENSE 同比增长率(%)
+                            DIV_HOLDSALE_ASSET_YOY:
+                              type: number
+                              nullable: true
+                              description: DIV_HOLDSALE_ASSET 同比增长率(%)
+                            DIV_HOLDSALE_LIAB_YOY:
+                              type: number
+                              nullable: true
+                              description: DIV_HOLDSALE_LIAB 同比增长率(%)
+                            DIVIDEND_PAYABLE_YOY:
+                              type: number
+                              description: 应付股利同比增长率(%)
+                            DIVIDEND_RECE_YOY:
+                              type: number
+                              description: 应收股利同比增长率(%)
+                            EQUITY_BALANCE_YOY:
+                              type: number
+                              nullable: true
+                              description: EQUITY_BALANCE 同比增长率(%)
+                            EQUITY_OTHER_YOY:
+                              type: number
+                              nullable: true
+                              description: EQUITY_OTHER 同比增长率(%)
+                            EXPORT_REFUND_RECE_YOY:
+                              type: number
+                              nullable: true
+                              description: EXPORT_REFUND_RECE 同比增长率(%)
+                            FEE_COMMISSION_PAYABLE_YOY:
+                              type: number
+                              nullable: true
+                              description: FEE_COMMISSION_PAYABLE 同比增长率(%)
+                            FIN_FUND_YOY:
+                              type: number
+                              nullable: true
+                              description: FIN_FUND 同比增长率(%)
+                            FINANCE_RECE_YOY:
+                              type: number
+                              description: 金融应收款同比增长率(%)
+                            FIXED_ASSET_DISPOSAL_YOY:
+                              type: number
+                              nullable: true
+                              description: FIXED_ASSET_DISPOSAL 同比增长率(%)
+                            FIXED_ASSET_YOY:
+                              type: number
+                              description: 固定资产同比增长率(%)
+                            FVTOCI_FINASSET_YOY:
+                              type: number
+                              nullable: true
+                              description: FVTOCI_FINASSET 同比增长率(%)
+                            FVTOCI_NCFINASSET_YOY:
+                              type: number
+                              nullable: true
+                              description: FVTOCI_NCFINASSET 同比增长率(%)
+                            FVTPL_FINASSET_YOY:
+                              type: number
+                              nullable: true
+                              description: FVTPL_FINASSET 同比增长率(%)
+                            FVTPL_FINLIAB_YOY:
+                              type: number
+                              nullable: true
+                              description: FVTPL_FINLIAB 同比增长率(%)
+                            GENERAL_RISK_RESERVE_YOY:
+                              type: number
+                              nullable: true
+                              description: GENERAL_RISK_RESERVE 同比增长率(%)
+                            GOODWILL_YOY:
+                              type: number
+                              nullable: true
+                              description: GOODWILL 同比增长率(%)
+                            HOLD_MATURITY_INVEST_YOY:
+                              type: number
+                              nullable: true
+                              description: HOLD_MATURITY_INVEST 同比增长率(%)
+                            HOLDSALE_ASSET_YOY:
+                              type: number
+                              nullable: true
+                              description: HOLDSALE_ASSET 同比增长率(%)
+                            HOLDSALE_LIAB_YOY:
+                              type: number
+                              nullable: true
+                              description: HOLDSALE_LIAB 同比增长率(%)
+                            INSURANCE_CONTRACT_RESERVE_YOY:
+                              type: number
+                              nullable: true
+                              description: INSURANCE_CONTRACT_RESERVE 同比增长率(%)
+                            INTANGIBLE_ASSET_YOY:
+                              type: number
+                              description: 无形资产同比增长率(%)
+                            INTEREST_PAYABLE_YOY:
+                              type: number
+                              description: 应付利息同比增长率(%)
+                            INTEREST_RECE_YOY:
+                              type: number
+                              description: 应收利息同比增长率(%)
+                            INTERNAL_PAYABLE_YOY:
+                              type: number
+                              nullable: true
+                              description: INTERNAL_PAYABLE 同比增长率(%)
+                            INTERNAL_RECE_YOY:
+                              type: number
+                              nullable: true
+                              description: INTERNAL_RECE 同比增长率(%)
+                            INVENTORY_YOY:
+                              type: number
+                              description: 存货同比增长率(%)
+                            INVEST_REALESTATE_YOY:
+                              type: number
+                              nullable: true
+                              description: INVEST_REALESTATE 同比增长率(%)
+                            LEASE_LIAB_YOY:
+                              type: number
+                              description: 租赁负债同比增长率(%)
+                            LEND_FUND_YOY:
+                              type: number
+                              nullable: true
+                              description: LEND_FUND 同比增长率(%)
+                            LIAB_BALANCE_YOY:
+                              type: number
+                              nullable: true
+                              description: LIAB_BALANCE 同比增长率(%)
+                            LIAB_EQUITY_BALANCE_YOY:
+                              type: number
+                              nullable: true
+                              description: LIAB_EQUITY_BALANCE 同比增长率(%)
+                            LIAB_EQUITY_OTHER_YOY:
+                              type: number
+                              nullable: true
+                              description: LIAB_EQUITY_OTHER 同比增长率(%)
+                            LIAB_OTHER_YOY:
+                              type: number
+                              nullable: true
+                              description: LIAB_OTHER 同比增长率(%)
+                            LOAN_ADVANCE_YOY:
+                              type: number
+                              nullable: true
+                              description: LOAN_ADVANCE 同比增长率(%)
+                            LOAN_PBC_YOY:
+                              type: number
+                              nullable: true
+                              description: LOAN_PBC 同比增长率(%)
+                            LONG_EQUITY_INVEST_YOY:
+                              type: number
+                              description: 长期股权投资同比增长率(%)
+                            LONG_LOAN_YOY:
+                              type: number
+                              description: 长期借款同比增长率(%)
+                            LONG_PAYABLE_YOY:
+                              type: number
+                              description: 长期应付款同比增长率(%)
+                            LONG_PREPAID_EXPENSE_YOY:
+                              type: number
+                              description: 长期待摊费用同比增长率(%)
+                            LONG_RECE_YOY:
+                              type: number
+                              nullable: true
+                              description: LONG_RECE 同比增长率(%)
+                            LONG_STAFFSALARY_PAYABLE_YOY:
+                              type: number
+                              nullable: true
+                              description: LONG_STAFFSALARY_PAYABLE 同比增长率(%)
+                            MINORITY_EQUITY_YOY:
+                              type: number
+                              description: 少数股东权益同比增长率(%)
+                            MONETARYFUNDS_YOY:
+                              type: number
+                              description: 货币资金同比增长率(%)
+                            NONCURRENT_ASSET_1YEAR_YOY:
+                              type: number
+                              nullable: true
+                              description: NONCURRENT_ASSET_1YEAR 同比增长率(%)
+                            NONCURRENT_ASSET_BALANCE_YOY:
+                              type: number
+                              nullable: true
+                              description: NONCURRENT_ASSET_BALANCE 同比增长率(%)
+                            NONCURRENT_ASSET_OTHER_YOY:
+                              type: number
+                              nullable: true
+                              description: NONCURRENT_ASSET_OTHER 同比增长率(%)
+                            NONCURRENT_LIAB_1YEAR_YOY:
+                              type: number
+                              description: 一年内到期的非流动负债同比增长率(%)
+                            NONCURRENT_LIAB_BALANCE_YOY:
+                              type: number
+                              nullable: true
+                              description: NONCURRENT_LIAB_BALANCE 同比增长率(%)
+                            NONCURRENT_LIAB_OTHER_YOY:
+                              type: number
+                              nullable: true
+                              description: NONCURRENT_LIAB_OTHER 同比增长率(%)
+                            NOTE_ACCOUNTS_PAYABLE_YOY:
+                              type: number
+                              description: 应付票据及应付账款同比增长率(%)
+                            NOTE_ACCOUNTS_RECE_YOY:
+                              type: number
+                              description: 应收票据及应收账款同比增长率(%)
+                            NOTE_PAYABLE_YOY:
+                              type: number
+                              description: 应付票据同比增长率(%)
+                            NOTE_RECE_YOY:
+                              type: number
+                              description: 应收票据同比增长率(%)
+                            OIL_GAS_ASSET_YOY:
+                              type: number
+                              nullable: true
+                              description: OIL_GAS_ASSET 同比增长率(%)
+                            OTHER_COMPRE_INCOME_YOY:
+                              type: number
+                              description: 其他综合收益总额同比增长率(%)
+                            OTHER_CREDITOR_INVEST_YOY:
+                              type: number
+                              nullable: true
+                              description: OTHER_CREDITOR_INVEST 同比增长率(%)
+                            OTHER_CURRENT_ASSET_YOY:
+                              type: number
+                              description: 其他流动资产同比增长率(%)
+                            OTHER_CURRENT_LIAB_YOY:
+                              type: number
+                              description: 其他流动负债同比增长率(%)
+                            OTHER_EQUITY_INVEST_YOY:
+                              type: number
+                              description: 其他权益工具投资同比增长率(%)
+                            OTHER_EQUITY_OTHER_YOY:
+                              type: number
+                              nullable: true
+                              description: OTHER_EQUITY_OTHER 同比增长率(%)
+                            OTHER_EQUITY_TOOL_YOY:
+                              type: number
+                              nullable: true
+                              description: OTHER_EQUITY_TOOL 同比增长率(%)
+                            OTHER_NONCURRENT_ASSET_YOY:
+                              type: number
+                              description: 其他非流动资产同比增长率(%)
+                            OTHER_NONCURRENT_FINASSET_YOY:
+                              type: number
+                              description: 其他非流动金融资产同比增长率(%)
+                            OTHER_NONCURRENT_LIAB_YOY:
+                              type: number
+                              description: 其他非流动负债同比增长率(%)
+                            OTHER_PAYABLE_YOY:
+                              type: number
+                              nullable: true
+                              description: OTHER_PAYABLE 同比增长率(%)
+                            OTHER_RECE_YOY:
+                              type: number
+                              nullable: true
+                              description: OTHER_RECE 同比增长率(%)
+                            PARENT_EQUITY_BALANCE_YOY:
+                              type: number
+                              nullable: true
+                              description: PARENT_EQUITY_BALANCE 同比增长率(%)
+                            PARENT_EQUITY_OTHER_YOY:
+                              type: number
+                              nullable: true
+                              description: PARENT_EQUITY_OTHER 同比增长率(%)
+                            PERPETUAL_BOND_PAYBALE_YOY:
+                              type: number
+                              nullable: true
+                              description: PERPETUAL_BOND_PAYBALE 同比增长率(%)
+                            PERPETUAL_BOND_YOY:
+                              type: number
+                              nullable: true
+                              description: PERPETUAL_BOND 同比增长率(%)
+                            PREDICT_CURRENT_LIAB_YOY:
+                              type: number
+                              nullable: true
+                              description: PREDICT_CURRENT_LIAB 同比增长率(%)
+                            PREDICT_LIAB_YOY:
+                              type: number
+                              description: 预计负债同比增长率(%)
+                            PREFERRED_SHARES_PAYBALE_YOY:
+                              type: number
+                              nullable: true
+                              description: PREFERRED_SHARES_PAYBALE 同比增长率(%)
+                            PREFERRED_SHARES_YOY:
+                              type: number
+                              nullable: true
+                              description: PREFERRED_SHARES 同比增长率(%)
+                            PREMIUM_RECE_YOY:
+                              type: number
+                              nullable: true
+                              description: PREMIUM_RECE 同比增长率(%)
+                            PREPAYMENT_YOY:
+                              type: number
+                              description: 预付款项同比增长率(%)
+                            PRODUCTIVE_BIOLOGY_ASSET_YOY:
+                              type: number
+                              nullable: true
+                              description: PRODUCTIVE_BIOLOGY_ASSET 同比增长率(%)
+                            PROJECT_MATERIAL_YOY:
+                              type: number
+                              nullable: true
+                              description: PROJECT_MATERIAL 同比增长率(%)
+                            RC_RESERVE_RECE_YOY:
+                              type: number
+                              nullable: true
+                              description: RC_RESERVE_RECE 同比增长率(%)
+                            REINSURE_PAYABLE_YOY:
+                              type: number
+                              nullable: true
+                              description: REINSURE_PAYABLE 同比增长率(%)
+                            REINSURE_RECE_YOY:
+                              type: number
+                              nullable: true
+                              description: REINSURE_RECE 同比增长率(%)
+                            SELL_REPO_FINASSET_YOY:
+                              type: number
+                              nullable: true
+                              description: SELL_REPO_FINASSET 同比增长率(%)
+                            SETTLE_EXCESS_RESERVE_YOY:
+                              type: number
+                              nullable: true
+                              description: SETTLE_EXCESS_RESERVE 同比增长率(%)
+                            SHARE_CAPITAL_YOY:
+                              type: number
+                              description: 实收资本（股本）同比增长率(%)
+                            SHORT_BOND_PAYABLE_YOY:
+                              type: number
+                              nullable: true
+                              description: SHORT_BOND_PAYABLE 同比增长率(%)
+                            SHORT_FIN_PAYABLE_YOY:
+                              type: number
+                              nullable: true
+                              description: SHORT_FIN_PAYABLE 同比增长率(%)
+                            SHORT_LOAN_YOY:
+                              type: number
+                              description: 短期借款同比增长率(%)
+                            SPECIAL_PAYABLE_YOY:
+                              type: number
+                              nullable: true
+                              description: SPECIAL_PAYABLE 同比增长率(%)
+                            SPECIAL_RESERVE_YOY:
+                              type: number
+                              description: 专项储备同比增长率(%)
+                            STAFF_SALARY_PAYABLE_YOY:
+                              type: number
+                              description: 应付职工薪酬同比增长率(%)
+                            SUBSIDY_RECE_YOY:
+                              type: number
+                              nullable: true
+                              description: SUBSIDY_RECE 同比增长率(%)
+                            SURPLUS_RESERVE_YOY:
+                              type: number
+                              description: 盈余公积同比增长率(%)
+                            TAX_PAYABLE_YOY:
+                              type: number
+                              description: 应交税费同比增长率(%)
+                            TOTAL_ASSETS_YOY:
+                              type: number
+                              description: 资产总计同比增长率(%)
+                            TOTAL_CURRENT_ASSETS_YOY:
+                              type: number
+                              description: 流动资产合计同比增长率(%)
+                            TOTAL_CURRENT_LIAB_YOY:
+                              type: number
+                              description: 流动负债合计同比增长率(%)
+                            TOTAL_EQUITY_YOY:
+                              type: number
+                              description: 所有者权益合计同比增长率(%)
+                            TOTAL_LIAB_EQUITY_YOY:
+                              type: number
+                              description: 负债和所有者权益总计同比增长率(%)
+                            TOTAL_LIABILITIES_YOY:
+                              type: number
+                              description: 负债合计同比增长率(%)
+                            TOTAL_NONCURRENT_ASSETS_YOY:
+                              type: number
+                              description: 非流动资产合计同比增长率(%)
+                            TOTAL_NONCURRENT_LIAB_YOY:
+                              type: number
+                              description: 非流动负债合计同比增长率(%)
+                            TOTAL_OTHER_PAYABLE_YOY:
+                              type: number
+                              description: TOTAL_OTHER_PAYABLE 同比增长率(%)
+                            TOTAL_OTHER_RECE_YOY:
+                              type: number
+                              description: TOTAL_OTHER_RECE 同比增长率(%)
+                            TOTAL_PARENT_EQUITY_YOY:
+                              type: number
+                              description: 归属于母公司股东权益合计同比增长率(%)
+                            TRADE_FINASSET_NOTFVTPL_YOY:
+                              type: number
+                              description: 非FVTPL交易性金融资产同比增长率(%)
+                            TRADE_FINASSET_YOY:
+                              type: number
+                              nullable: true
+                              description: TRADE_FINASSET 同比增长率(%)
+                            TRADE_FINLIAB_NOTFVTPL_YOY:
+                              type: number
+                              nullable: true
+                              description: TRADE_FINLIAB_NOTFVTPL 同比增长率(%)
+                            TRADE_FINLIAB_YOY:
+                              type: number
+                              nullable: true
+                              description: TRADE_FINLIAB 同比增长率(%)
+                            TREASURY_SHARES_YOY:
+                              type: number
+                              nullable: true
+                              description: TREASURY_SHARES 同比增长率(%)
+                            UNASSIGN_RPOFIT_YOY:
+                              type: number
+                              description: 未分配利润同比增长率(%)
+                            UNCONFIRM_INVEST_LOSS_YOY:
+                              type: number
+                              nullable: true
+                              description: UNCONFIRM_INVEST_LOSS 同比增长率(%)
+                            USERIGHT_ASSET_YOY:
+                              type: number
+                              description: 使用权资产同比增长率(%)
+                            OPINION_TYPE:
+                              type: number
+                              nullable: true
+                              description: 审计意见类型
+                            OSOPINION_TYPE:
+                              type: number
+                              nullable: true
+                              description: 内控审计意见类型
+                            LISTING_STATE:
+                              type: string
+                              description: 上市状态
+                        description: 返回数据
+                      count:
+                        type: number
+                        description: 总记录数
+                    description: 返回数据
+                  success:
+                    type: boolean
+                    description: 请求是否成功
+                  message:
+                    type: string
+                    description: 状态消息
+                  code:
+                    type: number
+                    description: 状态码，0 = 正常
+              example:
+                version: ed8ca762b4c7f7e3f0622abd638efc18
+                result:
+                  pages: 39
+                  data:
+                  - SECUCODE: 601088.SH
+                    SECURITY_CODE: '601088'
+                    SECURITY_NAME_ABBR: 中国神华
+                    ORG_CODE: '10032705'
+                    ORG_TYPE: 通用
+                    REPORT_DATE: '2026-03-31 00:00:00'
+                    REPORT_TYPE: 一季报
+                    REPORT_DATE_NAME: 2026一季报
+                    SECURITY_TYPE_CODE: 058001001
+                    NOTICE_DATE: '2026-04-25 00:00:00'
+                    UPDATE_DATE: '2026-04-25 00:00:00'
+                    CURRENCY: CNY
+                    ACCEPT_DEPOSIT_INTERBANK: null
+                    ACCOUNTS_PAYABLE: 34365000000
+                    ACCOUNTS_RECE: 13308000000
+                    ACCRUED_EXPENSE: null
+                    ADVANCE_RECEIVABLES: 85000000
+                    AGENT_TRADE_SECURITY: null
+                    AGENT_UNDERWRITE_SECURITY: null
+                    AMORTIZE_COST_FINASSET: null
+                    AMORTIZE_COST_FINLIAB: null
+                    AMORTIZE_COST_NCFINASSET: null
+                    AMORTIZE_COST_NCFINLIAB: null
+                    APPOINT_FVTPL_FINASSET: null
+                    APPOINT_FVTPL_FINLIAB: null
+                    ASSET_BALANCE: 0
+                    ASSET_OTHER: null
+                    ASSIGN_CASH_DIVIDEND: null
+                    AVAILABLE_SALE_FINASSET: null
+                    BOND_PAYABLE: null
+                    BORROW_FUND: null
+                    BUY_RESALE_FINASSET: null
+                    CAPITAL_RESERVE: 139598000000
+                    CIP: 34043000000
+                    CONSUMPTIVE_BIOLOGICAL_ASSET: null
+                    CONTRACT_ASSET: null
+                    CONTRACT_LIAB: 4715000000
+                    CONVERT_DIFF: null
+                    CREDITOR_INVEST: null
+                    CURRENT_ASSET_BALANCE: 0
+                    CURRENT_ASSET_OTHER: null
+                    CURRENT_LIAB_BALANCE: 0
+                    CURRENT_LIAB_OTHER: null
+                    DEFER_INCOME: null
+                    DEFER_INCOME_1YEAR: null
+                    DEFER_TAX_ASSET: 6926000000
+                    DEFER_TAX_LIAB: 1763000000
+                    DERIVE_FINASSET: null
+                    DERIVE_FINLIAB: null
+                    DEVELOP_EXPENSE: null
+                    DIV_HOLDSALE_ASSET: null
+                    DIV_HOLDSALE_LIAB: null
+                    DIVIDEND_PAYABLE: 1277000000
+                    DIVIDEND_RECE: 53000000
+                    EQUITY_BALANCE: 0
+                    EQUITY_OTHER: null
+                    EXPORT_REFUND_RECE: null
+                    FEE_COMMISSION_PAYABLE: null
+                    FIN_FUND: null
+                    FINANCE_RECE: 824000000
+                    FIXED_ASSET: 271055000000
+                    FIXED_ASSET_DISPOSAL: null
+                    FVTOCI_FINASSET: null
+                    FVTOCI_NCFINASSET: null
+                    FVTPL_FINASSET: null
+                    FVTPL_FINLIAB: null
+                    GENERAL_RISK_RESERVE: null
+                    GOODWILL: null
+                    HOLD_MATURITY_INVEST: null
+                    HOLDSALE_ASSET: null
+                    HOLDSALE_LIAB: null
+                    INSURANCE_CONTRACT_RESERVE: null
+                    INTANGIBLE_ASSET: 69511000000
+                    INTEREST_PAYABLE: 113000000
+                    INTEREST_RECE: 40000000
+                    INTERNAL_PAYABLE: null
+                    INTERNAL_RECE: null
+                    INVENTORY: 10792000000
+                    INVEST_REALESTATE: null
+                    LEASE_LIAB: 996000000
+                    LEND_FUND: null
+                    LIAB_BALANCE: 0
+                    LIAB_EQUITY_BALANCE: null
+                    LIAB_EQUITY_OTHER: null
+                    LIAB_OTHER: null
+                    LOAN_ADVANCE: null
+                    LOAN_PBC: null
+                    LONG_EQUITY_INVEST: 62243000000
+                    LONG_LOAN: 29673000000
+                    LONG_PAYABLE: 13892000000
+                    LONG_PREPAID_EXPENSE: 5651000000
+                    LONG_RECE: null
+                    LONG_STAFFSALARY_PAYABLE: null
+                    MINORITY_EQUITY: 74981000000
+                    MONETARYFUNDS: 118585000000
+                    NONCURRENT_ASSET_1YEAR: null
+                    NONCURRENT_ASSET_BALANCE: 0
+                    NONCURRENT_ASSET_OTHER: null
+                    NONCURRENT_LIAB_1YEAR: 8174000000
+                    NONCURRENT_LIAB_BALANCE: 0
+                    NONCURRENT_LIAB_OTHER: null
+                    NOTE_ACCOUNTS_PAYABLE: 34886000000
+                    NOTE_ACCOUNTS_RECE: 18577000000
+                    NOTE_PAYABLE: 521000000
+                    NOTE_RECE: 5269000000
+                    OIL_GAS_ASSET: null
+                    OTHER_COMPRE_INCOME: 1381000000
+                    OTHER_CREDITOR_INVEST: null
+                    OTHER_CURRENT_ASSET: 8061000000
+                    OTHER_CURRENT_LIAB: 2425000000
+                    OTHER_EQUITY_INVEST: 3175000000
+                    OTHER_EQUITY_OTHER: null
+                    OTHER_EQUITY_TOOL: null
+                    OTHER_NONCURRENT_ASSET: 161605000000
+                    OTHER_NONCURRENT_FINASSET: 113000000
+                    OTHER_NONCURRENT_LIAB: 1781000000
+                    OTHER_PAYABLE: null
+                    OTHER_RECE: null
+                    PARENT_EQUITY_BALANCE: 0
+                    PARENT_EQUITY_OTHER: null
+                    PERPETUAL_BOND: null
+                    PERPETUAL_BOND_PAYBALE: null
+                    PREDICT_CURRENT_LIAB: null
+                    PREDICT_LIAB: 9997000000
+                    PREFERRED_SHARES: null
+                    PREFERRED_SHARES_PAYBALE: null
+                    PREMIUM_RECE: null
+                    PREPAYMENT: 7864000000
+                    PRODUCTIVE_BIOLOGY_ASSET: null
+                    PROJECT_MATERIAL: null
+                    RC_RESERVE_RECE: null
+                    REINSURE_PAYABLE: null
+                    REINSURE_RECE: null
+                    SELL_REPO_FINASSET: null
+                    SETTLE_EXCESS_RESERVE: null
+                    SHARE_CAPITAL: 21689000000
+                    SHORT_BOND_PAYABLE: null
+                    SHORT_FIN_PAYABLE: null
+                    SHORT_LOAN: 86700000000
+                    SPECIAL_PAYABLE: null
+                    SPECIAL_RESERVE: 26131000000
+                    STAFF_SALARY_PAYABLE: 10982000000
+                    SUBSIDY_RECE: null
+                    SURPLUS_RESERVE: 11433000000
+                    TAX_PAYABLE: 6697000000
+                    TOTAL_ASSETS: 783279000000
+                    TOTAL_CURRENT_ASSETS: 167634000000
+                    TOTAL_CURRENT_LIAB: 169294000000
+                    TOTAL_EQUITY: 555883000000
+                    TOTAL_LIAB_EQUITY: 783279000000
+                  - SECUCODE: 601088.SH
+                    SECURITY_CODE: '601088'
+                    SECURITY_NAME_ABBR: 中国神华
+                    ORG_CODE: '10032705'
+                    ORG_TYPE: 通用
+                    REPORT_DATE: '2025-12-31 00:00:00'
+                    REPORT_TYPE: 年报
+                    REPORT_DATE_NAME: 2025年报
+                    SECURITY_TYPE_CODE: 058001001
+                    NOTICE_DATE: '2026-03-31 00:00:00'
+                    UPDATE_DATE: '2026-04-25 00:00:00'
+                    CURRENCY: CNY
+                    ACCEPT_DEPOSIT_INTERBANK: null
+                    ACCOUNTS_PAYABLE: 41176000000
+                    ACCOUNTS_RECE: 13225000000
+                    ACCRUED_EXPENSE: null
+                    ADVANCE_RECEIVABLES: 28000000
+                    AGENT_TRADE_SECURITY: null
+                    AGENT_UNDERWRITE_SECURITY: null
+                    AMORTIZE_COST_FINASSET: null
+                    AMORTIZE_COST_FINLIAB: null
+                    AMORTIZE_COST_NCFINASSET: null
+                    AMORTIZE_COST_NCFINLIAB: null
+                    APPOINT_FVTPL_FINASSET: null
+                    APPOINT_FVTPL_FINLIAB: null
+                    ASSET_BALANCE: 0
+                    ASSET_OTHER: null
+                    ASSIGN_CASH_DIVIDEND: null
+                    AVAILABLE_SALE_FINASSET: null
+                    BOND_PAYABLE: null
+                    BORROW_FUND: null
+                    BUY_RESALE_FINASSET: null
+                    CAPITAL_RESERVE: 81319000000
+                    CIP: 33262000000
+                    CONSUMPTIVE_BIOLOGICAL_ASSET: null
+                    CONTRACT_ASSET: null
+                    CONTRACT_LIAB: 3810000000
+                    CONVERT_DIFF: null
+                    CREDITOR_INVEST: null
+                    CURRENT_ASSET_BALANCE: 0
+                    CURRENT_ASSET_OTHER: null
+                    CURRENT_LIAB_BALANCE: 0
+                    CURRENT_LIAB_OTHER: null
+                    DEFER_INCOME: null
+                    DEFER_INCOME_1YEAR: null
+                    DEFER_TAX_ASSET: 6696000000
+                    DEFER_TAX_LIAB: 1760000000
+                    DERIVE_FINASSET: null
+                    DERIVE_FINLIAB: null
+                    DEVELOP_EXPENSE: null
+                    DIV_HOLDSALE_ASSET: null
+                    DIV_HOLDSALE_LIAB: null
+                    DIVIDEND_PAYABLE: 1474000000
+                    DIVIDEND_RECE: 118000000
+                    EQUITY_BALANCE: 0
+                    EQUITY_OTHER: null
+                    EXPORT_REFUND_RECE: null
+                    FEE_COMMISSION_PAYABLE: null
+                    FIN_FUND: null
+                    FINANCE_RECE: 1495000000
+                    FIXED_ASSET: 272172000000
+                    FIXED_ASSET_DISPOSAL: null
+                    FVTOCI_FINASSET: null
+                    FVTOCI_NCFINASSET: null
+                    FVTPL_FINASSET: null
+                    FVTPL_FINLIAB: null
+                    GENERAL_RISK_RESERVE: null
+                    GOODWILL: null
+                    HOLD_MATURITY_INVEST: null
+                    HOLDSALE_ASSET: null
+                    HOLDSALE_LIAB: null
+                    INSURANCE_CONTRACT_RESERVE: null
+                    INTANGIBLE_ASSET: 69857000000
+                    INTEREST_PAYABLE: 23000000
+                    INTEREST_RECE: 70000000
+                    INTERNAL_PAYABLE: null
+                    INTERNAL_RECE: null
+                    INVENTORY: 11850000000
+                    INVEST_REALESTATE: null
+                    LEASE_LIAB: 971000000
+                    LEND_FUND: null
+                    LIAB_BALANCE: 0
+                    LIAB_EQUITY_BALANCE: null
+                    LIAB_EQUITY_OTHER: null
+                    LIAB_OTHER: null
+                    LOAN_ADVANCE: null
+                    LOAN_PBC: null
+                    LONG_EQUITY_INVEST: 62044000000
+                    LONG_LOAN: 28268000000
+                    LONG_PAYABLE: 14250000000
+                    LONG_PREPAID_EXPENSE: 5849000000
+                    LONG_RECE: null
+                    LONG_STAFFSALARY_PAYABLE: null
+                    MINORITY_EQUITY: 72344000000
+                    MONETARYFUNDS: 96772000000
+                    NONCURRENT_ASSET_1YEAR: null
+                    NONCURRENT_ASSET_BALANCE: 0
+                    NONCURRENT_ASSET_OTHER: null
+                    NONCURRENT_LIAB_1YEAR: 9364000000
+                    NONCURRENT_LIAB_BALANCE: 0
+                    NONCURRENT_LIAB_OTHER: null
+                    NOTE_ACCOUNTS_PAYABLE: 41513000000
+                    NOTE_ACCOUNTS_RECE: 18843000000
+                    NOTE_PAYABLE: 337000000
+                    NOTE_RECE: 5618000000
+                    OIL_GAS_ASSET: null
+                    OTHER_COMPRE_INCOME: 1677000000
+                    OTHER_CREDITOR_INVEST: null
+                    OTHER_CURRENT_ASSET: 8590000000
+                    OTHER_CURRENT_LIAB: 3846000000
+                    OTHER_EQUITY_INVEST: 3175000000
+                    OTHER_EQUITY_OTHER: null
+                    OTHER_EQUITY_TOOL: null
+                    OTHER_NONCURRENT_ASSET: 26076000000
+                    OTHER_NONCURRENT_FINASSET: 113000000
+                    OTHER_NONCURRENT_LIAB: 1839000000
+                    OTHER_PAYABLE: null
+                    OTHER_RECE: null
+                    PARENT_EQUITY_BALANCE: 0
+                    PARENT_EQUITY_OTHER: null
+                    PERPETUAL_BOND: null
+                    PERPETUAL_BOND_PAYBALE: null
+                    PREDICT_CURRENT_LIAB: null
+                    PREDICT_LIAB: 9960000000
+                    PREFERRED_SHARES: null
+                    PREFERRED_SHARES_PAYBALE: null
+                    PREMIUM_RECE: null
+                    PREPAYMENT: 6509000000
+                    PRODUCTIVE_BIOLOGY_ASSET: null
+                    PROJECT_MATERIAL: null
+                    RC_RESERVE_RECE: null
+                    REINSURE_PAYABLE: null
+                    REINSURE_RECE: null
+                    SELL_REPO_FINASSET: null
+                    SETTLE_EXCESS_RESERVE: null
+                    SHARE_CAPITAL: 19869000000
+                    SHORT_BOND_PAYABLE: null
+                    SHORT_FIN_PAYABLE: null
+                    SHORT_LOAN: 409000000
+                    SPECIAL_PAYABLE: null
+                    SPECIAL_RESERVE: 24828000000
+                    STAFF_SALARY_PAYABLE: 8199000000
+                    SUBSIDY_RECE: null
+                    SURPLUS_RESERVE: 11433000000
+                    TAX_PAYABLE: 9145000000
+                    TOTAL_ASSETS: 627761000000
+                    TOTAL_CURRENT_ASSETS: 146969000000
+                    TOTAL_CURRENT_LIAB: 89262000000
+                    TOTAL_EQUITY: 481451000000
+                    TOTAL_LIAB_EQUITY: 627761000000
+      parameters:
+      - name: type
+        in: query
+        required: true
+        description: 报表标识，固定值 RPT_F10_FINANCE_GBALANCE
+        schema:
+          type: string
+          example: RPT_F10_FINANCE_GBALANCE
+      - name: sty
+        in: query
+        required: true
+        description: 返回字段样式，固定值 F10_FINANCE_GBALANCE
+        schema:
+          type: string
+          example: F10_FINANCE_GBALANCE
+      - name: filter
+        in: query
+        required: true
+        description: 'DataCenter DSL 过滤条件，多个条件直接拼接。
+
+          - 按证券代码: `(SECUCODE="601088.SH")`
+
+          - 按证券代码批量: `(SECUCODE in ("601088.SH","000001.SZ"))`
+
+          - 按报告期区间: `(REPORT_DATE>=''2025-01-01'')(REPORT_DATE<=''2025-12-31'')`
+
+          - 按公告日期区间: `(NOTICE_DATE>=''2025-01-01'')(NOTICE_DATE<=''2025-12-31'')`
+
+          - 按报告期精确匹配: `(REPORT_DATE in (''2025-12-31'',''2025-09-30''))`
+
+          注意: 参数值需正确 URL 编码。
+
+          '
+        schema:
+          type: string
+          example: (SECUCODE="601088.SH")
+      - name: p
+        in: query
+        required: true
+        description: 页码，从 1 开始
+        schema:
+          type: integer
+          example: 1
+      - name: ps
+        in: query
+        required: true
+        description: 每页条数
+        schema:
+          type: integer
+          example: 5
+      - name: sr
+        in: query
+        required: true
+        description: '排序方向，-1 降序，1 升序。
+
+          支持多字段排序，逗号分隔，与 st 一一对应。
+
+          示例: `-1`（单字段）或 `-1,-1`（多字段）
+
+          '
+        schema:
+          type: string
+          example: '-1'
+      - name: st
+        in: query
+        required: true
+        description: '排序字段，支持多字段排序，逗号分隔。
+
+          建议始终使用多字段排序（如 REPORT_DATE,SECURITY_CODE）避免分页重复。
+
+          单字段 REPORT_DATE 排序在日期区间 + 多股票场景下会导致分页数据重复。
+
+          '
+        schema:
+          type: string
+          example: REPORT_DATE,SECURITY_CODE
+      - name: source
+        in: query
+        required: true
+        description: 数据来源标识
+        schema:
+          type: string
+          example: HSF10
+      - name: client
+        in: query
+        required: true
+        description: 客户端标识
+        schema:
+          type: string
+          example: PC
+      - name: v
+        in: query
+        required: false
+        description: 缓存破坏参数（时间戳数字）
+        schema:
+          type: string

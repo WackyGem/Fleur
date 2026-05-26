@@ -1,0 +1,461 @@
+openapi: 3.0.0
+info:
+  title: 韭研产业研究图片 OCR 接口引用
+  version: 1.0.0
+  description: |
+    本规范来自用户提供的本地 OCR 客户端参考代码，用于固定 Dagster OCR asset
+    调用 OpenAI-compatible chat completions 服务时的请求和响应形态。
+
+    参考代码中可复用的部分：
+
+    - chat completions endpoint 形态。
+    - 图片以 data URL 放入 `messages[].content[].image_url.url`。
+    - `response_format.type=json_schema`，要求模型只返回 JSON array。
+    - `response_format.json_schema.schema` 必须由 `StockThemeSchema.get_json_schema()`
+      生成，并配合 `strict=true` 约束推理引擎输出。
+    - OCR 参数：`max_tokens`、`temperature`、`top_p`、`top_k`、
+      `presence_penalty`、`repetition_penalty`、`include_reasoning`、
+      `chat_template_kwargs.enable_thinking`。
+
+    参考代码中不能照搬的部分：
+
+    - `get_project_root()`。
+    - `list_image_paths()`。
+    - 读取本地图片目录作为任务来源。
+    - `print_result()`。
+
+    样例图片见 `docs/references/jiuyan_images/`。这些图片的表头会变化：说明列可能叫
+    `相关性`、`AI服务器相关`、`2024年相关营收占比` 等，来源列可能叫 `信源`、
+    `资料来源` 或 `来源`。因此 OCR schema 使用 `theme_path` 和 `evidence_cells`
+    表达层级主题与动态表头，不依赖固定三层主题字段。
+
+    Dagster 实现必须从 `jiuyan__industry_list` 文章快照解析图片 URL，临时下载图片，
+    构造 data URL 时只保留 `image/*` MIME 主类型（例如把
+    `image/jpeg; charset=utf-8` 规范化为 `image/jpeg`），调用本接口，并把结果写入
+    `jiuyan__industry_image_ocr_results` parquet。
+servers:
+  - url: http://127.0.0.1:34005
+    description: 本地 OpenAI-compatible OCR 服务，host/port 由环境变量配置
+paths:
+  /v1/chat/completions:
+    post:
+      summary: 提交单张图片做股票题材 OCR 抽取
+      operationId: createJiuyanIndustryImageOcrCompletion
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ChatCompletionRequest"
+            examples:
+              stockThemeImage:
+                summary: 单张图片 OCR 请求
+                value:
+                  model: Qwen3.5-4B
+                  messages:
+                    - role: system
+                      content:
+                        - type: text
+                          text: |
+                            你只做表格 OCR 信息抽取。只看图片文字，不补充常识。
+
+                            任务：逐行抽取表格中的股票/公司条目，输出 JSON array。
+
+                            字段规则：
+                            - stock_name：个股/公司列的名称。
+                            - theme_path：该行左侧分类路径，从大到小排列；合并单元格要继承到每一行。
+                            - topic：最大主题，取 theme_path 第一项；没有则空字符串。
+                            - relevance：该行最核心的业务说明，优先取说明/相关性/动态业务列原文。
+                            - source：信源/资料来源/来源列原文；没有则空字符串。
+                            - evidence_cells：除 stock_name 外的重要单元格，保留原始表头 header 和原文 text。
+
+                            忽略：风险提示、免责声明、水印、页眉、搜索框、跳转链接、装饰文字。
+
+                            要求：
+                            - 每个股票/公司条目输出一个 object。
+                            - 不要总结、推断、改写或扩写。
+                            - 不确定填空字符串或空数组。
+                            - 只输出合法 JSON array，不输出 markdown 或解释。
+                    - role: user
+                      content:
+                        - type: image_url
+                          image_url:
+                            url: data:image/png;base64,iVBORw0KGgo...
+                  max_tokens: 8192
+                  temperature: 0.2
+                  top_p: 0.8
+                  top_k: 20
+                  presence_penalty: 0.0
+                  repetition_penalty: 1.0
+                  include_reasoning: false
+                  response_format:
+                    type: json_schema
+                    json_schema:
+                      name: stock_theme
+                      # Dagster 实现中必须使用 StockThemeSchema.get_json_schema()
+                      # 生成下面的 schema，避免请求 schema 和响应校验 schema 漂移。
+                      strict: true
+                      schema:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            stock_name:
+                              type: string
+                            theme_path:
+                              type: array
+                              items:
+                                type: string
+                            topic:
+                              type: string
+                            relevance:
+                              type: string
+                            source:
+                              type: string
+                            evidence_cells:
+                              type: array
+                              items:
+                                type: object
+                                properties:
+                                  header:
+                                    type: string
+                                  text:
+                                    type: string
+                                required:
+                                  - header
+                                  - text
+                                additionalProperties: false
+                          required:
+                            - stock_name
+                            - theme_path
+                            - topic
+                            - relevance
+                            - source
+                            - evidence_cells
+                          additionalProperties: false
+                  chat_template_kwargs:
+                    enable_thinking: false
+      responses:
+        "200":
+          description: OCR 服务响应。业务结果位于 `choices[0].message.content`，该字段应为 JSON array 字符串。
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ChatCompletionResponse"
+              examples:
+                success:
+                  value:
+                    id: chatcmpl-local
+                    object: chat.completion
+                    created: 1779217286
+                    model: Qwen3.5-4B
+                    choices:
+                      - index: 0
+                        message:
+                          role: assistant
+                          content: '[{"stock_name":"示例股份","theme_path":["分类","细分"],"topic":"分类","relevance":"关联信息","source":"来源","evidence_cells":[{"header":"相关性","text":"关联信息"},{"header":"资料来源","text":"来源"}]}]'
+                        finish_reason: stop
+                    timings:
+                      prompt_ms: 100
+                      completion_ms: 500
+        default:
+          description: OCR 服务错误响应。
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+components:
+  schemas:
+    ChatCompletionRequest:
+      type: object
+      required:
+        - model
+        - messages
+        - response_format
+      properties:
+        model:
+          type: string
+          description: OCR 模型名，来自 `JIUYAN_OCR_MODEL_NAME`。
+          example: Qwen3.5-4B
+        messages:
+          type: array
+          minItems: 2
+          items:
+            $ref: "#/components/schemas/ChatMessage"
+        max_tokens:
+          type: integer
+          default: 8192
+        temperature:
+          type: number
+          default: 0.2
+        top_p:
+          type: number
+          default: 0.8
+        top_k:
+          type: integer
+          default: 20
+        presence_penalty:
+          type: number
+          default: 0.0
+        repetition_penalty:
+          type: number
+          default: 1.0
+        include_reasoning:
+          type: boolean
+          default: false
+        response_format:
+          $ref: "#/components/schemas/JsonSchemaResponseFormat"
+        chat_template_kwargs:
+          type: object
+          properties:
+            enable_thinking:
+              type: boolean
+              default: false
+          additionalProperties: true
+      additionalProperties: true
+    ChatMessage:
+      type: object
+      required:
+        - role
+        - content
+      properties:
+        role:
+          type: string
+          enum:
+            - system
+            - user
+            - assistant
+        content:
+          type: array
+          items:
+            oneOf:
+              - $ref: "#/components/schemas/TextContent"
+              - $ref: "#/components/schemas/ImageUrlContent"
+    TextContent:
+      type: object
+      required:
+        - type
+        - text
+      properties:
+        type:
+          type: string
+          enum:
+            - text
+        text:
+          type: string
+    ImageUrlContent:
+      type: object
+      required:
+        - type
+        - image_url
+      properties:
+        type:
+          type: string
+          enum:
+            - image_url
+        image_url:
+          type: object
+          required:
+            - url
+          properties:
+            url:
+              type: string
+              description: 图片 data URL，例如 `data:image/png;base64,...`。
+    JsonSchemaResponseFormat:
+      type: object
+      required:
+        - type
+        - json_schema
+      properties:
+        type:
+          type: string
+          enum:
+            - json_schema
+        json_schema:
+          type: object
+          required:
+            - name
+            - schema
+            - strict
+          properties:
+            name:
+              type: string
+              enum:
+                - stock_theme
+            strict:
+              type: boolean
+              default: true
+            schema:
+              $ref: "#/components/schemas/StockThemeArraySchema"
+    StockThemeArraySchema:
+      type: object
+      description: JSON schema object returned by `StockThemeSchema.get_json_schema()` and passed to `response_format.json_schema.schema`。
+      required:
+        - type
+        - items
+      properties:
+        type:
+          type: string
+          enum:
+            - array
+        items:
+          type: object
+          required:
+            - type
+            - properties
+            - required
+            - additionalProperties
+          properties:
+            type:
+              type: string
+              enum:
+                - object
+            properties:
+              type: object
+              properties:
+                stock_name:
+                  type: object
+                  properties:
+                    type:
+                      type: string
+                      enum:
+                        - string
+                theme_path:
+                  type: object
+                  properties:
+                    type:
+                      type: string
+                      enum:
+                        - array
+                    items:
+                      type: object
+                      properties:
+                        type:
+                          type: string
+                          enum:
+                            - string
+                topic:
+                  type: object
+                  properties:
+                    type:
+                      type: string
+                      enum:
+                        - string
+                relevance:
+                  type: object
+                  properties:
+                    type:
+                      type: string
+                      enum:
+                        - string
+                source:
+                  type: object
+                  properties:
+                    type:
+                      type: string
+                      enum:
+                        - string
+                evidence_cells:
+                  type: object
+                  properties:
+                    type:
+                      type: string
+                      enum:
+                        - array
+                    items:
+                      type: object
+                      properties:
+                        type:
+                          type: string
+                          enum:
+                            - object
+            required:
+              type: array
+              items:
+                type: string
+              example:
+                - stock_name
+                - theme_path
+                - topic
+                - relevance
+                - source
+                - evidence_cells
+            additionalProperties:
+              type: boolean
+              enum:
+                - false
+    ChatCompletionResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        object:
+          type: string
+        created:
+          type: integer
+        model:
+          type: string
+        choices:
+          type: array
+          items:
+            type: object
+            properties:
+              index:
+                type: integer
+              message:
+                type: object
+                properties:
+                  role:
+                    type: string
+                  content:
+                    type: string
+                    description: OCR 抽取结果，必须能 `json.loads` 为 `StockThemeItem[]`。
+              finish_reason:
+                type: string
+        timings:
+          type: object
+          additionalProperties: true
+      additionalProperties: true
+    StockThemeItem:
+      type: object
+      required:
+        - stock_name
+        - theme_path
+        - topic
+        - relevance
+        - source
+        - evidence_cells
+      properties:
+        stock_name:
+          type: string
+          description: 个股，合法股票名称。
+        theme_path:
+          type: array
+          description: 左侧合并分类和主题层级，按从大到小排列；不存在时为空数组。
+          items:
+            type: string
+        topic:
+          type: string
+          description: 最外层最大主题，通常取 `theme_path` 第一项；不存在时为空字符串。
+        relevance:
+          type: string
+          description: 该行最核心的相关性说明；可来自动态业务列，但不得编造。
+        source:
+          type: string
+          description: 来源列文字，例如互动、公告、调研、财报、研报；不存在时为空字符串。
+        evidence_cells:
+          type: array
+          description: 动态表头证据单元格，保留原始 header 和 text。
+          items:
+            type: object
+            required:
+              - header
+              - text
+            properties:
+              header:
+                type: string
+              text:
+                type: string
+            additionalProperties: false
+      additionalProperties: false
