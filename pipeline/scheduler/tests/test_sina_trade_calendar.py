@@ -21,6 +21,7 @@ from scheduler.defs.http_resources.sina__trade_calendar import (
     sina__trade_calendar,
     trade_calendar_dates_to_table,
 )
+from scheduler.defs.io_managers.s3_io_manager import S3IOManager
 from scheduler.defs.util import (
     asset_key_to_parquet_object_key,
     filter_active_security_ranges,
@@ -210,6 +211,46 @@ class S3TableIOTest(unittest.TestCase):
         self.assertEqual(round_tripped.column_names, ["date", "code"])
         self.assertEqual(parquet_file.schema_arrow.names, ["date", "code"])
         self.assertEqual(round_tripped.num_rows, 2)
+
+    def test_write_parquet_dataset_rejects_empty_table_by_default(self) -> None:
+        table = pa.table({"date": []}, schema=pa.schema([("date", pa.string())]))
+
+        with TemporaryDirectory() as tmpdir:
+            with self.assertRaises(ValueError):
+                write_parquet_dataset(
+                    table,
+                    f"{tmpdir}/raw/empty",
+                    pafs.LocalFileSystem(),
+                )
+
+    def test_write_parquet_dataset_round_trips_empty_table_when_allowed(self) -> None:
+        table = pa.table({"date": []}, schema=pa.schema([("date", pa.string())]))
+
+        with TemporaryDirectory() as tmpdir:
+            paths = write_parquet_dataset(
+                table,
+                f"{tmpdir}/raw/empty",
+                pafs.LocalFileSystem(),
+                partition_key="2026",
+                partition_key_name="year",
+                allow_empty=True,
+            )
+            parquet_file = pq.ParquetFile(f"{tmpdir}/raw/empty/year=2026/000000_0.parquet")
+            round_tripped = parquet_file.read()
+
+        self.assertEqual(paths, [f"{tmpdir}/raw/empty/year=2026/000000_0.parquet"])
+        self.assertEqual(round_tripped.column_names, ["date"])
+        self.assertEqual(parquet_file.schema_arrow.names, ["date"])
+        self.assertEqual(round_tripped.num_rows, 0)
+
+    def test_s3_io_manager_empty_table_validation_requires_allow_empty(self) -> None:
+        table = pa.table({"date": []}, schema=pa.schema([("date", pa.string())]))
+        io_manager = S3IOManager()
+
+        with self.assertRaises(ValueError):
+            io_manager._validate_table(table)
+
+        self.assertIs(io_manager._validate_table(table, allow_empty=True), table)
 
 
 class BaoStockProtocolTest(unittest.TestCase):

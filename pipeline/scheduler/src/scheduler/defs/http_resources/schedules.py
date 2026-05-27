@@ -10,7 +10,7 @@ sina__trade_calendar_job = dg.define_asset_job(
 )
 
 sina__trade_calendar_schedule = dg.ScheduleDefinition(
-    name="sina__trade_calendar_last_week_of_year",
+    name="sina__trade_calendar_schedule",
     job=sina__trade_calendar_job,
     cron_schedule="0 9 25-31 12 *",
     execution_timezone="Asia/Shanghai",

@@ -3,6 +3,7 @@ name = "scheduler"
 requires-python = ">=3.10,<3.15"
 version = "0.1.0"
 dependencies = [
+    "aiohttp>=3.13.5",
     "dagster==1.13.6",
     "pyarrow>=22.0.0",
     "requests>=2.34.0",
@@ -12,6 +13,7 @@ dependencies = [
 dev = [
     "dagster-dg-cli",
     "dagster-webserver",
+    "pyyaml>=6.0.3",
 ]
 
 [build-system]

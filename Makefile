@@ -4,6 +4,7 @@ PIPELINE_DIR := pipeline
 SCHEDULER_TARGET := scheduler
 TRADE_CALENDAR_ASSET := sina__trade_calendar
 BAOSTOCK_RUN_POOL := baostock_run_pool
+EASTMONEY_RUN_POOL := eastmoney_run_pool
 DAGSTER_HOME ?= $(CURDIR)/.dagster
 DAGSTER_WEBUI_HOST ?= 127.0.0.1
 DAGSTER_WEBUI_PORT ?= 3000
@@ -57,6 +58,7 @@ dagster-home:
 			> '$(DAGSTER_HOME)/dagster.yaml'; \
 	fi
 	cd $(PIPELINE_DIR) && uv run dagster instance concurrency set $(BAOSTOCK_RUN_POOL) 1
+	cd $(PIPELINE_DIR) && uv run dagster instance concurrency set $(EASTMONEY_RUN_POOL) 3
 
 check-defs:
 	cd $(PIPELINE_DIR) && uv run dg check defs --target-path $(SCHEDULER_TARGET)

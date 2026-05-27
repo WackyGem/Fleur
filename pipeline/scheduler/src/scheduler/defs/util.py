@@ -136,8 +136,9 @@ def write_parquet_dataset(
     *,
     partition_key: str | None = None,
     partition_key_name: str | None = None,
+    allow_empty: bool = False,
 ) -> list[str]:
-    if table.num_rows == 0:
+    if table.num_rows == 0 and not allow_empty:
         msg = "Refusing to write an empty pyarrow.Table"
         raise ValueError(msg)
 
@@ -146,6 +147,14 @@ def write_parquet_dataset(
             msg = "partition_key and partition_key_name must be provided together"
             raise ValueError(msg)
         base_dir = f"{base_dir.rstrip('/')}/{partition_key_name}={partition_key}"
+
+    if table.num_rows == 0:
+        filesystem.delete_dir_contents(base_dir, missing_dir_ok=True)
+        filesystem.create_dir(base_dir, recursive=True)
+        path = f"{base_dir}/000000_0.parquet"
+        with filesystem.open_output_stream(path) as sink:
+            pq.write_table(table, sink, compression="zstd")
+        return [path]
 
     written_paths: list[str] = []
 
