@@ -225,18 +225,18 @@ class SinaCalendarParser:
         end_index = reader.read_values((18,))[0]
         state = SinaDecodeState(serial_day_number=start_index)
         dates: list[date] = []
-        consecutive_trade_days_remaining = -1
+        consecutive_trade_dates_remaining = -1
 
         while state.serial_day_number < end_index:
             trade_date = state.next_trade_date()
-            if consecutive_trade_days_remaining <= 0:
-                consecutive_trade_days_remaining = self._read_next_run_length(reader, state)
+            if consecutive_trade_dates_remaining <= 0:
+                consecutive_trade_dates_remaining = self._read_next_run_length(reader, state)
                 if not dates:
                     dates.append(trade_date)
-                    consecutive_trade_days_remaining -= 1
+                    consecutive_trade_dates_remaining -= 1
             else:
                 dates.append(trade_date)
-            consecutive_trade_days_remaining -= 1
+            consecutive_trade_dates_remaining -= 1
 
         return dates
 

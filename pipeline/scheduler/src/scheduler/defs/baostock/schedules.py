@@ -14,7 +14,7 @@ from scheduler.defs.config import S3Config
 from scheduler.defs.util import is_trade_date, read_sina_trade_calendar_dates_from_s3
 
 
-def build_trade_day_schedule(
+def build_trade_date_schedule(
     name: str,
     job: dg.UnresolvedAssetJobDefinition,
     cron_schedule: str,
@@ -29,7 +29,7 @@ def build_trade_day_schedule(
 ) -> dg.ScheduleDefinition:
     timezone = ZoneInfo(execution_timezone)
 
-    def evaluate_trade_day_schedule(
+    def evaluate_trade_date_schedule(
         context: dg.ScheduleEvaluationContext,
     ) -> dg.RunRequest | dg.SkipReason:
         scheduled_time = context.scheduled_execution_time
@@ -68,7 +68,7 @@ def build_trade_day_schedule(
         job=job,
         cron_schedule=cron_schedule,
         execution_timezone=execution_timezone,
-        execution_fn=evaluate_trade_day_schedule,
+        execution_fn=evaluate_trade_date_schedule,
     )
 
 
@@ -80,7 +80,7 @@ baostock__daily_job = dg.define_asset_job(
     ],
 )
 
-baostock__daily_schedule = build_trade_day_schedule(
+baostock__daily_schedule = build_trade_date_schedule(
     name="baostock__daily_schedule",
     job=baostock__daily_job,
     cron_schedule="35 17 * * *",

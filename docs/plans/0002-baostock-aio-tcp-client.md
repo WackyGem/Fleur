@@ -703,7 +703,7 @@ pipeline/scheduler/src/scheduler/defs/baostock/schedules.py
 签名建议：
 
 ```python
-def build_trade_day_schedule(
+def build_trade_date_schedule(
     name: str,
     job: dg.UnresolvedAssetJobDefinition,
     cron_schedule: str,
@@ -731,7 +731,7 @@ def build_trade_day_schedule(
 伪代码：
 
 ```python
-def evaluate_trade_day_schedule(context: dg.ScheduleEvaluationContext):
+def evaluate_trade_date_schedule(context: dg.ScheduleEvaluationContext):
     trade_date = context.scheduled_execution_time.astimezone(
         ZoneInfo("Asia/Shanghai")
     ).date()
@@ -770,7 +770,7 @@ baostock__daily_job = dg.define_asset_job(
     ],
 )
 
-baostock__daily_schedule = build_trade_day_schedule(
+baostock__daily_schedule = build_trade_date_schedule(
     name="baostock__daily_schedule",
     job=baostock__daily_job,
     cron_schedule="35 17 * * *",
@@ -1263,6 +1263,6 @@ dev 真实网络测试内容：
 14. 在 `util.py` 中实现通用 S3 parquet 读取工具，以及交易日历和 BaoStock stock basic 的读取函数，并从 `config.py` 引入 `S3Config`。
 15. 在 `util.py` 中实现证券代码范围过滤组件，基于 `ipoDate`、`outDate`、`type` 和请求日期范围生成有效 K 线请求列表。
 16. 接入 `baostock__query_stock_basic` Dagster asset。
-17. 实现交易日调度器 `build_trade_day_schedule`。
+17. 实现交易日调度器 `build_trade_date_schedule`。
 18. 接入 `baostock__query_history_k_data_plus_daily` 年度分区 asset，并强制通过 S3 读取 stock basic 快照后使用证券代码范围过滤组件减少请求量。
 19. 接入 `baostock__daily_job` 和交易日调度。
