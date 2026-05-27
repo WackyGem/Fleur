@@ -1,104 +1,155 @@
 from __future__ import annotations
 
+import time
+from collections.abc import Mapping
 from typing import Any
 
-import boto3
 import dagster as dg
 import pyarrow as pa
-import pyarrow.parquet as pq
-from botocore.config import Config
-from botocore.exceptions import ClientError
 
-PARQUET_CONTENT_TYPE = "application/vnd.apache.parquet"
-
-
-def asset_key_to_parquet_object_key(
-    asset_key: dg.AssetKey,
-    object_prefix: str,
-) -> str:
-    asset_path = "/".join(asset_key.path)
-    if object_prefix:
-        return f"{object_prefix.strip('/')}/{asset_path}/000000_0.parquet"
-    return f"{asset_path}/000000_0.parquet"
-
-
-def table_to_parquet_bytes(table: pa.Table) -> bytes:
-    sink = pa.BufferOutputStream()
-    pq.write_table(table, sink, compression="zstd")
-    return sink.getvalue().to_pybytes()
+from scheduler.defs.config import (
+    RUSTFS_ACCESS_KEY,
+    RUSTFS_BUCKET,
+    RUSTFS_ENDPOINT,
+    RUSTFS_REGION_NAME,
+    RUSTFS_SECRET_KEY,
+    S3Config,
+)
+from scheduler.defs.util import (
+    asset_key_to_parquet_object_key,
+    build_s3_filesystem,
+    write_parquet_dataset,
+)
 
 
 class S3IOManager(dg.ConfigurableIOManager):
-    endpoint: str = dg.EnvVar("RUSTFS_ENDPOINT")
-    bucket: str = dg.EnvVar("RUSTFS_BUCKET")
-    access_key: str = dg.EnvVar("RUSTFS_ACCESS_KEY")
-    secret_key: str = dg.EnvVar("RUSTFS_SECRET_KEY")
-    region_name: str = "us-east-1"
+    endpoint: str = RUSTFS_ENDPOINT
+    bucket: str = RUSTFS_BUCKET
+    access_key: str = RUSTFS_ACCESS_KEY
+    secret_key: str = RUSTFS_SECRET_KEY
+    region_name: str = RUSTFS_REGION_NAME
     object_prefix: str = "raw"
 
     def handle_output(self, context: dg.OutputContext, obj: Any) -> None:
-        table = self._validate_table(obj)
-        parquet_bytes = table_to_parquet_bytes(table)
-        key = self._object_key(context)
-        bucket = self._bucket()
-        endpoint = self._endpoint()
-        client = self._client()
-        self._ensure_bucket_exists(client, bucket)
-        client.put_object(
-            Bucket=bucket,
-            Key=key,
-            Body=parquet_bytes,
-            ContentType=PARQUET_CONTENT_TYPE,
-        )
+        started_at = time.perf_counter()
+        asset_key = self._asset_key(context)
+        storage_mode = str(context.definition_metadata.get("storage_mode", "latest_snapshot"))
+        partition_key_name = context.definition_metadata.get("partition_key_name")
+        if partition_key_name is not None:
+            partition_key_name = str(partition_key_name)
 
-        context.add_output_metadata(
-            {
-                "s3_bucket": bucket,
-                "s3_key": key,
-                "s3_endpoint": endpoint,
-                "content_type": PARQUET_CONTENT_TYPE,
-                "file_format": "parquet",
-                "compression": "zstd",
-                "row_count": table.num_rows,
-                "column_count": table.num_columns,
-            }
-        )
+        filesystem = build_s3_filesystem(self._config())
+        filesystem_built_at = time.perf_counter()
+        base_dir = self._base_dir(asset_key)
+        partition_row_counts: dict[str, int] = {}
+        if storage_mode == "partitioned":
+            if partition_key_name is None:
+                msg = "Partitioned S3 output requires partition_key_name metadata"
+                raise RuntimeError(msg)
+            if not context.has_asset_partitions:
+                msg = "Partitioned S3 output requires Dagster asset partitions"
+                raise RuntimeError(msg)
+            partition_tables = self._validate_partition_tables(obj)
+            validated_at = time.perf_counter()
+            partition_keys = set(context.asset_partition_keys)
+            table_keys = set(partition_tables)
+            if table_keys != partition_keys:
+                msg = (
+                    "Partitioned S3 output keys must match Dagster asset partition keys: "
+                    f"table_keys={sorted(table_keys)}, partition_keys={sorted(partition_keys)}"
+                )
+                raise RuntimeError(msg)
+            written_paths = []
+            for partition_key in sorted(partition_tables):
+                partition_table = partition_tables[partition_key]
+                written_paths.extend(
+                    write_parquet_dataset(
+                        partition_table,
+                        base_dir,
+                        filesystem,
+                        partition_key=partition_key,
+                        partition_key_name=partition_key_name,
+                    )
+                )
+                partition_row_counts[partition_key] = partition_table.num_rows
+            row_count = sum(partition_row_counts.values())
+            column_count = self._partition_column_count(partition_tables)
+        elif storage_mode == "latest_snapshot":
+            table = self._validate_table(obj)
+            validated_at = time.perf_counter()
+            written_paths = write_parquet_dataset(table, base_dir, filesystem)
+            row_count = table.num_rows
+            column_count = table.num_columns
+        else:
+            msg = f"Unsupported storage mode: {storage_mode}"
+            raise ValueError(msg)
+        write_finished_at = time.perf_counter()
+
+        object_keys = [self._path_to_object_key(path) for path in written_paths]
+        metadata: dict[str, object] = {
+            "s3_bucket": self.bucket,
+            "s3_keys": dg.MetadataValue.json(object_keys),
+            "s3_endpoint": self.endpoint,
+            "file_format": "parquet",
+            "compression": "zstd",
+            "row_count": row_count,
+            "column_count": column_count,
+            "storage_mode": storage_mode,
+            "io_manager_validate_seconds": _elapsed_seconds(started_at, validated_at),
+            "s3_filesystem_build_seconds": _elapsed_seconds(
+                validated_at,
+                filesystem_built_at,
+            ),
+            "pyarrow_write_dataset_seconds": _elapsed_seconds(
+                filesystem_built_at,
+                write_finished_at,
+            ),
+            "io_manager_handle_output_seconds": _elapsed_seconds(
+                started_at,
+                write_finished_at,
+            ),
+        }
+        if partition_key_name is not None:
+            metadata["partition_key_name"] = partition_key_name
+            metadata["partition_row_counts"] = dg.MetadataValue.json(partition_row_counts)
+        elif len(object_keys) == 1:
+            metadata["s3_key"] = object_keys[0]
+
+        context.add_output_metadata(metadata)
 
     def load_input(self, context: dg.InputContext) -> Any:
         msg = "S3IOManager does not implement input loading yet"
         raise NotImplementedError(msg)
 
-    def _client(self) -> Any:
-        return boto3.client(
-            "s3",
-            endpoint_url=self._endpoint(),
-            aws_access_key_id=self.access_key,
-            aws_secret_access_key=self.secret_key,
-            region_name=self.region_name,
-            config=Config(s3={"addressing_style": "path"}),
-        )
-
-    def _bucket(self) -> str:
-        return self.bucket
-
-    def _endpoint(self) -> str:
-        return self.endpoint
-
-    def _ensure_bucket_exists(self, client: Any, bucket: str) -> None:
-        try:
-            client.head_bucket(Bucket=bucket)
-        except ClientError as error:
-            error_code = error.response.get("Error", {}).get("Code", "")
-            if error_code not in {"404", "NoSuchBucket", "NotFound"}:
-                raise
-            client.create_bucket(Bucket=bucket)
-
-    def _object_key(self, context: dg.OutputContext) -> str:
+    def _asset_key(self, context: dg.OutputContext) -> dg.AssetKey:
         if context.asset_key is None:
             msg = "S3IOManager requires an asset output"
             raise RuntimeError(msg)
+        return context.asset_key
 
-        return asset_key_to_parquet_object_key(context.asset_key, self.object_prefix)
+    def _base_dir(self, asset_key: dg.AssetKey) -> str:
+        object_key = asset_key_to_parquet_object_key(
+            asset_key,
+            object_prefix=self.object_prefix,
+            storage_mode="latest_snapshot",
+        )
+        object_dir = object_key.removesuffix("/000000_0.parquet")
+        return f"{self.bucket}/{object_dir}"
+
+    def _path_to_object_key(self, path: str) -> str:
+        bucket_prefix = f"{self.bucket}/"
+        if path.startswith(bucket_prefix):
+            return path.removeprefix(bucket_prefix)
+        return path
+
+    def _config(self) -> S3Config:
+        return S3Config(
+            endpoint=self.endpoint,
+            bucket=self.bucket,
+            access_key=self.access_key,
+            secret_key=self.secret_key,
+            region_name=self.region_name,
+        )
 
     def _validate_table(self, obj: Any) -> pa.Table:
         if not isinstance(obj, pa.Table):
@@ -110,3 +161,36 @@ class S3IOManager(dg.ConfigurableIOManager):
             raise ValueError(msg)
 
         return obj
+
+    def _validate_partition_tables(self, obj: Any) -> dict[str, pa.Table]:
+        if not isinstance(obj, Mapping):
+            msg = "S3IOManager expected a mapping of partition key to pyarrow.Table"
+            raise TypeError(msg)
+
+        tables: dict[str, pa.Table] = {}
+        for partition_key, table in obj.items():
+            if not isinstance(partition_key, str):
+                msg = "Partitioned S3 output keys must be strings"
+                raise TypeError(msg)
+            tables[partition_key] = self._validate_table(table)
+
+        if not tables:
+            msg = "S3IOManager refuses to write an empty partition table mapping"
+            raise ValueError(msg)
+        return tables
+
+    def _partition_column_count(self, partition_tables: Mapping[str, pa.Table]) -> int:
+        first_table = next(iter(partition_tables.values()))
+        first_columns = first_table.column_names
+        for partition_key, table in partition_tables.items():
+            if table.column_names != first_columns:
+                msg = (
+                    f"Partition {partition_key!r} columns differ from first partition: "
+                    f"{table.column_names} != {first_columns}"
+                )
+                raise ValueError(msg)
+        return first_table.num_columns
+
+
+def _elapsed_seconds(started_at: float, finished_at: float) -> float:
+    return round(finished_at - started_at, 6)

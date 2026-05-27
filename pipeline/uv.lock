@@ -124,34 +124,6 @@ wheels = [
 ]
 
 [[package]]
-name = "boto3"
-version = "1.43.14"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "botocore" },
-    { name = "jmespath" },
-    { name = "s3transfer" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/79/4b/616367e871ce3f1cb3e8545a97736b6331b9fb081497f2d44c5b2aa6959d/boto3-1.43.14.tar.gz", hash = "sha256:5c0a994b3182061ee101812e721100717a4d664f9f4ceaf4a86b6d032ce9fc2d", size = 113142, upload-time = "2026-05-22T19:28:47.861Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/cb/00/59cb9329c18e2d3aa23062ceaa87d065f2e81e7d2931df24d64e9a7815aa/boto3-1.43.14-py3-none-any.whl", hash = "sha256:574335744656cfed0b362a0a0467aaf2eb2bf15526edcd02d31d3c661f4b09e4", size = 140536, upload-time = "2026-05-22T19:28:46.49Z" },
-]
-
-[[package]]
-name = "botocore"
-version = "1.43.14"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "jmespath" },
-    { name = "python-dateutil" },
-    { name = "urllib3" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/78/3c/798d2f7deb118241930c7c6bcfb0b970d3f0245bf580700663199aeed2c3/botocore-1.43.14.tar.gz", hash = "sha256:b9e500737e43d2f147c9d4e23b54360335e77d4c0ba90a318f51b65e06cb8516", size = 15382604, upload-time = "2026-05-22T19:28:36.363Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/27/7e/6e64821077cd2efc4aa51b7d638fb6d48e1c7c450201c529fbaf1de8bfd3/botocore-1.43.14-py3-none-any.whl", hash = "sha256:1f4a2a95ea78c10398e78431e98c1fe47adb54a7b10a32975144c1f541186658", size = 15061424, upload-time = "2026-05-22T19:28:32.682Z" },
-]
-
-[[package]]
 name = "certifi"
 version = "2026.5.20"
 source = { registry = "https://pypi.org/simple" }
@@ -1067,15 +1039,6 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/df/bf/f7da0350254c0ed7c72f3e33cef02e048281fec7ecec5f032d4aac52226b/jinja2-3.1.6.tar.gz", hash = "sha256:0137fb05990d35f1275a587e9aee6d56da821fc83491a0fb838183be43f66d6d", size = 245115, upload-time = "2025-03-05T20:05:02.478Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/62/a1/3d680cbfd5f4b8f15abc1d571870c5fc3e594bb582bc3b64ea099db13e56/jinja2-3.1.6-py3-none-any.whl", hash = "sha256:85ece4451f492d0c13c5dd7c13a64681a86afae63a5f347908daf103ce6d2f67", size = 134899, upload-time = "2025-03-05T20:05:00.369Z" },
-]
-
-[[package]]
-name = "jmespath"
-version = "1.1.0"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/d3/59/322338183ecda247fb5d1763a6cbe46eff7222eaeebafd9fa65d4bf5cb11/jmespath-1.1.0.tar.gz", hash = "sha256:472c87d80f36026ae83c6ddd0f1d05d4e510134ed462851fd5f754c8c3cbb88d", size = 27377, upload-time = "2026-01-22T16:35:26.279Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/14/2f/967ba146e6d58cf6a652da73885f52fc68001525b4197effc174321d70b4/jmespath-1.1.0-py3-none-any.whl", hash = "sha256:a5663118de4908c91729bea0acadca56526eb2698e83de10cd116ae0f4e97c64", size = 20419, upload-time = "2026-01-22T16:35:24.919Z" },
 ]
 
 [[package]]
@@ -2032,23 +1995,10 @@ wheels = [
 ]
 
 [[package]]
-name = "s3transfer"
-version = "0.17.0"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "botocore" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/9b/ec/7c692cde9125b77e84b307354d4fb705f98b8ccad59a036d5957ca75bfc3/s3transfer-0.17.0.tar.gz", hash = "sha256:9edeb6d1c3c2f89d6050348548834ad8289610d886e5bf7b7207728bd43ce33a", size = 155337, upload-time = "2026-04-29T22:07:36.33Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/87/72/c6c32d2b657fa3dad1de340254e14390b1e334ce38268b7ad51abda3c8c2/s3transfer-0.17.0-py3-none-any.whl", hash = "sha256:ce3801712acf4ad3e89fb9990df97b4972e93f4b3b0004d214be5bce12814c20", size = 86811, upload-time = "2026-04-29T22:07:34.966Z" },
-]
-
-[[package]]
 name = "scheduler"
 version = "0.1.0"
 source = { editable = "scheduler" }
 dependencies = [
-    { name = "boto3" },
     { name = "dagster" },
     { name = "pyarrow" },
     { name = "requests" },
@@ -2062,7 +2012,6 @@ dev = [
 
 [package.metadata]
 requires-dist = [
-    { name = "boto3", specifier = ">=1.41.0" },
     { name = "dagster", specifier = "==1.13.6" },
     { name = "pyarrow", specifier = ">=22.0.0" },
     { name = "requests", specifier = ">=2.34.0" },

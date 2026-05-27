@@ -608,8 +608,8 @@ pipeline/scheduler/src/scheduler/defs/pipeline_defs.py
 - 后续在同一 definitions 文件中接入：
   - `baostock__query_stock_basic`
   - `baostock__query_history_k_data_plus_daily`
-  - `baostock_daily_job`
-  - `baostock_daily_schedule`
+  - `baostock__daily_job`
+  - `baostock__daily_schedule`
 - 文件名必须反映领域聚合语义，不能继续使用只描述单个资产的 `sina_trade_calendar_defs.py`。
 
 #### S3IOManager 硬切 PyArrow
@@ -678,7 +678,7 @@ def is_trade_date(candidate: date, trade_dates: set[date]) -> bool:
 
 调度时间建议：
 
-- `baostock_daily_job`：交易日 `17:35 Asia/Shanghai`。
+- `baostock__daily_job`：交易日 `17:35 Asia/Shanghai`。
 - 该 job 选中 `baostock__query_stock_basic` 和 `baostock__query_history_k_data_plus_daily`。
 - BaoStock 官方参考说明日 K 线通常在当前交易日 `17:30` 完成入库，因此交易日调度不应早于 `17:30 Asia/Shanghai`。
 
@@ -762,17 +762,17 @@ def evaluate_trade_day_schedule(context: dg.ScheduleEvaluationContext):
 日常 BaoStock 行情任务使用方式：
 
 ```python
-baostock_daily_job = dg.define_asset_job(
-    name="baostock_daily_job",
+baostock__daily_job = dg.define_asset_job(
+    name="baostock__daily_job",
     selection=[
         baostock__query_stock_basic,
         baostock__query_history_k_data_plus_daily,
     ],
 )
 
-baostock_daily_schedule = build_trade_day_schedule(
-    name="baostock_daily_schedule",
-    job=baostock_daily_job,
+baostock__daily_schedule = build_trade_day_schedule(
+    name="baostock__daily_schedule",
+    job=baostock__daily_job,
     cron_schedule="35 17 * * *",
     partition_key_fn=lambda trade_date: str(trade_date.year),
     run_config_fn=lambda trade_date: {
@@ -932,7 +932,7 @@ raw/baostock__query_stock_basic/000000_0.parquet
 注意：
 
 - S3 只保留一个最新快照文件。
-- 该资产可由交易日调度器触发的 `baostock_daily_job` 每个交易日刷新。
+- 该资产可由交易日调度器触发的 `baostock__daily_job` 每个交易日刷新。
 
 ## K 线年度分区设计
 
@@ -965,7 +965,7 @@ year_partitions = dg.DynamicPartitionsDefinition(name="year")
 
 - 交易日调度器读取 S3 交易日历。
 - 如果当天是交易日，确保当年 `year` 已注册到 `year_partitions`。
-- 对 `baostock_daily_job` 发出 `RunRequest(partition_key=str(trade_date.year))`。
+- 对 `baostock__daily_job` 发出 `RunRequest(partition_key=str(trade_date.year))`。
 - run config 中传入 `refresh_until_trade_date=trade_date.isoformat()`。
 
 回填时：
@@ -1265,4 +1265,4 @@ dev 真实网络测试内容：
 16. 接入 `baostock__query_stock_basic` Dagster asset。
 17. 实现交易日调度器 `build_trade_day_schedule`。
 18. 接入 `baostock__query_history_k_data_plus_daily` 年度分区 asset，并强制通过 S3 读取 stock basic 快照后使用证券代码范围过滤组件减少请求量。
-19. 接入 `baostock_daily_job` 和交易日调度。
+19. 接入 `baostock__daily_job` 和交易日调度。
