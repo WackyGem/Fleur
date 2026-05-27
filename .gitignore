@@ -18,4 +18,5 @@ skills-lock.json
 
 # env
 env
+.env
 .ace-tool/

@@ -1,4 +1,4 @@
-ENV_FILE ?= env
+ENV_FILE ?= .env
 COMPOSE_FILE := deploy/docker-compose.yml
 PIPELINE_DIR := pipeline
 SCHEDULER_TARGET := scheduler

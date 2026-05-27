@@ -73,8 +73,8 @@ BAOSTOCK_PASSWORD=123456
 
 维护规则：
 
-- `env.example` 保存可提交的默认示例值。
-- 本地 `env` 保存运行时实际值，不提交到 Git。
+- `.env.example` 保存可提交的默认示例值。
+- 本地 `.env` 保存运行时实际值，不提交到 Git。
 - 客户端实现不得在代码中硬编码 BaoStock host、port、用户名或密码。
 - `BAOSTOCK_PORT` 读取后转换为 `int`，转换失败应在客户端初始化阶段报错。
 
