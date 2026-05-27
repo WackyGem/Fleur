@@ -8,7 +8,7 @@ from typing import Literal
 
 import pyarrow as pa
 
-from scheduler.defs.eastmoney.fields import EASTMONEY_FIELD_NAMES
+from scheduler.defs.http_resources.eastmoney.fields import EASTMONEY_FIELD_NAMES
 
 ApiFamily = Literal["data_get", "data_v1_get"]
 

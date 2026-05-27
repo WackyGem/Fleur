@@ -5,30 +5,23 @@ import json
 from collections.abc import Mapping
 from dataclasses import dataclass
 from datetime import date
-from typing import Any
 
-import aiohttp
-
-from scheduler.defs.eastmoney.schemas import EastmoneyEndpointConfig
+from scheduler.defs.http_resources.client import (
+    HTTP_CONNECTOR_LIMIT,
+    AioHttpClient,
+    HttpRequest,
+    HttpRequestError,
+    browser_json_headers,
+)
+from scheduler.defs.http_resources.eastmoney.schemas import EastmoneyEndpointConfig
 from scheduler.defs.util import DEFAULT_RETRY_POLICY, ExponentialBackoffPolicy
 
-EASTMONEY_HTTP_TOTAL_TIMEOUT_SECONDS = 60
-EASTMONEY_HTTP_CONNECT_TIMEOUT_SECONDS = 5
-EASTMONEY_HTTP_READ_TIMEOUT_SECONDS = 30
 EASTMONEY_CODE_CONCURRENCY = 20
 EASTMONEY_MAX_ATTEMPTS = 4
-CHROME_USER_AGENT = (
-    "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 "
-    "(KHTML, like Gecko) Chrome/125.0 Safari/537.36"
-)
 
 
 class EastmoneyRequestError(RuntimeError):
     """Raised when EastMoney returns an unrecoverable response."""
-
-
-class EastmoneyTransientRequestError(RuntimeError):
-    """Raised internally for retryable EastMoney request failures."""
 
 
 @dataclass
@@ -38,6 +31,10 @@ class EastmoneyFetchStats:
     page_count: int = 0
     retry_count: int = 0
     duplicate_page_row_count: int = 0
+    transient_error_count: int = 0
+    http_4xx_count: int = 0
+    http_5xx_count: int = 0
+    decode_error_count: int = 0
 
 
 @dataclass(frozen=True)
@@ -54,6 +51,7 @@ class EastmoneyAioHttpClient:
         code_concurrency_limit: int = EASTMONEY_CODE_CONCURRENCY,
         retry_policy: ExponentialBackoffPolicy = DEFAULT_RETRY_POLICY,
         max_attempts: int = EASTMONEY_MAX_ATTEMPTS,
+        http_client: AioHttpClient | None = None,
     ) -> None:
         if code_concurrency_limit < 1:
             msg = "code_concurrency_limit must be positive"
@@ -66,24 +64,19 @@ class EastmoneyAioHttpClient:
         self._retry_policy = retry_policy
         self._max_attempts = max_attempts
         self._semaphore = asyncio.Semaphore(code_concurrency_limit)
-        self._session: aiohttp.ClientSession | None = None
+        self._provided_http_client = http_client
+        self._http_client: AioHttpClient | None = None
         self.stats = EastmoneyFetchStats()
 
     async def __aenter__(self) -> EastmoneyAioHttpClient:
-        timeout = aiohttp.ClientTimeout(
-            total=EASTMONEY_HTTP_TOTAL_TIMEOUT_SECONDS,
-            sock_connect=EASTMONEY_HTTP_CONNECT_TIMEOUT_SECONDS,
-            sock_read=EASTMONEY_HTTP_READ_TIMEOUT_SECONDS,
+        self._http_client = self._provided_http_client or AioHttpClient(
+            headers=browser_json_headers(),
+            retry_policy=self._retry_policy,
+            max_attempts=self._max_attempts,
+            connector_limit=min(self.code_concurrency_limit, HTTP_CONNECTOR_LIMIT),
+            connector_limit_per_host=min(self.code_concurrency_limit, HTTP_CONNECTOR_LIMIT),
         )
-        connector = aiohttp.TCPConnector(
-            limit=self.code_concurrency_limit,
-            limit_per_host=self.code_concurrency_limit,
-        )
-        self._session = aiohttp.ClientSession(
-            connector=connector,
-            timeout=timeout,
-            headers={"User-Agent": CHROME_USER_AGENT, "Accept": "application/json,*/*"},
-        )
+        await self._http_client.__aenter__()
         return self
 
     async def __aexit__(
@@ -92,9 +85,9 @@ class EastmoneyAioHttpClient:
         exc_value: BaseException | None,
         traceback: object,
     ) -> None:
-        if self._session is not None:
-            await self._session.close()
-        self._session = None
+        if self._http_client is not None:
+            await self._http_client.__aexit__(exc_type, exc_value, traceback)
+        self._http_client = None
 
     async def fetch_code_range(
         self,
@@ -163,37 +156,32 @@ class EastmoneyAioHttpClient:
         url: str,
         params: Mapping[str, str],
     ) -> Mapping[str, object]:
-        if self._session is None:
+        if self._http_client is None:
             msg = "EastmoneyAioHttpClient must be used as an async context manager"
             raise RuntimeError(msg)
 
-        delays = self._retry_policy.delays(self._max_attempts)
-        for attempt_index in range(self._max_attempts):
-            try:
-                self.stats.request_count += 1
-                async with self._session.get(url, params=params) as response:
-                    body = await response.text()
-                    if response.status == 429 or response.status >= 500:
-                        msg = f"EastMoney HTTP {response.status}: {body[:300]}"
-                        raise EastmoneyTransientRequestError(msg)
-                    if response.status >= 400:
-                        msg = f"EastMoney HTTP {response.status}: {body[:300]}"
-                        raise EastmoneyRequestError(msg)
-                    return _loads_json_object(body)
-            except (
-                aiohttp.ClientError,
-                asyncio.TimeoutError,
-                json.JSONDecodeError,
-                EastmoneyTransientRequestError,
-            ) as error:
-                if attempt_index == self._max_attempts - 1:
-                    msg = f"EastMoney request failed after {self._max_attempts} attempts"
-                    raise EastmoneyRequestError(msg) from error
-                self.stats.retry_count += 1
-                await asyncio.sleep(delays[attempt_index])
+        try:
+            payload = await self._http_client.request_json_object(
+                HttpRequest(method="GET", url=url, params=params)
+            )
+        except HttpRequestError as error:
+            self._sync_http_stats()
+            msg = f"EastMoney request failed: {error}"
+            raise EastmoneyRequestError(msg) from error
 
-        msg = "EastMoney request retry loop ended unexpectedly"
-        raise EastmoneyRequestError(msg)
+        self._sync_http_stats()
+        return payload
+
+    def _sync_http_stats(self) -> None:
+        if self._http_client is None:
+            return
+        http_stats = self._http_client.stats
+        self.stats.request_count = http_stats.request_count
+        self.stats.retry_count = http_stats.retry_count
+        self.stats.transient_error_count = http_stats.transient_error_count
+        self.stats.http_4xx_count = http_stats.http_4xx_count
+        self.stats.http_5xx_count = http_stats.http_5xx_count
+        self.stats.decode_error_count = http_stats.decode_error_count
 
 
 def build_request_params(
@@ -299,14 +287,6 @@ def _positive_int_or_default(value: object, *, default: int) -> int:
         if parsed > 0:
             return parsed
     return default
-
-
-def _loads_json_object(body: str) -> Mapping[str, object]:
-    payload: Any = json.loads(body)
-    if not isinstance(payload, Mapping):
-        msg = "EastMoney response JSON is not an object"
-        raise EastmoneyRequestError(msg)
-    return payload
 
 
 def _row_fingerprint(row: Mapping[str, object]) -> str:

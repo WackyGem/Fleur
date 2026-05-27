@@ -2198,7 +2198,6 @@ dependencies = [
     { name = "aiohttp" },
     { name = "dagster" },
     { name = "pyarrow" },
-    { name = "requests" },
 ]
 
 [package.dev-dependencies]
@@ -2213,7 +2212,6 @@ requires-dist = [
     { name = "aiohttp", specifier = ">=3.13.5" },
     { name = "dagster", specifier = "==1.13.6" },
     { name = "pyarrow", specifier = ">=22.0.0" },
-    { name = "requests", specifier = ">=2.34.0" },
 ]
 
 [package.metadata.requires-dev]

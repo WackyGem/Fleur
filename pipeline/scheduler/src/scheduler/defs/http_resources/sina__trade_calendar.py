@@ -1,26 +1,24 @@
 from __future__ import annotations
 
 import re
-import time
-from collections.abc import Callable
+import asyncio
 from dataclasses import dataclass
 from datetime import date, timedelta
 
 import dagster as dg
 import pyarrow as pa
-import requests
 
-from scheduler.defs.util import DEFAULT_RETRY_POLICY, ExponentialBackoffPolicy
+from scheduler.defs.http_resources.client import (
+    AioHttpClient,
+    HttpFetchStats,
+    HttpRequest,
+    browser_text_headers,
+)
+from scheduler.defs.util import DEFAULT_RETRY_POLICY
 
 BASE64_CHARS = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"
 BASE64_INDEX = {char: index for index, char in enumerate(BASE64_CHARS)}
 SINA_TRADE_CALENDAR_URL = "https://finance.sina.com.cn/realstock/company/klc_td_sh.txt"
-CHROME_USER_AGENT = (
-    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-    "AppleWebKit/537.36 (KHTML, like Gecko) "
-    "Chrome/125.0.0.0 Safari/537.36"
-)
-REQUEST_TIMEOUT_SECONDS = (5, 20)
 MAX_REQUEST_ATTEMPTS = 4
 UNIX_EPOCH_DATE = date(1970, 1, 1)
 SINA_EPOCH_DAY_OFFSET = 7657
@@ -33,12 +31,11 @@ WEEKEND_SKIP_DAYS_BY_REMAINDER = (0, 0, 0, 2, 1, 0, 0)
 DATELIST_PATTERN = re.compile(r'var datelist="([^"]+)"')
 
 TradeCalendarDates = list[date]
-RequestGet = Callable[..., requests.Response]
-Sleep = Callable[[float], None]
-
 
 class SinaCalendarDecodeError(ValueError):
     """Raised when Sina's compact calendar payload cannot be decoded."""
+
+
 TRADE_CALENDAR_AUTOMATION_CONDITION = (
     dg.AutomationCondition.on_missing()
     | (
@@ -256,36 +253,34 @@ class SinaCalendarParser:
         return encoded_run_length + 1
 
 
-def fetch_sina_trade_calendar(
-    request_get: RequestGet = requests.get,
-    sleep: Sleep = time.sleep,
-    retry_policy: ExponentialBackoffPolicy = DEFAULT_RETRY_POLICY,
-    max_attempts: int = MAX_REQUEST_ATTEMPTS,
+async def fetch_sina_trade_calendar(
+    http_client: AioHttpClient | None = None,
 ) -> str:
-    headers = {
-        "User-Agent": CHROME_USER_AGENT,
-        "Accept": "text/plain,*/*",
-    }
+    if http_client is not None:
+        response = await http_client.request_text(
+            HttpRequest(method="GET", url=SINA_TRADE_CALENDAR_URL)
+        )
+        return response.body
 
-    last_error: requests.RequestException | None = None
-    retry_delays = retry_policy.delays(max_attempts)
-    for attempt_index in range(max_attempts):
-        try:
-            response = request_get(
-                SINA_TRADE_CALENDAR_URL,
-                headers=headers,
-                timeout=REQUEST_TIMEOUT_SECONDS,
-            )
-            response.raise_for_status()
-            return response.text
-        except requests.RequestException as error:
-            last_error = error
-            if attempt_index >= len(retry_delays):
-                break
-            sleep(retry_delays[attempt_index])
+    async with AioHttpClient(
+        headers=browser_text_headers(),
+        retry_policy=DEFAULT_RETRY_POLICY,
+        max_attempts=MAX_REQUEST_ATTEMPTS,
+    ) as client:
+        response = await client.request_text(
+            HttpRequest(method="GET", url=SINA_TRADE_CALENDAR_URL)
+        )
+        return response.body
 
-    msg = f"Failed to fetch Sina trade calendar after {max_attempts} attempts"
-    raise RuntimeError(msg) from last_error
+
+async def _fetch_sina_trade_calendar_with_stats() -> tuple[str, HttpFetchStats]:
+    async with AioHttpClient(
+        headers=browser_text_headers(),
+        retry_policy=DEFAULT_RETRY_POLICY,
+        max_attempts=MAX_REQUEST_ATTEMPTS,
+    ) as client:
+        content = await fetch_sina_trade_calendar(client)
+        return content, client.stats
 
 
 def trade_calendar_dates_to_table(trade_dates: TradeCalendarDates) -> pa.Table:
@@ -311,10 +306,7 @@ def sina__trade_calendar(context) -> dg.MaterializeResult[pa.Table]:
 
     retry_policy = DEFAULT_RETRY_POLICY
     max_attempts = MAX_REQUEST_ATTEMPTS
-    content = fetch_sina_trade_calendar(
-        retry_policy=retry_policy,
-        max_attempts=max_attempts,
-    )
+    content, fetch_stats = asyncio.run(_fetch_sina_trade_calendar_with_stats())
     parse_result = SinaCalendarParser().parse_with_diagnostics(content)
     if not parse_result.dates:
         context.log.warning(
@@ -336,6 +328,12 @@ def sina__trade_calendar(context) -> dg.MaterializeResult[pa.Table]:
         "file_format": "parquet",
         "compression": "zstd",
         "retry_policy": dg.MetadataValue.json(retry_policy.metadata(max_attempts=max_attempts)),
+        "request_count": fetch_stats.request_count,
+        "retry_count": fetch_stats.retry_count,
+        "transient_error_count": fetch_stats.transient_error_count,
+        "http_4xx_count": fetch_stats.http_4xx_count,
+        "http_5xx_count": fetch_stats.http_5xx_count,
+        "decode_error_count": fetch_stats.decode_error_count,
     }
     context.log.info("Parsed %s Sina trade-calendar rows", len(trade_dates))
 

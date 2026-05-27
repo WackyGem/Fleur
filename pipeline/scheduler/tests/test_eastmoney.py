@@ -7,14 +7,14 @@ from pathlib import Path
 
 import pyarrow as pa
 
-from scheduler.defs.eastmoney.assets import baostock_code_to_eastmoney_code
-from scheduler.defs.eastmoney.client import (
+from scheduler.defs.http_resources.eastmoney.assets import baostock_code_to_eastmoney_code
+from scheduler.defs.http_resources.eastmoney.client import (
     EastmoneyAioHttpClient,
     EastmoneyRequestError,
     build_request_params,
     parse_eastmoney_page,
 )
-from scheduler.defs.eastmoney.schemas import (
+from scheduler.defs.http_resources.eastmoney.schemas import (
     ENDPOINT_CONFIGS,
     REQUEST_FIELD_NAMES,
     EastmoneyEndpointConfig,

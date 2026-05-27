@@ -6,7 +6,6 @@ dependencies = [
     "aiohttp>=3.13.5",
     "dagster==1.13.6",
     "pyarrow>=22.0.0",
-    "requests>=2.34.0",
 ]
 
 [dependency-groups]
@@ -31,4 +30,3 @@ root_module = "scheduler"
 registry_modules = [
     "scheduler.components.*",
 ]
-

@@ -11,11 +11,11 @@ from scheduler.defs.baostock.assets import (
     year_partitions,
 )
 from scheduler.defs.config import S3Config
-from scheduler.defs.eastmoney.client import (
+from scheduler.defs.http_resources.eastmoney.client import (
     EASTMONEY_CODE_CONCURRENCY,
     EastmoneyAioHttpClient,
 )
-from scheduler.defs.eastmoney.schemas import (
+from scheduler.defs.http_resources.eastmoney.schemas import (
     ENDPOINT_CONFIGS,
     EastmoneyEndpointConfig,
     EastmoneyFetchedRow,
@@ -396,6 +396,10 @@ async def _fetch_eastmoney_tables(
         "empty_response_count": fetch_stats.empty_response_count,
         "page_count": fetch_stats.page_count,
         "retry_count": fetch_stats.retry_count,
+        "transient_error_count": fetch_stats.transient_error_count,
+        "http_4xx_count": fetch_stats.http_4xx_count,
+        "http_5xx_count": fetch_stats.http_5xx_count,
+        "decode_error_count": fetch_stats.decode_error_count,
         "duplicate_page_row_count": fetch_stats.duplicate_page_row_count,
         "unknown_field_count": dg.MetadataValue.json(unknown_field_counts),
         "eastmoney_client_start_seconds": _elapsed_seconds(started_at, client_started_at),

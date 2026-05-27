@@ -9,12 +9,10 @@ import dagster as dg
 import pyarrow as pa
 import pyarrow.fs as pafs
 import pyarrow.parquet as pq
-import requests
 
 from scheduler.defs.baostock.protocol import decode_response, encode_request
+from scheduler.defs.http_resources.client import HttpTextResponse
 from scheduler.defs.http_resources.sina__trade_calendar import (
-    CHROME_USER_AGENT,
-    REQUEST_TIMEOUT_SECONDS,
     SINA_TRADE_CALENDAR_URL,
     SinaCalendarParser,
     fetch_sina_trade_calendar,
@@ -41,14 +39,14 @@ SAMPLE_RESPONSE = (
 )
 
 
-class FakeResponse:
-    def __init__(self, text: str, status_code: int = 200) -> None:
-        self.text = text
-        self.status_code = status_code
+class FakeSinaHttpClient:
+    def __init__(self, body: str) -> None:
+        self.body = body
+        self.requests: list[object] = []
 
-    def raise_for_status(self) -> None:
-        if self.status_code >= 400:
-            raise requests.HTTPError(f"HTTP {self.status_code}")
+    async def request_text(self, request: object) -> HttpTextResponse:
+        self.requests.append(request)
+        return HttpTextResponse(status=200, headers={}, body=self.body)
 
 
 class SinaCalendarParserTest(unittest.TestCase):
@@ -74,51 +72,15 @@ class SinaCalendarParserTest(unittest.TestCase):
         self.assertTrue(pa.types.is_date32(table.schema.field("trade_date").type))
 
 
-class FetchSinaTradeCalendarTest(unittest.TestCase):
-    def test_fetch_retries_transient_errors_then_returns_response_text(self) -> None:
-        sleep_calls: list[float] = []
-        request_calls: list[dict[str, object]] = []
+class FetchSinaTradeCalendarTest(unittest.IsolatedAsyncioTestCase):
+    async def test_fetch_uses_shared_http_client_and_returns_response_text(self) -> None:
+        http_client = FakeSinaHttpClient("calendar payload")
 
-        def fake_get(url: str, **kwargs: object) -> FakeResponse:
-            request_calls.append({"url": url, **kwargs})
-            if len(request_calls) < 3:
-                raise requests.Timeout("temporary timeout")
-            return FakeResponse("calendar payload")
-
-        result = fetch_sina_trade_calendar(
-            request_get=fake_get,
-            sleep=sleep_calls.append,
-            retry_policy=ExponentialBackoffPolicy(jitter=False),
-        )
+        result = await fetch_sina_trade_calendar(http_client)
 
         self.assertEqual(result, "calendar payload")
-        self.assertEqual(sleep_calls, [1, 2])
-        self.assertEqual(len(request_calls), 3)
-        self.assertEqual(request_calls[0]["url"], SINA_TRADE_CALENDAR_URL)
-        self.assertEqual(request_calls[0]["timeout"], REQUEST_TIMEOUT_SECONDS)
-        self.assertEqual(
-            request_calls[0]["headers"],
-            {"User-Agent": CHROME_USER_AGENT, "Accept": "text/plain,*/*"},
-        )
-
-    def test_fetch_exhausts_retry_policy_before_raising(self) -> None:
-        sleep_calls: list[float] = []
-        request_count = 0
-
-        def fake_get(url: str, **kwargs: object) -> FakeResponse:
-            nonlocal request_count
-            request_count += 1
-            raise requests.ConnectionError("connection refused")
-
-        with self.assertRaises(RuntimeError):
-            fetch_sina_trade_calendar(
-                request_get=fake_get,
-                sleep=sleep_calls.append,
-                retry_policy=ExponentialBackoffPolicy(jitter=False),
-            )
-
-        self.assertEqual(request_count, 4)
-        self.assertEqual(sleep_calls, [1, 2, 4])
+        self.assertEqual(len(http_client.requests), 1)
+        self.assertEqual(http_client.requests[0].url, SINA_TRADE_CALENDAR_URL)
 
     def test_backoff_policy_calculates_delays_from_parameters(self) -> None:
         policy = ExponentialBackoffPolicy(

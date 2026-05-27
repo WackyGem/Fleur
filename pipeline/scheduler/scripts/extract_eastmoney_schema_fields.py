@@ -100,7 +100,7 @@ def main() -> None:
     repo_root = args.repo_root.resolve()
     openapi_dir = repo_root / "docs/references/openapi"
     fields_module_path = (
-        repo_root / "pipeline/scheduler/src/scheduler/defs/eastmoney/fields.py"
+        repo_root / "pipeline/scheduler/src/scheduler/defs/http_resources/eastmoney/fields.py"
     )
     rendered = render_fields_module(extract_all_field_names(openapi_dir))
 

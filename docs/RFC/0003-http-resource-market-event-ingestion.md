@@ -287,7 +287,7 @@ field=199112,10,9001,330323,330324,330325,9002,330329,133971,133970,1968584,3475
 filter=HS,GEM2STAR
 order_field=330324
 order_type=0
-limit=500
+limit=200
 date=<YYYYMMDD>
 _=<current unix milliseconds>
 ```

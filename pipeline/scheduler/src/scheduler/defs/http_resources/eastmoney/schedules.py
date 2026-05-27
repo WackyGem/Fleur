@@ -4,7 +4,7 @@ from zoneinfo import ZoneInfo
 
 import dagster as dg
 
-from scheduler.defs.eastmoney.assets import EASTMONEY_ASSETS
+from scheduler.defs.http_resources.eastmoney.assets import EASTMONEY_ASSETS
 
 EASTMONEY_DAILY_ASSET_NAMES = [asset.key.path[-1] for asset in EASTMONEY_ASSETS]
 

@@ -9,7 +9,7 @@ GET https://data.10jqka.com.cn/dataapi/limit_up/limit_up_pool
 ## 完整请求示例
 
 ```
-https://data.10jqka.com.cn/dataapi/limit_up/limit_up_pool?page=1&limit=15&field=199112,10,9001,330323,330324,330325,9002,330329,133971,133970,1968584,3475914,9003,9004&filter=HS,GEM2STAR&order_field=330324&order_type=0&date=&_=1778299947223
+https://data.10jqka.com.cn/dataapi/limit_up/limit_up_pool?page=1&limit=200&field=199112,10,9001,330323,330324,330325,9002,330329,133971,133970,1968584,3475914,9003,9004&filter=HS,GEM2STAR&order_field=330324&order_type=0&date=&_=1778299947223
 ```
 
 ## 请求参数
@@ -17,7 +17,7 @@ https://data.10jqka.com.cn/dataapi/limit_up/limit_up_pool?page=1&limit=15&field=
 | 参数 | 必填 | 示例值 | 说明 |
 |------|------|--------|------|
 | page | 否 | `1` | 页码，默认从第 1 页开始 |
-| limit | 否 | `15` | 每页记录数 |
+| limit | 否 | `200` | 每页记录数；服务端当前要求小于等于 `200` |
 | field | 否 | `199112,10,...,9004` | 返回字段选择串（不透明数字标识列表） |
 | filter | 否 | `HS,GEM2STAR` | 市场过滤条件 |
 | order_field | 否 | `330324` | 排序字段代码 |
