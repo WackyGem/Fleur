@@ -12,7 +12,6 @@ from scheduler.defs.http_resources.sina__trade_calendar import (
     CHROME_USER_AGENT,
     REQUEST_TIMEOUT_SECONDS,
     SINA_TRADE_CALENDAR_URL,
-    ExponentialBackoffPolicy,
     SinaCalendarParser,
     fetch_sina_trade_calendar,
     sina__trade_calendar,
@@ -22,6 +21,7 @@ from scheduler.defs.io_managers.s3_io_manager import (
     asset_key_to_parquet_object_key,
     table_to_parquet_bytes,
 )
+from scheduler.defs.util import ExponentialBackoffPolicy
 
 
 SAMPLE_RESPONSE = (

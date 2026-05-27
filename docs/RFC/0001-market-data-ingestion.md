@@ -18,9 +18,9 @@
 
 - 维护一份本地交易日历，用于驱动调度和分区选择。
 - 以可复现的快照形式保存证券基础信息。
-- 以 Parquet 保存日频不复权 K 线数据，并按交易日分区。
+- 以 Parquet 保存日频不复权 K 线数据，并按年份分区。
 - 支持收盘后的日频增量采集。
-- 支持按年或按季度范围执行高效历史回填。
+- 支持按年执行高效历史回填。
 - 保持 Web 页面查询和回测 worker 读取方式与后续 ClickHouse 查询层兼容。
 
 ## 非目标
@@ -140,10 +140,10 @@ adjustflag
 
 ### Raw Parquet
 
-日频 K 线 raw 数据按交易日写入：
+日频 K 线 raw 数据按年份写入。日常交易日调度会重写当年文件，历史回填会重写目标年份文件：
 
 ```text
-data/raw/baostock__query_history_k_data_plus_daily/trade_date=YYYY-MM-DD/part-000.parquet
+data/raw/baostock__query_history_k_data_plus_daily/year=YYYY/000000_0.parquet
 ```
 
 ## Dagster 资产设计
@@ -163,9 +163,10 @@ baostock__query_stock_basic
 
 baostock__query_history_k_data_plus_daily
   输出：日频不复权 K 线 raw parquet
-  分区：trade_date
-  调度：baostock__query_stock_basic 完成后
-  回填：使用 single-run backfill 按日期范围回填
+  分区：year
+  调度：交易日调度器在交易日收盘后刷新当年分区
+  回填：显式 materialize 目标 year 分区
+  路径：raw/baostock__query_history_k_data_plus_daily/year=YYYY/000000_0.parquet
 ```
 
 
@@ -178,8 +179,6 @@ baostock__query_history_k_data_plus_daily
 1. 实现 `sina__trade_calendar`。
 2. 持久化本地交易日历。
 3. 实现 `baostock__query_stock_basic`。
-4. 实现 `baostock__query_history_k_data_plus_daily` 日频模式。
-5. 增加 single-run 范围回填支持。
-
-
+4. 实现可复用交易日调度器。
+5. 实现 `baostock__query_history_k_data_plus_daily` 年度分区模式。
 
