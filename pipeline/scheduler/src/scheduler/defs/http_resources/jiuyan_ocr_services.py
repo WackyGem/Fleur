@@ -8,17 +8,15 @@ from dataclasses import dataclass, field
 
 from scheduler.defs.config import JiuyanOcrConfig
 from scheduler.defs.http_resources.client import AioHttpClient
-from scheduler.defs.jiuyan_industry_ocr.image_store import (
-    ImageObjectStore,
-    download_image_bytes,
-)
-from scheduler.defs.jiuyan_industry_ocr.ocr_client import request_ocr_content
-from scheduler.defs.jiuyan_industry_ocr.ocr_schema import normalize_ocr_content, ocr_rows_to_table
-from scheduler.defs.jiuyan_industry_ocr.postgres import PostgresIndustryImageRepository
-from scheduler.defs.jiuyan_industry_ocr.schemas import (
+from scheduler.defs.http_resources.jiuyan_ocr_client import request_ocr_content
+from scheduler.defs.http_resources.jiuyan_ocr_schema import (
     ClaimedIndustryImage,
     DiscoveredIndustryImage,
+    normalize_ocr_content,
+    ocr_rows_to_table,
 )
+from scheduler.defs.io_managers.image_object_store import ImageObjectStore, download_image_bytes
+from scheduler.defs.io_managers.postgres import PostgresIndustryImageRepository
 from scheduler.defs.util import DEFAULT_RETRY_POLICY
 
 IMAGE_DOWNLOAD_CONCURRENCY = 10

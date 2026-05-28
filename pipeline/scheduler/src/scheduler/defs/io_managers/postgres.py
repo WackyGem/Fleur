@@ -6,8 +6,11 @@ from typing import cast
 import psycopg
 from psycopg.rows import dict_row
 
-from scheduler.defs.jiuyan_industry_ocr.image_urls import image_s3_key
-from scheduler.defs.jiuyan_industry_ocr.schemas import ClaimedIndustryImage, DiscoveredIndustryImage
+from scheduler.defs.http_resources.jiuyan_image_urls import image_s3_key
+from scheduler.defs.http_resources.jiuyan_ocr_schema import (
+    ClaimedIndustryImage,
+    DiscoveredIndustryImage,
+)
 
 UPSERT_DISCOVERED_IMAGE_SQL = """
 insert into jiuyan_industry_images (

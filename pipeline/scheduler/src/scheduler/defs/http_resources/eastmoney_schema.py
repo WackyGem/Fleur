@@ -3,23 +3,13 @@ from __future__ import annotations
 import json
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
-from datetime import date
 from typing import Literal
 
 import pyarrow as pa
 
-from scheduler.defs.http_resources.eastmoney.fields import EASTMONEY_FIELD_NAMES
+from scheduler.defs.http_resources.eastmoney_fields import EASTMONEY_FIELD_NAMES
 
 ApiFamily = Literal["data_get", "data_v1_get"]
-
-REQUEST_FIELD_NAMES = (
-    "request_code",
-    "request_start_date",
-    "request_end_date",
-    "partition_year",
-    "source_endpoint",
-    "ingested_at",
-)
 
 
 @dataclass(frozen=True)
@@ -45,9 +35,6 @@ class EastmoneyEndpointConfig:
 @dataclass(frozen=True)
 class EastmoneyFetchedRow:
     data: Mapping[str, object]
-    request_code: str
-    request_start_date: date
-    request_end_date: date
 
 
 @dataclass(frozen=True)
@@ -179,34 +166,25 @@ def eastmoney_business_field_names(asset_name: str) -> tuple[str, ...]:
 
 
 def eastmoney_schema(endpoint: EastmoneyEndpointConfig) -> pa.Schema:
-    field_names = (*eastmoney_business_field_names(endpoint.asset_name), *REQUEST_FIELD_NAMES)
-    return pa.schema((field_name, pa.string()) for field_name in field_names)
+    return pa.schema(
+        (field_name, pa.string())
+        for field_name in eastmoney_business_field_names(endpoint.asset_name)
+    )
 
 
 def eastmoney_rows_to_table(
     endpoint: EastmoneyEndpointConfig,
     rows: Sequence[EastmoneyFetchedRow],
-    *,
-    partition_year: str,
-    ingested_at: str,
 ) -> EastmoneyTableResult:
     business_field_names = eastmoney_business_field_names(endpoint.asset_name)
     business_field_set = set(business_field_names)
-    columns: dict[str, list[str | None]] = {
-        field_name: [] for field_name in (*business_field_names, *REQUEST_FIELD_NAMES)
-    }
+    columns: dict[str, list[str | None]] = {field_name: [] for field_name in business_field_names}
     unknown_field_count = 0
 
     for row in rows:
         unknown_field_count += len(set(row.data) - business_field_set)
         for field_name in business_field_names:
             columns[field_name].append(_stringify_value(row.data.get(field_name)))
-        columns["request_code"].append(row.request_code)
-        columns["request_start_date"].append(row.request_start_date.isoformat())
-        columns["request_end_date"].append(row.request_end_date.isoformat())
-        columns["partition_year"].append(partition_year)
-        columns["source_endpoint"].append(endpoint.source_endpoint)
-        columns["ingested_at"].append(ingested_at)
 
     return EastmoneyTableResult(
         table=pa.table(columns, schema=eastmoney_schema(endpoint)),

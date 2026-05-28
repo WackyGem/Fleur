@@ -1,13 +1,55 @@
 from __future__ import annotations
 
-import json
 from collections.abc import Mapping, Sequence
+from dataclasses import dataclass
 
+import dagster as dg
 import pyarrow as pa
 
-from scheduler.defs.jiuyan_industry_ocr.schemas import JIUYAN_INDUSTRY_OCR_SCHEMA
+from scheduler.defs.ocr.schemas import parse_json_array, require_mapping_row
 
 THEME_PATH_DELIMITER = ","
+JIUYAN_INDUSTRY_IMAGES_ASSET_KEY = dg.AssetKey("jiuyan__industry_images")
+JIUYAN_INDUSTRY_OCR_ASSET_KEY = dg.AssetKey("jiuyan__industry_ocr")
+JIUYAN_INDUSTRY_OCR_S3_PREFIX = "raw/jiuyan__industry_ocr"
+
+JIUYAN_INDUSTRY_OCR_SCHEMA = pa.schema(
+    [
+        pa.field("industry_id", pa.string(), nullable=False),
+        pa.field("stock_name", pa.string(), nullable=False),
+        pa.field("theme_path", pa.string(), nullable=False),
+        pa.field("relation", pa.string(), nullable=False),
+        pa.field("source", pa.string(), nullable=False),
+    ]
+)
+
+
+@dataclass(frozen=True)
+class DiscoveredIndustryImage:
+    image_filename: str
+    image_url: str
+    industry_id: str
+    image_index: int
+
+
+@dataclass(frozen=True)
+class ClaimedIndustryImage:
+    image_filename: str
+    image_url: str
+    image_s3_key: str
+    industry_id: str
+    image_index: int
+    download_status: str
+    ocr_status: str
+    ocr_result_s3_key: str | None = None
+
+
+def ocr_result_base_dir(bucket: str, image_filename: str) -> str:
+    return f"{bucket}/{JIUYAN_INDUSTRY_OCR_S3_PREFIX}/image_filename={image_filename}"
+
+
+def ocr_result_s3_key(image_filename: str) -> str:
+    return f"{JIUYAN_INDUSTRY_OCR_S3_PREFIX}/image_filename={image_filename}/000000_0.parquet"
 
 OCR_FIELD_ALIASES = {
     "stock_name": ("stock_name", "个股", "公司", "标的"),
@@ -17,28 +59,12 @@ OCR_FIELD_ALIASES = {
 }
 
 
-class OcrSchemaError(ValueError):
-    """Raised when the OCR payload does not match the expected schema."""
-
-
 def normalize_ocr_content(content: str) -> list[dict[str, str]]:
-    try:
-        payload = json.loads(content)
-    except json.JSONDecodeError as error:
-        msg = "OCR response content is not valid JSON"
-        raise OcrSchemaError(msg) from error
-
-    if not isinstance(payload, list):
-        msg = "OCR response content must be a JSON array"
-        raise OcrSchemaError(msg)
-
+    payload = parse_json_array(content)
     rows: list[dict[str, str]] = []
     seen: set[tuple[str, str, str, str]] = set()
     for index, item in enumerate(payload):
-        if not isinstance(item, Mapping):
-            msg = f"OCR response row {index} is not an object"
-            raise OcrSchemaError(msg)
-        row = _normalize_row(item)
+        row = _normalize_row(require_mapping_row(item, index=index))
         signature = (
             row["stock_name"],
             row["theme_path"],

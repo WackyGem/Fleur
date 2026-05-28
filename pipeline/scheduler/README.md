@@ -7,8 +7,8 @@ Dagster-based data pipeline scheduler for A-share market data ingestion and proc
 This project orchestrates data pipelines for:
 - **BaoStock**: A-share stock basic info and daily K-line data
 - **EastMoney**: F10 financial statements (balance, income, cashflow, dividends, equity)
-- **HTTP Resources**: Trade calendars, market events, limit-up pools
-- **Jiuyan Industry OCR**: Industry classification image download and OCR processing
+- **HTTP Resources**: Trade calendars, market events, limit-up pools, JiuYan industry list and OCR
+- **OCR**: Shared OpenAI-compatible image OCR helpers
 
 ## Architecture
 
@@ -17,14 +17,14 @@ pipeline/scheduler/src/scheduler/defs/
 ├── baostock/              # BaoStock TCP client assets
 ├── http_resources/        # HTTP API clients and assets
 │   ├── eastmoney/         # EastMoney F10 financial data
+│   ├── jiuyan__industry_ocr.py
 │   ├── client.py          # AioHttpClient with retry/backoff
-│   └── schedules.py       # Dagster schedules and sensors
-├── jiuyan_industry_ocr/   # Industry image OCR pipeline
-│   ├── assets.py          # Dagster asset definitions
-│   ├── services.py        # Service layer (download, OCR)
-│   ├── postgres.py        # Repository pattern for DB
-│   └── image_store.py     # S3 object store for images
-├── io_managers/           # Custom IO managers
+│   └── schedules.py       # Dagster jobs and schedules
+├── io_managers/           # Custom IO managers and storage/repository boundaries
+│   ├── image_object_store.py
+│   ├── postgres.py
+│   └── s3_io_manager.py
+├── ocr/                   # Shared OCR client/schema/service helpers
 └── config.py              # Environment configuration
 ```
 
@@ -114,16 +114,28 @@ EastMoney F10 financial statements.
 HTTP API resources for market events and calendars.
 
 - `sina__trade_calendar`: Sina trade calendar
-- `jiuyan__action_field`: Jiuyan action field events
+- `jiuyan__action_field`: Jiuyan action field events, natural-day partitions with trade-date filtering
 - `jiuyan__industry_list`: Jiuyan industry classification list
-- `ths__limit_up_pool`: THS limit-up pool
-
-### jiuyan_industry_ocr
-
-Industry classification image processing pipeline.
-
 - `jiuyan__industry_images`: Download industry classification images
 - `jiuyan__industry_ocr`: OCR processing of downloaded images
+- `ths__limit_up_pool`: THS limit-up pool
+
+Market-event assets use natural-day partitions for UI/backfill selection and `sina__trade_calendar`
+as the runtime trade-date filter. Non-trading dates are skipped without HTTP requests or S3 writes.
+
+### ocr
+
+Shared OCR helpers for OpenAI-compatible chat completion APIs. JiuYan-specific prompt and output
+schema conversion remain in `http_resources`.
+
+## Jobs and Schedules
+
+- `sina__trade_calendar_job` / `sina__trade_calendar_schedule`
+- `jiuyan__action_field_daily_job` / `jiuyan__action_field_daily_schedule`
+- `ths__limit_up_pool_daily_job` / `ths__limit_up_pool_daily_schedule`
+- `jiuyan__industry_ocr_pipeline_job` / `jiuyan__industry_ocr_pipeline_schedule`
+- `eastmoney__daily_job` / `eastmoney__daily_schedule`
+- `baostock__daily_job` / `baostock__daily_schedule`
 
 ## Testing
 
@@ -132,7 +144,7 @@ Industry classification image processing pipeline.
 uv run pytest scheduler/tests
 
 # Run specific test file
-uv run pytest scheduler/tests/test_jiuyan_industry_ocr_services.py
+uv run pytest scheduler/tests/test_http_resources_market_events.py
 
 # Run with coverage
 uv run pytest scheduler/tests --cov=scheduler/src/scheduler --cov-report=term-missing
@@ -181,6 +193,8 @@ EastMoney uses HTTP API with retry and concurrency control:
 - **Concurrency**: Limited to `EASTMONEY_CODE_CONCURRENCY` (10) parallel requests per stock code
 - **Empty Results**: Allowed with `allow_empty: True` metadata flag
 - **Rate Limiting**: Respects 429 responses with backoff
+- **Raw Schema**: Parquet output contains API business fields only; request ranges and endpoint
+  context are emitted as materialization metadata
 
 **Recovery**: Automatic retry handles transient failures. Persistent failures require checking API availability or credentials.
 
@@ -195,7 +209,7 @@ HTTP resources use `AioHttpClient` with configurable retry:
 
 **Recovery**: Circuit breaker prevents cascading failures. Check upstream service health on persistent failures.
 
-### jiuyan_industry_ocr Assets
+### JiuYan OCR Assets
 
 OCR pipeline uses PostgreSQL state machine with selective retry:
 

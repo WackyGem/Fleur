@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import unittest
 
-from scheduler.defs.jiuyan_industry_ocr.image_urls import (
+from scheduler.defs.http_resources.jiuyan_image_urls import (
     image_filename_from_url,
     image_s3_key,
     parse_image_urls,

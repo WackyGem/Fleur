@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import unittest
 
-from scheduler.defs.jiuyan_industry_ocr.ocr_client import (
+from scheduler.defs.http_resources.jiuyan_ocr_client import (
     StockThemeSchema,
     build_ocr_request_payload,
 )

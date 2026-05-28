@@ -10,18 +10,18 @@ import pyarrow as pa
 
 from scheduler.defs.config import JiuyanOcrConfig, PipelineDatabaseConfig, S3Config
 from scheduler.defs.http_resources.jiuyan__industry_list import jiuyan__industry_list
-from scheduler.defs.jiuyan_industry_ocr.image_store import ImageObjectStore
-from scheduler.defs.jiuyan_industry_ocr.image_urls import (
+from scheduler.defs.http_resources.jiuyan_image_urls import (
     image_filename_from_url,
     image_s3_key,
     parse_image_urls,
 )
-from scheduler.defs.jiuyan_industry_ocr.postgres import PostgresIndustryImageRepository
-from scheduler.defs.jiuyan_industry_ocr.schemas import DiscoveredIndustryImage
-from scheduler.defs.jiuyan_industry_ocr.services import (
+from scheduler.defs.http_resources.jiuyan_ocr_schema import DiscoveredIndustryImage
+from scheduler.defs.http_resources.jiuyan_ocr_services import (
     download_images_to_s3,
     process_ocr_images,
 )
+from scheduler.defs.io_managers.image_object_store import ImageObjectStore
+from scheduler.defs.io_managers.postgres import PostgresIndustryImageRepository
 from scheduler.defs.util import read_parquet_table_from_s3
 
 IMAGE_DOWNLOAD_CONCURRENCY = 10
@@ -29,14 +29,20 @@ IMAGE_DOWNLOAD_CONCURRENCY = 10
 
 @dg.asset(
     name="jiuyan__industry_images",
-    group_name="jiuyan_industry_ocr",
+    group_name="http_sources",
     deps=[jiuyan__industry_list],
     config_schema={
         "limit": dg.Field(int, is_required=False, default_value=0),
         "force_download": dg.Field(bool, is_required=False, default_value=False),
         "image_filenames": dg.Field([str], is_required=False, default_value=[]),
     },
-    tags={"source": "jiuyan", "layer": "raw", "storage": "s3", "state": "postgres"},
+    tags={
+        "source": "jiuyan",
+        "layer": "raw",
+        "storage": "s3",
+        "state": "postgres",
+        "modality": "ocr",
+    },
 )
 def jiuyan__industry_images(
     context,
@@ -47,7 +53,7 @@ def jiuyan__industry_images(
 
 @dg.asset(
     name="jiuyan__industry_ocr",
-    group_name="jiuyan_industry_ocr",
+    group_name="http_sources",
     deps=[jiuyan__industry_images],
     config_schema={
         "limit": dg.Field(int, is_required=False, default_value=0),
@@ -55,29 +61,19 @@ def jiuyan__industry_images(
         "image_filenames": dg.Field([str], is_required=False, default_value=[]),
         "max_concurrent_requests": dg.Field(int, is_required=False, default_value=0),
     },
-    tags={"source": "jiuyan", "layer": "raw", "storage": "s3", "state": "postgres"},
+    tags={
+        "source": "jiuyan",
+        "layer": "raw",
+        "storage": "s3",
+        "state": "postgres",
+        "modality": "ocr",
+    },
 )
 def jiuyan__industry_ocr(
     context,
 ) -> dg.MaterializeResult[None]:
     result = asyncio.run(_materialize_industry_ocr(context))
     return dg.MaterializeResult(metadata=result)
-
-
-jiuyan__industry_images_job = dg.define_asset_job(
-    name="jiuyan__industry_images_job",
-    selection=[jiuyan__industry_images],
-)
-
-jiuyan__industry_ocr_job = dg.define_asset_job(
-    name="jiuyan__industry_ocr_job",
-    selection=[jiuyan__industry_ocr],
-)
-
-jiuyan__industry_ocr_full_job = dg.define_asset_job(
-    name="jiuyan__industry_ocr_full_job",
-    selection=[jiuyan__industry_images, jiuyan__industry_ocr],
-)
 
 
 async def _materialize_industry_images(
@@ -120,9 +116,7 @@ async def _materialize_industry_images(
 
     download_skip_existing_count = 0
     if not config["force_download"]:
-        current_rows = repository.fetch_images(
-            [image.image_filename for image in selected_images]
-        )
+        current_rows = repository.fetch_images([image.image_filename for image in selected_images])
         current_status_by_filename = {
             str(row["image_filename"]): str(row["download_status"]) for row in current_rows
         }

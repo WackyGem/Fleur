@@ -4,9 +4,13 @@ import os
 import time
 import unittest
 from datetime import date
+from tempfile import TemporaryDirectory
 from unittest.mock import patch
 
 import dagster as dg
+import pyarrow as pa
+import pyarrow.fs as pafs
+import pyarrow.parquet as pq
 from scheduler.defs.http_resources.client import HttpFetchStats
 from scheduler.defs.http_resources.flatten import flatten_content_object
 from scheduler.defs.http_resources.jiuyan__action_field import (
@@ -17,8 +21,9 @@ from scheduler.defs.http_resources.jiuyan__industry_list import (
     _fetch_industry_list_table_with_client,
 )
 from scheduler.defs.http_resources.partitioned import (
-    sync_trade_date_dynamic_partitions,
-    trade_date_dynamic_partitions,
+    jiuyan_action_field_daily_partitions,
+    materialize_trade_date_range,
+    ths_limit_up_pool_daily_partitions,
 )
 from scheduler.defs.http_resources.schemas import (
     jiuyan_action_field_to_table,
@@ -41,6 +46,12 @@ class FakeJsonClient:
         self.requests.append(request)
         self.stats.request_count += 1
         return self.payloads.pop(0)
+
+
+class FakeAssetContext:
+    def __init__(self, *, partition_keys: list[str], asset_key: dg.AssetKey) -> None:
+        self.partition_keys = partition_keys
+        self.asset_key = asset_key
 
 
 class JiuYanHeaderTest(unittest.TestCase):
@@ -68,24 +79,11 @@ class JiuYanHeaderTest(unittest.TestCase):
 
 
 class MarketEventSchemaTest(unittest.TestCase):
-    def test_sync_trade_date_dynamic_partitions_adds_only_missing_keys(self) -> None:
-        instance = dg.DagsterInstance.ephemeral()
-
-        first_sync = sync_trade_date_dynamic_partitions(
-            instance,
-            {date(2026, 5, 8), date(2026, 5, 11)},
-        )
-        second_sync = sync_trade_date_dynamic_partitions(
-            instance,
-            {date(2026, 5, 8), date(2026, 5, 11), date(2026, 5, 12)},
-        )
-
-        self.assertEqual(first_sync, ["2026-05-08", "2026-05-11"])
-        self.assertEqual(second_sync, ["2026-05-12"])
+    def test_market_event_assets_use_natural_day_partition_starts(self) -> None:
         self.assertEqual(
-            sorted(instance.get_dynamic_partitions(trade_date_dynamic_partitions.name)),
-            ["2026-05-08", "2026-05-11", "2026-05-12"],
+            jiuyan_action_field_daily_partitions.get_first_partition_key(), "2021-01-01"
         )
+        self.assertEqual(ths_limit_up_pool_daily_partitions.get_first_partition_key(), "2025-01-01")
 
     def test_flatten_content_object_uses_shortest_leaf_naming(self) -> None:
         flattened = flatten_content_object(
@@ -220,6 +218,55 @@ class MarketEventSchemaTest(unittest.TestCase):
 
 
 class MarketEventFetchTest(unittest.IsolatedAsyncioTestCase):
+    async def test_trade_date_range_skips_non_trade_dates_without_fetching_or_writing(self) -> None:
+        fetched_dates: list[date] = []
+
+        async def fetch_table_for_trade_date(
+            trade_date: date,
+        ) -> tuple[pa.Table, dict[str, object]]:
+            fetched_dates.append(trade_date)
+            return pa.table({"value": [trade_date.isoformat()]}), {"row_count": 1}
+
+        with TemporaryDirectory() as bucket:
+            context = FakeAssetContext(
+                partition_keys=["2026-05-08", "2026-05-09", "2026-05-10"],
+                asset_key=dg.AssetKey("jiuyan__action_field"),
+            )
+            s3_config = type(
+                "FakeS3Config",
+                (),
+                {"bucket": bucket},
+            )()
+
+            with (
+                patch(
+                    "scheduler.defs.http_resources.partitioned.S3Config.from_env",
+                    return_value=s3_config,
+                ),
+                patch(
+                    "scheduler.defs.http_resources.partitioned.build_s3_filesystem",
+                    return_value=pafs.LocalFileSystem(),
+                ),
+                patch(
+                    "scheduler.defs.http_resources.partitioned.read_sina_trade_calendar_dates_from_s3",
+                    return_value={date(2026, 5, 8)},
+                ),
+            ):
+                result = await materialize_trade_date_range(
+                    context,
+                    max_concurrent_trade_dates=2,
+                    fetch_table_for_trade_date=fetch_table_for_trade_date,
+                )
+
+            written_table = pq.read_table(
+                f"{bucket}/raw/jiuyan__action_field/trade_date=2026-05-08/000000_0.parquet"
+            )
+
+        self.assertEqual(fetched_dates, [date(2026, 5, 8)])
+        self.assertEqual(written_table.num_rows, 1)
+        self.assertEqual(result.metadata["processed_trade_date_count"], 1)
+        self.assertEqual(result.metadata["skipped_non_trade_date_count"], 2)
+
     async def test_action_field_fetch_validates_success_and_returns_empty_table(self) -> None:
         client = FakeJsonClient([{"errCode": "0", "data": []}])
 

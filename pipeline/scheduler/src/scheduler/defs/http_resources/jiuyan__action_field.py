@@ -16,8 +16,8 @@ from scheduler.defs.http_resources.client import (
 from scheduler.defs.http_resources.partitioned import (
     TRADE_DATE_PARTITION_KEY_NAME,
     TradeDateRangeMaterializationResult,
+    jiuyan_action_field_daily_partitions,
     materialize_trade_date_range,
-    trade_date_dynamic_partitions,
 )
 from scheduler.defs.http_resources.schemas import (
     FLATTEN_COLUMN_NAMING,
@@ -58,13 +58,15 @@ def jiuyan_header_factory() -> HeaderFactory:
 @dg.asset(
     name="jiuyan__action_field",
     group_name="http_sources",
-    partitions_def=trade_date_dynamic_partitions,
+    partitions_def=jiuyan_action_field_daily_partitions,
     backfill_policy=dg.BackfillPolicy.single_run(),
     metadata={
         "storage_mode": "partitioned",
         "partition_key_name": TRADE_DATE_PARTITION_KEY_NAME,
-        "partitions_def": "trade_date_dynamic_partitions",
+        "partitions_def": "daily_partitions",
+        "trade_date_filter": "sina__trade_calendar",
         "allow_empty": True,
+        "sparse_partition_output": True,
         "flatten_column_naming": FLATTEN_COLUMN_NAMING,
     },
     tags={"source": "jiuyan", "layer": "raw", "storage": "s3"},

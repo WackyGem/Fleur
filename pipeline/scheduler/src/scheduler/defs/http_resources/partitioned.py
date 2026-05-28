@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import time
-from collections.abc import Awaitable, Callable, Mapping, Sequence
+from collections.abc import Awaitable, Callable, Mapping
 from dataclasses import dataclass
 from datetime import date
 
@@ -18,10 +18,14 @@ from scheduler.defs.util import (
 )
 
 TRADE_DATE_PARTITION_KEY_NAME = "trade_date"
-TRADE_DATE_DYNAMIC_PARTITIONS_NAME = "trade_date_dynamic_partitions"
 TRADE_DATE_BACKFILL_HARD_LIMIT = 20
-trade_date_dynamic_partitions = dg.DynamicPartitionsDefinition(
-    name=TRADE_DATE_DYNAMIC_PARTITIONS_NAME
+jiuyan_action_field_daily_partitions = dg.DailyPartitionsDefinition(
+    start_date="2021-01-01",
+    timezone="Asia/Shanghai",
+)
+ths_limit_up_pool_daily_partitions = dg.DailyPartitionsDefinition(
+    start_date="2025-01-01",
+    timezone="Asia/Shanghai",
 )
 
 FetchTableForTradeDate = Callable[[date], Awaitable[tuple[pa.Table, Mapping[str, object]]]]
@@ -31,24 +35,6 @@ FetchTableForTradeDate = Callable[[date], Awaitable[tuple[pa.Table, Mapping[str,
 class TradeDateRangeMaterializationResult:
     tables: dict[str, pa.Table]
     metadata: dict[str, object]
-
-
-def sync_trade_date_dynamic_partitions(
-    instance: dg.DagsterInstance,
-    trade_dates: set[date],
-) -> list[str]:
-    known_partition_keys = set(instance.get_dynamic_partitions(trade_date_dynamic_partitions.name))
-    new_partition_keys = sorted(
-        trade_date.isoformat()
-        for trade_date in trade_dates
-        if trade_date.isoformat() not in known_partition_keys
-    )
-    if new_partition_keys:
-        instance.add_dynamic_partitions(
-            trade_date_dynamic_partitions.name,
-            new_partition_keys,
-        )
-    return new_partition_keys
 
 
 async def materialize_trade_date_range(
@@ -71,14 +57,16 @@ async def materialize_trade_date_range(
     if len(partition_keys) > TRADE_DATE_BACKFILL_HARD_LIMIT:
         msg = (
             "Single-run market-event backfill is limited to "
-            f"{TRADE_DATE_BACKFILL_HARD_LIMIT} trade_date partitions"
+            f"{TRADE_DATE_BACKFILL_HARD_LIMIT} natural-date partitions"
         )
         raise ValueError(msg)
 
-    trade_dates = [_parse_trade_date_partition_key(key) for key in partition_keys]
-    _validate_trade_dates_from_calendar(trade_dates)
-
     s3_config = S3Config.from_env()
+    natural_dates = [_parse_date_partition_key(key) for key in partition_keys]
+    calendar_dates = read_sina_trade_calendar_dates_from_s3(s3_config)
+    trade_dates = [item for item in natural_dates if item in calendar_dates]
+    skipped_non_trade_dates = [item for item in natural_dates if item not in calendar_dates]
+
     filesystem = build_s3_filesystem(s3_config)
     base_dir = _asset_base_dir(s3_config, context.asset_key)
     semaphore = asyncio.Semaphore(max_concurrent_trade_dates)
@@ -130,15 +118,23 @@ async def materialize_trade_date_range(
     finished_at = time.perf_counter()
     row_counts = {key: table.num_rows for key, table in completed.items()}
     column_counts = {key: table.num_columns for key, table in completed.items()}
+    processed_trade_dates = [item.isoformat() for item in trade_dates]
+    skipped_non_trade_date_keys = [item.isoformat() for item in skipped_non_trade_dates]
     metadata = {
         "backfill_start_date": partition_keys[0],
         "backfill_end_date": partition_keys[-1],
-        "requested_trade_date_count": len(partition_keys),
+        "requested_partition_count": len(partition_keys),
+        "requested_natural_date_count": len(natural_dates),
+        "requested_trade_date_count": len(trade_dates),
+        "processed_trade_date_count": len(trade_dates),
+        "skipped_non_trade_date_count": len(skipped_non_trade_dates),
         "completed_trade_date_count": len(completed),
         "failed_trade_date_count": failed_count,
         "max_concurrent_trade_dates": max_concurrent_trade_dates,
         "partition_keys": dg.MetadataValue.json(partition_keys),
-        "request_trade_date": dg.MetadataValue.json(partition_keys),
+        "processed_trade_dates": dg.MetadataValue.json(processed_trade_dates),
+        "skipped_non_trade_dates_sample": dg.MetadataValue.json(skipped_non_trade_date_keys[:20]),
+        "request_trade_date": dg.MetadataValue.json(processed_trade_dates),
         "partition_key_name": TRADE_DATE_PARTITION_KEY_NAME,
         "partitions_source_asset": "sina__trade_calendar",
         "s3_bucket": s3_config.bucket,
@@ -156,22 +152,11 @@ async def materialize_trade_date_range(
     return TradeDateRangeMaterializationResult(tables=completed, metadata=metadata)
 
 
-def _validate_trade_dates_from_calendar(trade_dates: Sequence[date]) -> None:
-    calendar_dates = read_sina_trade_calendar_dates_from_s3(S3Config.from_env())
-    missing = sorted(set(trade_dates) - calendar_dates)
-    if missing:
-        msg = (
-            "Requested trade_date partitions are not present in sina__trade_calendar: "
-            f"{[item.isoformat() for item in missing]}"
-        )
-        raise ValueError(msg)
-
-
-def _parse_trade_date_partition_key(partition_key: str) -> date:
+def _parse_date_partition_key(partition_key: str) -> date:
     try:
         return date.fromisoformat(partition_key)
     except ValueError as error:
-        msg = f"Invalid trade_date partition key: {partition_key!r}"
+        msg = f"Invalid natural-date partition key: {partition_key!r}"
         raise ValueError(msg) from error
 
 

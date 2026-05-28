@@ -6,16 +6,15 @@ from importlib.util import module_from_spec, spec_from_file_location
 from pathlib import Path
 
 import pyarrow as pa
-from scheduler.defs.http_resources.eastmoney.assets import baostock_code_to_eastmoney_code
-from scheduler.defs.http_resources.eastmoney.client import (
+from scheduler.defs.http_resources.eastmoney import baostock_code_to_eastmoney_code
+from scheduler.defs.http_resources.eastmoney_client import (
     EastmoneyAioHttpClient,
     EastmoneyRequestError,
     build_request_params,
     parse_eastmoney_page,
 )
-from scheduler.defs.http_resources.eastmoney.schemas import (
+from scheduler.defs.http_resources.eastmoney_schema import (
     ENDPOINT_CONFIGS,
-    REQUEST_FIELD_NAMES,
     EastmoneyEndpointConfig,
     EastmoneyFetchedRow,
     eastmoney_business_field_names,
@@ -63,7 +62,7 @@ class EastmoneySchemaTest(unittest.TestCase):
                 )
                 self.assertEqual(
                     schema.names,
-                    [*field_names, *REQUEST_FIELD_NAMES],
+                    list(field_names),
                 )
                 self.assertTrue(
                     all(pa.types.is_string(field.type) for field in schema),
@@ -93,14 +92,9 @@ class EastmoneySchemaTest(unittest.TestCase):
                         "SECURITY_CODE": "601088",
                         "TOTAL_DIVIDEND": 19471149555.9,
                         "EXTRA_FIELD": "ignored",
-                    },
-                    request_code="601088.SH",
-                    request_start_date=date(2026, 1, 1),
-                    request_end_date=date(2026, 5, 27),
+                    }
                 )
             ],
-            partition_year="2026",
-            ingested_at="2026-05-27T00:00:00+00:00",
         )
 
         self.assertEqual(result.unknown_field_count, 1)
@@ -108,6 +102,12 @@ class EastmoneySchemaTest(unittest.TestCase):
         self.assertEqual(result.table["TOTAL_DIVIDEND"].to_pylist(), ["19471149555.9"])
         self.assertEqual(result.table["NOTICE_DATE"].to_pylist(), [None])
         self.assertNotIn("EXTRA_FIELD", result.table.column_names)
+        self.assertNotIn("request_code", result.table.column_names)
+        self.assertNotIn("request_start_date", result.table.column_names)
+        self.assertNotIn("request_end_date", result.table.column_names)
+        self.assertNotIn("partition_year", result.table.column_names)
+        self.assertNotIn("source_endpoint", result.table.column_names)
+        self.assertNotIn("ingested_at", result.table.column_names)
 
 
 class EastmoneyClientTest(unittest.TestCase):

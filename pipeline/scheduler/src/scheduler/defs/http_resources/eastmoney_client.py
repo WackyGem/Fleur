@@ -13,7 +13,7 @@ from scheduler.defs.http_resources.client import (
     HttpRequestError,
     browser_json_headers,
 )
-from scheduler.defs.http_resources.eastmoney.schemas import EastmoneyEndpointConfig
+from scheduler.defs.http_resources.eastmoney_schema import EastmoneyEndpointConfig
 from scheduler.defs.util import DEFAULT_RETRY_POLICY, ExponentialBackoffPolicy
 
 EASTMONEY_CODE_CONCURRENCY = 20

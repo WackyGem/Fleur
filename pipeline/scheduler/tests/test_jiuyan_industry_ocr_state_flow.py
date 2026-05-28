@@ -9,21 +9,18 @@ This module tests the state machine logic for OCR processing:
 
 from __future__ import annotations
 
+from collections.abc import Generator
 from contextlib import contextmanager
-from typing import Generator
 from unittest.mock import MagicMock, patch
 
 import pytest
-
-from scheduler.defs.jiuyan_industry_ocr.postgres import PostgresIndustryImageRepository
+from scheduler.defs.io_managers.postgres import PostgresIndustryImageRepository
 
 
 @contextmanager
 def mock_database_connection() -> Generator[MagicMock, None, None]:
     """Helper to mock database connection and cursor."""
-    with patch(
-        "scheduler.defs.jiuyan_industry_ocr.postgres.connect_pipeline_database"
-    ) as mock_connect:
+    with patch("scheduler.defs.io_managers.postgres.connect_pipeline_database") as mock_connect:
         mock_cursor = MagicMock()
         mock_connection = MagicMock()
         mock_connection.cursor.return_value = mock_cursor

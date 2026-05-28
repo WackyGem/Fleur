@@ -8,8 +8,8 @@ import pyarrow.fs as pafs
 
 from scheduler.defs.config import S3Config
 from scheduler.defs.http_resources.client import CHROME_USER_AGENT, AioHttpClient, HttpRequest
-from scheduler.defs.jiuyan_industry_ocr.image_urls import image_s3_key
-from scheduler.defs.jiuyan_industry_ocr.schemas import ocr_result_base_dir
+from scheduler.defs.http_resources.jiuyan_image_urls import image_s3_key
+from scheduler.defs.http_resources.jiuyan_ocr_schema import ocr_result_base_dir
 from scheduler.defs.util import (
     build_s3_filesystem,
     read_bytes_from_filesystem,

@@ -10,32 +10,30 @@ from scheduler.defs.baostock.schedules import (
     baostock__daily_job,
     baostock__daily_schedule,
 )
-from scheduler.defs.http_resources.eastmoney.assets import EASTMONEY_ASSETS
-from scheduler.defs.http_resources.eastmoney.schedules import (
-    eastmoney__daily_job,
-    eastmoney__daily_schedule,
-)
+from scheduler.defs.http_resources.eastmoney import EASTMONEY_ASSETS
 from scheduler.defs.http_resources.jiuyan__action_field import jiuyan__action_field
 from scheduler.defs.http_resources.jiuyan__industry_list import jiuyan__industry_list
+from scheduler.defs.http_resources.jiuyan__industry_ocr import (
+    jiuyan__industry_images,
+    jiuyan__industry_ocr,
+)
 from scheduler.defs.http_resources.schedules import (
-    http_resources__market_event_daily_job,
-    http_resources__market_event_daily_schedule,
+    eastmoney__daily_job,
+    eastmoney__daily_schedule,
+    jiuyan__action_field_daily_job,
+    jiuyan__action_field_daily_schedule,
     jiuyan__industry_list_snapshot_job,
     jiuyan__industry_list_snapshot_schedule,
-    sina__trade_calendar_dynamic_partitions_sensor,
+    jiuyan__industry_ocr_pipeline_job,
+    jiuyan__industry_ocr_pipeline_schedule,
     sina__trade_calendar_job,
     sina__trade_calendar_schedule,
+    ths__limit_up_pool_daily_job,
+    ths__limit_up_pool_daily_schedule,
 )
 from scheduler.defs.http_resources.sina__trade_calendar import sina__trade_calendar
 from scheduler.defs.http_resources.ths__limit_up_pool import ths__limit_up_pool
 from scheduler.defs.io_managers.s3_io_manager import S3IOManager
-from scheduler.defs.jiuyan_industry_ocr.assets import (
-    jiuyan__industry_images,
-    jiuyan__industry_images_job,
-    jiuyan__industry_ocr,
-    jiuyan__industry_ocr_full_job,
-    jiuyan__industry_ocr_job,
-)
 
 
 @dg.definitions
@@ -54,23 +52,21 @@ def defs() -> dg.Definitions:
         ],
         jobs=[
             sina__trade_calendar_job,
-            http_resources__market_event_daily_job,
+            jiuyan__action_field_daily_job,
+            ths__limit_up_pool_daily_job,
             jiuyan__industry_list_snapshot_job,
-            jiuyan__industry_images_job,
-            jiuyan__industry_ocr_job,
-            jiuyan__industry_ocr_full_job,
+            jiuyan__industry_ocr_pipeline_job,
             baostock__daily_job,
             eastmoney__daily_job,
         ],
         schedules=[
             sina__trade_calendar_schedule,
-            http_resources__market_event_daily_schedule,
+            jiuyan__action_field_daily_schedule,
+            ths__limit_up_pool_daily_schedule,
             jiuyan__industry_list_snapshot_schedule,
+            jiuyan__industry_ocr_pipeline_schedule,
             baostock__daily_schedule,
             eastmoney__daily_schedule,
-        ],
-        sensors=[
-            sina__trade_calendar_dynamic_partitions_sensor,
         ],
         resources={"s3_io_manager": S3IOManager()},
     )

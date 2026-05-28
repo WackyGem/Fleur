@@ -3,7 +3,9 @@ from __future__ import annotations
 from collections.abc import Callable
 from datetime import date
 from zoneinfo import ZoneInfo
+
 import dagster as dg
+
 from scheduler.defs.baostock.assets import (
     baostock__query_history_k_data_plus_daily,
     baostock__query_stock_basic,

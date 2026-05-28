@@ -3,12 +3,12 @@ from __future__ import annotations
 import json
 import unittest
 
-from scheduler.defs.jiuyan_industry_ocr.ocr_schema import (
-    OcrSchemaError,
+from scheduler.defs.http_resources.jiuyan_ocr_schema import (
+    JIUYAN_INDUSTRY_OCR_SCHEMA,
     normalize_ocr_content,
     ocr_rows_to_table,
 )
-from scheduler.defs.jiuyan_industry_ocr.schemas import JIUYAN_INDUSTRY_OCR_SCHEMA
+from scheduler.defs.ocr.schemas import OcrSchemaError
 
 
 class JiuyanIndustryOcrSchemaTest(unittest.TestCase):

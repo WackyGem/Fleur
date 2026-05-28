@@ -21,7 +21,7 @@ from scheduler.defs.http_resources.partitioned import (
     TRADE_DATE_PARTITION_KEY_NAME,
     TradeDateRangeMaterializationResult,
     materialize_trade_date_range,
-    trade_date_dynamic_partitions,
+    ths_limit_up_pool_daily_partitions,
 )
 from scheduler.defs.http_resources.schemas import (
     FLATTEN_COLUMN_NAMING,
@@ -40,13 +40,15 @@ THS_LIMIT_UP_POOL_LIMIT = "200"
 @dg.asset(
     name="ths__limit_up_pool",
     group_name="http_sources",
-    partitions_def=trade_date_dynamic_partitions,
+    partitions_def=ths_limit_up_pool_daily_partitions,
     backfill_policy=dg.BackfillPolicy.single_run(),
     metadata={
         "storage_mode": "partitioned",
         "partition_key_name": TRADE_DATE_PARTITION_KEY_NAME,
-        "partitions_def": "trade_date_dynamic_partitions",
+        "partitions_def": "daily_partitions",
+        "trade_date_filter": "sina__trade_calendar",
         "allow_empty": True,
+        "sparse_partition_output": True,
         "flatten_column_naming": FLATTEN_COLUMN_NAMING,
     },
     tags={"source": "ths", "layer": "raw", "storage": "s3"},

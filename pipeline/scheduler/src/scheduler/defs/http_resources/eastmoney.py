@@ -1,21 +1,19 @@
 import asyncio
 import time
 from collections import Counter
-from datetime import UTC, date, datetime
+from datetime import date
+from typing import Any
 
 import dagster as dg
 import pyarrow as pa
 
-from scheduler.defs.baostock.assets import (
-    baostock__query_stock_basic,
-    year_partitions,
-)
+from scheduler.defs.baostock.assets import baostock__query_stock_basic, year_partitions
 from scheduler.defs.config import S3Config
-from scheduler.defs.http_resources.eastmoney.client import (
+from scheduler.defs.http_resources.eastmoney_client import (
     EASTMONEY_CODE_CONCURRENCY,
     EastmoneyAioHttpClient,
 )
-from scheduler.defs.http_resources.eastmoney.schemas import (
+from scheduler.defs.http_resources.eastmoney_schema import (
     ENDPOINT_CONFIGS,
     EastmoneyEndpointConfig,
     EastmoneyFetchedRow,
@@ -28,7 +26,7 @@ from scheduler.defs.util import (
 )
 
 EASTMONEY_RUN_POOL = "eastmoney_run_pool"
-EASTMONEY_ASSET_METADATA = {
+EASTMONEY_ASSET_METADATA: dict[str, str | bool] = {
     "storage_mode": "partitioned",
     "partition_key_name": "year",
     "allow_empty": True,
@@ -39,204 +37,47 @@ class EastmoneyYearConfig(dg.Config):
     refresh_until_date: str | None = None
 
 
-@dg.asset(
-    name="eastmoney__balance",
-    group_name="eastmoney",
-    io_manager_key="s3_io_manager",
-    partitions_def=year_partitions,
-    deps=[baostock__query_stock_basic],
-    backfill_policy=dg.BackfillPolicy.multi_run(max_partitions_per_run=1),
-    metadata=EASTMONEY_ASSET_METADATA,
-    pool=EASTMONEY_RUN_POOL,
-    tags={"source": "eastmoney", "layer": "raw", "storage": "s3"},
-)
-def eastmoney__balance(
-    context: dg.AssetExecutionContext,
-    config: EastmoneyYearConfig,
-) -> dg.MaterializeResult[dict[str, pa.Table]]:
-    """EastMoney F10 balance sheet rows by natural-year partition."""
+def build_eastmoney_asset(
+    endpoint: EastmoneyEndpointConfig,
+    ordering_dependency: dg.AssetsDefinition | None = None,
+) -> dg.AssetsDefinition:
+    deps = [baostock__query_stock_basic]
+    metadata: dict[str, str | bool] = dict(EASTMONEY_ASSET_METADATA)
+    if ordering_dependency is not None:
+        deps.append(ordering_dependency)
+        metadata["execution_ordering_dependency"] = ordering_dependency.key.path[-1]
 
-    return _materialize_eastmoney_asset(context, config, ENDPOINT_CONFIGS[0])
+    def materialize(
+        context: dg.AssetExecutionContext,
+        config: EastmoneyYearConfig,
+    ) -> dg.MaterializeResult[dict[str, pa.Table]]:
+        return _materialize_eastmoney_asset(context, config, endpoint)
 
+    materialize.__name__ = endpoint.asset_name
+    materialize.__doc__ = f"EastMoney F10 rows for {endpoint.asset_name} by natural-year partition."
 
-@dg.asset(
-    name="eastmoney__cashflow_sq",
-    group_name="eastmoney",
-    io_manager_key="s3_io_manager",
-    partitions_def=year_partitions,
-    # Execution-ordering dependency only: data still comes from BaoStock stock basic.
-    deps=[baostock__query_stock_basic, eastmoney__balance],
-    backfill_policy=dg.BackfillPolicy.multi_run(max_partitions_per_run=1),
-    metadata={
-        **EASTMONEY_ASSET_METADATA,
-        "execution_ordering_dependency": "eastmoney__balance",
-    },
-    pool=EASTMONEY_RUN_POOL,
-    tags={"source": "eastmoney", "layer": "raw", "storage": "s3"},
-)
-def eastmoney__cashflow_sq(
-    context: dg.AssetExecutionContext,
-    config: EastmoneyYearConfig,
-) -> dg.MaterializeResult[dict[str, pa.Table]]:
-    """EastMoney F10 single-quarter cash-flow rows by natural-year partition."""
-
-    return _materialize_eastmoney_asset(context, config, ENDPOINT_CONFIGS[1])
+    return dg.asset(
+        name=endpoint.asset_name,
+        group_name="eastmoney",
+        io_manager_key="s3_io_manager",
+        partitions_def=year_partitions,
+        deps=deps,
+        backfill_policy=dg.BackfillPolicy.multi_run(max_partitions_per_run=1),
+        metadata=metadata,
+        pool=EASTMONEY_RUN_POOL,
+        tags={"source": "eastmoney", "layer": "raw", "storage": "s3"},
+    )(materialize)
 
 
-@dg.asset(
-    name="eastmoney__cashflow_ytd",
-    group_name="eastmoney",
-    io_manager_key="s3_io_manager",
-    partitions_def=year_partitions,
-    # Execution-ordering dependency only: data still comes from BaoStock stock basic.
-    deps=[baostock__query_stock_basic, eastmoney__cashflow_sq],
-    backfill_policy=dg.BackfillPolicy.multi_run(max_partitions_per_run=1),
-    metadata={
-        **EASTMONEY_ASSET_METADATA,
-        "execution_ordering_dependency": "eastmoney__cashflow_sq",
-    },
-    pool=EASTMONEY_RUN_POOL,
-    tags={"source": "eastmoney", "layer": "raw", "storage": "s3"},
-)
-def eastmoney__cashflow_ytd(
-    context: dg.AssetExecutionContext,
-    config: EastmoneyYearConfig,
-) -> dg.MaterializeResult[dict[str, pa.Table]]:
-    """EastMoney F10 year-to-date cash-flow rows by natural-year partition."""
+EASTMONEY_ASSETS_BY_NAME: dict[str, dg.AssetsDefinition] = {}
+_previous_eastmoney_asset: dg.AssetsDefinition | None = None
+for _endpoint in ENDPOINT_CONFIGS:
+    _eastmoney_asset = build_eastmoney_asset(_endpoint, _previous_eastmoney_asset)
+    EASTMONEY_ASSETS_BY_NAME[_endpoint.asset_name] = _eastmoney_asset
+    globals()[_endpoint.asset_name] = _eastmoney_asset
+    _previous_eastmoney_asset = _eastmoney_asset
 
-    return _materialize_eastmoney_asset(context, config, ENDPOINT_CONFIGS[2])
-
-
-@dg.asset(
-    name="eastmoney__dividend_allotment",
-    group_name="eastmoney",
-    io_manager_key="s3_io_manager",
-    partitions_def=year_partitions,
-    # Execution-ordering dependency only: data still comes from BaoStock stock basic.
-    deps=[baostock__query_stock_basic, eastmoney__cashflow_ytd],
-    backfill_policy=dg.BackfillPolicy.multi_run(max_partitions_per_run=1),
-    metadata={
-        **EASTMONEY_ASSET_METADATA,
-        "execution_ordering_dependency": "eastmoney__cashflow_ytd",
-    },
-    pool=EASTMONEY_RUN_POOL,
-    tags={"source": "eastmoney", "layer": "raw", "storage": "s3"},
-)
-def eastmoney__dividend_allotment(
-    context: dg.AssetExecutionContext,
-    config: EastmoneyYearConfig,
-) -> dg.MaterializeResult[dict[str, pa.Table]]:
-    """EastMoney F10 allotment and dividend event rows by natural-year partition."""
-
-    return _materialize_eastmoney_asset(context, config, ENDPOINT_CONFIGS[3])
-
-
-@dg.asset(
-    name="eastmoney__dividend_main",
-    group_name="eastmoney",
-    io_manager_key="s3_io_manager",
-    partitions_def=year_partitions,
-    # Execution-ordering dependency only: data still comes from BaoStock stock basic.
-    deps=[baostock__query_stock_basic, eastmoney__dividend_allotment],
-    backfill_policy=dg.BackfillPolicy.multi_run(max_partitions_per_run=1),
-    metadata={
-        **EASTMONEY_ASSET_METADATA,
-        "execution_ordering_dependency": "eastmoney__dividend_allotment",
-    },
-    pool=EASTMONEY_RUN_POOL,
-    tags={"source": "eastmoney", "layer": "raw", "storage": "s3"},
-)
-def eastmoney__dividend_main(
-    context: dg.AssetExecutionContext,
-    config: EastmoneyYearConfig,
-) -> dg.MaterializeResult[dict[str, pa.Table]]:
-    """EastMoney F10 dividend plan rows by natural-year partition."""
-
-    return _materialize_eastmoney_asset(context, config, ENDPOINT_CONFIGS[4])
-
-
-@dg.asset(
-    name="eastmoney__equity_history",
-    group_name="eastmoney",
-    io_manager_key="s3_io_manager",
-    partitions_def=year_partitions,
-    # Execution-ordering dependency only: data still comes from BaoStock stock basic.
-    deps=[baostock__query_stock_basic, eastmoney__dividend_main],
-    backfill_policy=dg.BackfillPolicy.multi_run(max_partitions_per_run=1),
-    metadata={
-        **EASTMONEY_ASSET_METADATA,
-        "execution_ordering_dependency": "eastmoney__dividend_main",
-    },
-    pool=EASTMONEY_RUN_POOL,
-    tags={"source": "eastmoney", "layer": "raw", "storage": "s3"},
-)
-def eastmoney__equity_history(
-    context: dg.AssetExecutionContext,
-    config: EastmoneyYearConfig,
-) -> dg.MaterializeResult[dict[str, pa.Table]]:
-    """EastMoney F10 equity history rows by natural-year partition."""
-
-    return _materialize_eastmoney_asset(context, config, ENDPOINT_CONFIGS[5])
-
-
-@dg.asset(
-    name="eastmoney__income_sq",
-    group_name="eastmoney",
-    io_manager_key="s3_io_manager",
-    partitions_def=year_partitions,
-    # Execution-ordering dependency only: data still comes from BaoStock stock basic.
-    deps=[baostock__query_stock_basic, eastmoney__equity_history],
-    backfill_policy=dg.BackfillPolicy.multi_run(max_partitions_per_run=1),
-    metadata={
-        **EASTMONEY_ASSET_METADATA,
-        "execution_ordering_dependency": "eastmoney__equity_history",
-    },
-    pool=EASTMONEY_RUN_POOL,
-    tags={"source": "eastmoney", "layer": "raw", "storage": "s3"},
-)
-def eastmoney__income_sq(
-    context: dg.AssetExecutionContext,
-    config: EastmoneyYearConfig,
-) -> dg.MaterializeResult[dict[str, pa.Table]]:
-    """EastMoney F10 single-quarter income rows by natural-year partition."""
-
-    return _materialize_eastmoney_asset(context, config, ENDPOINT_CONFIGS[6])
-
-
-@dg.asset(
-    name="eastmoney__income_ytd",
-    group_name="eastmoney",
-    io_manager_key="s3_io_manager",
-    partitions_def=year_partitions,
-    # Execution-ordering dependency only: data still comes from BaoStock stock basic.
-    deps=[baostock__query_stock_basic, eastmoney__income_sq],
-    backfill_policy=dg.BackfillPolicy.multi_run(max_partitions_per_run=1),
-    metadata={
-        **EASTMONEY_ASSET_METADATA,
-        "execution_ordering_dependency": "eastmoney__income_sq",
-    },
-    pool=EASTMONEY_RUN_POOL,
-    tags={"source": "eastmoney", "layer": "raw", "storage": "s3"},
-)
-def eastmoney__income_ytd(
-    context: dg.AssetExecutionContext,
-    config: EastmoneyYearConfig,
-) -> dg.MaterializeResult[dict[str, pa.Table]]:
-    """EastMoney F10 year-to-date income rows by natural-year partition."""
-
-    return _materialize_eastmoney_asset(context, config, ENDPOINT_CONFIGS[7])
-
-
-EASTMONEY_ASSETS = [
-    eastmoney__balance,
-    eastmoney__cashflow_sq,
-    eastmoney__cashflow_ytd,
-    eastmoney__dividend_allotment,
-    eastmoney__dividend_main,
-    eastmoney__equity_history,
-    eastmoney__income_sq,
-    eastmoney__income_ytd,
-]
+EASTMONEY_ASSETS = list(EASTMONEY_ASSETS_BY_NAME.values())
 
 
 def _materialize_eastmoney_asset(
@@ -292,7 +133,7 @@ async def _fetch_eastmoney_tables(
     endpoint: EastmoneyEndpointConfig,
     stock_basic: pa.Table,
     year_ranges: dict[str, tuple[date, date]],
-) -> tuple[dict[str, pa.Table], dict[str, object]]:
+) -> tuple[dict[str, pa.Table], dict[str, Any]]:
     started_at = time.perf_counter()
     candidate_security_count = stock_basic.num_rows
     annual_rows: dict[str, list[EastmoneyFetchedRow]] = {year: [] for year in year_ranges}
@@ -343,31 +184,18 @@ async def _fetch_eastmoney_tables(
                 unsupported_market_code_counts[year] = unsupported_market_code_count
             tasks_scheduled_at = time.perf_counter()
 
-        for year, eastmoney_code, start_date, end_date, task in tasks:
+        for _year, _eastmoney_code, _start_date, _end_date, task in tasks:
             for row in task.result():
-                annual_rows[year].append(
-                    EastmoneyFetchedRow(
-                        data=row,
-                        request_code=eastmoney_code,
-                        request_start_date=start_date,
-                        request_end_date=end_date,
-                    )
-                )
+                annual_rows[_year].append(EastmoneyFetchedRow(data=row))
         tasks_finished_at = time.perf_counter()
         fetch_stats = client.stats
 
     table_convert_started_at = time.perf_counter()
-    ingested_at = datetime.now(UTC).isoformat()
     tables: dict[str, pa.Table] = {}
     unknown_field_counts: dict[str, int] = {}
     for year, rows in annual_rows.items():
         if rows:
-            result = eastmoney_rows_to_table(
-                endpoint,
-                rows,
-                partition_year=year,
-                ingested_at=ingested_at,
-            )
+            result = eastmoney_rows_to_table(endpoint, rows)
             tables[year] = result.table
             unknown_field_counts[year] = result.unknown_field_count
         else:
@@ -390,6 +218,7 @@ async def _fetch_eastmoney_tables(
                 for year, (start_date, end_date) in year_ranges.items()
             }
         ),
+        "source_endpoints": dg.MetadataValue.json([endpoint.source_endpoint]),
         "request_count": fetch_stats.request_count,
         "empty_response_count": fetch_stats.empty_response_count,
         "page_count": fetch_stats.page_count,
