@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-import re
 import asyncio
+import re
 from dataclasses import dataclass
 from datetime import date, timedelta
 
@@ -32,19 +32,17 @@ DATELIST_PATTERN = re.compile(r'var datelist="([^"]+)"')
 
 TradeCalendarDates = list[date]
 
+
 class SinaCalendarDecodeError(ValueError):
     """Raised when Sina's compact calendar payload cannot be decoded."""
 
 
-TRADE_CALENDAR_AUTOMATION_CONDITION = (
-    dg.AutomationCondition.on_missing()
-    | (
-        dg.AutomationCondition.initial_evaluation()
-        & dg.AutomationCondition.missing()
-        & ~dg.AutomationCondition.any_deps_missing()
-        & ~dg.AutomationCondition.in_progress()
-    ).with_label("on_initial_missing")
-)
+TRADE_CALENDAR_AUTOMATION_CONDITION = dg.AutomationCondition.on_missing() | (
+    dg.AutomationCondition.initial_evaluation()
+    & dg.AutomationCondition.missing()
+    & ~dg.AutomationCondition.any_deps_missing()
+    & ~dg.AutomationCondition.in_progress()
+).with_label("on_initial_missing")
 
 
 @dataclass
@@ -54,13 +52,9 @@ class SinaDecodeState:
 
     def next_trade_date(self) -> date:
         self.serial_day_number += 1
-        self.serial_day_number += WEEKEND_SKIP_DAYS_BY_REMAINDER[
-            self.serial_day_number % 7
-        ]
+        self.serial_day_number += WEEKEND_SKIP_DAYS_BY_REMAINDER[self.serial_day_number % 7]
 
-        return UNIX_EPOCH_DATE + timedelta(
-            days=SINA_EPOCH_DAY_OFFSET + self.serial_day_number
-        )
+        return UNIX_EPOCH_DATE + timedelta(days=SINA_EPOCH_DAY_OFFSET + self.serial_day_number)
 
 
 @dataclass
@@ -267,9 +261,7 @@ async def fetch_sina_trade_calendar(
         retry_policy=DEFAULT_RETRY_POLICY,
         max_attempts=MAX_REQUEST_ATTEMPTS,
     ) as client:
-        response = await client.request_text(
-            HttpRequest(method="GET", url=SINA_TRADE_CALENDAR_URL)
-        )
+        response = await client.request_text(HttpRequest(method="GET", url=SINA_TRADE_CALENDAR_URL))
         return response.body
 
 

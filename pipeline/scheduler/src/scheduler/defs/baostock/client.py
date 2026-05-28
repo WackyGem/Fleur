@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import time
+from contextlib import suppress
 from dataclasses import dataclass, field
 from datetime import date
 from types import TracebackType
@@ -50,8 +51,8 @@ class BaostockTcpConnection:
                 )
                 return decode_response(response_bytes)
             except (
+                TimeoutError,
                 OSError,
-                asyncio.TimeoutError,
                 asyncio.IncompleteReadError,
                 asyncio.LimitOverrunError,
             ) as error:
@@ -67,10 +68,8 @@ class BaostockTcpConnection:
     async def close(self) -> None:
         self.reusable = False
         self.writer.close()
-        try:
+        with suppress(OSError):
             await self.writer.wait_closed()
-        except OSError:
-            pass
 
 
 class BaostockAioTcpClient:
@@ -223,18 +222,31 @@ class BaostockAioTcpClient:
         observed_login_expires_at: float | None = None,
     ) -> None:
         now = time.monotonic()
-        if not force and self._logged_in and self._login_expires_at is not None:
-            if now < self._login_expires_at:
-                return
+        if (
+            not force
+            and self._logged_in
+            and self._login_expires_at is not None
+            and now < self._login_expires_at
+        ):
+            return
 
         async with self._login_lock:
             now = time.monotonic()
-            if not force and self._logged_in and self._login_expires_at is not None:
-                if now < self._login_expires_at:
-                    return
-            if force and self._logged_in and self._login_expires_at is not None:
-                if now < self._login_expires_at and self._login_expires_at != observed_login_expires_at:
-                    return
+            if (
+                not force
+                and self._logged_in
+                and self._login_expires_at is not None
+                and now < self._login_expires_at
+            ):
+                return
+            if (
+                force
+                and self._logged_in
+                and self._login_expires_at is not None
+                and now < self._login_expires_at
+                and self._login_expires_at != observed_login_expires_at
+            ):
+                return
 
             payload = encode_request(
                 request_code="00",
@@ -381,10 +393,9 @@ class BaostockAioTcpClient:
                 ),
                 timeout=CONNECT_TIMEOUT_SECONDS,
             )
-        except (OSError, asyncio.TimeoutError) as error:
+        except (TimeoutError, OSError) as error:
             msg = (
-                f"Failed to connect to BaoStock TCP server "
-                f"{self._config.host}:{self._config.port}"
+                f"Failed to connect to BaoStock TCP server {self._config.host}:{self._config.port}"
             )
             raise BaostockNetworkError(msg) from error
         return BaostockTcpConnection(reader=reader, writer=writer)

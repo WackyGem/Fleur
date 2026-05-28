@@ -26,9 +26,7 @@ from scheduler.defs.http_resources.schemas import (
 )
 from scheduler.defs.util import DEFAULT_RETRY_POLICY
 
-JIUYAN_ACTION_FIELD_URL = (
-    "https://app.jiuyangongshe.com/jystock-app/api/v1/action/field"
-)
+JIUYAN_ACTION_FIELD_URL = "https://app.jiuyangongshe.com/jystock-app/api/v1/action/field"
 
 
 class MarketEventBackfillConfig(dg.Config):

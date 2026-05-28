@@ -3,8 +3,8 @@ from __future__ import annotations
 import os
 from logging.config import fileConfig
 
-from alembic import context
 import psycopg
+from alembic import context
 from psycopg import sql
 from sqlalchemy import MetaData, engine_from_config, pool
 from sqlalchemy.engine import make_url
@@ -42,15 +42,14 @@ def _ensure_database_exists() -> None:
         1,
     )
 
-    with psycopg.connect(dsn, autocommit=True) as connection:
-        with connection.cursor() as cursor:
-            cursor.execute(
-                "select 1 from pg_database where datname = %s",
-                (database_name,),
-            )
-            if cursor.fetchone() is not None:
-                return
-            cursor.execute(sql.SQL("create database {}").format(sql.Identifier(database_name)))
+    with psycopg.connect(dsn, autocommit=True) as connection, connection.cursor() as cursor:
+        cursor.execute(
+            "select 1 from pg_database where datname = %s",
+            (database_name,),
+        )
+        if cursor.fetchone() is not None:
+            return
+        cursor.execute(sql.SQL("create database {}").format(sql.Identifier(database_name)))
 
 
 def run_migrations_offline() -> None:

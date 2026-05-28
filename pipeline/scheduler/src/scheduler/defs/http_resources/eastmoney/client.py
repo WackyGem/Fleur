@@ -234,9 +234,12 @@ def parse_eastmoney_page(
     endpoint: EastmoneyEndpointConfig,
     payload: Mapping[str, object],
 ) -> EastmoneyPage:
-    if endpoint.api_family == "data_v1_get" and payload.get("code") == 9201:
-        if payload.get("result") is None:
-            return EastmoneyPage(rows=[], total_pages=0, is_empty=True)
+    if (
+        endpoint.api_family == "data_v1_get"
+        and payload.get("code") == 9201
+        and payload.get("result") is None
+    ):
+        return EastmoneyPage(rows=[], total_pages=0, is_empty=True)
 
     result = payload.get("result")
     if result is None:

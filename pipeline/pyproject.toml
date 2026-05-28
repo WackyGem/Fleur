@@ -12,3 +12,67 @@ dependencies = [
 members = [
     "scheduler",
 ]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = [
+    "E4",
+    "E7",
+    "E9",
+    "F",
+    "I",
+    "UP",
+    "B",
+    "SIM",
+]
+ignore = [
+    "B008",
+]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+line-ending = "auto"
+
+[tool.pytest.ini_options]
+minversion = "9.0"
+addopts = "-ra"
+testpaths = [
+    "scheduler/tests",
+]
+python_files = [
+    "test_*.py",
+]
+filterwarnings = [
+    "default",
+]
+
+[tool.coverage.run]
+branch = true
+source = [
+    "scheduler/src/scheduler",
+]
+
+[tool.coverage.report]
+show_missing = true
+skip_covered = true
+fail_under = 70
+
+[tool.pyright]
+include = [
+    "scheduler/src/scheduler/defs/http_resources/client.py",
+    "scheduler/src/scheduler/defs/io_managers/s3_io_manager.py",
+    "scheduler/src/scheduler/defs/jiuyan_industry_ocr",
+    "scheduler/src/scheduler/defs/baostock",
+]
+exclude = [
+    "**/__pycache__",
+    "**/.pytest_cache",
+]
+pythonVersion = "3.12"
+pythonPlatform = "Linux"
+typeCheckingMode = "basic"
+reportMissingTypeStubs = false

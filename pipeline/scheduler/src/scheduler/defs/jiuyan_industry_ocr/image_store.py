@@ -3,10 +3,11 @@ from __future__ import annotations
 import hashlib
 from dataclasses import dataclass
 
+import pyarrow as pa
 import pyarrow.fs as pafs
 
 from scheduler.defs.config import S3Config
-from scheduler.defs.http_resources.client import AioHttpClient, CHROME_USER_AGENT, HttpRequest
+from scheduler.defs.http_resources.client import CHROME_USER_AGENT, AioHttpClient, HttpRequest
 from scheduler.defs.jiuyan_industry_ocr.image_urls import image_s3_key
 from scheduler.defs.jiuyan_industry_ocr.schemas import ocr_result_base_dir
 from scheduler.defs.util import (
@@ -64,6 +65,38 @@ def build_s3_filesystem_for_config(config: S3Config) -> pafs.S3FileSystem:
     return build_s3_filesystem(config)
 
 
+@dataclass(frozen=True)
+class ImageObjectStore:
+    filesystem: pafs.S3FileSystem
+    bucket: str
+
+    @classmethod
+    def from_s3_config(cls, config: S3Config) -> ImageObjectStore:
+        return cls(
+            filesystem=build_s3_filesystem_for_config(config),
+            bucket=config.bucket,
+        )
+
+    def write_downloaded_image(self, image_filename: str, image_bytes: bytes) -> str:
+        return write_downloaded_image(
+            self.filesystem,
+            self.bucket,
+            image_filename,
+            image_bytes,
+        )
+
+    def read_image_bytes(self, image_key: str) -> bytes:
+        return read_image_bytes(self.filesystem, self.bucket, image_key)
+
+    def write_ocr_result_table(self, image_filename: str, table: pa.Table) -> str:
+        return write_ocr_result_table(
+            self.filesystem,
+            self.bucket,
+            image_filename,
+            table,
+        )
+
+
 def write_downloaded_image(
     filesystem: pafs.FileSystem,
     bucket: str,
@@ -87,7 +120,7 @@ def write_ocr_result_table(
     filesystem: pafs.FileSystem,
     bucket: str,
     image_filename: str,
-    table,
+    table: pa.Table,
 ) -> str:
     base_dir = ocr_result_base_dir(bucket, image_filename)
     written_paths = write_parquet_dataset(table, base_dir, filesystem, allow_empty=True)

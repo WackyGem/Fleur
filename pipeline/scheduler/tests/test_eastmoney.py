@@ -6,7 +6,6 @@ from importlib.util import module_from_spec, spec_from_file_location
 from pathlib import Path
 
 import pyarrow as pa
-
 from scheduler.defs.http_resources.eastmoney.assets import baostock_code_to_eastmoney_code
 from scheduler.defs.http_resources.eastmoney.client import (
     EastmoneyAioHttpClient,
@@ -26,9 +25,7 @@ from scheduler.defs.http_resources.eastmoney.schemas import (
 )
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
-EXTRACT_SCRIPT_PATH = (
-    REPO_ROOT / "pipeline/scheduler/scripts/extract_eastmoney_schema_fields.py"
-)
+EXTRACT_SCRIPT_PATH = REPO_ROOT / "pipeline/scheduler/scripts/extract_eastmoney_schema_fields.py"
 EXTRACT_SCRIPT_SPEC = spec_from_file_location(
     "extract_eastmoney_schema_fields",
     EXTRACT_SCRIPT_PATH,

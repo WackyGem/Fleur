@@ -79,7 +79,9 @@ class S3IOManager(dg.ConfigurableIOManager):
         elif storage_mode == "latest_snapshot":
             table = self._validate_table(obj, allow_empty=allow_empty)
             validated_at = time.perf_counter()
-            written_paths = write_parquet_dataset(table, base_dir, filesystem, allow_empty=allow_empty)
+            written_paths = write_parquet_dataset(
+                table, base_dir, filesystem, allow_empty=allow_empty
+            )
             row_count = table.num_rows
             column_count = table.num_columns
         else:
@@ -161,7 +163,7 @@ class S3IOManager(dg.ConfigurableIOManager):
             region_name=self.region_name,
         )
 
-    def _validate_table(self, obj: Any, *, allow_empty: bool = False) -> pa.Table:
+    def _validate_table(self, obj: object, *, allow_empty: bool = False) -> pa.Table:
         if not isinstance(obj, pa.Table):
             msg = "S3IOManager expected a pyarrow.Table"
             raise TypeError(msg)
@@ -174,7 +176,7 @@ class S3IOManager(dg.ConfigurableIOManager):
 
     def _validate_partition_tables(
         self,
-        obj: Any,
+        obj: object,
         *,
         allow_empty: bool = False,
     ) -> dict[str, pa.Table]:

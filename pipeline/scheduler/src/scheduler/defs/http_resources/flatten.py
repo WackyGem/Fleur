@@ -42,15 +42,11 @@ def _flatten_list(values: list[object], *, path: str, output: dict[str, object])
 
     if all(isinstance(item, Mapping) for item in values):
         flattened_items = [
-            _flatten_content_object_by_path(item)
-            for item in values
-            if isinstance(item, Mapping)
+            _flatten_content_object_by_path(item) for item in values if isinstance(item, Mapping)
         ]
         item_keys = sorted({key for item in flattened_items for key in item})
         for item_key in item_keys:
-            output[f"{list_path}.{item_key}"] = [
-                item.get(item_key) for item in flattened_items
-            ]
+            output[f"{list_path}.{item_key}"] = [item.get(item_key) for item in flattened_items]
         return
 
     output[list_path] = values

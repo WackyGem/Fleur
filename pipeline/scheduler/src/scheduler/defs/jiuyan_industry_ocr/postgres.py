@@ -1,6 +1,8 @@
 from __future__ import annotations
 
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
+from typing import cast
+
 import psycopg
 from psycopg.rows import dict_row
 
@@ -156,45 +158,47 @@ order by image_filename
 """
 
 
+DatabaseRow = Mapping[str, object]
+
+
 def connect_pipeline_database(url: str) -> psycopg.Connection:
     return psycopg.connect(url, row_factory=dict_row)
 
 
-def fetch_existing_image_urls(
-    url: str,
-    image_filenames: Sequence[str],
-) -> dict[str, str]:
-    if not image_filenames:
-        return {}
-    with connect_pipeline_database(url) as connection:
-        with connection.cursor() as cursor:
+class PostgresIndustryImageRepository:
+    def __init__(self, url: str) -> None:
+        self._url = url
+
+    def fetch_existing_image_urls(
+        self,
+        image_filenames: Sequence[str],
+    ) -> dict[str, str]:
+        if not image_filenames:
+            return {}
+        with connect_pipeline_database(self._url) as connection, connection.cursor() as cursor:
             cursor.execute(FETCH_EXISTING_URLS_SQL, (list(image_filenames),))
-            rows = cursor.fetchall()
-    return {
-        str(row["image_filename"]): str(row["image_url"])
-        for row in rows
-        if row.get("image_filename") is not None and row.get("image_url") is not None
-    }
+            rows = cast(list[DatabaseRow], cursor.fetchall())
+        return {
+            str(row["image_filename"]): str(row["image_url"])
+            for row in rows
+            if row.get("image_filename") is not None and row.get("image_url") is not None
+        }
 
-
-def fetch_images(
-    url: str,
-    image_filenames: Sequence[str],
-) -> list[dict[str, object]]:
-    if not image_filenames:
-        return []
-    with connect_pipeline_database(url) as connection:
-        with connection.cursor() as cursor:
+    def fetch_images(
+        self,
+        image_filenames: Sequence[str],
+    ) -> list[dict[str, object]]:
+        if not image_filenames:
+            return []
+        with connect_pipeline_database(self._url) as connection, connection.cursor() as cursor:
             cursor.execute(FETCH_IMAGES_SQL, (list(image_filenames),))
-            rows = cursor.fetchall()
-    return [dict(row) for row in rows]
+            rows = cast(list[DatabaseRow], cursor.fetchall())
+        return [dict(row) for row in rows]
 
-
-def upsert_discovered_images(url: str, images: Sequence[DiscoveredIndustryImage]) -> int:
-    if not images:
-        return 0
-    with connect_pipeline_database(url) as connection:
-        with connection.cursor() as cursor:
+    def upsert_discovered_images(self, images: Sequence[DiscoveredIndustryImage]) -> int:
+        if not images:
+            return 0
+        with connect_pipeline_database(self._url) as connection, connection.cursor() as cursor:
             for image in images:
                 cursor.execute(
                     UPSERT_DISCOVERED_IMAGE_SQL,
@@ -206,19 +210,17 @@ def upsert_discovered_images(url: str, images: Sequence[DiscoveredIndustryImage]
                         "image_index": image.image_index,
                     },
                 )
-    return len(images)
+        return len(images)
 
-
-def mark_download_success(
-    url: str,
-    *,
-    image_filename: str,
-    image_s3_key_value: str,
-    download_sha256: str,
-    download_bytes: int,
-) -> None:
-    with connect_pipeline_database(url) as connection:
-        with connection.cursor() as cursor:
+    def mark_download_success(
+        self,
+        *,
+        image_filename: str,
+        image_s3_key_value: str,
+        download_sha256: str,
+        download_bytes: int,
+    ) -> None:
+        with connect_pipeline_database(self._url) as connection, connection.cursor() as cursor:
             cursor.execute(
                 MARK_DOWNLOAD_SUCCESS_SQL,
                 {
@@ -229,16 +231,14 @@ def mark_download_success(
                 },
             )
 
-
-def mark_download_failed(
-    url: str,
-    *,
-    image_filename: str,
-    error_type: str,
-    error_message: str,
-) -> None:
-    with connect_pipeline_database(url) as connection:
-        with connection.cursor() as cursor:
+    def mark_download_failed(
+        self,
+        *,
+        image_filename: str,
+        error_type: str,
+        error_message: str,
+    ) -> None:
+        with connect_pipeline_database(self._url) as connection, connection.cursor() as cursor:
             cursor.execute(
                 MARK_DOWNLOAD_FAILED_SQL,
                 {
@@ -248,17 +248,15 @@ def mark_download_failed(
                 },
             )
 
-
-def mark_ocr_success(
-    url: str,
-    *,
-    image_filename: str,
-    ocr_result_s3_key_value: str,
-    ocr_result_row_count: int,
-    ocr_model: str,
-) -> None:
-    with connect_pipeline_database(url) as connection:
-        with connection.cursor() as cursor:
+    def mark_ocr_success(
+        self,
+        *,
+        image_filename: str,
+        ocr_result_s3_key_value: str,
+        ocr_result_row_count: int,
+        ocr_model: str,
+    ) -> None:
+        with connect_pipeline_database(self._url) as connection, connection.cursor() as cursor:
             cursor.execute(
                 MARK_OCR_SUCCESS_SQL,
                 {
@@ -269,16 +267,14 @@ def mark_ocr_success(
                 },
             )
 
-
-def mark_ocr_failed(
-    url: str,
-    *,
-    image_filename: str,
-    error_type: str,
-    error_message: str,
-) -> None:
-    with connect_pipeline_database(url) as connection:
-        with connection.cursor() as cursor:
+    def mark_ocr_failed(
+        self,
+        *,
+        image_filename: str,
+        error_type: str,
+        error_message: str,
+    ) -> None:
+        with connect_pipeline_database(self._url) as connection, connection.cursor() as cursor:
             cursor.execute(
                 MARK_OCR_FAILED_SQL,
                 {
@@ -288,14 +284,144 @@ def mark_ocr_failed(
                 },
             )
 
+    def reset_ocr_status(self, image_filenames: Sequence[str]) -> int:
+        if not image_filenames:
+            return 0
+        with connect_pipeline_database(self._url) as connection, connection.cursor() as cursor:
+            cursor.execute(RESET_OCR_STATUS_SQL, (list(image_filenames),))
+            return int(cursor.rowcount)
+
+    def claim_ocr_images(
+        self,
+        *,
+        limit: int | None,
+        image_filenames: Sequence[str] | None,
+        stale_after_seconds: int,
+        force_ocr: bool = False,
+    ) -> list[ClaimedIndustryImage]:
+        if limit is not None and limit < 1:
+            msg = "limit must be positive when provided"
+            raise ValueError(msg)
+        if stale_after_seconds < 0:
+            msg = "stale_after_seconds must be non-negative"
+            raise ValueError(msg)
+
+        only_selected = bool(image_filenames)
+        limit_value = limit if limit is not None else 10_000_000
+        selected_clause = (
+            "      and image_filename = any(%(image_filenames)s)\n" if only_selected else ""
+        )
+        sql = CLAIM_OCR_IMAGES_SQL.format(selected_clause=selected_clause)
+        params = {
+            "stale_after_seconds": stale_after_seconds,
+            "force_ocr": force_ocr,
+            "image_filenames": list(image_filenames or []),
+            "limit_value": limit_value,
+        }
+        with connect_pipeline_database(self._url) as connection, connection.cursor() as cursor:
+            cursor.execute(sql, params)
+            rows = cast(list[DatabaseRow], cursor.fetchall())
+        claimed: list[ClaimedIndustryImage] = []
+        for row in rows:
+            claimed.append(
+                ClaimedIndustryImage(
+                    image_filename=str(row["image_filename"]),
+                    image_url=str(row["image_url"]),
+                    image_s3_key=str(row["image_s3_key"]),
+                    industry_id=str(row["industry_id"]),
+                    image_index=int(row["image_index"]),
+                    download_status=str(row["download_status"]),
+                    ocr_status=str(row["ocr_status"]),
+                    ocr_result_s3_key=(
+                        None
+                        if row.get("ocr_result_s3_key") is None
+                        else str(row["ocr_result_s3_key"])
+                    ),
+                )
+            )
+        return claimed
+
+
+def fetch_existing_image_urls(
+    url: str,
+    image_filenames: Sequence[str],
+) -> dict[str, str]:
+    return PostgresIndustryImageRepository(url).fetch_existing_image_urls(image_filenames)
+
+
+def fetch_images(
+    url: str,
+    image_filenames: Sequence[str],
+) -> list[dict[str, object]]:
+    return PostgresIndustryImageRepository(url).fetch_images(image_filenames)
+
+
+def upsert_discovered_images(url: str, images: Sequence[DiscoveredIndustryImage]) -> int:
+    return PostgresIndustryImageRepository(url).upsert_discovered_images(images)
+
+
+def mark_download_success(
+    url: str,
+    *,
+    image_filename: str,
+    image_s3_key_value: str,
+    download_sha256: str,
+    download_bytes: int,
+) -> None:
+    PostgresIndustryImageRepository(url).mark_download_success(
+        image_filename=image_filename,
+        image_s3_key_value=image_s3_key_value,
+        download_sha256=download_sha256,
+        download_bytes=download_bytes,
+    )
+
+
+def mark_download_failed(
+    url: str,
+    *,
+    image_filename: str,
+    error_type: str,
+    error_message: str,
+) -> None:
+    PostgresIndustryImageRepository(url).mark_download_failed(
+        image_filename=image_filename,
+        error_type=error_type,
+        error_message=error_message,
+    )
+
+
+def mark_ocr_success(
+    url: str,
+    *,
+    image_filename: str,
+    ocr_result_s3_key_value: str,
+    ocr_result_row_count: int,
+    ocr_model: str,
+) -> None:
+    PostgresIndustryImageRepository(url).mark_ocr_success(
+        image_filename=image_filename,
+        ocr_result_s3_key_value=ocr_result_s3_key_value,
+        ocr_result_row_count=ocr_result_row_count,
+        ocr_model=ocr_model,
+    )
+
+
+def mark_ocr_failed(
+    url: str,
+    *,
+    image_filename: str,
+    error_type: str,
+    error_message: str,
+) -> None:
+    PostgresIndustryImageRepository(url).mark_ocr_failed(
+        image_filename=image_filename,
+        error_type=error_type,
+        error_message=error_message,
+    )
+
 
 def reset_ocr_status(url: str, image_filenames: Sequence[str]) -> int:
-    if not image_filenames:
-        return 0
-    with connect_pipeline_database(url) as connection:
-        with connection.cursor() as cursor:
-            cursor.execute(RESET_OCR_STATUS_SQL, (list(image_filenames),))
-            return cursor.rowcount
+    return PostgresIndustryImageRepository(url).reset_ocr_status(image_filenames)
 
 
 def claim_ocr_images(
@@ -306,41 +432,9 @@ def claim_ocr_images(
     stale_after_seconds: int,
     force_ocr: bool = False,
 ) -> list[ClaimedIndustryImage]:
-    if limit is not None and limit < 1:
-        msg = "limit must be positive when provided"
-        raise ValueError(msg)
-    if stale_after_seconds < 0:
-        msg = "stale_after_seconds must be non-negative"
-        raise ValueError(msg)
-
-    only_selected = bool(image_filenames)
-    limit_value = limit if limit is not None else 10_000_000
-    selected_clause = (
-        "      and image_filename = any(%(image_filenames)s)\n" if only_selected else ""
+    return PostgresIndustryImageRepository(url).claim_ocr_images(
+        limit=limit,
+        image_filenames=image_filenames,
+        stale_after_seconds=stale_after_seconds,
+        force_ocr=force_ocr,
     )
-    sql = CLAIM_OCR_IMAGES_SQL.format(selected_clause=selected_clause)
-    params = {
-        "stale_after_seconds": stale_after_seconds,
-        "force_ocr": force_ocr,
-        "image_filenames": list(image_filenames or []),
-        "limit_value": limit_value,
-    }
-    with connect_pipeline_database(url) as connection:
-        with connection.cursor() as cursor:
-            cursor.execute(sql, params)
-            rows = cursor.fetchall()
-    claimed: list[ClaimedIndustryImage] = []
-    for row in rows:
-        claimed.append(
-            ClaimedIndustryImage(
-                image_filename=str(row["image_filename"]),
-                image_url=str(row["image_url"]),
-                image_s3_key=str(row["image_s3_key"]),
-                industry_id=str(row["industry_id"]),
-                image_index=int(row["image_index"]),
-                download_status=str(row["download_status"]),
-                ocr_status=str(row["ocr_status"]),
-                ocr_result_s3_key=row.get("ocr_result_s3_key"),
-            )
-        )
-    return claimed

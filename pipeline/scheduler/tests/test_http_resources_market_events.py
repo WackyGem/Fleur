@@ -7,7 +7,6 @@ from datetime import date
 from unittest.mock import patch
 
 import dagster as dg
-
 from scheduler.defs.http_resources.client import HttpFetchStats
 from scheduler.defs.http_resources.flatten import flatten_content_object
 from scheduler.defs.http_resources.jiuyan__action_field import (
@@ -46,14 +45,16 @@ class FakeJsonClient:
 
 class JiuYanHeaderTest(unittest.TestCase):
     def test_header_factory_reads_credentials_and_generates_dynamic_timestamp(self) -> None:
-        with patch.dict(
-            os.environ,
-            {"JIUYAN_TOKEN": "token-value", "JIUYAN_COOKIE": "SESSION=session-value"},
+        with (
+            patch.dict(
+                os.environ,
+                {"JIUYAN_TOKEN": "token-value", "JIUYAN_COOKIE": "SESSION=session-value"},
+            ),
+            patch("time.time", side_effect=[1778309697.0, 1778309698.0]),
         ):
-            with patch("time.time", side_effect=[1778309697.0, 1778309698.0]):
-                headers = jiuyan_header_factory()
-                first = headers()
-                second = headers()
+            headers = jiuyan_header_factory()
+            first = headers()
+            second = headers()
 
         self.assertEqual(first["token"], "token-value")
         self.assertEqual(first["cookie"], "SESSION=session-value")
@@ -62,9 +63,8 @@ class JiuYanHeaderTest(unittest.TestCase):
         self.assertEqual(second["timestamp"], "1778309698000")
 
     def test_header_factory_requires_jiuyan_credentials(self) -> None:
-        with patch.dict(os.environ, {}, clear=True):
-            with self.assertRaises(RuntimeError):
-                jiuyan_header_factory()
+        with patch.dict(os.environ, {}, clear=True), self.assertRaises(RuntimeError):
+            jiuyan_header_factory()
 
 
 class MarketEventSchemaTest(unittest.TestCase):

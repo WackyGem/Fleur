@@ -13,9 +13,7 @@ from scheduler.defs.http_resources.schemas import (
 )
 from scheduler.defs.util import DEFAULT_RETRY_POLICY
 
-JIUYAN_INDUSTRY_LIST_URL = (
-    "https://app.jiuyangongshe.com/jystock-app/api/v1/industry/list"
-)
+JIUYAN_INDUSTRY_LIST_URL = "https://app.jiuyangongshe.com/jystock-app/api/v1/industry/list"
 JIUYAN_INDUSTRY_LIST_LIMIT = "500"
 
 
@@ -71,9 +69,7 @@ async def _fetch_industry_list_table_with_client(
         err_code = _required_string(payload.get("errCode"), field_name="errCode")
         if err_code != "0":
             msg = payload.get("msg")
-            raise RuntimeError(
-                f"JiuYan industry_list returned errCode={err_code}: {msg}"
-            )
+            raise RuntimeError(f"JiuYan industry_list returned errCode={err_code}: {msg}")
         data = payload.get("data")
         if not isinstance(data, Mapping):
             msg = "JiuYan industry_list response data is not an object"
@@ -99,9 +95,7 @@ async def _fetch_industry_list_table_with_client(
 
     fetched_at = time.perf_counter()
     industry_total_rows = sum(
-        len(page.get("result", []))
-        for page in pages
-        if isinstance(page.get("result"), list)
+        len(page.get("result", [])) for page in pages if isinstance(page.get("result"), list)
     )
     if industry_total_rows == 0:
         msg = "JiuYan industry_list returned no result rows"
@@ -122,9 +116,7 @@ async def _fetch_industry_list_table_with_client(
         "empty_response_count": 0,
         "page_count": len(pages),
         "result_page_count": sum(
-            1
-            for page in pages
-            if isinstance(page.get("result"), list) and len(page["result"]) > 0
+            1 for page in pages if isinstance(page.get("result"), list) and len(page["result"]) > 0
         ),
         "industry_total_rows": industry_total_rows,
         "has_next_terminal_value": terminal_has_next,

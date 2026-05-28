@@ -5,7 +5,6 @@ import unittest
 
 import pyarrow as pa
 import pyarrow.fs as pafs
-
 from scheduler.defs.jiuyan_industry_ocr.assets import _discover_images_from_table
 from scheduler.defs.jiuyan_industry_ocr.image_store import write_ocr_result_table
 from scheduler.defs.jiuyan_industry_ocr.ocr_schema import ocr_rows_to_table
@@ -28,7 +27,9 @@ class JiuyanIndustryOcrAssetsTest(unittest.TestCase):
 
         discovered, stats = _discover_images_from_table(table)
 
-        self.assertEqual([image.image_filename for image in discovered], ["one.png", "one.png", "two.jpg"])
+        self.assertEqual(
+            [image.image_filename for image in discovered], ["one.png", "one.png", "two.jpg"]
+        )
         self.assertEqual(stats["article_count"], 2)
         self.assertEqual(stats["parsed_image_url_count"], 3)
         self.assertEqual(stats["unique_image_filename_count"], 2)

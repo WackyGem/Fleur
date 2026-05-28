@@ -77,9 +77,7 @@ def _normalize_row(row: Mapping[str, object]) -> dict[str, str]:
         "theme_path": _normalize_theme_path(
             _first_non_empty_value(row, OCR_FIELD_ALIASES["theme_path"])
         ),
-        "relation": _coerce_string(
-            _first_non_empty_value(row, OCR_FIELD_ALIASES["relation"])
-        ),
+        "relation": _coerce_string(_first_non_empty_value(row, OCR_FIELD_ALIASES["relation"])),
         "source": _coerce_string(_first_non_empty_value(row, OCR_FIELD_ALIASES["source"])),
     }
     return normalized

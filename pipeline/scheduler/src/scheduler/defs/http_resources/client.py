@@ -4,7 +4,7 @@ import asyncio
 import json
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass
-from typing import Any, Literal
+from typing import Literal
 
 import aiohttp
 
@@ -151,7 +151,7 @@ class AioHttpClient:
             body_kind="text",
             decode_json=True,
         )
-        payload: Any = json.loads(response.body)
+        payload: object = json.loads(response.body)
         if not isinstance(payload, Mapping):
             msg = "HTTP response JSON is not an object"
             raise HttpResponseDecodeError(msg)
@@ -183,7 +183,7 @@ class AioHttpClient:
                         msg = f"HTTP response JSON decode failed: {error}"
                         raise HttpResponseDecodeError(msg) from error
                 return response
-            except (aiohttp.ClientError, asyncio.TimeoutError) as error:
+            except (TimeoutError, aiohttp.ClientError) as error:
                 self.stats.transient_error_count += 1
                 if attempt_index == self._max_attempts - 1:
                     msg = f"HTTP request failed after {self._max_attempts} attempts"
@@ -232,15 +232,15 @@ class AioHttpClient:
                 self.stats.transient_error_count += 1
                 if response.status >= 500:
                     self.stats.http_5xx_count += 1
-                body_preview = body[:300] if isinstance(body, str) else body[:300].decode(
-                    errors="replace"
+                body_preview = (
+                    body[:300] if isinstance(body, str) else body[:300].decode(errors="replace")
                 )
                 msg = f"HTTP {response.status}: {body_preview}"
                 raise HttpTransientRequestError(msg)
             if response.status >= 400:
                 self.stats.http_4xx_count += 1
-                body_preview = body[:300] if isinstance(body, str) else body[:300].decode(
-                    errors="replace"
+                body_preview = (
+                    body[:300] if isinstance(body, str) else body[:300].decode(errors="replace")
                 )
                 msg = f"HTTP {response.status}: {body_preview}"
                 raise HttpRequestError(msg)

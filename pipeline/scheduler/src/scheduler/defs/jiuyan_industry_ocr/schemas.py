@@ -45,7 +45,4 @@ def ocr_result_base_dir(bucket: str, image_filename: str) -> str:
 
 
 def ocr_result_s3_key(image_filename: str) -> str:
-    return (
-        f"{JIUYAN_INDUSTRY_OCR_S3_PREFIX}/image_filename={image_filename}/000000_0.parquet"
-    )
-
+    return f"{JIUYAN_INDUSTRY_OCR_S3_PREFIX}/image_filename={image_filename}/000000_0.parquet"

@@ -37,9 +37,7 @@ def sync_trade_date_dynamic_partitions(
     instance: dg.DagsterInstance,
     trade_dates: set[date],
 ) -> list[str]:
-    known_partition_keys = set(
-        instance.get_dynamic_partitions(trade_date_dynamic_partitions.name)
-    )
+    known_partition_keys = set(instance.get_dynamic_partitions(trade_date_dynamic_partitions.name))
     new_partition_keys = sorted(
         trade_date.isoformat()
         for trade_date in trade_dates
@@ -63,9 +61,7 @@ async def materialize_trade_date_range(
         msg = "max_concurrent_trade_dates must be positive"
         raise ValueError(msg)
     if max_concurrent_trade_dates > TRADE_DATE_BACKFILL_HARD_LIMIT:
-        msg = (
-            f"max_concurrent_trade_dates must be <= {TRADE_DATE_BACKFILL_HARD_LIMIT}"
-        )
+        msg = f"max_concurrent_trade_dates must be <= {TRADE_DATE_BACKFILL_HARD_LIMIT}"
         raise ValueError(msg)
 
     partition_keys = sorted(context.partition_keys)
@@ -122,8 +118,7 @@ async def materialize_trade_date_range(
                 task_group.create_task(fetch_and_write(trade_date))
     except ExceptionGroup as error:
         details = "; ".join(
-            f"{type(exception).__name__}: {exception}"
-            for exception in error.exceptions
+            f"{type(exception).__name__}: {exception}" for exception in error.exceptions
         )
         msg = (
             "Trade-date range materialization failed for "

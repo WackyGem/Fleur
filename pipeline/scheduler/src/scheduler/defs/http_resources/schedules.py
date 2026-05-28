@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from datetime import date
 from zoneinfo import ZoneInfo
 
 import dagster as dg
@@ -76,9 +75,7 @@ def _evaluate_market_event_daily_schedule(
     name="sina__trade_calendar_dynamic_partitions_sensor",
     minimum_interval_seconds=30,
     default_status=dg.DefaultSensorStatus.RUNNING,
-    description=(
-        "Sync trade_date dynamic partitions after sina__trade_calendar materializes."
-    ),
+    description=("Sync trade_date dynamic partitions after sina__trade_calendar materializes."),
 )
 def sina__trade_calendar_dynamic_partitions_sensor(
     context: dg.SensorEvaluationContext,
@@ -88,8 +85,7 @@ def sina__trade_calendar_dynamic_partitions_sensor(
         trade_dates = read_sina_trade_calendar_dates_from_s3(S3Config.from_env())
     except Exception as error:
         return dg.SkipReason(
-            "Sina trade calendar parquet is unavailable after materialization: "
-            f"{error}"
+            f"Sina trade calendar parquet is unavailable after materialization: {error}"
         )
 
     new_partition_keys = sync_trade_date_dynamic_partitions(

@@ -9,7 +9,6 @@ import dagster as dg
 import pyarrow as pa
 import pyarrow.fs as pafs
 import pyarrow.parquet as pq
-
 from scheduler.defs.baostock.protocol import decode_response, encode_request
 from scheduler.defs.http_resources.client import HttpTextResponse
 from scheduler.defs.http_resources.sina__trade_calendar import (
@@ -21,12 +20,11 @@ from scheduler.defs.http_resources.sina__trade_calendar import (
 )
 from scheduler.defs.io_managers.s3_io_manager import S3IOManager
 from scheduler.defs.util import (
+    ExponentialBackoffPolicy,
     asset_key_to_parquet_object_key,
     filter_active_security_ranges,
     write_parquet_dataset,
 )
-from scheduler.defs.util import ExponentialBackoffPolicy
-
 
 SAMPLE_RESPONSE = (
     'var datelist="LC/AAApNDXCw6mHbaPgkryxXv10eAJP1LW0SD39aT7+NV44Xba3PxCgTdrp5Bk'
@@ -63,9 +61,7 @@ class SinaCalendarParserTest(unittest.TestCase):
         self.assertEqual(dates, [])
 
     def test_trade_calendar_table_uses_trade_date_column(self) -> None:
-        table = trade_calendar_dates_to_table(
-            [date(1990, 12, 19), date(1990, 12, 20)]
-        )
+        table = trade_calendar_dates_to_table([date(1990, 12, 19), date(1990, 12, 20)])
 
         self.assertEqual(table.column_names, ["trade_date"])
         self.assertEqual(table.num_rows, 2)
@@ -126,9 +122,7 @@ class S3TableIOTest(unittest.TestCase):
         )
 
     def test_write_parquet_dataset_round_trips_unpartitioned_table(self) -> None:
-        table = trade_calendar_dates_to_table(
-            [date(1990, 12, 19), date(1990, 12, 20)]
-        )
+        table = trade_calendar_dates_to_table([date(1990, 12, 19), date(1990, 12, 20)])
 
         with TemporaryDirectory() as tmpdir:
             paths = write_parquet_dataset(
@@ -166,9 +160,7 @@ class S3TableIOTest(unittest.TestCase):
 
         self.assertEqual(
             paths,
-            [
-                f"{tmpdir}/raw/baostock__query_history_k_data_plus_daily/year=2026/000000_0.parquet"
-            ],
+            [f"{tmpdir}/raw/baostock__query_history_k_data_plus_daily/year=2026/000000_0.parquet"],
         )
         self.assertEqual(round_tripped.column_names, ["date", "code"])
         self.assertEqual(parquet_file.schema_arrow.names, ["date", "code"])
@@ -177,13 +169,12 @@ class S3TableIOTest(unittest.TestCase):
     def test_write_parquet_dataset_rejects_empty_table_by_default(self) -> None:
         table = pa.table({"date": []}, schema=pa.schema([("date", pa.string())]))
 
-        with TemporaryDirectory() as tmpdir:
-            with self.assertRaises(ValueError):
-                write_parquet_dataset(
-                    table,
-                    f"{tmpdir}/raw/empty",
-                    pafs.LocalFileSystem(),
-                )
+        with TemporaryDirectory() as tmpdir, self.assertRaises(ValueError):
+            write_parquet_dataset(
+                table,
+                f"{tmpdir}/raw/empty",
+                pafs.LocalFileSystem(),
+            )
 
     def test_write_parquet_dataset_round_trips_empty_table_when_allowed(self) -> None:
         table = pa.table({"date": []}, schema=pa.schema([("date", pa.string())]))
@@ -230,30 +221,32 @@ class BaoStockProtocolTest(unittest.TestCase):
 
     def test_decode_plain_stock_basic_response(self) -> None:
         body = (
-            '0\x01success\x01query_stock_basic\x01anonymous\x011\x0110000\x01'
+            "0\x01success\x01query_stock_basic\x01anonymous\x011\x0110000\x01"
             '{"record":[["sh.600000","浦发银行","1999-11-10","","1","1"]]}\x01'
-            'sh.600000\x01\x01code, code_name, ipoDate, outDate, type, status'
+            "sh.600000\x01\x01code, code_name, ipoDate, outDate, type, status"
         )
         header = f"00.9.00\x0146\x01{len(body):010d}"
         head_body = f"{header}{body}"
         crc = zlib.crc32(head_body.encode("utf-8"))
-        response = decode_response(f"{head_body}\x01{crc}<![CDATA[]]>\n".encode("utf-8"))
+        response = decode_response(f"{head_body}\x01{crc}<![CDATA[]]>\n".encode())
 
         self.assertEqual(response.error_code, "0")
         self.assertEqual(response.api_name, "query_stock_basic")
         self.assertEqual(response.records[0][0], "sh.600000")
-        self.assertEqual(response.field_names, ["code", "code_name", "ipoDate", "outDate", "type", "status"])
+        self.assertEqual(
+            response.field_names, ["code", "code_name", "ipoDate", "outDate", "type", "status"]
+        )
 
     def test_decode_compressed_history_response_keeps_adjustflag_param(self) -> None:
         body = (
-            '0\x01success\x01query_history_k_data_plus\x01anonymous\x011\x0110000\x01'
+            "0\x01success\x01query_history_k_data_plus\x01anonymous\x011\x0110000\x01"
             '{"record":[["2026-05-25","sh.600000","8.9400","9.1200","8.9100","9.0800",'
             '"8.9600","92598961","839416293.2400","3","0.278000","1","1.339300","0"]]}\x01'
-            'sh.600000\x01date,code,open,high,low,close,preclose,volume,amount,adjustflag,'
-            'turn,tradestatus,pctChg,isST\x012026-05-25\x012026-05-25\x01d\x013'
+            "sh.600000\x01date,code,open,high,low,close,preclose,volume,amount,adjustflag,"
+            "turn,tradestatus,pctChg,isST\x012026-05-25\x012026-05-25\x01d\x013"
         )
         compressed_body = zlib.compress(body.encode("utf-8"))
-        header = f"00.9.00\x0196\x01{len(compressed_body):010d}".encode("utf-8")
+        header = f"00.9.00\x0196\x01{len(compressed_body):010d}".encode()
         response = decode_response(header + compressed_body + b"<![CDATA[]]>\n")
 
         self.assertEqual(response.error_code, "0")

@@ -1,6 +1,6 @@
 [project]
 name = "scheduler"
-requires-python = ">=3.10,<3.15"
+requires-python = ">=3.12"
 version = "0.1.0"
 dependencies = [
     "aiohttp>=3.13.5",
@@ -14,7 +14,11 @@ dev = [
     "alembic>=1.16.0",
     "dagster-dg-cli",
     "dagster-webserver",
+    "pyright>=1.1.407",
+    "pytest>=9.0.3",
+    "pytest-cov>=7.0.0",
     "pyyaml>=6.0.3",
+    "ruff>=0.14.7",
 ]
 
 [build-system]

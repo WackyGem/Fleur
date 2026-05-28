@@ -3,9 +3,7 @@ from __future__ import annotations
 from collections.abc import Callable
 from datetime import date
 from zoneinfo import ZoneInfo
-
 import dagster as dg
-
 from scheduler.defs.baostock.assets import (
     baostock__query_history_k_data_plus_daily,
     baostock__query_stock_basic,
@@ -21,9 +19,7 @@ def build_trade_date_schedule(
     partition_key_fn: Callable[[date], str | None],
     run_config_fn: Callable[[date], dict[str, object]] | None = None,
     tags_fn: Callable[[date], dict[str, str]] | None = None,
-    dynamic_partitions: list[
-        tuple[dg.DynamicPartitionsDefinition, Callable[[date], str]]
-    ]
+    dynamic_partitions: list[tuple[dg.DynamicPartitionsDefinition, Callable[[date], str]]]
     | None = None,
     execution_timezone: str = "Asia/Shanghai",
 ) -> dg.ScheduleDefinition:

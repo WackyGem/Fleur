@@ -5,7 +5,6 @@ import unittest
 from collections.abc import Mapping
 
 import aiohttp
-
 from scheduler.defs.http_resources.client import (
     AioHttpClient,
     HttpRequest,

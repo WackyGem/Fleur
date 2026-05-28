@@ -80,7 +80,7 @@ def encode_request(
     header = f"{CLIENT_VERSION}{MESSAGE_SPLIT}{request_code}{MESSAGE_SPLIT}{len(body):010d}"
     head_body = f"{header}{body}"
     crc32_value = zlib.crc32(head_body.encode("utf-8"))
-    return f"{head_body}{MESSAGE_SPLIT}{crc32_value}\n".encode("utf-8")
+    return f"{head_body}{MESSAGE_SPLIT}{crc32_value}\n".encode()
 
 
 def decode_response(message: bytes) -> BaostockResponse:

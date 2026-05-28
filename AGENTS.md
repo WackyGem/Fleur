@@ -1,63 +1,142 @@
-# AGENTS.md instructions for /storage/program/mono-fleur
+# AGENTS.md — mono-fleur 项目指南
 
-## Project Layout
+## 项目结构
 
-- `pipeline/`: Python data workspace managed by `uv`.
-- `pipeline/elt/`: dbt project named `elt`.
-- `pipeline/scheduler/`: Dagster project named `scheduler`.
-- `app/`: reserved application directory.
-- `deploy/`: reserved deployment directory.
+```
+mono-fleur/
+├── pipeline/           # Python 数据工作区，由 uv 管理
+│   ├── scheduler/      # Dagster 调度项目（scheduler）
+│   ├── elt/            # dbt 转换项目（elt）
+│   └── migrate/        # Alembic 数据库迁移
+├── deploy/             # 部署配置
+│   ├── docker-compose.yml
+│   ├── postgres/       # PostgreSQL 配置
+│   └── jiuyan_industry_ocr.dev.yaml
+├── app/                # 预留应用目录
+├── docs/               # 项目文档与计划
+├── .env                # 环境变量（不提交）
+└── .env.example        # 环境变量模板
+```
 
-## Python And Workspace
+## Python 与工作区
 
-- Use `uv` for Python dependency and environment management.
-- The pipeline workspace is pinned to Python `3.12.13` in `pipeline/.python-version`.
-- Run Python, dbt, Dagster, and dg commands from `pipeline/` with `uv run`.
-- Sync the full workspace with:
+- 使用 `uv` 管理 Python 依赖和虚拟环境。
+- Python 版本固定在 `3.12.13`，配置于 `pipeline/.python-version`。
+- 所有 Python、dbt、Dagster 和 `dg` 命令必须在 `pipeline/` 目录下通过 `uv run` 执行。
+- 同步完整工作区：
 
 ```bash
 cd pipeline
 uv sync --all-packages --all-groups
 ```
 
-## dbt
+### 子项目
 
-- dbt project path: `pipeline/elt`.
-- dbt project name: `elt`.
-- Use `uv run dbt ...` from `pipeline/`.
-- Prefer targeted commands. Do not run the entire dbt project unless explicitly requested.
-- For model execution during development, prefer `dbt build --select ...` over `dbt run`.
-- The starter `models/example` content has been removed; preserve the empty scaffold directories.
+| 子项目 | 路径 | 包管理器 | 说明 |
+|--------|------|----------|------|
+| scheduler | `pipeline/scheduler/` | uv (pyproject.toml) | Dagster 调度与资产定义 |
+| elt | `pipeline/elt/` | uv (pyproject.toml) | dbt 数据转换 |
+| migrate | `pipeline/migrate/` | uv (pyproject.toml) | Alembic 数据库迁移 |
 
-## Dagster
+## Dagster（scheduler）
 
-- Dagster project path: `pipeline/scheduler`.
-- Dagster project name: `scheduler`.
-- Use `uv run dg ...` and `uv run dagster ...` from `pipeline/`.
-- Prefer `dg` for Dagster project inspection and scaffolding when a suitable command exists.
-- The current scheduler scaffold has an empty `defs` package and no example assets/jobs.
+- 项目路径：`pipeline/scheduler/`
+- 项目名称：`scheduler`
+- 在 `pipeline/` 目录下使用 `uv run dg ...` 和 `uv run dagster ...`
+- 优先使用 `dg` CLI 进行项目检查和脚手架操作
+- Dagster 主目录：`/storage/program/mono-fleur/.dagster`
 
-## Git And Generated Files
+### 资产分组
 
-- Do not create nested Git repositories inside project subdirectories.
-- Keep template-generated `.git`, `.gitignore`, `.dg`, logs, and example files out of scaffold projects unless explicitly needed.
-- Root `.gitignore` excludes virtual environments, dbt build artifacts, dbt logs/packages, and Dagster local state.
+| 资产组 | 说明 | 存储模式 |
+|--------|------|----------|
+| baostock | A 股基础信息与日 K 线数据（TCP 协议） | S3 Parquet |
+| eastmoney | 东方财富 F10 财务报表（HTTP API） | S3 Parquet（按年分区） |
+| http_resources | 交易日历、市场事件、涨停池 | S3 Parquet |
+| jiuyan_industry_ocr | 行业分类图片下载与 OCR 处理 | PostgreSQL 状态 + S3 Parquet |
 
-## MCP Routing
+### 关键架构模式
 
-- `context7`: Use for current documentation for libraries, frameworks, SDKs, APIs, CLI tools, and cloud services. Always resolve the library ID first, then query docs.
-- `ace_tool.search_context`: Use as the first-choice semantic codebase search when file locations are unknown.
-- `clickhouse`: Use only when ClickHouse database inspection or read-only SQL queries are needed.
-- Web search: Use only when current external information is required and Context7 is not the correct source.
+- **Repository 模式**：`PostgresIndustryImageRepository` 封装所有数据库操作
+- **Object Store 模式**：`ImageObjectStore` 提供 S3 文件系统抽象
+- **Service 层**：业务逻辑提取至 `services.py`，便于测试
+- **类型安全**：全项目使用准确类型，最小化 `Any` 使用
 
-## Skills Routing
+### 环境变量
 
-- `dagster-expert`: Use before any Dagster-specific task, including assets, materializations, components, data pipelines, schedules, sensors, jobs, project structure, `dg` CLI usage, or Dagster concept questions.
-- `dignified-python`: Use for Python code quality, type hints, modern Python style, pathlib, exception handling, interfaces, CLI patterns, or Python review/refactoring.
-- `using-dbt-for-analytics-engineering`: Use for building or modifying dbt models, sources, tests, SQL transformations, dbt project debugging, data exploration, or impact analysis.
-- `running-dbt-commands`: Use when formatting or executing dbt CLI commands, choosing the dbt executable, selecting resources, compiling, building, testing, or showing query output.
-- `adding-dbt-unit-test`: Use when adding dbt unit tests or practicing TDD for dbt model logic.
-- `answering-natural-language-questions-with-dbt`: Use for business/analytics questions answered from warehouse data, metrics, KPIs, Semantic Layer, or ad-hoc SQL. Do not use for dbt model development.
-- `fetching-dbt-docs`: Use for dbt documentation lookup about dbt Core, dbt Cloud/platform, or dbt Semantic Layer.
-- `configuring-dbt-mcp-server`: Use for setting up, configuring, or troubleshooting dbt MCP servers for AI tools.
+所有环境变量统一配置在根目录 `.env` 文件中：
 
+- `RUSTFS_*`：S3 兼容对象存储（RustFS/MinIO）
+- `BAOSTOCK_*`：BaoStock TCP 连接配置
+- `PIPELINE_DATABASE_URL`：PostgreSQL 连接字符串（OCR 状态管理）
+- `JIUYAN_*`：聚源数据 API 认证
+- `JIUYAN_OCR_*`：OCR 服务配置（超时、重试、并发）
+
+## dbt（elt）
+
+- 项目路径：`pipeline/elt/`
+- 项目名称：`elt`
+- 在 `pipeline/` 目录下使用 `uv run dbt ...`
+- 优先使用定向命令，除非明确要求，不要运行整个 dbt 项目
+- 开发时优先使用 `dbt build --select ...` 而非 `dbt run`
+- 初始 `models/example` 内容已移除，保留空目录结构
+
+## 数据库迁移（migrate）
+
+- 迁移路径：`pipeline/migrate/`
+- 使用 Alembic 管理 PostgreSQL 表结构
+- 执行迁移：
+
+```bash
+cd pipeline/migrate
+uv run alembic upgrade head
+```
+
+## 质量门禁
+
+提交代码前必须通过以下检查：
+
+```bash
+cd pipeline
+
+# 代码检查
+uv run ruff check scheduler/src scheduler/tests migrate
+
+# 代码格式化
+uv run ruff format scheduler/src scheduler/tests migrate
+
+# 类型检查
+uv run pyright scheduler/src scheduler/tests
+
+# 测试
+uv run pytest scheduler/tests --cov=scheduler/src/scheduler --cov-report=term-missing
+```
+
+## Git 与生成文件
+
+- 不要在项目子目录中创建嵌套 Git 仓库
+- 排除模板生成的 `.git`、`.gitignore`、`.dg`、日志和示例文件
+- 根目录 `.gitignore` 已排除虚拟环境、dbt 构建产物、dbt 日志/包和 Dagster 本地状态
+- `.env` 文件不得提交到版本控制
+
+## MCP 路由
+
+| 工具 | 用途 |
+|------|------|
+| `context7` | 查询库、框架、SDK、API、CLI 工具和云服务的最新文档。先解析库 ID，再查询文档 |
+| `ace_tool.search_context` | 文件位置未知时，作为首选的语义代码库搜索 |
+| `clickhouse` | 仅在需要检查 ClickHouse 数据库或执行只读 SQL 查询时使用 |
+| Web 搜索 | 仅在需要当前外部信息且 Context7 不是正确来源时使用 |
+
+## Skills 路由
+
+| Skill | 用途 |
+|-------|------|
+| `dagster-expert` | 任何 Dagster 相关任务之前使用，包括资产、物化、组件、数据管道、调度、传感器、作业、项目结构、`dg` CLI 用法或 Dagster 概念问题 |
+| `dignified-python` | Python 代码质量、类型提示、现代 Python 风格、pathlib、异常处理、接口、CLI 模式或 Python 审查/重构 |
+| `using-dbt-for-analytics-engineering` | 构建或修改 dbt 模型、源、测试、SQL 转换、dbt 项目调试、数据探索或影响分析 |
+| `running-dbt-commands` | 格式化或执行 dbt CLI 命令、选择 dbt 可执行文件、选择资源、编译、构建、测试或显示查询输出 |
+| `adding-dbt-unit-test` | 添加 dbt 单元测试或对 dbt 模型逻辑实践 TDD |
+| `answering-natural-language-questions-with-dbt` | 从仓库数据、指标、KPI、语义层或临时 SQL 回答业务/分析问题。不用于 dbt 模型开发 |
+| `fetching-dbt-docs` | 查找 dbt Core、dbt Cloud/平台或 dbt 语义层的 dbt 文档 |
+| `configuring-dbt-mcp-server` | 设置、配置或排查 AI 工具的 dbt MCP 服务器 |

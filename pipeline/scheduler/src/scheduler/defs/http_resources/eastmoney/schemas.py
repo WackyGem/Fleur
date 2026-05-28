@@ -229,4 +229,3 @@ def _stringify_value(value: object) -> str | None:
     if isinstance(value, int | float):
         return str(value)
     return json.dumps(value, sort_keys=True, ensure_ascii=False, separators=(",", ":"))
-

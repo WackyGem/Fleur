@@ -300,9 +300,7 @@ def _build_year_ranges(
     year_ranges: dict[str, tuple[date, date]] = {}
     for partition_key in partition_keys:
         year_int = int(partition_key)
-        year_trade_dates = [
-            trade_date for trade_date in trade_dates if trade_date.year == year_int
-        ]
+        year_trade_dates = [trade_date for trade_date in trade_dates if trade_date.year == year_int]
         if not year_trade_dates:
             msg = f"Partition {partition_key} has no trade dates in the Sina trade calendar"
             raise ValueError(msg)

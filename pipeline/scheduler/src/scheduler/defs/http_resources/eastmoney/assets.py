@@ -379,9 +379,7 @@ async def _fetch_eastmoney_tables(
         "candidate_security_count": candidate_security_count,
         "selected_security_count": dg.MetadataValue.json(selected_security_counts),
         "skipped_security_count": dg.MetadataValue.json(skipped_security_counts),
-        "unsupported_market_code_count": dg.MetadataValue.json(
-            unsupported_market_code_counts
-        ),
+        "unsupported_market_code_count": dg.MetadataValue.json(unsupported_market_code_counts),
         "selected_security_types": dg.MetadataValue.json(sorted(selected_security_types)),
         "requested_ranges": dg.MetadataValue.json(
             {
