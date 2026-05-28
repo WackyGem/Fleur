@@ -5,11 +5,13 @@ version = "0.1.0"
 dependencies = [
     "aiohttp>=3.13.5",
     "dagster==1.13.6",
+    "psycopg[binary]>=3.2.10",
     "pyarrow>=22.0.0",
 ]
 
 [dependency-groups]
 dev = [
+    "alembic>=1.16.0",
     "dagster-dg-cli",
     "dagster-webserver",
     "pyyaml>=6.0.3",

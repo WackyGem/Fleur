@@ -17,6 +17,13 @@ BAOSTOCK_PASSWORD = dg.EnvVar("BAOSTOCK_PASSWORD")
 
 JIUYAN_TOKEN = dg.EnvVar("JIUYAN_TOKEN")
 JIUYAN_COOKIE = dg.EnvVar("JIUYAN_COOKIE")
+PIPELINE_DATABASE_URL = dg.EnvVar("PIPELINE_DATABASE_URL")
+JIUYAN_OCR_BASE_URL = dg.EnvVar("JIUYAN_OCR_BASE_URL")
+JIUYAN_OCR_MODEL_NAME = dg.EnvVar("JIUYAN_OCR_MODEL_NAME")
+JIUYAN_OCR_TIMEOUT_SECONDS = dg.EnvVar.int("JIUYAN_OCR_TIMEOUT_SECONDS")
+JIUYAN_OCR_MAX_RETRIES = dg.EnvVar.int("JIUYAN_OCR_MAX_RETRIES")
+JIUYAN_OCR_MAX_CONCURRENT_REQUESTS = dg.EnvVar.int("JIUYAN_OCR_MAX_CONCURRENT_REQUESTS")
+JIUYAN_OCR_STALE_RUNNING_SECONDS = dg.EnvVar.int("JIUYAN_OCR_STALE_RUNNING_SECONDS")
 
 
 @dataclass(frozen=True)
@@ -52,4 +59,34 @@ class BaostockClientConfig:
             port=BAOSTOCK_PORT.get_value(),
             username=BAOSTOCK_USERNAME.get_value(),
             password=BAOSTOCK_PASSWORD.get_value(),
+        )
+
+
+@dataclass(frozen=True)
+class PipelineDatabaseConfig:
+    url: str
+
+    @classmethod
+    def from_env(cls) -> PipelineDatabaseConfig:
+        return cls(url=PIPELINE_DATABASE_URL.get_value())
+
+
+@dataclass(frozen=True)
+class JiuyanOcrConfig:
+    base_url: str
+    model_name: str
+    timeout_seconds: int
+    max_retries: int
+    max_concurrent_requests: int
+    stale_running_seconds: int
+
+    @classmethod
+    def from_env(cls) -> JiuyanOcrConfig:
+        return cls(
+            base_url=JIUYAN_OCR_BASE_URL.get_value(),
+            model_name=JIUYAN_OCR_MODEL_NAME.get_value(),
+            timeout_seconds=JIUYAN_OCR_TIMEOUT_SECONDS.get_value(),
+            max_retries=JIUYAN_OCR_MAX_RETRIES.get_value(),
+            max_concurrent_requests=JIUYAN_OCR_MAX_CONCURRENT_REQUESTS.get_value(),
+            stale_running_seconds=JIUYAN_OCR_STALE_RUNNING_SECONDS.get_value(),
         )

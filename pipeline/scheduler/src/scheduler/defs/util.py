@@ -129,6 +129,23 @@ def build_s3_filesystem(config: S3Config) -> pafs.S3FileSystem:
     )
 
 
+def write_bytes_to_filesystem(
+    filesystem: pafs.FileSystem,
+    path: str,
+    data: bytes,
+) -> None:
+    with filesystem.open_output_stream(path) as sink:
+        sink.write(data)
+
+
+def read_bytes_from_filesystem(
+    filesystem: pafs.FileSystem,
+    path: str,
+) -> bytes:
+    with filesystem.open_input_file(path) as source:
+        return source.read()
+
+
 def write_parquet_dataset(
     table: pa.Table,
     base_dir: str,

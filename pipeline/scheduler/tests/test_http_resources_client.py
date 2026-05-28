@@ -22,7 +22,7 @@ class FakeAioHttpResponse:
         self,
         *,
         status: int = 200,
-        body: str = "",
+        body: str | bytes = "",
         headers: Mapping[str, str] | None = None,
     ) -> None:
         self.status = status
@@ -41,7 +41,14 @@ class FakeAioHttpResponse:
         return None
 
     async def text(self) -> str:
+        if isinstance(self._body, bytes):
+            return self._body.decode("utf-8", errors="replace")
         return self._body
+
+    async def read(self) -> bytes:
+        if isinstance(self._body, bytes):
+            return self._body
+        return self._body.encode("utf-8")
 
 
 class FakeAioHttpSession:
@@ -111,6 +118,17 @@ class AioHttpClientTest(unittest.IsolatedAsyncioTestCase):
 
         self.assertEqual(payload["ok"], True)
         self.assertEqual(session.requests[0]["json"], {"hello": "world"})
+
+    async def test_request_bytes_returns_binary_body(self) -> None:
+        session = FakeAioHttpSession([FakeAioHttpResponse(body=b"abc")])
+
+        async with AioHttpClient(session_factory=lambda: session) as client:
+            response = await client.request_bytes(
+                HttpRequest(method="GET", url="https://example.test/image.png")
+            )
+
+        self.assertEqual(response.body, b"abc")
+        self.assertEqual(session.requests[0]["method"], "GET")
 
     async def test_http_429_and_5xx_retry(self) -> None:
         session = FakeAioHttpSession(

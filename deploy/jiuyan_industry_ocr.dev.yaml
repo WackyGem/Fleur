@@ -1,0 +1,12 @@
+ops:
+  jiuyan__industry_images:
+    config:
+      limit: 3
+      force_download: false
+      image_filenames: []
+  jiuyan__industry_ocr:
+    config:
+      limit: 3
+      force_ocr: false
+      image_filenames: []
+      max_concurrent_requests: 2

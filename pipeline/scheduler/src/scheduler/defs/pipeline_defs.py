@@ -29,6 +29,13 @@ from scheduler.defs.http_resources.schedules import (
 from scheduler.defs.http_resources.sina__trade_calendar import sina__trade_calendar
 from scheduler.defs.http_resources.ths__limit_up_pool import ths__limit_up_pool
 from scheduler.defs.io_managers.s3_io_manager import S3IOManager
+from scheduler.defs.jiuyan_industry_ocr.assets import (
+    jiuyan__industry_images,
+    jiuyan__industry_images_job,
+    jiuyan__industry_ocr,
+    jiuyan__industry_ocr_full_job,
+    jiuyan__industry_ocr_job,
+)
 
 
 @dg.definitions
@@ -39,6 +46,8 @@ def defs() -> dg.Definitions:
             jiuyan__action_field,
             ths__limit_up_pool,
             jiuyan__industry_list,
+            jiuyan__industry_images,
+            jiuyan__industry_ocr,
             baostock__query_stock_basic,
             baostock__query_history_k_data_plus_daily,
             *EASTMONEY_ASSETS,
@@ -47,6 +56,9 @@ def defs() -> dg.Definitions:
             sina__trade_calendar_job,
             http_resources__market_event_daily_job,
             jiuyan__industry_list_snapshot_job,
+            jiuyan__industry_images_job,
+            jiuyan__industry_ocr_job,
+            jiuyan__industry_ocr_full_job,
             baostock__daily_job,
             eastmoney__daily_job,
         ],
