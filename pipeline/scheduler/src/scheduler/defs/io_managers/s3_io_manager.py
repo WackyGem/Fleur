@@ -2,24 +2,23 @@ from __future__ import annotations
 
 import time
 from collections.abc import Mapping
-from typing import Any
+from typing import Any, cast
 
 import dagster as dg
 import pyarrow as pa
 
-from scheduler.defs.config import (
+from scheduler.defs.common.clock import elapsed_seconds
+from scheduler.defs.common.metadata import RawMetadataValue
+from scheduler.defs.config.env import (
     RUSTFS_ACCESS_KEY,
     RUSTFS_BUCKET,
     RUSTFS_ENDPOINT,
     RUSTFS_REGION_NAME,
     RUSTFS_SECRET_KEY,
-    S3Config,
 )
-from scheduler.defs.util import (
-    asset_key_to_parquet_object_key,
-    build_s3_filesystem,
-    write_parquet_dataset,
-)
+from scheduler.defs.config.models import S3Config
+from scheduler.defs.storage.parquet import write_parquet_dataset
+from scheduler.defs.storage.s3 import asset_key_to_parquet_object_key, build_s3_filesystem
 
 
 class S3IOManager(dg.ConfigurableIOManager):
@@ -50,7 +49,7 @@ class S3IOManager(dg.ConfigurableIOManager):
             if not context.has_asset_partitions:
                 msg = "Partitioned S3 output requires Dagster asset partitions"
                 raise RuntimeError(msg)
-            partition_tables = self._validate_partition_tables(obj, allow_empty=allow_empty)
+            partition_tables = self.validate_partition_tables(obj, allow_empty=allow_empty)
             validated_at = time.perf_counter()
             partition_keys = set(context.asset_partition_keys)
             table_keys = set(partition_tables)
@@ -75,9 +74,9 @@ class S3IOManager(dg.ConfigurableIOManager):
                 )
                 partition_row_counts[partition_key] = partition_table.num_rows
             row_count = sum(partition_row_counts.values())
-            column_count = self._partition_column_count(partition_tables)
+            column_count = self.partition_column_count(partition_tables)
         elif storage_mode == "latest_snapshot":
-            table = self._validate_table(obj, allow_empty=allow_empty)
+            table = self.validate_table(obj, allow_empty=allow_empty)
             validated_at = time.perf_counter()
             written_paths = write_parquet_dataset(
                 table, base_dir, filesystem, allow_empty=allow_empty
@@ -90,7 +89,7 @@ class S3IOManager(dg.ConfigurableIOManager):
         write_finished_at = time.perf_counter()
 
         object_keys = [self._path_to_object_key(path) for path in written_paths]
-        metadata: dict[str, object] = {
+        metadata: dict[str, RawMetadataValue] = {
             "s3_bucket": self.bucket,
             "s3_keys": dg.MetadataValue.json(object_keys),
             "s3_endpoint": self.endpoint,
@@ -100,16 +99,16 @@ class S3IOManager(dg.ConfigurableIOManager):
             "column_count": column_count,
             "storage_mode": storage_mode,
             "allow_empty": allow_empty,
-            "io_manager_validate_seconds": _elapsed_seconds(started_at, validated_at),
-            "s3_filesystem_build_seconds": _elapsed_seconds(
+            "io_manager_validate_seconds": elapsed_seconds(started_at, validated_at),
+            "s3_filesystem_build_seconds": elapsed_seconds(
                 validated_at,
                 filesystem_built_at,
             ),
-            "pyarrow_write_dataset_seconds": _elapsed_seconds(
+            "pyarrow_write_dataset_seconds": elapsed_seconds(
                 filesystem_built_at,
                 write_finished_at,
             ),
-            "io_manager_handle_output_seconds": _elapsed_seconds(
+            "io_manager_handle_output_seconds": elapsed_seconds(
                 started_at,
                 write_finished_at,
             ),
@@ -163,18 +162,19 @@ class S3IOManager(dg.ConfigurableIOManager):
             region_name=self.region_name,
         )
 
-    def _validate_table(self, obj: object, *, allow_empty: bool = False) -> pa.Table:
+    def validate_table(self, obj: object, *, allow_empty: bool = False) -> pa.Table:
         if not isinstance(obj, pa.Table):
             msg = "S3IOManager expected a pyarrow.Table"
             raise TypeError(msg)
+        table = cast(pa.Table, obj)
 
-        if obj.num_rows == 0 and not allow_empty:
+        if table.num_rows == 0 and not allow_empty:
             msg = "S3IOManager refuses to write an empty pyarrow.Table"
             raise ValueError(msg)
 
-        return obj
+        return table
 
-    def _validate_partition_tables(
+    def validate_partition_tables(
         self,
         obj: object,
         *,
@@ -189,14 +189,14 @@ class S3IOManager(dg.ConfigurableIOManager):
             if not isinstance(partition_key, str):
                 msg = "Partitioned S3 output keys must be strings"
                 raise TypeError(msg)
-            tables[partition_key] = self._validate_table(table, allow_empty=allow_empty)
+            tables[partition_key] = self.validate_table(table, allow_empty=allow_empty)
 
         if not tables:
             msg = "S3IOManager refuses to write an empty partition table mapping"
             raise ValueError(msg)
         return tables
 
-    def _partition_column_count(self, partition_tables: Mapping[str, pa.Table]) -> int:
+    def partition_column_count(self, partition_tables: Mapping[str, pa.Table]) -> int:
         first_table = next(iter(partition_tables.values()))
         first_columns = first_table.column_names
         for partition_key, table in partition_tables.items():
@@ -207,7 +207,3 @@ class S3IOManager(dg.ConfigurableIOManager):
                 )
                 raise ValueError(msg)
         return first_table.num_columns
-
-
-def _elapsed_seconds(started_at: float, finished_at: float) -> float:
-    return round(finished_at - started_at, 6)

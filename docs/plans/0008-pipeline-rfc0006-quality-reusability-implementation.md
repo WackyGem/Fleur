@@ -94,9 +94,12 @@ RFC 0006 复验后确认仍存在：
 ```text
 pipeline/scheduler/src/scheduler/
   definitions.py
-  defs/
-    __init__.py
-    definitions.py              # 组装 assets/jobs/schedules/resources；替代 pipeline_defs.py
+    defs/
+      __init__.py
+      definitions.py              # 组装 assets/jobs/schedules/resources；替代 pipeline_defs.py
+    automation/
+      __init__.py
+      schedules.py                # 通用 Dagster job/schedule 工厂
     config/
       __init__.py
       env.py                    # Dagster EnvVar 声明与 required getter
@@ -120,6 +123,7 @@ pipeline/scheduler/src/scheduler/
       asset_keys.py             # 跨源资产 key 常量
       securities.py             # SecurityDateRange、filter_active_security_ranges
       trade_calendar.py         # 交易日历读取与过滤
+      schedules.py              # A 股交易日调度工厂
     http/
       __init__.py
       client.py                 # AioHttpClient、request/response 类型、hook
@@ -127,7 +131,7 @@ pipeline/scheduler/src/scheduler/
       pagination.py             # 页码、游标、重复行检测
       schemas.py                # SchemaConversionConfig、TableConversionResult、字符串表构造
       partitioning.py           # 通用分区物化框架
-      schedules.py              # job/schedule 工厂
+      schedules.py              # HTTP 数据源 job/schedule 组装
     sources/
       __init__.py
       sina/
@@ -175,7 +179,9 @@ pipeline/scheduler/src/scheduler/
 - `common/` 只能放无业务含义的纯函数和轻量数据类。
 - `storage/` 只处理 S3、object key、bytes、Parquet，不知道具体数据源。
 - `market/` 只放跨数据源市场概念，如交易日、证券范围、共享 asset key。
-- `http/` 只放 HTTP 基础设施、分页、schema、分区物化和 schedule/job 工厂。
+- `automation/` 只放跨数据源 Dagster job/schedule 工厂，不依赖具体数据源协议。
+- `market/` 可放依赖 A 股交易日历的调度工厂。
+- `http/` 只放 HTTP 基础设施、分页、schema、分区物化和 HTTP 数据源 job/schedule 组装。
 - `sources/` 放数据源业务逻辑；数据源模块可调用 `common/`、`storage/`、`market/`、`http/`。
 - `repositories/` 只放数据库 repository，不暴露模块级便捷函数。
 - `io_managers/` 只保留 Dagster IOManager 实现，不承载业务 repository 或对象存储业务规则。
@@ -310,14 +316,19 @@ JiuYan 图片逻辑只负责：
 
 ### Schedule/Job 工厂
 
-`http/schedules.py` 提供声明式注册：
+`automation/schedules.py` 提供跨数据源声明式注册：
 
 - `AssetJobSpec`
 - `ScheduleSpec`
 - `build_asset_job(spec)`
 - `build_schedule(spec)`
-- `build_trade_date_schedule(spec)`
 - `build_year_refresh_schedule(spec)`
+
+`market/schedules.py` 提供依赖 A 股交易日历的调度工厂：
+
+- `build_trade_date_schedule(...)`
+
+`http/schedules.py` 只组装 HTTP 数据源的 job/schedule 实例。
 
 目标是让 `definitions.py` 只组装 spec，不再散落重复 `define_asset_job()` 和 `_evaluate_*_schedule()` 包装函数。
 
@@ -479,7 +490,9 @@ Review 检查清单：
 - common/ 只包含无业务含义的纯 helper。
 - storage/ 不知道具体数据源。
 - market/ 只表达跨数据源市场概念。
-- http/ 只提供 client、protocol、pagination、schema、partitioning、schedule/job 工厂。
+- automation/ 只提供跨数据源 Dagster job/schedule 工厂。
+- market/ 只表达跨数据源市场概念和交易日调度。
+- http/ 只提供 client、protocol、pagination、schema、partitioning 和 HTTP 数据源 job/schedule 组装。
 - sources/ 只保留数据源业务逻辑。
 - repositories/ 只保留 repository 类 API。
 

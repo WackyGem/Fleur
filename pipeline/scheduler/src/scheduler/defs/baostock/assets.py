@@ -11,13 +11,13 @@ from scheduler.defs.baostock.schemas import (
     k_history_daily_response_to_table,
     stock_basic_response_to_table,
 )
-from scheduler.defs.config import S3Config
-from scheduler.defs.util import (
-    BAOSTOCK_DAILY_K_ASSET_KEY,
-    filter_active_security_ranges,
-    read_baostock_stock_basic_from_s3,
-    read_sina_trade_calendar_dates_from_s3,
-)
+from scheduler.defs.common.clock import elapsed_seconds
+from scheduler.defs.common.metadata import RawMetadataValue
+from scheduler.defs.config.models import S3Config
+from scheduler.defs.market.asset_keys import BAOSTOCK_DAILY_K_ASSET_KEY
+from scheduler.defs.market.securities import filter_active_security_ranges
+from scheduler.defs.market.trade_calendar import read_trade_dates_from_s3
+from scheduler.defs.storage.parquet_readers import read_baostock_stock_basic_from_s3
 
 year_partitions = dg.TimeWindowPartitionsDefinition(
     start="1990",
@@ -47,7 +47,7 @@ class KLineDailyYearConfig(dg.Config):
 def baostock__query_stock_basic() -> dg.MaterializeResult[pa.Table]:
     """Latest BaoStock security basic-information snapshot."""
 
-    table, timing_metadata = asyncio.run(_fetch_stock_basic_table())
+    table, timing_metadata = asyncio.run(fetch_stock_basic_table())
     return dg.MaterializeResult(
         value=table,
         metadata={
@@ -83,13 +83,13 @@ def baostock__query_history_k_data_plus_daily(
     asset_started_at = time.perf_counter()
     s3_config = S3Config.from_env()
     config_loaded_at = time.perf_counter()
-    trade_dates = read_sina_trade_calendar_dates_from_s3(s3_config)
+    trade_dates = read_trade_dates_from_s3(s3_config)
     trade_calendar_read_at = time.perf_counter()
     stock_basic = read_baostock_stock_basic_from_s3(s3_config)
     stock_basic_read_at = time.perf_counter()
-    year_ranges = _build_year_ranges(context, config, trade_dates)
+    year_ranges = build_year_ranges(context, config, trade_dates)
     year_ranges_built_at = time.perf_counter()
-    tables, metadata = asyncio.run(_fetch_k_history_tables(stock_basic, year_ranges))
+    tables, metadata = asyncio.run(fetch_k_history_tables(stock_basic, year_ranges))
     remote_fetch_finished_at = time.perf_counter()
     if not tables:
         msg = "BaoStock daily K-line query returned no rows for the selected partition range"
@@ -102,24 +102,24 @@ def baostock__query_history_k_data_plus_daily(
             "row_count": row_count,
             "column_count": first_table.num_columns,
             "partition_keys": dg.MetadataValue.json(sorted(year_ranges)),
-            "s3_config_load_seconds": _elapsed_seconds(asset_started_at, config_loaded_at),
-            "trade_calendar_read_seconds": _elapsed_seconds(
+            "s3_config_load_seconds": elapsed_seconds(asset_started_at, config_loaded_at),
+            "trade_calendar_read_seconds": elapsed_seconds(
                 config_loaded_at,
                 trade_calendar_read_at,
             ),
-            "stock_basic_read_seconds": _elapsed_seconds(
+            "stock_basic_read_seconds": elapsed_seconds(
                 trade_calendar_read_at,
                 stock_basic_read_at,
             ),
-            "year_ranges_build_seconds": _elapsed_seconds(
+            "year_ranges_build_seconds": elapsed_seconds(
                 stock_basic_read_at,
                 year_ranges_built_at,
             ),
-            "baostock_remote_fetch_seconds": _elapsed_seconds(
+            "baostock_remote_fetch_seconds": elapsed_seconds(
                 year_ranges_built_at,
                 remote_fetch_finished_at,
             ),
-            "asset_function_seconds": _elapsed_seconds(
+            "asset_function_seconds": elapsed_seconds(
                 asset_started_at,
                 remote_fetch_finished_at,
             ),
@@ -128,7 +128,7 @@ def baostock__query_history_k_data_plus_daily(
     return dg.MaterializeResult(value=tables, metadata=metadata)
 
 
-async def _fetch_stock_basic_table() -> tuple[pa.Table, dict[str, float]]:
+async def fetch_stock_basic_table() -> tuple[pa.Table, dict[str, float]]:
     started_at = time.perf_counter()
     async with BaostockAioTcpClient() as client:
         client_started_at = time.perf_counter()
@@ -139,18 +139,18 @@ async def _fetch_stock_basic_table() -> tuple[pa.Table, dict[str, float]]:
     closed_at = time.perf_counter()
 
     return table, {
-        "baostock_client_start_seconds": _elapsed_seconds(started_at, client_started_at),
-        "baostock_query_seconds": _elapsed_seconds(client_started_at, query_finished_at),
-        "table_convert_seconds": _elapsed_seconds(query_finished_at, table_converted_at),
-        "baostock_client_close_seconds": _elapsed_seconds(table_converted_at, closed_at),
-        "asset_function_seconds": _elapsed_seconds(started_at, closed_at),
+        "baostock_client_start_seconds": elapsed_seconds(started_at, client_started_at),
+        "baostock_query_seconds": elapsed_seconds(client_started_at, query_finished_at),
+        "table_convert_seconds": elapsed_seconds(query_finished_at, table_converted_at),
+        "baostock_client_close_seconds": elapsed_seconds(table_converted_at, closed_at),
+        "asset_function_seconds": elapsed_seconds(started_at, closed_at),
     }
 
 
-async def _fetch_k_history_tables(
+async def fetch_k_history_tables(
     stock_basic: pa.Table,
     year_ranges: dict[str, tuple[date, date]],
-) -> tuple[dict[str, pa.Table], dict[str, object]]:
+) -> tuple[dict[str, pa.Table], dict[str, RawMetadataValue]]:
     started_at = time.perf_counter()
     annual_tables: dict[str, list[pa.Table]] = {year: [] for year in year_ranges}
     candidate_security_count = stock_basic.num_rows
@@ -212,17 +212,17 @@ async def _fetch_k_history_tables(
                     for year, (start_date, end_date) in year_ranges.items()
                 }
             ),
-            "baostock_client_start_seconds": _elapsed_seconds(started_at, client_started_at),
-            "security_filter_and_task_schedule_seconds": _elapsed_seconds(
+            "baostock_client_start_seconds": elapsed_seconds(started_at, client_started_at),
+            "security_filter_and_task_schedule_seconds": elapsed_seconds(
                 client_started_at,
                 tasks_scheduled_at,
             ),
-            "baostock_kline_task_wall_seconds": _elapsed_seconds(
+            "baostock_kline_task_wall_seconds": elapsed_seconds(
                 tasks_scheduled_at,
                 tasks_finished_at,
             ),
-            "kline_table_concat_seconds": _elapsed_seconds(tasks_finished_at, table_built_at),
-            "kline_fetch_total_seconds": _elapsed_seconds(started_at, table_built_at),
+            "kline_table_concat_seconds": elapsed_seconds(tasks_finished_at, table_built_at),
+            "kline_fetch_total_seconds": elapsed_seconds(started_at, table_built_at),
         }
 
     missing_years = sorted(set(year_ranges) - set(tables))
@@ -230,7 +230,7 @@ async def _fetch_k_history_tables(
         msg = f"BaoStock daily K-line query returned no rows for partitions: {missing_years}"
         raise RuntimeError(msg)
 
-    metadata: dict[str, object] = {
+    metadata: dict[str, RawMetadataValue] = {
         "candidate_security_count": candidate_security_count,
         "selected_security_count": dg.MetadataValue.json(selected_security_counts),
         "skipped_security_count": dg.MetadataValue.json(skipped_security_counts),
@@ -244,17 +244,17 @@ async def _fetch_k_history_tables(
                 for year, (start_date, end_date) in year_ranges.items()
             }
         ),
-        "baostock_client_start_seconds": _elapsed_seconds(started_at, client_started_at),
-        "security_filter_and_task_schedule_seconds": _elapsed_seconds(
+        "baostock_client_start_seconds": elapsed_seconds(started_at, client_started_at),
+        "security_filter_and_task_schedule_seconds": elapsed_seconds(
             client_started_at,
             tasks_scheduled_at,
         ),
-        "baostock_kline_task_wall_seconds": _elapsed_seconds(
+        "baostock_kline_task_wall_seconds": elapsed_seconds(
             tasks_scheduled_at,
             tasks_finished_at,
         ),
-        "kline_table_concat_seconds": _elapsed_seconds(tasks_finished_at, table_built_at),
-        "kline_fetch_total_seconds": _elapsed_seconds(started_at, table_built_at),
+        "kline_table_concat_seconds": elapsed_seconds(tasks_finished_at, table_built_at),
+        "kline_fetch_total_seconds": elapsed_seconds(started_at, table_built_at),
     }
     return tables, metadata
 
@@ -270,7 +270,7 @@ async def _fetch_one_daily_k_table(
     return k_history_daily_response_to_table(response)
 
 
-def _build_year_ranges(
+def build_year_ranges(
     context: dg.AssetExecutionContext,
     config: KLineDailyYearConfig,
     trade_dates: set[date],
@@ -308,7 +308,7 @@ def _build_year_ranges(
     return year_ranges
 
 
-def _empty_k_history_table() -> pa.Table:
+def empty_k_history_table() -> pa.Table:
     schema = pa.schema(
         [
             ("date", pa.string()),
@@ -328,7 +328,3 @@ def _empty_k_history_table() -> pa.Table:
         ]
     )
     return pa.table({field.name: [] for field in schema}, schema=schema)
-
-
-def _elapsed_seconds(started_at: float, finished_at: float) -> float:
-    return round(finished_at - started_at, 6)

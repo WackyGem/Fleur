@@ -6,7 +6,7 @@ from contextlib import suppress
 from dataclasses import dataclass, field
 from datetime import date
 from types import TracebackType
-from typing import Self
+from typing import Protocol, Self
 
 from scheduler.defs.baostock.protocol import (
     DEFAULT_PAGE_SIZE,
@@ -21,8 +21,8 @@ from scheduler.defs.baostock.protocol import (
     encode_request,
 )
 from scheduler.defs.baostock.schemas import K_HISTORY_DAILY_FIELD_PARAM
-from scheduler.defs.config import BaostockClientConfig
-from scheduler.defs.util import DEFAULT_RETRY_POLICY, ExponentialBackoffPolicy
+from scheduler.defs.common.retry import DEFAULT_RETRY_POLICY, ExponentialBackoffPolicy
+from scheduler.defs.config.models import BaostockClientConfig
 
 CONNECT_TIMEOUT_SECONDS = 5
 REQUEST_TIMEOUT_SECONDS = 30
@@ -31,6 +31,15 @@ MAX_REQUEST_ATTEMPTS = 4
 LOGIN_TTL_SECONDS = 55 * 60
 NO_LOGIN_ERROR_CODE = "10001001"
 RESPONSE_STREAM_LIMIT_BYTES = 64 * 1024 * 1024
+
+
+class BaostockSendOnceProtocol(Protocol):
+    async def __call__(
+        self,
+        payload: bytes,
+        *,
+        timeout_seconds: float,
+    ) -> BaostockResponse: ...
 
 
 @dataclass(eq=False)
@@ -80,6 +89,7 @@ class BaostockAioTcpClient:
         max_connections: int | None = None,
         retry_policy: ExponentialBackoffPolicy = DEFAULT_RETRY_POLICY,
         max_attempts: int = MAX_REQUEST_ATTEMPTS,
+        send_once: BaostockSendOnceProtocol | None = None,
     ) -> None:
         base_config = config or BaostockClientConfig.from_env()
         if max_connections is not None:
@@ -97,6 +107,7 @@ class BaostockAioTcpClient:
         self._config = base_config
         self._retry_policy = retry_policy
         self._max_attempts = max_attempts
+        self._send_once_override = send_once
         self._semaphore = asyncio.Semaphore(base_config.max_connections)
         self._idle_connections: asyncio.LifoQueue[BaostockTcpConnection] = asyncio.LifoQueue()
         self._connections: set[BaostockTcpConnection] = set()
@@ -332,6 +343,9 @@ class BaostockAioTcpClient:
         *,
         timeout_seconds: float,
     ) -> BaostockResponse:
+        if self._send_once_override is not None:
+            return await self._send_once_override(payload, timeout_seconds=timeout_seconds)
+
         connection = await self._borrow_connection()
         try:
             response = await connection.request(payload, timeout_seconds)

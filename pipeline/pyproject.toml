@@ -40,6 +40,9 @@ line-ending = "auto"
 [tool.pytest.ini_options]
 minversion = "9.0"
 addopts = "-ra"
+pythonpath = [
+    "scheduler",
+]
 testpaths = [
     "scheduler/tests",
 ]
@@ -63,10 +66,8 @@ fail_under = 70
 
 [tool.pyright]
 include = [
-    "scheduler/src/scheduler/defs/http_resources/client.py",
-    "scheduler/src/scheduler/defs/io_managers/s3_io_manager.py",
-    "scheduler/src/scheduler/defs/jiuyan_industry_ocr",
-    "scheduler/src/scheduler/defs/baostock",
+    "scheduler/src/scheduler",
+    "scheduler/tests",
 ]
 exclude = [
     "**/__pycache__",

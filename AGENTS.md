@@ -52,14 +52,36 @@ uv sync --all-packages --all-groups
 |--------|------|----------|
 | baostock | A 股基础信息与日 K 线数据（TCP 协议） | S3 Parquet |
 | eastmoney | 东方财富 F10 财务报表（HTTP API） | S3 Parquet（按年分区） |
-| http_resources | 交易日历、市场事件、涨停池 | S3 Parquet |
-| jiuyan_industry_ocr | 行业分类图片下载与 OCR 处理 | PostgreSQL 状态 + S3 Parquet |
+| http_sources | 交易日历、市场事件、涨停池、韭研行业图片与 OCR | S3 Parquet + PostgreSQL 状态 |
+
+### scheduler 模块边界
+
+`pipeline/scheduler/src/scheduler/defs/` 当前按职责分层：
+
+| 目录 | 用途 |
+|------|------|
+| `automation/` | 跨数据源 Dagster job/schedule 工厂，如 `AssetJobSpec`、`ScheduleSpec`、`build_asset_job()`、`build_schedule()`、`build_year_refresh_schedule()` |
+| `common/` | 无业务含义的纯 helper，如时间、字符串、数字、指纹、metadata、retry |
+| `config/` | 环境变量 getter 与配置数据类；业务模块不要直接调用 `dg.EnvVar` |
+| `storage/` | S3、object key、bytes、Parquet、通用 `ObjectStore` |
+| `market/` | 跨数据源市场概念，如 asset key、证券范围、交易日历、A 股交易日 schedule 工厂 `build_trade_date_schedule()` |
+| `http/` | HTTP client、protocol、pagination、schema、partitioning，以及 HTTP 数据源 job/schedule 实例组装 |
+| `sources/` | 数据源业务逻辑，按 `sina/`、`jiuyan/`、`ths/`、`eastmoney/` 分包 |
+| `baostock/` | BaoStock TCP 客户端、协议、schema、资产与 schedule |
+| `repositories/` | 数据库 repository，仅保留类 API |
+| `io_managers/` | Dagster IOManager 实现 |
+
+边界要求：
+
+- BaoStock 是 TCP 数据源，不得从 `scheduler.defs.http` 导入通用调度能力；应使用 `automation.schedules` 与 `market.schedules`。
+- `http/schedules.py` 只组装 HTTP 数据源具体 job/schedule，不定义或 re-export 通用工厂。
+- `build_trade_date_schedule()` 属于 `market/schedules.py`，因为它依赖 `sina__trade_calendar` 作为 A 股交易日事实来源。
 
 ### 关键架构模式
 
 - **Repository 模式**：`PostgresIndustryImageRepository` 封装所有数据库操作
-- **Object Store 模式**：`ImageObjectStore` 提供 S3 文件系统抽象
-- **Service 层**：业务逻辑提取至 `services.py`，便于测试
+- **Object Store 模式**：`ObjectStore` 提供通用二进制对象存储，`ImageObjectStore` 只保留图片/OCR 业务映射
+- **Service 层**：OCR 等业务逻辑提取至 service 模块，便于测试
 - **类型安全**：全项目使用准确类型，最小化 `Any` 使用
 
 ### 环境变量
@@ -106,10 +128,14 @@ uv run ruff check scheduler/src scheduler/tests migrate
 uv run ruff format scheduler/src scheduler/tests migrate
 
 # 类型检查
-uv run pyright scheduler/src scheduler/tests
+uv run pyright scheduler/src/scheduler scheduler/tests
 
 # 测试
 uv run pytest scheduler/tests --cov=scheduler/src/scheduler --cov-report=term-missing
+
+# Dagster definitions 检查
+cd scheduler
+uv run dg check defs
 ```
 
 ## Git 与生成文件
