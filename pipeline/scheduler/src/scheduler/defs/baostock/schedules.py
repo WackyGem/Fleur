@@ -24,7 +24,7 @@ baostock__daily_schedule = build_trade_date_schedule(
     partition_key_fn=lambda trade_date: str(trade_date.year),
     run_config_fn=lambda trade_date: {
         "ops": {
-            "baostock__query_history_k_data_plus_daily": {
+            baostock__query_history_k_data_plus_daily.node_def.name: {
                 "config": {
                     "refresh_until_trade_date": trade_date.isoformat(),
                 }

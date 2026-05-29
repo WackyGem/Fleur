@@ -22,7 +22,7 @@ jiuyan__industry_ocr
 
 ## 目标
 
-- 从 `raw/jiuyan__industry_list` 的 `imgs` 字段解析图片 URL。
+- 从 `source/jiuyan__industry_list` 的 `imgs` 字段解析图片 URL。
 - 下载 OSS 图片，写入 S3 `img/jiuyan__industry_images/<image_filename>`。
 - 使用 PostgreSQL 记录下载/OCR 状态，避免重复处理和重试。
 - 按单张图片调用 OpenAI-compatible OCR 服务，要求返回扁平 JSON array。
@@ -61,7 +61,7 @@ docs/ADR/0002-s3-parquet-storage-layout.md
 
 | Asset | 输入 | 输出 | 分区 | 存储模式 | 行粒度 |
 | --- | --- | --- | --- | --- | --- |
-| `jiuyan__industry_images` | `raw/jiuyan__industry_list` | S3 图片 + PostgreSQL 状态 | 无 | image objects | 一张去重后的图片 |
+| `jiuyan__industry_images` | `source/jiuyan__industry_list` | S3 图片 + PostgreSQL 状态 | 无 | image objects | 一张去重后的图片 |
 | `jiuyan__industry_ocr` | `jiuyan__industry_images` + PostgreSQL | 单图 OCR Parquet + PostgreSQL 状态 | 无 | object-per-image | 一个 OCR 条目 |
 
 图片资产路径：
@@ -77,10 +77,10 @@ img/jiuyan__industry_images/<image_filename>
 OCR 结果按图片写入独立对象，避免多个 run 并发覆盖同一个 bucket 文件：
 
 ```text
-raw/jiuyan__industry_ocr/image_filename=<image_filename>/000000_0.parquet
+source/jiuyan__industry_ocr/image_filename=<image_filename>/000000_0.parquet
 ```
 
-上游 `raw/jiuyan__industry_list` 生产路径采用 `000000_0` 命名。
+上游 `source/jiuyan__industry_list` 生产路径采用 `000000_0` 命名。
 
 选择单图对象的原因：
 
@@ -203,7 +203,7 @@ OCR prompt 原则：
 路径：
 
 ```text
-raw/jiuyan__industry_ocr/image_filename=<image_filename>/000000_0.parquet
+source/jiuyan__industry_ocr/image_filename=<image_filename>/000000_0.parquet
 ```
 
 输出字段：

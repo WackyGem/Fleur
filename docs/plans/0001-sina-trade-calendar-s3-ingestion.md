@@ -136,7 +136,7 @@
 
 建议对象 key：
 
-- `raw/sina__trade_calendar/000000_0.parquet`
+- `source/sina__trade_calendar/000000_0.parquet`
 - 该 key 不包含 Hive 分区目录；`000000_0.parquet` 是单个对象文件名。
 
 写入格式：
@@ -150,9 +150,9 @@
 写入语义：
 
 - `sina__trade_calendar` 是不分区资产。
-- S3 目录固定为 `raw/sina__trade_calendar/`，不创建 `snapshot_date=YYYY-MM-DD/` 这类 Hive 分区目录。
+- S3 目录固定为 `source/sina__trade_calendar/`，不创建 `snapshot_date=YYYY-MM-DD/` 这类 Hive 分区目录。
 - 文件名使用 Hive 常见单文件输出形态 `000000_0.parquet`。
-- 每次 materialize 都覆盖同一个 `raw/sina__trade_calendar/000000_0.parquet` 对象。
+- 每次 materialize 都覆盖同一个 `source/sina__trade_calendar/000000_0.parquet` 对象。
 - 不使用 `snapshot_date=YYYY-MM-DD.parquet` 作为文件名；交易日历只保留当前最新快照。
 - IO manager 负责把 asset 返回值转换为 Parquet bytes，并使用 zstd 压缩写入 S3。
 - asset 本身只负责请求和解析，不直接处理对象存储细节。
@@ -224,7 +224,7 @@ pipeline/scheduler/src/scheduler/
 - group：`http_sources`
 - tags：
   - `source=sina`
-  - `layer=raw`
+  - `layer=source`
   - `storage=s3`
 
 ## Asset 设计
@@ -235,7 +235,7 @@ pipeline/scheduler/src/scheduler/
 - 输入：无上游 Dagster asset。
 - 输出：交易日历二维数组。
 - IO manager：`s3_io_manager`。
-- 存储位置：`raw/sina__trade_calendar/000000_0.parquet`。
+- 存储位置：`source/sina__trade_calendar/000000_0.parquet`。
 - 存储格式：Parquet。
 - 压缩格式：zstd。
 
@@ -308,7 +308,7 @@ Python 依赖建议：
 - 请求使用 Chrome UA。
 - parser 能解析出从 `1990-12-19` 开始的交易日数组。
 - 输出包含 `1992-05-04`。
-- 成功运行后 S3 中存在 `raw/sina__trade_calendar/000000_0.parquet`。
+- 成功运行后 S3 中存在 `source/sina__trade_calendar/000000_0.parquet`。
 - `sina__trade_calendar` 不使用 Dagster 分区；S3 对象 key 不包含分区目录。
 - S3 对象是 Parquet 格式，并使用 zstd 压缩。
 - Dagster materialization metadata 中能看到行数、日期范围、S3 对象位置、文件格式和压缩格式。

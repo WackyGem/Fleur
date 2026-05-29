@@ -422,7 +422,7 @@ pipeline/scheduler/src/scheduler/defs/util.py
 数据来源：
 
 - `baostock__query_stock_basic` 已物化到 S3 的 parquet 快照。
-- K 线资产通过公共 S3/PyArrow 读取工具读取 `raw/baostock__query_stock_basic/000000_0.parquet`，得到 `pa.Table` 后再调用过滤组件。
+- K 线资产通过公共 S3/PyArrow 读取工具读取 `source/baostock__query_stock_basic/000000_0.parquet`，得到 `pa.Table` 后再调用过滤组件。
 - 必需字段：
   - `code`
   - `ipoDate`
@@ -623,13 +623,13 @@ pipeline/scheduler/src/scheduler/defs/pipeline_defs.py
 - 已落地的 `sina__trade_calendar` 必须随迁到新 writer，路径保持不变：
 
 ```text
-raw/sina__trade_calendar/000000_0.parquet
+source/sina__trade_calendar/000000_0.parquet
 ```
 
 `sina__trade_calendar` 适配要求：
 
 - 作为不分区资产写入，`write_dataset(..., partitioning=None)`。
-- `base_dir` 为 `{bucket}/raw/sina__trade_calendar`。
+- `base_dir` 为 `{bucket}/source/sina__trade_calendar`。
 - `basename_template` 为 `000000_{i}.parquet`。
 - 实际只允许输出一个文件：`000000_0.parquet`。
 - 现有交易日历读取工具继续读取同一路径。
@@ -642,7 +642,7 @@ raw/sina__trade_calendar/000000_0.parquet
    - 物理存储始终覆盖最新快照：
 
 ```text
-raw/baostock__query_stock_basic/000000_0.parquet
+source/baostock__query_stock_basic/000000_0.parquet
 ```
 
 2. `baostock__query_history_k_data_plus_daily`
@@ -654,7 +654,7 @@ raw/baostock__query_stock_basic/000000_0.parquet
    - 物理路径：
 
 ```text
-raw/baostock__query_history_k_data_plus_daily/year=YYYY/000000_0.parquet
+source/baostock__query_history_k_data_plus_daily/year=YYYY/000000_0.parquet
 ```
 
 ## 交易日历依赖设计
@@ -803,7 +803,7 @@ baostock__query_history_k_data_plus_daily
   分区：year
   日常刷新：交易日调度器按交易日触发，刷新当年 year 分区到本次 trade_date
   历史回填：显式 materialize 某个 year 分区，刷新该完整年份
-  写入：raw/baostock__query_history_k_data_plus_daily/year=YYYY/000000_0.parquet
+  写入：source/baostock__query_history_k_data_plus_daily/year=YYYY/000000_0.parquet
 ```
 
 不再设计 `baostock__query_history_k_data_plus_daily_compacted`。原因：
@@ -879,8 +879,8 @@ def baostock__query_history_k_data_plus_daily(
   每个 code 请求一次 code + 2026-01-01..2026-12-31
 
 输出：
-  raw/baostock__query_history_k_data_plus_daily/year=2025/000000_0.parquet
-  raw/baostock__query_history_k_data_plus_daily/year=2026/000000_0.parquet
+  source/baostock__query_history_k_data_plus_daily/year=2025/000000_0.parquet
+  source/baostock__query_history_k_data_plus_daily/year=2026/000000_0.parquet
 
 run 数量：
   因为配置了 BackfillPolicy.single_run()，选择 2025 和 2026 两个分区时可以由一个 Dagster run 处理。
@@ -897,7 +897,7 @@ run 数量：
   每个 code 请求一次 code + 2026-01-01..2026-05-25
 
 输出：
-  raw/baostock__query_history_k_data_plus_daily/year=2026/000000_0.parquet
+  source/baostock__query_history_k_data_plus_daily/year=2026/000000_0.parquet
 ```
 
 注意：
@@ -920,7 +920,7 @@ baostock__query_stock_basic
 物理路径：
 
 ```text
-raw/baostock__query_stock_basic/000000_0.parquet
+source/baostock__query_stock_basic/000000_0.parquet
 ```
 
 这样设计的目的：
@@ -978,7 +978,7 @@ year_partitions = dg.DynamicPartitionsDefinition(name="year")
 K 线存储路径：
 
 ```text
-raw/baostock__query_history_k_data_plus_daily/year=YYYY/000000_0.parquet
+source/baostock__query_history_k_data_plus_daily/year=YYYY/000000_0.parquet
 ```
 
 其中 `year=YYYY` 必须来自 partition key。
@@ -1029,7 +1029,7 @@ partitioning = ds.partitioning(
 
 ds.write_dataset(
     table,
-    base_dir=f"{config.bucket}/raw/baostock__query_history_k_data_plus_daily",
+    base_dir=f"{config.bucket}/source/baostock__query_history_k_data_plus_daily",
     filesystem=s3_filesystem,
     format="parquet",
     partitioning=partitioning,
@@ -1044,7 +1044,7 @@ ds.write_dataset(
 ```python
 ds.write_dataset(
     table,
-    base_dir=f"{config.bucket}/raw/sina__trade_calendar",
+    base_dir=f"{config.bucket}/source/sina__trade_calendar",
     filesystem=s3_filesystem,
     format="parquet",
     basename_template="000000_{i}.parquet",
@@ -1056,7 +1056,7 @@ ds.write_dataset(
 实际输出：
 
 ```text
-raw/sina__trade_calendar/000000_0.parquet
+source/sina__trade_calendar/000000_0.parquet
 ```
 
 写入约束：
@@ -1066,7 +1066,7 @@ raw/sina__trade_calendar/000000_0.parquet
 - 不分区资产也必须只生成一个 `000000_0.parquet` 文件；如果生成 `000000_1.parquet` 等额外文件，测试必须失败。
 - 写入前必须保证传入 `write_dataset` 的 table 已按目标粒度整理好；K 线年度 table 必须包含 `year` 分区列。
 - 多年份 single-run backfill 写入前必须按 `year` 组装数据；允许一次 `write_dataset` 接收包含多个 `year` 分区值的 table，但必须确认输出为多个 `year=YYYY/000000_0.parquet` 文件，不能产生跨年份单文件。
-- 对 `baostock__query_history_k_data_plus_daily`，`base_dir` 必须是 `raw/baostock__query_history_k_data_plus_daily`，分区列必须是 `year`。
+- 对 `baostock__query_history_k_data_plus_daily`，`base_dir` 必须是 `source/baostock__query_history_k_data_plus_daily`，分区列必须是 `year`。
 - 不使用 `asyncio + boto3` 并发上传作为第一方案；分区并发、parquet 编码和 S3 写入交给 PyArrow dataset writer 的线程化实现。
 - `existing_data_behavior="delete_matching"` 用于重写目标分区，确保重跑或补数时不会留下同一分区内的旧文件。
 - 若 PyArrow 因输入 table 组织或 writer 参数在同一分区生成 `000000_1.parquet`、`000000_2.parquet` 等多文件，测试必须失败；第一阶段每个分区只接受 `000000_0.parquet`。
@@ -1180,9 +1180,9 @@ def asset_key_to_parquet_object_key(
 示例：
 
 ```text
-raw/sina__trade_calendar/000000_0.parquet
-raw/baostock__query_stock_basic/000000_0.parquet
-raw/baostock__query_history_k_data_plus_daily/year=2026/000000_0.parquet
+source/sina__trade_calendar/000000_0.parquet
+source/baostock__query_stock_basic/000000_0.parquet
+source/baostock__query_history_k_data_plus_daily/year=2026/000000_0.parquet
 ```
 
 复用要求：
@@ -1190,7 +1190,7 @@ raw/baostock__query_history_k_data_plus_daily/year=2026/000000_0.parquet
 - `s3_io_manager` 写入 parquet 时必须调用该函数生成 object key。
 - `read_parquet_table_from_s3`、`read_sina_trade_calendar_dates_from_s3`、`read_baostock_stock_basic_from_s3` 读取 parquet 时必须调用同一个函数生成 object key。
 - 后续任何直接读取 raw parquet 的工具也必须复用该函数，避免读写路径漂移。
-- `sina__trade_calendar` 的对象路径在硬切 PyArrow 后必须仍为 `raw/sina__trade_calendar/000000_0.parquet`。
+- `sina__trade_calendar` 的对象路径在硬切 PyArrow 后必须仍为 `source/sina__trade_calendar/000000_0.parquet`。
 
 后续需要重构 `s3_io_manager`：
 
@@ -1207,7 +1207,7 @@ raw/baostock__query_history_k_data_plus_daily/year=2026/000000_0.parquet
 - 对分区资产输出类似：
 
 ```text
-raw/baostock__query_history_k_data_plus_daily/year=YYYY/000000_0.parquet
+source/baostock__query_history_k_data_plus_daily/year=YYYY/000000_0.parquet
 ```
 
 `s3_io_manager` 的职责边界：
@@ -1250,7 +1250,7 @@ dev 真实网络测试内容：
 1. 新增 `config.py`，集中声明 `dg.EnvVar`、`S3Config` 和 `BaostockClientConfig`。
 2. 将 `sina_trade_calendar_defs.py` 重命名为 `pipeline_defs.py`，并迁移已落地的 Sina 交易日历 definitions。
 3. 将 `s3_io_manager` 硬切为 `pyarrow.fs.S3FileSystem` + `pyarrow.dataset.write_dataset` 统一写入，并从 `config.py` 引入 RustFS EnvVar 常量。
-4. 更新 `sina__trade_calendar` 相关测试，确认路径仍为 `raw/sina__trade_calendar/000000_0.parquet` 且 parquet round-trip 正常。
+4. 更新 `sina__trade_calendar` 相关测试，确认路径仍为 `source/sina__trade_calendar/000000_0.parquet` 且 parquet round-trip 正常。
 5. 新增 `protocol.py`，实现请求编码、响应解码、分页和压缩处理。
 6. 复用 `scheduler.defs.util.DEFAULT_RETRY_POLICY` 作为 TCP 网络错误的指数退避策略。
 7. 新增 `client.py`，实现 `BaostockTcpConnection` 和 `BaostockAioTcpClient`，并从 `config.py` 引入 `BaostockClientConfig`。

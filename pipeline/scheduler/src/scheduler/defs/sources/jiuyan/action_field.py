@@ -28,6 +28,7 @@ from scheduler.defs.http.schemas import (
     empty_jiuyan_action_field_table,
     jiuyan_action_field_to_table,
 )
+from scheduler.defs.market.asset_keys import SINA_TRADE_CALENDAR_ASSET_KEY, SOURCE_ASSET_KEY_PREFIX
 
 JIUYAN_ACTION_FIELD_URL = "https://app.jiuyangongshe.com/jystock-app/api/v1/action/field"
 
@@ -60,19 +61,21 @@ def jiuyan_header_factory() -> HeaderFactory:
 
 @dg.asset(
     name="jiuyan__action_field",
-    group_name="http_sources",
+    key_prefix=[SOURCE_ASSET_KEY_PREFIX],
+    group_name="s3_sources",
     partitions_def=jiuyan_action_field_daily_partitions,
+    deps=[SINA_TRADE_CALENDAR_ASSET_KEY],
     backfill_policy=dg.BackfillPolicy.single_run(),
     metadata={
         "storage_mode": "partitioned",
         "partition_key_name": TRADE_DATE_PARTITION_KEY_NAME,
         "partitions_def": "daily_partitions",
-        "trade_date_filter": "sina__trade_calendar",
+        "trade_date_filter": SINA_TRADE_CALENDAR_ASSET_KEY.to_user_string(),
         "allow_empty": True,
         "sparse_partition_output": True,
         "flatten_column_naming": FLATTEN_COLUMN_NAMING,
     },
-    tags={"source": "jiuyan", "layer": "raw", "storage": "s3"},
+    tags={"source": "jiuyan", "layer": "source", "storage": "s3"},
 )
 def jiuyan__action_field(
     context: dg.AssetExecutionContext,

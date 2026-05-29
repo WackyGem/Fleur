@@ -34,7 +34,7 @@ pipeline/scheduler/src/scheduler/defs/http_resources/
 - raw 行粒度以接口内容为准：`data` 为数组时按数组元素写行；`data` 为分页对象时按分页内容对象写行。
 - 接口内容里的嵌套字段必须完整保留并展平：struct/object 字段按原始字段路径展平成列；数组字段保留数组边界，数组元素内的 struct/object 也按原始字段路径展平；不只保留摘要、不裁剪子字段。
 - 展平列名必须能可逆映射回原始字段路径；例如 `page.limit`、`info[].code`、`list[].article.action_info.time`。如果具体实现不能使用点号或 `[]`，可以采用等价转义命名，但不得引入非接口字段含义。
-- 如果上游字段本身就是 JSON 字符串，raw 层保持原字符串，不解析成新增结构字段。
+- 如果上游字段本身就是 JSON 字符串，source 层保持原字符串，不解析成新增结构字段。
 
 ## 非目标
 
@@ -87,8 +87,8 @@ docs/ADR/0003-trade-calendar-driven-market-schedules.md
 `jiuyan__action_field` 和 `ths__limit_up_pool` 都有明确的日期请求参数，且语义是“某交易日市场事件”，因此使用 `trade_date` 分区。但这些资产不使用普通自然日 `DailyPartitionsDefinition`，而是使用由已物化 `sina__trade_calendar` S3 Parquet 读取出的 A 股交易日集合生成/同步的自定义动态分区。
 
 ```text
-raw/jiuyan__action_field/trade_date=YYYY-MM-DD/000000_0.parquet
-raw/ths__limit_up_pool/trade_date=YYYY-MM-DD/000000_0.parquet
+source/jiuyan__action_field/trade_date=YYYY-MM-DD/000000_0.parquet
+source/ths__limit_up_pool/trade_date=YYYY-MM-DD/000000_0.parquet
 ```
 
 分区 key 格式固定为 `YYYY-MM-DD`，partition key name 固定为 `trade_date`。合法分区 key 必须存在于 `sina__trade_calendar` 的 S3 Parquet 结果中；自然日但非交易日不应被加入动态分区，也不应由默认调度 materialize。
@@ -96,7 +96,7 @@ raw/ths__limit_up_pool/trade_date=YYYY-MM-DD/000000_0.parquet
 `jiuyan__industry_list` 是长期累计列表，没有日期请求参数；响应会随服务端新增、置顶、更新而变化。第一版按最新快照保存：
 
 ```text
-raw/jiuyan__industry_list/000000_0.parquet
+source/jiuyan__industry_list/000000_0.parquet
 ```
 
 如果后续需要研究文章历史变更审计，再新增按 `snapshot_date` 分区的资产或新增 ADR，不在第一版中扩大范围。
@@ -408,7 +408,7 @@ POST https://app.jiuyangongshe.com/jystock-app/api/v1/industry/list
 - 一行对应一个分页内容对象 `data`。
 - 响应 envelope 字段 `errCode`、`msg`、`serverTime` 不进入 raw 文件列；只用于响应校验和 materialization metadata。
 - `data` 内部分页字段和 `result` 数组都必须完整保留并展平。
-- `data.result[].imgs` 如果上游返回为 JSON 字符串，则 raw 层原样保存该字符串；不解析为新增 list 字段，也不拆成图片行。
+- `data.result[].imgs` 如果上游返回为 JSON 字符串，则 source 层原样保存该字符串；不解析为新增 list 字段，也不拆成图片行。
 
 内容字段：
 
@@ -655,9 +655,9 @@ metadata={"storage_mode": "latest_snapshot"}
 - `jiuyan__action_field` 和 `ths__limit_up_pool` 都按 `trade_date` 交易日动态分区。
 - `jiuyan__industry_list` 为 latest snapshot。
 - 两个分区资产路径分别为：
-  - `raw/jiuyan__action_field/trade_date=YYYY-MM-DD/000000_0.parquet`
-  - `raw/ths__limit_up_pool/trade_date=YYYY-MM-DD/000000_0.parquet`
-- `jiuyan__industry_list` 路径为 `raw/jiuyan__industry_list/000000_0.parquet`。
+  - `source/jiuyan__action_field/trade_date=YYYY-MM-DD/000000_0.parquet`
+  - `source/ths__limit_up_pool/trade_date=YYYY-MM-DD/000000_0.parquet`
+- `jiuyan__industry_list` 路径为 `source/jiuyan__industry_list/000000_0.parquet`。
 - 交易日动态分区和调度都以 `sina__trade_calendar` S3 Parquet 为事实来源，非交易日跳过且不注册分区。
 - 韭研请求每次动态生成 timestamp。
 - 韭研凭证只来自环境变量，不写入代码、metadata 或日志。
@@ -686,4 +686,4 @@ metadata={"storage_mode": "latest_snapshot"}
 - `jiuyan__action_field` 的历史数据保留期未在参考文档中明确。大规模回填前需要用少量历史日期验证。
 - `ths__limit_up_pool` 380 天保留期会随当前日期滚动，回填起点需要运行时动态计算。
 - `jiuyan__industry_list` 是否需要历史快照审计。如果需要，应新增 `snapshot_date` 分区资产，而不是改变当前 latest snapshot 语义。
-- 是否需要在后续 staging/dbt 层展开 `jiuyan__action_field.list` 或 `jiuyan__industry_list.imgs`。raw 层第一版不新增字段、不拆子行。
+- 是否需要在后续 staging/dbt 层展开 `jiuyan__action_field.list` 或 `jiuyan__industry_list.imgs`。source 层第一版不新增字段、不拆子行。

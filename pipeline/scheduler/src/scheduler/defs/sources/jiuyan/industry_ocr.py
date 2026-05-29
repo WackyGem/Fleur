@@ -11,6 +11,7 @@ import pyarrow as pa
 
 from scheduler.defs.common.metadata import RawMetadataValue
 from scheduler.defs.config.models import JiuyanOcrConfig, PipelineDatabaseConfig, S3Config
+from scheduler.defs.market.asset_keys import SOURCE_ASSET_KEY_PREFIX
 from scheduler.defs.repositories.industry_images import PostgresIndustryImageRepository
 from scheduler.defs.sources.jiuyan.image_urls import (
     image_filename_from_url,
@@ -46,7 +47,8 @@ class IndustryOcrAssetConfig:
 
 @dg.asset(
     name="jiuyan__industry_images",
-    group_name="http_sources",
+    key_prefix=[SOURCE_ASSET_KEY_PREFIX],
+    group_name="s3_sources",
     deps=[jiuyan__industry_list],
     config_schema={
         "limit": dg.Field(int, is_required=False, default_value=0),
@@ -55,7 +57,7 @@ class IndustryOcrAssetConfig:
     },
     tags={
         "source": "jiuyan",
-        "layer": "raw",
+        "layer": "source",
         "storage": "s3",
         "state": "postgres",
         "modality": "ocr",
@@ -70,7 +72,8 @@ def jiuyan__industry_images(
 
 @dg.asset(
     name="jiuyan__industry_ocr",
-    group_name="http_sources",
+    key_prefix=[SOURCE_ASSET_KEY_PREFIX],
+    group_name="s3_sources",
     deps=[jiuyan__industry_images],
     config_schema={
         "limit": dg.Field(int, is_required=False, default_value=0),
@@ -80,7 +83,7 @@ def jiuyan__industry_images(
     },
     tags={
         "source": "jiuyan",
-        "layer": "raw",
+        "layer": "source",
         "storage": "s3",
         "state": "postgres",
         "modality": "ocr",
@@ -104,7 +107,7 @@ async def _materialize_industry_images(
     config = _images_asset_config(context.op_config)
     upstream_table = read_parquet_table_from_s3(
         s3_config,
-        dg.AssetKey("jiuyan__industry_list"),
+        jiuyan__industry_list.key,
         storage_mode="latest_snapshot",
     )
 

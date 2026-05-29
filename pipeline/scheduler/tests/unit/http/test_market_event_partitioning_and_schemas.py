@@ -214,7 +214,7 @@ class MarketEventFetchTest(unittest.IsolatedAsyncioTestCase):
         with TemporaryDirectory() as bucket:
             context = FakeAssetContext(
                 partition_keys=["2026-05-08", "2026-05-09", "2026-05-10"],
-                asset_key=dg.AssetKey("jiuyan__action_field"),
+                asset_key=dg.AssetKey(["source", "jiuyan__action_field"]),
             )
             s3_config = type(
                 "FakeS3Config",
@@ -243,7 +243,7 @@ class MarketEventFetchTest(unittest.IsolatedAsyncioTestCase):
                 )
 
             written_table = pq.read_table(
-                f"{bucket}/raw/jiuyan__action_field/trade_date=2026-05-08/000000_0.parquet"
+                f"{bucket}/source/jiuyan__action_field/trade_date=2026-05-08/000000_0.parquet"
             )
 
         self.assertEqual(fetched_dates, [date(2026, 5, 8)])

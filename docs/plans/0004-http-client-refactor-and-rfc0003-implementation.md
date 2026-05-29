@@ -57,7 +57,7 @@
 - 为每个新 endpoint 引入专用 HTTP client。
 - 保留顶层 `scheduler/defs/eastmoney` 包。
 - 新增顶层 `scheduler/defs/http_client` 包。
-- 在 raw 层新增 `request_*`、`source_endpoint`、`ingested_at` 等派生列。
+- 在 source 层新增 `request_*`、`source_endpoint`、`ingested_at` 等派生列。
 - 将 RFC 0003 的内容数组拆成派生子 asset；内容字段展平在当前 raw asset 内完成。
 
 ## 当前代码现状
@@ -572,7 +572,7 @@ def flatten_content_object(
 - 并发上限使用显式配置，建议第一版默认 `max_concurrent_trade_dates=4`，且硬上限不超过 20 个交易日，避免韭研配额和同花顺限流误判。
 - 单个交易日内的分页语义保持不变：韭研 `action_field` 每日单次请求；同花顺 `limit_up_pool` 每日内部页码顺序请求，不做同一交易日内分页并发。
 - 每个交易日任务完成 schema 转换后立即写入 S3 对应分区路径，不等待整个日期范围全部完成。
-- 写入路径仍使用 `raw/<asset_name>/trade_date=YYYY-MM-DD/000000_0.parquet` 语义。
+- 写入路径仍使用 `source/<asset_name>/trade_date=YYYY-MM-DD/000000_0.parquet` 语义。
 - 写入必须按交易日粒度原子化：一个交易日成功只覆盖该交易日分区，不能重写同一 run 内其他交易日分区。
 - 如果某个交易日失败，整个 run 失败；已经成功写入的交易日 S3 文件保留，重跑同一范围时允许幂等覆盖这些交易日分区。
 - run metadata 记录 `backfill_start_date`、`backfill_end_date`、`requested_trade_date_count`、`completed_trade_date_count`、`failed_trade_date_count`、`max_concurrent_trade_dates`。

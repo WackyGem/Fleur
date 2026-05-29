@@ -13,6 +13,7 @@ import pyarrow as pa
 from scheduler.defs.common.clock import elapsed_seconds
 from scheduler.defs.common.metadata import RawMetadataValue
 from scheduler.defs.config.models import S3Config
+from scheduler.defs.market.asset_keys import SINA_TRADE_CALENDAR_ASSET_KEY
 from scheduler.defs.market.trade_calendar import read_trade_dates_from_s3
 from scheduler.defs.storage.parquet import write_parquet_dataset
 from scheduler.defs.storage.s3 import asset_key_to_parquet_object_key, build_s3_filesystem
@@ -217,7 +218,7 @@ async def materialize_trade_date_range(
             max_concurrent_partitions=max_concurrent_trade_dates,
             fetch_table_for_partition=fetch_trade_date_partition,
             partition_filter=lambda partition_key: partition_key in trade_date_keys,
-            partitions_source_asset="sina__trade_calendar",
+            partitions_source_asset=SINA_TRADE_CALENDAR_ASSET_KEY.to_user_string(),
             backfill_hard_limit=TRADE_DATE_BACKFILL_HARD_LIMIT,
             s3_config=s3_config,
         )
@@ -247,7 +248,7 @@ async def materialize_trade_date_range(
                 skipped_non_trade_date_keys[:20]
             ),
             "request_trade_date": dg.MetadataValue.json(processed_trade_dates),
-            "partitions_source_asset": "sina__trade_calendar",
+            "partitions_source_asset": SINA_TRADE_CALENDAR_ASSET_KEY.to_user_string(),
         }
     )
     return TradeDateRangeMaterializationResult(tables=result.tables, metadata=metadata)
@@ -264,7 +265,7 @@ def _parse_date_partition_key(partition_key: str) -> date:
 def _asset_base_dir(config: S3Config, asset_key: dg.AssetKey) -> str:
     object_key = asset_key_to_parquet_object_key(
         asset_key,
-        object_prefix="raw",
+        object_prefix="source",
         storage_mode="latest_snapshot",
     )
     object_dir = object_key.removesuffix("/000000_0.parquet")

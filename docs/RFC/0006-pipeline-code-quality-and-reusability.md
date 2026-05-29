@@ -753,7 +753,7 @@ pipeline/scheduler/src/scheduler/
 必须保持稳定：
 
 - Dagster asset key：所有现有资产 key 不变
-- S3 路径：所有 `raw/<asset>/<partition_key>=<value>/000000_0.parquet` 路径不变
+- S3 路径：所有 `source/<asset>/<partition_key>=<value>/000000_0.parquet` 路径不变
 - Parquet schema：所有现有字段类型和名称不变
 - API 行为：所有现有函数的输入输出语义不变
 - Dagster metadata 字段：现有字段名称可以继续支持，新字段作为补充

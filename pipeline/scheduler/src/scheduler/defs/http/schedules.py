@@ -14,7 +14,7 @@ from scheduler.defs.sources.jiuyan.industry_ocr import (
 from scheduler.defs.sources.sina.trade_calendar import sina__trade_calendar
 from scheduler.defs.sources.ths.limit_up_pool import ths__limit_up_pool
 
-EASTMONEY_DAILY_ASSET_NAMES = [asset.key.path[-1] for asset in EASTMONEY_ASSETS]
+EASTMONEY_DAILY_OP_NAMES = [asset.node_def.name for asset in EASTMONEY_ASSETS]
 
 
 sina__trade_calendar_job = automation_schedules.build_asset_job(
@@ -108,6 +108,6 @@ eastmoney__daily_schedule = automation_schedules.build_year_refresh_schedule(
     name="eastmoney__daily_schedule",
     job=eastmoney__daily_job,
     cron_schedule="0 16 * * *",
-    asset_names=EASTMONEY_DAILY_ASSET_NAMES,
+    asset_names=EASTMONEY_DAILY_OP_NAMES,
     source="eastmoney",
 )

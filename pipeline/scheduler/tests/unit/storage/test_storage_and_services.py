@@ -22,16 +22,16 @@ from tests.fakes.storage import InMemoryFilesystem
 
 
 def test_s3_path_builder_supports_partitioned_and_latest_snapshot_modes() -> None:
-    asset_key = dg.AssetKey(["source", "asset"])
+    asset_key = dg.AssetKey(["market", "asset"])
 
     assert (
         s3.asset_key_to_parquet_object_key(
             asset_key,
-            object_prefix="/raw/",
+            object_prefix="/source/",
             partition_key="2026",
             partition_key_name="year",
         )
-        == "raw/source/asset/year=2026/000000_0.parquet"
+        == "source/market/asset/year=2026/000000_0.parquet"
     )
     assert (
         s3.asset_key_to_parquet_object_key(
@@ -39,12 +39,24 @@ def test_s3_path_builder_supports_partitioned_and_latest_snapshot_modes() -> Non
             object_prefix="",
             storage_mode="latest_snapshot",
         )
-        == "source/asset/000000_0.parquet"
+        == "market/asset/000000_0.parquet"
     )
     with pytest.raises(ValueError, match="partition_key_name is required"):
         s3.asset_key_to_parquet_object_key(asset_key, partition_key="2026")
     with pytest.raises(ValueError, match="Unsupported storage mode"):
         s3.asset_key_to_parquet_object_key(asset_key, storage_mode="invalid")  # type: ignore[arg-type]
+
+
+def test_s3_path_builder_deduplicates_object_prefix_from_asset_key_prefix() -> None:
+    assert (
+        s3.asset_key_to_parquet_object_key(
+            dg.AssetKey(["source", "market", "asset"]),
+            object_prefix="source",
+            partition_key="2026",
+            partition_key_name="year",
+        )
+        == "source/market/asset/year=2026/000000_0.parquet"
+    )
 
 
 def test_object_store_writes_and_reads_bytes_through_bucket_paths() -> None:
@@ -153,18 +165,18 @@ def test_s3_io_manager_writes_latest_snapshot_and_records_metadata(
         region_name="region",
     )
     context = dg.build_output_context(
-        asset_key=dg.AssetKey(["source", "asset"]),
+        asset_key=dg.AssetKey(["source", "market", "asset"]),
         definition_metadata={"storage_mode": "latest_snapshot"},
     )
 
     manager.handle_output(context, pa.table({"value": ["one", "two"]}))
 
-    assert written[0]["base_dir"] == "bucket/raw/source/asset"
+    assert written[0]["base_dir"] == "bucket/source/market/asset"
     metadata = context.consume_logged_metadata()
     assert metadata["row_count"].value == 2
     assert metadata["column_count"].value == 1
     assert metadata["storage_mode"].text == "latest_snapshot"
-    assert metadata["s3_key"].text == "raw/source/asset/000000_0.parquet"
+    assert metadata["s3_key"].text == "source/market/asset/000000_0.parquet"
 
 
 def test_s3_io_manager_writes_partitioned_tables_and_records_partition_metadata(

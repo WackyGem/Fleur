@@ -14,6 +14,7 @@ from scheduler.defs.http.schemas import (
     FLATTEN_COLUMN_NAMING,
     jiuyan_industry_list_to_table,
 )
+from scheduler.defs.market.asset_keys import SOURCE_ASSET_KEY_PREFIX
 from scheduler.defs.sources.jiuyan.action_field import jiuyan_header_factory
 
 JIUYAN_INDUSTRY_LIST_URL = "https://app.jiuyangongshe.com/jystock-app/api/v1/industry/list"
@@ -22,13 +23,14 @@ JIUYAN_INDUSTRY_LIST_LIMIT = "500"
 
 @dg.asset(
     name="jiuyan__industry_list",
-    group_name="http_sources",
+    key_prefix=[SOURCE_ASSET_KEY_PREFIX],
+    group_name="s3_sources",
     io_manager_key="s3_io_manager",
     metadata={
         "storage_mode": "latest_snapshot",
         "flatten_column_naming": FLATTEN_COLUMN_NAMING,
     },
-    tags={"source": "jiuyan", "layer": "raw", "storage": "s3"},
+    tags={"source": "jiuyan", "layer": "source", "storage": "s3"},
 )
 def jiuyan__industry_list(
     context: dg.AssetExecutionContext,

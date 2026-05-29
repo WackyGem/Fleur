@@ -23,7 +23,7 @@
 
 核心目标：
 
-- 从 `raw/jiuyan__industry_list` 的 `imgs` 字段解析图片 URL。
+- 从 `source/jiuyan__industry_list` 的 `imgs` 字段解析图片 URL。
 - 下载图片到 S3，并用 PostgreSQL 记录图片级下载状态。
 - 调用本地 OCR 服务抽取个股、题材路径、关联说明和来源。
 - 按单张图片写出独立 OCR 结果对象，避免共享 bucket 覆盖写。
@@ -231,7 +231,7 @@ jiuyan__industry_ocr:
 每张图片写一个固定对象：
 
 ```text
-raw/jiuyan__industry_ocr/image_filename=<image_filename>/000000_0.parquet
+source/jiuyan__industry_ocr/image_filename=<image_filename>/000000_0.parquet
 ```
 
 写入要求：
@@ -364,16 +364,16 @@ img/jiuyan__industry_images/<image_filename>
 OCR 结果对象：
 
 ```text
-raw/jiuyan__industry_ocr/image_filename=<image_filename>/000000_0.parquet
+source/jiuyan__industry_ocr/image_filename=<image_filename>/000000_0.parquet
 ```
 
 ## 第二阶段：图片下载 asset
 
 ### 输入处理
 
-- 从 `raw/jiuyan__industry_list` 的 `imgs` 字段读取 JSON 字符串。
+- 从 `source/jiuyan__industry_list` 的 `imgs` 字段读取 JSON 字符串。
 - 使用 `read_parquet_table_from_s3(S3Config.from_env(), dg.AssetKey("jiuyan__industry_list"), storage_mode="latest_snapshot")` 读取上游结果。
-- 生产路径以现有 S3 IO manager 为准：`raw/jiuyan__industry_list/000000_0.parquet`。
+- 生产路径以现有 S3 IO manager 为准：`source/jiuyan__industry_list/000000_0.parquet`。
 - 空值、非法 JSON 直接跳过。
 - 对数组元素用正则提取图片 URL，不按逗号分割。
 - 同一 `industry_id` 内去重。
@@ -533,7 +533,7 @@ async with aiohttp.ClientSession(timeout=...) as session:
 Parquet 写入不经过现有 `S3IOManager`，而是在单图任务内部显式写入对应对象 key：
 
 ```text
-raw/jiuyan__industry_ocr/image_filename=<image_filename>/000000_0.parquet
+source/jiuyan__industry_ocr/image_filename=<image_filename>/000000_0.parquet
 ```
 
 写入步骤：
@@ -654,7 +654,7 @@ table_convert_seconds
 group_name="jiuyan_industry_ocr"
 tags={
   "source": "jiuyan",
-  "layer": "raw",
+  "layer": "source",
   "storage": "s3",
   "state": "postgres",
 }

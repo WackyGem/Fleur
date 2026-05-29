@@ -143,7 +143,7 @@ adjustflag
 日频 K 线 raw 数据按年份写入。日常交易日调度会重写当年文件，历史回填会重写目标年份文件：
 
 ```text
-data/raw/baostock__query_history_k_data_plus_daily/year=YYYY/000000_0.parquet
+data/source/baostock__query_history_k_data_plus_daily/year=YYYY/000000_0.parquet
 ```
 
 ## Dagster 资产设计
@@ -166,7 +166,7 @@ baostock__query_history_k_data_plus_daily
   分区：year
   调度：交易日调度器在交易日收盘后刷新当年分区
   回填：显式 materialize 目标 year 分区
-  路径：raw/baostock__query_history_k_data_plus_daily/year=YYYY/000000_0.parquet
+  路径：source/baostock__query_history_k_data_plus_daily/year=YYYY/000000_0.parquet
 ```
 
 

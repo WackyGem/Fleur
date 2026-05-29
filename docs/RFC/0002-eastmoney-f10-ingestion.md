@@ -225,14 +225,14 @@ requested_end_date = partition_year-12-31
 路径：
 
 ```text
-raw/eastmoney__balance/year=YYYY/000000_0.parquet
-raw/eastmoney__cashflow_sq/year=YYYY/000000_0.parquet
-raw/eastmoney__cashflow_ytd/year=YYYY/000000_0.parquet
-raw/eastmoney__dividend_allotment/year=YYYY/000000_0.parquet
-raw/eastmoney__dividend_main/year=YYYY/000000_0.parquet
-raw/eastmoney__equity_history/year=YYYY/000000_0.parquet
-raw/eastmoney__income_sq/year=YYYY/000000_0.parquet
-raw/eastmoney__income_ytd/year=YYYY/000000_0.parquet
+source/eastmoney__balance/year=YYYY/000000_0.parquet
+source/eastmoney__cashflow_sq/year=YYYY/000000_0.parquet
+source/eastmoney__cashflow_ytd/year=YYYY/000000_0.parquet
+source/eastmoney__dividend_allotment/year=YYYY/000000_0.parquet
+source/eastmoney__dividend_main/year=YYYY/000000_0.parquet
+source/eastmoney__equity_history/year=YYYY/000000_0.parquet
+source/eastmoney__income_sq/year=YYYY/000000_0.parquet
+source/eastmoney__income_ytd/year=YYYY/000000_0.parquet
 ```
 
 输出格式：
@@ -387,7 +387,7 @@ pipeline/scheduler/src/scheduler/defs/eastmoney/
 - `pool="eastmoney_run_pool"`
 - tags:
   - `source=eastmoney`
-  - `layer=raw`
+  - `layer=source`
   - `storage=s3`
 
 ### 日频 job
@@ -477,7 +477,7 @@ execution_timezone = "Asia/Shanghai"
 - 如果出现跨页重复，asset 失败而不是静默写入。
 - 稀疏资产空 year 分区可以写入 0 行 Parquet。
 - 输出字段名与对应 OpenAPI YAML 保持一致，东方财富业务字段类型全部为 string。
-- S3 中存在 `raw/<asset>/year=YYYY/000000_0.parquet`。
+- S3 中存在 `source/<asset>/year=YYYY/000000_0.parquet`。
 
 ## 实施顺序
 

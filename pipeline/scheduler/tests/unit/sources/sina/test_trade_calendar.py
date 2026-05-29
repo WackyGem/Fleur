@@ -89,24 +89,24 @@ class FetchSinaTradeCalendarTest(unittest.IsolatedAsyncioTestCase):
 
 
 class S3TableIOTest(unittest.TestCase):
-    def test_asset_key_to_parquet_object_key_uses_raw_prefix_by_default(self) -> None:
+    def test_asset_key_to_parquet_object_key_uses_source_prefix_by_default(self) -> None:
         key = asset_key_to_parquet_object_key(
-            dg.AssetKey(["sina__trade_calendar"]),
+            dg.AssetKey(["source", "sina__trade_calendar"]),
             storage_mode="latest_snapshot",
         )
 
-        self.assertEqual(key, "raw/sina__trade_calendar/000000_0.parquet")
+        self.assertEqual(key, "source/sina__trade_calendar/000000_0.parquet")
 
     def test_asset_key_to_parquet_object_key_supports_hive_partition_path(self) -> None:
         key = asset_key_to_parquet_object_key(
-            dg.AssetKey(["baostock__query_history_k_data_plus_daily"]),
+            dg.AssetKey(["source", "baostock__query_history_k_data_plus_daily"]),
             partition_key="2026",
             partition_key_name="year",
         )
 
         self.assertEqual(
             key,
-            "raw/baostock__query_history_k_data_plus_daily/year=2026/000000_0.parquet",
+            "source/baostock__query_history_k_data_plus_daily/year=2026/000000_0.parquet",
         )
 
     def test_write_parquet_dataset_round_trips_unpartitioned_table(self) -> None:
@@ -115,12 +115,12 @@ class S3TableIOTest(unittest.TestCase):
         with TemporaryDirectory() as tmpdir:
             paths = write_parquet_dataset(
                 table,
-                f"{tmpdir}/raw/sina__trade_calendar",
+                f"{tmpdir}/source/sina__trade_calendar",
                 local_filesystem(),
             )
-            round_tripped = pq.read_table(f"{tmpdir}/raw/sina__trade_calendar/000000_0.parquet")
+            round_tripped = pq.read_table(f"{tmpdir}/source/sina__trade_calendar/000000_0.parquet")
 
-        self.assertEqual(paths, [f"{tmpdir}/raw/sina__trade_calendar/000000_0.parquet"])
+        self.assertEqual(paths, [f"{tmpdir}/source/sina__trade_calendar/000000_0.parquet"])
         self.assertEqual(round_tripped.column_names, ["trade_date"])
         self.assertEqual(round_tripped.num_rows, 2)
         self.assertTrue(pa.types.is_date32(round_tripped.schema.field("trade_date").type))
@@ -136,19 +136,21 @@ class S3TableIOTest(unittest.TestCase):
         with TemporaryDirectory() as tmpdir:
             paths = write_parquet_dataset(
                 table,
-                f"{tmpdir}/raw/baostock__query_history_k_data_plus_daily",
+                f"{tmpdir}/source/baostock__query_history_k_data_plus_daily",
                 local_filesystem(),
                 partition_key="2026",
                 partition_key_name="year",
             )
             parquet_file = pq.ParquetFile(
-                f"{tmpdir}/raw/baostock__query_history_k_data_plus_daily/year=2026/000000_0.parquet"
+                f"{tmpdir}/source/baostock__query_history_k_data_plus_daily/year=2026/000000_0.parquet"
             )
             round_tripped = parquet_file.read()
 
         self.assertEqual(
             paths,
-            [f"{tmpdir}/raw/baostock__query_history_k_data_plus_daily/year=2026/000000_0.parquet"],
+            [
+                f"{tmpdir}/source/baostock__query_history_k_data_plus_daily/year=2026/000000_0.parquet"
+            ],
         )
         self.assertEqual(round_tripped.column_names, ["date", "code"])
         self.assertEqual(parquet_file.schema_arrow.names, ["date", "code"])
@@ -160,7 +162,7 @@ class S3TableIOTest(unittest.TestCase):
         with TemporaryDirectory() as tmpdir, self.assertRaises(ValueError):
             write_parquet_dataset(
                 table,
-                f"{tmpdir}/raw/empty",
+                f"{tmpdir}/source/empty",
                 local_filesystem(),
             )
 
@@ -170,16 +172,16 @@ class S3TableIOTest(unittest.TestCase):
         with TemporaryDirectory() as tmpdir:
             paths = write_parquet_dataset(
                 table,
-                f"{tmpdir}/raw/empty",
+                f"{tmpdir}/source/empty",
                 local_filesystem(),
                 partition_key="2026",
                 partition_key_name="year",
                 allow_empty=True,
             )
-            parquet_file = pq.ParquetFile(f"{tmpdir}/raw/empty/year=2026/000000_0.parquet")
+            parquet_file = pq.ParquetFile(f"{tmpdir}/source/empty/year=2026/000000_0.parquet")
             round_tripped = parquet_file.read()
 
-        self.assertEqual(paths, [f"{tmpdir}/raw/empty/year=2026/000000_0.parquet"])
+        self.assertEqual(paths, [f"{tmpdir}/source/empty/year=2026/000000_0.parquet"])
         self.assertEqual(round_tripped.column_names, ["date"])
         self.assertEqual(parquet_file.schema_arrow.names, ["date"])
         self.assertEqual(round_tripped.num_rows, 0)

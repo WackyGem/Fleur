@@ -175,7 +175,7 @@ jiuyan__industry_ocr
 
 ```text
 img/jiuyan__industry_images/<image_filename>
-raw/jiuyan__industry_ocr/image_filename=<image_filename>/000000_0.parquet
+source/jiuyan__industry_ocr/image_filename=<image_filename>/000000_0.parquet
 ```
 
 保留依赖关系：
@@ -199,7 +199,7 @@ group_name="http_sources"
 原因是 `jiuyan__industry_list` 已属于 HTTP raw resource，OCR 是该 HTTP resource 的派生采集步骤。可通过 tag 保留更细粒度识别：
 
 ```text
-tags={"source": "jiuyan", "layer": "raw", "storage": "s3", "state": "postgres", "modality": "ocr"}
+tags={"source": "jiuyan", "layer": "source", "storage": "s3", "state": "postgres", "modality": "ocr"}
 ```
 
 ### 韭研 OCR 组合调度
@@ -376,7 +376,7 @@ ingested_at
 - EastMoney schema 生成函数必须只根据 OpenAPI/接口内容字段生成 Parquet schema。
 - 空表 schema 也不得包含这些请求派生字段。
 
-该整改允许改变 EastMoney Parquet schema。因这些字段属于 raw 层不应存在的技术字段，本 RFC 不提供向后兼容列保留方案。
+该整改允许改变 EastMoney Parquet schema。因这些字段属于 source 层不应存在的技术字段，本 RFC 不提供向后兼容列保留方案。
 
 ## 交易日自然日分区调整
 
@@ -439,7 +439,7 @@ metadata={
 3. 将自然日分区 key 解析为日期。
 4. 在本次自然日范围内筛选存在于 `sina__trade_calendar` 的 A 股交易日。
 5. 对交易日发送远端请求，转换为 `pa.Table`。
-6. 只为交易日写入 `raw/<asset>/trade_date=YYYY-MM-DD/000000_0.parquet`。
+6. 只为交易日写入 `source/<asset>/trade_date=YYYY-MM-DD/000000_0.parquet`。
 7. 对非交易日不发送请求，不写入 Parquet 文件。
 8. 如果范围内没有交易日，asset run 应成功跳过远端请求，并在 metadata 中记录 `skipped_non_trade_date_count` 和空的 `processed_trade_dates`。
 
@@ -500,7 +500,7 @@ partition_row_counts
 
 虽然 Dagster 分区定义改为自然日，但 S3 输出语义仍是交易日分区：
 
-- 写出的 S3 路径仍为 `raw/<asset>/trade_date=YYYY-MM-DD/000000_0.parquet`。
+- 写出的 S3 路径仍为 `source/<asset>/trade_date=YYYY-MM-DD/000000_0.parquet`。
 - 只有交易日写出 Parquet。
 - 非交易日不写空 Parquet，不创建对应 `trade_date=<non_trade_date>` 目录。
 - 下游按 S3 `trade_date` 分区读取时，只会看到交易日。

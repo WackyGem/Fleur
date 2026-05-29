@@ -27,7 +27,7 @@ class S3IOManager(dg.ConfigurableIOManager):
     access_key: str = RUSTFS_ACCESS_KEY
     secret_key: str = RUSTFS_SECRET_KEY
     region_name: str = RUSTFS_REGION_NAME
-    object_prefix: str = "raw"
+    object_prefix: str = "source"
 
     def handle_output(self, context: dg.OutputContext, obj: Any) -> None:
         started_at = time.perf_counter()

@@ -27,6 +27,7 @@ from scheduler.defs.http.schemas import (
     FLATTEN_COLUMN_NAMING,
     ths_limit_up_pool_to_table,
 )
+from scheduler.defs.market.asset_keys import SINA_TRADE_CALENDAR_ASSET_KEY, SOURCE_ASSET_KEY_PREFIX
 from scheduler.defs.sources.jiuyan.action_field import MarketEventBackfillConfig
 
 THS_LIMIT_UP_POOL_URL = "https://data.10jqka.com.cn/dataapi/limit_up/limit_up_pool"
@@ -39,19 +40,21 @@ THS_LIMIT_UP_POOL_LIMIT = "200"
 
 @dg.asset(
     name="ths__limit_up_pool",
-    group_name="http_sources",
+    key_prefix=[SOURCE_ASSET_KEY_PREFIX],
+    group_name="s3_sources",
     partitions_def=ths_limit_up_pool_daily_partitions,
+    deps=[SINA_TRADE_CALENDAR_ASSET_KEY],
     backfill_policy=dg.BackfillPolicy.single_run(),
     metadata={
         "storage_mode": "partitioned",
         "partition_key_name": TRADE_DATE_PARTITION_KEY_NAME,
         "partitions_def": "daily_partitions",
-        "trade_date_filter": "sina__trade_calendar",
+        "trade_date_filter": SINA_TRADE_CALENDAR_ASSET_KEY.to_user_string(),
         "allow_empty": True,
         "sparse_partition_output": True,
         "flatten_column_naming": FLATTEN_COLUMN_NAMING,
     },
-    tags={"source": "ths", "layer": "raw", "storage": "s3"},
+    tags={"source": "ths", "layer": "source", "storage": "s3"},
 )
 def ths__limit_up_pool(
     context: dg.AssetExecutionContext,

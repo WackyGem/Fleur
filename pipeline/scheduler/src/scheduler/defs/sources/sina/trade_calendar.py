@@ -16,6 +16,7 @@ from scheduler.defs.http.client import (
     browser_text_headers,
 )
 from scheduler.defs.http.protocols import HttpTextClientProtocol
+from scheduler.defs.market.asset_keys import SOURCE_ASSET_KEY_PREFIX
 
 BASE64_CHARS = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"
 BASE64_INDEX = {char: index for index, char in enumerate(BASE64_CHARS)}
@@ -285,12 +286,13 @@ def trade_calendar_dates_to_table(trade_dates: TradeCalendarDates) -> pa.Table:
 
 
 @dg.asset(
-    group_name="http_sources",
+    key_prefix=[SOURCE_ASSET_KEY_PREFIX],
+    group_name="s3_sources",
     io_manager_key="s3_io_manager",
     automation_condition=TRADE_CALENDAR_AUTOMATION_CONDITION,
     tags={
         "source": "sina",
-        "layer": "raw",
+        "layer": "source",
         "storage": "s3",
     },
 )

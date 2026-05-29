@@ -211,10 +211,10 @@ jiuyan__industry_ocr_job
   - 所有 `eastmoney__*`
 - 既有 S3 路径：
   - `img/jiuyan__industry_images/<image_filename>`
-  - `raw/jiuyan__industry_ocr/image_filename=<image_filename>/000000_0.parquet`
-  - `raw/jiuyan__action_field/trade_date=YYYY-MM-DD/000000_0.parquet`
-  - `raw/ths__limit_up_pool/trade_date=YYYY-MM-DD/000000_0.parquet`
-  - `raw/eastmoney__*/year=YYYY/000000_0.parquet`
+  - `source/jiuyan__industry_ocr/image_filename=<image_filename>/000000_0.parquet`
+  - `source/jiuyan__action_field/trade_date=YYYY-MM-DD/000000_0.parquet`
+  - `source/ths__limit_up_pool/trade_date=YYYY-MM-DD/000000_0.parquet`
+  - `source/eastmoney__*/year=YYYY/000000_0.parquet`
 - `sina__trade_calendar` 作为交易日事实来源。
 
 会变化：
@@ -367,7 +367,7 @@ jiuyan__industry_list -> jiuyan__industry_images -> jiuyan__industry_ocr
 
 ```text
 source=jiuyan
-layer=raw
+layer=source
 storage=s3
 state=postgres
 modality=ocr
@@ -794,8 +794,8 @@ EastMoney：
 - 交易日输出路径仍是：
 
 ```text
-raw/jiuyan__action_field/trade_date=YYYY-MM-DD/000000_0.parquet
-raw/ths__limit_up_pool/trade_date=YYYY-MM-DD/000000_0.parquet
+source/jiuyan__action_field/trade_date=YYYY-MM-DD/000000_0.parquet
+source/ths__limit_up_pool/trade_date=YYYY-MM-DD/000000_0.parquet
 ```
 
 - 非交易日不创建对应 S3 目录。
@@ -813,7 +813,7 @@ img/jiuyan__industry_images/<image_filename>
 - OCR 单图结果路径仍是：
 
 ```text
-raw/jiuyan__industry_ocr/image_filename=<image_filename>/000000_0.parquet
+source/jiuyan__industry_ocr/image_filename=<image_filename>/000000_0.parquet
 ```
 
 - PostgreSQL 状态流转不变。

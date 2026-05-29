@@ -10,6 +10,7 @@ import pyarrow as pa
 from scheduler.defs.baostock.assets import baostock__query_stock_basic, year_partitions
 from scheduler.defs.common.clock import elapsed_seconds
 from scheduler.defs.config.models import S3Config
+from scheduler.defs.market.asset_keys import SOURCE_ASSET_KEY_PREFIX
 from scheduler.defs.market.securities import filter_active_security_ranges
 from scheduler.defs.sources.eastmoney.client import (
     EASTMONEY_CODE_CONCURRENCY,
@@ -44,7 +45,7 @@ def build_eastmoney_asset(
     metadata: dict[str, str | bool] = dict(EASTMONEY_ASSET_METADATA)
     if ordering_dependency is not None:
         deps.append(ordering_dependency)
-        metadata["execution_ordering_dependency"] = ordering_dependency.key.path[-1]
+        metadata["execution_ordering_dependency"] = ordering_dependency.key.to_user_string()
 
     def materialize(
         context: dg.AssetExecutionContext,
@@ -57,14 +58,15 @@ def build_eastmoney_asset(
 
     return dg.asset(
         name=endpoint.asset_name,
-        group_name="eastmoney",
+        key_prefix=[SOURCE_ASSET_KEY_PREFIX],
+        group_name="s3_sources",
         io_manager_key="s3_io_manager",
         partitions_def=year_partitions,
         deps=deps,
         backfill_policy=dg.BackfillPolicy.multi_run(max_partitions_per_run=1),
         metadata=metadata,
         pool=EASTMONEY_RUN_POOL,
-        tags={"source": "eastmoney", "layer": "raw", "storage": "s3"},
+        tags={"source": "eastmoney", "layer": "source", "storage": "s3"},
     )(materialize)
 
 

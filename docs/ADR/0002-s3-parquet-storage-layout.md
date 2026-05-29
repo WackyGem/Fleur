@@ -10,31 +10,31 @@ Plan 0001 要求新浪交易日历以最新快照写入 S3，Plan 0002 要求 Ba
 
 ## 决策
 
-raw 数据统一以 Parquet 写入 S3 兼容对象存储，默认对象前缀为 `raw`。
+source 数据统一以 Parquet 写入 S3 兼容对象存储，默认对象前缀为 `source`。
 
 非分区快照资产使用固定对象：
 
 ```text
-raw/{asset_key}/000000_0.parquet
+source/{asset_key}/000000_0.parquet
 ```
 
 当前快照资产：
 
 ```text
-raw/sina__trade_calendar/000000_0.parquet
-raw/baostock__query_stock_basic/000000_0.parquet
+source/sina__trade_calendar/000000_0.parquet
+source/baostock__query_stock_basic/000000_0.parquet
 ```
 
 分区资产使用 Hive 风格目录：
 
 ```text
-raw/{asset_key}/{partition_key_name}={partition_key}/000000_0.parquet
+source/{asset_key}/{partition_key_name}={partition_key}/000000_0.parquet
 ```
 
 当前分区资产：
 
 ```text
-raw/baostock__query_history_k_data_plus_daily/year=YYYY/000000_0.parquet
+source/baostock__query_history_k_data_plus_daily/year=YYYY/000000_0.parquet
 ```
 
 `storage_mode` 只允许两类语义：
@@ -47,7 +47,7 @@ IO manager 默认必须拒绝空表、拒绝空分区映射，并校验分区输
 资产可以通过 definition metadata 显式设置 `allow_empty=True` 允许写入 0 行 Parquet。该 opt-in 只放开空表行数限制，不放开 schema、分区映射、分区键一致性或确定性对象路径校验。分区资产写入空表时仍写入带完整 schema 的：
 
 ```text
-raw/{asset_key}/{partition_key_name}={partition_key}/000000_0.parquet
+source/{asset_key}/{partition_key_name}={partition_key}/000000_0.parquet
 ```
 
 ## 依据
@@ -61,7 +61,7 @@ raw/{asset_key}/{partition_key_name}={partition_key}/000000_0.parquet
 
 当前测试覆盖：
 
-- `test_asset_key_to_parquet_object_key_uses_raw_prefix_by_default`
+- `test_asset_key_to_parquet_object_key_uses_source_prefix_by_default`
 - `test_asset_key_to_parquet_object_key_supports_hive_partition_path`
 - `test_write_parquet_dataset_round_trips_unpartitioned_table`
 - `test_write_parquet_dataset_round_trips_partitioned_table`
@@ -78,7 +78,7 @@ raw/{asset_key}/{partition_key_name}={partition_key}/000000_0.parquet
 - 日频 K 线按 `year` 分区，便于年度回填和当年增量刷新。
 - 稀疏数据集可以在 `allow_empty=True` 下写入 schema 完整的 0 行分区文件，materialization metadata 记录 `allow_empty` 和 `empty_partition_keys`。
 - 默认空表保护不变，未声明 `allow_empty=True` 的资产仍会失败，避免远端/API 异常把有效数据覆盖为空文件。
-- 下游读取 raw 数据应使用这些稳定对象路径，不应直接发起远端 API 请求。
+- 下游读取 source 数据应使用这些稳定对象路径，不应直接发起远端 API 请求。
 - 如果未来需要保留多版本快照，应新增 ADR，并扩展 `storage_mode`，不能复用 `latest_snapshot` 表达多版本语义。
 
 ## 备注

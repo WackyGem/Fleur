@@ -33,71 +33,147 @@ def test_definitions_register_expected_jobs_schedules_assets_and_resources() -> 
         }
         for asset in assets
     }
+    asset_dependency_contracts = {
+        asset.key.to_user_string(): sorted(key.to_user_string() for key in asset.dependency_keys)
+        for asset in assets
+    }
+    assert asset_dependency_contracts == {
+        "source/sina__trade_calendar": [],
+        "source/jiuyan__action_field": ["source/sina__trade_calendar"],
+        "source/jiuyan__action_field_compacted": [
+            "source/jiuyan__action_field",
+            "source/sina__trade_calendar",
+        ],
+        "source/ths__limit_up_pool": ["source/sina__trade_calendar"],
+        "source/ths__limit_up_pool_compacted": [
+            "source/sina__trade_calendar",
+            "source/ths__limit_up_pool",
+        ],
+        "source/jiuyan__industry_list": [],
+        "source/jiuyan__industry_images": ["source/jiuyan__industry_list"],
+        "source/jiuyan__industry_ocr": ["source/jiuyan__industry_images"],
+        "source/baostock__query_stock_basic": [],
+        "source/baostock__query_history_k_data_plus_daily": [
+            "source/baostock__query_stock_basic",
+            "source/sina__trade_calendar",
+        ],
+        "source/eastmoney__balance": ["source/baostock__query_stock_basic"],
+        "source/eastmoney__cashflow_sq": [
+            "source/baostock__query_stock_basic",
+            "source/eastmoney__balance",
+        ],
+        "source/eastmoney__cashflow_ytd": [
+            "source/baostock__query_stock_basic",
+            "source/eastmoney__cashflow_sq",
+        ],
+        "source/eastmoney__dividend_allotment": [
+            "source/baostock__query_stock_basic",
+            "source/eastmoney__cashflow_ytd",
+        ],
+        "source/eastmoney__dividend_main": [
+            "source/baostock__query_stock_basic",
+            "source/eastmoney__dividend_allotment",
+        ],
+        "source/eastmoney__equity_history": [
+            "source/baostock__query_stock_basic",
+            "source/eastmoney__dividend_main",
+        ],
+        "source/eastmoney__income_sq": [
+            "source/baostock__query_stock_basic",
+            "source/eastmoney__equity_history",
+        ],
+        "source/eastmoney__income_ytd": [
+            "source/baostock__query_stock_basic",
+            "source/eastmoney__income_sq",
+        ],
+    }
     assert asset_contracts == {
-        "sina__trade_calendar": {
-            "group": "http_sources",
+        "source/sina__trade_calendar": {
+            "group": "s3_sources",
             "partitions_def": None,
             "metadata": {},
         },
-        "jiuyan__action_field": {
-            "group": "http_sources",
+        "source/jiuyan__action_field": {
+            "group": "s3_sources",
             "partitions_def": "DailyPartitionsDefinition",
             "metadata": {
                 "storage_mode": "partitioned",
                 "partition_key_name": "trade_date",
                 "partitions_def": "daily_partitions",
-                "trade_date_filter": "sina__trade_calendar",
+                "trade_date_filter": "source/sina__trade_calendar",
                 "allow_empty": True,
                 "sparse_partition_output": True,
                 "flatten_column_naming": "shortest_leaf",
             },
         },
-        "ths__limit_up_pool": {
-            "group": "http_sources",
+        "source/jiuyan__action_field_compacted": {
+            "group": "s3_sources",
+            "partitions_def": "TimeWindowPartitionsDefinition",
+            "metadata": {
+                "storage_mode": "partitioned",
+                "partition_key_name": "year",
+                "partitions_def": "year_partitions",
+                "input_partition_key_name": "trade_date",
+                "input_asset": "source/jiuyan__action_field",
+            },
+        },
+        "source/ths__limit_up_pool": {
+            "group": "s3_sources",
             "partitions_def": "DailyPartitionsDefinition",
             "metadata": {
                 "storage_mode": "partitioned",
                 "partition_key_name": "trade_date",
                 "partitions_def": "daily_partitions",
-                "trade_date_filter": "sina__trade_calendar",
+                "trade_date_filter": "source/sina__trade_calendar",
                 "allow_empty": True,
                 "sparse_partition_output": True,
                 "flatten_column_naming": "shortest_leaf",
             },
         },
-        "jiuyan__industry_list": {
-            "group": "http_sources",
+        "source/ths__limit_up_pool_compacted": {
+            "group": "s3_sources",
+            "partitions_def": "TimeWindowPartitionsDefinition",
+            "metadata": {
+                "storage_mode": "partitioned",
+                "partition_key_name": "year",
+                "partitions_def": "year_partitions",
+                "input_partition_key_name": "trade_date",
+                "input_asset": "source/ths__limit_up_pool",
+            },
+        },
+        "source/jiuyan__industry_list": {
+            "group": "s3_sources",
             "partitions_def": None,
             "metadata": {
                 "storage_mode": "latest_snapshot",
                 "flatten_column_naming": "shortest_leaf",
             },
         },
-        "jiuyan__industry_images": {
-            "group": "http_sources",
+        "source/jiuyan__industry_images": {
+            "group": "s3_sources",
             "partitions_def": None,
             "metadata": {},
         },
-        "jiuyan__industry_ocr": {
-            "group": "http_sources",
+        "source/jiuyan__industry_ocr": {
+            "group": "s3_sources",
             "partitions_def": None,
             "metadata": {},
         },
-        "baostock__query_stock_basic": {
-            "group": "baostock",
+        "source/baostock__query_stock_basic": {
+            "group": "s3_sources",
             "partitions_def": None,
             "metadata": {"storage_mode": "latest_snapshot"},
         },
-        "baostock__query_history_k_data_plus_daily": {
-            "group": "baostock",
+        "source/baostock__query_history_k_data_plus_daily": {
+            "group": "s3_sources",
             "partitions_def": "TimeWindowPartitionsDefinition",
             "metadata": {
                 "storage_mode": "partitioned",
                 "partition_key_name": "year",
             },
         },
-        "eastmoney__balance": {
-            "group": "eastmoney",
+        "source/eastmoney__balance": {
+            "group": "s3_sources",
             "partitions_def": "TimeWindowPartitionsDefinition",
             "metadata": {
                 "storage_mode": "partitioned",
@@ -105,81 +181,83 @@ def test_definitions_register_expected_jobs_schedules_assets_and_resources() -> 
                 "allow_empty": True,
             },
         },
-        "eastmoney__cashflow_sq": {
-            "group": "eastmoney",
+        "source/eastmoney__cashflow_sq": {
+            "group": "s3_sources",
             "partitions_def": "TimeWindowPartitionsDefinition",
             "metadata": {
                 "storage_mode": "partitioned",
                 "partition_key_name": "year",
                 "allow_empty": True,
-                "execution_ordering_dependency": "eastmoney__balance",
+                "execution_ordering_dependency": "source/eastmoney__balance",
             },
         },
-        "eastmoney__cashflow_ytd": {
-            "group": "eastmoney",
+        "source/eastmoney__cashflow_ytd": {
+            "group": "s3_sources",
             "partitions_def": "TimeWindowPartitionsDefinition",
             "metadata": {
                 "storage_mode": "partitioned",
                 "partition_key_name": "year",
                 "allow_empty": True,
-                "execution_ordering_dependency": "eastmoney__cashflow_sq",
+                "execution_ordering_dependency": "source/eastmoney__cashflow_sq",
             },
         },
-        "eastmoney__dividend_allotment": {
-            "group": "eastmoney",
+        "source/eastmoney__dividend_allotment": {
+            "group": "s3_sources",
             "partitions_def": "TimeWindowPartitionsDefinition",
             "metadata": {
                 "storage_mode": "partitioned",
                 "partition_key_name": "year",
                 "allow_empty": True,
-                "execution_ordering_dependency": "eastmoney__cashflow_ytd",
+                "execution_ordering_dependency": "source/eastmoney__cashflow_ytd",
             },
         },
-        "eastmoney__dividend_main": {
-            "group": "eastmoney",
+        "source/eastmoney__dividend_main": {
+            "group": "s3_sources",
             "partitions_def": "TimeWindowPartitionsDefinition",
             "metadata": {
                 "storage_mode": "partitioned",
                 "partition_key_name": "year",
                 "allow_empty": True,
-                "execution_ordering_dependency": "eastmoney__dividend_allotment",
+                "execution_ordering_dependency": "source/eastmoney__dividend_allotment",
             },
         },
-        "eastmoney__equity_history": {
-            "group": "eastmoney",
+        "source/eastmoney__equity_history": {
+            "group": "s3_sources",
             "partitions_def": "TimeWindowPartitionsDefinition",
             "metadata": {
                 "storage_mode": "partitioned",
                 "partition_key_name": "year",
                 "allow_empty": True,
-                "execution_ordering_dependency": "eastmoney__dividend_main",
+                "execution_ordering_dependency": "source/eastmoney__dividend_main",
             },
         },
-        "eastmoney__income_sq": {
-            "group": "eastmoney",
+        "source/eastmoney__income_sq": {
+            "group": "s3_sources",
             "partitions_def": "TimeWindowPartitionsDefinition",
             "metadata": {
                 "storage_mode": "partitioned",
                 "partition_key_name": "year",
                 "allow_empty": True,
-                "execution_ordering_dependency": "eastmoney__equity_history",
+                "execution_ordering_dependency": "source/eastmoney__equity_history",
             },
         },
-        "eastmoney__income_ytd": {
-            "group": "eastmoney",
+        "source/eastmoney__income_ytd": {
+            "group": "s3_sources",
             "partitions_def": "TimeWindowPartitionsDefinition",
             "metadata": {
                 "storage_mode": "partitioned",
                 "partition_key_name": "year",
                 "allow_empty": True,
-                "execution_ordering_dependency": "eastmoney__income_sq",
+                "execution_ordering_dependency": "source/eastmoney__income_sq",
             },
         },
     }
     assert {job.name for job in loaded_defs.jobs or []} == {
         "sina__trade_calendar_job",
         "jiuyan__action_field_daily_job",
+        "jiuyan__action_field_compacted_job",
         "ths__limit_up_pool_daily_job",
+        "ths__limit_up_pool_compacted_job",
         "jiuyan__industry_list_snapshot_job",
         "jiuyan__industry_ocr_pipeline_job",
         "baostock__daily_job",
@@ -272,7 +350,7 @@ def test_year_refresh_schedule_builds_partitioned_run_config() -> None:
         "market.year": "2026",
         "source": "eastmoney",
     }
-    for asset_name in schedules.EASTMONEY_DAILY_ASSET_NAMES:
+    for asset_name in schedules.EASTMONEY_DAILY_OP_NAMES:
         assert result.run_config["ops"][asset_name]["config"] == {
             "refresh_until_date": "2026-05-08"
         }

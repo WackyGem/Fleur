@@ -14,7 +14,11 @@ from scheduler.defs.baostock.schemas import (
 from scheduler.defs.common.clock import elapsed_seconds
 from scheduler.defs.common.metadata import RawMetadataValue
 from scheduler.defs.config.models import S3Config
-from scheduler.defs.market.asset_keys import BAOSTOCK_DAILY_K_ASSET_KEY
+from scheduler.defs.market.asset_keys import (
+    BAOSTOCK_DAILY_K_ASSET_KEY,
+    SINA_TRADE_CALENDAR_ASSET_KEY,
+    SOURCE_ASSET_KEY_PREFIX,
+)
 from scheduler.defs.market.securities import filter_active_security_ranges
 from scheduler.defs.market.trade_calendar import read_trade_dates_from_s3
 from scheduler.defs.storage.parquet_readers import read_baostock_stock_basic_from_s3
@@ -34,13 +38,14 @@ class KLineDailyYearConfig(dg.Config):
 
 
 @dg.asset(
-    group_name="baostock",
+    key_prefix=[SOURCE_ASSET_KEY_PREFIX],
+    group_name="s3_sources",
     io_manager_key="s3_io_manager",
     metadata={"storage_mode": "latest_snapshot"},
     pool=BAOSTOCK_RUN_POOL,
     tags={
         "source": "baostock",
-        "layer": "raw",
+        "layer": "source",
         "storage": "s3",
     },
 )
@@ -61,16 +66,16 @@ def baostock__query_stock_basic() -> dg.MaterializeResult[pa.Table]:
 
 @dg.asset(
     key=BAOSTOCK_DAILY_K_ASSET_KEY,
-    group_name="baostock",
+    group_name="s3_sources",
     io_manager_key="s3_io_manager",
     partitions_def=year_partitions,
-    deps=[baostock__query_stock_basic],
+    deps=[baostock__query_stock_basic, SINA_TRADE_CALENDAR_ASSET_KEY],
     backfill_policy=dg.BackfillPolicy.multi_run(max_partitions_per_run=1),
     metadata={"storage_mode": "partitioned", "partition_key_name": "year"},
     pool=BAOSTOCK_RUN_POOL,
     tags={
         "source": "baostock",
-        "layer": "raw",
+        "layer": "source",
         "storage": "s3",
     },
 )

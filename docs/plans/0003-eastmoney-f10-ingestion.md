@@ -72,7 +72,7 @@
 当前项目已经具备：
 
 - `S3IOManager` 与 `write_parquet_dataset`，用于 raw Parquet 写入。
-- `asset_key_to_parquet_object_key`，用于稳定生成 `raw/<asset>/year=YYYY/000000_0.parquet` 路径。
+- `asset_key_to_parquet_object_key`，用于稳定生成 `source/<asset>/year=YYYY/000000_0.parquet` 路径。
 - `read_baostock_stock_basic_from_s3`，用于读取证券基础信息快照。
 - `filter_active_security_ranges`，用于基于 `code`、`ipoDate`、`outDate`、`type` 和请求日期范围生成有效证券请求范围。
 - `ExponentialBackoffPolicy` 与 `DEFAULT_RETRY_POLICY`，用于指数退避重试。
@@ -111,14 +111,14 @@ pipeline/scheduler/src/scheduler/defs/eastmoney/
 
 | Asset | 接口族 | 固定参数 | 稳定排序 | 输出路径 |
 | --- | --- | --- | --- | --- |
-| `eastmoney__balance` | `data/get` | `type=RPT_F10_FINANCE_GBALANCE`, `sty=F10_FINANCE_GBALANCE` | `st=REPORT_DATE,SECURITY_CODE`, `sr=-1,-1` | `raw/eastmoney__balance/year=YYYY/000000_0.parquet` |
-| `eastmoney__cashflow_sq` | `data/get` | `type=RPT_F10_FINANCE_GCASHFLOWQC`, `sty=PC_F10_GCASHFLOWQC` | `st=REPORT_DATE,SECURITY_CODE`, `sr=-1,-1` | `raw/eastmoney__cashflow_sq/year=YYYY/000000_0.parquet` |
-| `eastmoney__cashflow_ytd` | `data/get` | `type=RPT_F10_FINANCE_GCASHFLOW`, `sty=APP_F10_GCASHFLOW` | `st=REPORT_DATE,SECURITY_CODE`, `sr=-1,-1` | `raw/eastmoney__cashflow_ytd/year=YYYY/000000_0.parquet` |
-| `eastmoney__dividend_allotment` | `data/v1/get` | `reportName=RPT_F10_DIVIDEND_ALLOTMENT`, `columns=ALL` | `sortColumns=NOTICE_DATE,SECURITY_CODE`, `sortTypes=-1,-1` | `raw/eastmoney__dividend_allotment/year=YYYY/000000_0.parquet` |
-| `eastmoney__dividend_main` | `data/v1/get` | `reportName=RPT_F10_DIVIDEND_MAIN`, `columns=ALL` | `sortColumns=NOTICE_DATE,SECURITY_CODE`, `sortTypes=-1,-1` | `raw/eastmoney__dividend_main/year=YYYY/000000_0.parquet` |
-| `eastmoney__equity_history` | `data/v1/get` | `reportName=RPT_F10_EH_EQUITY`, `columns=ALL` | `sortColumns=NOTICE_DATE,SECURITY_CODE`, `sortTypes=-1,-1` | `raw/eastmoney__equity_history/year=YYYY/000000_0.parquet` |
-| `eastmoney__income_sq` | `data/get` | `type=RPT_F10_FINANCE_GINCOMEQC`, `sty=PC_F10_GINCOMEQC` | `st=REPORT_DATE,SECURITY_CODE`, `sr=-1,-1` | `raw/eastmoney__income_sq/year=YYYY/000000_0.parquet` |
-| `eastmoney__income_ytd` | `data/get` | `type=RPT_F10_FINANCE_GINCOME`, `sty=APP_F10_GINCOME` | `st=REPORT_DATE,SECURITY_CODE`, `sr=-1,-1` | `raw/eastmoney__income_ytd/year=YYYY/000000_0.parquet` |
+| `eastmoney__balance` | `data/get` | `type=RPT_F10_FINANCE_GBALANCE`, `sty=F10_FINANCE_GBALANCE` | `st=REPORT_DATE,SECURITY_CODE`, `sr=-1,-1` | `source/eastmoney__balance/year=YYYY/000000_0.parquet` |
+| `eastmoney__cashflow_sq` | `data/get` | `type=RPT_F10_FINANCE_GCASHFLOWQC`, `sty=PC_F10_GCASHFLOWQC` | `st=REPORT_DATE,SECURITY_CODE`, `sr=-1,-1` | `source/eastmoney__cashflow_sq/year=YYYY/000000_0.parquet` |
+| `eastmoney__cashflow_ytd` | `data/get` | `type=RPT_F10_FINANCE_GCASHFLOW`, `sty=APP_F10_GCASHFLOW` | `st=REPORT_DATE,SECURITY_CODE`, `sr=-1,-1` | `source/eastmoney__cashflow_ytd/year=YYYY/000000_0.parquet` |
+| `eastmoney__dividend_allotment` | `data/v1/get` | `reportName=RPT_F10_DIVIDEND_ALLOTMENT`, `columns=ALL` | `sortColumns=NOTICE_DATE,SECURITY_CODE`, `sortTypes=-1,-1` | `source/eastmoney__dividend_allotment/year=YYYY/000000_0.parquet` |
+| `eastmoney__dividend_main` | `data/v1/get` | `reportName=RPT_F10_DIVIDEND_MAIN`, `columns=ALL` | `sortColumns=NOTICE_DATE,SECURITY_CODE`, `sortTypes=-1,-1` | `source/eastmoney__dividend_main/year=YYYY/000000_0.parquet` |
+| `eastmoney__equity_history` | `data/v1/get` | `reportName=RPT_F10_EH_EQUITY`, `columns=ALL` | `sortColumns=NOTICE_DATE,SECURITY_CODE`, `sortTypes=-1,-1` | `source/eastmoney__equity_history/year=YYYY/000000_0.parquet` |
+| `eastmoney__income_sq` | `data/get` | `type=RPT_F10_FINANCE_GINCOMEQC`, `sty=PC_F10_GINCOMEQC` | `st=REPORT_DATE,SECURITY_CODE`, `sr=-1,-1` | `source/eastmoney__income_sq/year=YYYY/000000_0.parquet` |
+| `eastmoney__income_ytd` | `data/get` | `type=RPT_F10_FINANCE_GINCOME`, `sty=APP_F10_GINCOME` | `st=REPORT_DATE,SECURITY_CODE`, `sr=-1,-1` | `source/eastmoney__income_ytd/year=YYYY/000000_0.parquet` |
 
 共同配置：
 
@@ -466,7 +466,7 @@ Dagster 验证：
 
 - Dagster UI 中能看到 8 个 `eastmoney` group 下的 asset。
 - 8 个 asset 都按 `year` 分区。
-- 每个 asset 输出路径为 `raw/<asset>/year=YYYY/000000_0.parquet`。
+- 每个 asset 输出路径为 `source/<asset>/year=YYYY/000000_0.parquet`。
 - 每个 asset 只请求 BaoStock `type="1"` 股票。
 - 每个 HTTP 请求只包含一个 EastMoney code 和一个日期范围。
 - 单 asset run 内 code 并发不超过 20。

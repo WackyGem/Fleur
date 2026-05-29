@@ -73,7 +73,7 @@ class JiuyanIndustryOcrAssetsTest(unittest.TestCase):
 
         self.assertEqual(
             key,
-            "raw/jiuyan__industry_ocr/image_filename=one.png/000000_0.parquet",
+            "source/jiuyan__industry_ocr/image_filename=one.png/000000_0.parquet",
         )
 
 

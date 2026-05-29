@@ -9,7 +9,7 @@ import pyarrow.fs as pafs
 from scheduler.defs.config.models import S3Config
 
 StorageMode = Literal["partitioned", "latest_snapshot"]
-DEFAULT_OBJECT_PREFIX = "raw"
+DEFAULT_OBJECT_PREFIX = "source"
 
 
 def asset_key_to_parquet_object_key(
@@ -19,9 +19,12 @@ def asset_key_to_parquet_object_key(
     partition_key_name: str | None = None,
     storage_mode: StorageMode = "partitioned",
 ) -> str:
-    asset_path = "/".join(asset_key.path)
     stripped_prefix = object_prefix.strip("/")
-    path_parts = [part for part in (stripped_prefix, asset_path) if part]
+    asset_path_parts = list(asset_key.path)
+    if stripped_prefix and asset_path_parts[:1] == [stripped_prefix]:
+        path_parts = asset_path_parts
+    else:
+        path_parts = [part for part in (stripped_prefix, *asset_path_parts) if part]
 
     if storage_mode == "partitioned" and partition_key is not None:
         if partition_key_name is None:
