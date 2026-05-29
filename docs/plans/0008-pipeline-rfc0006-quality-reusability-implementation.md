@@ -29,7 +29,7 @@
 - 先设计并实现 `pipeline/scheduler` 的最终代码目标结构。
 - 一次性消除重复 helper、死代码、职责混杂和临时兼容层。
 - 建立统一的 HTTP、分页、schema、metadata、分区物化、对象存储和 schedule/job 工厂抽象。
-- 在代码结构稳定后，重写测试框架，使测试围绕新架构而不是旧模块路径补丁。
+- 在代码结构稳定并通过代码框架 review 后，重写测试框架，使测试围绕新架构而不是旧模块路径补丁。
 - 保持现有 Dagster asset key、S3 路径、Parquet schema、远端 API 语义和调度业务语义不变。
 - 最终质量门禁同时覆盖 `ruff`、`pyright`、`dg check defs`、单元测试和覆盖率。
 
@@ -58,9 +58,10 @@
 
 ### 阶段门禁
 
-改造分为两类阶段：
+改造分为三类阶段：
 
 - **结构改造阶段**：以 import graph、Dagster definitions 加载、静态类型方向为主，不要求旧测试通过。
+- **代码框架 review 阶段**：在阶段 5 清理旧结构后暂停测试重写，专门审查新代码框架是否消除了代码异味，并确认抽象能力、复用性和可扩展性得到改善。
 - **测试重建阶段**：废弃旧测试组织方式，按新抽象分层重写测试，最终恢复完整质量门禁。
 
 结构改造阶段允许短期测试失败，但不允许：
@@ -450,9 +451,73 @@ uv run dg check defs
 
 并且 `rg` 不再找到 RFC 0006 指出的重复函数定义。
 
+### 阶段 6：代码框架 Review 门禁
+
+阶段 5 完成后，不直接进入测试框架重写。必须先对优化调整后的代码框架做一次集中 review，确认新的代码结构本身是可维护、可复用、可扩展的。
+
+该阶段只 review 生产代码框架和外部契约，不以旧测试是否恢复为判断标准。旧测试在此时仍可失败，但 `dg check defs` 必须通过，且 asset/job/schedule/S3/schema/request contract 不得变化。
+
+Review 目标：
+
+- 确认没有引入新的代码异味。
+- 确认 RFC 0006 指出的重复、死代码、职责混杂已经被实际消除。
+- 确认新抽象不是简单搬家，而是在多个数据源或模块中形成真实复用。
+- 确认新增数据源的接入路径更短、更明确。
+- 确认测试框架重写不会被迫围绕中间态兼容层或不成熟抽象展开。
+
+Review 检查清单：
+
+```text
+代码质量
+- 不存在新的万能模块、循环依赖、隐式 re-export。
+- 不存在只为旧测试存在的生产代码、fake、patch hook。
+- 不存在长期兼容导入层。
+- 不存在 RFC 0006 已点名的重复 helper。
+- 模块级代码不读取环境、不连接数据库、不访问网络、不做文件系统 I/O。
+
+抽象边界
+- common/ 只包含无业务含义的纯 helper。
+- storage/ 不知道具体数据源。
+- market/ 只表达跨数据源市场概念。
+- http/ 只提供 client、protocol、pagination、schema、partitioning、schedule/job 工厂。
+- sources/ 只保留数据源业务逻辑。
+- repositories/ 只保留 repository 类 API。
+
+复用性
+- EastMoney、THS、JiuYan 不再复制分页或 row fingerprint 核心算法。
+- Sina、JiuYan、THS、EastMoney 共享 schema 表构造、字符串转换和未知字段统计能力。
+- metadata 通过统一 builder 输出，不再散落 dict[str, object]。
+- schedule/job 注册由 spec 或工厂统一生成。
+- 对象存储抽象不再限定于图片。
+
+扩展性
+- 新增一个 HTTP 数据源时，只需实现请求构造、payload 解析、schema 配置和资产 spec。
+- 新增一种二进制对象类型时，不需要复制 ImageObjectStore。
+- 新增一种分区类型时，不需要复制 trade-date materialization 流程。
+- 新增 schedule 时，不需要复制 evaluate wrapper。
+
+外部契约
+- asset key 不变。
+- job/schedule 名称不变，除非计划中明确记录。
+- S3 object key 模板不变。
+- Parquet schema 字段名和类型不变。
+- 远端 API 请求核心参数不变。
+- 旧 metadata 字段继续存在。
+```
+
+Review 产出：
+
+- `docs/plans/0008-code-framework-review.md` 或等价 review note。
+- 旧模块到新模块迁移映射。
+- RFC 0006 原问题逐项处理状态。
+- 新发现代码异味列表及处理结论。
+- “允许进入测试框架重写”或“退回代码框架调整”的明确结论。
+
+若 review 未通过，必须回到阶段 1-5 调整代码框架。不得通过编写测试来固化有问题的抽象。
+
 ## 测试框架重写计划
 
-测试框架在代码目标结构稳定后整体重写。旧测试只保留有价值的 case 数据和断言意图，不保留旧模块 patch path。
+测试框架在代码目标结构稳定并通过阶段 6 代码框架 review 后整体重写。旧测试只保留有价值的 case 数据和断言意图，不保留旧模块 patch path。
 
 ### 新测试目录结构
 
@@ -516,6 +581,8 @@ pipeline/scheduler/tests/
 
 ### 测试重写顺序
 
+前置条件：阶段 6 review 明确允许进入测试框架重写。
+
 1. 建立 `tests/fakes/` 和 `tests/helpers/`。
 2. 写 common/storage/http 基础设施测试。
 3. 写 repository/object store 测试。
@@ -565,6 +632,14 @@ uv run pyright scheduler/src/scheduler scheduler/tests
 - `config.py` 不再混合 `dg.EnvVar` 声明和配置数据类。
 - 测试 fake 全部位于 `tests/fakes/` 或 `tests/helpers/`。
 
+代码框架 review 验收：
+
+- 阶段 6 review note 已完成。
+- review note 明确记录旧模块到新模块的迁移映射。
+- review note 逐项确认 RFC 0006 原问题已解决或记录剩余处置。
+- review note 确认未引入新的明显代码异味。
+- review note 明确允许进入测试框架重写阶段。
+
 行为验收：
 
 - 所有现有 Dagster asset key 不变。
@@ -596,6 +671,7 @@ uv run dg check defs
 | 一次性改造范围过大 | 中间状态不可运行 | 在独立分支完成，结构阶段只看 import graph 和 definitions load |
 | 旧测试失效导致行为回归不可见 | 业务语义回归 | 阶段 0 先冻结 asset/S3/schema/request contract，测试重写时优先恢复 contract tests |
 | 新抽象过度复杂 | 后续维护成本升高 | 抽象只覆盖已有 4 类重复模式：schema、pagination、metadata、partitioning |
+| 测试框架过早重写 | 测试固化不成熟抽象 | 阶段 5 后强制代码框架 review，通过后才能进入测试重写 |
 | import path 大范围变化 | Dagster definitions 加载失败 | 最终统一由 `defs/definitions.py` 组装，验收强制 `dg check defs` |
 | metadata builder 改变字段 | 下游观测或运维脚本受影响 | 旧字段继续输出，新标准字段作为补充 |
 | pyright 修复影响运行代码 | 类型收敛引入行为变化 | 类型修复必须以 runtime contract tests 兜底 |
@@ -608,6 +684,7 @@ uv run dg check defs
 - 新目标目录结构。
 - 删除旧工具箱和旧业务模块。
 - 统一公共抽象。
+- 阶段 6 代码框架 review note。
 - 新测试框架和 fake/helper 库。
 - 通过质量门禁的 scheduler 工程。
 - 一份 migration note，列出旧模块到新模块的映射，供后续 review 和排查使用。
@@ -619,8 +696,9 @@ uv run dg check defs
 1. 创建单独长期分支。
 2. 阶段 0 冻结 contract。
 3. 阶段 1-5 完成目标代码结构。
-4. 阶段 6 重写测试框架。
-5. 阶段 7 统一修复 pyright、ruff、coverage 和 definitions load。
-6. 最终以一个大 PR review，review 重点放在 contract 是否保持稳定，而不是旧文件 diff。
+4. 阶段 6 进行代码框架 review，确认没有引入新的代码异味，且抽象能力、复用性和可扩展性得到改善。
+5. review 通过后，阶段 7 重写测试框架。
+6. 阶段 8 统一修复 pyright、ruff、coverage 和 definitions load。
+7. 最终以一个大 PR review，review 重点放在 contract 是否保持稳定，以及阶段 6 review 发现的问题是否已处理。
 
 在最终 PR 合并前，不应把中间兼容层或半迁移测试合入主干。

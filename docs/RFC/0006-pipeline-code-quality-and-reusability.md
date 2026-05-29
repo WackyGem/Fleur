@@ -32,6 +32,7 @@
 - 清理 `postgres.py` 中的模块级冗余包装函数，统一调用路径。
 - 将测试中的 Fake 对象和辅助函数沉淀为共享 test utilities，减少测试文件间复制。
 - 为 schedule/job 注册引入声明式工厂，减少模板代码。
+- 在完成目标代码框架和旧结构清理后、重写测试框架前，设置代码框架 review 门禁，确认没有引入新的代码异味，且抽象能力、复用性和可扩展性确实得到改善。
 - 保持所有已有 asset key、S3 路径、数据语义和 API 行为不变。
 
 ## 非目标
@@ -642,12 +643,76 @@ pipeline/scheduler/src/scheduler/
    - 泛化分区物化框架
    - 泛化对象存储抽象
 
-6. **沉淀测试工具库**（低风险，中收益）：
+6. **代码框架 Review 门禁**（高价值，强制）：
+   - 在目标代码结构、公共抽象、数据源迁移和旧结构清理完成后执行
+   - 在任何测试框架重写前执行
+   - 重点确认没有新增代码异味，抽象边界清晰，复用能力和扩展能力得到实质改善
+
+7. **沉淀测试工具库**（低风险，中收益）：
    - 创建 `tests/fakes/` 和 `helpers.py`
    - 迁移现有 fake 对象和辅助函数
    - 创建 `conftest.py` 共享 fixtures
 
-每一步都应能独立通过质量门禁，避免一次 PR 同时改变多个维度导致 review 面过大。
+如果采用 `docs/plans/0008-pipeline-rfc0006-quality-reusability-implementation.md` 的一刀切实施方式，阶段 1-5 可以在同一长期分支中整体完成；但阶段 5 完成后必须先通过代码框架 review，再进入测试框架调整。不得用新测试重写来掩盖代码框架本身的抽象问题。
+
+## 阶段 5 后代码框架 Review 门禁
+
+在完成目标代码结构搭建、基础设施迁移、HTTP 数据源迁移、Dagster definitions 重组和旧结构清理后，必须暂停测试框架调整，先进行一次专门的代码框架 review。
+
+该 review 的目标不是检查测试是否已经恢复，而是确认代码框架本身是否达到 RFC 0006 的优化目标：
+
+- 是否消除了原有重复、死代码和职责混杂。
+- 是否没有引入新的万能模块、循环依赖、隐式 re-export、临时兼容层或测试专用生产代码。
+- 公共抽象是否真正在多个数据源或模块中复用，而不是只把旧逻辑搬到新的文件名下。
+- 数据源业务逻辑是否仍留在 source 层，HTTP、storage、market、metadata 等基础设施是否保持业务无关。
+- 新增一个 HTTP 数据源时，是否只需要实现请求构造、payload 解析、schema 字段配置和资产注册，而不需要复制分页、metadata、S3、schedule 模板代码。
+- Dagster asset key、job、schedule、partition、IO manager key 和 metadata 旧字段是否保持稳定。
+
+### Review 检查清单
+
+代码质量：
+
+- `rg` 不再找到 RFC 0006 指出的重复 helper 定义。
+- `defs/util.py`、旧 `pipeline_defs.py`、旧 `http_resources` 业务模块和临时兼容层已删除或不再承载逻辑。
+- `repositories/` 中只暴露 repository 类，不保留模块级便捷包装函数。
+- 模块级代码不做环境读取、网络连接、数据库连接或文件系统 I/O。
+- 生产代码中没有为旧测试保留的 fake、patch hook 或兼容导入。
+
+抽象能力：
+
+- `common/` 只包含无业务含义的纯 helper。
+- `storage/` 不知道具体数据源，只处理 S3、bytes 和 Parquet。
+- `market/` 只表达跨数据源市场概念。
+- `http/` 只提供 HTTP client、protocol、pagination、schema、partitioning、schedule/job 工厂。
+- `sources/` 只保留数据源业务规则，并通过公共抽象组合能力。
+- metadata builder 能覆盖当前资产的共同 metadata 模式，并保留旧字段兼容。
+
+复用性与可扩展性：
+
+- EastMoney、THS、JiuYan 的分页或去重逻辑不再复制核心算法。
+- Sina、JiuYan、THS、EastMoney 的 schema 转换共享统一表构造和未知字段计数能力。
+- 交易日分区资产和年分区资产能复用同一分区物化框架的核心流程。
+- 对象存储能力不再限定于图片，JiuYan 图片逻辑只保留业务 key 映射和 content-type 校验。
+- schedule/job 注册通过声明式 spec 或工厂表达，不再散落重复 wrapper。
+
+类型与边界：
+
+- `EnvVar.get_value()` 的 Optional 返回值在配置边界收敛。
+- Dagster metadata 由明确 builder 生成，不再向 Dagster API 传入裸 `dict[str, object]`。
+- HTTP fake 依赖 protocol，而不是继承真实 client。
+- 外部 payload 可以使用 `Mapping[str, object]`，但进入业务核心后应尽快转换为明确结构。
+
+### Review 产出
+
+代码框架 review 必须产出一份简短记录，至少包括：
+
+- 目标目录结构是否完成。
+- 旧模块到新模块的迁移映射是否清晰。
+- RFC 0006 原问题逐项是否已解决。
+- 新发现的代码异味和处理结论。
+- 是否允许进入测试框架重写阶段。
+
+如果 review 发现抽象能力或复用性不足，应先回到代码框架调整，不得直接通过补测试来固化有问题的设计。
 
 ## 验收标准
 
@@ -666,9 +731,10 @@ pipeline/scheduler/src/scheduler/
 11. `AioHttpClient` 支持 hook 机制。
 12. `partitioned.py` 框架支持任意分区类型，不再局限于交易日。
 13. `object_store.py` 支持任意二进制对象，不再局限于图片。
-14. 测试 fake 对象和辅助函数沉淀到 `tests/fakes/` 和 `helpers.py`。
-15. 现有质量门禁通过。
-16. 所有已有 asset key、S3 路径、数据语义和 API 行为保持不变。
+14. 阶段 5 后代码框架 review 已完成，并明确允许进入测试框架重写阶段。
+15. 测试 fake 对象和辅助函数沉淀到 `tests/fakes/` 和 `helpers.py`。
+16. 现有质量门禁通过。
+17. 所有已有 asset key、S3 路径、数据语义和 API 行为保持不变。
 
 ## 风险与缓解
 
@@ -731,10 +797,10 @@ from scheduler.defs.util.helpers import elapsed_seconds, required_string
 
 实施策略是：
 
-- **分阶段**：按风险从低到高、收益从高到低排序
-- **小步走**：每个阶段独立通过质量门禁
+- **目标态先行**：先完成代码框架目标结构，再重建测试框架
+- **阶段 5 Review**：旧结构清理后先审查代码框架质量、抽象能力、复用性和扩展性
 - **保持兼容**：所有已有 API 和数据语义不变
-- **充分测试**：迁移前后保持测试行为一致
+- **测试后置重建**：通过 review 后再围绕新架构重写测试，避免测试固化中间态设计
 
 完成本 RFC 后，代码库将具备：
 
