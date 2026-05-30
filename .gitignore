@@ -15,6 +15,7 @@ dbt_packages/
 # Local agent and client configuration
 .agents/
 .codex/
+.claude/
 skills-lock.json
 
 # env

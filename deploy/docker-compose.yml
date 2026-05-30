@@ -35,8 +35,8 @@ services:
     deploy:
       resources:
         limits:
-          cpus: "1.00"
-          memory: 1g
+          cpus: "4"
+          memory: 16g
     environment:
       CLICKHOUSE_DB: ${CLICKHOUSE_DB}
       CLICKHOUSE_USER: ${CLICKHOUSE_USER}
