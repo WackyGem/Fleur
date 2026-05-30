@@ -3,12 +3,14 @@ from __future__ import annotations
 import json
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
-from typing import Literal
+from typing import Any, Literal
 
 import pyarrow as pa
 
+from scheduler.defs.common.schema import typed_table
 from scheduler.defs.http.schemas import unknown_field_count_for_mapping
 from scheduler.defs.sources.eastmoney.fields import EASTMONEY_FIELD_NAMES
+from scheduler.defs.sources.eastmoney.schemas import EASTMONEY_SCHEMAS
 
 ApiFamily = Literal["data_get", "data_v1_get"]
 
@@ -166,10 +168,44 @@ def eastmoney_business_field_names(asset_name: str) -> tuple[str, ...]:
     return field_names
 
 
+def eastmoney_typed_schema(endpoint: EastmoneyEndpointConfig) -> pa.Schema:
+    """为 EastMoney 端点返回显式定义的 schema。
+
+    Schema 从 eastmoney/schemas.py 查表获取，逐字段定义，不依赖模式推断。
+    """
+    schema = EASTMONEY_SCHEMAS.get(endpoint.asset_name)
+    if schema is None:
+        msg = f"No explicit schema defined for EastMoney asset: {endpoint.asset_name}"
+        raise KeyError(msg)
+    return schema
+
+
 def eastmoney_schema(endpoint: EastmoneyEndpointConfig) -> pa.Schema:
-    return pa.schema(
-        (field_name, pa.string())
-        for field_name in eastmoney_business_field_names(endpoint.asset_name)
+    """返回带类型的 schema（新版本）。"""
+    return eastmoney_typed_schema(endpoint)
+
+
+def eastmoney_rows_to_typed_table(
+    endpoint: EastmoneyEndpointConfig,
+    rows: Sequence[EastmoneyFetchedRow],
+) -> EastmoneyTableResult:
+    """将 EastMoney 行数据转换为带类型的 pa.Table。"""
+    schema = eastmoney_typed_schema(endpoint)
+    business_field_names = eastmoney_business_field_names(endpoint.asset_name)
+
+    unknown_field_count = 0
+    row_dicts: list[dict[str, Any]] = []
+    for row in rows:
+        unknown_field_count += unknown_field_count_for_mapping(
+            row.data,
+            allowed_top_level=business_field_names,
+        )
+        row_dicts.append(dict(row.data))
+
+    table = typed_table(row_dicts, schema)
+    return EastmoneyTableResult(
+        table=table,
+        unknown_field_count=unknown_field_count,
     )
 
 
@@ -177,30 +213,17 @@ def eastmoney_rows_to_table(
     endpoint: EastmoneyEndpointConfig,
     rows: Sequence[EastmoneyFetchedRow],
 ) -> EastmoneyTableResult:
-    business_field_names = eastmoney_business_field_names(endpoint.asset_name)
-    columns: dict[str, list[str | None]] = {field_name: [] for field_name in business_field_names}
-    unknown_field_count = 0
-
-    for row in rows:
-        unknown_field_count += unknown_field_count_for_mapping(
-            row.data,
-            allowed_top_level=business_field_names,
-        )
-        for field_name in business_field_names:
-            columns[field_name].append(eastmoney_string_or_null(row.data.get(field_name)))
-
-    return EastmoneyTableResult(
-        table=pa.table(columns, schema=eastmoney_schema(endpoint)),
-        unknown_field_count=unknown_field_count,
-    )
+    """将 EastMoney 行数据转换为带类型的 pa.Table。"""
+    return eastmoney_rows_to_typed_table(endpoint, rows)
 
 
 def empty_eastmoney_table(endpoint: EastmoneyEndpointConfig) -> pa.Table:
-    schema = eastmoney_schema(endpoint)
+    schema = eastmoney_typed_schema(endpoint)
     return pa.table({field.name: [] for field in schema}, schema=schema)
 
 
 def eastmoney_string_or_null(value: object) -> str | None:
+    """保留原有函数作为 fallback。"""
     if value is None:
         return None
     if isinstance(value, str):

@@ -4,15 +4,20 @@ import os
 import time
 import unittest
 from datetime import date
+from datetime import time as dt_time
 from tempfile import TemporaryDirectory
+from typing import cast
 from unittest.mock import patch
 
 import dagster as dg
 import pyarrow as pa
 import pyarrow.parquet as pq
+from dagster._core.definitions.metadata.metadata_value import JsonMetadataValue
 from scheduler.defs.common.metadata import RawMetadataValue
 from scheduler.defs.http.flatten import flatten_content_object
 from scheduler.defs.http.partitioning import (
+    JIUYAN_BACKFILL_MAX_TRADE_DATES,
+    THS_BACKFILL_MAX_NATURAL_DAYS,
     jiuyan_action_field_daily_partitions,
     materialize_trade_date_range,
     ths_limit_up_pool_daily_partitions,
@@ -132,7 +137,7 @@ class MarketEventSchemaTest(unittest.TestCase):
         self.assertNotIn("errCode", table.column_names)
         self.assertNotIn("serverTime", table.column_names)
         self.assertNotIn("source_endpoint", table.column_names)
-        self.assertEqual(table["time"].to_pylist(), ["09:25:00"])
+        self.assertEqual(table["time"].to_pylist(), [dt_time(9, 25)])
         self.assertEqual(table["name"].to_pylist(), ["福达合金"])
         self.assertEqual(table["reason"].to_pylist(), ["板块原因"])
         self.assertGreater(result.unknown_field_count, 0)
@@ -171,8 +176,8 @@ class MarketEventSchemaTest(unittest.TestCase):
         self.assertNotIn("trade_status", table.column_names)
         self.assertNotIn("status_code", table.column_names)
         self.assertNotIn("status_msg", table.column_names)
-        self.assertEqual(table["date"].to_pylist(), ["20260508"])
-        self.assertEqual(table["latest"].to_pylist(), ["10.1"])
+        self.assertEqual(table["date"].to_pylist(), [date(2026, 5, 8)])
+        self.assertEqual(table["latest"].to_pylist(), [10.1])
 
     def test_industry_table_keeps_only_result_rows_and_imgs_string(self) -> None:
         table = jiuyan_industry_list_to_table(
@@ -262,6 +267,41 @@ class MarketEventFetchTest(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(table.num_rows, 0)
         self.assertEqual(metadata["empty_response_count"], 1)
 
+    async def test_action_field_fetch_retries_rate_limit_then_succeeds(self) -> None:
+        client = FakeJsonClient(
+            [
+                {"errCode": "9", "msg": "服务繁忙"},
+                {"errCode": "9", "msg": "服务繁忙"},
+                {"errCode": "0", "data": []},
+            ]
+        )
+
+        with patch("scheduler.defs.sources.jiuyan.action_field.asyncio.sleep") as sleep:
+            table, metadata = await fetch_action_field_table_with_client(
+                client,
+                trade_date=date(2026, 5, 8),
+            )
+
+        # 第三次请求成功后，结果必须被返回，而不是抛出此前的限流错误
+        self.assertEqual(table.num_rows, 0)
+        self.assertEqual(len(client.requests), 3)
+        self.assertEqual(metadata["retry_rounds"], 2)
+        self.assertEqual(metadata["source_err_code"], "0")
+        # 两次限流 -> 两次退避，且为指数递增
+        self.assertEqual([call.args[0] for call in sleep.await_args_list], [1.0, 2.0])
+
+    async def test_action_field_fetch_raises_after_rate_limit_exhausted(self) -> None:
+        client = FakeJsonClient([{"errCode": "9", "msg": "服务繁忙"}] * 6)
+
+        with (
+            patch("scheduler.defs.sources.jiuyan.action_field.asyncio.sleep"),
+            self.assertRaises(RuntimeError) as ctx,
+        ):
+            await fetch_action_field_table_with_client(client, trade_date=date(2026, 5, 8))
+
+        self.assertEqual(len(client.requests), 6)
+        self.assertIn("still rate-limited", str(ctx.exception))
+
     async def test_ths_limit_up_pool_uses_page_count_and_detects_duplicates(self) -> None:
         client = FakeJsonClient(
             [
@@ -348,3 +388,227 @@ class MarketEventFetchTest(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(params["_"], "1778299947223")
         self.assertEqual(params["limit"], "200")
         self.assertEqual(params["filter"], "HS,GEM2STAR")
+
+    def test_backfill_constants_are_defined(self) -> None:
+        """验证回填窗口限制常量已定义。"""
+        self.assertEqual(THS_BACKFILL_MAX_NATURAL_DAYS, 380)
+        self.assertEqual(JIUYAN_BACKFILL_MAX_TRADE_DATES, 80)
+
+
+class BackfillWindowLimitTest(unittest.IsolatedAsyncioTestCase):
+    async def test_backfill_window_limit_truncates_partitions(self) -> None:
+        """测试回填窗口按交易日数量裁切。"""
+        fetched_dates: list[date] = []
+
+        async def fetch_table_for_trade_date(
+            trade_date: date,
+        ) -> tuple[pa.Table, dict[str, RawMetadataValue]]:
+            fetched_dates.append(trade_date)
+            return pa.table({"value": [trade_date.isoformat()]}), {"row_count": 1}
+
+        # 创建 100 个分区
+        partition_keys = [f"2026-01-{i:02d}" for i in range(1, 32)]
+        partition_keys += [f"2026-02-{i:02d}" for i in range(1, 29)]
+        partition_keys += [f"2026-03-{i:02d}" for i in range(1, 32)]
+        partition_keys += [f"2026-04-{i:02d}" for i in range(1, 11)]
+
+        with TemporaryDirectory() as bucket:
+            context = FakeAssetContext(
+                partition_keys=partition_keys,
+                asset_key=dg.AssetKey(["source", "jiuyan__action_field"]),
+            )
+            s3_config = type(
+                "FakeS3Config",
+                (),
+                {"bucket": bucket},
+            )()
+
+            with (
+                patch(
+                    "scheduler.defs.http.partitioning.S3Config.from_env",
+                    return_value=s3_config,
+                ),
+                patch(
+                    "scheduler.defs.http.partitioning.build_s3_filesystem",
+                    return_value=local_filesystem(),
+                ),
+                patch(
+                    "scheduler.defs.http.partitioning.read_trade_dates_from_s3",
+                    return_value={date(2026, 1, d) for d in range(1, 32)}
+                    | {date(2026, 2, d) for d in range(1, 29)}
+                    | {date(2026, 3, d) for d in range(1, 32)}
+                    | {date(2026, 4, d) for d in range(1, 11)},
+                ),
+            ):
+                result = await materialize_trade_date_range(
+                    context,
+                    max_concurrent_trade_dates=4,
+                    fetch_table_for_trade_date=fetch_table_for_trade_date,
+                    backfill_window_limit=50,
+                )
+
+        # 应该保留完整自然日请求范围，但只处理最后 50 个交易日
+        self.assertEqual(len(fetched_dates), 50)
+        self.assertEqual(result.metadata["requested_natural_date_count"], 100)
+        self.assertEqual(result.metadata["requested_trade_date_count"], 100)
+        self.assertEqual(result.metadata["processed_trade_date_count"], 50)
+        self.assertEqual(result.metadata["skipped_window_trade_date_count"], 50)
+        self.assertEqual(fetched_dates[0], date(2026, 2, 20))
+        self.assertEqual(fetched_dates[-1], date(2026, 4, 10))
+
+    async def test_backfill_window_limit_counts_trade_dates_not_natural_dates(self) -> None:
+        fetched_dates: list[date] = []
+
+        async def fetch_table_for_trade_date(
+            trade_date: date,
+        ) -> tuple[pa.Table, dict[str, RawMetadataValue]]:
+            fetched_dates.append(trade_date)
+            return pa.table({"value": [trade_date.isoformat()]}), {"row_count": 1}
+
+        partition_keys = [f"2026-05-{i:02d}" for i in range(1, 11)]
+
+        with TemporaryDirectory() as bucket:
+            context = FakeAssetContext(
+                partition_keys=partition_keys,
+                asset_key=dg.AssetKey(["source", "jiuyan__action_field"]),
+            )
+            s3_config = type(
+                "FakeS3Config",
+                (),
+                {"bucket": bucket},
+            )()
+
+            with (
+                patch(
+                    "scheduler.defs.http.partitioning.S3Config.from_env",
+                    return_value=s3_config,
+                ),
+                patch(
+                    "scheduler.defs.http.partitioning.build_s3_filesystem",
+                    return_value=local_filesystem(),
+                ),
+                patch(
+                    "scheduler.defs.http.partitioning.read_trade_dates_from_s3",
+                    return_value={
+                        date(2026, 5, 1),
+                        date(2026, 5, 4),
+                        date(2026, 5, 8),
+                    },
+                ),
+            ):
+                result = await materialize_trade_date_range(
+                    context,
+                    max_concurrent_trade_dates=2,
+                    fetch_table_for_trade_date=fetch_table_for_trade_date,
+                    backfill_window_limit=2,
+                )
+
+        self.assertEqual(fetched_dates, [date(2026, 5, 4), date(2026, 5, 8)])
+        self.assertEqual(result.metadata["requested_natural_date_count"], 10)
+        self.assertEqual(result.metadata["requested_trade_date_count"], 3)
+        self.assertEqual(result.metadata["processed_trade_date_count"], 2)
+        self.assertEqual(result.metadata["skipped_window_trade_date_count"], 1)
+        self.assertEqual(result.metadata["skipped_non_trade_date_count"], 7)
+
+    async def test_partition_failures_include_error_metadata(self) -> None:
+        async def fetch_table_for_trade_date(
+            trade_date: date,
+        ) -> tuple[pa.Table, dict[str, RawMetadataValue]]:
+            msg = f"boom for {trade_date.isoformat()}"
+            raise RuntimeError(msg)
+
+        with TemporaryDirectory() as bucket:
+            context = FakeAssetContext(
+                partition_keys=["2026-05-08"],
+                asset_key=dg.AssetKey(["source", "jiuyan__action_field"]),
+            )
+            s3_config = type(
+                "FakeS3Config",
+                (),
+                {"bucket": bucket},
+            )()
+
+            with (
+                patch(
+                    "scheduler.defs.http.partitioning.S3Config.from_env",
+                    return_value=s3_config,
+                ),
+                patch(
+                    "scheduler.defs.http.partitioning.build_s3_filesystem",
+                    return_value=local_filesystem(),
+                ),
+                patch(
+                    "scheduler.defs.http.partitioning.read_trade_dates_from_s3",
+                    return_value={date(2026, 5, 8)},
+                ),
+            ):
+                result = await materialize_trade_date_range(
+                    context,
+                    max_concurrent_trade_dates=1,
+                    fetch_table_for_trade_date=fetch_table_for_trade_date,
+                )
+
+        self.assertEqual(result.metadata["failed_partition_count"], 1)
+        failed_partition_errors = cast(
+            JsonMetadataValue,
+            result.metadata["failed_partition_errors"],
+        )
+        self.assertIsInstance(failed_partition_errors, JsonMetadataValue)
+        self.assertEqual(
+            failed_partition_errors.data,
+            {
+                "2026-05-08": {
+                    "type": "RuntimeError",
+                    "message": "boom for 2026-05-08",
+                }
+            },
+        )
+
+    async def test_no_limit_when_backfill_window_limit_is_none(self) -> None:
+        """测试不设置限制时的行为。"""
+        fetched_dates: list[date] = []
+
+        async def fetch_table_for_trade_date(
+            trade_date: date,
+        ) -> tuple[pa.Table, dict[str, RawMetadataValue]]:
+            fetched_dates.append(trade_date)
+            return pa.table({"value": [trade_date.isoformat()]}), {"row_count": 1}
+
+        # 创建 10 个分区
+        partition_keys = [f"2026-05-{i:02d}" for i in range(1, 11)]
+
+        with TemporaryDirectory() as bucket:
+            context = FakeAssetContext(
+                partition_keys=partition_keys,
+                asset_key=dg.AssetKey(["source", "jiuyan__action_field"]),
+            )
+            s3_config = type(
+                "FakeS3Config",
+                (),
+                {"bucket": bucket},
+            )()
+
+            with (
+                patch(
+                    "scheduler.defs.http.partitioning.S3Config.from_env",
+                    return_value=s3_config,
+                ),
+                patch(
+                    "scheduler.defs.http.partitioning.build_s3_filesystem",
+                    return_value=local_filesystem(),
+                ),
+                patch(
+                    "scheduler.defs.http.partitioning.read_trade_dates_from_s3",
+                    return_value={date(2026, 5, d) for d in range(1, 11)},
+                ),
+            ):
+                result = await materialize_trade_date_range(
+                    context,
+                    max_concurrent_trade_dates=4,
+                    fetch_table_for_trade_date=fetch_table_for_trade_date,
+                    backfill_window_limit=None,
+                )
+
+        # 应该处理了所有 10 个分区
+        self.assertEqual(len(fetched_dates), 10)
+        self.assertEqual(result.metadata["requested_natural_date_count"], 10)

@@ -101,6 +101,79 @@ JIUYAN_INDUSTRY_LIST_COLUMNS = (
     "update_time",
 )
 
+# 带类型的 schema 定义
+THS_LIMIT_UP_POOL_SCHEMA = pa.schema(
+    [
+        pa.field("date", pa.date32()),  # '20260508' → date32
+        pa.field("open_num", pa.int64()),  # 开板次数
+        pa.field("first_limit_up_time", pa.timestamp("ns", tz="UTC")),  # Unix 时间戳 → UTC
+        pa.field("last_limit_up_time", pa.timestamp("ns", tz="UTC")),  # Unix 时间戳 → UTC
+        pa.field("code", pa.string()),  # 股票代码
+        pa.field("limit_up_type", pa.string()),  # 涨停类型
+        pa.field("order_volume", pa.float64()),  # 封单量（手），可能有小数
+        pa.field("is_new", pa.bool_()),  # 是否新股
+        pa.field("limit_up_suc_rate", pa.float64()),  # 涨停成功率
+        pa.field("currency_value", pa.float64()),  # 流通市值（元）
+        pa.field("market_id", pa.int64()),  # 市场 ID
+        pa.field("is_again_limit", pa.bool_()),  # 是否回封
+        pa.field("change_rate", pa.float64()),  # 涨跌幅 (%)
+        pa.field("turnover_rate", pa.float64()),  # 换手率 (%)
+        pa.field("reason_type", pa.string()),  # 涨停原因标签
+        pa.field("order_amount", pa.float64()),  # 封单金额（元）
+        pa.field("high_days", pa.string()),  # 连板天数描述（"首板"）
+        pa.field("name", pa.string()),  # 股票名称
+        pa.field("high_days_value", pa.int64()),  # 连板天数数值
+        pa.field("change_tag", pa.string()),  # 变动标签
+        pa.field("market_type", pa.string()),  # 市场类型
+        pa.field("latest", pa.float64()),  # 最新价
+    ]
+)
+
+JIUYAN_ACTION_FIELD_SCHEMA = pa.schema(
+    [
+        pa.field("action_field_id", pa.string()),
+        pa.field("name", pa.string()),
+        pa.field("date", pa.date32()),
+        pa.field("reason", pa.string()),
+        pa.field("sort_no", pa.int64()),
+        pa.field("is_delete", pa.bool_()),
+        pa.field("delete_time", pa.timestamp("ns")),  # 'YYYY-MM-DD HH:mm:ss' 或 null
+        pa.field("create_time", pa.timestamp("ns")),  # 'YYYY-MM-DD HH:mm:ss'
+        pa.field("update_time", pa.timestamp("ns")),  # 'YYYY-MM-DD HH:mm:ss' 或 null
+        pa.field("count", pa.int64()),
+        pa.field("code", pa.string()),  # 'sz002350'
+        pa.field("time", pa.time32("ms")),  # '09:37:51' → time
+        pa.field("num", pa.string()),  # '9天5板' 或 null
+        pa.field("price", pa.int64()),  # 1718（分）
+        pa.field("day", pa.int64()),  # 连板天数 或 null
+        pa.field("edition", pa.int64()),  # 连板板数 或 null
+        pa.field("shares_range", pa.float64()),  # 999.0（万股）
+        pa.field("expound", pa.string()),
+    ]
+)
+
+JIUYAN_INDUSTRY_LIST_SCHEMA = pa.schema(
+    [
+        pa.field("industry_id", pa.string()),
+        pa.field("title_red", pa.bool_()),  # 0/1 格式标记
+        pa.field("title_bold", pa.bool_()),  # 0/1 格式标记
+        pa.field("title", pa.string()),
+        pa.field("author", pa.string()),
+        pa.field("imgs", pa.string()),
+        pa.field("keyword", pa.string()),
+        pa.field("content", pa.string()),
+        pa.field("is_top", pa.bool_()),
+        pa.field("status", pa.int64()),
+        pa.field("sort_no", pa.int64()),
+        pa.field("forward_count", pa.int64()),
+        pa.field("browsers_count", pa.int64()),
+        pa.field("is_delete", pa.bool_()),
+        pa.field("delete_time", pa.timestamp("ns")),  # 'YYYY-MM-DD HH:mm:ss' 或 null
+        pa.field("create_time", pa.timestamp("ns")),
+        pa.field("update_time", pa.timestamp("ns")),
+    ]
+)
+
 
 @dataclass(frozen=True)
 class TableConversionResult:
@@ -161,7 +234,7 @@ def jiuyan_action_field_to_table(
             rows.append(output_row)
 
     return TableConversionResult(
-        table=rows_to_string_table(rows, JIUYAN_ACTION_FIELD_COLUMNS),
+        table=rows_to_typed_table(rows, JIUYAN_ACTION_FIELD_SCHEMA),
         unknown_field_count=unknown_field_count,
     )
 
@@ -194,7 +267,7 @@ def ths_limit_up_pool_to_table(
             rows.append(output_row)
 
     return TableConversionResult(
-        table=rows_to_string_table(rows, THS_LIMIT_UP_POOL_COLUMNS),
+        table=rows_to_typed_table(rows, THS_LIMIT_UP_POOL_SCHEMA),
         unknown_field_count=unknown_field_count,
     )
 
@@ -226,7 +299,7 @@ def jiuyan_industry_list_to_table(
             rows.append(output_row)
 
     return TableConversionResult(
-        table=rows_to_string_table(rows, JIUYAN_INDUSTRY_LIST_COLUMNS),
+        table=rows_to_typed_table(rows, JIUYAN_INDUSTRY_LIST_SCHEMA),
         unknown_field_count=unknown_field_count,
     )
 
@@ -251,6 +324,19 @@ def rows_to_string_table(
 
 def string_schema(columns: Sequence[str]) -> pa.Schema:
     return pa.schema([(column, pa.string()) for column in columns])
+
+
+def rows_to_typed_table(
+    rows: Sequence[Mapping[str, object]],
+    schema: pa.Schema,
+) -> pa.Table:
+    """从行数据和 schema 构建 pa.Table，自动应用类型转换。
+
+    None 值直接追加，不经过转换函数（转换函数会抛出异常）。
+    """
+    from scheduler.defs.common.schema import typed_table
+
+    return typed_table(rows, schema)
 
 
 def _blank_row(columns: Sequence[str]) -> dict[str, object]:

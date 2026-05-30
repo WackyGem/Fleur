@@ -314,22 +314,9 @@ def build_year_ranges(
 
 
 def empty_k_history_table() -> pa.Table:
-    schema = pa.schema(
-        [
-            ("date", pa.string()),
-            ("code", pa.string()),
-            ("open", pa.string()),
-            ("high", pa.string()),
-            ("low", pa.string()),
-            ("close", pa.string()),
-            ("preclose", pa.string()),
-            ("volume", pa.string()),
-            ("amount", pa.string()),
-            ("adjustflag", pa.string()),
-            ("turn", pa.string()),
-            ("tradestatus", pa.string()),
-            ("pctChg", pa.string()),
-            ("isST", pa.string()),
-        ]
+    from scheduler.defs.baostock.schemas import K_HISTORY_DAILY_SCHEMA
+
+    return pa.table(
+        {field.name: [] for field in K_HISTORY_DAILY_SCHEMA},
+        schema=K_HISTORY_DAILY_SCHEMA,
     )
-    return pa.table({field.name: [] for field in schema}, schema=schema)

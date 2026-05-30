@@ -133,22 +133,27 @@ paths:
                                         description: 所属板块 ID
                                       time:
                                         type: string
-                                        description: 异动发生时间 HH:mm:ss
+                                        format: time
+                                        nullable: true
+                                        description: 异动发生时间 HH:mm:ss，如 '09:37:51'（PyArrow: time32[ms]）
                                       num:
                                         type: string
-                                        description: null`
+                                        nullable: true
+                                        description: 连板描述，格式 '{day}天{edition}板'，如 '9天5板'；非连板时为 null
                                       price:
                                         type: integer
-                                        description: 价格，单位：分（6214 = 62.14 元）
+                                        description: 价格，单位：分（1718 = 17.18 元）
                                       day:
                                         type: integer
-                                        description: null`
+                                        nullable: true
+                                        description: 连板天数，如 9；非连板时为 null
                                       edition:
                                         type: integer
-                                        description: null`
+                                        nullable: true
+                                        description: 连板板数，如 5；非连板时为 null
                                       shares_range:
                                         type: number
-                                        description: 涨跌幅，单位：‱（1000.0 = 10.00%）
+                                        description: 流通股范围阈值，单位：万股（999.0 = 999 万股）
                                       reason:
                                         type: string
                                         nullable: true
@@ -254,12 +259,12 @@ paths:
                         action_info_id: b93f97ddd1864824af07cda0fbdfa8d5
                         stock_id: 7834dd65b3f04f9f97b584373b91487e
                         action_field_id: b976e33994654d5a8ad0dce8db704a7f
-                        time: '09:25:00'
+                        time: '09:37:51'
                         num: null
-                        price: 2345
+                        price: 1718
                         day: null
                         edition: null
-                        shares_range: 1001.0
+                        shares_range: 999.0
                         reason: null
                         expound: 异动原因详细说明...
                         is_crawl: 1

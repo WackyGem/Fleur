@@ -1,13 +1,17 @@
 from __future__ import annotations
 
-from datetime import date
+from datetime import date, datetime
+from zoneinfo import ZoneInfo
 
 import dagster as dg
 import pyarrow as pa
 import pytest
 from scheduler.defs.config.models import S3Config
 from scheduler.defs.sources import daily_compact
-from scheduler.defs.sources.jiuyan.action_field_compact import jiuyan__action_field_compacted
+from scheduler.defs.sources.jiuyan.action_field_compact import (
+    jiuyan__action_field_compacted,
+    jiuyan_action_field_compacted_year_partitions,
+)
 from scheduler.defs.storage.parquet_readers import PartitionedParquetReadResult
 
 
@@ -25,6 +29,14 @@ def test_action_field_compacted_asset_contract() -> None:
     assert metadata["storage_mode"] == "partitioned"
     assert metadata["partition_key_name"] == "year"
     assert metadata["input_asset"] == "source/jiuyan__action_field"
+
+
+def test_action_field_compacted_year_partitions_include_current_year() -> None:
+    partition_keys = jiuyan_action_field_compacted_year_partitions.get_partition_keys(
+        current_time=datetime(2026, 5, 30, tzinfo=ZoneInfo("Asia/Shanghai"))
+    )
+
+    assert "2026" in partition_keys
 
 
 def test_compact_daily_asset_by_year_merges_non_empty_daily_tables(

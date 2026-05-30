@@ -21,7 +21,12 @@ jiuyan_action_field_compacted_year_partitions = dg.TimeWindowPartitionsDefinitio
     group_name="s3_sources",
     partitions_def=jiuyan_action_field_compacted_year_partitions,
     deps=[
-        dg.AssetDep(jiuyan__action_field, partition_mapping=dg.TimeWindowPartitionMapping()),
+        dg.AssetDep(
+            jiuyan__action_field,
+            partition_mapping=dg.TimeWindowPartitionMapping(
+                allow_nonexistent_upstream_partitions=True
+            ),
+        ),
         sina__trade_calendar,
     ],
     io_manager_key="s3_io_manager",

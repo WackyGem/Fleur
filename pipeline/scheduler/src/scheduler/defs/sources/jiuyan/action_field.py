@@ -17,6 +17,7 @@ from scheduler.defs.http.client import (
     browser_json_headers,
 )
 from scheduler.defs.http.partitioning import (
+    JIUYAN_BACKFILL_MAX_TRADE_DATES,
     TRADE_DATE_PARTITION_KEY_NAME,
     TradeDateRangeMaterializationResult,
     jiuyan_action_field_daily_partitions,
@@ -31,10 +32,14 @@ from scheduler.defs.http.schemas import (
 from scheduler.defs.market.asset_keys import SINA_TRADE_CALENDAR_ASSET_KEY, SOURCE_ASSET_KEY_PREFIX
 
 JIUYAN_ACTION_FIELD_URL = "https://app.jiuyangongshe.com/jystock-app/api/v1/action/field"
+JIUYAN_RATE_LIMIT_ERR_CODE = "9"
+JIUYAN_RATE_LIMIT_MAX_RETRIES = 5
+JIUYAN_RATE_LIMIT_BASE_DELAY = 1.0
 
 
 class MarketEventBackfillConfig(dg.Config):
-    max_concurrent_trade_dates: int = 4
+    max_concurrent_trade_dates: int = 10
+    request_delay: float = 0.0
 
 
 def jiuyan_header_factory() -> HeaderFactory:
@@ -94,6 +99,7 @@ async def _materialize_action_field_range(
     async with AioHttpClient(
         headers=jiuyan_header_factory(),
         retry_policy=DEFAULT_RETRY_POLICY,
+        request_delay=config.request_delay,
     ) as client:
         result = await materialize_trade_date_range(
             context,
@@ -102,6 +108,7 @@ async def _materialize_action_field_range(
                 client,
                 trade_date=trade_date,
             ),
+            backfill_window_limit=JIUYAN_BACKFILL_MAX_TRADE_DATES,
         )
         result.metadata.update(http_stats_metadata(client.stats))
         return result
@@ -113,18 +120,42 @@ async def fetch_action_field_table_with_client(
     trade_date: date,
 ) -> tuple[pa.Table, Mapping[str, RawMetadataValue]]:
     started_at = time.perf_counter()
-    payload = await client.request_json_object(
-        HttpRequest(
-            method="POST",
-            url=JIUYAN_ACTION_FIELD_URL,
-            json_body={"pc": "1", "date": trade_date.isoformat()},
+    retry_rounds = 0
+
+    for attempt in range(JIUYAN_RATE_LIMIT_MAX_RETRIES + 1):
+        payload = await client.request_json_object(
+            HttpRequest(
+                method="POST",
+                url=JIUYAN_ACTION_FIELD_URL,
+                json_body={"pc": "1", "date": trade_date.isoformat()},
+            )
         )
-    )
-    fetched_at = time.perf_counter()
-    err_code = required_string(payload.get("errCode"), field_name="errCode")
+        err_code = required_string(payload.get("errCode"), field_name="errCode")
+
+        # 非限流响应（成功或其它错误），结束重试循环，留待循环外统一校验
+        if err_code != JIUYAN_RATE_LIMIT_ERR_CODE:
+            break
+
+        # 服务繁忙，指数退避重试
+        retry_rounds = attempt + 1
+        if attempt < JIUYAN_RATE_LIMIT_MAX_RETRIES:
+            delay = JIUYAN_RATE_LIMIT_BASE_DELAY * (2**attempt)
+            await asyncio.sleep(delay)
+
+    if err_code == JIUYAN_RATE_LIMIT_ERR_CODE:
+        raise RuntimeError(
+            f"JiuYan action_field still rate-limited (errCode={err_code}) after "
+            f"{JIUYAN_RATE_LIMIT_MAX_RETRIES} retries for trade_date={trade_date.isoformat()}: "
+            f"{payload.get('msg')}"
+        )
+
     if err_code != "0":
         msg = payload.get("msg")
-        raise RuntimeError(f"JiuYan action_field returned errCode={err_code}: {msg}")
+        raise RuntimeError(
+            f"JiuYan action_field returned errCode={err_code} for trade_date={trade_date.isoformat()}: {msg}"
+        )
+
+    fetched_at = time.perf_counter()
 
     data = payload.get("data")
     if not isinstance(data, list):
@@ -143,6 +174,7 @@ async def fetch_action_field_table_with_client(
     return table, {
         "source_endpoint": JIUYAN_ACTION_FIELD_URL,
         "source_err_code": err_code,
+        "retry_rounds": retry_rounds,
         "request_count": stats.request_count,
         "retry_count": stats.retry_count,
         "transient_error_count": stats.transient_error_count,

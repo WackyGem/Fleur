@@ -179,19 +179,31 @@ def test_aggregate_responses_combines_records_and_rejects_empty_input() -> None:
 
 
 def test_baostock_schema_converters_validate_columns_and_record_width() -> None:
+    import pyarrow as pa
+
     response = baostock_response(
         api_name="query_stock_basic",
         records=[["sh.600000", "浦发银行"]],
         field_names=["code", "code_name"],
     )
 
-    table = response_to_table(response)
+    # 创建一个简单的 schema 用于测试
+    test_schema = pa.schema(
+        [
+            pa.field("code", pa.string()),
+            pa.field("code_name", pa.string()),
+        ]
+    )
+    table = response_to_table(response, test_schema)
     assert table.column_names == ["code", "code_name"]
 
-    with pytest.raises(BaostockProtocolError, match="missing columns"):
+    with pytest.raises(BaostockProtocolError, match="returned 2 values for 6 fields"):
         stock_basic_response_to_table(response)
     with pytest.raises(BaostockProtocolError, match="returned 1 values"):
-        response_to_table(baostock_response(records=[["only-one"]], field_names=["a", "b"]))
+        response_to_table(
+            baostock_response(records=[["only-one"]], field_names=["a", "b"]),
+            pa.schema([pa.field("a", pa.string()), pa.field("b", pa.string())]),
+        )
 
     empty_k_table = k_history_daily_response_to_table(
         baostock_response(

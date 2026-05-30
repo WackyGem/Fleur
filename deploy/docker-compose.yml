@@ -28,6 +28,25 @@ services:
     networks:
       - mono-fleur
 
+  rustfs-init:
+    image: minio/mc:latest
+    container_name: mono-fleur-rustfs-init
+    depends_on:
+      rustfs:
+        condition: service_healthy
+    entrypoint: >
+      /bin/sh -c "
+      mc alias set rustfs http://rustfs:9000 $${RUSTFS_ACCESS_KEY} $${RUSTFS_SECRET_KEY};
+      mc mb --ignore-existing rustfs/$${RUSTFS_BUCKET};
+      echo 'Bucket $${RUSTFS_BUCKET} ready';
+      "
+    environment:
+      RUSTFS_ACCESS_KEY: ${RUSTFS_ACCESS_KEY}
+      RUSTFS_SECRET_KEY: ${RUSTFS_SECRET_KEY}
+      RUSTFS_BUCKET: ${RUSTFS_BUCKET}
+    networks:
+      - mono-fleur
+
   clickhouse:
     image: clickhouse/clickhouse-server:latest-alpine
     container_name: mono-fleur-clickhouse

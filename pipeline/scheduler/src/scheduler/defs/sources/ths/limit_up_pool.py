@@ -17,6 +17,7 @@ from scheduler.defs.http.client import (
 )
 from scheduler.defs.http.pagination import DuplicateRowTracker
 from scheduler.defs.http.partitioning import (
+    THS_BACKFILL_MAX_NATURAL_DAYS,
     TRADE_DATE_PARTITION_KEY_NAME,
     TradeDateRangeMaterializationResult,
     materialize_trade_date_range,
@@ -28,7 +29,6 @@ from scheduler.defs.http.schemas import (
     ths_limit_up_pool_to_table,
 )
 from scheduler.defs.market.asset_keys import SINA_TRADE_CALENDAR_ASSET_KEY, SOURCE_ASSET_KEY_PREFIX
-from scheduler.defs.sources.jiuyan.action_field import MarketEventBackfillConfig
 
 THS_LIMIT_UP_POOL_URL = "https://data.10jqka.com.cn/dataapi/limit_up/limit_up_pool"
 THS_LIMIT_UP_POOL_REFERER = "https://data.10jqka.com.cn/"
@@ -36,6 +36,11 @@ THS_LIMIT_UP_POOL_FIELD = (
     "199112,10,9001,330323,330324,330325,9002,330329,133971,133970,1968584,3475914,9003,9004"
 )
 THS_LIMIT_UP_POOL_LIMIT = "200"
+
+
+class ThsLimitUpPoolConfig(dg.Config):
+    max_concurrent_trade_dates: int = 10
+    request_delay: float = 0.0
 
 
 @dg.asset(
@@ -58,7 +63,7 @@ THS_LIMIT_UP_POOL_LIMIT = "200"
 )
 def ths__limit_up_pool(
     context: dg.AssetExecutionContext,
-    config: MarketEventBackfillConfig,
+    config: ThsLimitUpPoolConfig,
 ) -> dg.MaterializeResult:
     """TongHuaShun limit-up pool pages by trade-date partition."""
 
@@ -68,11 +73,12 @@ def ths__limit_up_pool(
 
 async def _materialize_limit_up_pool_range(
     context: dg.AssetExecutionContext,
-    config: MarketEventBackfillConfig,
+    config: ThsLimitUpPoolConfig,
 ) -> TradeDateRangeMaterializationResult:
     async with AioHttpClient(
         headers=with_referer(browser_json_headers(), THS_LIMIT_UP_POOL_REFERER),
         retry_policy=DEFAULT_RETRY_POLICY,
+        request_delay=config.request_delay,
     ) as client:
         result = await materialize_trade_date_range(
             context,
@@ -81,6 +87,7 @@ async def _materialize_limit_up_pool_range(
                 client,
                 trade_date=trade_date,
             ),
+            backfill_window_limit=THS_BACKFILL_MAX_NATURAL_DAYS,
         )
         result.metadata.update(http_stats_metadata(client.stats))
         return result

@@ -19,7 +19,10 @@ from scheduler.defs.storage.parquet import write_parquet_dataset
 from scheduler.defs.storage.s3 import asset_key_to_parquet_object_key, build_s3_filesystem
 
 TRADE_DATE_PARTITION_KEY_NAME = "trade_date"
-TRADE_DATE_BACKFILL_HARD_LIMIT = 20
+
+# 回填窗口限制
+THS_BACKFILL_MAX_NATURAL_DAYS = 380
+JIUYAN_BACKFILL_MAX_TRADE_DATES = 80
 jiuyan_action_field_daily_partitions = dg.DailyPartitionsDefinition(
     start_date="2021-01-01",
     timezone="Asia/Shanghai",
@@ -99,13 +102,13 @@ async def materialize_partition_range(
     base_dir = _asset_base_dir(effective_s3_config, context.asset_key)
     semaphore = asyncio.Semaphore(max_concurrent_partitions)
     completed: dict[str, pa.Table] = {}
-    failed_count = 0
+    failed_partition_keys: list[str] = []
+    failed_partition_errors: dict[str, dict[str, str]] = {}
     per_partition_metadata: dict[str, Mapping[str, RawMetadataValue]] = {}
     written_object_keys: list[str] = []
     started_at = time.perf_counter()
 
     async def fetch_and_write(partition_key: str) -> None:
-        nonlocal failed_count
         async with semaphore:
             try:
                 table, metadata = await fetch_table_for_partition(partition_key)
@@ -117,30 +120,23 @@ async def materialize_partition_range(
                     partition_key_name=partition_key_name,
                     allow_empty=True,
                 )
-            except Exception:
-                failed_count += 1
-                raise
+            except Exception as error:
+                failed_partition_keys.append(partition_key)
+                failed_partition_errors[partition_key] = {
+                    "type": type(error).__name__,
+                    "message": str(error),
+                }
+                return  # 不抛出异常，让其他任务继续
 
-        completed[partition_key] = table
-        per_partition_metadata[partition_key] = dict(metadata)
-        written_object_keys.extend(
-            _path_to_object_key(effective_s3_config.bucket, path) for path in written_paths
-        )
+            completed[partition_key] = table
+            per_partition_metadata[partition_key] = dict(metadata)
+            written_object_keys.extend(
+                _path_to_object_key(effective_s3_config.bucket, path) for path in written_paths
+            )
 
-    try:
-        async with asyncio.TaskGroup() as task_group:
-            for partition_key in processed_partition_keys:
-                task_group.create_task(fetch_and_write(partition_key))
-    except ExceptionGroup as error:
-        details = "; ".join(
-            f"{type(exception).__name__}: {exception}" for exception in error.exceptions
-        )
-        msg = (
-            "Partition range materialization failed for "
-            f"{context.asset_key.to_user_string()} "
-            f"({partition_keys[0]}...{partition_keys[-1]}): {details}"
-        )
-        raise RuntimeError(msg) from error
+    async with asyncio.TaskGroup() as task_group:
+        for partition_key in processed_partition_keys:
+            task_group.create_task(fetch_and_write(partition_key))
 
     finished_at = time.perf_counter()
     row_counts = {key: table.num_rows for key, table in completed.items()}
@@ -152,7 +148,9 @@ async def materialize_partition_range(
         "processed_partition_count": len(processed_partition_keys),
         "skipped_partition_count": len(skipped_partition_keys),
         "completed_partition_count": len(completed),
-        "failed_partition_count": failed_count,
+        "failed_partition_count": len(failed_partition_keys),
+        "failed_partition_keys": dg.MetadataValue.json(failed_partition_keys),
+        "failed_partition_errors": dg.MetadataValue.json(failed_partition_errors),
         "max_concurrent_partitions": max_concurrent_partitions,
         "partition_keys": dg.MetadataValue.json(partition_keys),
         "processed_partition_keys": dg.MetadataValue.json(processed_partition_keys),
@@ -180,29 +178,29 @@ async def materialize_trade_date_range(
     *,
     max_concurrent_trade_dates: int,
     fetch_table_for_trade_date: FetchTableForTradeDate,
+    backfill_window_limit: int | None = None,
 ) -> TradeDateRangeMaterializationResult:
     if max_concurrent_trade_dates < 1:
         msg = "max_concurrent_trade_dates must be positive"
-        raise ValueError(msg)
-    if max_concurrent_trade_dates > TRADE_DATE_BACKFILL_HARD_LIMIT:
-        msg = f"max_concurrent_trade_dates must be <= {TRADE_DATE_BACKFILL_HARD_LIMIT}"
         raise ValueError(msg)
 
     partition_keys = sorted(context.partition_keys)
     if not partition_keys:
         msg = "Market-event asset requires at least one trade_date partition"
         raise RuntimeError(msg)
-    if len(partition_keys) > TRADE_DATE_BACKFILL_HARD_LIMIT:
-        msg = (
-            "Single-run market-event backfill is limited to "
-            f"{TRADE_DATE_BACKFILL_HARD_LIMIT} natural-date partitions"
-        )
-        raise ValueError(msg)
 
     s3_config = S3Config.from_env()
     natural_dates = [_parse_date_partition_key(key) for key in partition_keys]
     calendar_dates = read_trade_dates_from_s3(s3_config)
-    trade_dates = [item for item in natural_dates if item in calendar_dates]
+    requested_trade_dates = [item for item in natural_dates if item in calendar_dates]
+    if backfill_window_limit is not None and len(requested_trade_dates) > backfill_window_limit:
+        trade_dates = requested_trade_dates[-backfill_window_limit:]
+    else:
+        trade_dates = requested_trade_dates
+    trade_date_set = set(trade_dates)
+    skipped_window_trade_dates = [
+        item for item in requested_trade_dates if item not in trade_date_set
+    ]
     skipped_non_trade_dates = [item for item in natural_dates if item not in calendar_dates]
     trade_date_keys = {item.isoformat() for item in trade_dates}
 
@@ -219,7 +217,6 @@ async def materialize_trade_date_range(
             fetch_table_for_partition=fetch_trade_date_partition,
             partition_filter=lambda partition_key: partition_key in trade_date_keys,
             partitions_source_asset=SINA_TRADE_CALENDAR_ASSET_KEY.to_user_string(),
-            backfill_hard_limit=TRADE_DATE_BACKFILL_HARD_LIMIT,
             s3_config=s3_config,
         )
     except RuntimeError as error:
@@ -230,6 +227,7 @@ async def materialize_trade_date_range(
         raise RuntimeError(msg) from error
 
     processed_trade_dates = [item.isoformat() for item in trade_dates]
+    skipped_window_trade_date_keys = [item.isoformat() for item in skipped_window_trade_dates]
     skipped_non_trade_date_keys = [item.isoformat() for item in skipped_non_trade_dates]
     metadata = result.metadata
     metadata.update(
@@ -237,13 +235,17 @@ async def materialize_trade_date_range(
             "backfill_start_date": partition_keys[0],
             "backfill_end_date": partition_keys[-1],
             "requested_natural_date_count": len(natural_dates),
-            "requested_trade_date_count": len(trade_dates),
+            "requested_trade_date_count": len(requested_trade_dates),
             "processed_trade_date_count": len(trade_dates),
+            "skipped_window_trade_date_count": len(skipped_window_trade_dates),
             "skipped_non_trade_date_count": len(skipped_non_trade_dates),
             "completed_trade_date_count": len(result.tables),
             "failed_trade_date_count": metadata["failed_partition_count"],
             "max_concurrent_trade_dates": max_concurrent_trade_dates,
             "processed_trade_dates": dg.MetadataValue.json(processed_trade_dates),
+            "skipped_window_trade_dates_sample": dg.MetadataValue.json(
+                skipped_window_trade_date_keys[:20]
+            ),
             "skipped_non_trade_dates_sample": dg.MetadataValue.json(
                 skipped_non_trade_date_keys[:20]
             ),

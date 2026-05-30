@@ -21,7 +21,12 @@ ths_limit_up_pool_compacted_year_partitions = dg.TimeWindowPartitionsDefinition(
     group_name="s3_sources",
     partitions_def=ths_limit_up_pool_compacted_year_partitions,
     deps=[
-        dg.AssetDep(ths__limit_up_pool, partition_mapping=dg.TimeWindowPartitionMapping()),
+        dg.AssetDep(
+            ths__limit_up_pool,
+            partition_mapping=dg.TimeWindowPartitionMapping(
+                allow_nonexistent_upstream_partitions=True
+            ),
+        ),
         sina__trade_calendar,
     ],
     io_manager_key="s3_io_manager",

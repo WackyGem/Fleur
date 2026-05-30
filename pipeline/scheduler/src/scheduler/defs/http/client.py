@@ -112,6 +112,7 @@ class AioHttpClient:
         connector_limit: int = HTTP_CONNECTOR_LIMIT,
         connector_limit_per_host: int = HTTP_CONNECTOR_LIMIT_PER_HOST,
         session_factory: SessionFactory | None = None,
+        request_delay: float = 0.0,
     ) -> None:
         if max_attempts < 1:
             msg = "max_attempts must be positive"
@@ -128,6 +129,9 @@ class AioHttpClient:
         if read_timeout_seconds <= 0:
             msg = "read_timeout_seconds must be positive"
             raise ValueError(msg)
+        if request_delay < 0:
+            msg = "request_delay must be non-negative"
+            raise ValueError(msg)
 
         self._headers = headers
         self._retry_policy = retry_policy
@@ -137,6 +141,7 @@ class AioHttpClient:
         self._connector_limit = connector_limit
         self._connector_limit_per_host = connector_limit_per_host
         self._session_factory = session_factory
+        self._request_delay = request_delay
         self._session: HttpSessionProtocol | None = None
         self.stats = HttpFetchStats()
 
@@ -231,6 +236,9 @@ class AioHttpClient:
                         self.stats.decode_error_count += 1
                         msg = f"HTTP response JSON decode failed: {error}"
                         raise HttpResponseDecodeError(msg) from error
+                # 请求成功后添加延迟
+                if self._request_delay > 0:
+                    await asyncio.sleep(self._request_delay)
                 return response
             except (TimeoutError, aiohttp.ClientError) as error:
                 self.stats.transient_error_count += 1
