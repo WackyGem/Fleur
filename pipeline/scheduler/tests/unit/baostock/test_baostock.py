@@ -6,7 +6,7 @@ from typing import Any, cast
 
 import dagster as dg
 import pytest
-from scheduler.defs.baostock import assets
+from scheduler.defs.baostock import assets, services
 from scheduler.defs.baostock.client import BaostockAioTcpClient
 from scheduler.defs.baostock.protocol import (
     MESSAGE_END,
@@ -350,7 +350,7 @@ def test_empty_k_history_table_uses_daily_schema() -> None:
 def test_fetch_stock_basic_table_uses_client_and_converts_response(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    monkeypatch.setattr(assets, "BaostockAioTcpClient", FakeBaostockAssetClient)
+    monkeypatch.setattr(services, "BaostockAioTcpClient", FakeBaostockAssetClient)
 
     table, metadata = asyncio.run(assets.fetch_stock_basic_table())
 
@@ -368,7 +368,7 @@ def test_fetch_stock_basic_table_uses_client_and_converts_response(
 def test_fetch_k_history_tables_filters_active_securities_and_builds_metadata(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    monkeypatch.setattr(assets, "BaostockAioTcpClient", FakeBaostockAssetClient)
+    monkeypatch.setattr(services, "BaostockAioTcpClient", FakeBaostockAssetClient)
     stock_basic = stock_basic_response_to_table(
         baostock_response(
             records=[
@@ -402,7 +402,7 @@ def test_fetch_k_history_tables_filters_active_securities_and_builds_metadata(
 def test_fetch_k_history_tables_returns_empty_metadata_when_no_security_is_selected(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    monkeypatch.setattr(assets, "BaostockAioTcpClient", FakeBaostockAssetClient)
+    monkeypatch.setattr(services, "BaostockAioTcpClient", FakeBaostockAssetClient)
     stock_basic = stock_basic_response_to_table(
         baostock_response(
             records=[["bj.430047", "北交所", "2020-01-01", "", "9", "1"]],

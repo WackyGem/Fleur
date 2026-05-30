@@ -99,6 +99,8 @@ class AioHttpClientTest(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(client.stats.request_count, 3)
         self.assertEqual(client.stats.retry_count, 2)
         self.assertEqual(client.stats.http_5xx_count, 1)
+        self.assertEqual(client.stats.status_code_counts, {"429": 1, "500": 1, "200": 1})
+        self.assertEqual(client.stats.endpoint_host_counts, {"example.test": 3})
 
     async def test_http_4xx_does_not_retry(self) -> None:
         session = FakeAioHttpSession([FakeAioHttpResponse(status=404, body="nope")])
@@ -110,6 +112,8 @@ class AioHttpClientTest(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(client.stats.request_count, 1)
         self.assertEqual(client.stats.retry_count, 0)
         self.assertEqual(client.stats.http_4xx_count, 1)
+        self.assertEqual(client.stats.status_code_counts, {"404": 1})
+        self.assertEqual(client.stats.endpoint_host_counts, {"example.test": 1})
 
     async def test_client_error_and_json_decode_retry(self) -> None:
         session = FakeAioHttpSession(

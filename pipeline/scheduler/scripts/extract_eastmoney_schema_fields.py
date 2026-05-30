@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import difflib
+import json
 from collections.abc import Mapping
 from pathlib import Path
 
@@ -72,9 +73,9 @@ def render_fields_module(field_names_by_asset: Mapping[str, tuple[str, ...]]) ->
         "EASTMONEY_FIELD_NAMES: dict[str, tuple[str, ...]] = {",
     ]
     for asset_name in ASSET_NAMES:
-        lines.append(f"    {asset_name!r}: (")
+        lines.append(f"    {json.dumps(asset_name)}: (")
         for field_name in field_names_by_asset[asset_name]:
-            lines.append(f"        {field_name!r},")
+            lines.append(f"        {json.dumps(field_name)},")
         lines.append("    ),")
     lines.append("}")
     lines.append("")
@@ -100,7 +101,8 @@ def main() -> None:
     repo_root = args.repo_root.resolve()
     openapi_dir = repo_root / "docs/references/openapi"
     fields_module_path = (
-        repo_root / "pipeline/scheduler/src/scheduler/defs/http_resources/eastmoney/fields.py"
+        repo_root
+        / "pipeline/scheduler/src/scheduler/defs/sources/eastmoney/generated/fields.py"
     )
     rendered = render_fields_module(extract_all_field_names(openapi_dir))
 

@@ -1,6 +1,7 @@
 import dagster as dg
 import pyarrow as pa
 
+from scheduler.defs.asset_contracts import compacted_tags, compacted_year_metadata
 from scheduler.defs.market.asset_keys import SOURCE_ASSET_KEY_PREFIX
 from scheduler.defs.sources.daily_compact import compact_daily_asset_by_year
 from scheduler.defs.sources.sina.trade_calendar import sina__trade_calendar
@@ -32,14 +33,11 @@ ths_limit_up_pool_compacted_year_partitions = dg.TimeWindowPartitionsDefinition(
     io_manager_key="s3_io_manager",
     backfill_policy=dg.BackfillPolicy.multi_run(max_partitions_per_run=1),
     automation_condition=dg.AutomationCondition.eager(),
-    metadata={
-        "storage_mode": "partitioned",
-        "partition_key_name": "year",
-        "partitions_def": "year_partitions",
-        "input_partition_key_name": "trade_date",
-        "input_asset": ths__limit_up_pool.key.to_user_string(),
-    },
-    tags={"source": "ths", "layer": "compacted", "storage": "s3"},
+    metadata=compacted_year_metadata(
+        input_partition_key_name="trade_date",
+        input_asset=ths__limit_up_pool.key.to_user_string(),
+    ),
+    tags=compacted_tags("ths"),
 )
 def ths__limit_up_pool_compacted(
     context: dg.AssetExecutionContext,

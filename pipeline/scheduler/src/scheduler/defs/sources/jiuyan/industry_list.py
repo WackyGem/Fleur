@@ -5,6 +5,7 @@ from collections.abc import Mapping
 import dagster as dg
 import pyarrow as pa
 
+from scheduler.defs.asset_contracts import latest_snapshot_metadata, source_tags
 from scheduler.defs.common.metadata import RawMetadataValue
 from scheduler.defs.common.retry import DEFAULT_RETRY_POLICY
 from scheduler.defs.common.strings import required_string
@@ -26,11 +27,8 @@ JIUYAN_INDUSTRY_LIST_LIMIT = "500"
     key_prefix=[SOURCE_ASSET_KEY_PREFIX],
     group_name="s3_sources",
     io_manager_key="s3_io_manager",
-    metadata={
-        "storage_mode": "latest_snapshot",
-        "flatten_column_naming": FLATTEN_COLUMN_NAMING,
-    },
-    tags={"source": "jiuyan", "layer": "source", "storage": "s3"},
+    metadata=latest_snapshot_metadata(flatten_column_naming=FLATTEN_COLUMN_NAMING),
+    tags=source_tags("jiuyan"),
 )
 def jiuyan__industry_list(
     context: dg.AssetExecutionContext,

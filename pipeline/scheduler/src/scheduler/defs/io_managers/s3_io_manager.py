@@ -17,7 +17,7 @@ from scheduler.defs.config.env import (
     RUSTFS_SECRET_KEY,
 )
 from scheduler.defs.config.models import S3Config
-from scheduler.defs.storage.parquet import write_parquet_dataset
+from scheduler.defs.storage.dataset_writer import S3DatasetWriter, partition_column_count
 from scheduler.defs.storage.s3 import asset_key_to_parquet_object_key, build_s3_filesystem
 
 
@@ -41,7 +41,7 @@ class S3IOManager(dg.ConfigurableIOManager):
         filesystem = build_s3_filesystem(self._config())
         filesystem_built_at = time.perf_counter()
         base_dir = self._base_dir(asset_key)
-        partition_row_counts: dict[str, int] = {}
+        writer = S3DatasetWriter(s3_config=self._config(), filesystem=filesystem)
         if storage_mode == "partitioned":
             if partition_key_name is None:
                 msg = "Partitioned S3 output requires partition_key_name metadata"
@@ -59,44 +59,34 @@ class S3IOManager(dg.ConfigurableIOManager):
                     f"table_keys={sorted(table_keys)}, partition_keys={sorted(partition_keys)}"
                 )
                 raise RuntimeError(msg)
-            written_paths = []
-            for partition_key in sorted(partition_tables):
-                partition_table = partition_tables[partition_key]
-                written_paths.extend(
-                    write_parquet_dataset(
-                        partition_table,
-                        base_dir,
-                        filesystem,
-                        partition_key=partition_key,
-                        partition_key_name=partition_key_name,
-                        allow_empty=allow_empty,
-                    )
-                )
-                partition_row_counts[partition_key] = partition_table.num_rows
-            row_count = sum(partition_row_counts.values())
-            column_count = self.partition_column_count(partition_tables)
+            write_result = writer.write_partitioned(
+                partition_tables=partition_tables,
+                base_dir=base_dir,
+                partition_key_name=partition_key_name,
+                allow_empty=allow_empty,
+            )
         elif storage_mode == "latest_snapshot":
             table = self.validate_table(obj, allow_empty=allow_empty)
             validated_at = time.perf_counter()
-            written_paths = write_parquet_dataset(
-                table, base_dir, filesystem, allow_empty=allow_empty
+            write_result = writer.write_latest_snapshot(
+                table=table,
+                base_dir=base_dir,
+                allow_empty=allow_empty,
             )
-            row_count = table.num_rows
-            column_count = table.num_columns
         else:
             msg = f"Unsupported storage mode: {storage_mode}"
             raise ValueError(msg)
         write_finished_at = time.perf_counter()
 
-        object_keys = [self._path_to_object_key(path) for path in written_paths]
+        object_keys = write_result.object_keys(self.bucket)
         metadata: dict[str, RawMetadataValue] = {
             "s3_bucket": self.bucket,
             "s3_keys": dg.MetadataValue.json(object_keys),
             "s3_endpoint": self.endpoint,
             "file_format": "parquet",
             "compression": "zstd",
-            "row_count": row_count,
-            "column_count": column_count,
+            "row_count": write_result.row_count,
+            "column_count": write_result.column_count,
             "storage_mode": storage_mode,
             "allow_empty": allow_empty,
             "io_manager_validate_seconds": elapsed_seconds(started_at, validated_at),
@@ -115,13 +105,11 @@ class S3IOManager(dg.ConfigurableIOManager):
         }
         if partition_key_name is not None:
             metadata["partition_key_name"] = partition_key_name
-            metadata["partition_row_counts"] = dg.MetadataValue.json(partition_row_counts)
+            metadata["partition_row_counts"] = dg.MetadataValue.json(
+                write_result.partition_row_counts
+            )
             metadata["empty_partition_keys"] = dg.MetadataValue.json(
-                sorted(
-                    partition_key
-                    for partition_key, partition_row_count in partition_row_counts.items()
-                    if partition_row_count == 0
-                )
+                write_result.empty_partition_keys
             )
         elif len(object_keys) == 1:
             metadata["s3_key"] = object_keys[0]
@@ -146,12 +134,6 @@ class S3IOManager(dg.ConfigurableIOManager):
         )
         object_dir = object_key.removesuffix("/000000_0.parquet")
         return f"{self.bucket}/{object_dir}"
-
-    def _path_to_object_key(self, path: str) -> str:
-        bucket_prefix = f"{self.bucket}/"
-        if path.startswith(bucket_prefix):
-            return path.removeprefix(bucket_prefix)
-        return path
 
     def _config(self) -> S3Config:
         return S3Config(
@@ -197,13 +179,4 @@ class S3IOManager(dg.ConfigurableIOManager):
         return tables
 
     def partition_column_count(self, partition_tables: Mapping[str, pa.Table]) -> int:
-        first_table = next(iter(partition_tables.values()))
-        first_columns = first_table.column_names
-        for partition_key, table in partition_tables.items():
-            if table.column_names != first_columns:
-                msg = (
-                    f"Partition {partition_key!r} columns differ from first partition: "
-                    f"{table.column_names} != {first_columns}"
-                )
-                raise ValueError(msg)
-        return first_table.num_columns
+        return partition_column_count(partition_tables)

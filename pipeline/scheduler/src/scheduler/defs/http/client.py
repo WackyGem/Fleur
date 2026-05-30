@@ -3,13 +3,18 @@ from __future__ import annotations
 import asyncio
 import json
 from collections.abc import Callable, Mapping
-from dataclasses import dataclass
-from typing import Literal, cast, overload
+from dataclasses import dataclass, field
+from typing import Literal, Protocol, TypeVar, cast
+from urllib.parse import urlsplit
 
 import aiohttp
 
 from scheduler.defs.common.retry import DEFAULT_RETRY_POLICY, ExponentialBackoffPolicy
-from scheduler.defs.http.protocols import HttpResponseContextProtocol, HttpSessionProtocol
+from scheduler.defs.http.protocols import (
+    HttpResponseContextProtocol,
+    HttpResponseProtocol,
+    HttpSessionProtocol,
+)
 
 HTTP_TOTAL_TIMEOUT_SECONDS = 60
 HTTP_CONNECT_TIMEOUT_SECONDS = 5
@@ -25,6 +30,7 @@ CHROME_USER_AGENT = (
 HttpMethod = Literal["GET", "POST"]
 HeaderFactory = Callable[[], Mapping[str, str]]
 SessionFactory = Callable[[], HttpSessionProtocol]
+DecodedResponse = TypeVar("DecodedResponse", covariant=True)
 
 
 class HttpRequestError(RuntimeError):
@@ -70,6 +76,67 @@ class HttpFetchStats:
     http_4xx_count: int = 0
     http_5xx_count: int = 0
     decode_error_count: int = 0
+    status_code_counts: dict[str, int] = field(default_factory=dict)
+    endpoint_host_counts: dict[str, int] = field(default_factory=dict)
+
+    def record_endpoint(self, url: str) -> None:
+        host = urlsplit(url).netloc or "<unknown>"
+        self.endpoint_host_counts[host] = self.endpoint_host_counts.get(host, 0) + 1
+
+    def record_status_code(self, status: int) -> None:
+        status_key = str(status)
+        self.status_code_counts[status_key] = self.status_code_counts.get(status_key, 0) + 1
+
+
+class HttpResponseDecoder(Protocol[DecodedResponse]):
+    async def decode(
+        self,
+        response: HttpResponseProtocol,
+        stats: HttpFetchStats,
+    ) -> DecodedResponse: ...
+
+
+class TextDecoder:
+    async def decode(
+        self,
+        response: HttpResponseProtocol,
+        stats: HttpFetchStats,
+    ) -> HttpTextResponse:
+        body = await response.text()
+        _raise_for_status(response.status, body[:300], stats)
+        return HttpTextResponse(status=response.status, headers=dict(response.headers), body=body)
+
+
+class BytesDecoder:
+    async def decode(
+        self,
+        response: HttpResponseProtocol,
+        stats: HttpFetchStats,
+    ) -> HttpBytesResponse:
+        body = await response.read()
+        _raise_for_status(response.status, body[:300].decode(errors="replace"), stats)
+        return HttpBytesResponse(status=response.status, headers=dict(response.headers), body=body)
+
+
+class JsonObjectDecoder:
+    async def decode(
+        self,
+        response: HttpResponseProtocol,
+        stats: HttpFetchStats,
+    ) -> Mapping[str, object]:
+        body = await response.text()
+        _raise_for_status(response.status, body[:300], stats)
+        try:
+            payload: object = json.loads(body)
+        except json.JSONDecodeError as error:
+            stats.decode_error_count += 1
+            msg = f"HTTP response JSON decode failed: {error}"
+            raise HttpResponseDecodeError(msg) from error
+        if not isinstance(payload, Mapping):
+            stats.decode_error_count += 1
+            msg = "HTTP response JSON is not an object"
+            raise HttpResponseDecodeError(msg)
+        return payload
 
 
 class _AioHttpSessionAdapter:
@@ -177,66 +244,31 @@ class AioHttpClient:
     async def request_text(self, request: HttpRequest) -> HttpTextResponse:
         return await self._request_with_retries(
             request,
-            body_kind="text",
-            decode_json=False,
+            decoder=TextDecoder(),
         )
 
     async def request_json_object(self, request: HttpRequest) -> Mapping[str, object]:
-        response = await self._request_with_retries(
+        return await self._request_with_retries(
             request,
-            body_kind="text",
-            decode_json=True,
+            decoder=JsonObjectDecoder(),
         )
-        payload: object = json.loads(response.body)
-        if not isinstance(payload, Mapping):
-            msg = "HTTP response JSON is not an object"
-            raise HttpResponseDecodeError(msg)
-        return payload
 
     async def request_bytes(self, request: HttpRequest) -> HttpBytesResponse:
         return await self._request_with_retries(
             request,
-            body_kind="bytes",
-            decode_json=False,
+            decoder=BytesDecoder(),
         )
 
-    @overload
     async def _request_with_retries(
         self,
         request: HttpRequest,
         *,
-        body_kind: Literal["text"],
-        decode_json: bool,
-    ) -> HttpTextResponse: ...
-
-    @overload
-    async def _request_with_retries(
-        self,
-        request: HttpRequest,
-        *,
-        body_kind: Literal["bytes"],
-        decode_json: bool,
-    ) -> HttpBytesResponse: ...
-
-    async def _request_with_retries(
-        self,
-        request: HttpRequest,
-        *,
-        body_kind: Literal["text", "bytes"],
-        decode_json: bool,
-    ) -> HttpTextResponse | HttpBytesResponse:
+        decoder: HttpResponseDecoder[DecodedResponse],
+    ) -> DecodedResponse:
         delays = self._retry_policy.delays(self._max_attempts)
         for attempt_index in range(self._max_attempts):
             try:
-                response = await self._send_once(request, body_kind=body_kind)
-                if body_kind == "text" and decode_json:
-                    try:
-                        json.loads(response.body)
-                    except json.JSONDecodeError as error:
-                        self.stats.decode_error_count += 1
-                        msg = f"HTTP response JSON decode failed: {error}"
-                        raise HttpResponseDecodeError(msg) from error
-                # 请求成功后添加延迟
+                response = await self._send_once(request, decoder=decoder)
                 if self._request_delay > 0:
                     await asyncio.sleep(self._request_delay)
                 return response
@@ -257,33 +289,18 @@ class AioHttpClient:
         msg = "HTTP request retry loop ended unexpectedly"
         raise HttpRequestError(msg)
 
-    @overload
     async def _send_once(
         self,
         request: HttpRequest,
         *,
-        body_kind: Literal["text"],
-    ) -> HttpTextResponse: ...
-
-    @overload
-    async def _send_once(
-        self,
-        request: HttpRequest,
-        *,
-        body_kind: Literal["bytes"],
-    ) -> HttpBytesResponse: ...
-
-    async def _send_once(
-        self,
-        request: HttpRequest,
-        *,
-        body_kind: Literal["text", "bytes"],
-    ) -> HttpTextResponse | HttpBytesResponse:
+        decoder: HttpResponseDecoder[DecodedResponse],
+    ) -> DecodedResponse:
         if self._session is None:
             msg = "AioHttpClient must be used as an async context manager"
             raise RuntimeError(msg)
 
         self.stats.request_count += 1
+        self.stats.record_endpoint(request.url)
         headers = self._merged_headers(request.headers)
 
         async with self._session.request(
@@ -293,44 +310,8 @@ class AioHttpClient:
             headers=headers or None,
             json=request.json_body,
         ) as response:
-            if body_kind == "bytes":
-                body = await response.read()
-                if response.status == 429 or response.status >= 500:
-                    self.stats.transient_error_count += 1
-                    if response.status >= 500:
-                        self.stats.http_5xx_count += 1
-                    body_preview = body[:300].decode(errors="replace")
-                    msg = f"HTTP {response.status}: {body_preview}"
-                    raise HttpTransientRequestError(msg)
-                if response.status >= 400:
-                    self.stats.http_4xx_count += 1
-                    body_preview = body[:300].decode(errors="replace")
-                    msg = f"HTTP {response.status}: {body_preview}"
-                    raise HttpRequestError(msg)
-                return HttpBytesResponse(
-                    status=response.status,
-                    headers=dict(response.headers),
-                    body=body,
-                )
-
-            body = await response.text()
-            if response.status == 429 or response.status >= 500:
-                self.stats.transient_error_count += 1
-                if response.status >= 500:
-                    self.stats.http_5xx_count += 1
-                body_preview = body[:300]
-                msg = f"HTTP {response.status}: {body_preview}"
-                raise HttpTransientRequestError(msg)
-            if response.status >= 400:
-                self.stats.http_4xx_count += 1
-                body_preview = body[:300]
-                msg = f"HTTP {response.status}: {body_preview}"
-                raise HttpRequestError(msg)
-            return HttpTextResponse(
-                status=response.status,
-                headers=dict(response.headers),
-                body=body,
-            )
+            self.stats.record_status_code(response.status)
+            return await decoder.decode(response, self.stats)
 
     def _merged_headers(
         self,
@@ -367,3 +348,16 @@ def _headers_from_value(headers: Mapping[str, str] | HeaderFactory) -> Mapping[s
     if callable(headers):
         return headers()
     return headers
+
+
+def _raise_for_status(status: int, body_preview: str, stats: HttpFetchStats) -> None:
+    if status == 429 or status >= 500:
+        stats.transient_error_count += 1
+        if status >= 500:
+            stats.http_5xx_count += 1
+        msg = f"HTTP {status}: {body_preview}"
+        raise HttpTransientRequestError(msg)
+    if status >= 400:
+        stats.http_4xx_count += 1
+        msg = f"HTTP {status}: {body_preview}"
+        raise HttpRequestError(msg)

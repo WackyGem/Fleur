@@ -5,6 +5,7 @@ from zoneinfo import ZoneInfo
 
 import dagster as dg
 import pytest
+from scheduler.defs.definitions import SOURCE_BUNDLES
 from scheduler.defs.definitions import defs as scheduler_defs
 from scheduler.defs.http import schedules
 from scheduler.defs.market import schedules as market_schedules
@@ -16,6 +17,112 @@ def schedule_result(schedule: dg.ScheduleDefinition, scheduled_time: datetime) -
     execution_fn = schedule.__dict__["_execution_fn"]
     assert execution_fn is not None
     return execution_fn(dg.build_schedule_context(scheduled_execution_time=scheduled_time))
+
+
+def asset_key(asset: dg.AssetsDefinition) -> str:
+    return asset.key.to_user_string()
+
+
+def test_source_bundles_have_unique_names_and_defs() -> None:
+    bundle_names = [bundle.name for bundle in SOURCE_BUNDLES]
+    assert bundle_names == ["sina", "jiuyan", "ths", "baostock", "eastmoney"]
+    assert len(bundle_names) == len(set(bundle_names))
+
+    asset_keys = [asset_key(asset) for bundle in SOURCE_BUNDLES for asset in bundle.assets]
+    job_names = [job.name for bundle in SOURCE_BUNDLES for job in bundle.jobs]
+    schedule_names = [schedule.name for bundle in SOURCE_BUNDLES for schedule in bundle.schedules]
+
+    assert len(asset_keys) == len(set(asset_keys))
+    assert len(job_names) == len(set(job_names))
+    assert len(schedule_names) == len(set(schedule_names))
+
+
+def test_source_bundles_expose_expected_assets_jobs_and_schedules() -> None:
+    bundle_contracts = {
+        bundle.name: {
+            "assets": sorted(asset_key(asset) for asset in bundle.assets),
+            "jobs": sorted(job.name for job in bundle.jobs),
+            "schedules": sorted(schedule.name for schedule in bundle.schedules),
+        }
+        for bundle in SOURCE_BUNDLES
+    }
+
+    assert bundle_contracts == {
+        "sina": {
+            "assets": ["source/sina__trade_calendar"],
+            "jobs": ["sina__trade_calendar_job"],
+            "schedules": ["sina__trade_calendar_schedule"],
+        },
+        "jiuyan": {
+            "assets": [
+                "source/jiuyan__action_field",
+                "source/jiuyan__action_field_compacted",
+                "source/jiuyan__industry_images",
+                "source/jiuyan__industry_list",
+                "source/jiuyan__industry_ocr",
+            ],
+            "jobs": [
+                "jiuyan__action_field_compacted_job",
+                "jiuyan__action_field_daily_job",
+                "jiuyan__industry_list_snapshot_job",
+                "jiuyan__industry_ocr_pipeline_job",
+            ],
+            "schedules": [
+                "jiuyan__action_field_daily_schedule",
+                "jiuyan__industry_list_snapshot_schedule",
+                "jiuyan__industry_ocr_pipeline_schedule",
+            ],
+        },
+        "ths": {
+            "assets": [
+                "source/ths__limit_up_pool",
+                "source/ths__limit_up_pool_compacted",
+            ],
+            "jobs": [
+                "ths__limit_up_pool_compacted_job",
+                "ths__limit_up_pool_daily_job",
+            ],
+            "schedules": ["ths__limit_up_pool_daily_schedule"],
+        },
+        "baostock": {
+            "assets": [
+                "source/baostock__query_history_k_data_plus_daily",
+                "source/baostock__query_stock_basic",
+            ],
+            "jobs": ["baostock__daily_job"],
+            "schedules": ["baostock__daily_schedule"],
+        },
+        "eastmoney": {
+            "assets": [
+                "source/eastmoney__balance",
+                "source/eastmoney__cashflow_sq",
+                "source/eastmoney__cashflow_ytd",
+                "source/eastmoney__dividend_allotment",
+                "source/eastmoney__dividend_main",
+                "source/eastmoney__equity_history",
+                "source/eastmoney__income_sq",
+                "source/eastmoney__income_ytd",
+            ],
+            "jobs": ["eastmoney__daily_job"],
+            "schedules": ["eastmoney__daily_schedule"],
+        },
+    }
+
+
+def test_registered_definitions_match_source_bundles() -> None:
+    loaded_defs = scheduler_defs.load_fn()
+
+    expected_assets = {asset_key(asset) for bundle in SOURCE_BUNDLES for asset in bundle.assets}
+    expected_jobs = {job.name for bundle in SOURCE_BUNDLES for job in bundle.jobs}
+    expected_schedules = {
+        schedule.name for bundle in SOURCE_BUNDLES for schedule in bundle.schedules
+    }
+
+    assert top_level_definitions.defs is scheduler_defs
+    assert {asset_key(asset) for asset in loaded_defs.assets or []} == expected_assets
+    assert {job.name for job in loaded_defs.jobs or []} == expected_jobs
+    assert {schedule.name for schedule in loaded_defs.schedules or []} == expected_schedules
+    assert "s3_io_manager" in loaded_defs.resources
 
 
 def test_definitions_register_expected_jobs_schedules_assets_and_resources() -> None:

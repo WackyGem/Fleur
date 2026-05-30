@@ -115,6 +115,35 @@ class TestOcrStateFlow:
             assert params["ocr_error_type"] == "HTTPError"
             assert params["ocr_error_message"] == "Timeout after 30s"
 
+    def test_batch_status_updates_reuse_one_connection(self) -> None:
+        repo = PostgresIndustryImageRepository("postgresql://test")
+
+        with mock_database_connection() as mock_cursor:
+            success_count = repo.mark_ocr_success_many(
+                [
+                    {
+                        "image_filename": "a.jpg",
+                        "ocr_result_s3_key": "ocr/a.parquet",
+                        "ocr_result_row_count": 1,
+                        "ocr_model": "qwen-vl-max",
+                    },
+                    {
+                        "image_filename": "b.jpg",
+                        "ocr_result_s3_key": "ocr/b.parquet",
+                        "ocr_result_row_count": 0,
+                        "ocr_model": "qwen-vl-max",
+                    },
+                ]
+            )
+
+            assert success_count == 2
+            assert mock_cursor.execute.call_count == 2
+            first_sql = mock_cursor.execute.call_args_list[0][0][0].lower()
+            second_params = mock_cursor.execute.call_args_list[1][0][1]
+            assert "ocr_status = 'success'" in first_sql
+            assert second_params["image_filename"] == "b.jpg"
+            assert second_params["ocr_result_row_count"] == 0
+
     def test_claim_stale_running_images_reclaims_timeout(self) -> None:
         """Test that stale running images are reclaimed back to pending."""
         repo = PostgresIndustryImageRepository("postgresql://test")

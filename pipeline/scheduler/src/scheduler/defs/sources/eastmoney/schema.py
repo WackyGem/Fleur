@@ -9,8 +9,8 @@ import pyarrow as pa
 
 from scheduler.defs.common.schema import typed_table
 from scheduler.defs.http.schemas import unknown_field_count_for_mapping
-from scheduler.defs.sources.eastmoney.fields import EASTMONEY_FIELD_NAMES
-from scheduler.defs.sources.eastmoney.schemas import EASTMONEY_SCHEMAS
+from scheduler.defs.sources.eastmoney.generated.fields import EASTMONEY_FIELD_NAMES
+from scheduler.defs.sources.eastmoney.generated.schemas import EASTMONEY_SCHEMAS
 
 ApiFamily = Literal["data_get", "data_v1_get"]
 

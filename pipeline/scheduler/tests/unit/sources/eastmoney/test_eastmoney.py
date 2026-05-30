@@ -6,6 +6,8 @@ from importlib.util import module_from_spec, spec_from_file_location
 from pathlib import Path
 
 import pyarrow as pa
+from scheduler.defs.sources.eastmoney import fields as compat_fields
+from scheduler.defs.sources.eastmoney import schemas as compat_schemas
 from scheduler.defs.sources.eastmoney.assets import baostock_code_to_eastmoney_code
 from scheduler.defs.sources.eastmoney.client import (
     EastmoneyAioHttpClient,
@@ -13,6 +15,8 @@ from scheduler.defs.sources.eastmoney.client import (
     build_request_params,
     parse_eastmoney_page,
 )
+from scheduler.defs.sources.eastmoney.generated import fields as generated_fields
+from scheduler.defs.sources.eastmoney.generated import schemas as generated_schemas
 from scheduler.defs.sources.eastmoney.schema import (
     ENDPOINT_CONFIGS,
     EastmoneyFetchedRow,
@@ -85,6 +89,22 @@ class EastmoneySchemaTest(unittest.TestCase):
                     eastmoney_business_field_names(endpoint.asset_name),
                     extracted[endpoint.asset_name],
                 )
+
+    def test_generated_modules_are_the_schema_source_of_truth(self) -> None:
+        self.assertIs(
+            compat_fields.EASTMONEY_FIELD_NAMES,
+            generated_fields.EASTMONEY_FIELD_NAMES,
+        )
+        self.assertIs(
+            compat_schemas.EASTMONEY_SCHEMAS,
+            generated_schemas.EASTMONEY_SCHEMAS,
+        )
+        self.assertEqual(
+            set(generated_fields.EASTMONEY_FIELD_NAMES), set(EXPECTED_OPENAPI_FIELD_COUNTS)
+        )
+        self.assertEqual(
+            set(generated_schemas.EASTMONEY_SCHEMAS), set(EXPECTED_OPENAPI_FIELD_COUNTS)
+        )
 
     def test_rows_to_table_preserves_missing_fields_as_null_and_counts_unknowns(self) -> None:
         endpoint = endpoint_by_asset_name("eastmoney__dividend_main")

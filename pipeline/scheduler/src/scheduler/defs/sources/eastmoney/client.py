@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import asyncio
 from collections.abc import Mapping
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import date
 from types import TracebackType
 
@@ -38,6 +38,8 @@ class EastmoneyFetchStats:
     http_4xx_count: int = 0
     http_5xx_count: int = 0
     decode_error_count: int = 0
+    status_code_counts: dict[str, int] = field(default_factory=dict)
+    endpoint_host_counts: dict[str, int] = field(default_factory=dict)
 
 
 @dataclass(frozen=True)
@@ -185,6 +187,8 @@ class EastmoneyAioHttpClient:
         self.stats.http_4xx_count = http_stats.http_4xx_count
         self.stats.http_5xx_count = http_stats.http_5xx_count
         self.stats.decode_error_count = http_stats.decode_error_count
+        self.stats.status_code_counts = dict(http_stats.status_code_counts)
+        self.stats.endpoint_host_counts = dict(http_stats.endpoint_host_counts)
 
 
 def build_request_params(

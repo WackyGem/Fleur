@@ -10,7 +10,7 @@ import pytest
 from scheduler.defs.io_managers import s3_io_manager
 from scheduler.defs.io_managers.s3_io_manager import S3IOManager
 from scheduler.defs.ocr.service import run_bounded_ocr_batch
-from scheduler.defs.storage import object_store, s3
+from scheduler.defs.storage import dataset_writer, object_store, s3
 from scheduler.defs.storage.object_store import (
     DownloadedImage,
     ObjectStore,
@@ -156,7 +156,7 @@ def test_s3_io_manager_writes_latest_snapshot_and_records_metadata(
         return [f"{base_dir}/000000_0.parquet"]
 
     monkeypatch.setattr(s3_io_manager, "build_s3_filesystem", fake_build_s3_filesystem)
-    monkeypatch.setattr(s3_io_manager, "write_parquet_dataset", fake_write_parquet_dataset)
+    monkeypatch.setattr(dataset_writer, "write_parquet_dataset", fake_write_parquet_dataset)
     manager = S3IOManager(
         endpoint="http://rustfs.test",
         bucket="bucket",
@@ -205,7 +205,7 @@ def test_s3_io_manager_writes_partitioned_tables_and_records_partition_metadata(
         )
         return [f"{base_dir}/{partition_key_name}={partition_key}/000000_0.parquet"]
 
-    monkeypatch.setattr(s3_io_manager, "write_parquet_dataset", fake_write_parquet_dataset)
+    monkeypatch.setattr(dataset_writer, "write_parquet_dataset", fake_write_parquet_dataset)
     manager = S3IOManager(
         endpoint="http://rustfs.test",
         bucket="bucket",

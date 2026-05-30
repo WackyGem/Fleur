@@ -1,6 +1,9 @@
 """从 data_dict MD 文件生成 EastMoney 显式 schema 定义。
 
-用法: python generate_eastmoney_schemas.py > eastmoney_schemas_output.py
+用法:
+  cd pipeline
+  uv run python scheduler/scripts/generate_eastmoney_schemas.py \
+    > scheduler/src/scheduler/defs/sources/eastmoney/generated/schemas.py
 """
 from __future__ import annotations
 

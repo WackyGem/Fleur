@@ -6,6 +6,7 @@ from datetime import date
 import dagster as dg
 import pyarrow as pa
 
+from scheduler.defs.asset_contracts import daily_sparse_partition_metadata, source_tags
 from scheduler.defs.common.metadata import RawMetadataValue, http_stats_metadata
 from scheduler.defs.common.retry import DEFAULT_RETRY_POLICY
 from scheduler.defs.common.strings import required_string
@@ -71,16 +72,12 @@ def jiuyan_header_factory() -> HeaderFactory:
     partitions_def=jiuyan_action_field_daily_partitions,
     deps=[SINA_TRADE_CALENDAR_ASSET_KEY],
     backfill_policy=dg.BackfillPolicy.single_run(),
-    metadata={
-        "storage_mode": "partitioned",
-        "partition_key_name": TRADE_DATE_PARTITION_KEY_NAME,
-        "partitions_def": "daily_partitions",
-        "trade_date_filter": SINA_TRADE_CALENDAR_ASSET_KEY.to_user_string(),
-        "allow_empty": True,
-        "sparse_partition_output": True,
-        "flatten_column_naming": FLATTEN_COLUMN_NAMING,
-    },
-    tags={"source": "jiuyan", "layer": "source", "storage": "s3"},
+    metadata=daily_sparse_partition_metadata(
+        partition_key_name=TRADE_DATE_PARTITION_KEY_NAME,
+        trade_date_filter=SINA_TRADE_CALENDAR_ASSET_KEY.to_user_string(),
+        flatten_column_naming=FLATTEN_COLUMN_NAMING,
+    ),
+    tags=source_tags("jiuyan"),
 )
 def jiuyan__action_field(
     context: dg.AssetExecutionContext,

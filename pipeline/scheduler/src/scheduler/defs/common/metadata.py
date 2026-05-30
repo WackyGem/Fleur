@@ -18,6 +18,12 @@ class HttpStatsLike(Protocol):
     http_5xx_count: int
     decode_error_count: int
 
+    @property
+    def status_code_counts(self) -> Mapping[str, int]: ...
+
+    @property
+    def endpoint_host_counts(self) -> Mapping[str, int]: ...
+
 
 @dataclass
 class AssetMetadataBuilder:
@@ -39,7 +45,7 @@ class AssetMetadataBuilder:
         return dict(self.values)
 
 
-def http_stats_metadata(stats: HttpStatsLike) -> dict[str, int]:
+def http_stats_metadata(stats: HttpStatsLike) -> dict[str, RawMetadataValue]:
     return {
         "request_count": stats.request_count,
         "retry_count": stats.retry_count,
@@ -47,6 +53,8 @@ def http_stats_metadata(stats: HttpStatsLike) -> dict[str, int]:
         "http_4xx_count": stats.http_4xx_count,
         "http_5xx_count": stats.http_5xx_count,
         "decode_error_count": stats.decode_error_count,
+        "status_code_counts": dg.MetadataValue.json(dict(stats.status_code_counts)),
+        "endpoint_host_counts": dg.MetadataValue.json(dict(stats.endpoint_host_counts)),
     }
 
 

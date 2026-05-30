@@ -16,6 +16,9 @@ members = [
 [tool.ruff]
 line-length = 100
 target-version = "py312"
+extend-exclude = [
+    "scheduler/src/scheduler/defs/sources/eastmoney/generated",
+]
 
 [tool.ruff.lint]
 select = [

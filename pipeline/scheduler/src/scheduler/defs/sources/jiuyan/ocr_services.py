@@ -17,6 +17,13 @@ from scheduler.defs.sources.jiuyan.ocr_schema import (
     normalize_ocr_content,
     ocr_rows_to_table,
 )
+from scheduler.defs.sources.jiuyan.state_service import (
+    DownloadFailureUpdate,
+    DownloadSuccessUpdate,
+    IndustryImageStateService,
+    OcrFailureUpdate,
+    OcrSuccessUpdate,
+)
 from scheduler.defs.storage.object_store import ImageObjectStore, download_image_bytes
 
 IMAGE_DOWNLOAD_CONCURRENCY = 10
@@ -49,16 +56,20 @@ class OcrProcessResult:
 
 
 async def download_images_to_s3(
-    repository: PostgresIndustryImageRepository,
+    repository: PostgresIndustryImageRepository | None,
     object_store: ImageObjectStore,
     images: list[DiscoveredIndustryImage],
     log: logging.Logger,
+    state_service: IndustryImageStateService | None = None,
 ) -> ImageDownloadResult:
     result = ImageDownloadResult()
     if not images:
         return result
+    effective_state_service = state_service or _state_service_from_repository(repository)
 
     semaphore = asyncio.Semaphore(IMAGE_DOWNLOAD_CONCURRENCY)
+    success_updates: list[DownloadSuccessUpdate] = []
+    failure_updates: list[DownloadFailureUpdate] = []
     async with AioHttpClient(retry_policy=DEFAULT_RETRY_POLICY) as client:
 
         async def process_one(image: DiscoveredIndustryImage) -> None:
@@ -69,18 +80,22 @@ async def download_images_to_s3(
                         image.image_filename,
                         downloaded.image_bytes,
                     )
-                    repository.mark_download_success(
-                        image_filename=image.image_filename,
-                        image_s3_key_value=object_key,
-                        download_sha256=downloaded.sha256,
-                        download_bytes=downloaded.byte_count,
+                    success_updates.append(
+                        DownloadSuccessUpdate(
+                            image_filename=image.image_filename,
+                            image_s3_key=object_key,
+                            download_sha256=downloaded.sha256,
+                            download_bytes=downloaded.byte_count,
+                        )
                     )
                     result.downloaded_counter["success"] += 1
                 except Exception as error:
-                    repository.mark_download_failed(
-                        image_filename=image.image_filename,
-                        error_type=type(error).__name__,
-                        error_message=str(error),
+                    failure_updates.append(
+                        DownloadFailureUpdate(
+                            image_filename=image.image_filename,
+                            error_type=type(error).__name__,
+                            error_message=str(error),
+                        )
                     )
                     result.downloaded_counter["failure"] += 1
                     log.warning(
@@ -90,6 +105,8 @@ async def download_images_to_s3(
                     )
 
         await asyncio.gather(*(process_one(image) for image in images))
+    await effective_state_service.mark_download_success_many(success_updates)
+    await effective_state_service.mark_download_failed_many(failure_updates)
     return result
 
 
@@ -103,19 +120,23 @@ def _image_mime_type(image_s3_key_value: str) -> str:
 
 
 async def process_ocr_images(
-    repository: PostgresIndustryImageRepository,
+    repository: PostgresIndustryImageRepository | None,
     object_store: ImageObjectStore,
     claimed: list[ClaimedIndustryImage],
     ocr_config: JiuyanOcrConfig,
     max_concurrent_requests: int,
     log: logging.Logger,
+    state_service: IndustryImageStateService | None = None,
 ) -> OcrProcessResult:
     result = OcrProcessResult()
     if not claimed:
         return result
+    effective_state_service = state_service or _state_service_from_repository(repository)
 
     semaphore = asyncio.Semaphore(max_concurrent_requests)
     table_convert_seconds_numerator = 0.0
+    success_updates: list[OcrSuccessUpdate] = []
+    failure_updates: list[OcrFailureUpdate] = []
 
     async with AioHttpClient(
         headers={"User-Agent": "Mozilla/5.0", "Accept": "application/json,text/plain,*/*"},
@@ -149,11 +170,13 @@ async def process_ocr_images(
                         result.ocr_empty_count += 1
                     else:
                         result.ocr_result_rows += table.num_rows
-                    repository.mark_ocr_success(
-                        image_filename=image.image_filename,
-                        ocr_result_s3_key_value=ocr_result_key,
-                        ocr_result_row_count=table.num_rows,
-                        ocr_model=ocr_config.model_name,
+                    success_updates.append(
+                        OcrSuccessUpdate(
+                            image_filename=image.image_filename,
+                            ocr_result_s3_key=ocr_result_key,
+                            ocr_result_row_count=table.num_rows,
+                            ocr_model=ocr_config.model_name,
+                        )
                     )
                     log.info(
                         "OCR success for %s with %s rows",
@@ -164,16 +187,29 @@ async def process_ocr_images(
                     return image.image_filename, table.num_rows, ocr_result_key
                 except Exception as error:
                     result.ocr_failure_count += 1
-                    repository.mark_ocr_failed(
-                        image_filename=image.image_filename,
-                        error_type=type(error).__name__,
-                        error_message=str(error),
+                    failure_updates.append(
+                        OcrFailureUpdate(
+                            image_filename=image.image_filename,
+                            error_type=type(error).__name__,
+                            error_message=str(error),
+                        )
                     )
                     log.warning("OCR failed for %s: %s", image.image_filename, error)
                     return image.image_filename, 0, None
 
         results = await asyncio.gather(*(process_one(image) for image in claimed))
 
+    await effective_state_service.mark_ocr_success_many(success_updates)
+    await effective_state_service.mark_ocr_failed_many(failure_updates)
     result.table_convert_seconds = table_convert_seconds_numerator
     result.s3_keys = [key for _, _, key in results if key is not None]
     return result
+
+
+def _state_service_from_repository(
+    repository: PostgresIndustryImageRepository | None,
+) -> IndustryImageStateService:
+    if repository is None:
+        msg = "repository or state_service is required"
+        raise ValueError(msg)
+    return IndustryImageStateService(repository)

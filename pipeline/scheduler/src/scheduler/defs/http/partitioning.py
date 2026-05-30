@@ -15,7 +15,13 @@ from scheduler.defs.common.metadata import RawMetadataValue
 from scheduler.defs.config.models import S3Config
 from scheduler.defs.market.asset_keys import SINA_TRADE_CALENDAR_ASSET_KEY
 from scheduler.defs.market.trade_calendar import read_trade_dates_from_s3
-from scheduler.defs.storage.parquet import write_parquet_dataset
+from scheduler.defs.partitioning.policies import (
+    BackfillLimitPolicy,
+    PartitionFilter,
+    PartitionSelectionPolicy,
+    TradeDateFilterPolicy,
+)
+from scheduler.defs.storage.dataset_writer import S3DatasetWriter
 from scheduler.defs.storage.s3 import asset_key_to_parquet_object_key, build_s3_filesystem
 
 TRADE_DATE_PARTITION_KEY_NAME = "trade_date"
@@ -40,7 +46,6 @@ FetchTableForPartition = Callable[
     [str],
     Awaitable[tuple[pa.Table, Mapping[str, RawMetadataValue]]],
 ]
-PartitionFilter = Callable[[str], bool]
 
 
 class PartitionedAssetContextProtocol(Protocol):
@@ -82,23 +87,15 @@ async def materialize_partition_range(
     if not partition_keys:
         msg = "Partitioned asset requires at least one partition"
         raise RuntimeError(msg)
-    if backfill_hard_limit is not None and len(partition_keys) > backfill_hard_limit:
-        msg = f"Single-run partition backfill is limited to {backfill_hard_limit} partitions"
-        raise ValueError(msg)
+    BackfillLimitPolicy(backfill_hard_limit).validate(partition_keys)
 
     effective_s3_config = s3_config or S3Config.from_env()
-    processed_partition_keys = [
-        partition_key
-        for partition_key in partition_keys
-        if partition_filter is None or partition_filter(partition_key)
-    ]
-    skipped_partition_keys = [
-        partition_key
-        for partition_key in partition_keys
-        if partition_key not in processed_partition_keys
-    ]
+    processed_partition_keys, skipped_partition_keys = PartitionSelectionPolicy(
+        partition_filter
+    ).select(partition_keys)
 
     filesystem = build_s3_filesystem(effective_s3_config)
+    writer = S3DatasetWriter(s3_config=effective_s3_config, filesystem=filesystem)
     base_dir = _asset_base_dir(effective_s3_config, context.asset_key)
     semaphore = asyncio.Semaphore(max_concurrent_partitions)
     completed: dict[str, pa.Table] = {}
@@ -112,11 +109,9 @@ async def materialize_partition_range(
         async with semaphore:
             try:
                 table, metadata = await fetch_table_for_partition(partition_key)
-                written_paths = write_parquet_dataset(
-                    table,
-                    base_dir,
-                    filesystem,
-                    partition_key=partition_key,
+                write_result = writer.write_partitioned(
+                    partition_tables={partition_key: table},
+                    base_dir=base_dir,
                     partition_key_name=partition_key_name,
                     allow_empty=True,
                 )
@@ -130,9 +125,7 @@ async def materialize_partition_range(
 
             completed[partition_key] = table
             per_partition_metadata[partition_key] = dict(metadata)
-            written_object_keys.extend(
-                _path_to_object_key(effective_s3_config.bucket, path) for path in written_paths
-            )
+            written_object_keys.extend(write_result.object_keys(effective_s3_config.bucket))
 
     async with asyncio.TaskGroup() as task_group:
         for partition_key in processed_partition_keys:
@@ -192,16 +185,11 @@ async def materialize_trade_date_range(
     s3_config = S3Config.from_env()
     natural_dates = [_parse_date_partition_key(key) for key in partition_keys]
     calendar_dates = read_trade_dates_from_s3(s3_config)
+    trade_dates, skipped_window_trade_dates, skipped_non_trade_dates = TradeDateFilterPolicy(
+        calendar_dates=calendar_dates,
+        backfill_limit=BackfillLimitPolicy(backfill_window_limit),
+    ).select(natural_dates)
     requested_trade_dates = [item for item in natural_dates if item in calendar_dates]
-    if backfill_window_limit is not None and len(requested_trade_dates) > backfill_window_limit:
-        trade_dates = requested_trade_dates[-backfill_window_limit:]
-    else:
-        trade_dates = requested_trade_dates
-    trade_date_set = set(trade_dates)
-    skipped_window_trade_dates = [
-        item for item in requested_trade_dates if item not in trade_date_set
-    ]
-    skipped_non_trade_dates = [item for item in natural_dates if item not in calendar_dates]
     trade_date_keys = {item.isoformat() for item in trade_dates}
 
     async def fetch_trade_date_partition(
