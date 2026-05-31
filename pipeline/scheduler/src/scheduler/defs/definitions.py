@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import dagster as dg
 
+from scheduler.defs.automation.slack_alerts import slack_asset_failure_sensor
 from scheduler.defs.baostock.definitions import baostock_bundle
 from scheduler.defs.io_managers.s3_io_manager import S3IOManager
 from scheduler.defs.resources.baostock import BaostockClientFactoryResource
@@ -9,6 +10,7 @@ from scheduler.defs.resources.database import IndustryImageRepositoryResource
 from scheduler.defs.resources.http import HttpClientFactoryResource
 from scheduler.defs.resources.ocr import JiuyanOcrSettingsResource
 from scheduler.defs.resources.s3 import ImageObjectStoreResource, S3SettingsResource
+from scheduler.defs.resources.slack import SlackAlertResource
 from scheduler.defs.source_bundle import (
     SourceBundle,
     bundle_assets,
@@ -35,6 +37,7 @@ def defs() -> dg.Definitions:
         assets=bundle_assets(SOURCE_BUNDLES),
         jobs=bundle_jobs(SOURCE_BUNDLES),
         schedules=bundle_schedules(SOURCE_BUNDLES),
+        sensors=[slack_asset_failure_sensor],
         resources={
             "s3_io_manager": S3IOManager(),
             "s3_settings": S3SettingsResource(),
@@ -43,5 +46,6 @@ def defs() -> dg.Definitions:
             "jiuyan_ocr_settings": JiuyanOcrSettingsResource(),
             "baostock_client_factory": BaostockClientFactoryResource(),
             "http_client_factory": HttpClientFactoryResource(),
+            "slack": SlackAlertResource(),
         },
     )

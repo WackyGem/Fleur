@@ -46,3 +46,37 @@ def test_eastmoney_assets_do_not_encode_rate_limit_ordering_as_lineage() -> None
     assert "ordering_dependency" not in content
     assert "previous_asset" not in content
     assert "execution_ordering_dependency" not in content
+
+
+def test_slack_environment_variables_are_owned_by_config_module() -> None:
+    allowed = {DEFS_ROOT / "config" / "env.py"}
+    prohibited_patterns = (
+        'dg.EnvVar("SLACK_',
+        'dg.EnvVar("DAGSTER_WEBSERVER_BASE_URL")',
+        'dg.EnvVar("DAGSTER_CODE_LOCATION_NAME")',
+    )
+
+    for path in DEFS_ROOT.rglob("*.py"):
+        if path in allowed:
+            continue
+        content = path.read_text(encoding="utf-8")
+        for pattern in prohibited_patterns:
+            assert pattern not in content, str(path)
+
+
+def test_slack_sdk_usage_is_owned_by_slack_resource() -> None:
+    allowed = {DEFS_ROOT / "resources" / "slack.py"}
+
+    for path in DEFS_ROOT.rglob("*.py"):
+        if path in allowed:
+            continue
+        content = path.read_text(encoding="utf-8")
+        assert "dagster_slack" not in content, str(path)
+        assert "slack_sdk" not in content, str(path)
+
+
+def test_source_code_does_not_reference_slack_configuration() -> None:
+    for source_root in (DEFS_ROOT / "sources", DEFS_ROOT / "baostock"):
+        for path in source_root.rglob("*.py"):
+            content = path.read_text(encoding="utf-8")
+            assert "SLACK_" not in content, str(path)
