@@ -56,31 +56,54 @@ uv run pyright scheduler/src/scheduler scheduler/tests    # 类型检查
 
 **Dagster 项目** (`pipeline/scheduler/`)：
 - 顶层 `src/scheduler/definitions.py` 直接 re-export `scheduler.defs.definitions.defs`
-- `src/scheduler/defs/definitions.py` 集中组装 assets、jobs、schedules、resources
+- `src/scheduler/defs/definitions.py` 通过 `SOURCE_BUNDLES` 集中组装 assets、jobs、schedules、resources
+- 每个数据源在自己的 `definitions.py` 中导出 `SourceBundle`；当前顺序为 `sina`、`jiuyan`、`ths`、`baostock`、`eastmoney`
 - 资产/基础设施按职责分层：
   - `automation/`：跨数据源 Dagster job/schedule 工厂
-  - `common/`：无业务含义的纯 helper
+  - `common/`：无业务含义的纯 helper，包括异步边界、并发、时间、schema、metadata、retry、通用类型
   - `config/`：环境变量 getter 与配置数据类
-  - `storage/`：S3、object key、bytes、Parquet、通用对象存储
+  - `resources/`：Dagster `ConfigurableResource` 适配层，封装 HTTP、BaoStock、S3、OCR、数据库等资源构造
+  - `storage/`：S3、object key、bytes、Parquet、dataset 读写、通用对象存储
   - `market/`：asset key、证券范围、交易日历、A 股交易日 schedule 工厂
-  - `http/`：HTTP client、protocol、pagination、schema、partitioning、HTTP 数据源 job/schedule 实例
+  - `http/`：HTTP client/factory、protocol、flatten、pagination、schema、HTTP 分区物化工具
+  - `partitioning/`：分区选择、backfill 限制、交易日过滤、部分失败阈值策略
+  - `ocr/`：通用 OCR client、schema、service
+  - `source_bundle.py`：`SourceBundle` 契约与 bundle flatten helper
   - `sources/`：HTTP 数据源业务逻辑（`sina/`、`jiuyan/`、`ths/`、`eastmoney/`）
-  - `baostock/`：BaoStock TCP 客户端、协议、schema、资产与 schedule
-  - `repositories/`：数据库 repository
+  - `baostock/`：BaoStock TCP 客户端、协议、schema、service、资产与 schedule
+  - `repositories/`：数据库 repository，不导入 Dagster
   - `io_managers/`：Dagster IOManager
 - 使用并发池：`baostock_run_pool` (1)、`eastmoney_run_pool` (3)
 - 通过环境变量配置（见 `.env`）
 
+**当前 SourceBundle：**
+- `sina`：`sina__trade_calendar`
+- `jiuyan`：`jiuyan__action_field`、`jiuyan__action_field_compacted`、`jiuyan__industry_list`、`jiuyan__industry_images`、`jiuyan__industry_ocr`
+- `ths`：`ths__limit_up_pool`、`ths__limit_up_pool_compacted`
+- `baostock`：`baostock__query_stock_basic`、`baostock__query_history_k_data_plus_daily`
+- `eastmoney`：balance、cashflow、income、dividend、equity history 等 F10 年分区资产
+
 **调度边界：**
 - `automation/schedules.py` 放通用 Dagster 工厂：`AssetJobSpec`、`ScheduleSpec`、`build_asset_job()`、`build_schedule()`、`build_year_refresh_schedule()`
 - `market/schedules.py` 放依赖 A 股交易日历的 `build_trade_date_schedule()`
-- `http/schedules.py` 只组装 HTTP 数据源具体 job/schedule，不定义或 re-export 通用工厂
-- BaoStock 是 TCP 数据源，不应从 `scheduler.defs.http` 导入调度工厂
+- `http/` 不组装具体数据源 job/schedule，不定义或 re-export 调度工厂，不导入 `scheduler.defs.sources`
+- BaoStock 是 TCP 数据源，不应从 `scheduler.defs.http` 复用 HTTP client 或调度入口
+- 新增数据源时，在对应源目录维护 `definitions.py` 并导出 `SourceBundle`，再由 `SOURCE_BUNDLES` 显式聚合
+
+**代码边界：**
+- 数据源代码通过 `resources/` 构造通用客户端，不直接 new `HttpClientFactory`、`BaostockAioTcpClient`、`AioHttpClient`
+- 数据源代码不要直接读取 `S3Config.from_env()`，不要直接导入 `storage.parquet_readers`
+- `storage/` 和 `http/` 不导入 source definitions；`repositories/` 不导入 Dagster
+- Eastmoney 资产使用显式 `EASTMONEY_ASSETS`，不使用动态 `globals()` 导出；只依赖 BaoStock 股票基础信息，限速顺序不要编码成资产 lineage
 
 **关键设计模式：**
+- **SourceBundle 契约**：每个数据源显式提交 assets/jobs/schedules，`defs()` 只做聚合和资源注册
+- **Resource 适配层**：Dagster resource 封装环境配置、客户端工厂和外部连接
 - **Repository 模式**：`PostgresIndustryImageRepository` 封装数据库操作
 - **Object Store 模式**：`ObjectStore` 提供通用二进制对象存储，`ImageObjectStore` 只保留图片/OCR 业务映射
-- **Service 层**：OCR 等业务逻辑提取至 service 模块，便于测试和维护
+- **Service 层**：HTTP、BaoStock、OCR 等业务流程提取至 service 模块，资产函数保持薄封装
+- **资产契约元数据**：所有源资产保留 owner、kind tags、source/storage/layer tags 和分区/状态元数据
+- **分区与失败策略**：`partitioning/policies.py` 统一处理 backfill 限制、交易日过滤和部分失败阈值
 - **类型安全**：全项目使用准确类型，最小化 `Any` 使用
 
 **dbt 项目** (`pipeline/elt/`)：
@@ -97,6 +120,9 @@ uv run pyright scheduler/src/scheduler scheduler/tests    # 类型检查
 ## 关键目录
 
 - `pipeline/scheduler/src/scheduler/defs/` - Dagster 资产、调度、资源
+- `pipeline/scheduler/src/scheduler/defs/source_bundle.py` - SourceBundle 聚合契约
+- `pipeline/scheduler/src/scheduler/defs/resources/` - Dagster resource 适配层
+- `pipeline/scheduler/src/scheduler/defs/partitioning/` - 分区、backfill、部分失败策略
 - `pipeline/scheduler/src/scheduler/defs/ocr/service.py` - OCR 批处理服务
 - `pipeline/scheduler/src/scheduler/defs/sources/jiuyan/ocr_services.py` - 韭研 OCR 业务流程
 - `pipeline/elt/models/` - dbt 转换模型

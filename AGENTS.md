@@ -46,13 +46,21 @@ uv sync --all-packages --all-groups
 - 优先使用 `dg` CLI 进行项目检查和脚手架操作
 - Dagster 主目录：`/storage/program/mono-fleur/.dagster`
 
-### 资产分组
+### 定义装配与资产集合
 
-| 资产组 | 说明 | 存储模式 |
-|--------|------|----------|
-| baostock | A 股基础信息与日 K 线数据（TCP 协议） | S3 Parquet |
-| eastmoney | 东方财富 F10 财务报表（HTTP API） | S3 Parquet（按年分区） |
-| http_sources | 交易日历、市场事件、涨停池、韭研行业图片与 OCR | S3 Parquet + PostgreSQL 状态 |
+- 顶层 `src/scheduler/definitions.py` 只 re-export `scheduler.defs.definitions.defs`。
+- `src/scheduler/defs/definitions.py` 通过 `SOURCE_BUNDLES` 统一装配 assets、jobs、schedules、resources。
+- `SOURCE_BUNDLES` 顺序固定为 `sina`、`jiuyan`、`ths`、`baostock`、`eastmoney`。
+- 每个数据源在自己的 `definitions.py` 中导出一个 `SourceBundle`，集中声明该源的 assets、jobs、schedules。
+- 当前所有源资产使用 Dagster group `s3_sources`，通过 asset tags 区分 `source`、`layer`、`storage`、`state`、`modality`。
+
+| Bundle | 主要资产 | 说明 |
+|--------|----------|------|
+| `sina` | `sina__trade_calendar` | A 股交易日历，作为交易日调度事实来源 |
+| `jiuyan` | `action_field`、`industry_list`、`industry_images`、`industry_ocr` 及 compacted 资产 | 韭研 HTTP 数据、图片下载、OCR 与 PostgreSQL 状态 |
+| `ths` | `limit_up_pool` 及 compacted 资产 | 同花顺涨停池日分区与年度压缩 |
+| `baostock` | `query_stock_basic`、`query_history_k_data_plus_daily` | BaoStock TCP 数据源，基础证券信息与日 K 线 |
+| `eastmoney` | 资产负债表、现金流、利润表、分红配股、股本历史 | 东方财富 F10 年分区资产，依赖 BaoStock 股票基础信息 |
 
 ### scheduler 模块边界
 
@@ -61,28 +69,53 @@ uv sync --all-packages --all-groups
 | 目录 | 用途 |
 |------|------|
 | `automation/` | 跨数据源 Dagster job/schedule 工厂，如 `AssetJobSpec`、`ScheduleSpec`、`build_asset_job()`、`build_schedule()`、`build_year_refresh_schedule()` |
-| `common/` | 无业务含义的纯 helper，如时间、字符串、数字、指纹、metadata、retry |
+| `common/` | 无业务含义的纯 helper，如异步边界、并发 runner、时间、字符串、数字、schema、metadata、retry、通用类型 |
 | `config/` | 环境变量 getter 与配置数据类；业务模块不要直接调用 `dg.EnvVar` |
-| `storage/` | S3、object key、bytes、Parquet、通用 `ObjectStore` |
+| `resources/` | Dagster `ConfigurableResource` 适配层，负责 HTTP、BaoStock、S3、OCR、数据库等资源构造 |
+| `storage/` | S3、object key、bytes、Parquet、dataset 写入/读取、通用 `ObjectStore`；不得依赖具体数据源定义 |
 | `market/` | 跨数据源市场概念，如 asset key、证券范围、交易日历、A 股交易日 schedule 工厂 `build_trade_date_schedule()` |
-| `http/` | HTTP client、protocol、pagination、schema、partitioning，以及 HTTP 数据源 job/schedule 实例组装 |
-| `sources/` | 数据源业务逻辑，按 `sina/`、`jiuyan/`、`ths/`、`eastmoney/` 分包 |
-| `baostock/` | BaoStock TCP 客户端、协议、schema、资产与 schedule |
-| `repositories/` | 数据库 repository，仅保留类 API |
+| `http/` | HTTP client/factory、protocol、flatten、pagination、schema、HTTP 分区物化工具；不得依赖具体数据源定义 |
+| `partitioning/` | 分区选择、backfill 限制、交易日过滤、部分失败阈值等通用策略 |
+| `ocr/` | 通用 OCR client、schema 与 service；韭研业务编排保留在 `sources/jiuyan/` |
+| `source_bundle.py` | `SourceBundle` 契约与 bundle flatten helper，是 definitions 聚合入口 |
+| `sources/` | HTTP 数据源业务逻辑，按 `sina/`、`jiuyan/`、`ths/`、`eastmoney/` 分包；每个源自带 assets/services/definitions |
+| `baostock/` | BaoStock TCP 客户端、协议、schema、service、资产与 schedule |
+| `repositories/` | 数据库 repository，仅保留类 API，不导入 Dagster |
 | `io_managers/` | Dagster IOManager 实现 |
 
 边界要求：
 
-- BaoStock 是 TCP 数据源，不得从 `scheduler.defs.http` 导入通用调度能力；应使用 `automation.schedules` 与 `market.schedules`。
-- `http/schedules.py` 只组装 HTTP 数据源具体 job/schedule，不定义或 re-export 通用工厂。
+- 新增数据源时，在对应源目录维护 `definitions.py` 并导出 `SourceBundle`，再由 `SOURCE_BUNDLES` 显式聚合。
+- 通用 job/schedule 工厂只放在 `automation/schedules.py`；A 股交易日调度只放在 `market/schedules.py`。
+- `http/` 只放 HTTP 基础设施和分区物化工具，不组装具体数据源 job/schedule，也不导入 `scheduler.defs.sources`。
+- BaoStock 是 TCP 数据源，不应从 `scheduler.defs.http` 复用 HTTP client 或调度入口；应使用 `automation.schedules`、`market.schedules` 和 `resources.baostock`。
 - `build_trade_date_schedule()` 属于 `market/schedules.py`，因为它依赖 `sina__trade_calendar` 作为 A 股交易日事实来源。
+- 数据源代码通过 `resources/` 构造通用客户端，不直接 new `HttpClientFactory`、`BaostockAioTcpClient`、`AioHttpClient`。
+- 数据源代码不要直接读取 `S3Config.from_env()`，不要直接导入 `storage.parquet_readers`。
+- Eastmoney 资产通过显式 `EASTMONEY_ASSETS` 管理，不使用动态 `globals()` 导出；只把 BaoStock 股票基础信息作为资产依赖，限速顺序不要编码成资产 lineage。
 
 ### 关键架构模式
 
+- **SourceBundle 契约**：每个数据源显式提交 assets/jobs/schedules，`defs()` 只做聚合与资源注册
+- **Resource 适配层**：Dagster resource 封装环境配置、客户端工厂和外部连接，业务代码依赖 resource 而不是直接读环境变量或创建底层 client
 - **Repository 模式**：`PostgresIndustryImageRepository` 封装所有数据库操作
 - **Object Store 模式**：`ObjectStore` 提供通用二进制对象存储，`ImageObjectStore` 只保留图片/OCR 业务映射
-- **Service 层**：OCR 等业务逻辑提取至 service 模块，便于测试
+- **Service 层**：HTTP、BaoStock、OCR 等业务流程提取至 service 模块，资产函数保持薄封装
+- **资产契约元数据**：所有源资产必须保留 owner、kind tags、source/storage/layer tags 和分区/状态元数据
+- **分区与失败策略**：`partitioning/policies.py` 统一处理 backfill 限制、交易日过滤和部分失败阈值
 - **类型安全**：全项目使用准确类型，最小化 `Any` 使用
+
+### 注册资源
+
+`defs()` 当前注册以下 Dagster resources：
+
+- `s3_io_manager`
+- `s3_settings`
+- `image_object_store`
+- `industry_image_repository`
+- `jiuyan_ocr_settings`
+- `baostock_client_factory`
+- `http_client_factory`
 
 ### 环境变量
 
@@ -150,8 +183,6 @@ uv run dg check defs
 | 工具 | 用途 |
 |------|------|
 | `context7` | 查询库、框架、SDK、API、CLI 工具和云服务的最新文档。先解析库 ID，再查询文档 |
-| `ace_tool.search_context` | 文件位置未知时，作为首选的语义代码库搜索 |
-| `clickhouse` | 仅在需要检查 ClickHouse 数据库或执行只读 SQL 查询时使用 |
 | Web 搜索 | 仅在需要当前外部信息且 Context7 不是正确来源时使用 |
 
 ## Skills 路由
