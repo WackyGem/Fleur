@@ -26,3 +26,6 @@ class ImageObjectStore:
 
     def write_ocr_result_table(self, image_filename: str, table: pa.Table) -> str:
         return self.object_store.write_table(ocr_result_base_dir("", image_filename), table)
+
+    def read_ocr_result_table(self, key: str) -> pa.Table:
+        return self.object_store.read_table_by_key(key)

@@ -4,6 +4,12 @@ import unittest
 from collections.abc import Mapping
 
 from scheduler.defs.sources.jiuyan.ocr_client import (
+    OCR_MAX_TOKENS,
+    OCR_PRESENCE_PENALTY,
+    OCR_REPETITION_PENALTY,
+    OCR_TEMPERATURE,
+    OCR_TOP_K,
+    OCR_TOP_P,
     StockThemeSchema,
     build_ocr_request_payload,
 )
@@ -31,6 +37,12 @@ class JiuyanIndustryOcrClientTest(unittest.TestCase):
             StockThemeSchema.get_json_schema(),
         )
         self.assertEqual(schema["type"], "array")
+        self.assertEqual(payload["max_tokens"], OCR_MAX_TOKENS)
+        self.assertEqual(payload["temperature"], OCR_TEMPERATURE)
+        self.assertEqual(payload["top_p"], OCR_TOP_P)
+        self.assertEqual(payload["top_k"], OCR_TOP_K)
+        self.assertEqual(payload["presence_penalty"], OCR_PRESENCE_PENALTY)
+        self.assertEqual(payload["repetition_penalty"], OCR_REPETITION_PENALTY)
 
 
 if __name__ == "__main__":

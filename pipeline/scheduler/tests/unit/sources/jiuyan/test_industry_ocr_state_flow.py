@@ -413,6 +413,64 @@ class TestOcrStateFlow:
 
             assert claimed == []
 
+    def test_list_successful_ocr_results_returns_ordered_success_records(self) -> None:
+        repo = PostgresIndustryImageRepository(connection_factory_from_url("postgresql://test"))
+
+        with mock_database_connection() as mock_cursor:
+            mock_cursor.fetchall.return_value = [
+                {
+                    "image_filename": "a.jpg",
+                    "industry_id": "industry-a",
+                    "image_index": 0,
+                    "ocr_result_s3_key": "source/jiuyan__industry_ocr/image_filename=a.jpg/000000_0.parquet",
+                    "ocr_result_row_count": 0,
+                },
+                {
+                    "image_filename": "b.jpg",
+                    "industry_id": "industry-b",
+                    "image_index": 1,
+                    "ocr_result_s3_key": "source/jiuyan__industry_ocr/image_filename=b.jpg/000000_0.parquet",
+                    "ocr_result_row_count": 2,
+                },
+            ]
+
+            records = repo.list_successful_ocr_results()
+
+            assert [record.image_filename for record in records] == ["a.jpg", "b.jpg"]
+            assert records[0].ocr_result_row_count == 0
+            assert records[1].image_index == 1
+            assert mock_cursor.execute.called
+            sql = mock_cursor.execute.call_args[0][0].lower()
+            assert "download_status = 'success'" in sql
+            assert "ocr_status = 'success'" in sql
+            assert "ocr_result_s3_key is not null" in sql
+            assert "order by image_filename" in sql
+
+    def test_summarize_ocr_status_maps_download_success_status_counts(self) -> None:
+        repo = PostgresIndustryImageRepository(connection_factory_from_url("postgresql://test"))
+
+        with mock_database_connection() as mock_cursor:
+            mock_cursor.fetchone.return_value = {
+                "download_success_count": 5,
+                "ocr_success_count": 2,
+                "ocr_failed_count": 1,
+                "ocr_pending_count": 1,
+                "ocr_running_count": 1,
+                "ocr_success_result_row_count": 3,
+            }
+
+            summary = repo.summarize_ocr_status()
+
+            assert summary.download_success_count == 5
+            assert summary.ocr_success_count == 2
+            assert summary.ocr_failed_count == 1
+            assert summary.ocr_pending_count == 1
+            assert summary.ocr_running_count == 1
+            assert summary.ocr_success_result_row_count == 3
+            sql = mock_cursor.execute.call_args[0][0].lower()
+            assert "count(*) filter" in sql
+            assert "sum(ocr_result_row_count)" in sql
+
 
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])

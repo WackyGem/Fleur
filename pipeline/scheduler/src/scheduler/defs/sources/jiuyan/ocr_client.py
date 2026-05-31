@@ -4,6 +4,13 @@ from scheduler.defs.http.client import HttpRequest
 from scheduler.defs.http.protocols import HttpJsonClientProtocol
 from scheduler.defs.ocr.client import build_image_data_url, extract_ocr_content
 
+OCR_MAX_TOKENS = 16_384
+OCR_TEMPERATURE = 0.2
+OCR_TOP_P = 0.95
+OCR_TOP_K = 20
+OCR_PRESENCE_PENALTY = 1.5
+OCR_REPETITION_PENALTY = 1.0
+
 
 class StockThemeSchema:
     SYSTEM_PROMPT = """Extract the image info into the following Template:
@@ -62,12 +69,12 @@ def build_ocr_request_payload(model_name: str, image_data_url: str) -> dict[str,
                 "content": [{"type": "image_url", "image_url": {"url": image_data_url}}],
             },
         ],
-        "max_tokens": 8192,
-        "temperature": 0.2,
-        "top_p": 0.8,
-        "top_k": 20,
-        "presence_penalty": 0.0,
-        "repetition_penalty": 1.0,
+        "max_tokens": OCR_MAX_TOKENS,
+        "temperature": OCR_TEMPERATURE,
+        "top_p": OCR_TOP_P,
+        "top_k": OCR_TOP_K,
+        "presence_penalty": OCR_PRESENCE_PENALTY,
+        "repetition_penalty": OCR_REPETITION_PENALTY,
         "include_reasoning": False,
         "response_format": {
             "type": "json_schema",

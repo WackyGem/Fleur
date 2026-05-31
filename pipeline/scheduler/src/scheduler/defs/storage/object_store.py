@@ -5,6 +5,7 @@ from dataclasses import dataclass
 
 import dagster as dg
 import pyarrow as pa
+import pyarrow.parquet as pq
 
 from scheduler.defs.config.models import S3Config
 from scheduler.defs.http.client import CHROME_USER_AGENT, HttpRequest
@@ -89,6 +90,15 @@ class ObjectStore:
 
     def read_bytes(self, key: str) -> bytes:
         return read_bytes_from_filesystem(self.filesystem, f"{self.bucket}/{key}")
+
+    def read_table_by_key(self, key: str) -> pa.Table:
+        path = f"{self.bucket}/{key}"
+        try:
+            with self.filesystem.open_input_file(path) as source:
+                return pq.read_table(source)
+        except Exception as error:
+            msg = f"Failed to read parquet table from s3://{path}"
+            raise RuntimeError(msg) from error
 
     def write_table(self, base_dir: str, table: pa.Table) -> str:
         asset_key = dg.AssetKey(base_dir.strip("/").split("/"))

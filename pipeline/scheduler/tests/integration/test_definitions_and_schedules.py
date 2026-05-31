@@ -72,6 +72,14 @@ def test_source_bundle_contracts_are_stable() -> None:
         "source/jiuyan__industry_images",
         "source/jiuyan__industry_list",
         "source/jiuyan__industry_ocr",
+        "source/jiuyan__industry_ocr_snapshot",
+    ]
+    assert bundle_contracts["jiuyan"]["jobs"] == [
+        "jiuyan__action_field_compacted_job",
+        "jiuyan__action_field_daily_job",
+        "jiuyan__industry_list_snapshot_job",
+        "jiuyan__industry_ocr_pipeline_job",
+        "jiuyan__industry_ocr_snapshot_job",
     ]
     assert bundle_contracts["ths"]["assets"] == [
         "source/ths__limit_up_pool",
@@ -91,3 +99,32 @@ def test_source_bundle_contracts_are_stable() -> None:
         "source/eastmoney__income_sq",
         "source/eastmoney__income_ytd",
     ]
+
+
+def test_jiuyan_ocr_pipeline_includes_snapshot_and_schedule_limits_ocr_batch() -> None:
+    from scheduler.defs.sources.jiuyan.definitions import (
+        jiuyan__industry_ocr_pipeline_job,
+        jiuyan__industry_ocr_pipeline_schedule,
+    )
+
+    assert str(jiuyan__industry_ocr_pipeline_job.selection) == (
+        'key:"source/jiuyan__industry_list" or '
+        'key:"source/jiuyan__industry_images" or '
+        'key:"source/jiuyan__industry_ocr" or '
+        'key:"source/jiuyan__industry_ocr_snapshot"'
+    )
+
+    tick = jiuyan__industry_ocr_pipeline_schedule.evaluate_tick(dg.build_schedule_context())
+    run_requests = tick.run_requests
+    assert run_requests is not None
+    assert len(run_requests) == 1
+    assert run_requests[0].run_config == {
+        "ops": {
+            "source__jiuyan__industry_ocr": {
+                "config": {
+                    "limit": 100,
+                    "force_ocr": False,
+                }
+            }
+        }
+    }

@@ -163,6 +163,42 @@ from updated
 order by image_filename
 """
 
+LIST_SUCCESSFUL_OCR_RESULTS_SQL = """
+select
+    image_filename,
+    industry_id,
+    image_index,
+    ocr_result_s3_key,
+    ocr_result_row_count
+from jiuyan_industry_images
+where download_status = 'success'
+  and ocr_status = 'success'
+  and ocr_result_s3_key is not null
+order by image_filename
+"""
+
+SUMMARIZE_OCR_STATUS_SQL = """
+select
+    count(*) filter (where download_status = 'success') as download_success_count,
+    count(*) filter (where download_status = 'success' and ocr_status = 'success')
+        as ocr_success_count,
+    count(*) filter (where download_status = 'success' and ocr_status = 'failed')
+        as ocr_failed_count,
+    count(*) filter (where download_status = 'success' and ocr_status = 'pending')
+        as ocr_pending_count,
+    count(*) filter (where download_status = 'success' and ocr_status = 'running')
+        as ocr_running_count,
+    coalesce(
+        sum(ocr_result_row_count) filter (
+            where download_status = 'success'
+              and ocr_status = 'success'
+              and ocr_result_s3_key is not null
+        ),
+        0
+    ) as ocr_success_result_row_count
+from jiuyan_industry_images
+"""
+
 
 DatabaseRow = Mapping[str, object]
 PipelineDatabaseConnectionFactory = Callable[[], psycopg.Connection]
@@ -178,6 +214,25 @@ class IndustryImageRecord:
     download_status: DownloadStatus
     ocr_status: OcrStatus
     ocr_result_s3_key: str | None
+
+
+@dataclass(frozen=True)
+class SuccessfulOcrResultRecord:
+    image_filename: str
+    industry_id: str
+    image_index: int
+    ocr_result_s3_key: str
+    ocr_result_row_count: int
+
+
+@dataclass(frozen=True)
+class OcrStatusSummary:
+    download_success_count: int
+    ocr_success_count: int
+    ocr_failed_count: int
+    ocr_pending_count: int
+    ocr_running_count: int
+    ocr_success_result_row_count: int
 
 
 @dataclass(frozen=True)
@@ -456,6 +511,18 @@ class PostgresIndustryImageRepository:
             )
         return claimed
 
+    def list_successful_ocr_results(self) -> list[SuccessfulOcrResultRecord]:
+        with self._connection_factory() as connection, connection.cursor() as cursor:
+            cursor.execute(LIST_SUCCESSFUL_OCR_RESULTS_SQL)
+            rows = cast(list[DatabaseRow], cursor.fetchall())
+        return [_successful_ocr_result_record_from_row(row) for row in rows]
+
+    def summarize_ocr_status(self) -> OcrStatusSummary:
+        with self._connection_factory() as connection, connection.cursor() as cursor:
+            cursor.execute(SUMMARIZE_OCR_STATUS_SQL)
+            row = cast(DatabaseRow, cursor.fetchone())
+        return _ocr_status_summary_from_row(row)
+
 
 def _industry_image_record_from_row(row: DatabaseRow) -> IndustryImageRecord:
     return IndustryImageRecord(
@@ -468,6 +535,40 @@ def _industry_image_record_from_row(row: DatabaseRow) -> IndustryImageRecord:
         ocr_status=_ocr_status_from_row(row, "ocr_status"),
         ocr_result_s3_key=(
             None if row.get("ocr_result_s3_key") is None else str(row["ocr_result_s3_key"])
+        ),
+    )
+
+
+def _successful_ocr_result_record_from_row(row: DatabaseRow) -> SuccessfulOcrResultRecord:
+    result_key = row.get("ocr_result_s3_key")
+    if result_key is None:
+        msg = "ocr_result_s3_key must be present for successful OCR result records"
+        raise RuntimeError(msg)
+    return SuccessfulOcrResultRecord(
+        image_filename=str(row["image_filename"]),
+        industry_id=str(row["industry_id"]),
+        image_index=_required_int(row["image_index"], field_name="image_index"),
+        ocr_result_s3_key=str(result_key),
+        ocr_result_row_count=_required_int(
+            row["ocr_result_row_count"],
+            field_name="ocr_result_row_count",
+        ),
+    )
+
+
+def _ocr_status_summary_from_row(row: DatabaseRow) -> OcrStatusSummary:
+    return OcrStatusSummary(
+        download_success_count=_required_int(
+            row["download_success_count"],
+            field_name="download_success_count",
+        ),
+        ocr_success_count=_required_int(row["ocr_success_count"], field_name="ocr_success_count"),
+        ocr_failed_count=_required_int(row["ocr_failed_count"], field_name="ocr_failed_count"),
+        ocr_pending_count=_required_int(row["ocr_pending_count"], field_name="ocr_pending_count"),
+        ocr_running_count=_required_int(row["ocr_running_count"], field_name="ocr_running_count"),
+        ocr_success_result_row_count=_required_int(
+            row["ocr_success_result_row_count"],
+            field_name="ocr_success_result_row_count",
         ),
     )
 
