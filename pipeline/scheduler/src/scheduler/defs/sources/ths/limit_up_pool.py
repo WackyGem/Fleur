@@ -6,16 +6,21 @@ from datetime import date
 import dagster as dg
 import pyarrow as pa
 
-from scheduler.defs.asset_contracts import daily_sparse_partition_metadata, source_tags
+from scheduler.defs.asset_contracts import (
+    daily_sparse_partition_metadata,
+    s3_parquet_kinds,
+    source_owners,
+    source_tags,
+)
 from scheduler.defs.common.metadata import RawMetadataValue, http_stats_metadata
 from scheduler.defs.common.numbers import positive_int_or_default
 from scheduler.defs.common.retry import DEFAULT_RETRY_POLICY
 from scheduler.defs.http.client import (
-    AioHttpClient,
     HttpRequest,
     browser_json_headers,
     with_referer,
 )
+from scheduler.defs.http.client_factory import HttpClientFactory
 from scheduler.defs.http.pagination import DuplicateRowTracker
 from scheduler.defs.http.partitioning import (
     THS_BACKFILL_MAX_NATURAL_DAYS,
@@ -30,6 +35,7 @@ from scheduler.defs.http.schemas import (
     ths_limit_up_pool_to_table,
 )
 from scheduler.defs.market.asset_keys import SINA_TRADE_CALENDAR_ASSET_KEY, SOURCE_ASSET_KEY_PREFIX
+from scheduler.defs.resources.s3 import S3SettingsResource
 
 THS_LIMIT_UP_POOL_URL = "https://data.10jqka.com.cn/dataapi/limit_up/limit_up_pool"
 THS_LIMIT_UP_POOL_REFERER = "https://data.10jqka.com.cn/"
@@ -56,25 +62,28 @@ class ThsLimitUpPoolConfig(dg.Config):
         trade_date_filter=SINA_TRADE_CALENDAR_ASSET_KEY.to_user_string(),
         flatten_column_naming=FLATTEN_COLUMN_NAMING,
     ),
+    owners=source_owners(),
+    kinds=s3_parquet_kinds("http"),
     tags=source_tags("ths"),
 )
 def ths__limit_up_pool(
     context: dg.AssetExecutionContext,
     config: ThsLimitUpPoolConfig,
+    s3_settings: S3SettingsResource,
 ) -> dg.MaterializeResult:
     """TongHuaShun limit-up pool pages by trade-date partition."""
 
-    result = asyncio.run(_materialize_limit_up_pool_range(context, config))
+    result = asyncio.run(_materialize_limit_up_pool_range(context, config, s3_settings))
     return dg.MaterializeResult(metadata=result.metadata)
 
 
 async def _materialize_limit_up_pool_range(
     context: dg.AssetExecutionContext,
     config: ThsLimitUpPoolConfig,
+    s3_settings: S3SettingsResource,
 ) -> TradeDateRangeMaterializationResult:
-    async with AioHttpClient(
+    async with HttpClientFactory(retry_policy=DEFAULT_RETRY_POLICY).json_client(
         headers=with_referer(browser_json_headers(), THS_LIMIT_UP_POOL_REFERER),
-        retry_policy=DEFAULT_RETRY_POLICY,
         request_delay=config.request_delay,
     ) as client:
         result = await materialize_trade_date_range(
@@ -85,6 +94,7 @@ async def _materialize_limit_up_pool_range(
                 trade_date=trade_date,
             ),
             backfill_window_limit=THS_BACKFILL_MAX_NATURAL_DAYS,
+            s3_config=s3_settings.config(),
         )
         result.metadata.update(http_stats_metadata(client.stats))
         return result

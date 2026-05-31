@@ -8,7 +8,6 @@ fetching and table conversion code.
 - `schemas.py` is generated from `docs/references/data_dict/*.md` by
   `pipeline/scheduler/scripts/generate_eastmoney_schemas.py`.
 
-Keep compatibility re-export modules at `scheduler.defs.sources.eastmoney.fields`
-and `scheduler.defs.sources.eastmoney.schemas` until downstream imports have
-migrated.
-
+Use `scheduler.defs.sources.eastmoney.generated.fields` and
+`scheduler.defs.sources.eastmoney.generated.schemas` as the canonical import
+paths for generated constants.

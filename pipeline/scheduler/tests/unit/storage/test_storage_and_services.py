@@ -7,10 +7,11 @@ from typing import Any, cast
 import dagster as dg
 import pyarrow as pa
 import pytest
+from scheduler.defs.config.models import S3Config
 from scheduler.defs.io_managers import s3_io_manager
 from scheduler.defs.io_managers.s3_io_manager import S3IOManager
 from scheduler.defs.ocr.service import run_bounded_ocr_batch
-from scheduler.defs.storage import dataset_writer, object_store, s3
+from scheduler.defs.storage import dataset_writer, s3
 from scheduler.defs.storage.object_store import (
     DownloadedImage,
     ObjectStore,
@@ -19,6 +20,15 @@ from scheduler.defs.storage.object_store import (
 )
 from tests.fakes.http import FakeBytesClient
 from tests.fakes.storage import InMemoryFilesystem
+
+
+def fake_s3_config(bucket: str = "bucket") -> S3Config:
+    return S3Config(
+        endpoint="http://localhost:9000",
+        bucket=bucket,
+        access_key="access",
+        secret_key="secret",
+    )
 
 
 def test_s3_path_builder_supports_partitioned_and_latest_snapshot_modes() -> None:
@@ -61,7 +71,7 @@ def test_s3_path_builder_deduplicates_object_prefix_from_asset_key_prefix() -> N
 
 def test_object_store_writes_and_reads_bytes_through_bucket_paths() -> None:
     filesystem = InMemoryFilesystem()
-    store = ObjectStore(filesystem=filesystem, bucket="bucket")
+    store = ObjectStore(filesystem=filesystem, bucket="bucket", s3_config=fake_s3_config())
 
     assert store.write_bytes("images/a.png", b"image-bytes") == "images/a.png"
     assert filesystem.data["bucket/images/a.png"] == b"image-bytes"
@@ -83,9 +93,9 @@ def test_object_store_returns_relative_key_for_single_parquet_file(
         assert allow_empty is True
         return ["bucket/ocr/result/000000_0.parquet"]
 
-    monkeypatch.setattr(object_store, "write_parquet_dataset", fake_write_parquet_dataset)
+    monkeypatch.setattr(dataset_writer, "write_parquet_dataset", fake_write_parquet_dataset)
 
-    store = ObjectStore(filesystem=object(), bucket="bucket")
+    store = ObjectStore(filesystem=object(), bucket="bucket", s3_config=fake_s3_config())
 
     assert store.write_table("ocr/result/", pa.table({"value": ["ok"]})) == (
         "ocr/result/000000_0.parquet"
@@ -94,11 +104,11 @@ def test_object_store_returns_relative_key_for_single_parquet_file(
 
 def test_object_store_rejects_multi_file_table_writes(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(
-        object_store,
+        dataset_writer,
         "write_parquet_dataset",
         lambda *args, **kwargs: ["bucket/a.parquet", "bucket/b.parquet"],
     )
-    store = ObjectStore(filesystem=object(), bucket="bucket")
+    store = ObjectStore(filesystem=object(), bucket="bucket", s3_config=fake_s3_config())
 
     with pytest.raises(RuntimeError, match="Expected a single parquet file"):
         store.write_table("base", pa.table({"value": ["ok"]}))

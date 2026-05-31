@@ -8,13 +8,19 @@ from datetime import date, timedelta
 import dagster as dg
 import pyarrow as pa
 
+from scheduler.defs.asset_contracts import (
+    latest_snapshot_metadata,
+    s3_parquet_kinds,
+    source_owners,
+    source_tags,
+)
 from scheduler.defs.common.retry import DEFAULT_RETRY_POLICY
 from scheduler.defs.http.client import (
-    AioHttpClient,
     HttpFetchStats,
     HttpRequest,
     browser_text_headers,
 )
+from scheduler.defs.http.client_factory import HttpClientFactory
 from scheduler.defs.http.protocols import HttpTextClientProtocol
 from scheduler.defs.market.asset_keys import SOURCE_ASSET_KEY_PREFIX
 
@@ -258,9 +264,8 @@ async def fetch_sina_trade_calendar(
         )
         return response.body
 
-    async with AioHttpClient(
+    async with HttpClientFactory(retry_policy=DEFAULT_RETRY_POLICY).json_client(
         headers=browser_text_headers(),
-        retry_policy=DEFAULT_RETRY_POLICY,
         max_attempts=MAX_REQUEST_ATTEMPTS,
     ) as client:
         response = await client.request_text(HttpRequest(method="GET", url=SINA_TRADE_CALENDAR_URL))
@@ -268,9 +273,8 @@ async def fetch_sina_trade_calendar(
 
 
 async def _fetch_sina_trade_calendar_with_stats() -> tuple[str, HttpFetchStats]:
-    async with AioHttpClient(
+    async with HttpClientFactory(retry_policy=DEFAULT_RETRY_POLICY).json_client(
         headers=browser_text_headers(),
-        retry_policy=DEFAULT_RETRY_POLICY,
         max_attempts=MAX_REQUEST_ATTEMPTS,
     ) as client:
         content = await fetch_sina_trade_calendar(client)
@@ -290,11 +294,10 @@ def trade_calendar_dates_to_table(trade_dates: TradeCalendarDates) -> pa.Table:
     group_name="s3_sources",
     io_manager_key="s3_io_manager",
     automation_condition=TRADE_CALENDAR_AUTOMATION_CONDITION,
-    tags={
-        "source": "sina",
-        "layer": "source",
-        "storage": "s3",
-    },
+    metadata=latest_snapshot_metadata(),
+    owners=source_owners(),
+    kinds=s3_parquet_kinds("http"),
+    tags=source_tags("sina"),
 )
 def sina__trade_calendar(context) -> dg.MaterializeResult[pa.Table]:
     """A-share trade calendar decoded from Sina Finance."""

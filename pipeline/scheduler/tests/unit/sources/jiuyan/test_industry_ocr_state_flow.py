@@ -10,7 +10,10 @@ This module tests the state machine logic for OCR processing:
 from __future__ import annotations
 
 import pytest
-from scheduler.defs.repositories.industry_images import PostgresIndustryImageRepository
+from scheduler.defs.repositories.industry_images import (
+    OcrSuccessUpdate,
+    PostgresIndustryImageRepository,
+)
 from tests.fakes.database import mock_database_connection
 
 
@@ -121,18 +124,18 @@ class TestOcrStateFlow:
         with mock_database_connection() as mock_cursor:
             success_count = repo.mark_ocr_success_many(
                 [
-                    {
-                        "image_filename": "a.jpg",
-                        "ocr_result_s3_key": "ocr/a.parquet",
-                        "ocr_result_row_count": 1,
-                        "ocr_model": "qwen-vl-max",
-                    },
-                    {
-                        "image_filename": "b.jpg",
-                        "ocr_result_s3_key": "ocr/b.parquet",
-                        "ocr_result_row_count": 0,
-                        "ocr_model": "qwen-vl-max",
-                    },
+                    OcrSuccessUpdate(
+                        image_filename="a.jpg",
+                        ocr_result_s3_key="ocr/a.parquet",
+                        ocr_result_row_count=1,
+                        ocr_model="qwen-vl-max",
+                    ),
+                    OcrSuccessUpdate(
+                        image_filename="b.jpg",
+                        ocr_result_s3_key="ocr/b.parquet",
+                        ocr_result_row_count=0,
+                        ocr_model="qwen-vl-max",
+                    ),
                 ]
             )
 

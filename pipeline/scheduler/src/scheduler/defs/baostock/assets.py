@@ -6,6 +6,8 @@ import pyarrow as pa
 
 from scheduler.defs.asset_contracts import (
     latest_snapshot_metadata,
+    s3_parquet_kinds,
+    source_owners,
     source_tags,
     year_partition_metadata,
 )
@@ -17,12 +19,12 @@ from scheduler.defs.baostock.services import (
 )
 from scheduler.defs.common.clock import elapsed_seconds
 from scheduler.defs.common.metadata import RawMetadataValue
-from scheduler.defs.config.models import S3Config
 from scheduler.defs.market.asset_keys import (
     BAOSTOCK_DAILY_K_ASSET_KEY,
     SINA_TRADE_CALENDAR_ASSET_KEY,
     SOURCE_ASSET_KEY_PREFIX,
 )
+from scheduler.defs.resources.s3 import S3SettingsResource
 
 year_partitions = dg.TimeWindowPartitionsDefinition(
     start="1990",
@@ -43,6 +45,8 @@ class KLineDailyYearConfig(dg.Config):
     group_name="s3_sources",
     io_manager_key="s3_io_manager",
     metadata=latest_snapshot_metadata(),
+    owners=source_owners(),
+    kinds=s3_parquet_kinds("tcp"),
     pool=BAOSTOCK_RUN_POOL,
     tags=source_tags("baostock"),
 )
@@ -69,17 +73,20 @@ def baostock__query_stock_basic() -> dg.MaterializeResult[pa.Table]:
     deps=[baostock__query_stock_basic, SINA_TRADE_CALENDAR_ASSET_KEY],
     backfill_policy=dg.BackfillPolicy.multi_run(max_partitions_per_run=1),
     metadata=year_partition_metadata(),
+    owners=source_owners(),
+    kinds=s3_parquet_kinds("tcp"),
     pool=BAOSTOCK_RUN_POOL,
     tags=source_tags("baostock"),
 )
 def baostock__query_history_k_data_plus_daily(
     context: dg.AssetExecutionContext,
     config: KLineDailyYearConfig,
+    s3_settings: S3SettingsResource,
 ) -> dg.MaterializeResult[dict[str, pa.Table]]:
     """Daily BaoStock K-line data by yearly partition."""
 
     asset_started_at = time.perf_counter()
-    s3_config = S3Config.from_env()
+    s3_config = s3_settings.config()
     config_loaded_at = time.perf_counter()
     result = BaostockDailyKlineRefreshService(s3_config).refresh(
         BaostockDailyKlineRefreshRequest(

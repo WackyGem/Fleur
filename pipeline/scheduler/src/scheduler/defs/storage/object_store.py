@@ -3,14 +3,17 @@ from __future__ import annotations
 import hashlib
 from dataclasses import dataclass
 
+import dagster as dg
 import pyarrow as pa
 
 from scheduler.defs.config.models import S3Config
 from scheduler.defs.http.client import CHROME_USER_AGENT, HttpRequest
 from scheduler.defs.http.protocols import HttpBytesClientProtocol
-from scheduler.defs.sources.jiuyan.image_urls import image_s3_key
-from scheduler.defs.sources.jiuyan.ocr_schema import ocr_result_base_dir
-from scheduler.defs.storage.parquet import write_parquet_dataset
+from scheduler.defs.storage.dataset_service import (
+    DatasetLocation,
+    DatasetWriteOptions,
+    S3DatasetService,
+)
 from scheduler.defs.storage.s3 import (
     PyArrowFileSystem,
     build_s3_filesystem,
@@ -70,12 +73,14 @@ def build_s3_filesystem_for_config(config: S3Config) -> PyArrowFileSystem:
 class ObjectStore:
     filesystem: PyArrowFileSystem
     bucket: str
+    s3_config: S3Config
 
     @classmethod
     def from_s3_config(cls, config: S3Config) -> ObjectStore:
         return cls(
             filesystem=build_s3_filesystem_for_config(config),
             bucket=config.bucket,
+            s3_config=config,
         )
 
     def write_bytes(self, key: str, data: bytes) -> str:
@@ -86,31 +91,15 @@ class ObjectStore:
         return read_bytes_from_filesystem(self.filesystem, f"{self.bucket}/{key}")
 
     def write_table(self, base_dir: str, table: pa.Table) -> str:
-        written_paths = write_parquet_dataset(
+        asset_key = dg.AssetKey(base_dir.strip("/").split("/"))
+        service = S3DatasetService(s3_config=self.s3_config, filesystem=self.filesystem)
+        result = service.write_latest_snapshot(
+            DatasetLocation(bucket=self.bucket, object_prefix="", asset_key=asset_key),
             table,
-            f"{self.bucket}/{base_dir.strip('/')}",
-            self.filesystem,
-            allow_empty=True,
+            DatasetWriteOptions(storage_mode="latest_snapshot", allow_empty=True),
         )
+        written_paths = result.written_paths
         if len(written_paths) != 1:
             msg = f"Expected a single parquet file, wrote {written_paths}"
             raise RuntimeError(msg)
         return written_paths[0].removeprefix(f"{self.bucket}/")
-
-
-@dataclass(frozen=True)
-class ImageObjectStore:
-    object_store: ObjectStore
-
-    @classmethod
-    def from_s3_config(cls, config: S3Config) -> ImageObjectStore:
-        return cls(object_store=ObjectStore.from_s3_config(config))
-
-    def write_downloaded_image(self, image_filename: str, image_bytes: bytes) -> str:
-        return self.object_store.write_bytes(image_s3_key(image_filename), image_bytes)
-
-    def read_image_bytes(self, image_key: str) -> bytes:
-        return self.object_store.read_bytes(image_key)
-
-    def write_ocr_result_table(self, image_filename: str, table: pa.Table) -> str:
-        return self.object_store.write_table(ocr_result_base_dir("", image_filename), table)

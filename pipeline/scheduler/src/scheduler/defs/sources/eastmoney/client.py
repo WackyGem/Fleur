@@ -10,11 +10,11 @@ from scheduler.defs.common.numbers import positive_int_or_default
 from scheduler.defs.common.retry import DEFAULT_RETRY_POLICY, ExponentialBackoffPolicy
 from scheduler.defs.http.client import (
     HTTP_CONNECTOR_LIMIT,
-    AioHttpClient,
     HttpRequest,
     HttpRequestError,
     browser_json_headers,
 )
+from scheduler.defs.http.client_factory import HttpClientFactory
 from scheduler.defs.http.pagination import DuplicateRowTracker
 from scheduler.defs.http.protocols import HttpJsonStatsContextClientProtocol
 from scheduler.defs.sources.eastmoney.schema import EastmoneyEndpointConfig
@@ -74,9 +74,10 @@ class EastmoneyAioHttpClient:
         self.stats = EastmoneyFetchStats()
 
     async def __aenter__(self) -> EastmoneyAioHttpClient:
-        self._http_client = self._provided_http_client or AioHttpClient(
+        self._http_client = self._provided_http_client or HttpClientFactory(
+            retry_policy=self._retry_policy
+        ).json_client(
             headers=browser_json_headers(),
-            retry_policy=self._retry_policy,
             max_attempts=self._max_attempts,
             connector_limit=min(self.code_concurrency_limit, HTTP_CONNECTOR_LIMIT),
             connector_limit_per_host=min(self.code_concurrency_limit, HTTP_CONNECTOR_LIMIT),

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
+from dataclasses import dataclass
 from typing import Any, cast
 
 import psycopg
@@ -164,6 +165,48 @@ order by image_filename
 DatabaseRow = Mapping[str, object]
 
 
+@dataclass(frozen=True)
+class IndustryImageRecord:
+    image_filename: str
+    image_url: str
+    image_s3_key: str
+    industry_id: str
+    image_index: int
+    download_status: str
+    ocr_status: str
+    ocr_result_s3_key: str | None
+
+
+@dataclass(frozen=True)
+class DownloadSuccessUpdate:
+    image_filename: str
+    image_s3_key: str
+    download_sha256: str
+    download_bytes: int
+
+
+@dataclass(frozen=True)
+class DownloadFailureUpdate:
+    image_filename: str
+    error_type: str
+    error_message: str
+
+
+@dataclass(frozen=True)
+class OcrSuccessUpdate:
+    image_filename: str
+    ocr_result_s3_key: str
+    ocr_result_row_count: int
+    ocr_model: str
+
+
+@dataclass(frozen=True)
+class OcrFailureUpdate:
+    image_filename: str
+    error_type: str
+    error_message: str
+
+
 def connect_pipeline_database(url: str) -> psycopg.Connection:
     return psycopg.connect(url, row_factory=cast(Any, dict_row))
 
@@ -190,13 +233,13 @@ class PostgresIndustryImageRepository:
     def fetch_images(
         self,
         image_filenames: Sequence[str],
-    ) -> list[dict[str, object]]:
+    ) -> list[IndustryImageRecord]:
         if not image_filenames:
             return []
         with connect_pipeline_database(self._url) as connection, connection.cursor() as cursor:
             cursor.execute(FETCH_IMAGES_SQL, (list(image_filenames),))
             rows = cast(list[DatabaseRow], cursor.fetchall())
-        return [dict(row) for row in rows]
+        return [_industry_image_record_from_row(row) for row in rows]
 
     def upsert_discovered_images(self, images: Sequence[DiscoveredIndustryImage]) -> int:
         if not images:
@@ -225,16 +268,16 @@ class PostgresIndustryImageRepository:
     ) -> None:
         self.mark_download_success_many(
             [
-                {
-                    "image_filename": image_filename,
-                    "image_s3_key": image_s3_key_value,
-                    "download_sha256": download_sha256,
-                    "download_bytes": download_bytes,
-                }
+                DownloadSuccessUpdate(
+                    image_filename=image_filename,
+                    image_s3_key=image_s3_key_value,
+                    download_sha256=download_sha256,
+                    download_bytes=download_bytes,
+                )
             ]
         )
 
-    def mark_download_success_many(self, updates: Sequence[Mapping[str, object]]) -> int:
+    def mark_download_success_many(self, updates: Sequence[DownloadSuccessUpdate]) -> int:
         if not updates:
             return 0
         with connect_pipeline_database(self._url) as connection, connection.cursor() as cursor:
@@ -242,13 +285,10 @@ class PostgresIndustryImageRepository:
                 cursor.execute(
                     MARK_DOWNLOAD_SUCCESS_SQL,
                     {
-                        "image_filename": str(update["image_filename"]),
-                        "image_s3_key": str(update["image_s3_key"]),
-                        "download_sha256": str(update["download_sha256"]),
-                        "download_bytes": _required_int(
-                            update["download_bytes"],
-                            field_name="download_bytes",
-                        ),
+                        "image_filename": update.image_filename,
+                        "image_s3_key": update.image_s3_key,
+                        "download_sha256": update.download_sha256,
+                        "download_bytes": update.download_bytes,
                     },
                 )
         return len(updates)
@@ -262,15 +302,15 @@ class PostgresIndustryImageRepository:
     ) -> None:
         self.mark_download_failed_many(
             [
-                {
-                    "image_filename": image_filename,
-                    "error_type": error_type,
-                    "error_message": error_message,
-                }
+                DownloadFailureUpdate(
+                    image_filename=image_filename,
+                    error_type=error_type,
+                    error_message=error_message,
+                )
             ]
         )
 
-    def mark_download_failed_many(self, updates: Sequence[Mapping[str, object]]) -> int:
+    def mark_download_failed_many(self, updates: Sequence[DownloadFailureUpdate]) -> int:
         if not updates:
             return 0
         with connect_pipeline_database(self._url) as connection, connection.cursor() as cursor:
@@ -278,9 +318,9 @@ class PostgresIndustryImageRepository:
                 cursor.execute(
                     MARK_DOWNLOAD_FAILED_SQL,
                     {
-                        "image_filename": str(update["image_filename"]),
-                        "download_error_type": str(update["error_type"]),
-                        "download_error_message": str(update["error_message"]),
+                        "image_filename": update.image_filename,
+                        "download_error_type": update.error_type,
+                        "download_error_message": update.error_message,
                     },
                 )
         return len(updates)
@@ -295,16 +335,16 @@ class PostgresIndustryImageRepository:
     ) -> None:
         self.mark_ocr_success_many(
             [
-                {
-                    "image_filename": image_filename,
-                    "ocr_result_s3_key": ocr_result_s3_key_value,
-                    "ocr_result_row_count": ocr_result_row_count,
-                    "ocr_model": ocr_model,
-                }
+                OcrSuccessUpdate(
+                    image_filename=image_filename,
+                    ocr_result_s3_key=ocr_result_s3_key_value,
+                    ocr_result_row_count=ocr_result_row_count,
+                    ocr_model=ocr_model,
+                )
             ]
         )
 
-    def mark_ocr_success_many(self, updates: Sequence[Mapping[str, object]]) -> int:
+    def mark_ocr_success_many(self, updates: Sequence[OcrSuccessUpdate]) -> int:
         if not updates:
             return 0
         with connect_pipeline_database(self._url) as connection, connection.cursor() as cursor:
@@ -312,13 +352,10 @@ class PostgresIndustryImageRepository:
                 cursor.execute(
                     MARK_OCR_SUCCESS_SQL,
                     {
-                        "image_filename": str(update["image_filename"]),
-                        "ocr_result_s3_key": str(update["ocr_result_s3_key"]),
-                        "ocr_result_row_count": _required_int(
-                            update["ocr_result_row_count"],
-                            field_name="ocr_result_row_count",
-                        ),
-                        "ocr_model": str(update["ocr_model"]),
+                        "image_filename": update.image_filename,
+                        "ocr_result_s3_key": update.ocr_result_s3_key,
+                        "ocr_result_row_count": update.ocr_result_row_count,
+                        "ocr_model": update.ocr_model,
                     },
                 )
         return len(updates)
@@ -332,15 +369,15 @@ class PostgresIndustryImageRepository:
     ) -> None:
         self.mark_ocr_failed_many(
             [
-                {
-                    "image_filename": image_filename,
-                    "error_type": error_type,
-                    "error_message": error_message,
-                }
+                OcrFailureUpdate(
+                    image_filename=image_filename,
+                    error_type=error_type,
+                    error_message=error_message,
+                )
             ]
         )
 
-    def mark_ocr_failed_many(self, updates: Sequence[Mapping[str, object]]) -> int:
+    def mark_ocr_failed_many(self, updates: Sequence[OcrFailureUpdate]) -> int:
         if not updates:
             return 0
         with connect_pipeline_database(self._url) as connection, connection.cursor() as cursor:
@@ -348,9 +385,9 @@ class PostgresIndustryImageRepository:
                 cursor.execute(
                     MARK_OCR_FAILED_SQL,
                     {
-                        "image_filename": str(update["image_filename"]),
-                        "ocr_error_type": str(update["error_type"]),
-                        "ocr_error_message": str(update["error_message"]),
+                        "image_filename": update.image_filename,
+                        "ocr_error_type": update.error_type,
+                        "ocr_error_message": update.error_message,
                     },
                 )
         return len(updates)
@@ -411,6 +448,21 @@ class PostgresIndustryImageRepository:
                 )
             )
         return claimed
+
+
+def _industry_image_record_from_row(row: DatabaseRow) -> IndustryImageRecord:
+    return IndustryImageRecord(
+        image_filename=str(row["image_filename"]),
+        image_url=str(row["image_url"]),
+        image_s3_key=str(row["image_s3_key"]),
+        industry_id=str(row["industry_id"]),
+        image_index=_required_int(row["image_index"], field_name="image_index"),
+        download_status=str(row["download_status"]),
+        ocr_status=str(row["ocr_status"]),
+        ocr_result_s3_key=(
+            None if row.get("ocr_result_s3_key") is None else str(row["ocr_result_s3_key"])
+        ),
+    )
 
 
 def _required_int(value: object, *, field_name: str) -> int:

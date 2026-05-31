@@ -6,7 +6,7 @@ from zoneinfo import ZoneInfo
 import dagster as dg
 import pyarrow as pa
 import pytest
-from scheduler.defs.config.models import S3Config
+from scheduler.defs.resources.s3 import S3SettingsResource
 from scheduler.defs.sources import daily_compact
 from scheduler.defs.sources.jiuyan.action_field_compact import (
     jiuyan__action_field_compacted,
@@ -45,7 +45,7 @@ def test_compact_daily_asset_by_year_merges_non_empty_daily_tables(
     captured_partition_keys: list[str] = []
 
     def fake_read_tables(
-        config: S3Config,
+        config: object,
         asset_key: dg.AssetKey,
         *,
         partition_keys: list[str],
@@ -61,7 +61,6 @@ def test_compact_daily_asset_by_year_merges_non_empty_daily_tables(
             empty_partition_keys=["2026-01-07"],
         )
 
-    monkeypatch.setattr(daily_compact.S3Config, "from_env", classmethod(lambda cls: object()))
     monkeypatch.setattr(
         daily_compact,
         "read_trade_dates_from_s3",
@@ -85,6 +84,12 @@ def test_compact_daily_asset_by_year_merges_non_empty_daily_tables(
     result = daily_compact.compact_daily_asset_by_year(
         context,
         raw_asset_key=dg.AssetKey(["source", "jiuyan__action_field"]),
+        s3_settings=S3SettingsResource(
+            endpoint="http://localhost:9000",
+            bucket="bucket",
+            access_key="access",
+            secret_key="secret",
+        ),
     )
 
     assert captured_partition_keys == ["2026-01-02", "2026-01-05", "2026-01-06", "2026-01-07"]
@@ -105,7 +110,6 @@ def test_compact_daily_asset_by_year_merges_non_empty_daily_tables(
 def test_compact_daily_asset_by_year_rejects_empty_input(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    monkeypatch.setattr(daily_compact.S3Config, "from_env", classmethod(lambda cls: object()))
     monkeypatch.setattr(
         daily_compact,
         "read_trade_dates_from_s3",
@@ -131,6 +135,12 @@ def test_compact_daily_asset_by_year_rejects_empty_input(
         daily_compact.compact_daily_asset_by_year(
             context,
             raw_asset_key=dg.AssetKey(["source", "jiuyan__action_field"]),
+            s3_settings=S3SettingsResource(
+                endpoint="http://localhost:9000",
+                bucket="bucket",
+                access_key="access",
+                secret_key="secret",
+            ),
         )
 
 

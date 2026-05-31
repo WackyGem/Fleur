@@ -9,7 +9,9 @@ import pyarrow as pa
 
 from scheduler.defs.common.metadata import RawMetadataValue
 from scheduler.defs.config.models import JiuyanOcrConfig, S3Config
+from scheduler.defs.partitioning.policies import FailureThreshold, PartialFailurePolicy
 from scheduler.defs.repositories.industry_images import PostgresIndustryImageRepository
+from scheduler.defs.sources.jiuyan.image_object_store import ImageObjectStore
 from scheduler.defs.sources.jiuyan.image_urls import (
     image_filename_from_url,
     image_s3_key,
@@ -20,7 +22,6 @@ from scheduler.defs.sources.jiuyan.ocr_services import (
     download_images_to_s3,
     process_ocr_images,
 )
-from scheduler.defs.storage.object_store import ImageObjectStore
 from scheduler.defs.storage.parquet_readers import read_parquet_table_from_s3
 
 
@@ -123,7 +124,7 @@ class JiuyanIndustryImageWorkflow:
             [image.image_filename for image in selected_images]
         )
         current_status_by_filename = {
-            str(row["image_filename"]): str(row["download_status"]) for row in current_rows
+            row.image_filename: row.download_status for row in current_rows
         }
         filtered_images: list[DiscoveredIndustryImage] = []
         skip_existing_count = 0
@@ -214,10 +215,13 @@ class JiuyanIndustryOcrWorkflow:
             "table_convert_seconds": round(ocr_result.table_convert_seconds, 6),
             "result_s3_keys_sample": dg.MetadataValue.json(ocr_result.s3_keys[:3]),
         }
-        if claimed and ocr_result.ocr_failure_count == len(claimed):
-            raise RuntimeError("All OCR requests failed")
-        if claimed and ocr_result.ocr_failure_count / len(claimed) > 0.2:
-            raise RuntimeError("OCR failure rate exceeded 20%")
+        PartialFailurePolicy(
+            FailureThreshold(max_failure_ratio=0.2, fail_when_all_failed=True)
+        ).validate(
+            total_count=len(claimed),
+            failure_count=ocr_result.ocr_failure_count,
+            context="OCR requests",
+        )
         return metadata
 
 

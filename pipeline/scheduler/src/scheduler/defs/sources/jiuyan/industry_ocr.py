@@ -2,7 +2,12 @@ import asyncio
 
 import dagster as dg
 
-from scheduler.defs.asset_contracts import DEFAULT_OWNER, ocr_source_tags
+from scheduler.defs.asset_contracts import (
+    ocr_source_tags,
+    source_owners,
+    stateful_asset_metadata,
+    stateful_ocr_kinds,
+)
 from scheduler.defs.common.metadata import RawMetadataValue
 from scheduler.defs.market.asset_keys import SOURCE_ASSET_KEY_PREFIX
 from scheduler.defs.resources.database import IndustryImageRepositoryResource
@@ -61,8 +66,9 @@ class IndustryOcrConfig(dg.Config):
     group_name="s3_sources",
     deps=[jiuyan__industry_list],
     description="Discovered JiuYan industry-list image objects downloaded to S3 with PostgreSQL state.",
-    owners=[DEFAULT_OWNER],
-    kinds={"s3", "postgres", "http", "image"},
+    metadata=stateful_asset_metadata(external_service="jiuyan_http"),
+    owners=source_owners(),
+    kinds=stateful_ocr_kinds("http", "image"),
     tags=ocr_source_tags("jiuyan"),
 )
 def jiuyan__industry_images(
@@ -90,8 +96,9 @@ def jiuyan__industry_images(
     group_name="s3_sources",
     deps=[jiuyan__industry_images],
     description="OCR result rows extracted from downloaded JiuYan industry-list images.",
-    owners=[DEFAULT_OWNER],
-    kinds={"s3", "postgres", "ocr"},
+    metadata=stateful_asset_metadata(external_service="jiuyan_ocr"),
+    owners=source_owners(),
+    kinds=stateful_ocr_kinds(),
     tags=ocr_source_tags("jiuyan"),
 )
 def jiuyan__industry_ocr(

@@ -32,6 +32,10 @@ METADATA_FLATTEN_COLUMN_NAMING: Final = "flatten_column_naming"
 METADATA_INPUT_PARTITION_KEY_NAME: Final = "input_partition_key_name"
 METADATA_INPUT_ASSET: Final = "input_asset"
 METADATA_EXECUTION_ORDERING_DEPENDENCY: Final = "execution_ordering_dependency"
+METADATA_EXECUTION_ORDERING_REASON: Final = "execution_ordering_reason"
+METADATA_STATE_BACKEND: Final = "state_backend"
+METADATA_OBJECT_STORE: Final = "object_store"
+METADATA_EXTERNAL_SERVICE: Final = "external_service"
 
 STORAGE_MODE_LATEST_SNAPSHOT: Final = "latest_snapshot"
 STORAGE_MODE_PARTITIONED: Final = "partitioned"
@@ -67,12 +71,15 @@ def ocr_source_tags(source: str) -> dict[str, str]:
 def latest_snapshot_metadata(
     *,
     flatten_column_naming: str | None = None,
+    extra: Mapping[str, RawMetadataValue] | None = None,
 ) -> dict[str, RawMetadataValue]:
     metadata: dict[str, RawMetadataValue] = {
         METADATA_STORAGE_MODE: STORAGE_MODE_LATEST_SNAPSHOT,
     }
     if flatten_column_naming is not None:
         metadata[METADATA_FLATTEN_COLUMN_NAMING] = flatten_column_naming
+    if extra is not None:
+        metadata.update(extra)
     return metadata
 
 
@@ -122,3 +129,43 @@ def compacted_year_metadata(
         METADATA_INPUT_PARTITION_KEY_NAME: input_partition_key_name,
         METADATA_INPUT_ASSET: input_asset,
     }
+
+
+def stateful_asset_metadata(
+    *,
+    state_backend: str = STATE_POSTGRES,
+    object_store: str = STORAGE_S3,
+    external_service: str | None = None,
+) -> dict[str, RawMetadataValue]:
+    metadata: dict[str, RawMetadataValue] = {
+        METADATA_STATE_BACKEND: state_backend,
+        METADATA_OBJECT_STORE: object_store,
+    }
+    if external_service is not None:
+        metadata[METADATA_EXTERNAL_SERVICE] = external_service
+    return metadata
+
+
+def generated_endpoint_metadata(
+    *,
+    ordering_dependency: str | None,
+    ordering_reason: str | None = None,
+) -> dict[str, RawMetadataValue]:
+    if ordering_dependency is None:
+        return {}
+    return {
+        METADATA_EXECUTION_ORDERING_DEPENDENCY: ordering_dependency,
+        METADATA_EXECUTION_ORDERING_REASON: ordering_reason or "external_api_rate_limit",
+    }
+
+
+def source_owners() -> list[str]:
+    return [DEFAULT_OWNER]
+
+
+def s3_parquet_kinds(*extra: str) -> set[str]:
+    return {"s3", "parquet", *extra}
+
+
+def stateful_ocr_kinds(*extra: str) -> set[str]:
+    return {"s3", "postgres", "ocr", *extra}

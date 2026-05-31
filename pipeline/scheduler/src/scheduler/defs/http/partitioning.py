@@ -21,8 +21,11 @@ from scheduler.defs.partitioning.policies import (
     PartitionSelectionPolicy,
     TradeDateFilterPolicy,
 )
-from scheduler.defs.storage.dataset_writer import S3DatasetWriter
-from scheduler.defs.storage.s3 import asset_key_to_parquet_object_key, build_s3_filesystem
+from scheduler.defs.storage.dataset_service import (
+    DatasetLocation,
+    DatasetWriteOptions,
+    S3DatasetService,
+)
 
 TRADE_DATE_PARTITION_KEY_NAME = "trade_date"
 
@@ -77,7 +80,7 @@ async def materialize_partition_range(
     partition_filter: PartitionFilter | None = None,
     partitions_source_asset: str | None = None,
     backfill_hard_limit: int | None = None,
-    s3_config: S3Config | None = None,
+    s3_config: S3Config,
 ) -> PartitionRangeMaterializationResult:
     if max_concurrent_partitions < 1:
         msg = "max_concurrent_partitions must be positive"
@@ -89,14 +92,21 @@ async def materialize_partition_range(
         raise RuntimeError(msg)
     BackfillLimitPolicy(backfill_hard_limit).validate(partition_keys)
 
-    effective_s3_config = s3_config or S3Config.from_env()
     processed_partition_keys, skipped_partition_keys = PartitionSelectionPolicy(
         partition_filter
     ).select(partition_keys)
 
-    filesystem = build_s3_filesystem(effective_s3_config)
-    writer = S3DatasetWriter(s3_config=effective_s3_config, filesystem=filesystem)
-    base_dir = _asset_base_dir(effective_s3_config, context.asset_key)
+    service = S3DatasetService(s3_config=s3_config)
+    location = DatasetLocation(
+        bucket=s3_config.bucket,
+        object_prefix="source",
+        asset_key=context.asset_key,
+    )
+    write_options = DatasetWriteOptions(
+        storage_mode="partitioned",
+        allow_empty=True,
+        partition_key_name=partition_key_name,
+    )
     semaphore = asyncio.Semaphore(max_concurrent_partitions)
     completed: dict[str, pa.Table] = {}
     failed_partition_keys: list[str] = []
@@ -109,11 +119,10 @@ async def materialize_partition_range(
         async with semaphore:
             try:
                 table, metadata = await fetch_table_for_partition(partition_key)
-                write_result = writer.write_partitioned(
-                    partition_tables={partition_key: table},
-                    base_dir=base_dir,
-                    partition_key_name=partition_key_name,
-                    allow_empty=True,
+                write_result = service.write_partitioned(
+                    location,
+                    {partition_key: table},
+                    write_options,
                 )
             except Exception as error:
                 failed_partition_keys.append(partition_key)
@@ -125,7 +134,7 @@ async def materialize_partition_range(
 
             completed[partition_key] = table
             per_partition_metadata[partition_key] = dict(metadata)
-            written_object_keys.extend(write_result.object_keys(effective_s3_config.bucket))
+            written_object_keys.extend(service.object_keys(write_result))
 
     async with asyncio.TaskGroup() as task_group:
         for partition_key in processed_partition_keys:
@@ -149,7 +158,7 @@ async def materialize_partition_range(
         "processed_partition_keys": dg.MetadataValue.json(processed_partition_keys),
         "skipped_partition_keys_sample": dg.MetadataValue.json(skipped_partition_keys[:20]),
         "partition_key_name": partition_key_name,
-        "s3_bucket": effective_s3_config.bucket,
+        "s3_bucket": s3_config.bucket,
         "s3_keys": dg.MetadataValue.json(sorted(written_object_keys)),
         "file_format": "parquet",
         "compression": "zstd",
@@ -172,6 +181,7 @@ async def materialize_trade_date_range(
     max_concurrent_trade_dates: int,
     fetch_table_for_trade_date: FetchTableForTradeDate,
     backfill_window_limit: int | None = None,
+    s3_config: S3Config,
 ) -> TradeDateRangeMaterializationResult:
     if max_concurrent_trade_dates < 1:
         msg = "max_concurrent_trade_dates must be positive"
@@ -182,7 +192,6 @@ async def materialize_trade_date_range(
         msg = "Market-event asset requires at least one trade_date partition"
         raise RuntimeError(msg)
 
-    s3_config = S3Config.from_env()
     natural_dates = [_parse_date_partition_key(key) for key in partition_keys]
     calendar_dates = read_trade_dates_from_s3(s3_config)
     trade_dates, skipped_window_trade_dates, skipped_non_trade_dates = TradeDateFilterPolicy(
@@ -250,23 +259,6 @@ def _parse_date_partition_key(partition_key: str) -> date:
     except ValueError as error:
         msg = f"Invalid natural-date partition key: {partition_key!r}"
         raise ValueError(msg) from error
-
-
-def _asset_base_dir(config: S3Config, asset_key: dg.AssetKey) -> str:
-    object_key = asset_key_to_parquet_object_key(
-        asset_key,
-        object_prefix="source",
-        storage_mode="latest_snapshot",
-    )
-    object_dir = object_key.removesuffix("/000000_0.parquet")
-    return f"{config.bucket}/{object_dir}"
-
-
-def _path_to_object_key(bucket: str, path: str) -> str:
-    bucket_prefix = f"{bucket}/"
-    if path.startswith(bucket_prefix):
-        return path.removeprefix(bucket_prefix)
-    return path
 
 
 def _json_safe(value: object) -> object:

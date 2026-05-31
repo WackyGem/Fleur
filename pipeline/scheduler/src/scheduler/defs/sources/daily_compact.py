@@ -6,8 +6,8 @@ from zoneinfo import ZoneInfo
 import dagster as dg
 import pyarrow as pa
 
-from scheduler.defs.config.models import S3Config
 from scheduler.defs.market.trade_calendar import read_trade_dates_from_s3
+from scheduler.defs.resources.s3 import S3SettingsResource
 from scheduler.defs.storage.parquet_readers import (
     read_partitioned_parquet_tables_from_s3,
     trade_date_partition_keys_for_year,
@@ -18,11 +18,12 @@ def compact_daily_asset_by_year(
     context: dg.AssetExecutionContext,
     *,
     raw_asset_key: dg.AssetKey,
+    s3_settings: S3SettingsResource,
 ) -> dg.MaterializeResult[dict[str, pa.Table]]:
     partition_key = context.partition_key
     year = int(partition_key)
     refresh_until = refresh_until_for_year(year, run_tag(context, "market.trade_date"))
-    s3_config = S3Config.from_env()
+    s3_config = s3_settings.config()
     trade_dates = read_trade_dates_from_s3(s3_config)
     requested_partition_keys = trade_date_partition_keys_for_year(
         year,

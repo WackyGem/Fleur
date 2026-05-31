@@ -6,17 +6,22 @@ from datetime import date
 import dagster as dg
 import pyarrow as pa
 
-from scheduler.defs.asset_contracts import daily_sparse_partition_metadata, source_tags
+from scheduler.defs.asset_contracts import (
+    daily_sparse_partition_metadata,
+    s3_parquet_kinds,
+    source_owners,
+    source_tags,
+)
 from scheduler.defs.common.metadata import RawMetadataValue, http_stats_metadata
 from scheduler.defs.common.retry import DEFAULT_RETRY_POLICY
 from scheduler.defs.common.strings import required_string
 from scheduler.defs.config.env import JIUYAN_COOKIE, JIUYAN_TOKEN
 from scheduler.defs.http.client import (
-    AioHttpClient,
     HeaderFactory,
     HttpRequest,
     browser_json_headers,
 )
+from scheduler.defs.http.client_factory import HttpClientFactory
 from scheduler.defs.http.partitioning import (
     JIUYAN_BACKFILL_MAX_TRADE_DATES,
     TRADE_DATE_PARTITION_KEY_NAME,
@@ -31,6 +36,7 @@ from scheduler.defs.http.schemas import (
     jiuyan_action_field_to_table,
 )
 from scheduler.defs.market.asset_keys import SINA_TRADE_CALENDAR_ASSET_KEY, SOURCE_ASSET_KEY_PREFIX
+from scheduler.defs.resources.s3 import S3SettingsResource
 
 JIUYAN_ACTION_FIELD_URL = "https://app.jiuyangongshe.com/jystock-app/api/v1/action/field"
 JIUYAN_RATE_LIMIT_ERR_CODE = "9"
@@ -77,25 +83,28 @@ def jiuyan_header_factory() -> HeaderFactory:
         trade_date_filter=SINA_TRADE_CALENDAR_ASSET_KEY.to_user_string(),
         flatten_column_naming=FLATTEN_COLUMN_NAMING,
     ),
+    owners=source_owners(),
+    kinds=s3_parquet_kinds("http"),
     tags=source_tags("jiuyan"),
 )
 def jiuyan__action_field(
     context: dg.AssetExecutionContext,
     config: MarketEventBackfillConfig,
+    s3_settings: S3SettingsResource,
 ) -> dg.MaterializeResult:
     """JiuYan action-field market-event content by trade-date partition."""
 
-    result = asyncio.run(_materialize_action_field_range(context, config))
+    result = asyncio.run(_materialize_action_field_range(context, config, s3_settings))
     return dg.MaterializeResult(metadata=result.metadata)
 
 
 async def _materialize_action_field_range(
     context: dg.AssetExecutionContext,
     config: MarketEventBackfillConfig,
+    s3_settings: S3SettingsResource,
 ) -> TradeDateRangeMaterializationResult:
-    async with AioHttpClient(
+    async with HttpClientFactory(retry_policy=DEFAULT_RETRY_POLICY).json_client(
         headers=jiuyan_header_factory(),
-        retry_policy=DEFAULT_RETRY_POLICY,
         request_delay=config.request_delay,
     ) as client:
         result = await materialize_trade_date_range(
@@ -106,6 +115,7 @@ async def _materialize_action_field_range(
                 trade_date=trade_date,
             ),
             backfill_window_limit=JIUYAN_BACKFILL_MAX_TRADE_DATES,
+            s3_config=s3_settings.config(),
         )
         result.metadata.update(http_stats_metadata(client.stats))
         return result

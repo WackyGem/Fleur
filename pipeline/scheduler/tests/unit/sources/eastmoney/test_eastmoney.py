@@ -6,8 +6,6 @@ from importlib.util import module_from_spec, spec_from_file_location
 from pathlib import Path
 
 import pyarrow as pa
-from scheduler.defs.sources.eastmoney import fields as compat_fields
-from scheduler.defs.sources.eastmoney import schemas as compat_schemas
 from scheduler.defs.sources.eastmoney.assets import baostock_code_to_eastmoney_code
 from scheduler.defs.sources.eastmoney.client import (
     EastmoneyAioHttpClient,
@@ -91,14 +89,6 @@ class EastmoneySchemaTest(unittest.TestCase):
                 )
 
     def test_generated_modules_are_the_schema_source_of_truth(self) -> None:
-        self.assertIs(
-            compat_fields.EASTMONEY_FIELD_NAMES,
-            generated_fields.EASTMONEY_FIELD_NAMES,
-        )
-        self.assertIs(
-            compat_schemas.EASTMONEY_SCHEMAS,
-            generated_schemas.EASTMONEY_SCHEMAS,
-        )
         self.assertEqual(
             set(generated_fields.EASTMONEY_FIELD_NAMES), set(EXPECTED_OPENAPI_FIELD_COUNTS)
         )

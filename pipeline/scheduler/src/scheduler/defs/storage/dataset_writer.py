@@ -3,10 +3,8 @@ from __future__ import annotations
 from collections.abc import Mapping
 from dataclasses import dataclass, field
 
-import dagster as dg
 import pyarrow as pa
 
-from scheduler.defs.common.metadata import RawMetadataValue
 from scheduler.defs.config.models import S3Config
 from scheduler.defs.storage.parquet import write_parquet_dataset
 from scheduler.defs.storage.s3 import PyArrowFileSystem, build_s3_filesystem
@@ -109,26 +107,3 @@ def partition_column_count(partition_tables: Mapping[str, pa.Table]) -> int:
             raise ValueError(msg)
     return first_table.num_columns
 
-
-def s3_dataset_metadata(
-    *,
-    s3_config: S3Config,
-    result: DatasetWriteResult,
-    storage_mode: str,
-    allow_empty: bool,
-) -> dict[str, RawMetadataValue]:
-    object_keys = result.object_keys(s3_config.bucket)
-    metadata: dict[str, RawMetadataValue] = {
-        "s3_bucket": s3_config.bucket,
-        "s3_keys": dg.MetadataValue.json(object_keys),
-        "s3_endpoint": s3_config.endpoint,
-        "file_format": "parquet",
-        "compression": "zstd",
-        "row_count": result.row_count,
-        "column_count": result.column_count,
-        "storage_mode": storage_mode,
-        "allow_empty": allow_empty,
-    }
-    if len(object_keys) == 1:
-        metadata["s3_key"] = object_keys[0]
-    return metadata

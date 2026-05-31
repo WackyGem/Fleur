@@ -1,8 +1,14 @@
 import dagster as dg
 import pyarrow as pa
 
-from scheduler.defs.asset_contracts import compacted_tags, compacted_year_metadata
+from scheduler.defs.asset_contracts import (
+    compacted_tags,
+    compacted_year_metadata,
+    s3_parquet_kinds,
+    source_owners,
+)
 from scheduler.defs.market.asset_keys import SOURCE_ASSET_KEY_PREFIX
+from scheduler.defs.resources.s3 import S3SettingsResource
 from scheduler.defs.sources.daily_compact import compact_daily_asset_by_year
 from scheduler.defs.sources.sina.trade_calendar import sina__trade_calendar
 from scheduler.defs.sources.ths.limit_up_pool import ths__limit_up_pool
@@ -37,14 +43,18 @@ ths_limit_up_pool_compacted_year_partitions = dg.TimeWindowPartitionsDefinition(
         input_partition_key_name="trade_date",
         input_asset=ths__limit_up_pool.key.to_user_string(),
     ),
+    owners=source_owners(),
+    kinds=s3_parquet_kinds("compact"),
     tags=compacted_tags("ths"),
 )
 def ths__limit_up_pool_compacted(
     context: dg.AssetExecutionContext,
+    s3_settings: S3SettingsResource,
 ) -> dg.MaterializeResult[dict[str, pa.Table]]:
     """TongHuaShun limit-up pool daily parquet compacted by natural-year partition."""
 
     return compact_daily_asset_by_year(
         context,
         raw_asset_key=ths__limit_up_pool.key,
+        s3_settings=s3_settings,
     )

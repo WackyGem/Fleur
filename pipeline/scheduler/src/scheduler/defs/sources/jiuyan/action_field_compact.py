@@ -1,8 +1,14 @@
 import dagster as dg
 import pyarrow as pa
 
-from scheduler.defs.asset_contracts import compacted_tags, compacted_year_metadata
+from scheduler.defs.asset_contracts import (
+    compacted_tags,
+    compacted_year_metadata,
+    s3_parquet_kinds,
+    source_owners,
+)
 from scheduler.defs.market.asset_keys import SOURCE_ASSET_KEY_PREFIX
+from scheduler.defs.resources.s3 import S3SettingsResource
 from scheduler.defs.sources.daily_compact import compact_daily_asset_by_year
 from scheduler.defs.sources.jiuyan.action_field import jiuyan__action_field
 from scheduler.defs.sources.sina.trade_calendar import sina__trade_calendar
@@ -37,14 +43,18 @@ jiuyan_action_field_compacted_year_partitions = dg.TimeWindowPartitionsDefinitio
         input_partition_key_name="trade_date",
         input_asset=jiuyan__action_field.key.to_user_string(),
     ),
+    owners=source_owners(),
+    kinds=s3_parquet_kinds("compact"),
     tags=compacted_tags("jiuyan"),
 )
 def jiuyan__action_field_compacted(
     context: dg.AssetExecutionContext,
+    s3_settings: S3SettingsResource,
 ) -> dg.MaterializeResult[dict[str, pa.Table]]:
     """JiuYan action-field daily parquet compacted by natural-year partition."""
 
     return compact_daily_asset_by_year(
         context,
         raw_asset_key=jiuyan__action_field.key,
+        s3_settings=s3_settings,
     )

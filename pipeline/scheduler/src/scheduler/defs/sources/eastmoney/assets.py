@@ -6,15 +6,17 @@ import dagster as dg
 import pyarrow as pa
 
 from scheduler.defs.asset_contracts import (
-    METADATA_EXECUTION_ORDERING_DEPENDENCY,
+    generated_endpoint_metadata,
+    s3_parquet_kinds,
+    source_owners,
     source_tags,
     year_partition_metadata,
 )
 from scheduler.defs.baostock.assets import baostock__query_stock_basic, year_partitions
 from scheduler.defs.common.clock import elapsed_seconds
 from scheduler.defs.common.metadata import RawMetadataValue
-from scheduler.defs.config.models import S3Config
 from scheduler.defs.market.asset_keys import SOURCE_ASSET_KEY_PREFIX
+from scheduler.defs.resources.s3 import S3SettingsResource
 from scheduler.defs.sources.eastmoney.schema import (
     ENDPOINT_CONFIGS,
     EastmoneyEndpointConfig,
@@ -39,10 +41,12 @@ __all__ = [
     "EastmoneyYearConfig",
     "baostock_code_to_eastmoney_code",
     "build_eastmoney_asset",
+    "build_eastmoney_assets",
 ]
 
 EASTMONEY_RUN_POOL = "eastmoney_run_pool"
 EASTMONEY_ASSET_METADATA = year_partition_metadata(allow_empty=True)
+EASTMONEY_ORDERING_REASON = "external_api_rate_limit"
 
 
 class EastmoneyYearConfig(dg.Config):
@@ -57,13 +61,19 @@ def build_eastmoney_asset(
     metadata: dict[str, RawMetadataValue] = dict(EASTMONEY_ASSET_METADATA)
     if ordering_dependency is not None:
         deps.append(ordering_dependency)
-        metadata[METADATA_EXECUTION_ORDERING_DEPENDENCY] = ordering_dependency.key.to_user_string()
+        metadata.update(
+            generated_endpoint_metadata(
+                ordering_dependency=ordering_dependency.key.to_user_string(),
+                ordering_reason=EASTMONEY_ORDERING_REASON,
+            )
+        )
 
     def materialize(
         context: dg.AssetExecutionContext,
         config: EastmoneyYearConfig,
+        s3_settings: S3SettingsResource,
     ) -> dg.MaterializeResult[dict[str, pa.Table]]:
-        return _materialize_eastmoney_asset(context, config, endpoint)
+        return _materialize_eastmoney_asset(context, config, s3_settings, endpoint)
 
     materialize.__name__ = endpoint.asset_name
     materialize.__doc__ = f"EastMoney F10 rows for {endpoint.asset_name} by natural-year partition."
@@ -77,29 +87,35 @@ def build_eastmoney_asset(
         deps=deps,
         backfill_policy=dg.BackfillPolicy.multi_run(max_partitions_per_run=1),
         metadata=metadata,
+        owners=source_owners(),
+        kinds=s3_parquet_kinds("http"),
         pool=EASTMONEY_RUN_POOL,
         tags=source_tags("eastmoney"),
     )(materialize)
 
 
-EASTMONEY_ASSETS_BY_NAME: dict[str, dg.AssetsDefinition] = {}
-_previous_eastmoney_asset: dg.AssetsDefinition | None = None
-for _endpoint in ENDPOINT_CONFIGS:
-    _eastmoney_asset = build_eastmoney_asset(_endpoint, _previous_eastmoney_asset)
-    EASTMONEY_ASSETS_BY_NAME[_endpoint.asset_name] = _eastmoney_asset
-    globals()[_endpoint.asset_name] = _eastmoney_asset
-    _previous_eastmoney_asset = _eastmoney_asset
+def build_eastmoney_assets() -> list[dg.AssetsDefinition]:
+    assets: list[dg.AssetsDefinition] = []
+    previous_asset: dg.AssetsDefinition | None = None
+    for endpoint in ENDPOINT_CONFIGS:
+        asset = build_eastmoney_asset(endpoint, previous_asset)
+        assets.append(asset)
+        previous_asset = asset
+    return assets
 
-EASTMONEY_ASSETS = list(EASTMONEY_ASSETS_BY_NAME.values())
+
+EASTMONEY_ASSETS = build_eastmoney_assets()
+EASTMONEY_ASSETS_BY_NAME = {asset.node_def.name: asset for asset in EASTMONEY_ASSETS}
 
 
 def _materialize_eastmoney_asset(
     context: dg.AssetExecutionContext,
     config: EastmoneyYearConfig,
+    s3_settings: S3SettingsResource,
     endpoint: EastmoneyEndpointConfig,
 ) -> dg.MaterializeResult[dict[str, pa.Table]]:
     asset_started_at = time.perf_counter()
-    s3_config = S3Config.from_env()
+    s3_config = s3_settings.config()
     config_loaded_at = time.perf_counter()
     service = EastmoneyYearRefreshService(s3_config)
     result = service.refresh(

@@ -14,6 +14,7 @@ import pyarrow as pa
 import pyarrow.parquet as pq
 from dagster._core.definitions.metadata.metadata_value import JsonMetadataValue
 from scheduler.defs.common.metadata import RawMetadataValue
+from scheduler.defs.config.models import S3Config
 from scheduler.defs.http.flatten import flatten_content_object
 from scheduler.defs.http.partitioning import (
     JIUYAN_BACKFILL_MAX_TRADE_DATES,
@@ -41,6 +42,15 @@ from scheduler.defs.sources.ths.limit_up_pool import (
 from tests.fakes.dagster import FakeAssetContext
 from tests.fakes.http import FakeJsonClient
 from tests.fakes.storage import local_filesystem
+
+
+def fake_s3_config(bucket: str) -> S3Config:
+    return S3Config(
+        endpoint="http://localhost:9000",
+        bucket=bucket,
+        access_key="access",
+        secret_key="secret",
+    )
 
 
 class JiuYanHeaderTest(unittest.TestCase):
@@ -221,19 +231,11 @@ class MarketEventFetchTest(unittest.IsolatedAsyncioTestCase):
                 partition_keys=["2026-05-08", "2026-05-09", "2026-05-10"],
                 asset_key=dg.AssetKey(["source", "jiuyan__action_field"]),
             )
-            s3_config = type(
-                "FakeS3Config",
-                (),
-                {"bucket": bucket},
-            )()
+            s3_config = fake_s3_config(bucket)
 
             with (
                 patch(
-                    "scheduler.defs.http.partitioning.S3Config.from_env",
-                    return_value=s3_config,
-                ),
-                patch(
-                    "scheduler.defs.http.partitioning.build_s3_filesystem",
+                    "scheduler.defs.storage.dataset_writer.build_s3_filesystem",
                     return_value=local_filesystem(),
                 ),
                 patch(
@@ -245,6 +247,7 @@ class MarketEventFetchTest(unittest.IsolatedAsyncioTestCase):
                     context,
                     max_concurrent_trade_dates=2,
                     fetch_table_for_trade_date=fetch_table_for_trade_date,
+                    s3_config=s3_config,
                 )
 
             written_table = pq.read_table(
@@ -417,19 +420,11 @@ class BackfillWindowLimitTest(unittest.IsolatedAsyncioTestCase):
                 partition_keys=partition_keys,
                 asset_key=dg.AssetKey(["source", "jiuyan__action_field"]),
             )
-            s3_config = type(
-                "FakeS3Config",
-                (),
-                {"bucket": bucket},
-            )()
+            s3_config = fake_s3_config(bucket)
 
             with (
                 patch(
-                    "scheduler.defs.http.partitioning.S3Config.from_env",
-                    return_value=s3_config,
-                ),
-                patch(
-                    "scheduler.defs.http.partitioning.build_s3_filesystem",
+                    "scheduler.defs.storage.dataset_writer.build_s3_filesystem",
                     return_value=local_filesystem(),
                 ),
                 patch(
@@ -445,6 +440,7 @@ class BackfillWindowLimitTest(unittest.IsolatedAsyncioTestCase):
                     max_concurrent_trade_dates=4,
                     fetch_table_for_trade_date=fetch_table_for_trade_date,
                     backfill_window_limit=50,
+                    s3_config=s3_config,
                 )
 
         # 应该保留完整自然日请求范围，但只处理最后 50 个交易日
@@ -472,19 +468,11 @@ class BackfillWindowLimitTest(unittest.IsolatedAsyncioTestCase):
                 partition_keys=partition_keys,
                 asset_key=dg.AssetKey(["source", "jiuyan__action_field"]),
             )
-            s3_config = type(
-                "FakeS3Config",
-                (),
-                {"bucket": bucket},
-            )()
+            s3_config = fake_s3_config(bucket)
 
             with (
                 patch(
-                    "scheduler.defs.http.partitioning.S3Config.from_env",
-                    return_value=s3_config,
-                ),
-                patch(
-                    "scheduler.defs.http.partitioning.build_s3_filesystem",
+                    "scheduler.defs.storage.dataset_writer.build_s3_filesystem",
                     return_value=local_filesystem(),
                 ),
                 patch(
@@ -501,6 +489,7 @@ class BackfillWindowLimitTest(unittest.IsolatedAsyncioTestCase):
                     max_concurrent_trade_dates=2,
                     fetch_table_for_trade_date=fetch_table_for_trade_date,
                     backfill_window_limit=2,
+                    s3_config=s3_config,
                 )
 
         self.assertEqual(fetched_dates, [date(2026, 5, 4), date(2026, 5, 8)])
@@ -522,19 +511,11 @@ class BackfillWindowLimitTest(unittest.IsolatedAsyncioTestCase):
                 partition_keys=["2026-05-08"],
                 asset_key=dg.AssetKey(["source", "jiuyan__action_field"]),
             )
-            s3_config = type(
-                "FakeS3Config",
-                (),
-                {"bucket": bucket},
-            )()
+            s3_config = fake_s3_config(bucket)
 
             with (
                 patch(
-                    "scheduler.defs.http.partitioning.S3Config.from_env",
-                    return_value=s3_config,
-                ),
-                patch(
-                    "scheduler.defs.http.partitioning.build_s3_filesystem",
+                    "scheduler.defs.storage.dataset_writer.build_s3_filesystem",
                     return_value=local_filesystem(),
                 ),
                 patch(
@@ -546,6 +527,7 @@ class BackfillWindowLimitTest(unittest.IsolatedAsyncioTestCase):
                     context,
                     max_concurrent_trade_dates=1,
                     fetch_table_for_trade_date=fetch_table_for_trade_date,
+                    s3_config=s3_config,
                 )
 
         self.assertEqual(result.metadata["failed_partition_count"], 1)
@@ -582,19 +564,11 @@ class BackfillWindowLimitTest(unittest.IsolatedAsyncioTestCase):
                 partition_keys=partition_keys,
                 asset_key=dg.AssetKey(["source", "jiuyan__action_field"]),
             )
-            s3_config = type(
-                "FakeS3Config",
-                (),
-                {"bucket": bucket},
-            )()
+            s3_config = fake_s3_config(bucket)
 
             with (
                 patch(
-                    "scheduler.defs.http.partitioning.S3Config.from_env",
-                    return_value=s3_config,
-                ),
-                patch(
-                    "scheduler.defs.http.partitioning.build_s3_filesystem",
+                    "scheduler.defs.storage.dataset_writer.build_s3_filesystem",
                     return_value=local_filesystem(),
                 ),
                 patch(
@@ -607,6 +581,7 @@ class BackfillWindowLimitTest(unittest.IsolatedAsyncioTestCase):
                     max_concurrent_trade_dates=4,
                     fetch_table_for_trade_date=fetch_table_for_trade_date,
                     backfill_window_limit=None,
+                    s3_config=s3_config,
                 )
 
         # 应该处理了所有 10 个分区

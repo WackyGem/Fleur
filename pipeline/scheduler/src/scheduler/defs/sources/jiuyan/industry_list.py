@@ -5,11 +5,17 @@ from collections.abc import Mapping
 import dagster as dg
 import pyarrow as pa
 
-from scheduler.defs.asset_contracts import latest_snapshot_metadata, source_tags
+from scheduler.defs.asset_contracts import (
+    latest_snapshot_metadata,
+    s3_parquet_kinds,
+    source_owners,
+    source_tags,
+)
 from scheduler.defs.common.metadata import RawMetadataValue
 from scheduler.defs.common.retry import DEFAULT_RETRY_POLICY
 from scheduler.defs.common.strings import required_string
-from scheduler.defs.http.client import AioHttpClient, HttpRequest
+from scheduler.defs.http.client import HttpRequest
+from scheduler.defs.http.client_factory import HttpClientFactory
 from scheduler.defs.http.protocols import HttpJsonStatsClientProtocol
 from scheduler.defs.http.schemas import (
     FLATTEN_COLUMN_NAMING,
@@ -28,6 +34,8 @@ JIUYAN_INDUSTRY_LIST_LIMIT = "500"
     group_name="s3_sources",
     io_manager_key="s3_io_manager",
     metadata=latest_snapshot_metadata(flatten_column_naming=FLATTEN_COLUMN_NAMING),
+    owners=source_owners(),
+    kinds=s3_parquet_kinds("http"),
     tags=source_tags("jiuyan"),
 )
 def jiuyan__industry_list(
@@ -42,9 +50,8 @@ def jiuyan__industry_list(
 
 async def _fetch_industry_list_table() -> tuple[pa.Table, dict[str, RawMetadataValue]]:
     started_at = time.perf_counter()
-    async with AioHttpClient(
+    async with HttpClientFactory(retry_policy=DEFAULT_RETRY_POLICY).json_client(
         headers=jiuyan_header_factory(),
-        retry_policy=DEFAULT_RETRY_POLICY,
     ) as client:
         return await fetch_industry_list_table_with_client(client, started_at=started_at)
 

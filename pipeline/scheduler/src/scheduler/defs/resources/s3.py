@@ -10,7 +10,7 @@ from scheduler.defs.config.env import (
     RUSTFS_SECRET_KEY,
 )
 from scheduler.defs.config.models import S3Config
-from scheduler.defs.storage.object_store import ImageObjectStore
+from scheduler.defs.sources.jiuyan.image_object_store import ImageObjectStore
 
 
 class S3SettingsResource(dg.ConfigurableResource):

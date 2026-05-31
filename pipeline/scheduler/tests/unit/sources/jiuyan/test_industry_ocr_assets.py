@@ -6,9 +6,11 @@ from typing import Any, cast
 
 import pyarrow as pa
 import pyarrow.fs as pafs
+from scheduler.defs.config.models import S3Config
+from scheduler.defs.sources.jiuyan.image_object_store import ImageObjectStore
 from scheduler.defs.sources.jiuyan.industry_ocr import discover_images_from_table
 from scheduler.defs.sources.jiuyan.ocr_schema import ocr_rows_to_table
-from scheduler.defs.storage.object_store import ImageObjectStore, ObjectStore
+from scheduler.defs.storage.object_store import ObjectStore
 
 
 def local_filesystem() -> Any:
@@ -67,6 +69,12 @@ class JiuyanIndustryOcrAssetsTest(unittest.TestCase):
                 object_store=ObjectStore(
                     filesystem=local_filesystem(),
                     bucket=bucket,
+                    s3_config=S3Config(
+                        endpoint="http://localhost:9000",
+                        bucket=bucket,
+                        access_key="access",
+                        secret_key="secret",
+                    ),
                 )
             )
             key = image_store.write_ocr_result_table("one.png", table)

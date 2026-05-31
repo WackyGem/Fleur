@@ -1,8 +1,9 @@
 from __future__ import annotations
 
-import asyncio
 from collections.abc import Awaitable, Callable, Sequence
 from dataclasses import dataclass, field
+
+from scheduler.defs.common.concurrency import BoundedTaskRunner
 
 
 @dataclass
@@ -22,16 +23,20 @@ async def run_bounded_ocr_batch[T](
         raise ValueError(msg)
 
     result = OcrBatchResult[T]()
-    semaphore = asyncio.Semaphore(max_concurrent_requests)
 
-    async def run_one(item: T) -> None:
-        async with semaphore:
-            try:
-                await process_item(item)
-            except Exception:
-                result.failure_count += 1
-                raise
-            result.successes.append(item)
+    async def worker(item: T) -> T:
+        await process_item(item)
+        return item
 
-    await asyncio.gather(*(run_one(item) for item in items))
+    runner_result = await BoundedTaskRunner(max_concurrent_requests).run(
+        items,
+        item_key=str,
+        worker=worker,
+    )
+    result.successes.extend(runner_result.successes)
+    result.failure_count = runner_result.failure_count
+    if runner_result.failures:
+        failure = runner_result.failures[0]
+        msg = failure.error_message
+        raise RuntimeError(msg)
     return result
