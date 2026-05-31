@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 from dataclasses import dataclass
-from datetime import date
 
 import dagster as dg
 import pyarrow as pa
@@ -10,10 +9,6 @@ import pyarrow.parquet as pq
 from pyarrow import ArrowException
 
 from scheduler.defs.config.models import S3Config
-from scheduler.defs.market.asset_keys import (
-    BAOSTOCK_STOCK_BASIC_ASSET_KEY,
-    SINA_TRADE_CALENDAR_ASSET_KEY,
-)
 from scheduler.defs.storage.s3 import (
     StorageMode,
     asset_key_to_parquet_object_key,
@@ -51,44 +46,6 @@ def read_parquet_table_from_s3(
     except Exception as error:
         msg = f"Failed to read parquet table from s3://{path}"
         raise RuntimeError(msg) from error
-
-
-def read_sina_trade_calendar_dates_from_s3(config: S3Config) -> set[date]:
-    table = read_parquet_table_from_s3(
-        config,
-        SINA_TRADE_CALENDAR_ASSET_KEY,
-        storage_mode="latest_snapshot",
-    )
-    if "trade_date" not in table.column_names:
-        msg = "Sina trade calendar parquet is missing the trade_date column"
-        raise ValueError(msg)
-    if table.num_rows == 0:
-        msg = "Sina trade calendar parquet is empty"
-        raise ValueError(msg)
-
-    values = table.column("trade_date").to_pylist()
-    trade_dates = {value for value in values if isinstance(value, date)}
-    if not trade_dates:
-        msg = "Sina trade calendar parquet contains no valid trade_date values"
-        raise ValueError(msg)
-    return trade_dates
-
-
-def trade_date_partition_keys_for_year(
-    year: int,
-    *,
-    trade_dates: set[date],
-    refresh_until_trade_date: date | None = None,
-) -> list[str]:
-    start_date = date(year, 1, 1)
-    end_date = date(year, 12, 31)
-    if refresh_until_trade_date is not None:
-        end_date = min(end_date, refresh_until_trade_date)
-    return [
-        trade_date.isoformat()
-        for trade_date in sorted(trade_dates)
-        if start_date <= trade_date <= end_date
-    ]
 
 
 def read_partitioned_parquet_tables_from_s3(
@@ -139,14 +96,6 @@ def read_partitioned_parquet_tables_from_s3(
         read_partition_keys=read_partition_keys,
         missing_partition_keys=missing_partition_keys,
         empty_partition_keys=empty_partition_keys,
-    )
-
-
-def read_baostock_stock_basic_from_s3(config: S3Config) -> pa.Table:
-    return read_parquet_table_from_s3(
-        config,
-        BAOSTOCK_STOCK_BASIC_ASSET_KEY,
-        storage_mode="latest_snapshot",
     )
 
 

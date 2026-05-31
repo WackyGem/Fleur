@@ -1,28 +1,15 @@
 from __future__ import annotations
 
 from collections.abc import Callable
-from dataclasses import dataclass
 from datetime import date
-from typing import Protocol
 from zoneinfo import ZoneInfo
 
 import dagster as dg
 
 from scheduler.defs.automation.schedules import ScheduleSpec, build_schedule
 from scheduler.defs.config.models import S3Config
-from scheduler.defs.market.trade_calendar import is_market_trade_date, read_trade_dates_from_s3
-
-
-class TradeCalendarReader(Protocol):
-    def read_trade_dates(self) -> set[date]: ...
-
-
-@dataclass(frozen=True)
-class S3TradeCalendarReader:
-    s3_config: S3Config
-
-    def read_trade_dates(self) -> set[date]:
-        return read_trade_dates_from_s3(self.s3_config)
+from scheduler.defs.market.readers import S3TradeCalendarReader, TradeCalendarReader
+from scheduler.defs.market.trade_calendar import is_market_trade_date
 
 
 def build_trade_date_schedule(
@@ -39,7 +26,7 @@ def build_trade_date_schedule(
 ) -> dg.ScheduleDefinition:
     timezone = ZoneInfo(execution_timezone)
     reader_factory = trade_calendar_reader_factory or (
-        lambda: S3TradeCalendarReader(S3Config.from_env())
+        lambda: S3TradeCalendarReader.from_s3_config(S3Config.from_env())
     )
 
     def evaluate_trade_date_schedule(

@@ -12,8 +12,8 @@ from scheduler.defs.asset_contracts import (
     source_owners,
     source_tags,
 )
+from scheduler.defs.common.async_boundary import run_async_boundary
 from scheduler.defs.common.metadata import RawMetadataValue, http_stats_metadata
-from scheduler.defs.common.retry import DEFAULT_RETRY_POLICY
 from scheduler.defs.common.strings import required_string
 from scheduler.defs.config.env import JIUYAN_COOKIE, JIUYAN_TOKEN
 from scheduler.defs.http.client import (
@@ -36,6 +36,7 @@ from scheduler.defs.http.schemas import (
     jiuyan_action_field_to_table,
 )
 from scheduler.defs.market.asset_keys import SINA_TRADE_CALENDAR_ASSET_KEY, SOURCE_ASSET_KEY_PREFIX
+from scheduler.defs.resources.http import HttpClientFactoryResource
 from scheduler.defs.resources.s3 import S3SettingsResource
 
 JIUYAN_ACTION_FIELD_URL = "https://app.jiuyangongshe.com/jystock-app/api/v1/action/field"
@@ -91,10 +92,19 @@ def jiuyan__action_field(
     context: dg.AssetExecutionContext,
     config: MarketEventBackfillConfig,
     s3_settings: S3SettingsResource,
+    http_client_factory: HttpClientFactoryResource,
 ) -> dg.MaterializeResult:
     """JiuYan action-field market-event content by trade-date partition."""
 
-    result = asyncio.run(_materialize_action_field_range(context, config, s3_settings))
+    result = run_async_boundary(
+        _materialize_action_field_range(
+            context,
+            config,
+            s3_settings,
+            http_client_factory.factory(),
+        ),
+        context="JiuYan action-field materialization",
+    )
     return dg.MaterializeResult(metadata=result.metadata)
 
 
@@ -102,8 +112,9 @@ async def _materialize_action_field_range(
     context: dg.AssetExecutionContext,
     config: MarketEventBackfillConfig,
     s3_settings: S3SettingsResource,
+    http_client_factory: HttpClientFactory,
 ) -> TradeDateRangeMaterializationResult:
-    async with HttpClientFactory(retry_policy=DEFAULT_RETRY_POLICY).json_client(
+    async with http_client_factory.json_client(
         headers=jiuyan_header_factory(),
         request_delay=config.request_delay,
     ) as client:

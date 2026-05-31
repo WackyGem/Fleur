@@ -3,6 +3,8 @@ from __future__ import annotations
 from pathlib import Path
 
 from scheduler.defs.definitions import SOURCE_BUNDLES
+from scheduler.defs.market.asset_keys import BAOSTOCK_STOCK_BASIC_ASSET_KEY
+from scheduler.defs.sources.eastmoney.assets import EASTMONEY_ASSETS
 
 
 def test_source_assets_have_contract_metadata_and_tags() -> None:
@@ -44,3 +46,10 @@ def test_eastmoney_assets_do_not_use_dynamic_global_exports() -> None:
     )
 
     assert "globals(" not in content
+
+
+def test_eastmoney_assets_only_depend_on_baostock_stock_basic() -> None:
+    expected = {BAOSTOCK_STOCK_BASIC_ASSET_KEY}
+
+    for asset in EASTMONEY_ASSETS:
+        assert asset.dependency_keys == expected, asset.node_def.name

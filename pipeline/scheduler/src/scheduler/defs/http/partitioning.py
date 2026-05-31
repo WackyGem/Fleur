@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import asyncio
 import time
 from collections.abc import Awaitable, Callable, Mapping, Sequence
 from dataclasses import dataclass
@@ -11,7 +10,8 @@ import dagster as dg
 import pyarrow as pa
 
 from scheduler.defs.common.clock import elapsed_seconds
-from scheduler.defs.common.metadata import RawMetadataValue
+from scheduler.defs.common.concurrency import BoundedTaskOptions, BoundedTaskRunner
+from scheduler.defs.common.metadata import PartitionRunMetadataBuilder, RawMetadataValue
 from scheduler.defs.config.models import S3Config
 from scheduler.defs.market.asset_keys import SINA_TRADE_CALENDAR_ASSET_KEY
 from scheduler.defs.market.trade_calendar import read_trade_dates_from_s3
@@ -71,6 +71,14 @@ class PartitionRangeMaterializationResult:
     metadata: dict[str, RawMetadataValue]
 
 
+@dataclass(frozen=True)
+class PartitionWriteResult:
+    partition_key: str
+    table: pa.Table
+    metadata: Mapping[str, RawMetadataValue]
+    object_keys: list[str]
+
+
 async def materialize_partition_range(
     context: PartitionedAssetContextProtocol,
     *,
@@ -107,52 +115,52 @@ async def materialize_partition_range(
         allow_empty=True,
         partition_key_name=partition_key_name,
     )
-    semaphore = asyncio.Semaphore(max_concurrent_partitions)
-    completed: dict[str, pa.Table] = {}
-    failed_partition_keys: list[str] = []
-    failed_partition_errors: dict[str, dict[str, str]] = {}
-    per_partition_metadata: dict[str, Mapping[str, RawMetadataValue]] = {}
-    written_object_keys: list[str] = []
     started_at = time.perf_counter()
 
-    async def fetch_and_write(partition_key: str) -> None:
-        async with semaphore:
-            try:
-                table, metadata = await fetch_table_for_partition(partition_key)
-                write_result = service.write_partitioned(
-                    location,
-                    {partition_key: table},
-                    write_options,
-                )
-            except Exception as error:
-                failed_partition_keys.append(partition_key)
-                failed_partition_errors[partition_key] = {
-                    "type": type(error).__name__,
-                    "message": str(error),
-                }
-                return  # 不抛出异常，让其他任务继续
+    async def fetch_and_write(partition_key: str) -> PartitionWriteResult:
+        table, metadata = await fetch_table_for_partition(partition_key)
+        write_result = service.write_partitioned(
+            location,
+            {partition_key: table},
+            write_options,
+        )
+        return PartitionWriteResult(
+            partition_key=partition_key,
+            table=table,
+            metadata=dict(metadata),
+            object_keys=service.object_keys(write_result),
+        )
 
-            completed[partition_key] = table
-            per_partition_metadata[partition_key] = dict(metadata)
-            written_object_keys.extend(service.object_keys(write_result))
-
-    async with asyncio.TaskGroup() as task_group:
-        for partition_key in processed_partition_keys:
-            task_group.create_task(fetch_and_write(partition_key))
+    runner_result = await BoundedTaskRunner(
+        BoundedTaskOptions(
+            max_concurrent_tasks=max_concurrent_partitions,
+            preserve_order=True,
+        )
+    ).run(
+        processed_partition_keys,
+        item_key=str,
+        worker=fetch_and_write,
+    )
 
     finished_at = time.perf_counter()
+    completed = {
+        partition_result.partition_key: partition_result.table
+        for partition_result in runner_result.successes
+    }
+    per_partition_metadata = {
+        partition_result.partition_key: partition_result.metadata
+        for partition_result in runner_result.successes
+    }
+    written_object_keys = [
+        object_key
+        for partition_result in runner_result.successes
+        for object_key in partition_result.object_keys
+    ]
     row_counts = {key: table.num_rows for key, table in completed.items()}
     column_counts = {key: table.num_columns for key, table in completed.items()}
     metadata: dict[str, RawMetadataValue] = {
         "backfill_start_partition_key": partition_keys[0],
         "backfill_end_partition_key": partition_keys[-1],
-        "requested_partition_count": len(partition_keys),
-        "processed_partition_count": len(processed_partition_keys),
-        "skipped_partition_count": len(skipped_partition_keys),
-        "completed_partition_count": len(completed),
-        "failed_partition_count": len(failed_partition_keys),
-        "failed_partition_keys": dg.MetadataValue.json(failed_partition_keys),
-        "failed_partition_errors": dg.MetadataValue.json(failed_partition_errors),
         "max_concurrent_partitions": max_concurrent_partitions,
         "partition_keys": dg.MetadataValue.json(partition_keys),
         "processed_partition_keys": dg.MetadataValue.json(processed_partition_keys),
@@ -170,6 +178,15 @@ async def materialize_partition_range(
         "partition_metadata": dg.MetadataValue.json(_json_safe_mapping(per_partition_metadata)),
         "asset_function_seconds": elapsed_seconds(started_at, finished_at),
     }
+    metadata.update(
+        PartitionRunMetadataBuilder().build_counts(
+            requested_count=len(partition_keys),
+            processed_count=len(processed_partition_keys),
+            skipped_count=len(skipped_partition_keys),
+            completed_count=len(completed),
+        )
+    )
+    metadata.update(runner_result.metadata(item_name="partition"))
     if partitions_source_asset is not None:
         metadata["partitions_source_asset"] = partitions_source_asset
     return PartitionRangeMaterializationResult(tables=completed, metadata=metadata)

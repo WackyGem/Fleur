@@ -9,6 +9,7 @@ import pyarrow as pa
 
 from scheduler.defs.common.metadata import RawMetadataValue
 from scheduler.defs.config.models import JiuyanOcrConfig, S3Config
+from scheduler.defs.http.client_factory import HttpClientFactory
 from scheduler.defs.partitioning.policies import FailureThreshold, PartialFailurePolicy
 from scheduler.defs.repositories.industry_images import PostgresIndustryImageRepository
 from scheduler.defs.sources.jiuyan.image_object_store import ImageObjectStore
@@ -17,12 +18,12 @@ from scheduler.defs.sources.jiuyan.image_urls import (
     image_s3_key,
     parse_image_urls,
 )
-from scheduler.defs.sources.jiuyan.ocr_schema import DiscoveredIndustryImage
+from scheduler.defs.sources.jiuyan.ocr_schema import DiscoveredIndustryImage, DownloadStatus
 from scheduler.defs.sources.jiuyan.ocr_services import (
     download_images_to_s3,
     process_ocr_images,
 )
-from scheduler.defs.storage.parquet_readers import read_parquet_table_from_s3
+from scheduler.defs.storage.dataset_service import DatasetLocation, DatasetReader
 
 
 class JiuyanIndustryImageWorkflow:
@@ -30,15 +31,19 @@ class JiuyanIndustryImageWorkflow:
         self,
         *,
         s3_config: S3Config,
+        dataset_reader: DatasetReader,
         repository: PostgresIndustryImageRepository,
         object_store: ImageObjectStore,
         upstream_asset_key: dg.AssetKey,
+        http_client_factory: HttpClientFactory,
         log: logging.Logger,
     ) -> None:
         self._s3_config = s3_config
+        self._dataset_reader = dataset_reader
         self._repository = repository
         self._object_store = object_store
         self._upstream_asset_key = upstream_asset_key
+        self._http_client_factory = http_client_factory
         self._log = log
 
     async def refresh_images(
@@ -49,10 +54,12 @@ class JiuyanIndustryImageWorkflow:
         image_filenames: list[str],
     ) -> dict[str, RawMetadataValue]:
         started_at = time.perf_counter()
-        upstream_table = read_parquet_table_from_s3(
-            self._s3_config,
-            self._upstream_asset_key,
-            storage_mode="latest_snapshot",
+        upstream_table = self._dataset_reader.read_latest_snapshot(
+            DatasetLocation(
+                bucket=self._s3_config.bucket,
+                object_prefix="source",
+                asset_key=self._upstream_asset_key,
+            )
         )
 
         discovered_images, discovery_stats = discover_images_from_table(upstream_table)
@@ -70,6 +77,7 @@ class JiuyanIndustryImageWorkflow:
             object_store=self._object_store,
             images=selected_images,
             log=self._log,
+            http_client_factory=self._http_client_factory,
         )
 
         return {
@@ -129,7 +137,7 @@ class JiuyanIndustryImageWorkflow:
         filtered_images: list[DiscoveredIndustryImage] = []
         skip_existing_count = 0
         for image in selected_images:
-            if current_status_by_filename.get(image.image_filename) == "success":
+            if current_status_by_filename.get(image.image_filename) is DownloadStatus.SUCCESS:
                 skip_existing_count += 1
                 continue
             filtered_images.append(image)
@@ -143,11 +151,13 @@ class JiuyanIndustryOcrWorkflow:
         repository: PostgresIndustryImageRepository,
         object_store: ImageObjectStore,
         ocr_config: JiuyanOcrConfig,
+        http_client_factory: HttpClientFactory,
         log: logging.Logger,
     ) -> None:
         self._repository = repository
         self._object_store = object_store
         self._ocr_config = ocr_config
+        self._http_client_factory = http_client_factory
         self._log = log
 
     async def refresh_ocr(
@@ -197,6 +207,7 @@ class JiuyanIndustryOcrWorkflow:
             ocr_config=self._ocr_config,
             max_concurrent_requests=effective_concurrency,
             log=self._log,
+            http_client_factory=self._http_client_factory,
         )
 
         metadata: dict[str, RawMetadataValue] = {

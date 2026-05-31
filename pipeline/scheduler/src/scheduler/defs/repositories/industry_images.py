@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import Mapping, Sequence
+from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
 from typing import Any, cast
 
@@ -11,6 +11,8 @@ from scheduler.defs.sources.jiuyan.image_urls import image_s3_key
 from scheduler.defs.sources.jiuyan.ocr_schema import (
     ClaimedIndustryImage,
     DiscoveredIndustryImage,
+    DownloadStatus,
+    OcrStatus,
 )
 
 UPSERT_DISCOVERED_IMAGE_SQL = """
@@ -163,6 +165,7 @@ order by image_filename
 
 
 DatabaseRow = Mapping[str, object]
+PipelineDatabaseConnectionFactory = Callable[[], psycopg.Connection]
 
 
 @dataclass(frozen=True)
@@ -172,8 +175,8 @@ class IndustryImageRecord:
     image_s3_key: str
     industry_id: str
     image_index: int
-    download_status: str
-    ocr_status: str
+    download_status: DownloadStatus
+    ocr_status: OcrStatus
     ocr_result_s3_key: str | None
 
 
@@ -211,9 +214,13 @@ def connect_pipeline_database(url: str) -> psycopg.Connection:
     return psycopg.connect(url, row_factory=cast(Any, dict_row))
 
 
+def connection_factory_from_url(url: str) -> PipelineDatabaseConnectionFactory:
+    return lambda: connect_pipeline_database(url)
+
+
 class PostgresIndustryImageRepository:
-    def __init__(self, url: str) -> None:
-        self._url = url
+    def __init__(self, connection_factory: PipelineDatabaseConnectionFactory) -> None:
+        self._connection_factory = connection_factory
 
     def fetch_existing_image_urls(
         self,
@@ -221,7 +228,7 @@ class PostgresIndustryImageRepository:
     ) -> dict[str, str]:
         if not image_filenames:
             return {}
-        with connect_pipeline_database(self._url) as connection, connection.cursor() as cursor:
+        with self._connection_factory() as connection, connection.cursor() as cursor:
             cursor.execute(FETCH_EXISTING_URLS_SQL, (list(image_filenames),))
             rows = cast(list[DatabaseRow], cursor.fetchall())
         return {
@@ -236,7 +243,7 @@ class PostgresIndustryImageRepository:
     ) -> list[IndustryImageRecord]:
         if not image_filenames:
             return []
-        with connect_pipeline_database(self._url) as connection, connection.cursor() as cursor:
+        with self._connection_factory() as connection, connection.cursor() as cursor:
             cursor.execute(FETCH_IMAGES_SQL, (list(image_filenames),))
             rows = cast(list[DatabaseRow], cursor.fetchall())
         return [_industry_image_record_from_row(row) for row in rows]
@@ -244,19 +251,19 @@ class PostgresIndustryImageRepository:
     def upsert_discovered_images(self, images: Sequence[DiscoveredIndustryImage]) -> int:
         if not images:
             return 0
-        with connect_pipeline_database(self._url) as connection, connection.cursor() as cursor:
-            for image in images:
-                cursor.execute(
-                    UPSERT_DISCOVERED_IMAGE_SQL,
-                    {
-                        "image_filename": image.image_filename,
-                        "image_url": image.image_url,
-                        "image_s3_key": image_s3_key(image.image_filename),
-                        "industry_id": image.industry_id,
-                        "image_index": image.image_index,
-                    },
-                )
-        return len(images)
+        params = [
+            {
+                "image_filename": image.image_filename,
+                "image_url": image.image_url,
+                "image_s3_key": image_s3_key(image.image_filename),
+                "industry_id": image.industry_id,
+                "image_index": image.image_index,
+            }
+            for image in images
+        ]
+        with self._connection_factory() as connection, connection.cursor() as cursor:
+            cursor.executemany(UPSERT_DISCOVERED_IMAGE_SQL, params)
+            return int(cursor.rowcount)
 
     def mark_download_success(
         self,
@@ -280,18 +287,18 @@ class PostgresIndustryImageRepository:
     def mark_download_success_many(self, updates: Sequence[DownloadSuccessUpdate]) -> int:
         if not updates:
             return 0
-        with connect_pipeline_database(self._url) as connection, connection.cursor() as cursor:
-            for update in updates:
-                cursor.execute(
-                    MARK_DOWNLOAD_SUCCESS_SQL,
-                    {
-                        "image_filename": update.image_filename,
-                        "image_s3_key": update.image_s3_key,
-                        "download_sha256": update.download_sha256,
-                        "download_bytes": update.download_bytes,
-                    },
-                )
-        return len(updates)
+        params = [
+            {
+                "image_filename": update.image_filename,
+                "image_s3_key": update.image_s3_key,
+                "download_sha256": update.download_sha256,
+                "download_bytes": update.download_bytes,
+            }
+            for update in updates
+        ]
+        with self._connection_factory() as connection, connection.cursor() as cursor:
+            cursor.executemany(MARK_DOWNLOAD_SUCCESS_SQL, params)
+            return int(cursor.rowcount)
 
     def mark_download_failed(
         self,
@@ -313,17 +320,17 @@ class PostgresIndustryImageRepository:
     def mark_download_failed_many(self, updates: Sequence[DownloadFailureUpdate]) -> int:
         if not updates:
             return 0
-        with connect_pipeline_database(self._url) as connection, connection.cursor() as cursor:
-            for update in updates:
-                cursor.execute(
-                    MARK_DOWNLOAD_FAILED_SQL,
-                    {
-                        "image_filename": update.image_filename,
-                        "download_error_type": update.error_type,
-                        "download_error_message": update.error_message,
-                    },
-                )
-        return len(updates)
+        params = [
+            {
+                "image_filename": update.image_filename,
+                "download_error_type": update.error_type,
+                "download_error_message": update.error_message,
+            }
+            for update in updates
+        ]
+        with self._connection_factory() as connection, connection.cursor() as cursor:
+            cursor.executemany(MARK_DOWNLOAD_FAILED_SQL, params)
+            return int(cursor.rowcount)
 
     def mark_ocr_success(
         self,
@@ -347,18 +354,18 @@ class PostgresIndustryImageRepository:
     def mark_ocr_success_many(self, updates: Sequence[OcrSuccessUpdate]) -> int:
         if not updates:
             return 0
-        with connect_pipeline_database(self._url) as connection, connection.cursor() as cursor:
-            for update in updates:
-                cursor.execute(
-                    MARK_OCR_SUCCESS_SQL,
-                    {
-                        "image_filename": update.image_filename,
-                        "ocr_result_s3_key": update.ocr_result_s3_key,
-                        "ocr_result_row_count": update.ocr_result_row_count,
-                        "ocr_model": update.ocr_model,
-                    },
-                )
-        return len(updates)
+        params = [
+            {
+                "image_filename": update.image_filename,
+                "ocr_result_s3_key": update.ocr_result_s3_key,
+                "ocr_result_row_count": update.ocr_result_row_count,
+                "ocr_model": update.ocr_model,
+            }
+            for update in updates
+        ]
+        with self._connection_factory() as connection, connection.cursor() as cursor:
+            cursor.executemany(MARK_OCR_SUCCESS_SQL, params)
+            return int(cursor.rowcount)
 
     def mark_ocr_failed(
         self,
@@ -380,22 +387,22 @@ class PostgresIndustryImageRepository:
     def mark_ocr_failed_many(self, updates: Sequence[OcrFailureUpdate]) -> int:
         if not updates:
             return 0
-        with connect_pipeline_database(self._url) as connection, connection.cursor() as cursor:
-            for update in updates:
-                cursor.execute(
-                    MARK_OCR_FAILED_SQL,
-                    {
-                        "image_filename": update.image_filename,
-                        "ocr_error_type": update.error_type,
-                        "ocr_error_message": update.error_message,
-                    },
-                )
-        return len(updates)
+        params = [
+            {
+                "image_filename": update.image_filename,
+                "ocr_error_type": update.error_type,
+                "ocr_error_message": update.error_message,
+            }
+            for update in updates
+        ]
+        with self._connection_factory() as connection, connection.cursor() as cursor:
+            cursor.executemany(MARK_OCR_FAILED_SQL, params)
+            return int(cursor.rowcount)
 
     def reset_ocr_status(self, image_filenames: Sequence[str]) -> int:
         if not image_filenames:
             return 0
-        with connect_pipeline_database(self._url) as connection, connection.cursor() as cursor:
+        with self._connection_factory() as connection, connection.cursor() as cursor:
             cursor.execute(RESET_OCR_STATUS_SQL, (list(image_filenames),))
             return int(cursor.rowcount)
 
@@ -426,7 +433,7 @@ class PostgresIndustryImageRepository:
             "image_filenames": list(image_filenames or []),
             "limit_value": limit_value,
         }
-        with connect_pipeline_database(self._url) as connection, connection.cursor() as cursor:
+        with self._connection_factory() as connection, connection.cursor() as cursor:
             cursor.execute(sql, params)
             rows = cast(list[DatabaseRow], cursor.fetchall())
         claimed: list[ClaimedIndustryImage] = []
@@ -438,8 +445,8 @@ class PostgresIndustryImageRepository:
                     image_s3_key=str(row["image_s3_key"]),
                     industry_id=str(row["industry_id"]),
                     image_index=_required_int(row["image_index"], field_name="image_index"),
-                    download_status=str(row["download_status"]),
-                    ocr_status=str(row["ocr_status"]),
+                    download_status=_download_status_from_row(row, "download_status"),
+                    ocr_status=_ocr_status_from_row(row, "ocr_status"),
                     ocr_result_s3_key=(
                         None
                         if row.get("ocr_result_s3_key") is None
@@ -457,8 +464,8 @@ def _industry_image_record_from_row(row: DatabaseRow) -> IndustryImageRecord:
         image_s3_key=str(row["image_s3_key"]),
         industry_id=str(row["industry_id"]),
         image_index=_required_int(row["image_index"], field_name="image_index"),
-        download_status=str(row["download_status"]),
-        ocr_status=str(row["ocr_status"]),
+        download_status=_download_status_from_row(row, "download_status"),
+        ocr_status=_ocr_status_from_row(row, "ocr_status"),
         ocr_result_s3_key=(
             None if row.get("ocr_result_s3_key") is None else str(row["ocr_result_s3_key"])
         ),
@@ -470,3 +477,31 @@ def _required_int(value: object, *, field_name: str) -> int:
         msg = f"{field_name} must be an integer"
         raise RuntimeError(msg)
     return value
+
+
+def _download_status_from_row(row: DatabaseRow, field_name: str) -> DownloadStatus:
+    value = row[field_name]
+    if isinstance(value, DownloadStatus):
+        return value
+    if isinstance(value, str):
+        try:
+            return DownloadStatus(value)
+        except ValueError as error:
+            msg = f"{field_name} has invalid download status value: {value!r}"
+            raise RuntimeError(msg) from error
+    msg = f"{field_name} has invalid download status value: {value!r}"
+    raise RuntimeError(msg)
+
+
+def _ocr_status_from_row(row: DatabaseRow, field_name: str) -> OcrStatus:
+    value = row[field_name]
+    if isinstance(value, OcrStatus):
+        return value
+    if isinstance(value, str):
+        try:
+            return OcrStatus(value)
+        except ValueError as error:
+            msg = f"{field_name} has invalid OCR status value: {value!r}"
+            raise RuntimeError(msg) from error
+    msg = f"{field_name} has invalid OCR status value: {value!r}"
+    raise RuntimeError(msg)

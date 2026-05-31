@@ -1,4 +1,3 @@
-import asyncio
 import time
 from collections.abc import Mapping
 from datetime import date
@@ -12,9 +11,9 @@ from scheduler.defs.asset_contracts import (
     source_owners,
     source_tags,
 )
+from scheduler.defs.common.async_boundary import run_async_boundary
 from scheduler.defs.common.metadata import RawMetadataValue, http_stats_metadata
 from scheduler.defs.common.numbers import positive_int_or_default
-from scheduler.defs.common.retry import DEFAULT_RETRY_POLICY
 from scheduler.defs.http.client import (
     HttpRequest,
     browser_json_headers,
@@ -35,6 +34,7 @@ from scheduler.defs.http.schemas import (
     ths_limit_up_pool_to_table,
 )
 from scheduler.defs.market.asset_keys import SINA_TRADE_CALENDAR_ASSET_KEY, SOURCE_ASSET_KEY_PREFIX
+from scheduler.defs.resources.http import HttpClientFactoryResource
 from scheduler.defs.resources.s3 import S3SettingsResource
 
 THS_LIMIT_UP_POOL_URL = "https://data.10jqka.com.cn/dataapi/limit_up/limit_up_pool"
@@ -70,10 +70,19 @@ def ths__limit_up_pool(
     context: dg.AssetExecutionContext,
     config: ThsLimitUpPoolConfig,
     s3_settings: S3SettingsResource,
+    http_client_factory: HttpClientFactoryResource,
 ) -> dg.MaterializeResult:
     """TongHuaShun limit-up pool pages by trade-date partition."""
 
-    result = asyncio.run(_materialize_limit_up_pool_range(context, config, s3_settings))
+    result = run_async_boundary(
+        _materialize_limit_up_pool_range(
+            context,
+            config,
+            s3_settings,
+            http_client_factory.factory(),
+        ),
+        context="THS limit-up pool materialization",
+    )
     return dg.MaterializeResult(metadata=result.metadata)
 
 
@@ -81,8 +90,9 @@ async def _materialize_limit_up_pool_range(
     context: dg.AssetExecutionContext,
     config: ThsLimitUpPoolConfig,
     s3_settings: S3SettingsResource,
+    http_client_factory: HttpClientFactory,
 ) -> TradeDateRangeMaterializationResult:
-    async with HttpClientFactory(retry_policy=DEFAULT_RETRY_POLICY).json_client(
+    async with http_client_factory.json_client(
         headers=with_referer(browser_json_headers(), THS_LIMIT_UP_POOL_REFERER),
         request_delay=config.request_delay,
     ) as client:

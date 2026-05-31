@@ -1,21 +1,23 @@
 from __future__ import annotations
 
-import asyncio
 import time
 from collections import Counter
+from contextlib import AbstractAsyncContextManager
 from dataclasses import dataclass
 from datetime import date
-from typing import Any
+from typing import Any, Protocol
 
 import dagster as dg
 import pyarrow as pa
 
+from scheduler.defs.common.async_boundary import run_async_boundary
 from scheduler.defs.common.clock import elapsed_seconds
-from scheduler.defs.config.models import S3Config
+from scheduler.defs.common.concurrency import BoundedTaskOptions, BoundedTaskRunner
+from scheduler.defs.market.readers import SecurityUniverseReader
 from scheduler.defs.market.securities import filter_active_security_ranges
 from scheduler.defs.sources.eastmoney.client import (
     EASTMONEY_CODE_CONCURRENCY,
-    EastmoneyAioHttpClient,
+    EastmoneyFetchStats,
 )
 from scheduler.defs.sources.eastmoney.schema import (
     EastmoneyEndpointConfig,
@@ -23,7 +25,22 @@ from scheduler.defs.sources.eastmoney.schema import (
     eastmoney_rows_to_table,
     empty_eastmoney_table,
 )
-from scheduler.defs.storage.parquet_readers import read_baostock_stock_basic_from_s3
+
+
+class EastmoneyClientProtocol(Protocol):
+    stats: EastmoneyFetchStats
+
+    async def fetch_code_range(
+        self,
+        endpoint: EastmoneyEndpointConfig,
+        code: str,
+        start_date: date,
+        end_date: date,
+    ) -> list[dict[str, object]]: ...
+
+
+class EastmoneyClientFactory(Protocol):
+    def client(self) -> AbstractAsyncContextManager[EastmoneyClientProtocol]: ...
 
 
 @dataclass(frozen=True)
@@ -40,20 +57,32 @@ class EastmoneyRefreshResult:
 
 
 class EastmoneyYearRefreshService:
-    def __init__(self, s3_config: S3Config) -> None:
-        self._s3_config = s3_config
+    def __init__(
+        self,
+        *,
+        security_universe_reader: SecurityUniverseReader,
+        client_factory: EastmoneyClientFactory,
+    ) -> None:
+        self._security_universe_reader = security_universe_reader
+        self._client_factory = client_factory
 
     def refresh(self, request: EastmoneyRefreshRequest) -> EastmoneyRefreshResult:
         started_at = time.perf_counter()
-        stock_basic = read_baostock_stock_basic_from_s3(self._s3_config)
+        stock_basic = self._security_universe_reader.read_stock_basic()
         stock_basic_read_at = time.perf_counter()
         year_ranges = build_year_ranges(
             request.partition_keys,
             refresh_until_date=request.refresh_until_date,
         )
         year_ranges_built_at = time.perf_counter()
-        tables, metadata = asyncio.run(
-            fetch_eastmoney_tables(request.endpoint, stock_basic, year_ranges)
+        tables, metadata = run_async_boundary(
+            fetch_eastmoney_tables(
+                request.endpoint,
+                stock_basic,
+                year_ranges,
+                self._client_factory,
+            ),
+            context=f"EastMoney refresh for {request.endpoint.asset_name}",
         )
         remote_fetch_finished_at = time.perf_counter()
 
@@ -91,6 +120,7 @@ async def fetch_eastmoney_tables(
     endpoint: EastmoneyEndpointConfig,
     stock_basic: pa.Table,
     year_ranges: dict[str, tuple[date, date]],
+    client_factory: EastmoneyClientFactory,
 ) -> tuple[dict[str, pa.Table], dict[str, Any]]:
     started_at = time.perf_counter()
     candidate_security_count = stock_basic.num_rows
@@ -100,51 +130,58 @@ async def fetch_eastmoney_tables(
     unsupported_market_code_counts: dict[str, int] = {}
     selected_security_types: Counter[str] = Counter()
 
-    async with EastmoneyAioHttpClient() as client:
+    async with client_factory.client() as client:
         client_started_at = time.perf_counter()
-        async with asyncio.TaskGroup() as task_group:
-            tasks: list[tuple[str, str, date, date, asyncio.Task[list[dict[str, object]]]]] = []
-            for year, (start_date, end_date) in year_ranges.items():
-                security_ranges = filter_active_security_ranges(
-                    stock_basic,
-                    requested_start_date=start_date,
-                    requested_end_date=end_date,
-                    allowed_security_types=frozenset({"1"}),
-                )
-                selected_security_counts[year] = len(security_ranges)
-                skipped_security_counts[year] = candidate_security_count - len(security_ranges)
-                selected_security_types.update(
-                    security_range.security_type for security_range in security_ranges
-                )
-                unsupported_market_code_count = 0
-                for security_range in security_ranges:
-                    eastmoney_code = baostock_code_to_eastmoney_code(security_range.code)
-                    if eastmoney_code is None:
-                        unsupported_market_code_count += 1
-                        continue
-                    task = task_group.create_task(
-                        client.fetch_code_range(
-                            endpoint,
-                            eastmoney_code,
-                            security_range.start_date,
-                            security_range.end_date,
-                        )
+        tasks: list[tuple[str, str, date, date]] = []
+        for year, (start_date, end_date) in year_ranges.items():
+            security_ranges = filter_active_security_ranges(
+                stock_basic,
+                requested_start_date=start_date,
+                requested_end_date=end_date,
+                allowed_security_types=frozenset({"1"}),
+            )
+            selected_security_counts[year] = len(security_ranges)
+            skipped_security_counts[year] = candidate_security_count - len(security_ranges)
+            selected_security_types.update(
+                security_range.security_type for security_range in security_ranges
+            )
+            unsupported_market_code_count = 0
+            for security_range in security_ranges:
+                eastmoney_code = baostock_code_to_eastmoney_code(security_range.code)
+                if eastmoney_code is None:
+                    unsupported_market_code_count += 1
+                    continue
+                tasks.append(
+                    (
+                        year,
+                        eastmoney_code,
+                        security_range.start_date,
+                        security_range.end_date,
                     )
-                    tasks.append(
-                        (
-                            year,
-                            eastmoney_code,
-                            security_range.start_date,
-                            security_range.end_date,
-                            task,
-                        )
-                    )
-                unsupported_market_code_counts[year] = unsupported_market_code_count
-            tasks_scheduled_at = time.perf_counter()
+                )
+            unsupported_market_code_counts[year] = unsupported_market_code_count
+        tasks_scheduled_at = time.perf_counter()
 
-        for _year, _eastmoney_code, _start_date, _end_date, task in tasks:
-            for row in task.result():
-                annual_rows[_year].append(EastmoneyFetchedRow(data=row))
+        async def fetch_one(
+            item: tuple[str, str, date, date],
+        ) -> tuple[str, list[dict[str, object]]]:
+            year, eastmoney_code, start_date, end_date = item
+            rows = await client.fetch_code_range(endpoint, eastmoney_code, start_date, end_date)
+            return year, rows
+
+        runner_result = await BoundedTaskRunner(
+            BoundedTaskOptions(
+                max_concurrent_tasks=EASTMONEY_CODE_CONCURRENCY,
+                preserve_order=True,
+            )
+        ).run(
+            tasks,
+            item_key=lambda item: f"{item[0]}:{item[1]}",
+            worker=fetch_one,
+        )
+
+        for year, rows in runner_result.successes:
+            annual_rows[year].extend(EastmoneyFetchedRow(data=row) for row in rows)
         tasks_finished_at = time.perf_counter()
         fetch_stats = client.stats
 
@@ -200,6 +237,7 @@ async def fetch_eastmoney_tables(
         ),
         "table_convert_seconds": elapsed_seconds(table_convert_started_at, table_built_at),
         "eastmoney_fetch_total_seconds": elapsed_seconds(started_at, table_built_at),
+        **runner_result.metadata(item_name="security"),
     }
 
 

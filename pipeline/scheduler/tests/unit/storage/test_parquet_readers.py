@@ -8,13 +8,14 @@ import pyarrow as pa
 import pyarrow.parquet as pq
 import pytest
 from scheduler.defs.config.models import S3Config
+from scheduler.defs.market.trade_calendar import trade_date_partition_keys_for_year
 from scheduler.defs.storage import parquet_readers
 from scheduler.defs.storage.s3 import asset_key_to_parquet_object_key
 from tests.fakes.storage import local_filesystem
 
 
 def test_trade_date_partition_keys_for_year_filters_and_sorts_dates() -> None:
-    partition_keys = parquet_readers.trade_date_partition_keys_for_year(
+    partition_keys = trade_date_partition_keys_for_year(
         2026,
         trade_dates={
             date(2026, 1, 5),

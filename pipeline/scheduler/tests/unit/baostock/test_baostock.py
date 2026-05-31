@@ -6,7 +6,7 @@ from typing import Any, cast
 
 import dagster as dg
 import pytest
-from scheduler.defs.baostock import assets, services
+from scheduler.defs.baostock import assets
 from scheduler.defs.baostock.client import BaostockAioTcpClient
 from scheduler.defs.baostock.protocol import (
     MESSAGE_END,
@@ -27,7 +27,7 @@ from scheduler.defs.baostock.schemas import (
     stock_basic_response_to_table,
 )
 from tests.fakes.baostock import (
-    FakeBaostockAssetClient,
+    FakeBaostockClientFactory,
     baostock_response,
     client_config,
     queued_baostock_client,
@@ -347,15 +347,14 @@ def test_empty_k_history_table_uses_daily_schema() -> None:
     assert table.num_rows == 0
 
 
-def test_fetch_stock_basic_table_uses_client_and_converts_response(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    monkeypatch.setattr(services, "BaostockAioTcpClient", FakeBaostockAssetClient)
+def test_fetch_stock_basic_table_uses_client_and_converts_response() -> None:
+    factory = FakeBaostockClientFactory()
 
-    table, metadata = asyncio.run(assets.fetch_stock_basic_table())
+    table, metadata = asyncio.run(assets.fetch_stock_basic_table(factory))
 
     assert table.column_names == STOCK_BASIC_FIELDS
     assert table["code"].to_pylist() == ["sh.600000"]
+    assert factory.created_max_connections == [None]
     assert set(metadata) == {
         "baostock_client_start_seconds",
         "baostock_query_seconds",
@@ -365,10 +364,8 @@ def test_fetch_stock_basic_table_uses_client_and_converts_response(
     }
 
 
-def test_fetch_k_history_tables_filters_active_securities_and_builds_metadata(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    monkeypatch.setattr(services, "BaostockAioTcpClient", FakeBaostockAssetClient)
+def test_fetch_k_history_tables_filters_active_securities_and_builds_metadata() -> None:
+    factory = FakeBaostockClientFactory()
     stock_basic = stock_basic_response_to_table(
         baostock_response(
             records=[
@@ -384,9 +381,11 @@ def test_fetch_k_history_tables_filters_active_securities_and_builds_metadata(
         assets.fetch_k_history_tables(
             stock_basic,
             {"2026": (date(2026, 1, 1), date(2026, 12, 31))},
+            factory,
         )
     )
 
+    assert factory.created_max_connections == [30]
     assert set(tables) == {"2026"}
     assert tables["2026"].num_rows == 2
     assert tables["2026"].column_names == K_HISTORY_DAILY_FIELDS
@@ -399,10 +398,8 @@ def test_fetch_k_history_tables_filters_active_securities_and_builds_metadata(
     }
 
 
-def test_fetch_k_history_tables_returns_empty_metadata_when_no_security_is_selected(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    monkeypatch.setattr(services, "BaostockAioTcpClient", FakeBaostockAssetClient)
+def test_fetch_k_history_tables_returns_empty_metadata_when_no_security_is_selected() -> None:
+    factory = FakeBaostockClientFactory()
     stock_basic = stock_basic_response_to_table(
         baostock_response(
             records=[["bj.430047", "北交所", "2020-01-01", "", "9", "1"]],
@@ -414,6 +411,7 @@ def test_fetch_k_history_tables_returns_empty_metadata_when_no_security_is_selec
         assets.fetch_k_history_tables(
             stock_basic,
             {"2026": (date(2026, 1, 1), date(2026, 12, 31))},
+            factory,
         )
     )
 

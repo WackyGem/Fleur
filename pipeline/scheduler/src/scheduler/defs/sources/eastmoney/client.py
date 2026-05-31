@@ -57,6 +57,7 @@ class EastmoneyAioHttpClient:
         retry_policy: ExponentialBackoffPolicy = DEFAULT_RETRY_POLICY,
         max_attempts: int = EASTMONEY_MAX_ATTEMPTS,
         http_client: HttpJsonStatsContextClientProtocol | None = None,
+        http_client_factory: HttpClientFactory | None = None,
     ) -> None:
         if code_concurrency_limit < 1:
             msg = "code_concurrency_limit must be positive"
@@ -70,18 +71,25 @@ class EastmoneyAioHttpClient:
         self._max_attempts = max_attempts
         self._semaphore = asyncio.Semaphore(code_concurrency_limit)
         self._provided_http_client = http_client
+        self._http_client_factory = http_client_factory
         self._http_client: HttpJsonStatsContextClientProtocol | None = None
         self.stats = EastmoneyFetchStats()
 
     async def __aenter__(self) -> EastmoneyAioHttpClient:
-        self._http_client = self._provided_http_client or HttpClientFactory(
-            retry_policy=self._retry_policy
-        ).json_client(
-            headers=browser_json_headers(),
-            max_attempts=self._max_attempts,
-            connector_limit=min(self.code_concurrency_limit, HTTP_CONNECTOR_LIMIT),
-            connector_limit_per_host=min(self.code_concurrency_limit, HTTP_CONNECTOR_LIMIT),
-        )
+        if self._provided_http_client is not None:
+            self._http_client = self._provided_http_client
+        else:
+            if self._http_client_factory is None:
+                msg = (
+                    "EastmoneyAioHttpClient requires http_client_factory when no client is provided"
+                )
+                raise RuntimeError(msg)
+            self._http_client = self._http_client_factory.json_client(
+                headers=browser_json_headers(),
+                max_attempts=self._max_attempts,
+                connector_limit=min(self.code_concurrency_limit, HTTP_CONNECTOR_LIMIT),
+                connector_limit_per_host=min(self.code_concurrency_limit, HTTP_CONNECTOR_LIMIT),
+            )
         await self._http_client.__aenter__()
         return self
 

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import zlib
+from contextlib import AbstractAsyncContextManager
 from datetime import date
 
 from scheduler.defs.baostock.client import BaostockAioTcpClient
@@ -13,6 +14,7 @@ from scheduler.defs.baostock.protocol import (
     BaostockResponse,
 )
 from scheduler.defs.baostock.schemas import K_HISTORY_DAILY_FIELDS, STOCK_BASIC_FIELDS
+from scheduler.defs.baostock.services import BaostockClientProtocol
 from scheduler.defs.common.retry import ExponentialBackoffPolicy
 from scheduler.defs.config.models import BaostockClientConfig
 
@@ -75,7 +77,7 @@ class FakeBaostockAssetClient:
     def __init__(self, *args: object, **kwargs: object) -> None:
         self.history_calls: list[tuple[str, date, date]] = []
 
-    async def __aenter__(self) -> FakeBaostockAssetClient:
+    async def __aenter__(self) -> BaostockClientProtocol:
         return self
 
     async def __aexit__(
@@ -86,7 +88,11 @@ class FakeBaostockAssetClient:
     ) -> None:
         return None
 
-    async def query_stock_basic(self) -> BaostockResponse:
+    async def query_stock_basic(
+        self,
+        code: str = "",
+        code_name: str = "",
+    ) -> BaostockResponse:
         return baostock_response(
             api_name="query_stock_basic",
             records=[["sh.600000", "浦发银行", "1999-11-10", "", "1", "1"]],
@@ -122,6 +128,20 @@ class FakeBaostockAssetClient:
             ],
             field_names=K_HISTORY_DAILY_FIELDS,
         )
+
+
+class FakeBaostockClientFactory:
+    def __init__(self, client: FakeBaostockAssetClient | None = None) -> None:
+        self.created_max_connections: list[int | None] = []
+        self._client = client or FakeBaostockAssetClient()
+
+    def client(
+        self,
+        *,
+        max_connections: int | None = None,
+    ) -> AbstractAsyncContextManager[BaostockClientProtocol]:
+        self.created_max_connections.append(max_connections)
+        return self._client
 
 
 class QueuedBaostockSender:

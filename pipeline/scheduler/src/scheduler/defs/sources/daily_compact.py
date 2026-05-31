@@ -6,12 +6,10 @@ from zoneinfo import ZoneInfo
 import dagster as dg
 import pyarrow as pa
 
-from scheduler.defs.market.trade_calendar import read_trade_dates_from_s3
+from scheduler.defs.market.readers import S3TradeCalendarReader
+from scheduler.defs.market.trade_calendar import trade_date_partition_keys_for_year
 from scheduler.defs.resources.s3 import S3SettingsResource
-from scheduler.defs.storage.parquet_readers import (
-    read_partitioned_parquet_tables_from_s3,
-    trade_date_partition_keys_for_year,
-)
+from scheduler.defs.storage.dataset_service import DatasetLocation, S3DatasetService
 
 
 def compact_daily_asset_by_year(
@@ -24,15 +22,15 @@ def compact_daily_asset_by_year(
     year = int(partition_key)
     refresh_until = refresh_until_for_year(year, run_tag(context, "market.trade_date"))
     s3_config = s3_settings.config()
-    trade_dates = read_trade_dates_from_s3(s3_config)
+    dataset_service = S3DatasetService(s3_config=s3_config)
+    trade_dates = S3TradeCalendarReader.from_s3_config(s3_config).read_trade_dates()
     requested_partition_keys = trade_date_partition_keys_for_year(
         year,
         trade_dates=trade_dates,
         refresh_until_trade_date=refresh_until,
     )
-    read_result = read_partitioned_parquet_tables_from_s3(
-        s3_config,
-        raw_asset_key,
+    read_result = dataset_service.read_partitioned(
+        DatasetLocation(bucket=s3_config.bucket, object_prefix="source", asset_key=raw_asset_key),
         partition_keys=requested_partition_keys,
         partition_key_name="trade_date",
     )

@@ -5,8 +5,7 @@ import time
 from collections import Counter
 from dataclasses import dataclass, field
 
-from scheduler.defs.common.concurrency import BoundedTaskRunner
-from scheduler.defs.common.retry import DEFAULT_RETRY_POLICY
+from scheduler.defs.common.concurrency import BoundedTaskOptions, BoundedTaskRunner
 from scheduler.defs.config.models import JiuyanOcrConfig
 from scheduler.defs.http.client_factory import HttpClientFactory
 from scheduler.defs.repositories.industry_images import (
@@ -63,6 +62,7 @@ async def download_images_to_s3(
     object_store: ImageObjectStore,
     images: list[DiscoveredIndustryImage],
     log: logging.Logger,
+    http_client_factory: HttpClientFactory,
     state_service: IndustryImageStateService | None = None,
 ) -> ImageDownloadResult:
     result = ImageDownloadResult()
@@ -72,7 +72,7 @@ async def download_images_to_s3(
 
     success_updates: list[DownloadSuccessUpdate] = []
     failure_updates: list[DownloadFailureUpdate] = []
-    async with HttpClientFactory(retry_policy=DEFAULT_RETRY_POLICY).bytes_client() as client:
+    async with http_client_factory.bytes_client() as client:
 
         async def process_one(image: DiscoveredIndustryImage) -> DownloadSuccessUpdate:
             downloaded = await download_image_bytes(client, image.image_url)
@@ -87,7 +87,12 @@ async def download_images_to_s3(
                 download_bytes=downloaded.byte_count,
             )
 
-        runner_result = await BoundedTaskRunner(IMAGE_DOWNLOAD_CONCURRENCY).run(
+        runner_result = await BoundedTaskRunner(
+            BoundedTaskOptions(
+                max_concurrent_tasks=IMAGE_DOWNLOAD_CONCURRENCY,
+                fail_when_all_failed=False,
+            )
+        ).run(
             images,
             item_key=lambda image: image.image_filename,
             worker=process_one,
@@ -126,6 +131,7 @@ async def process_ocr_images(
     ocr_config: JiuyanOcrConfig,
     max_concurrent_requests: int,
     log: logging.Logger,
+    http_client_factory: HttpClientFactory,
     state_service: IndustryImageStateService | None = None,
 ) -> OcrProcessResult:
     result = OcrProcessResult()
@@ -137,7 +143,7 @@ async def process_ocr_images(
     success_updates: list[OcrSuccessUpdate] = []
     failure_updates: list[OcrFailureUpdate] = []
 
-    async with HttpClientFactory(retry_policy=DEFAULT_RETRY_POLICY).json_client(
+    async with http_client_factory.json_client(
         headers={"User-Agent": "Mozilla/5.0", "Accept": "application/json,text/plain,*/*"},
         max_attempts=max(ocr_config.max_retries, 0) + 1,
         total_timeout_seconds=ocr_config.timeout_seconds,
@@ -169,7 +175,12 @@ async def process_ocr_images(
                 ocr_model=ocr_config.model_name,
             )
 
-        runner_result = await BoundedTaskRunner(max_concurrent_requests).run(
+        runner_result = await BoundedTaskRunner(
+            BoundedTaskOptions(
+                max_concurrent_tasks=max_concurrent_requests,
+                fail_when_all_failed=False,
+            )
+        ).run(
             claimed,
             item_key=lambda image: image.image_filename,
             worker=process_one,

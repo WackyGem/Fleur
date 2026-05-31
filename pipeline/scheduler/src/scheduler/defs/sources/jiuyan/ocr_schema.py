@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
+from enum import StrEnum
 
 import dagster as dg
 import pyarrow as pa
@@ -25,6 +26,19 @@ JIUYAN_INDUSTRY_OCR_SCHEMA = pa.schema(
 )
 
 
+class DownloadStatus(StrEnum):
+    PENDING = "pending"
+    SUCCESS = "success"
+    FAILED = "failed"
+
+
+class OcrStatus(StrEnum):
+    PENDING = "pending"
+    RUNNING = "running"
+    SUCCESS = "success"
+    FAILED = "failed"
+
+
 @dataclass(frozen=True)
 class DiscoveredIndustryImage:
     image_filename: str
@@ -40,8 +54,8 @@ class ClaimedIndustryImage:
     image_s3_key: str
     industry_id: str
     image_index: int
-    download_status: str
-    ocr_status: str
+    download_status: DownloadStatus
+    ocr_status: OcrStatus
     ocr_result_s3_key: str | None = None
 
 

@@ -1,26 +1,50 @@
 from __future__ import annotations
 
-import asyncio
 import time
 from collections import Counter
+from contextlib import AbstractAsyncContextManager
 from dataclasses import dataclass
 from datetime import date
+from typing import Protocol
 
 import dagster as dg
 import pyarrow as pa
 
-from scheduler.defs.baostock.client import BaostockAioTcpClient
+from scheduler.defs.baostock.protocol import BaostockResponse
 from scheduler.defs.baostock.schemas import (
     K_HISTORY_DAILY_SCHEMA,
     k_history_daily_response_to_table,
     stock_basic_response_to_table,
 )
+from scheduler.defs.common.async_boundary import run_async_boundary
 from scheduler.defs.common.clock import elapsed_seconds
+from scheduler.defs.common.concurrency import BoundedTaskOptions, BoundedTaskRunner
 from scheduler.defs.common.metadata import RawMetadataValue
-from scheduler.defs.config.models import S3Config
+from scheduler.defs.market.readers import SecurityUniverseReader, TradeCalendarReader
 from scheduler.defs.market.securities import filter_active_security_ranges
-from scheduler.defs.market.trade_calendar import read_trade_dates_from_s3
-from scheduler.defs.storage.parquet_readers import read_baostock_stock_basic_from_s3
+
+
+class BaostockClientProtocol(Protocol):
+    async def query_stock_basic(
+        self,
+        code: str = "",
+        code_name: str = "",
+    ) -> BaostockResponse: ...
+
+    async def query_history_k_data_plus_daily(
+        self,
+        code: str,
+        start_date: date,
+        end_date: date,
+    ) -> BaostockResponse: ...
+
+
+class BaostockClientFactory(Protocol):
+    def client(
+        self,
+        *,
+        max_connections: int | None = None,
+    ) -> AbstractAsyncContextManager[BaostockClientProtocol]: ...
 
 
 @dataclass(frozen=True)
@@ -36,22 +60,36 @@ class BaostockDailyKlineRefreshResult:
 
 
 class BaostockStockBasicRefreshService:
+    def __init__(self, client_factory: BaostockClientFactory) -> None:
+        self._client_factory = client_factory
+
     def refresh(self) -> tuple[pa.Table, dict[str, float]]:
-        return asyncio.run(fetch_stock_basic_table())
+        return run_async_boundary(
+            fetch_stock_basic_table(self._client_factory),
+            context="BaoStock stock-basic refresh",
+        )
 
 
 class BaostockDailyKlineRefreshService:
-    def __init__(self, s3_config: S3Config) -> None:
-        self._s3_config = s3_config
+    def __init__(
+        self,
+        *,
+        trade_calendar_reader: TradeCalendarReader,
+        security_universe_reader: SecurityUniverseReader,
+        client_factory: BaostockClientFactory,
+    ) -> None:
+        self._trade_calendar_reader = trade_calendar_reader
+        self._security_universe_reader = security_universe_reader
+        self._client_factory = client_factory
 
     def refresh(
         self,
         request: BaostockDailyKlineRefreshRequest,
     ) -> BaostockDailyKlineRefreshResult:
         started_at = time.perf_counter()
-        trade_dates = read_trade_dates_from_s3(self._s3_config)
+        trade_dates = self._trade_calendar_reader.read_trade_dates()
         trade_calendar_read_at = time.perf_counter()
-        stock_basic = read_baostock_stock_basic_from_s3(self._s3_config)
+        stock_basic = self._security_universe_reader.read_stock_basic()
         stock_basic_read_at = time.perf_counter()
         year_ranges = build_year_ranges(
             request.partition_keys,
@@ -59,7 +97,10 @@ class BaostockDailyKlineRefreshService:
             trade_dates=trade_dates,
         )
         year_ranges_built_at = time.perf_counter()
-        tables, metadata = asyncio.run(fetch_k_history_tables(stock_basic, year_ranges))
+        tables, metadata = run_async_boundary(
+            fetch_k_history_tables(stock_basic, year_ranges, self._client_factory),
+            context="BaoStock daily K-line refresh",
+        )
         remote_fetch_finished_at = time.perf_counter()
         if not tables:
             msg = "BaoStock daily K-line query returned no rows for the selected partition range"
@@ -97,9 +138,11 @@ class BaostockDailyKlineRefreshService:
         return BaostockDailyKlineRefreshResult(tables=tables, metadata=metadata)
 
 
-async def fetch_stock_basic_table() -> tuple[pa.Table, dict[str, float]]:
+async def fetch_stock_basic_table(
+    client_factory: BaostockClientFactory,
+) -> tuple[pa.Table, dict[str, float]]:
     started_at = time.perf_counter()
-    async with BaostockAioTcpClient() as client:
+    async with client_factory.client() as client:
         client_started_at = time.perf_counter()
         response = await client.query_stock_basic()
         query_finished_at = time.perf_counter()
@@ -119,6 +162,7 @@ async def fetch_stock_basic_table() -> tuple[pa.Table, dict[str, float]]:
 async def fetch_k_history_tables(
     stock_basic: pa.Table,
     year_ranges: dict[str, tuple[date, date]],
+    client_factory: BaostockClientFactory,
 ) -> tuple[dict[str, pa.Table], dict[str, RawMetadataValue]]:
     started_at = time.perf_counter()
     annual_tables: dict[str, list[pa.Table]] = {year: [] for year in year_ranges}
@@ -127,35 +171,45 @@ async def fetch_k_history_tables(
     skipped_security_counts: dict[str, int] = {}
     selected_security_types: Counter[str] = Counter()
 
-    async with BaostockAioTcpClient(max_connections=30) as client:
+    async with client_factory.client(max_connections=30) as client:
         client_started_at = time.perf_counter()
-        async with asyncio.TaskGroup() as task_group:
-            tasks: list[tuple[str, asyncio.Task[pa.Table]]] = []
-            for year, (start_date, end_date) in year_ranges.items():
-                security_ranges = filter_active_security_ranges(
-                    stock_basic,
-                    requested_start_date=start_date,
-                    requested_end_date=end_date,
-                )
-                selected_security_counts[year] = len(security_ranges)
-                skipped_security_counts[year] = candidate_security_count - len(security_ranges)
-                selected_security_types.update(
-                    security_range.security_type for security_range in security_ranges
-                )
-                for security_range in security_ranges:
-                    task = task_group.create_task(
-                        _fetch_one_daily_k_table(
-                            client,
-                            security_range.code,
-                            security_range.start_date,
-                            security_range.end_date,
-                        )
+        tasks: list[tuple[str, str, date, date]] = []
+        for year, (start_date, end_date) in year_ranges.items():
+            security_ranges = filter_active_security_ranges(
+                stock_basic,
+                requested_start_date=start_date,
+                requested_end_date=end_date,
+            )
+            selected_security_counts[year] = len(security_ranges)
+            skipped_security_counts[year] = candidate_security_count - len(security_ranges)
+            selected_security_types.update(
+                security_range.security_type for security_range in security_ranges
+            )
+            for security_range in security_ranges:
+                tasks.append(
+                    (
+                        year,
+                        security_range.code,
+                        security_range.start_date,
+                        security_range.end_date,
                     )
-                    tasks.append((year, task))
-            tasks_scheduled_at = time.perf_counter()
+                )
+        tasks_scheduled_at = time.perf_counter()
 
-        for year, task in tasks:
-            table = task.result()
+        async def fetch_one(item: tuple[str, str, date, date]) -> tuple[str, pa.Table]:
+            year, code, start_date, end_date = item
+            table = await _fetch_one_daily_k_table(client, code, start_date, end_date)
+            return year, table
+
+        runner_result = await BoundedTaskRunner(
+            BoundedTaskOptions(max_concurrent_tasks=30, fail_fast=True)
+        ).run(
+            tasks,
+            item_key=lambda item: f"{item[0]}:{item[1]}",
+            worker=fetch_one,
+        )
+
+        for year, table in runner_result.successes:
             if table.num_rows > 0:
                 annual_tables[year].append(table)
         tasks_finished_at = time.perf_counter()
@@ -177,6 +231,7 @@ async def fetch_k_history_tables(
             tasks_scheduled_at=tasks_scheduled_at,
             tasks_finished_at=tasks_finished_at,
             table_built_at=table_built_at,
+            runner_metadata=runner_result.metadata(item_name="security"),
         )
 
     missing_years = sorted(set(year_ranges) - set(tables))
@@ -195,11 +250,12 @@ async def fetch_k_history_tables(
         tasks_scheduled_at=tasks_scheduled_at,
         tasks_finished_at=tasks_finished_at,
         table_built_at=table_built_at,
+        runner_metadata=runner_result.metadata(item_name="security"),
     )
 
 
 async def _fetch_one_daily_k_table(
-    client: BaostockAioTcpClient,
+    client: BaostockClientProtocol,
     code: str,
     start_date: date,
     end_date: date,
@@ -265,6 +321,7 @@ def _k_history_metadata(
     tasks_scheduled_at: float,
     tasks_finished_at: float,
     table_built_at: float,
+    runner_metadata: dict[str, RawMetadataValue],
 ) -> dict[str, RawMetadataValue]:
     return {
         "candidate_security_count": candidate_security_count,
@@ -291,4 +348,5 @@ def _k_history_metadata(
         ),
         "kline_table_concat_seconds": elapsed_seconds(tasks_finished_at, table_built_at),
         "kline_fetch_total_seconds": elapsed_seconds(started_at, table_built_at),
+        **runner_metadata,
     }

@@ -499,7 +499,7 @@ class BackfillWindowLimitTest(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(result.metadata["skipped_window_trade_date_count"], 1)
         self.assertEqual(result.metadata["skipped_non_trade_date_count"], 7)
 
-    async def test_partition_failures_include_error_metadata(self) -> None:
+    async def test_all_partition_failures_raise_error(self) -> None:
         async def fetch_table_for_trade_date(
             trade_date: date,
         ) -> tuple[pa.Table, dict[str, RawMetadataValue]]:
@@ -521,6 +521,41 @@ class BackfillWindowLimitTest(unittest.IsolatedAsyncioTestCase):
                 patch(
                     "scheduler.defs.http.partitioning.read_trade_dates_from_s3",
                     return_value={date(2026, 5, 8)},
+                ),
+                self.assertRaises(RuntimeError) as ctx,
+            ):
+                await materialize_trade_date_range(
+                    context,
+                    max_concurrent_trade_dates=1,
+                    fetch_table_for_trade_date=fetch_table_for_trade_date,
+                    s3_config=s3_config,
+                )
+
+        self.assertIn("All 1 bounded tasks failed", str(ctx.exception))
+
+    async def test_partial_partition_failures_include_runner_error_metadata(self) -> None:
+        async def fetch_table_for_trade_date(
+            trade_date: date,
+        ) -> tuple[pa.Table, dict[str, RawMetadataValue]]:
+            if trade_date == date(2026, 5, 8):
+                raise RuntimeError("boom for 2026-05-08")
+            return pa.table({"value": [trade_date.isoformat()]}), {"row_count": 1}
+
+        with TemporaryDirectory() as bucket:
+            context = FakeAssetContext(
+                partition_keys=["2026-05-08", "2026-05-11"],
+                asset_key=dg.AssetKey(["source", "jiuyan__action_field"]),
+            )
+            s3_config = fake_s3_config(bucket)
+
+            with (
+                patch(
+                    "scheduler.defs.storage.dataset_writer.build_s3_filesystem",
+                    return_value=local_filesystem(),
+                ),
+                patch(
+                    "scheduler.defs.http.partitioning.read_trade_dates_from_s3",
+                    return_value={date(2026, 5, 8), date(2026, 5, 11)},
                 ),
             ):
                 result = await materialize_trade_date_range(

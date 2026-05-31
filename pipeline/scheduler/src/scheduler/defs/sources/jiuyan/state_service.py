@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import asyncio
 from collections.abc import Sequence
-from enum import StrEnum
 
 from scheduler.defs.repositories.industry_images import (
     DownloadFailureUpdate,
@@ -12,13 +11,6 @@ from scheduler.defs.repositories.industry_images import (
     PostgresIndustryImageRepository,
 )
 from scheduler.defs.sources.jiuyan.ocr_schema import ClaimedIndustryImage
-
-
-class ImageWorkflowStatus(StrEnum):
-    PENDING = "pending"
-    RUNNING = "running"
-    SUCCESS = "success"
-    FAILED = "failed"
 
 
 class IndustryImageStateService:

@@ -4,7 +4,9 @@ import dagster as dg
 
 from scheduler.defs.baostock.definitions import baostock_bundle
 from scheduler.defs.io_managers.s3_io_manager import S3IOManager
+from scheduler.defs.resources.baostock import BaostockClientFactoryResource
 from scheduler.defs.resources.database import IndustryImageRepositoryResource
+from scheduler.defs.resources.http import HttpClientFactoryResource
 from scheduler.defs.resources.ocr import JiuyanOcrSettingsResource
 from scheduler.defs.resources.s3 import ImageObjectStoreResource, S3SettingsResource
 from scheduler.defs.source_bundle import (
@@ -39,5 +41,7 @@ def defs() -> dg.Definitions:
             "image_object_store": ImageObjectStoreResource(),
             "industry_image_repository": IndustryImageRepositoryResource(),
             "jiuyan_ocr_settings": JiuyanOcrSettingsResource(),
+            "baostock_client_factory": BaostockClientFactoryResource(),
+            "http_client_factory": HttpClientFactoryResource(),
         },
     )

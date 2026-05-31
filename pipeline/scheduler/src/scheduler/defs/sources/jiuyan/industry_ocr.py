@@ -1,5 +1,3 @@
-import asyncio
-
 import dagster as dg
 
 from scheduler.defs.asset_contracts import (
@@ -8,9 +6,11 @@ from scheduler.defs.asset_contracts import (
     stateful_asset_metadata,
     stateful_ocr_kinds,
 )
+from scheduler.defs.common.async_boundary import run_async_boundary
 from scheduler.defs.common.metadata import RawMetadataValue
 from scheduler.defs.market.asset_keys import SOURCE_ASSET_KEY_PREFIX
 from scheduler.defs.resources.database import IndustryImageRepositoryResource
+from scheduler.defs.resources.http import HttpClientFactoryResource
 from scheduler.defs.resources.ocr import JiuyanOcrSettingsResource
 from scheduler.defs.resources.s3 import ImageObjectStoreResource, S3SettingsResource
 from scheduler.defs.sources.jiuyan.industry_list import jiuyan__industry_list
@@ -19,6 +19,7 @@ from scheduler.defs.sources.jiuyan.workflows import (
     JiuyanIndustryOcrWorkflow,
     discover_images_from_table,
 )
+from scheduler.defs.storage.dataset_service import S3DatasetService
 
 __all__ = [
     "IndustryImagesConfig",
@@ -77,15 +78,18 @@ def jiuyan__industry_images(
     s3_settings: S3SettingsResource,
     image_object_store: ImageObjectStoreResource,
     industry_image_repository: IndustryImageRepositoryResource,
+    http_client_factory: HttpClientFactoryResource,
 ) -> dg.MaterializeResult:
-    result = asyncio.run(
+    result = run_async_boundary(
         _materialize_industry_images(
             context,
             config,
             s3_settings=s3_settings,
             image_object_store=image_object_store,
             industry_image_repository=industry_image_repository,
-        )
+            http_client_factory=http_client_factory,
+        ),
+        context="JiuYan industry image materialization",
     )
     return dg.MaterializeResult(metadata=result)
 
@@ -107,15 +111,18 @@ def jiuyan__industry_ocr(
     image_object_store: ImageObjectStoreResource,
     industry_image_repository: IndustryImageRepositoryResource,
     jiuyan_ocr_settings: JiuyanOcrSettingsResource,
+    http_client_factory: HttpClientFactoryResource,
 ) -> dg.MaterializeResult:
-    result = asyncio.run(
+    result = run_async_boundary(
         _materialize_industry_ocr(
             context,
             config,
             image_object_store=image_object_store,
             industry_image_repository=industry_image_repository,
             jiuyan_ocr_settings=jiuyan_ocr_settings,
-        )
+            http_client_factory=http_client_factory,
+        ),
+        context="JiuYan OCR materialization",
     )
     return dg.MaterializeResult(metadata=result)
 
@@ -127,12 +134,17 @@ async def _materialize_industry_images(
     s3_settings: S3SettingsResource,
     image_object_store: ImageObjectStoreResource,
     industry_image_repository: IndustryImageRepositoryResource,
+    http_client_factory: HttpClientFactoryResource,
 ) -> dict[str, RawMetadataValue]:
+    s3_config = s3_settings.config()
+    object_store = image_object_store.image_object_store()
     workflow = JiuyanIndustryImageWorkflow(
-        s3_config=s3_settings.config(),
+        s3_config=s3_config,
+        dataset_reader=S3DatasetService(s3_config=s3_config),
         repository=industry_image_repository.repository(),
-        object_store=image_object_store.image_object_store(),
+        object_store=object_store,
         upstream_asset_key=jiuyan__industry_list.key,
+        http_client_factory=http_client_factory.factory(),
         log=context.log,
     )
     return await workflow.refresh_images(
@@ -149,11 +161,13 @@ async def _materialize_industry_ocr(
     image_object_store: ImageObjectStoreResource,
     industry_image_repository: IndustryImageRepositoryResource,
     jiuyan_ocr_settings: JiuyanOcrSettingsResource,
+    http_client_factory: HttpClientFactoryResource,
 ) -> dict[str, RawMetadataValue]:
     workflow = JiuyanIndustryOcrWorkflow(
         repository=industry_image_repository.repository(),
         object_store=image_object_store.image_object_store(),
         ocr_config=jiuyan_ocr_settings.config(),
+        http_client_factory=http_client_factory.factory(),
         log=context.log,
     )
     return await workflow.refresh_ocr(

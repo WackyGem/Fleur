@@ -2,11 +2,12 @@ from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
+from typing import Protocol
 
 import dagster as dg
 import pyarrow as pa
 
-from scheduler.defs.common.metadata import RawMetadataValue
+from scheduler.defs.common.metadata import DatasetMetadataBuilder, RawMetadataValue
 from scheduler.defs.config.models import S3Config
 from scheduler.defs.storage.dataset_writer import (
     DatasetWriteResult,
@@ -36,6 +37,18 @@ class DatasetWriteOptions:
     storage_mode: StorageMode
     allow_empty: bool = False
     partition_key_name: str | None = None
+
+
+class DatasetReader(Protocol):
+    def read_latest_snapshot(self, location: DatasetLocation) -> pa.Table: ...
+
+    def read_partitioned(
+        self,
+        location: DatasetLocation,
+        *,
+        partition_keys: Sequence[str],
+        partition_key_name: str,
+    ) -> PartitionedParquetReadResult: ...
 
 
 class S3DatasetService:
@@ -110,24 +123,18 @@ class S3DatasetService:
         options: DatasetWriteOptions,
     ) -> dict[str, RawMetadataValue]:
         object_keys = result.object_keys(self._s3_config.bucket)
-        metadata: dict[str, RawMetadataValue] = {
-            "s3_bucket": self._s3_config.bucket,
-            "s3_keys": dg.MetadataValue.json(object_keys),
-            "s3_endpoint": self._s3_config.endpoint,
-            "file_format": "parquet",
-            "compression": "zstd",
-            "row_count": result.row_count,
-            "column_count": result.column_count,
-            "storage_mode": options.storage_mode,
-            "allow_empty": options.allow_empty,
-        }
-        if options.partition_key_name is not None:
-            metadata["partition_key_name"] = options.partition_key_name
-            metadata["partition_row_counts"] = dg.MetadataValue.json(result.partition_row_counts)
-            metadata["empty_partition_keys"] = dg.MetadataValue.json(result.empty_partition_keys)
-        elif len(object_keys) == 1:
-            metadata["s3_key"] = object_keys[0]
-        return metadata
+        return DatasetMetadataBuilder().build_s3_write_metadata(
+            s3_bucket=self._s3_config.bucket,
+            s3_endpoint=self._s3_config.endpoint,
+            s3_keys=object_keys,
+            row_count=result.row_count,
+            column_count=result.column_count,
+            storage_mode=options.storage_mode,
+            allow_empty=options.allow_empty,
+            partition_key_name=options.partition_key_name,
+            partition_row_counts=result.partition_row_counts,
+            empty_partition_keys=result.empty_partition_keys,
+        )
 
     def object_keys(self, result: DatasetWriteResult) -> list[str]:
         return result.object_keys(self._s3_config.bucket)

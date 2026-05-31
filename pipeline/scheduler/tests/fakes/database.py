@@ -11,6 +11,7 @@ def mock_database_connection() -> Generator[MagicMock, None, None]:
         "scheduler.defs.repositories.industry_images.connect_pipeline_database"
     ) as mock_connect:
         mock_cursor = MagicMock()
+        mock_cursor.rowcount = 1
         mock_connection = MagicMock()
         mock_connection.cursor.return_value = mock_cursor
         mock_connection.__enter__ = MagicMock(return_value=mock_connection)

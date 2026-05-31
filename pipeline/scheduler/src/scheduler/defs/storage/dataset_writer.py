@@ -106,4 +106,3 @@ def partition_column_count(partition_tables: Mapping[str, pa.Table]) -> int:
             )
             raise ValueError(msg)
     return first_table.num_columns
-

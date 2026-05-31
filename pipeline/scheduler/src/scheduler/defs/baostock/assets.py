@@ -24,6 +24,8 @@ from scheduler.defs.market.asset_keys import (
     SINA_TRADE_CALENDAR_ASSET_KEY,
     SOURCE_ASSET_KEY_PREFIX,
 )
+from scheduler.defs.market.readers import S3SecurityUniverseReader, S3TradeCalendarReader
+from scheduler.defs.resources.baostock import BaostockClientFactoryResource
 from scheduler.defs.resources.s3 import S3SettingsResource
 
 year_partitions = dg.TimeWindowPartitionsDefinition(
@@ -50,10 +52,12 @@ class KLineDailyYearConfig(dg.Config):
     pool=BAOSTOCK_RUN_POOL,
     tags=source_tags("baostock"),
 )
-def baostock__query_stock_basic() -> dg.MaterializeResult[pa.Table]:
+def baostock__query_stock_basic(
+    baostock_client_factory: BaostockClientFactoryResource,
+) -> dg.MaterializeResult[pa.Table]:
     """Latest BaoStock security basic-information snapshot."""
 
-    table, timing_metadata = BaostockStockBasicRefreshService().refresh()
+    table, timing_metadata = BaostockStockBasicRefreshService(baostock_client_factory).refresh()
     return dg.MaterializeResult(
         value=table,
         metadata={
@@ -82,13 +86,18 @@ def baostock__query_history_k_data_plus_daily(
     context: dg.AssetExecutionContext,
     config: KLineDailyYearConfig,
     s3_settings: S3SettingsResource,
+    baostock_client_factory: BaostockClientFactoryResource,
 ) -> dg.MaterializeResult[dict[str, pa.Table]]:
     """Daily BaoStock K-line data by yearly partition."""
 
     asset_started_at = time.perf_counter()
     s3_config = s3_settings.config()
     config_loaded_at = time.perf_counter()
-    result = BaostockDailyKlineRefreshService(s3_config).refresh(
+    result = BaostockDailyKlineRefreshService(
+        trade_calendar_reader=S3TradeCalendarReader.from_s3_config(s3_config),
+        security_universe_reader=S3SecurityUniverseReader.from_s3_config(s3_config),
+        client_factory=baostock_client_factory,
+    ).refresh(
         BaostockDailyKlineRefreshRequest(
             partition_keys=list(context.partition_keys),
             refresh_until_trade_date=config.refresh_until_trade_date,
@@ -98,15 +107,18 @@ def baostock__query_history_k_data_plus_daily(
     return dg.MaterializeResult(value=result.tables, metadata=result.metadata)
 
 
-async def fetch_stock_basic_table() -> tuple[pa.Table, dict[str, float]]:
-    return await baostock_services.fetch_stock_basic_table()
+async def fetch_stock_basic_table(
+    client_factory: baostock_services.BaostockClientFactory,
+) -> tuple[pa.Table, dict[str, float]]:
+    return await baostock_services.fetch_stock_basic_table(client_factory)
 
 
 async def fetch_k_history_tables(
     stock_basic: pa.Table,
     year_ranges: dict[str, tuple[date, date]],
+    client_factory: baostock_services.BaostockClientFactory,
 ) -> tuple[dict[str, pa.Table], dict[str, RawMetadataValue]]:
-    return await baostock_services.fetch_k_history_tables(stock_basic, year_ranges)
+    return await baostock_services.fetch_k_history_tables(stock_basic, year_ranges, client_factory)
 
 
 def build_year_ranges(

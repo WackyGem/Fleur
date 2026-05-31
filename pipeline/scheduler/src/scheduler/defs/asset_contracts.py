@@ -31,8 +31,6 @@ METADATA_SPARSE_PARTITION_OUTPUT: Final = "sparse_partition_output"
 METADATA_FLATTEN_COLUMN_NAMING: Final = "flatten_column_naming"
 METADATA_INPUT_PARTITION_KEY_NAME: Final = "input_partition_key_name"
 METADATA_INPUT_ASSET: Final = "input_asset"
-METADATA_EXECUTION_ORDERING_DEPENDENCY: Final = "execution_ordering_dependency"
-METADATA_EXECUTION_ORDERING_REASON: Final = "execution_ordering_reason"
 METADATA_STATE_BACKEND: Final = "state_backend"
 METADATA_OBJECT_STORE: Final = "object_store"
 METADATA_EXTERNAL_SERVICE: Final = "external_service"
@@ -144,19 +142,6 @@ def stateful_asset_metadata(
     if external_service is not None:
         metadata[METADATA_EXTERNAL_SERVICE] = external_service
     return metadata
-
-
-def generated_endpoint_metadata(
-    *,
-    ordering_dependency: str | None,
-    ordering_reason: str | None = None,
-) -> dict[str, RawMetadataValue]:
-    if ordering_dependency is None:
-        return {}
-    return {
-        METADATA_EXECUTION_ORDERING_DEPENDENCY: ordering_dependency,
-        METADATA_EXECUTION_ORDERING_REASON: ordering_reason or "external_api_rate_limit",
-    }
 
 
 def source_owners() -> list[str]:

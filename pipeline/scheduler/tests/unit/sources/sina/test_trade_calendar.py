@@ -12,6 +12,7 @@ from scheduler.defs.baostock.protocol import decode_response, encode_request
 from scheduler.defs.common.retry import ExponentialBackoffPolicy
 from scheduler.defs.io_managers.s3_io_manager import S3IOManager
 from scheduler.defs.market.securities import filter_active_security_ranges
+from scheduler.defs.resources.http import HttpClientFactoryResource
 from scheduler.defs.sources.sina.trade_calendar import (
     SINA_TRADE_CALENDAR_URL,
     SinaCalendarParser,
@@ -272,7 +273,10 @@ class SinaTradeCalendarAutomationTest(unittest.TestCase):
         instance = dg.DagsterInstance.ephemeral()
         defs = dg.Definitions(
             assets=[sina__trade_calendar],
-            resources={"s3_io_manager": dg.InMemoryIOManager()},
+            resources={
+                "s3_io_manager": dg.InMemoryIOManager(),
+                "http_client_factory": HttpClientFactoryResource(),
+            },
         )
 
         result = dg.evaluate_automation_conditions(

@@ -13,7 +13,9 @@ import pytest
 from scheduler.defs.repositories.industry_images import (
     OcrSuccessUpdate,
     PostgresIndustryImageRepository,
+    connection_factory_from_url,
 )
+from scheduler.defs.sources.jiuyan.ocr_schema import OcrStatus
 from tests.fakes.database import mock_database_connection
 
 
@@ -22,7 +24,7 @@ class TestOcrStateFlow:
 
     def test_claim_images_transitions_pending_to_running(self) -> None:
         """Test that claiming images transitions them from pending to running."""
-        repo = PostgresIndustryImageRepository("postgresql://test")
+        repo = PostgresIndustryImageRepository(connection_factory_from_url("postgresql://test"))
 
         with mock_database_connection() as mock_cursor:
             mock_cursor.fetchall.return_value = [
@@ -56,7 +58,7 @@ class TestOcrStateFlow:
             )
 
             assert len(claimed) == 2
-            assert all(img.ocr_status == "running" for img in claimed)
+            assert all(img.ocr_status is OcrStatus.RUNNING for img in claimed)
 
             # Verify the SQL query was executed
             assert mock_cursor.execute.called
@@ -67,7 +69,7 @@ class TestOcrStateFlow:
 
     def test_mark_ocr_success_transitions_running_to_success(self) -> None:
         """Test that marking OCR success transitions from running to success."""
-        repo = PostgresIndustryImageRepository("postgresql://test")
+        repo = PostgresIndustryImageRepository(connection_factory_from_url("postgresql://test"))
 
         with mock_database_connection() as mock_cursor:
             repo.mark_ocr_success(
@@ -78,9 +80,9 @@ class TestOcrStateFlow:
             )
 
             # Verify the SQL query was executed
-            assert mock_cursor.execute.called
-            sql = mock_cursor.execute.call_args[0][0].lower()
-            params = mock_cursor.execute.call_args[0][1]
+            assert mock_cursor.executemany.called
+            sql = mock_cursor.executemany.call_args[0][0].lower()
+            params = mock_cursor.executemany.call_args[0][1][0]
 
             assert "update jiuyan_industry_images" in sql
             assert "ocr_status = 'success'" in sql
@@ -95,7 +97,7 @@ class TestOcrStateFlow:
 
     def test_mark_ocr_failed_transitions_running_to_failed(self) -> None:
         """Test that marking OCR failure transitions from running to failed."""
-        repo = PostgresIndustryImageRepository("postgresql://test")
+        repo = PostgresIndustryImageRepository(connection_factory_from_url("postgresql://test"))
 
         with mock_database_connection() as mock_cursor:
             repo.mark_ocr_failed(
@@ -105,9 +107,9 @@ class TestOcrStateFlow:
             )
 
             # Verify the SQL query was executed
-            assert mock_cursor.execute.called
-            sql = mock_cursor.execute.call_args[0][0].lower()
-            params = mock_cursor.execute.call_args[0][1]
+            assert mock_cursor.executemany.called
+            sql = mock_cursor.executemany.call_args[0][0].lower()
+            params = mock_cursor.executemany.call_args[0][1][0]
 
             assert "update jiuyan_industry_images" in sql
             assert "ocr_status = 'failed'" in sql
@@ -119,9 +121,10 @@ class TestOcrStateFlow:
             assert params["ocr_error_message"] == "Timeout after 30s"
 
     def test_batch_status_updates_reuse_one_connection(self) -> None:
-        repo = PostgresIndustryImageRepository("postgresql://test")
+        repo = PostgresIndustryImageRepository(connection_factory_from_url("postgresql://test"))
 
         with mock_database_connection() as mock_cursor:
+            mock_cursor.rowcount = 2
             success_count = repo.mark_ocr_success_many(
                 [
                     OcrSuccessUpdate(
@@ -140,16 +143,16 @@ class TestOcrStateFlow:
             )
 
             assert success_count == 2
-            assert mock_cursor.execute.call_count == 2
-            first_sql = mock_cursor.execute.call_args_list[0][0][0].lower()
-            second_params = mock_cursor.execute.call_args_list[1][0][1]
+            assert mock_cursor.executemany.call_count == 1
+            first_sql = mock_cursor.executemany.call_args[0][0].lower()
+            second_params = mock_cursor.executemany.call_args[0][1][1]
             assert "ocr_status = 'success'" in first_sql
             assert second_params["image_filename"] == "b.jpg"
             assert second_params["ocr_result_row_count"] == 0
 
     def test_claim_stale_running_images_reclaims_timeout(self) -> None:
         """Test that stale running images are reclaimed back to pending."""
-        repo = PostgresIndustryImageRepository("postgresql://test")
+        repo = PostgresIndustryImageRepository(connection_factory_from_url("postgresql://test"))
         stale_threshold_seconds = 3600  # 1 hour
 
         with mock_database_connection() as mock_cursor:
@@ -187,7 +190,7 @@ class TestOcrStateFlow:
 
     def test_force_ocr_reclaims_success_images(self) -> None:
         """Test that force OCR reclaims success images for reprocessing."""
-        repo = PostgresIndustryImageRepository("postgresql://test")
+        repo = PostgresIndustryImageRepository(connection_factory_from_url("postgresql://test"))
 
         with mock_database_connection() as mock_cursor:
             mock_cursor.fetchall.return_value = [
@@ -221,7 +224,7 @@ class TestOcrStateFlow:
 
     def test_claim_respects_limit_parameter(self) -> None:
         """Test that claim operations respect the limit parameter."""
-        repo = PostgresIndustryImageRepository("postgresql://test")
+        repo = PostgresIndustryImageRepository(connection_factory_from_url("postgresql://test"))
 
         with mock_database_connection() as mock_cursor:
             mock_cursor.fetchall.return_value = []
@@ -239,7 +242,7 @@ class TestOcrStateFlow:
 
     def test_claim_with_specific_filenames(self) -> None:
         """Test that claim operations can target specific filenames."""
-        repo = PostgresIndustryImageRepository("postgresql://test")
+        repo = PostgresIndustryImageRepository(connection_factory_from_url("postgresql://test"))
 
         with mock_database_connection() as mock_cursor:
             mock_cursor.fetchall.return_value = []
@@ -261,7 +264,7 @@ class TestOcrStateFlow:
 
     def test_full_state_flow_pending_to_success(self) -> None:
         """Test the complete state flow: pending → running → success."""
-        repo = PostgresIndustryImageRepository("postgresql://test")
+        repo = PostgresIndustryImageRepository(connection_factory_from_url("postgresql://test"))
 
         with mock_database_connection() as mock_cursor:
             # Step 1: Claim pending images (pending → running)
@@ -285,7 +288,7 @@ class TestOcrStateFlow:
                 force_ocr=False,
             )
             assert len(claimed) == 1
-            assert claimed[0].ocr_status == "running"
+            assert claimed[0].ocr_status is OcrStatus.RUNNING
 
             # Step 2: Mark OCR success (running → success)
             mock_cursor.execute.reset_mock()
@@ -297,13 +300,13 @@ class TestOcrStateFlow:
             )
 
             # Verify the success update was executed
-            assert mock_cursor.execute.called
-            sql = mock_cursor.execute.call_args[0][0]
+            assert mock_cursor.executemany.called
+            sql = mock_cursor.executemany.call_args[0][0]
             assert "ocr_status = 'success'" in sql
 
     def test_full_state_flow_pending_to_failed(self) -> None:
         """Test the complete state flow: pending → running → failed."""
-        repo = PostgresIndustryImageRepository("postgresql://test")
+        repo = PostgresIndustryImageRepository(connection_factory_from_url("postgresql://test"))
 
         with mock_database_connection() as mock_cursor:
             # Step 1: Claim pending images (pending → running)
@@ -327,7 +330,7 @@ class TestOcrStateFlow:
                 force_ocr=False,
             )
             assert len(claimed) == 1
-            assert claimed[0].ocr_status == "running"
+            assert claimed[0].ocr_status is OcrStatus.RUNNING
 
             # Step 2: Mark OCR failed (running → failed)
             mock_cursor.execute.reset_mock()
@@ -338,13 +341,13 @@ class TestOcrStateFlow:
             )
 
             # Verify the failure update was executed
-            assert mock_cursor.execute.called
-            sql = mock_cursor.execute.call_args[0][0]
+            assert mock_cursor.executemany.called
+            sql = mock_cursor.executemany.call_args[0][0]
             assert "ocr_status = 'failed'" in sql
 
     def test_concurrent_claims_use_select_for_update(self) -> None:
         """Test that concurrent claims use FOR UPDATE SKIP LOCKED to prevent duplicates."""
-        repo = PostgresIndustryImageRepository("postgresql://test")
+        repo = PostgresIndustryImageRepository(connection_factory_from_url("postgresql://test"))
 
         with mock_database_connection() as mock_cursor:
             mock_cursor.fetchall.return_value = []
@@ -364,7 +367,7 @@ class TestOcrStateFlow:
 
     def test_claim_rejects_invalid_limit(self) -> None:
         """Test that claim operations reject invalid limit values."""
-        repo = PostgresIndustryImageRepository("postgresql://test")
+        repo = PostgresIndustryImageRepository(connection_factory_from_url("postgresql://test"))
 
         with pytest.raises(ValueError, match="limit must be positive"):
             repo.claim_ocr_images(
@@ -384,7 +387,7 @@ class TestOcrStateFlow:
 
     def test_claim_rejects_negative_stale_threshold(self) -> None:
         """Test that claim operations reject negative stale threshold."""
-        repo = PostgresIndustryImageRepository("postgresql://test")
+        repo = PostgresIndustryImageRepository(connection_factory_from_url("postgresql://test"))
 
         with pytest.raises(ValueError, match="stale_after_seconds must be non-negative"):
             repo.claim_ocr_images(
@@ -396,7 +399,7 @@ class TestOcrStateFlow:
 
     def test_claim_returns_empty_list_when_no_images_available(self) -> None:
         """Test that claim returns empty list when no images are available."""
-        repo = PostgresIndustryImageRepository("postgresql://test")
+        repo = PostgresIndustryImageRepository(connection_factory_from_url("postgresql://test"))
 
         with mock_database_connection() as mock_cursor:
             mock_cursor.fetchall.return_value = []

@@ -12,6 +12,7 @@ from scheduler.defs.sources.jiuyan.action_field_compact import (
     jiuyan__action_field_compacted,
     jiuyan_action_field_compacted_year_partitions,
 )
+from scheduler.defs.storage.dataset_service import DatasetLocation
 from scheduler.defs.storage.parquet_readers import PartitionedParquetReadResult
 
 
@@ -45,14 +46,11 @@ def test_compact_daily_asset_by_year_merges_non_empty_daily_tables(
     captured_partition_keys: list[str] = []
 
     def fake_read_tables(
-        config: object,
-        asset_key: dg.AssetKey,
         *,
         partition_keys: list[str],
         partition_key_name: str,
     ) -> PartitionedParquetReadResult:
         captured_partition_keys.extend(partition_keys)
-        assert asset_key == dg.AssetKey(["source", "jiuyan__action_field"])
         assert partition_key_name == "trade_date"
         return PartitionedParquetReadResult(
             tables=[pa.table({"value": [1]}), pa.table({"value": [2, 3]})],
@@ -61,21 +59,38 @@ def test_compact_daily_asset_by_year_merges_non_empty_daily_tables(
             empty_partition_keys=["2026-01-07"],
         )
 
-    monkeypatch.setattr(
-        daily_compact,
-        "read_trade_dates_from_s3",
-        lambda config: {
-            date(2026, 1, 2),
-            date(2026, 1, 5),
-            date(2026, 1, 6),
-            date(2026, 1, 7),
-        },
-    )
-    monkeypatch.setattr(
-        daily_compact,
-        "read_partitioned_parquet_tables_from_s3",
-        fake_read_tables,
-    )
+    class FakeTradeCalendarReader:
+        @classmethod
+        def from_s3_config(cls, config: object) -> FakeTradeCalendarReader:
+            return cls()
+
+        def read_trade_dates(self) -> set[date]:
+            return {
+                date(2026, 1, 2),
+                date(2026, 1, 5),
+                date(2026, 1, 6),
+                date(2026, 1, 7),
+            }
+
+    class FakeDatasetService:
+        def __init__(self, *, s3_config: object) -> None:
+            self.s3_config = s3_config
+
+        def read_partitioned(
+            self,
+            location: DatasetLocation,
+            *,
+            partition_keys: list[str],
+            partition_key_name: str,
+        ) -> PartitionedParquetReadResult:
+            assert location.asset_key == dg.AssetKey(["source", "jiuyan__action_field"])
+            return fake_read_tables(
+                partition_keys=partition_keys,
+                partition_key_name=partition_key_name,
+            )
+
+    monkeypatch.setattr(daily_compact, "S3TradeCalendarReader", FakeTradeCalendarReader)
+    monkeypatch.setattr(daily_compact, "S3DatasetService", FakeDatasetService)
 
     context = dg.build_asset_context(
         partition_key="2026",
@@ -110,21 +125,34 @@ def test_compact_daily_asset_by_year_merges_non_empty_daily_tables(
 def test_compact_daily_asset_by_year_rejects_empty_input(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    monkeypatch.setattr(
-        daily_compact,
-        "read_trade_dates_from_s3",
-        lambda config: {date(2026, 1, 2)},
-    )
-    monkeypatch.setattr(
-        daily_compact,
-        "read_partitioned_parquet_tables_from_s3",
-        lambda *args, **kwargs: PartitionedParquetReadResult(
-            tables=[],
-            read_partition_keys=[],
-            missing_partition_keys=["2026-01-02"],
-            empty_partition_keys=[],
-        ),
-    )
+    class FakeTradeCalendarReader:
+        @classmethod
+        def from_s3_config(cls, config: object) -> FakeTradeCalendarReader:
+            return cls()
+
+        def read_trade_dates(self) -> set[date]:
+            return {date(2026, 1, 2)}
+
+    class FakeDatasetService:
+        def __init__(self, *, s3_config: object) -> None:
+            self.s3_config = s3_config
+
+        def read_partitioned(
+            self,
+            location: object,
+            *,
+            partition_keys: list[str],
+            partition_key_name: str,
+        ) -> PartitionedParquetReadResult:
+            return PartitionedParquetReadResult(
+                tables=[],
+                read_partition_keys=[],
+                missing_partition_keys=["2026-01-02"],
+                empty_partition_keys=[],
+            )
+
+    monkeypatch.setattr(daily_compact, "S3TradeCalendarReader", FakeTradeCalendarReader)
+    monkeypatch.setattr(daily_compact, "S3DatasetService", FakeDatasetService)
 
     context = dg.build_asset_context(
         partition_key="2026",

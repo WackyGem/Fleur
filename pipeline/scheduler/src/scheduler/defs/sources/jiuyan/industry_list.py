@@ -1,4 +1,3 @@
-import asyncio
 import time
 from collections.abc import Mapping
 
@@ -11,8 +10,8 @@ from scheduler.defs.asset_contracts import (
     source_owners,
     source_tags,
 )
+from scheduler.defs.common.async_boundary import run_async_boundary
 from scheduler.defs.common.metadata import RawMetadataValue
-from scheduler.defs.common.retry import DEFAULT_RETRY_POLICY
 from scheduler.defs.common.strings import required_string
 from scheduler.defs.http.client import HttpRequest
 from scheduler.defs.http.client_factory import HttpClientFactory
@@ -22,6 +21,7 @@ from scheduler.defs.http.schemas import (
     jiuyan_industry_list_to_table,
 )
 from scheduler.defs.market.asset_keys import SOURCE_ASSET_KEY_PREFIX
+from scheduler.defs.resources.http import HttpClientFactoryResource
 from scheduler.defs.sources.jiuyan.action_field import jiuyan_header_factory
 
 JIUYAN_INDUSTRY_LIST_URL = "https://app.jiuyangongshe.com/jystock-app/api/v1/industry/list"
@@ -40,17 +40,23 @@ JIUYAN_INDUSTRY_LIST_LIMIT = "500"
 )
 def jiuyan__industry_list(
     context: dg.AssetExecutionContext,
+    http_client_factory: HttpClientFactoryResource,
 ) -> dg.MaterializeResult[pa.Table]:
     """Latest snapshot of JiuYan industry research list pages."""
 
-    table, metadata = asyncio.run(_fetch_industry_list_table())
+    table, metadata = run_async_boundary(
+        _fetch_industry_list_table(http_client_factory.factory()),
+        context="JiuYan industry-list fetch",
+    )
     context.log.info("Fetched %s JiuYan industry-list page rows", table.num_rows)
     return dg.MaterializeResult(value=table, metadata=metadata)
 
 
-async def _fetch_industry_list_table() -> tuple[pa.Table, dict[str, RawMetadataValue]]:
+async def _fetch_industry_list_table(
+    http_client_factory: HttpClientFactory,
+) -> tuple[pa.Table, dict[str, RawMetadataValue]]:
     started_at = time.perf_counter()
-    async with HttpClientFactory(retry_policy=DEFAULT_RETRY_POLICY).json_client(
+    async with http_client_factory.json_client(
         headers=jiuyan_header_factory(),
     ) as client:
         return await fetch_industry_list_table_with_client(client, started_at=started_at)

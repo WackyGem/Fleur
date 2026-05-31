@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import asyncio
 import re
 from dataclasses import dataclass
 from datetime import date, timedelta
@@ -14,6 +13,8 @@ from scheduler.defs.asset_contracts import (
     source_owners,
     source_tags,
 )
+from scheduler.defs.common.async_boundary import run_async_boundary
+from scheduler.defs.common.metadata import RawMetadataValue
 from scheduler.defs.common.retry import DEFAULT_RETRY_POLICY
 from scheduler.defs.http.client import (
     HttpFetchStats,
@@ -23,6 +24,7 @@ from scheduler.defs.http.client import (
 from scheduler.defs.http.client_factory import HttpClientFactory
 from scheduler.defs.http.protocols import HttpTextClientProtocol
 from scheduler.defs.market.asset_keys import SOURCE_ASSET_KEY_PREFIX
+from scheduler.defs.resources.http import HttpClientFactoryResource
 
 BASE64_CHARS = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"
 BASE64_INDEX = {char: index for index, char in enumerate(BASE64_CHARS)}
@@ -177,6 +179,13 @@ class SinaCalendarParseResult:
     error_message: str | None = None
 
 
+@dataclass(frozen=True)
+class SinaTradeCalendarRefreshResult:
+    table: pa.Table
+    metadata: dict[str, RawMetadataValue]
+    missing_date_added: bool
+
+
 class SinaCalendarParser:
     """Parse Sina's compact A-share trade-calendar payload."""
 
@@ -257,14 +266,18 @@ class SinaCalendarParser:
 
 async def fetch_sina_trade_calendar(
     http_client: HttpTextClientProtocol | None = None,
+    http_client_factory: HttpClientFactory | None = None,
 ) -> str:
     if http_client is not None:
         response = await http_client.request_text(
             HttpRequest(method="GET", url=SINA_TRADE_CALENDAR_URL)
         )
         return response.body
+    if http_client_factory is None:
+        msg = "http_client_factory is required when no http_client is provided"
+        raise RuntimeError(msg)
 
-    async with HttpClientFactory(retry_policy=DEFAULT_RETRY_POLICY).json_client(
+    async with http_client_factory.json_client(
         headers=browser_text_headers(),
         max_attempts=MAX_REQUEST_ATTEMPTS,
     ) as client:
@@ -272,8 +285,10 @@ async def fetch_sina_trade_calendar(
         return response.body
 
 
-async def _fetch_sina_trade_calendar_with_stats() -> tuple[str, HttpFetchStats]:
-    async with HttpClientFactory(retry_policy=DEFAULT_RETRY_POLICY).json_client(
+async def _fetch_sina_trade_calendar_with_stats(
+    http_client_factory: HttpClientFactory,
+) -> tuple[str, HttpFetchStats]:
+    async with http_client_factory.json_client(
         headers=browser_text_headers(),
         max_attempts=MAX_REQUEST_ATTEMPTS,
     ) as client:
@@ -289,6 +304,50 @@ def trade_calendar_dates_to_table(trade_dates: TradeCalendarDates) -> pa.Table:
     )
 
 
+class SinaTradeCalendarRefreshService:
+    def __init__(self, parser: SinaCalendarParser | None = None) -> None:
+        self._parser = parser or SinaCalendarParser()
+
+    async def refresh(
+        self,
+        http_client_factory: HttpClientFactory,
+    ) -> SinaTradeCalendarRefreshResult:
+        retry_policy = DEFAULT_RETRY_POLICY
+        max_attempts = MAX_REQUEST_ATTEMPTS
+        content, fetch_stats = await _fetch_sina_trade_calendar_with_stats(http_client_factory)
+        parse_result = self._parser.parse_with_diagnostics(content)
+        if not parse_result.dates:
+            msg = (
+                "Sina trade calendar parser returned no rows: "
+                f"{parse_result.error_message or 'unknown parser failure'}"
+            )
+            raise RuntimeError(msg)
+
+        trade_dates = parse_result.dates
+        table = trade_calendar_dates_to_table(trade_dates)
+        return SinaTradeCalendarRefreshResult(
+            table=table,
+            missing_date_added=parse_result.missing_date_added,
+            metadata={
+                "source_url": dg.MetadataValue.url(SINA_TRADE_CALENDAR_URL),
+                "row_count": len(trade_dates),
+                "min_trade_date": min(trade_dates).isoformat(),
+                "max_trade_date": max(trade_dates).isoformat(),
+                "file_format": "parquet",
+                "compression": "zstd",
+                "retry_policy": dg.MetadataValue.json(
+                    retry_policy.metadata(max_attempts=max_attempts)
+                ),
+                "request_count": fetch_stats.request_count,
+                "retry_count": fetch_stats.retry_count,
+                "transient_error_count": fetch_stats.transient_error_count,
+                "http_4xx_count": fetch_stats.http_4xx_count,
+                "http_5xx_count": fetch_stats.http_5xx_count,
+                "decode_error_count": fetch_stats.decode_error_count,
+            },
+        )
+
+
 @dg.asset(
     key_prefix=[SOURCE_ASSET_KEY_PREFIX],
     group_name="s3_sources",
@@ -299,43 +358,22 @@ def trade_calendar_dates_to_table(trade_dates: TradeCalendarDates) -> pa.Table:
     kinds=s3_parquet_kinds("http"),
     tags=source_tags("sina"),
 )
-def sina__trade_calendar(context) -> dg.MaterializeResult[pa.Table]:
+def sina__trade_calendar(
+    context,
+    http_client_factory: HttpClientFactoryResource,
+) -> dg.MaterializeResult[pa.Table]:
     """A-share trade calendar decoded from Sina Finance."""
 
-    retry_policy = DEFAULT_RETRY_POLICY
-    max_attempts = MAX_REQUEST_ATTEMPTS
-    content, fetch_stats = asyncio.run(_fetch_sina_trade_calendar_with_stats())
-    parse_result = SinaCalendarParser().parse_with_diagnostics(content)
-    if not parse_result.dates:
-        context.log.warning(
-            "Sina trade-calendar parser returned no rows: %s",
-            parse_result.error_message or "unknown parser failure",
-        )
-        msg = "Sina trade calendar parser returned no rows"
-        raise RuntimeError(msg)
-    if parse_result.missing_date_added:
+    result = run_async_boundary(
+        SinaTradeCalendarRefreshService().refresh(http_client_factory.factory()),
+        context="Sina trade-calendar fetch",
+    )
+    if result.missing_date_added:
         context.log.debug("Added known missing Sina trade date %s", SINA_KNOWN_MISSING_DATE)
 
-    trade_dates = parse_result.dates
-    table = trade_calendar_dates_to_table(trade_dates)
-    metadata = {
-        "source_url": dg.MetadataValue.url(SINA_TRADE_CALENDAR_URL),
-        "row_count": len(trade_dates),
-        "min_trade_date": min(trade_dates).isoformat(),
-        "max_trade_date": max(trade_dates).isoformat(),
-        "file_format": "parquet",
-        "compression": "zstd",
-        "retry_policy": dg.MetadataValue.json(retry_policy.metadata(max_attempts=max_attempts)),
-        "request_count": fetch_stats.request_count,
-        "retry_count": fetch_stats.retry_count,
-        "transient_error_count": fetch_stats.transient_error_count,
-        "http_4xx_count": fetch_stats.http_4xx_count,
-        "http_5xx_count": fetch_stats.http_5xx_count,
-        "decode_error_count": fetch_stats.decode_error_count,
-    }
-    context.log.info("Parsed %s Sina trade-calendar rows", len(trade_dates))
+    context.log.info("Parsed %s Sina trade-calendar rows", result.table.num_rows)
 
     return dg.MaterializeResult(
-        value=table,
-        metadata=metadata,
+        value=result.table,
+        metadata=result.metadata,
     )
