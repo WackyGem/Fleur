@@ -38,12 +38,16 @@ def test_registered_definitions_match_source_bundles() -> None:
     assert {asset_key(asset) for asset in loaded_defs.assets or []} == expected_assets
     assert {job.name for job in loaded_defs.jobs or []} == expected_jobs
     assert {schedule.name for schedule in loaded_defs.schedules or []} == expected_schedules
+    assert {sensor.name for sensor in loaded_defs.sensors or []} == {"slack_asset_failure_sensor"}
     assert set(loaded_defs.resources) >= {
         "s3_io_manager",
         "s3_settings",
         "image_object_store",
         "industry_image_repository",
         "jiuyan_ocr_settings",
+        "baostock_client_factory",
+        "http_client_factory",
+        "slack",
     }
 
 
