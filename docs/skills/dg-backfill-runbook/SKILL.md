@@ -9,6 +9,9 @@ description: mono-fleur 的 Dagster 回填操作手册。用于选择 dg launch 
 
 ## 规则
 
+- 所有 `dg` / `dagster` 命令必须使用根目录 `.env` 中的 `DAGSTER_HOME` 作为 Dagster home
+- 执行前先在仓库根目录加载 `.env`：`set -a; . ./.env; set +a`
+- 运行回填前先执行 `make dagster-home`，确保 Dagster home 和 pool 限制已初始化
 - 在 `pipeline/` 下执行命令
 - 使用 `uv run dg ...`
 - 通过 `--target-path scheduler` 指向 scheduler 项目

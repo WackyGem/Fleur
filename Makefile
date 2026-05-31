@@ -1,17 +1,23 @@
-ENV_FILE ?= .env
 COMPOSE_FILE := deploy/docker-compose.yml
 PIPELINE_DIR := pipeline
 SCHEDULER_TARGET := scheduler
 TRADE_CALENDAR_ASSET := sina__trade_calendar
 BAOSTOCK_RUN_POOL := baostock_run_pool
 EASTMONEY_RUN_POOL := eastmoney_run_pool
-DAGSTER_HOME ?= $(CURDIR)/.dagster
 DAGSTER_WEBUI_HOST ?= 127.0.0.1
 DAGSTER_WEBUI_PORT ?= 3000
 
-ifneq ("$(wildcard $(ENV_FILE))","")
-include $(ENV_FILE)
+ifneq ("$(wildcard .env)","")
+include .env
 export
+else
+$(error Missing .env; DAGSTER_HOME must be defined there)
+endif
+ifeq ($(origin DAGSTER_HOME),undefined)
+$(error DAGSTER_HOME must be defined in .env)
+endif
+ifneq ($(origin DAGSTER_HOME),file)
+$(error DAGSTER_HOME must come from .env, not $(origin DAGSTER_HOME))
 endif
 export DAGSTER_HOME
 
@@ -28,13 +34,13 @@ help:
 	@printf '  %-34s %s\n' 'webui' 'Start Dagster Web UI for the local dev instance'
 
 dev-up:
-	docker compose --env-file $(ENV_FILE) -f $(COMPOSE_FILE) up -d
+	docker compose --env-file .env -f $(COMPOSE_FILE) up -d
 
 dev-down:
-	docker compose --env-file $(ENV_FILE) -f $(COMPOSE_FILE) down
+	docker compose --env-file .env -f $(COMPOSE_FILE) down
 
 dev-logs:
-	docker compose --env-file $(ENV_FILE) -f $(COMPOSE_FILE) logs -f
+	docker compose --env-file .env -f $(COMPOSE_FILE) logs -f
 
 wait-rustfs:
 	@printf 'Waiting for RustFS at %s\n' '$(RUSTFS_ENDPOINT)'

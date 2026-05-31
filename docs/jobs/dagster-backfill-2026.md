@@ -21,11 +21,27 @@
 - `docs/skills/dg-backfill-runbook` 维护通用回填命令模板、选择规则、分区规则
 - `docs/jobs/dagster-backfill-2026.md` 记录这一次具体执行计划、顺序、范围和操作记录
 - `pipeline/scheduler` 负责实际资产、job、schedule 定义
+- 所有 `dg` / `dagster` 命令必须使用根目录 `.env` 中的 `DAGSTER_HOME` 作为 Dagster home
 - Eastmoney 并行度由 Dagster pool 控制，当前按 `eastmoney_run_pool = 3` 执行
 
 ## 前置检查
 
-在 `pipeline/` 下执行：
+先确认根目录 `.env` 中已配置 `DAGSTER_HOME`，并让当前 shell 使用该值：
+
+```bash
+set -a
+. ./.env
+set +a
+test -n "$DAGSTER_HOME"
+```
+
+然后初始化/确认 Dagster home 和 pool 限制：
+
+```bash
+make dagster-home
+```
+
+再在 `pipeline/` 下执行：
 
 ```bash
 uv run dg list defs --target-path scheduler --json

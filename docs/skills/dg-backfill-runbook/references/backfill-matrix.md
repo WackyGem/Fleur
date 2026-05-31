@@ -38,6 +38,15 @@
 
 ## 示例
 
+先在仓库根目录加载 `.env`，并确保 `DAGSTER_HOME` 已生效：
+
+```bash
+set -a
+. ./.env
+set +a
+make dagster-home
+```
+
 ### 日范围
 
 ```bash
