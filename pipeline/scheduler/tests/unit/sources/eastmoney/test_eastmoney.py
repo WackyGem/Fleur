@@ -124,6 +124,25 @@ class EastmoneySchemaTest(unittest.TestCase):
         self.assertNotIn("source_endpoint", result.table.column_names)
         self.assertNotIn("ingested_at", result.table.column_names)
 
+    def test_dividend_main_report_time_accepts_historical_report_label(self) -> None:
+        endpoint = endpoint_by_asset_name("eastmoney__dividend_main")
+        result = eastmoney_rows_to_table(
+            endpoint,
+            [
+                EastmoneyFetchedRow(
+                    data={
+                        "SECUCODE": "600000.SH",
+                        "SECURITY_CODE": "600000",
+                        "NOTICE_DATE": "1992-01-01 00:00:00",
+                        "REPORT_TIME": "1991年报",
+                    }
+                )
+            ],
+        )
+
+        self.assertEqual(result.table.num_rows, 1)
+        self.assertEqual(result.table["REPORT_TIME"].to_pylist(), ["1991年报"])
+
 
 class EastmoneyClientTest(unittest.TestCase):
     def test_code_conversion_accepts_shanghai_and_shenzhen_only(self) -> None:

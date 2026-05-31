@@ -26,11 +26,12 @@
 ## 说明
 
 - `--partition-range` 是包含式范围，必须用三个点：`start...end`
+- `--partition-range` 的起止值必须是 Dagster 已存在的 partition key；如果当天是周末或未来无效分区，需要落到最近有效 partition key
 - 优先精确 asset key，不要一上来就用宽 tag
 - 只有 job 和目标资产集合一一对应时才优先用 job
 - 临时启动时，`--assets "key:..."` 通常比 `--job` 更稳
 - `jiuyan__industry_ocr_pipeline_job` 会串起 `industry_list`、`industry_images`、`industry_ocr`；只补图片或 OCR 时用精确 asset selection
-- `jiuyan__industry_ocr` 支持通过 op config 设置 `limit`、`force_ocr`、`image_filenames`、`max_concurrent_requests`
+- `jiuyan__industry_ocr` 支持通过 op config 设置 `limit`、`force_ocr`、`image_filenames`、`max_concurrent_requests`；asset key 带 `source/` 前缀时，op config key 是 `source__jiuyan__industry_ocr`
 - `jiuyan__action_field` 默认单次只处理最近窗口内的交易日；回填时用最近自然日范围
 - `jiuyan__action_field_compacted` 是年分区资产，必须按 `--partition YYYY` 运行
 - `ths__limit_up_pool` 默认单次只处理最近窗口内的交易日；回填时按自然日范围分段
@@ -76,7 +77,7 @@ done
 cd pipeline
 uv run dg launch --target-path scheduler \
   --assets "key:source/jiuyan__industry_ocr" \
-  --config-json '{"ops":{"jiuyan__industry_ocr":{"config":{"limit":50}}}}'
+  --config-json '{"ops":{"source__jiuyan__industry_ocr":{"config":{"limit":50}}}}'
 ```
 
 ### 最近 90 个自然日
@@ -89,6 +90,8 @@ uv run dg launch --target-path scheduler \
   --assets "key:source/jiuyan__action_field" \
   --partition-range "${start_date}...${end_date}"
 ```
+
+如果 `end_date` 不是有效 partition key，先把它改成最近有效日分区。例如 2026-05-31 是周日，成功执行时使用 `2026-03-02...2026-05-29`。
 
 ### THS 全量自然日
 

@@ -146,12 +146,13 @@ uv run dg launch --target-path scheduler --assets "key:source/jiuyan__industry_i
 cd pipeline
 uv run dg launch --target-path scheduler \
   --assets "key:source/jiuyan__industry_ocr" \
-  --config-json '{"ops":{"jiuyan__industry_ocr":{"config":{"limit":50}}}}'
+  --config-json '{"ops":{"source__jiuyan__industry_ocr":{"config":{"limit":50}}}}'
 ```
 
 说明：
 
 - `limit: 50` 会传给 `IndustryOcrConfig.limit`
+- 资产 key 带 `source/` 前缀，Dagster step/op config key 是 `source__jiuyan__industry_ocr`
 - 该资产依赖 `jiuyan__industry_images`
 - 本次只回填 50 张图片的 OCR，不使用 `force_ocr`
 
@@ -169,7 +170,8 @@ uv run dg launch --target-path scheduler \
 说明：
 
 - `--partition-range` 使用包含式范围
-- 以 `2026-05-31` 执行计算，最近 90 个自然日范围是 `2026-03-03...2026-05-31`
+- `dg launch` 要求 range 起止值都是资产有效 partition key；如果 `start_date` 或 `end_date` 是周末/未来无效分区，要落到最近的有效日分区再执行
+- 以 `2026-05-31` 执行计算，实际成功使用的有效范围是 `2026-03-02...2026-05-29`
 - 资产内部会基于 `sina__trade_calendar` 过滤交易日
 - 当前代码限制单次最多处理最近 80 个交易日；90 个自然日通常低于该交易日数量上限
 
@@ -272,18 +274,25 @@ done
 
 ### 已完成
 
-- [ ] `sina__trade_calendar`
-- [ ] `baostock__query_stock_basic`
-- [ ] `jiuyan__industry_list`
-- [ ] `jiuyan__industry_images`
-- [ ] `jiuyan__industry_ocr`，限制 50 张图片
-- [ ] `jiuyan__action_field`，最近 90 个自然日
-- [ ] `jiuyan__action_field_compacted`
-- [ ] `ths__limit_up_pool`，全部日分区
-- [ ] `ths__limit_up_pool_compacted`
-- [ ] `eastmoney__*` 1990 - 今年
-- [ ] `baostock__query_history_k_data_plus_daily` 1995 - 今年
+- [x] `sina__trade_calendar`
+- [x] `baostock__query_stock_basic`
+- [x] `jiuyan__industry_list`
+- [x] `jiuyan__industry_images`
+- [x] `jiuyan__industry_ocr`，限制 50 张图片
+- [x] `jiuyan__action_field`，最近 90 个自然日
+- [x] `jiuyan__action_field_compacted`
+- [x] `ths__limit_up_pool`，全部日分区
+- [x] `ths__limit_up_pool_compacted`
+- [x] `eastmoney__*` 1990 - 今年
+- [x] `baostock__query_history_k_data_plus_daily` 1995 - 今年
+
+报告记录见 `docs/jobs/reports/`。
 
 ### 异常记录
 
-- 
+- `jiuyan__industry_images` 首次失败后迁移并重跑成功，见 `004-jiuyan__industry_images.md`。
+- `jiuyan__industry_ocr` 本次按计划限制 50 张，结果 48 成功、2 失败，失败项保留状态记录，见 `005-jiuyan__industry_ocr.md`。
+- `jiuyan__action_field` 首次使用周末终点失败，改用有效分区范围 `2026-03-02...2026-05-29` 后成功，见 `006-jiuyan__action_field.md`。
+- `jiuyan__action_field_compacted` 历史年份无本次 daily 回填数据，2026 成功，见 `007-jiuyan__action_field_compacted.md`。
+- `eastmoney__dividend_main.REPORT_TIME` 历史值可能为 `1991年报`，已将 schema 修正为 string；按用户要求已重新全量回填 8 个 Eastmoney 资产 1990-2026，见 `011-eastmoney__all.md`。
+- `baostock__query_history_k_data_plus_daily` 2010 曾有取消记录、2026 曾有失败记录，均已有后续成功物化，见 `010-baostock__query_history_k_data_plus_daily.md`。
