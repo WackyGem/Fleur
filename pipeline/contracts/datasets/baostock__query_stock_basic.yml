@@ -1,0 +1,142 @@
+dataset: baostock__query_stock_basic
+version: 1
+owner: data
+grain: one row per security code
+source_asset_key:
+- source
+- baostock__query_stock_basic
+raw_asset_key:
+- clickhouse
+- raw
+- baostock__query_stock_basic
+external:
+  provider: baostock
+  source_table_name: baostock__query_stock_basic
+  source_description_zh: BaoStock 证券基础信息快照
+source:
+  protocol: tcp
+  payload_format: tabular
+  fields:
+  - name: code
+    type: string
+    required: true
+    external_description_zh: BaoStock 基础信息接口返回的证券代码。
+  - name: code_name
+    type: string
+    required: true
+    external_description_zh: BaoStock 基础信息接口返回的证券简称。
+  - name: ipoDate
+    type: string
+    required: true
+    external_description_zh: 证券上市日期。
+  - name: outDate
+    type: string
+    required: true
+    external_description_zh: 证券退市日期；未退市时通常为空。
+  - name: type
+    type: string
+    required: true
+    external_description_zh: 证券类型代码。
+  - name: status
+    type: string
+    required: true
+    external_description_zh: 证券上市状态。
+parquet:
+  storage_mode: latest_snapshot
+  fields:
+  - name: code
+    type: string
+    nullable: false
+  - name: code_name
+    type: string
+    nullable: false
+  - name: ipoDate
+    type: date32[day]
+    nullable: false
+  - name: outDate
+    type: date32[day]
+    nullable: false
+  - name: type
+    type: int8
+    nullable: false
+  - name: status
+    type: int8
+    nullable: false
+clickhouse_raw:
+  database: raw
+  table: baostock__query_stock_basic
+  partition_strategy: snapshot
+  engine: MergeTree
+  partition_by: tuple()
+  order_by:
+  - code
+  allow_empty: false
+  sync_enabled: true
+  fields:
+  - name: code
+    type: LowCardinality(String)
+    from: code
+    nullable: false
+    reason: expected_low_cardinality_dimension
+  - name: code_name
+    type: LowCardinality(String)
+    from: code_name
+    nullable: false
+    reason: expected_low_cardinality_dimension
+  - name: ipoDate
+    type: Date
+    from: ipoDate
+    nullable: false
+  - name: outDate
+    type: Date
+    from: outDate
+    nullable: false
+  - name: type
+    type: Int8
+    from: type
+    nullable: false
+  - name: status
+    type: Int8
+    from: status
+    nullable: false
+dbt_staging:
+  model: stg_baostock__query_stock_basic
+  materialized: view
+  status: active
+  primary_key:
+  - code
+  fields:
+  - name: code
+    from: code
+    type: String
+    glossary_key: code
+    tests:
+    - not_null
+  - name: code_name
+    from: code_name
+    type: String
+    glossary_key: code_name
+    tests: []
+  - name: ipo_date
+    from: ipoDate
+    type: Date
+    glossary_key: ipo_date
+    tests: []
+  - name: out_date
+    from: outDate
+    type: Date
+    glossary_key: out_date
+    tests: []
+  - name: stock_type
+    from: type
+    type: Int8
+    glossary_key: stock_type
+    tests: []
+  - name: stock_status
+    from: status
+    type: Int8
+    glossary_key: stock_status
+    tests: []
+dataset_note_zh: BaoStock 证券基础信息快照
+validation_notes:
+- Initial contract migrated from docs/references/data_dict and current raw sync specs.

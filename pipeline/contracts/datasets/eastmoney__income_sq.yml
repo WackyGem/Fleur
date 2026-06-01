@@ -1,0 +1,3340 @@
+dataset: eastmoney__income_sq
+version: 1
+owner: data
+grain: one row per security code per report date
+source_asset_key:
+- source
+- eastmoney__income_sq
+raw_asset_key:
+- clickhouse
+- raw
+- eastmoney__income_sq
+external:
+  provider: eastmoney
+  source_table_name: eastmoney__income_sq
+  source_description_zh: 东方财富单季度利润表 F10 年度 raw 分区
+source:
+  protocol: http
+  payload_format: json
+  fields:
+  - name: SECUCODE
+    type: string
+    required: true
+    external_description_zh: 证券代码（含市场后缀）
+  - name: SECURITY_CODE
+    type: string
+    required: true
+    external_description_zh: 证券代码（纯数字）
+  - name: SECURITY_NAME_ABBR
+    type: string
+    required: true
+    external_description_zh: 证券简称
+  - name: ORG_CODE
+    type: string
+    required: true
+    external_description_zh: 机构代码
+  - name: ORG_TYPE
+    type: string
+    required: true
+    external_description_zh: 机构类型
+  - name: REPORT_DATE
+    type: string
+    required: true
+    external_description_zh: 报告期
+  - name: REPORT_TYPE
+    type: string
+    required: true
+    external_description_zh: 报告类型
+  - name: REPORT_DATE_NAME
+    type: string
+    required: true
+    external_description_zh: 报告期名称
+  - name: SECURITY_TYPE_CODE
+    type: string
+    required: true
+    external_description_zh: 证券类型代码
+  - name: NOTICE_DATE
+    type: string
+    required: true
+    external_description_zh: 公告日期
+  - name: UPDATE_DATE
+    type: string
+    required: true
+    external_description_zh: 更新日期
+  - name: CURRENCY
+    type: string
+    required: true
+    external_description_zh: 利润表单季度金额使用的币种。
+  - name: OPINION_TYPE
+    type: number
+    required: true
+    external_description_zh: 审计意见类型
+  - name: OSOPINION_TYPE
+    type: number
+    required: true
+    external_description_zh: 内控审计意见类型
+  - name: TOTAL_OPERATE_INCOME
+    type: number
+    required: true
+    external_description_zh: 营业总收入
+  - name: TOTAL_OPERATE_INCOME_QOQ
+    type: number
+    required: true
+    external_description_zh: 营业总收入环比增长率（%）
+  - name: OPERATE_INCOME
+    type: number
+    required: true
+    external_description_zh: 营业收入
+  - name: OPERATE_INCOME_QOQ
+    type: number
+    required: true
+    external_description_zh: 营业收入环比增长率（%）
+  - name: INTEREST_INCOME
+    type: number
+    required: true
+    external_description_zh: 利息收入
+  - name: INTEREST_INCOME_QOQ
+    type: number
+    required: true
+    external_description_zh: 利息收入环比增长率（%）
+  - name: EARNED_PREMIUM
+    type: number
+    required: true
+    external_description_zh: 已赚保费
+  - name: EARNED_PREMIUM_QOQ
+    type: number
+    required: true
+    external_description_zh: 已赚保费环比增长率（%）
+  - name: FEE_COMMISSION_INCOME
+    type: number
+    required: true
+    external_description_zh: 手续费及佣金收入
+  - name: FEE_COMMISSION_INCOME_QOQ
+    type: number
+    required: true
+    external_description_zh: 手续费及佣金收入环比增长率（%）
+  - name: OTHER_BUSINESS_INCOME
+    type: number
+    required: true
+    external_description_zh: 其他业务收入
+  - name: OTHER_BUSINESS_INCOME_QOQ
+    type: number
+    required: true
+    external_description_zh: 其他业务收入环比增长率（%）
+  - name: TOI_OTHER
+    type: number
+    required: true
+    external_description_zh: 营业总收入其他
+  - name: TOI_OTHER_QOQ
+    type: number
+    required: true
+    external_description_zh: 营业总收入其他环比增长率（%）
+  - name: TOTAL_OPERATE_COST
+    type: number
+    required: true
+    external_description_zh: 营业总成本
+  - name: TOTAL_OPERATE_COST_QOQ
+    type: number
+    required: true
+    external_description_zh: 营业总成本环比增长率（%）
+  - name: OPERATE_COST
+    type: number
+    required: true
+    external_description_zh: 营业成本
+  - name: OPERATE_COST_QOQ
+    type: number
+    required: true
+    external_description_zh: 营业成本环比增长率（%）
+  - name: INTEREST_EXPENSE
+    type: number
+    required: true
+    external_description_zh: 利息支出
+  - name: INTEREST_EXPENSE_QOQ
+    type: number
+    required: true
+    external_description_zh: 利息支出环比增长率（%）
+  - name: FEE_COMMISSION_EXPENSE
+    type: number
+    required: true
+    external_description_zh: 手续费及佣金支出
+  - name: FEE_COMMISSION_EXPENSE_QOQ
+    type: number
+    required: true
+    external_description_zh: 手续费及佣金支出环比增长率（%）
+  - name: RESEARCH_EXPENSE
+    type: number
+    required: true
+    external_description_zh: 研发费用
+  - name: RESEARCH_EXPENSE_QOQ
+    type: number
+    required: true
+    external_description_zh: 研发费用环比增长率（%）
+  - name: SURRENDER_VALUE
+    type: number
+    required: true
+    external_description_zh: 退保金
+  - name: SURRENDER_VALUE_QOQ
+    type: number
+    required: true
+    external_description_zh: 退保金环比增长率（%）
+  - name: NET_COMPENSATE_EXPENSE
+    type: number
+    required: true
+    external_description_zh: 分保费用
+  - name: NET_COMPENSATE_EXPENSE_QOQ
+    type: number
+    required: true
+    external_description_zh: 分保费用环比增长率（%）
+  - name: NET_CONTRACT_RESERVE
+    type: number
+    required: true
+    external_description_zh: 提取保险合同准备金
+  - name: NET_CONTRACT_RESERVE_QOQ
+    type: number
+    required: true
+    external_description_zh: 提取保险合同准备金环比增长率（%）
+  - name: POLICY_BONUS_EXPENSE
+    type: number
+    required: true
+    external_description_zh: 保单红利支出
+  - name: POLICY_BONUS_EXPENSE_QOQ
+    type: number
+    required: true
+    external_description_zh: 保单红利支出环比增长率（%）
+  - name: REINSURE_EXPENSE
+    type: number
+    required: true
+    external_description_zh: 分保费用支出
+  - name: REINSURE_EXPENSE_QOQ
+    type: number
+    required: true
+    external_description_zh: 分保费用支出环比增长率（%）
+  - name: OTHER_BUSINESS_COST
+    type: number
+    required: true
+    external_description_zh: 其他业务成本
+  - name: OTHER_BUSINESS_COST_QOQ
+    type: number
+    required: true
+    external_description_zh: 其他业务成本环比增长率（%）
+  - name: OPERATE_TAX_ADD
+    type: number
+    required: true
+    external_description_zh: 营业税金及附加
+  - name: OPERATE_TAX_ADD_QOQ
+    type: number
+    required: true
+    external_description_zh: 营业税金及附加环比增长率（%）
+  - name: SALE_EXPENSE
+    type: number
+    required: true
+    external_description_zh: 销售费用
+  - name: SALE_EXPENSE_QOQ
+    type: number
+    required: true
+    external_description_zh: 销售费用环比增长率（%）
+  - name: MANAGE_EXPENSE
+    type: number
+    required: true
+    external_description_zh: 管理费用
+  - name: MANAGE_EXPENSE_QOQ
+    type: number
+    required: true
+    external_description_zh: 管理费用环比增长率（%）
+  - name: ME_RESEARCH_EXPENSE
+    type: number
+    required: true
+    external_description_zh: 管理费用中的研发费用
+  - name: ME_RESEARCH_EXPENSE_QOQ
+    type: number
+    required: true
+    external_description_zh: 管理费用中的研发费用环比增长率（%）
+  - name: FINANCE_EXPENSE
+    type: number
+    required: true
+    external_description_zh: 财务费用
+  - name: FINANCE_EXPENSE_QOQ
+    type: number
+    required: true
+    external_description_zh: 财务费用环比增长率（%）
+  - name: FE_INTEREST_EXPENSE
+    type: number
+    required: true
+    external_description_zh: 财务费用之利息费用
+  - name: FE_INTEREST_EXPENSE_QOQ
+    type: number
+    required: true
+    external_description_zh: 财务费用之利息费用环比增长率（%）
+  - name: FE_INTEREST_INCOME
+    type: number
+    required: true
+    external_description_zh: 财务费用之利息收入
+  - name: FE_INTEREST_INCOME_QOQ
+    type: number
+    required: true
+    external_description_zh: 财务费用之利息收入环比增长率（%）
+  - name: ASSET_IMPAIRMENT_LOSS
+    type: number
+    required: true
+    external_description_zh: 资产减值损失
+  - name: ASSET_IMPAIRMENT_LOSS_QOQ
+    type: number
+    required: true
+    external_description_zh: 资产减值损失环比增长率（%）
+  - name: CREDIT_IMPAIRMENT_LOSS
+    type: number
+    required: true
+    external_description_zh: 信用减值损失
+  - name: CREDIT_IMPAIRMENT_LOSS_QOQ
+    type: number
+    required: true
+    external_description_zh: 信用减值损失环比增长率（%）
+  - name: OTHER_INCOME
+    type: number
+    required: true
+    external_description_zh: 其他收益
+  - name: OTHER_INCOME_QOQ
+    type: number
+    required: true
+    external_description_zh: 其他收益环比增长率（%）
+  - name: TOC_OTHER
+    type: number
+    required: true
+    external_description_zh: 营业总成本其他
+  - name: TOC_OTHER_QOQ
+    type: number
+    required: true
+    external_description_zh: 营业总成本其他环比增长率（%）
+  - name: INVEST_INCOME
+    type: number
+    required: true
+    external_description_zh: 投资收益
+  - name: INVEST_INCOME_QOQ
+    type: number
+    required: true
+    external_description_zh: 投资收益环比增长率（%）
+  - name: INVEST_JOINT_INCOME
+    type: number
+    required: true
+    external_description_zh: 对联营企业和合营企业的投资收益
+  - name: INVEST_JOINT_INCOME_QOQ
+    type: number
+    required: true
+    external_description_zh: 对联营企业和合营企业的投资收益环比增长率（%）
+  - name: ACF_END_INCOME
+    type: number
+    required: true
+    external_description_zh: 持续经营终止经营净损益
+  - name: ACF_END_INCOME_QOQ
+    type: number
+    required: true
+    external_description_zh: 持续经营终止经营净损益环比增长率（%）
+  - name: EXCHANGE_INCOME
+    type: number
+    required: true
+    external_description_zh: 汇兑收益
+  - name: EXCHANGE_INCOME_QOQ
+    type: number
+    required: true
+    external_description_zh: 汇兑收益环比增长率（%）
+  - name: NET_EXPOSURE_INCOME
+    type: number
+    required: true
+    external_description_zh: 净敞口收益
+  - name: NET_EXPOSURE_INCOME_QOQ
+    type: number
+    required: true
+    external_description_zh: 净敞口收益环比增长率（%）
+  - name: FAIRVALUE_CHANGE_INCOME
+    type: number
+    required: true
+    external_description_zh: 公允价值变动收益
+  - name: FAIRVALUE_CHANGE_INCOME_QOQ
+    type: number
+    required: true
+    external_description_zh: 公允价值变动收益环比增长率（%）
+  - name: ASSET_DISPOSAL_INCOME
+    type: number
+    required: true
+    external_description_zh: 资产处置收益
+  - name: ASSET_DISPOSAL_INCOME_QOQ
+    type: number
+    required: true
+    external_description_zh: 资产处置收益环比增长率（%）
+  - name: CREDIT_IMPAIRMENT_INCOME
+    type: number
+    required: true
+    external_description_zh: 信用减值收益
+  - name: CREDIT_IMPAIRMENT_INCOME_QOQ
+    type: number
+    required: true
+    external_description_zh: 信用减值收益环比增长率（%）
+  - name: ASSET_IMPAIRMENT_INCOME
+    type: number
+    required: true
+    external_description_zh: 资产减值收益
+  - name: ASSET_IMPAIRMENT_INCOME_QOQ
+    type: number
+    required: true
+    external_description_zh: 资产减值收益环比增长率（%）
+  - name: OPERATE_PROFIT
+    type: number
+    required: true
+    external_description_zh: 营业利润
+  - name: OPERATE_PROFIT_QOQ
+    type: number
+    required: true
+    external_description_zh: 营业利润环比增长率（%）
+  - name: NONBUSINESS_INCOME
+    type: number
+    required: true
+    external_description_zh: 营业外收入
+  - name: NONBUSINESS_INCOME_QOQ
+    type: number
+    required: true
+    external_description_zh: 营业外收入环比增长率（%）
+  - name: NONCURRENT_DISPOSAL_INCOME
+    type: number
+    required: true
+    external_description_zh: 非流动资产处置净收益
+  - name: NONCURRENT_DISPOSAL_INCOME_QOQ
+    type: number
+    required: true
+    external_description_zh: 非流动资产处置净收益环比增长率（%）
+  - name: NONBUSINESS_EXPENSE
+    type: number
+    required: true
+    external_description_zh: 营业外支出
+  - name: NONBUSINESS_EXPENSE_QOQ
+    type: number
+    required: true
+    external_description_zh: 营业外支出环比增长率（%）
+  - name: NONCURRENT_DISPOSAL_LOSS
+    type: number
+    required: true
+    external_description_zh: 非流动资产处置净损失
+  - name: NONCURRENT_DISPOSAL_LOSS_QOQ
+    type: number
+    required: true
+    external_description_zh: 非流动资产处置净损失环比增长率（%）
+  - name: OPERATE_PROFIT_OTHER
+    type: number
+    required: true
+    external_description_zh: 营业利润其他
+  - name: OPERATE_PROFIT_OTHER_QOQ
+    type: number
+    required: true
+    external_description_zh: 营业利润其他环比增长率（%）
+  - name: OPERATE_PROFIT_BALANCE
+    type: number
+    required: true
+    external_description_zh: 营业利润平衡项
+  - name: OPERATE_PROFIT_BALANCE_QOQ
+    type: number
+    required: true
+    external_description_zh: 营业利润平衡项环比增长率（%）
+  - name: TOTAL_PROFIT
+    type: number
+    required: true
+    external_description_zh: 利润总额
+  - name: TOTAL_PROFIT_QOQ
+    type: number
+    required: true
+    external_description_zh: 利润总额环比增长率（%）
+  - name: EFFECT_TP_OTHER
+    type: number
+    required: true
+    external_description_zh: 影响利润总额其他
+  - name: EFFECT_TP_OTHER_QOQ
+    type: number
+    required: true
+    external_description_zh: 影响利润总额其他环比增长率（%）
+  - name: TOTAL_PROFIT_BALANCE
+    type: number
+    required: true
+    external_description_zh: 利润总额平衡项
+  - name: TOTAL_PROFIT_BALANCE_QOQ
+    type: number
+    required: true
+    external_description_zh: 利润总额平衡项环比增长率（%）
+  - name: INCOME_TAX
+    type: number
+    required: true
+    external_description_zh: 所得税费用
+  - name: INCOME_TAX_QOQ
+    type: number
+    required: true
+    external_description_zh: 所得税费用环比增长率（%）
+  - name: NETPROFIT
+    type: number
+    required: true
+    external_description_zh: 净利润
+  - name: NETPROFIT_QOQ
+    type: number
+    required: true
+    external_description_zh: 净利润环比增长率（%）
+  - name: CONTINUED_NETPROFIT
+    type: number
+    required: true
+    external_description_zh: 持续经营净利润
+  - name: CONTINUED_NETPROFIT_QOQ
+    type: number
+    required: true
+    external_description_zh: 持续经营净利润环比增长率（%）
+  - name: DISCONTINUED_NETPROFIT
+    type: number
+    required: true
+    external_description_zh: 终止经营净利润
+  - name: DISCONTINUED_NETPROFIT_QOQ
+    type: number
+    required: true
+    external_description_zh: 终止经营净利润环比增长率（%）
+  - name: NETPROFIT_OTHER
+    type: number
+    required: true
+    external_description_zh: 净利润其他
+  - name: NETPROFIT_OTHER_QOQ
+    type: number
+    required: true
+    external_description_zh: 净利润其他环比增长率（%）
+  - name: NETPROFIT_BALANCE
+    type: number
+    required: true
+    external_description_zh: 净利润平衡项
+  - name: NETPROFIT_BALANCE_QOQ
+    type: number
+    required: true
+    external_description_zh: 净利润平衡项环比增长率（%）
+  - name: EFFECT_NETPROFIT_OTHER
+    type: number
+    required: true
+    external_description_zh: 影响净利润其他
+  - name: EFFECT_NETPROFIT_OTHER_QOQ
+    type: number
+    required: true
+    external_description_zh: 影响净利润其他环比增长率（%）
+  - name: EFFECT_NETPROFIT_BALANCE
+    type: number
+    required: true
+    external_description_zh: 净利润平衡项
+  - name: EFFECT_NETPROFIT_BALANCE_QOQ
+    type: number
+    required: true
+    external_description_zh: 净利润平衡项环比增长率（%）
+  - name: UNCONFIRM_INVEST_LOSS
+    type: number
+    required: true
+    external_description_zh: 未确认投资损失
+  - name: UNCONFIRM_INVEST_LOSS_QOQ
+    type: number
+    required: true
+    external_description_zh: 未确认投资损失环比增长率（%）
+  - name: MINORITY_INTEREST
+    type: number
+    required: true
+    external_description_zh: 少数股东损益
+  - name: MINORITY_INTEREST_QOQ
+    type: number
+    required: true
+    external_description_zh: 少数股东损益环比增长率（%）
+  - name: PARENT_NETPROFIT
+    type: number
+    required: true
+    external_description_zh: 归属于母公司股东的净利润
+  - name: PARENT_NETPROFIT_QOQ
+    type: number
+    required: true
+    external_description_zh: 归属于母公司股东的净利润环比增长率（%）
+  - name: BASIC_EPS
+    type: number
+    required: true
+    external_description_zh: 基本每股收益（元/股）
+  - name: BASIC_EPS_QOQ
+    type: number
+    required: true
+    external_description_zh: 基本每股收益（元/股）环比增长率（%）
+  - name: DILUTED_EPS
+    type: number
+    required: true
+    external_description_zh: 稀释每股收益（元/股）
+  - name: DILUTED_EPS_QOQ
+    type: number
+    required: true
+    external_description_zh: 稀释每股收益（元/股）环比增长率（%）
+  - name: UNABLE_OCI
+    type: number
+    required: true
+    external_description_zh: 以后将重分类进损益的其他综合收益
+  - name: UNABLE_OCI_QOQ
+    type: number
+    required: true
+    external_description_zh: 以后将重分类进损益的其他综合收益环比增长率（%）
+  - name: CREDITRISK_FAIRVALUE_CHANGE
+    type: number
+    required: true
+    external_description_zh: 信用风险引起的公允价值变动
+  - name: CREDITRISK_FAIRVALUE_CHANGE_QOQ
+    type: number
+    required: true
+    external_description_zh: 信用风险引起的公允价值变动环比增长率（%）
+  - name: OTHERRIGHT_FAIRVALUE_CHANGE
+    type: number
+    required: true
+    external_description_zh: 其他权益工具公允价值变动
+  - name: OTHERRIGHT_FAIRVALUE_CHANGE_QOQ
+    type: number
+    required: true
+    external_description_zh: 其他权益工具公允价值变动环比增长率（%）
+  - name: SETUP_PROFIT_CHANGE
+    type: number
+    required: true
+    external_description_zh: 重分类调整变动
+  - name: SETUP_PROFIT_CHANGE_QOQ
+    type: number
+    required: true
+    external_description_zh: 重分类调整变动环比增长率（%）
+  - name: RIGHTLAW_UNABLE_OCI
+    type: number
+    required: true
+    external_description_zh: 权益法下不能重分类的其他综合收益
+  - name: RIGHTLAW_UNABLE_OCI_QOQ
+    type: number
+    required: true
+    external_description_zh: 权益法下不能重分类的其他综合收益环比增长率（%）
+  - name: UNABLE_OCI_OTHER
+    type: number
+    required: true
+    external_description_zh: 不能重分类其他综合收益其他
+  - name: UNABLE_OCI_OTHER_QOQ
+    type: number
+    required: true
+    external_description_zh: 不能重分类其他综合收益其他环比增长率（%）
+  - name: UNABLE_OCI_BALANCE
+    type: number
+    required: true
+    external_description_zh: 不能重分类其他综合收益平衡项
+  - name: UNABLE_OCI_BALANCE_QOQ
+    type: number
+    required: true
+    external_description_zh: 不能重分类其他综合收益平衡项环比增长率（%）
+  - name: ABLE_OCI
+    type: number
+    required: true
+    external_description_zh: 以后将重分类进损益的其他综合收益（可重分类）
+  - name: ABLE_OCI_QOQ
+    type: number
+    required: true
+    external_description_zh: 以后将重分类进损益的其他综合收益（可重分类）环比增长率（%）
+  - name: RIGHTLAW_ABLE_OCI
+    type: number
+    required: true
+    external_description_zh: 权益法下可重分类的其他综合收益
+  - name: RIGHTLAW_ABLE_OCI_QOQ
+    type: number
+    required: true
+    external_description_zh: 权益法下可重分类的其他综合收益环比增长率（%）
+  - name: AFA_FAIRVALUE_CHANGE
+    type: number
+    required: true
+    external_description_zh: 可供出售金融资产公允价值变动
+  - name: AFA_FAIRVALUE_CHANGE_QOQ
+    type: number
+    required: true
+    external_description_zh: 可供出售金融资产公允价值变动环比增长率（%）
+  - name: HMI_AFA
+    type: number
+    required: true
+    external_description_zh: 持有有待售资产公允价值变动
+  - name: HMI_AFA_QOQ
+    type: number
+    required: true
+    external_description_zh: 持有有待售资产公允价值变动环比增长率（%）
+  - name: CASHFLOW_HEDGE_VALID
+    type: number
+    required: true
+    external_description_zh: 现金流量套期有效部分
+  - name: CASHFLOW_HEDGE_VALID_QOQ
+    type: number
+    required: true
+    external_description_zh: 现金流量套期有效部分环比增长率（%）
+  - name: CREDITOR_FAIRVALUE_CHANGE
+    type: number
+    required: true
+    external_description_zh: 债权投资公允价值变动
+  - name: CREDITOR_FAIRVALUE_CHANGE_QOQ
+    type: number
+    required: true
+    external_description_zh: 债权投资公允价值变动环比增长率（%）
+  - name: CREDITOR_IMPAIRMENT_RESERVE
+    type: number
+    required: true
+    external_description_zh: 债权投资减值准备
+  - name: CREDITOR_IMPAIRMENT_RESERVE_QOQ
+    type: number
+    required: true
+    external_description_zh: 债权投资减值准备环比增长率（%）
+  - name: FINANCE_OCI_AMT
+    type: number
+    required: true
+    external_description_zh: 金融资产重分类金额
+  - name: FINANCE_OCI_AMT_QOQ
+    type: number
+    required: true
+    external_description_zh: 金融资产重分类金额环比增长率（%）
+  - name: CONVERT_DIFF
+    type: number
+    required: true
+    external_description_zh: 外币报表折算差额
+  - name: CONVERT_DIFF_QOQ
+    type: number
+    required: true
+    external_description_zh: 外币报表折算差额环比增长率（%）
+  - name: ABLE_OCI_OTHER
+    type: number
+    required: true
+    external_description_zh: 可重分类其他综合收益其他
+  - name: ABLE_OCI_OTHER_QOQ
+    type: number
+    required: true
+    external_description_zh: 可重分类其他综合收益其他环比增长率（%）
+  - name: ABLE_OCI_BALANCE
+    type: number
+    required: true
+    external_description_zh: 可重分类其他综合收益平衡项
+  - name: ABLE_OCI_BALANCE_QOQ
+    type: number
+    required: true
+    external_description_zh: 可重分类其他综合收益平衡项环比增长率（%）
+  - name: OCI_OTHER
+    type: number
+    required: true
+    external_description_zh: 其他综合收益其他
+  - name: OCI_OTHER_QOQ
+    type: number
+    required: true
+    external_description_zh: 其他综合收益其他环比增长率（%）
+  - name: OCI_BALANCE
+    type: number
+    required: true
+    external_description_zh: 其他综合收益平衡项
+  - name: OCI_BALANCE_QOQ
+    type: number
+    required: true
+    external_description_zh: 其他综合收益平衡项环比增长率（%）
+  - name: OTHER_COMPRE_INCOME
+    type: number
+    required: true
+    external_description_zh: 其他综合收益总额
+  - name: OTHER_COMPRE_INCOME_QOQ
+    type: number
+    required: true
+    external_description_zh: 其他综合收益总额环比增长率（%）
+  - name: PARENT_OCI
+    type: number
+    required: true
+    external_description_zh: 归属于母公司股东的其他综合收益
+  - name: PARENT_OCI_QOQ
+    type: number
+    required: true
+    external_description_zh: 归母其他综合收益环比增长率（%）
+  - name: MINORITY_OCI
+    type: number
+    required: true
+    external_description_zh: 归属于少数股东的其他综合收益
+  - name: MINORITY_OCI_QOQ
+    type: number
+    required: true
+    external_description_zh: 少数股东其他综合收益环比增长率（%）
+  - name: PARENT_OCI_OTHER
+    type: number
+    required: true
+    external_description_zh: 归母其他综合收益其他
+  - name: PARENT_OCI_OTHER_QOQ
+    type: number
+    required: true
+    external_description_zh: 归母其他综合收益其他环比增长率（%）
+  - name: PARENT_OCI_BALANCE
+    type: number
+    required: true
+    external_description_zh: 归母其他综合收益平衡项
+  - name: PARENT_OCI_BALANCE_QOQ
+    type: number
+    required: true
+    external_description_zh: 归母其他综合收益平衡项环比增长率（%）
+  - name: TOTAL_COMPRE_INCOME
+    type: number
+    required: true
+    external_description_zh: 综合收益总额
+  - name: TOTAL_COMPRE_INCOME_QOQ
+    type: number
+    required: true
+    external_description_zh: 综合收益总额环比增长率（%）
+  - name: PARENT_TCI
+    type: number
+    required: true
+    external_description_zh: 归属于母公司股东的综合收益总额
+  - name: PARENT_TCI_QOQ
+    type: number
+    required: true
+    external_description_zh: 归母综合收益总额环比增长率（%）
+  - name: MINORITY_TCI
+    type: number
+    required: true
+    external_description_zh: 归属于少数股东的综合收益总额
+  - name: MINORITY_TCI_QOQ
+    type: number
+    required: true
+    external_description_zh: 少数股东综合收益总额环比增长率（%）
+  - name: EFFECT_TCI_BALANCE
+    type: number
+    required: true
+    external_description_zh: 综合收益总额平衡项
+  - name: EFFECT_TCI_BALANCE_QOQ
+    type: number
+    required: true
+    external_description_zh: 综合收益总额平衡项环比增长率（%）
+  - name: TCI_OTHER
+    type: number
+    required: true
+    external_description_zh: 综合收益总额其他
+  - name: TCI_OTHER_QOQ
+    type: number
+    required: true
+    external_description_zh: 综合收益总额其他环比增长率（%）
+  - name: TCI_BALANCE
+    type: number
+    required: true
+    external_description_zh: 综合收益总额平衡项
+  - name: TCI_BALANCE_QOQ
+    type: number
+    required: true
+    external_description_zh: 综合收益总额平衡项环比增长率（%）
+  - name: PRECOMBINE_PROFIT
+    type: number
+    required: true
+    external_description_zh: 合并前净损益
+  - name: PRECOMBINE_PROFIT_QOQ
+    type: number
+    required: true
+    external_description_zh: 合并前净损益环比增长率（%）
+  - name: PRECOMBINE_TCI
+    type: number
+    required: true
+    external_description_zh: 合并前综合收益总额
+  - name: PRECOMBINE_TCI_QOQ
+    type: number
+    required: true
+    external_description_zh: 合并前综合收益总额环比增长率（%）
+  - name: DEDUCT_PARENT_NETPROFIT
+    type: number
+    required: true
+    external_description_zh: 扣除非经常性损益后归属于母公司股东的净利润
+  - name: DEDUCT_PARENT_NETPROFIT_QOQ
+    type: number
+    required: true
+    external_description_zh: 扣非归母净利润环比增长率（%）
+  - name: TOTAL_OPERATE_INCOME_YOY
+    type: number
+    required: true
+    external_description_zh: 营业总收入同比增长率（%）
+  - name: OPERATE_INCOME_YOY
+    type: number
+    required: true
+    external_description_zh: 营业收入同比增长率（%）
+  - name: INTEREST_INCOME_YOY
+    type: number
+    required: true
+    external_description_zh: 利息收入同比增长率（%）
+  - name: EARNED_PREMIUM_YOY
+    type: number
+    required: true
+    external_description_zh: 已赚保费同比增长率（%）
+  - name: FEE_COMMISSION_INCOME_YOY
+    type: number
+    required: true
+    external_description_zh: 手续费及佣金收入同比增长率（%）
+  - name: OTHER_BUSINESS_INCOME_YOY
+    type: number
+    required: true
+    external_description_zh: 其他业务收入同比增长率（%）
+  - name: TOI_OTHER_YOY
+    type: number
+    required: true
+    external_description_zh: 营业总收入其他同比增长率（%）
+  - name: TOTAL_OPERATE_COST_YOY
+    type: number
+    required: true
+    external_description_zh: 营业总成本同比增长率（%）
+  - name: OPERATE_COST_YOY
+    type: number
+    required: true
+    external_description_zh: 营业成本同比增长率（%）
+  - name: INTEREST_EXPENSE_YOY
+    type: number
+    required: true
+    external_description_zh: 利息支出同比增长率（%）
+  - name: FEE_COMMISSION_EXPENSE_YOY
+    type: number
+    required: true
+    external_description_zh: 手续费及佣金支出同比增长率（%）
+  - name: RESEARCH_EXPENSE_YOY
+    type: number
+    required: true
+    external_description_zh: 研发费用同比增长率（%）
+  - name: SURRENDER_VALUE_YOY
+    type: number
+    required: true
+    external_description_zh: 退保金同比增长率（%）
+  - name: NET_COMPENSATE_EXPENSE_YOY
+    type: number
+    required: true
+    external_description_zh: 分保费用同比增长率（%）
+  - name: NET_CONTRACT_RESERVE_YOY
+    type: number
+    required: true
+    external_description_zh: 提取保险合同准备金同比增长率（%）
+  - name: POLICY_BONUS_EXPENSE_YOY
+    type: number
+    required: true
+    external_description_zh: 保单红利支出同比增长率（%）
+  - name: REINSURE_EXPENSE_YOY
+    type: number
+    required: true
+    external_description_zh: 分保费用支出同比增长率（%）
+  - name: OTHER_BUSINESS_COST_YOY
+    type: number
+    required: true
+    external_description_zh: 其他业务成本同比增长率（%）
+  - name: OPERATE_TAX_ADD_YOY
+    type: number
+    required: true
+    external_description_zh: 营业税金及附加同比增长率（%）
+  - name: SALE_EXPENSE_YOY
+    type: number
+    required: true
+    external_description_zh: 销售费用同比增长率（%）
+  - name: MANAGE_EXPENSE_YOY
+    type: number
+    required: true
+    external_description_zh: 管理费用同比增长率（%）
+  - name: ME_RESEARCH_EXPENSE_YOY
+    type: number
+    required: true
+    external_description_zh: 管理费用中的研发费用同比增长率（%）
+  - name: FINANCE_EXPENSE_YOY
+    type: number
+    required: true
+    external_description_zh: 财务费用同比增长率（%）
+  - name: FE_INTEREST_EXPENSE_YOY
+    type: number
+    required: true
+    external_description_zh: 财务费用之利息费用同比增长率（%）
+  - name: FE_INTEREST_INCOME_YOY
+    type: number
+    required: true
+    external_description_zh: 财务费用之利息收入同比增长率（%）
+  - name: ASSET_IMPAIRMENT_LOSS_YOY
+    type: number
+    required: true
+    external_description_zh: 资产减值损失同比增长率（%）
+  - name: CREDIT_IMPAIRMENT_LOSS_YOY
+    type: number
+    required: true
+    external_description_zh: 信用减值损失同比增长率（%）
+  - name: OTHER_INCOME_YOY
+    type: number
+    required: true
+    external_description_zh: 其他收益同比增长率（%）
+  - name: TOC_OTHER_YOY
+    type: number
+    required: true
+    external_description_zh: 营业总成本其他同比增长率（%）
+  - name: INVEST_INCOME_YOY
+    type: number
+    required: true
+    external_description_zh: 投资收益同比增长率（%）
+  - name: INVEST_JOINT_INCOME_YOY
+    type: number
+    required: true
+    external_description_zh: 对联营企业和合营企业的投资收益同比增长率（%）
+  - name: ACF_END_INCOME_YOY
+    type: number
+    required: true
+    external_description_zh: 持续经营终止经营净损益同比增长率（%）
+  - name: EXCHANGE_INCOME_YOY
+    type: number
+    required: true
+    external_description_zh: 汇兑收益同比增长率（%）
+  - name: NET_EXPOSURE_INCOME_YOY
+    type: number
+    required: true
+    external_description_zh: 净敞口收益同比增长率（%）
+  - name: FAIRVALUE_CHANGE_INCOME_YOY
+    type: number
+    required: true
+    external_description_zh: 公允价值变动收益同比增长率（%）
+  - name: ASSET_DISPOSAL_INCOME_YOY
+    type: number
+    required: true
+    external_description_zh: 资产处置收益同比增长率（%）
+  - name: CREDIT_IMPAIRMENT_INCOME_YOY
+    type: number
+    required: true
+    external_description_zh: 信用减值收益同比增长率（%）
+  - name: ASSET_IMPAIRMENT_INCOME_YOY
+    type: number
+    required: true
+    external_description_zh: 资产减值收益同比增长率（%）
+  - name: OPERATE_PROFIT_YOY
+    type: number
+    required: true
+    external_description_zh: 营业利润同比增长率（%）
+  - name: NONBUSINESS_INCOME_YOY
+    type: number
+    required: true
+    external_description_zh: 营业外收入同比增长率（%）
+  - name: NONCURRENT_DISPOSAL_INCOME_YOY
+    type: number
+    required: true
+    external_description_zh: 非流动资产处置净收益同比增长率（%）
+  - name: NONBUSINESS_EXPENSE_YOY
+    type: number
+    required: true
+    external_description_zh: 营业外支出同比增长率（%）
+  - name: NONCURRENT_DISPOSAL_LOSS_YOY
+    type: number
+    required: true
+    external_description_zh: 非流动资产处置净损失同比增长率（%）
+  - name: OPERATE_PROFIT_OTHER_YOY
+    type: number
+    required: true
+    external_description_zh: 营业利润其他同比增长率（%）
+  - name: OPERATE_PROFIT_BALANCE_YOY
+    type: number
+    required: true
+    external_description_zh: 营业利润平衡项同比增长率（%）
+  - name: TOTAL_PROFIT_YOY
+    type: number
+    required: true
+    external_description_zh: 利润总额同比增长率（%）
+  - name: EFFECT_TP_OTHER_YOY
+    type: number
+    required: true
+    external_description_zh: 影响利润总额其他同比增长率（%）
+  - name: TOTAL_PROFIT_BALANCE_YOY
+    type: number
+    required: true
+    external_description_zh: 利润总额平衡项同比增长率（%）
+  - name: INCOME_TAX_YOY
+    type: number
+    required: true
+    external_description_zh: 所得税费用同比增长率（%）
+  - name: NETPROFIT_YOY
+    type: number
+    required: true
+    external_description_zh: 净利润同比增长率（%）
+  - name: CONTINUED_NETPROFIT_YOY
+    type: number
+    required: true
+    external_description_zh: 持续经营净利润同比增长率（%）
+  - name: DISCONTINUED_NETPROFIT_YOY
+    type: number
+    required: true
+    external_description_zh: 终止经营净利润同比增长率（%）
+  - name: NETPROFIT_OTHER_YOY
+    type: number
+    required: true
+    external_description_zh: 净利润其他同比增长率（%）
+  - name: NETPROFIT_BALANCE_YOY
+    type: number
+    required: true
+    external_description_zh: 净利润平衡项同比增长率（%）
+  - name: EFFECT_NETPROFIT_OTHER_YOY
+    type: number
+    required: true
+    external_description_zh: 影响净利润其他同比增长率（%）
+  - name: EFFECT_NETPROFIT_BALANCE_YOY
+    type: number
+    required: true
+    external_description_zh: 净利润平衡项同比增长率（%）
+  - name: UNCONFIRM_INVEST_LOSS_YOY
+    type: number
+    required: true
+    external_description_zh: 未确认投资损失同比增长率（%）
+  - name: MINORITY_INTEREST_YOY
+    type: number
+    required: true
+    external_description_zh: 少数股东损益同比增长率（%）
+  - name: PARENT_NETPROFIT_YOY
+    type: number
+    required: true
+    external_description_zh: 归属于母公司股东的净利润同比增长率（%）
+  - name: BASIC_EPS_YOY
+    type: number
+    required: true
+    external_description_zh: 基本每股收益（元/股）同比增长率（%）
+  - name: DILUTED_EPS_YOY
+    type: number
+    required: true
+    external_description_zh: 稀释每股收益（元/股）同比增长率（%）
+  - name: UNABLE_OCI_YOY
+    type: number
+    required: true
+    external_description_zh: 以后将重分类进损益的其他综合收益同比增长率（%）
+  - name: CREDITRISK_FAIRVALUE_CHANGE_YOY
+    type: number
+    required: true
+    external_description_zh: 信用风险引起的公允价值变动同比增长率（%）
+  - name: OTHERRIGHT_FAIRVALUE_CHANGE_YOY
+    type: number
+    required: true
+    external_description_zh: 其他权益工具公允价值变动同比增长率（%）
+  - name: SETUP_PROFIT_CHANGE_YOY
+    type: number
+    required: true
+    external_description_zh: 重分类调整变动同比增长率（%）
+  - name: RIGHTLAW_UNABLE_OCI_YOY
+    type: number
+    required: true
+    external_description_zh: 权益法下不能重分类的其他综合收益同比增长率（%）
+  - name: UNABLE_OCI_OTHER_YOY
+    type: number
+    required: true
+    external_description_zh: 不能重分类其他综合收益其他同比增长率（%）
+  - name: UNABLE_OCI_BALANCE_YOY
+    type: number
+    required: true
+    external_description_zh: 不能重分类其他综合收益平衡项同比增长率（%）
+  - name: ABLE_OCI_YOY
+    type: number
+    required: true
+    external_description_zh: 以后将重分类进损益的其他综合收益（可重分类）同比增长率（%）
+  - name: RIGHTLAW_ABLE_OCI_YOY
+    type: number
+    required: true
+    external_description_zh: 权益法下可重分类的其他综合收益同比增长率（%）
+  - name: AFA_FAIRVALUE_CHANGE_YOY
+    type: number
+    required: true
+    external_description_zh: 可供出售金融资产公允价值变动同比增长率（%）
+  - name: HMI_AFA_YOY
+    type: number
+    required: true
+    external_description_zh: 持有有待售资产公允价值变动同比增长率（%）
+  - name: CASHFLOW_HEDGE_VALID_YOY
+    type: number
+    required: true
+    external_description_zh: 现金流量套期有效部分同比增长率（%）
+  - name: CREDITOR_FAIRVALUE_CHANGE_YOY
+    type: number
+    required: true
+    external_description_zh: 债权投资公允价值变动同比增长率（%）
+  - name: CREDITOR_IMPAIRMENT_RESERVE_YOY
+    type: number
+    required: true
+    external_description_zh: 债权投资减值准备同比增长率（%）
+  - name: FINANCE_OCI_AMT_YOY
+    type: number
+    required: true
+    external_description_zh: 金融资产重分类金额同比增长率（%）
+  - name: CONVERT_DIFF_YOY
+    type: number
+    required: true
+    external_description_zh: 外币报表折算差额同比增长率（%）
+  - name: ABLE_OCI_OTHER_YOY
+    type: number
+    required: true
+    external_description_zh: 可重分类其他综合收益其他同比增长率（%）
+  - name: ABLE_OCI_BALANCE_YOY
+    type: number
+    required: true
+    external_description_zh: 可重分类其他综合收益平衡项同比增长率（%）
+  - name: OCI_OTHER_YOY
+    type: number
+    required: true
+    external_description_zh: 其他综合收益其他同比增长率（%）
+  - name: OCI_BALANCE_YOY
+    type: number
+    required: true
+    external_description_zh: 其他综合收益平衡项同比增长率（%）
+  - name: OTHER_COMPRE_INCOME_YOY
+    type: number
+    required: true
+    external_description_zh: 其他综合收益总额同比增长率（%）
+  - name: PARENT_OCI_YOY
+    type: number
+    required: true
+    external_description_zh: 归母其他综合收益同比增长率（%）
+  - name: MINORITY_OCI_YOY
+    type: number
+    required: true
+    external_description_zh: 少数股东其他综合收益同比增长率（%）
+  - name: PARENT_OCI_OTHER_YOY
+    type: number
+    required: true
+    external_description_zh: 归母其他综合收益其他同比增长率（%）
+  - name: PARENT_OCI_BALANCE_YOY
+    type: number
+    required: true
+    external_description_zh: 归母其他综合收益平衡项同比增长率（%）
+  - name: TOTAL_COMPRE_INCOME_YOY
+    type: number
+    required: true
+    external_description_zh: 综合收益总额同比增长率（%）
+  - name: PARENT_TCI_YOY
+    type: number
+    required: true
+    external_description_zh: 归母综合收益总额同比增长率（%）
+  - name: MINORITY_TCI_YOY
+    type: number
+    required: true
+    external_description_zh: 少数股东综合收益总额同比增长率（%）
+  - name: EFFECT_TCI_BALANCE_YOY
+    type: number
+    required: true
+    external_description_zh: 综合收益总额平衡项同比增长率（%）
+  - name: TCI_OTHER_YOY
+    type: number
+    required: true
+    external_description_zh: 综合收益总额其他同比增长率（%）
+  - name: TCI_BALANCE_YOY
+    type: number
+    required: true
+    external_description_zh: 综合收益总额平衡项同比增长率（%）
+  - name: PRECOMBINE_PROFIT_YOY
+    type: number
+    required: true
+    external_description_zh: 合并前净损益同比增长率（%）
+  - name: PRECOMBINE_TCI_YOY
+    type: number
+    required: true
+    external_description_zh: 合并前综合收益总额同比增长率（%）
+  - name: DEDUCT_PARENT_NETPROFIT_YOY
+    type: number
+    required: true
+    external_description_zh: 扣非归母净利润同比增长率（%）
+parquet:
+  storage_mode: partitioned
+  partition_key_name: year
+  fields:
+  - name: SECUCODE
+    type: string
+    nullable: false
+  - name: SECURITY_CODE
+    type: string
+    nullable: false
+  - name: SECURITY_NAME_ABBR
+    type: string
+    nullable: false
+  - name: ORG_CODE
+    type: string
+    nullable: false
+  - name: ORG_TYPE
+    type: string
+    nullable: false
+  - name: REPORT_DATE
+    type: date32[day]
+    nullable: false
+  - name: REPORT_TYPE
+    type: string
+    nullable: false
+  - name: REPORT_DATE_NAME
+    type: string
+    nullable: false
+  - name: SECURITY_TYPE_CODE
+    type: string
+    nullable: false
+  - name: NOTICE_DATE
+    type: date32[day]
+    nullable: false
+  - name: UPDATE_DATE
+    type: date32[day]
+    nullable: false
+  - name: CURRENCY
+    type: string
+    nullable: false
+  - name: OPINION_TYPE
+    type: string
+    nullable: false
+  - name: OSOPINION_TYPE
+    type: string
+    nullable: false
+  - name: TOTAL_OPERATE_INCOME
+    type: double
+    nullable: false
+  - name: TOTAL_OPERATE_INCOME_QOQ
+    type: double
+    nullable: false
+  - name: OPERATE_INCOME
+    type: double
+    nullable: false
+  - name: OPERATE_INCOME_QOQ
+    type: double
+    nullable: false
+  - name: INTEREST_INCOME
+    type: double
+    nullable: false
+  - name: INTEREST_INCOME_QOQ
+    type: double
+    nullable: false
+  - name: EARNED_PREMIUM
+    type: double
+    nullable: false
+  - name: EARNED_PREMIUM_QOQ
+    type: double
+    nullable: false
+  - name: FEE_COMMISSION_INCOME
+    type: double
+    nullable: false
+  - name: FEE_COMMISSION_INCOME_QOQ
+    type: double
+    nullable: false
+  - name: OTHER_BUSINESS_INCOME
+    type: double
+    nullable: false
+  - name: OTHER_BUSINESS_INCOME_QOQ
+    type: double
+    nullable: false
+  - name: TOI_OTHER
+    type: double
+    nullable: false
+  - name: TOI_OTHER_QOQ
+    type: double
+    nullable: false
+  - name: TOTAL_OPERATE_COST
+    type: double
+    nullable: false
+  - name: TOTAL_OPERATE_COST_QOQ
+    type: double
+    nullable: false
+  - name: OPERATE_COST
+    type: double
+    nullable: false
+  - name: OPERATE_COST_QOQ
+    type: double
+    nullable: false
+  - name: INTEREST_EXPENSE
+    type: double
+    nullable: false
+  - name: INTEREST_EXPENSE_QOQ
+    type: double
+    nullable: false
+  - name: FEE_COMMISSION_EXPENSE
+    type: double
+    nullable: false
+  - name: FEE_COMMISSION_EXPENSE_QOQ
+    type: double
+    nullable: false
+  - name: RESEARCH_EXPENSE
+    type: double
+    nullable: false
+  - name: RESEARCH_EXPENSE_QOQ
+    type: double
+    nullable: false
+  - name: SURRENDER_VALUE
+    type: double
+    nullable: false
+  - name: SURRENDER_VALUE_QOQ
+    type: double
+    nullable: false
+  - name: NET_COMPENSATE_EXPENSE
+    type: double
+    nullable: false
+  - name: NET_COMPENSATE_EXPENSE_QOQ
+    type: double
+    nullable: false
+  - name: NET_CONTRACT_RESERVE
+    type: double
+    nullable: false
+  - name: NET_CONTRACT_RESERVE_QOQ
+    type: double
+    nullable: false
+  - name: POLICY_BONUS_EXPENSE
+    type: double
+    nullable: false
+  - name: POLICY_BONUS_EXPENSE_QOQ
+    type: double
+    nullable: false
+  - name: REINSURE_EXPENSE
+    type: double
+    nullable: false
+  - name: REINSURE_EXPENSE_QOQ
+    type: double
+    nullable: false
+  - name: OTHER_BUSINESS_COST
+    type: double
+    nullable: false
+  - name: OTHER_BUSINESS_COST_QOQ
+    type: double
+    nullable: false
+  - name: OPERATE_TAX_ADD
+    type: double
+    nullable: false
+  - name: OPERATE_TAX_ADD_QOQ
+    type: double
+    nullable: false
+  - name: SALE_EXPENSE
+    type: double
+    nullable: false
+  - name: SALE_EXPENSE_QOQ
+    type: double
+    nullable: false
+  - name: MANAGE_EXPENSE
+    type: double
+    nullable: false
+  - name: MANAGE_EXPENSE_QOQ
+    type: double
+    nullable: false
+  - name: ME_RESEARCH_EXPENSE
+    type: double
+    nullable: false
+  - name: ME_RESEARCH_EXPENSE_QOQ
+    type: double
+    nullable: false
+  - name: FINANCE_EXPENSE
+    type: double
+    nullable: false
+  - name: FINANCE_EXPENSE_QOQ
+    type: double
+    nullable: false
+  - name: FE_INTEREST_EXPENSE
+    type: double
+    nullable: false
+  - name: FE_INTEREST_EXPENSE_QOQ
+    type: double
+    nullable: false
+  - name: FE_INTEREST_INCOME
+    type: double
+    nullable: false
+  - name: FE_INTEREST_INCOME_QOQ
+    type: double
+    nullable: false
+  - name: ASSET_IMPAIRMENT_LOSS
+    type: double
+    nullable: false
+  - name: ASSET_IMPAIRMENT_LOSS_QOQ
+    type: double
+    nullable: false
+  - name: CREDIT_IMPAIRMENT_LOSS
+    type: double
+    nullable: false
+  - name: CREDIT_IMPAIRMENT_LOSS_QOQ
+    type: double
+    nullable: false
+  - name: OTHER_INCOME
+    type: double
+    nullable: false
+  - name: OTHER_INCOME_QOQ
+    type: double
+    nullable: false
+  - name: TOC_OTHER
+    type: double
+    nullable: false
+  - name: TOC_OTHER_QOQ
+    type: double
+    nullable: false
+  - name: INVEST_INCOME
+    type: double
+    nullable: false
+  - name: INVEST_INCOME_QOQ
+    type: double
+    nullable: false
+  - name: INVEST_JOINT_INCOME
+    type: double
+    nullable: false
+  - name: INVEST_JOINT_INCOME_QOQ
+    type: double
+    nullable: false
+  - name: ACF_END_INCOME
+    type: double
+    nullable: false
+  - name: ACF_END_INCOME_QOQ
+    type: double
+    nullable: false
+  - name: EXCHANGE_INCOME
+    type: double
+    nullable: false
+  - name: EXCHANGE_INCOME_QOQ
+    type: double
+    nullable: false
+  - name: NET_EXPOSURE_INCOME
+    type: double
+    nullable: false
+  - name: NET_EXPOSURE_INCOME_QOQ
+    type: double
+    nullable: false
+  - name: FAIRVALUE_CHANGE_INCOME
+    type: double
+    nullable: false
+  - name: FAIRVALUE_CHANGE_INCOME_QOQ
+    type: double
+    nullable: false
+  - name: ASSET_DISPOSAL_INCOME
+    type: double
+    nullable: false
+  - name: ASSET_DISPOSAL_INCOME_QOQ
+    type: double
+    nullable: false
+  - name: CREDIT_IMPAIRMENT_INCOME
+    type: double
+    nullable: false
+  - name: CREDIT_IMPAIRMENT_INCOME_QOQ
+    type: double
+    nullable: false
+  - name: ASSET_IMPAIRMENT_INCOME
+    type: double
+    nullable: false
+  - name: ASSET_IMPAIRMENT_INCOME_QOQ
+    type: double
+    nullable: false
+  - name: OPERATE_PROFIT
+    type: double
+    nullable: false
+  - name: OPERATE_PROFIT_QOQ
+    type: double
+    nullable: false
+  - name: NONBUSINESS_INCOME
+    type: double
+    nullable: false
+  - name: NONBUSINESS_INCOME_QOQ
+    type: double
+    nullable: false
+  - name: NONCURRENT_DISPOSAL_INCOME
+    type: double
+    nullable: false
+  - name: NONCURRENT_DISPOSAL_INCOME_QOQ
+    type: double
+    nullable: false
+  - name: NONBUSINESS_EXPENSE
+    type: double
+    nullable: false
+  - name: NONBUSINESS_EXPENSE_QOQ
+    type: double
+    nullable: false
+  - name: NONCURRENT_DISPOSAL_LOSS
+    type: double
+    nullable: false
+  - name: NONCURRENT_DISPOSAL_LOSS_QOQ
+    type: double
+    nullable: false
+  - name: OPERATE_PROFIT_OTHER
+    type: double
+    nullable: false
+  - name: OPERATE_PROFIT_OTHER_QOQ
+    type: double
+    nullable: false
+  - name: OPERATE_PROFIT_BALANCE
+    type: double
+    nullable: false
+  - name: OPERATE_PROFIT_BALANCE_QOQ
+    type: double
+    nullable: false
+  - name: TOTAL_PROFIT
+    type: double
+    nullable: false
+  - name: TOTAL_PROFIT_QOQ
+    type: double
+    nullable: false
+  - name: EFFECT_TP_OTHER
+    type: double
+    nullable: false
+  - name: EFFECT_TP_OTHER_QOQ
+    type: double
+    nullable: false
+  - name: TOTAL_PROFIT_BALANCE
+    type: double
+    nullable: false
+  - name: TOTAL_PROFIT_BALANCE_QOQ
+    type: double
+    nullable: false
+  - name: INCOME_TAX
+    type: double
+    nullable: false
+  - name: INCOME_TAX_QOQ
+    type: double
+    nullable: false
+  - name: NETPROFIT
+    type: double
+    nullable: false
+  - name: NETPROFIT_QOQ
+    type: double
+    nullable: false
+  - name: CONTINUED_NETPROFIT
+    type: double
+    nullable: false
+  - name: CONTINUED_NETPROFIT_QOQ
+    type: double
+    nullable: false
+  - name: DISCONTINUED_NETPROFIT
+    type: double
+    nullable: false
+  - name: DISCONTINUED_NETPROFIT_QOQ
+    type: double
+    nullable: false
+  - name: NETPROFIT_OTHER
+    type: double
+    nullable: false
+  - name: NETPROFIT_OTHER_QOQ
+    type: double
+    nullable: false
+  - name: NETPROFIT_BALANCE
+    type: double
+    nullable: false
+  - name: NETPROFIT_BALANCE_QOQ
+    type: double
+    nullable: false
+  - name: EFFECT_NETPROFIT_OTHER
+    type: double
+    nullable: false
+  - name: EFFECT_NETPROFIT_OTHER_QOQ
+    type: double
+    nullable: false
+  - name: EFFECT_NETPROFIT_BALANCE
+    type: double
+    nullable: false
+  - name: EFFECT_NETPROFIT_BALANCE_QOQ
+    type: double
+    nullable: false
+  - name: UNCONFIRM_INVEST_LOSS
+    type: double
+    nullable: false
+  - name: UNCONFIRM_INVEST_LOSS_QOQ
+    type: double
+    nullable: false
+  - name: MINORITY_INTEREST
+    type: double
+    nullable: false
+  - name: MINORITY_INTEREST_QOQ
+    type: double
+    nullable: false
+  - name: PARENT_NETPROFIT
+    type: double
+    nullable: false
+  - name: PARENT_NETPROFIT_QOQ
+    type: double
+    nullable: false
+  - name: BASIC_EPS
+    type: double
+    nullable: false
+  - name: BASIC_EPS_QOQ
+    type: double
+    nullable: false
+  - name: DILUTED_EPS
+    type: double
+    nullable: false
+  - name: DILUTED_EPS_QOQ
+    type: double
+    nullable: false
+  - name: UNABLE_OCI
+    type: double
+    nullable: false
+  - name: UNABLE_OCI_QOQ
+    type: double
+    nullable: false
+  - name: CREDITRISK_FAIRVALUE_CHANGE
+    type: double
+    nullable: false
+  - name: CREDITRISK_FAIRVALUE_CHANGE_QOQ
+    type: double
+    nullable: false
+  - name: OTHERRIGHT_FAIRVALUE_CHANGE
+    type: double
+    nullable: false
+  - name: OTHERRIGHT_FAIRVALUE_CHANGE_QOQ
+    type: double
+    nullable: false
+  - name: SETUP_PROFIT_CHANGE
+    type: double
+    nullable: false
+  - name: SETUP_PROFIT_CHANGE_QOQ
+    type: double
+    nullable: false
+  - name: RIGHTLAW_UNABLE_OCI
+    type: double
+    nullable: false
+  - name: RIGHTLAW_UNABLE_OCI_QOQ
+    type: double
+    nullable: false
+  - name: UNABLE_OCI_OTHER
+    type: double
+    nullable: false
+  - name: UNABLE_OCI_OTHER_QOQ
+    type: double
+    nullable: false
+  - name: UNABLE_OCI_BALANCE
+    type: double
+    nullable: false
+  - name: UNABLE_OCI_BALANCE_QOQ
+    type: double
+    nullable: false
+  - name: ABLE_OCI
+    type: double
+    nullable: false
+  - name: ABLE_OCI_QOQ
+    type: double
+    nullable: false
+  - name: RIGHTLAW_ABLE_OCI
+    type: double
+    nullable: false
+  - name: RIGHTLAW_ABLE_OCI_QOQ
+    type: double
+    nullable: false
+  - name: AFA_FAIRVALUE_CHANGE
+    type: double
+    nullable: false
+  - name: AFA_FAIRVALUE_CHANGE_QOQ
+    type: double
+    nullable: false
+  - name: HMI_AFA
+    type: double
+    nullable: false
+  - name: HMI_AFA_QOQ
+    type: double
+    nullable: false
+  - name: CASHFLOW_HEDGE_VALID
+    type: double
+    nullable: false
+  - name: CASHFLOW_HEDGE_VALID_QOQ
+    type: double
+    nullable: false
+  - name: CREDITOR_FAIRVALUE_CHANGE
+    type: double
+    nullable: false
+  - name: CREDITOR_FAIRVALUE_CHANGE_QOQ
+    type: double
+    nullable: false
+  - name: CREDITOR_IMPAIRMENT_RESERVE
+    type: double
+    nullable: false
+  - name: CREDITOR_IMPAIRMENT_RESERVE_QOQ
+    type: double
+    nullable: false
+  - name: FINANCE_OCI_AMT
+    type: double
+    nullable: false
+  - name: FINANCE_OCI_AMT_QOQ
+    type: double
+    nullable: false
+  - name: CONVERT_DIFF
+    type: double
+    nullable: false
+  - name: CONVERT_DIFF_QOQ
+    type: double
+    nullable: false
+  - name: ABLE_OCI_OTHER
+    type: double
+    nullable: false
+  - name: ABLE_OCI_OTHER_QOQ
+    type: double
+    nullable: false
+  - name: ABLE_OCI_BALANCE
+    type: double
+    nullable: false
+  - name: ABLE_OCI_BALANCE_QOQ
+    type: double
+    nullable: false
+  - name: OCI_OTHER
+    type: double
+    nullable: false
+  - name: OCI_OTHER_QOQ
+    type: double
+    nullable: false
+  - name: OCI_BALANCE
+    type: double
+    nullable: false
+  - name: OCI_BALANCE_QOQ
+    type: double
+    nullable: false
+  - name: OTHER_COMPRE_INCOME
+    type: double
+    nullable: false
+  - name: OTHER_COMPRE_INCOME_QOQ
+    type: double
+    nullable: false
+  - name: PARENT_OCI
+    type: double
+    nullable: false
+  - name: PARENT_OCI_QOQ
+    type: double
+    nullable: false
+  - name: MINORITY_OCI
+    type: double
+    nullable: false
+  - name: MINORITY_OCI_QOQ
+    type: double
+    nullable: false
+  - name: PARENT_OCI_OTHER
+    type: double
+    nullable: false
+  - name: PARENT_OCI_OTHER_QOQ
+    type: double
+    nullable: false
+  - name: PARENT_OCI_BALANCE
+    type: double
+    nullable: false
+  - name: PARENT_OCI_BALANCE_QOQ
+    type: double
+    nullable: false
+  - name: TOTAL_COMPRE_INCOME
+    type: double
+    nullable: false
+  - name: TOTAL_COMPRE_INCOME_QOQ
+    type: double
+    nullable: false
+  - name: PARENT_TCI
+    type: double
+    nullable: false
+  - name: PARENT_TCI_QOQ
+    type: double
+    nullable: false
+  - name: MINORITY_TCI
+    type: double
+    nullable: false
+  - name: MINORITY_TCI_QOQ
+    type: double
+    nullable: false
+  - name: EFFECT_TCI_BALANCE
+    type: double
+    nullable: false
+  - name: EFFECT_TCI_BALANCE_QOQ
+    type: double
+    nullable: false
+  - name: TCI_OTHER
+    type: double
+    nullable: false
+  - name: TCI_OTHER_QOQ
+    type: double
+    nullable: false
+  - name: TCI_BALANCE
+    type: double
+    nullable: false
+  - name: TCI_BALANCE_QOQ
+    type: double
+    nullable: false
+  - name: PRECOMBINE_PROFIT
+    type: double
+    nullable: false
+  - name: PRECOMBINE_PROFIT_QOQ
+    type: double
+    nullable: false
+  - name: PRECOMBINE_TCI
+    type: double
+    nullable: false
+  - name: PRECOMBINE_TCI_QOQ
+    type: double
+    nullable: false
+  - name: DEDUCT_PARENT_NETPROFIT
+    type: double
+    nullable: false
+  - name: DEDUCT_PARENT_NETPROFIT_QOQ
+    type: double
+    nullable: false
+  - name: TOTAL_OPERATE_INCOME_YOY
+    type: double
+    nullable: false
+  - name: OPERATE_INCOME_YOY
+    type: double
+    nullable: false
+  - name: INTEREST_INCOME_YOY
+    type: double
+    nullable: false
+  - name: EARNED_PREMIUM_YOY
+    type: double
+    nullable: false
+  - name: FEE_COMMISSION_INCOME_YOY
+    type: double
+    nullable: false
+  - name: OTHER_BUSINESS_INCOME_YOY
+    type: double
+    nullable: false
+  - name: TOI_OTHER_YOY
+    type: double
+    nullable: false
+  - name: TOTAL_OPERATE_COST_YOY
+    type: double
+    nullable: false
+  - name: OPERATE_COST_YOY
+    type: double
+    nullable: false
+  - name: INTEREST_EXPENSE_YOY
+    type: double
+    nullable: false
+  - name: FEE_COMMISSION_EXPENSE_YOY
+    type: double
+    nullable: false
+  - name: RESEARCH_EXPENSE_YOY
+    type: double
+    nullable: false
+  - name: SURRENDER_VALUE_YOY
+    type: double
+    nullable: false
+  - name: NET_COMPENSATE_EXPENSE_YOY
+    type: double
+    nullable: false
+  - name: NET_CONTRACT_RESERVE_YOY
+    type: double
+    nullable: false
+  - name: POLICY_BONUS_EXPENSE_YOY
+    type: double
+    nullable: false
+  - name: REINSURE_EXPENSE_YOY
+    type: double
+    nullable: false
+  - name: OTHER_BUSINESS_COST_YOY
+    type: double
+    nullable: false
+  - name: OPERATE_TAX_ADD_YOY
+    type: double
+    nullable: false
+  - name: SALE_EXPENSE_YOY
+    type: double
+    nullable: false
+  - name: MANAGE_EXPENSE_YOY
+    type: double
+    nullable: false
+  - name: ME_RESEARCH_EXPENSE_YOY
+    type: double
+    nullable: false
+  - name: FINANCE_EXPENSE_YOY
+    type: double
+    nullable: false
+  - name: FE_INTEREST_EXPENSE_YOY
+    type: double
+    nullable: false
+  - name: FE_INTEREST_INCOME_YOY
+    type: double
+    nullable: false
+  - name: ASSET_IMPAIRMENT_LOSS_YOY
+    type: double
+    nullable: false
+  - name: CREDIT_IMPAIRMENT_LOSS_YOY
+    type: double
+    nullable: false
+  - name: OTHER_INCOME_YOY
+    type: double
+    nullable: false
+  - name: TOC_OTHER_YOY
+    type: double
+    nullable: false
+  - name: INVEST_INCOME_YOY
+    type: double
+    nullable: false
+  - name: INVEST_JOINT_INCOME_YOY
+    type: double
+    nullable: false
+  - name: ACF_END_INCOME_YOY
+    type: double
+    nullable: false
+  - name: EXCHANGE_INCOME_YOY
+    type: double
+    nullable: false
+  - name: NET_EXPOSURE_INCOME_YOY
+    type: double
+    nullable: false
+  - name: FAIRVALUE_CHANGE_INCOME_YOY
+    type: double
+    nullable: false
+  - name: ASSET_DISPOSAL_INCOME_YOY
+    type: double
+    nullable: false
+  - name: CREDIT_IMPAIRMENT_INCOME_YOY
+    type: double
+    nullable: false
+  - name: ASSET_IMPAIRMENT_INCOME_YOY
+    type: double
+    nullable: false
+  - name: OPERATE_PROFIT_YOY
+    type: double
+    nullable: false
+  - name: NONBUSINESS_INCOME_YOY
+    type: double
+    nullable: false
+  - name: NONCURRENT_DISPOSAL_INCOME_YOY
+    type: double
+    nullable: false
+  - name: NONBUSINESS_EXPENSE_YOY
+    type: double
+    nullable: false
+  - name: NONCURRENT_DISPOSAL_LOSS_YOY
+    type: double
+    nullable: false
+  - name: OPERATE_PROFIT_OTHER_YOY
+    type: double
+    nullable: false
+  - name: OPERATE_PROFIT_BALANCE_YOY
+    type: double
+    nullable: false
+  - name: TOTAL_PROFIT_YOY
+    type: double
+    nullable: false
+  - name: EFFECT_TP_OTHER_YOY
+    type: double
+    nullable: false
+  - name: TOTAL_PROFIT_BALANCE_YOY
+    type: double
+    nullable: false
+  - name: INCOME_TAX_YOY
+    type: double
+    nullable: false
+  - name: NETPROFIT_YOY
+    type: double
+    nullable: false
+  - name: CONTINUED_NETPROFIT_YOY
+    type: double
+    nullable: false
+  - name: DISCONTINUED_NETPROFIT_YOY
+    type: double
+    nullable: false
+  - name: NETPROFIT_OTHER_YOY
+    type: double
+    nullable: false
+  - name: NETPROFIT_BALANCE_YOY
+    type: double
+    nullable: false
+  - name: EFFECT_NETPROFIT_OTHER_YOY
+    type: double
+    nullable: false
+  - name: EFFECT_NETPROFIT_BALANCE_YOY
+    type: double
+    nullable: false
+  - name: UNCONFIRM_INVEST_LOSS_YOY
+    type: double
+    nullable: false
+  - name: MINORITY_INTEREST_YOY
+    type: double
+    nullable: false
+  - name: PARENT_NETPROFIT_YOY
+    type: double
+    nullable: false
+  - name: BASIC_EPS_YOY
+    type: double
+    nullable: false
+  - name: DILUTED_EPS_YOY
+    type: double
+    nullable: false
+  - name: UNABLE_OCI_YOY
+    type: double
+    nullable: false
+  - name: CREDITRISK_FAIRVALUE_CHANGE_YOY
+    type: double
+    nullable: false
+  - name: OTHERRIGHT_FAIRVALUE_CHANGE_YOY
+    type: double
+    nullable: false
+  - name: SETUP_PROFIT_CHANGE_YOY
+    type: double
+    nullable: false
+  - name: RIGHTLAW_UNABLE_OCI_YOY
+    type: double
+    nullable: false
+  - name: UNABLE_OCI_OTHER_YOY
+    type: double
+    nullable: false
+  - name: UNABLE_OCI_BALANCE_YOY
+    type: double
+    nullable: false
+  - name: ABLE_OCI_YOY
+    type: double
+    nullable: false
+  - name: RIGHTLAW_ABLE_OCI_YOY
+    type: double
+    nullable: false
+  - name: AFA_FAIRVALUE_CHANGE_YOY
+    type: double
+    nullable: false
+  - name: HMI_AFA_YOY
+    type: double
+    nullable: false
+  - name: CASHFLOW_HEDGE_VALID_YOY
+    type: double
+    nullable: false
+  - name: CREDITOR_FAIRVALUE_CHANGE_YOY
+    type: double
+    nullable: false
+  - name: CREDITOR_IMPAIRMENT_RESERVE_YOY
+    type: double
+    nullable: false
+  - name: FINANCE_OCI_AMT_YOY
+    type: double
+    nullable: false
+  - name: CONVERT_DIFF_YOY
+    type: double
+    nullable: false
+  - name: ABLE_OCI_OTHER_YOY
+    type: double
+    nullable: false
+  - name: ABLE_OCI_BALANCE_YOY
+    type: double
+    nullable: false
+  - name: OCI_OTHER_YOY
+    type: double
+    nullable: false
+  - name: OCI_BALANCE_YOY
+    type: double
+    nullable: false
+  - name: OTHER_COMPRE_INCOME_YOY
+    type: double
+    nullable: false
+  - name: PARENT_OCI_YOY
+    type: double
+    nullable: false
+  - name: MINORITY_OCI_YOY
+    type: double
+    nullable: false
+  - name: PARENT_OCI_OTHER_YOY
+    type: double
+    nullable: false
+  - name: PARENT_OCI_BALANCE_YOY
+    type: double
+    nullable: false
+  - name: TOTAL_COMPRE_INCOME_YOY
+    type: double
+    nullable: false
+  - name: PARENT_TCI_YOY
+    type: double
+    nullable: false
+  - name: MINORITY_TCI_YOY
+    type: double
+    nullable: false
+  - name: EFFECT_TCI_BALANCE_YOY
+    type: double
+    nullable: false
+  - name: TCI_OTHER_YOY
+    type: double
+    nullable: false
+  - name: TCI_BALANCE_YOY
+    type: double
+    nullable: false
+  - name: PRECOMBINE_PROFIT_YOY
+    type: double
+    nullable: false
+  - name: PRECOMBINE_TCI_YOY
+    type: double
+    nullable: false
+  - name: DEDUCT_PARENT_NETPROFIT_YOY
+    type: double
+    nullable: false
+clickhouse_raw:
+  database: raw
+  table: eastmoney__income_sq
+  partition_strategy: year
+  engine: MergeTree
+  partition_by: '`year`'
+  order_by:
+  - SECUCODE
+  - REPORT_DATE
+  allow_empty: true
+  sync_enabled: true
+  fields:
+  - name: SECUCODE
+    type: LowCardinality(String)
+    from: SECUCODE
+    nullable: false
+    reason: expected_low_cardinality_dimension
+  - name: SECURITY_CODE
+    type: LowCardinality(String)
+    from: SECURITY_CODE
+    nullable: false
+    reason: expected_low_cardinality_dimension
+  - name: SECURITY_NAME_ABBR
+    type: LowCardinality(String)
+    from: SECURITY_NAME_ABBR
+    nullable: false
+    reason: expected_low_cardinality_dimension
+  - name: ORG_CODE
+    type: LowCardinality(String)
+    from: ORG_CODE
+    nullable: false
+    reason: expected_low_cardinality_dimension
+  - name: ORG_TYPE
+    type: LowCardinality(String)
+    from: ORG_TYPE
+    nullable: false
+    reason: expected_low_cardinality_dimension
+  - name: REPORT_DATE
+    type: Date
+    from: REPORT_DATE
+    nullable: false
+  - name: REPORT_TYPE
+    type: LowCardinality(String)
+    from: REPORT_TYPE
+    nullable: false
+    reason: expected_low_cardinality_dimension
+  - name: REPORT_DATE_NAME
+    type: LowCardinality(String)
+    from: REPORT_DATE_NAME
+    nullable: false
+    reason: expected_low_cardinality_dimension
+  - name: SECURITY_TYPE_CODE
+    type: LowCardinality(String)
+    from: SECURITY_TYPE_CODE
+    nullable: false
+    reason: expected_low_cardinality_dimension
+  - name: NOTICE_DATE
+    type: Date
+    from: NOTICE_DATE
+    nullable: false
+  - name: UPDATE_DATE
+    type: Date
+    from: UPDATE_DATE
+    nullable: false
+  - name: CURRENCY
+    type: LowCardinality(String)
+    from: CURRENCY
+    nullable: false
+    reason: expected_low_cardinality_dimension
+  - name: OPINION_TYPE
+    type: LowCardinality(String)
+    from: OPINION_TYPE
+    nullable: false
+    reason: expected_low_cardinality_dimension
+  - name: OSOPINION_TYPE
+    type: LowCardinality(String)
+    from: OSOPINION_TYPE
+    nullable: false
+    reason: expected_low_cardinality_dimension
+  - name: TOTAL_OPERATE_INCOME
+    type: Float64
+    from: TOTAL_OPERATE_INCOME
+    nullable: false
+  - name: TOTAL_OPERATE_INCOME_QOQ
+    type: Float64
+    from: TOTAL_OPERATE_INCOME_QOQ
+    nullable: false
+  - name: OPERATE_INCOME
+    type: Float64
+    from: OPERATE_INCOME
+    nullable: false
+  - name: OPERATE_INCOME_QOQ
+    type: Float64
+    from: OPERATE_INCOME_QOQ
+    nullable: false
+  - name: INTEREST_INCOME
+    type: Float64
+    from: INTEREST_INCOME
+    nullable: false
+  - name: INTEREST_INCOME_QOQ
+    type: Float64
+    from: INTEREST_INCOME_QOQ
+    nullable: false
+  - name: EARNED_PREMIUM
+    type: Float64
+    from: EARNED_PREMIUM
+    nullable: false
+  - name: EARNED_PREMIUM_QOQ
+    type: Float64
+    from: EARNED_PREMIUM_QOQ
+    nullable: false
+  - name: FEE_COMMISSION_INCOME
+    type: Float64
+    from: FEE_COMMISSION_INCOME
+    nullable: false
+  - name: FEE_COMMISSION_INCOME_QOQ
+    type: Float64
+    from: FEE_COMMISSION_INCOME_QOQ
+    nullable: false
+  - name: OTHER_BUSINESS_INCOME
+    type: Float64
+    from: OTHER_BUSINESS_INCOME
+    nullable: false
+  - name: OTHER_BUSINESS_INCOME_QOQ
+    type: Float64
+    from: OTHER_BUSINESS_INCOME_QOQ
+    nullable: false
+  - name: TOI_OTHER
+    type: Float64
+    from: TOI_OTHER
+    nullable: false
+  - name: TOI_OTHER_QOQ
+    type: Float64
+    from: TOI_OTHER_QOQ
+    nullable: false
+  - name: TOTAL_OPERATE_COST
+    type: Float64
+    from: TOTAL_OPERATE_COST
+    nullable: false
+  - name: TOTAL_OPERATE_COST_QOQ
+    type: Float64
+    from: TOTAL_OPERATE_COST_QOQ
+    nullable: false
+  - name: OPERATE_COST
+    type: Float64
+    from: OPERATE_COST
+    nullable: false
+  - name: OPERATE_COST_QOQ
+    type: Float64
+    from: OPERATE_COST_QOQ
+    nullable: false
+  - name: INTEREST_EXPENSE
+    type: Float64
+    from: INTEREST_EXPENSE
+    nullable: false
+  - name: INTEREST_EXPENSE_QOQ
+    type: Float64
+    from: INTEREST_EXPENSE_QOQ
+    nullable: false
+  - name: FEE_COMMISSION_EXPENSE
+    type: Float64
+    from: FEE_COMMISSION_EXPENSE
+    nullable: false
+  - name: FEE_COMMISSION_EXPENSE_QOQ
+    type: Float64
+    from: FEE_COMMISSION_EXPENSE_QOQ
+    nullable: false
+  - name: RESEARCH_EXPENSE
+    type: Float64
+    from: RESEARCH_EXPENSE
+    nullable: false
+  - name: RESEARCH_EXPENSE_QOQ
+    type: Float64
+    from: RESEARCH_EXPENSE_QOQ
+    nullable: false
+  - name: SURRENDER_VALUE
+    type: Float64
+    from: SURRENDER_VALUE
+    nullable: false
+  - name: SURRENDER_VALUE_QOQ
+    type: Float64
+    from: SURRENDER_VALUE_QOQ
+    nullable: false
+  - name: NET_COMPENSATE_EXPENSE
+    type: Float64
+    from: NET_COMPENSATE_EXPENSE
+    nullable: false
+  - name: NET_COMPENSATE_EXPENSE_QOQ
+    type: Float64
+    from: NET_COMPENSATE_EXPENSE_QOQ
+    nullable: false
+  - name: NET_CONTRACT_RESERVE
+    type: Float64
+    from: NET_CONTRACT_RESERVE
+    nullable: false
+  - name: NET_CONTRACT_RESERVE_QOQ
+    type: Float64
+    from: NET_CONTRACT_RESERVE_QOQ
+    nullable: false
+  - name: POLICY_BONUS_EXPENSE
+    type: Float64
+    from: POLICY_BONUS_EXPENSE
+    nullable: false
+  - name: POLICY_BONUS_EXPENSE_QOQ
+    type: Float64
+    from: POLICY_BONUS_EXPENSE_QOQ
+    nullable: false
+  - name: REINSURE_EXPENSE
+    type: Float64
+    from: REINSURE_EXPENSE
+    nullable: false
+  - name: REINSURE_EXPENSE_QOQ
+    type: Float64
+    from: REINSURE_EXPENSE_QOQ
+    nullable: false
+  - name: OTHER_BUSINESS_COST
+    type: Float64
+    from: OTHER_BUSINESS_COST
+    nullable: false
+  - name: OTHER_BUSINESS_COST_QOQ
+    type: Float64
+    from: OTHER_BUSINESS_COST_QOQ
+    nullable: false
+  - name: OPERATE_TAX_ADD
+    type: Float64
+    from: OPERATE_TAX_ADD
+    nullable: false
+  - name: OPERATE_TAX_ADD_QOQ
+    type: Float64
+    from: OPERATE_TAX_ADD_QOQ
+    nullable: false
+  - name: SALE_EXPENSE
+    type: Float64
+    from: SALE_EXPENSE
+    nullable: false
+  - name: SALE_EXPENSE_QOQ
+    type: Float64
+    from: SALE_EXPENSE_QOQ
+    nullable: false
+  - name: MANAGE_EXPENSE
+    type: Float64
+    from: MANAGE_EXPENSE
+    nullable: false
+  - name: MANAGE_EXPENSE_QOQ
+    type: Float64
+    from: MANAGE_EXPENSE_QOQ
+    nullable: false
+  - name: ME_RESEARCH_EXPENSE
+    type: Float64
+    from: ME_RESEARCH_EXPENSE
+    nullable: false
+  - name: ME_RESEARCH_EXPENSE_QOQ
+    type: Float64
+    from: ME_RESEARCH_EXPENSE_QOQ
+    nullable: false
+  - name: FINANCE_EXPENSE
+    type: Float64
+    from: FINANCE_EXPENSE
+    nullable: false
+  - name: FINANCE_EXPENSE_QOQ
+    type: Float64
+    from: FINANCE_EXPENSE_QOQ
+    nullable: false
+  - name: FE_INTEREST_EXPENSE
+    type: Float64
+    from: FE_INTEREST_EXPENSE
+    nullable: false
+  - name: FE_INTEREST_EXPENSE_QOQ
+    type: Float64
+    from: FE_INTEREST_EXPENSE_QOQ
+    nullable: false
+  - name: FE_INTEREST_INCOME
+    type: Float64
+    from: FE_INTEREST_INCOME
+    nullable: false
+  - name: FE_INTEREST_INCOME_QOQ
+    type: Float64
+    from: FE_INTEREST_INCOME_QOQ
+    nullable: false
+  - name: ASSET_IMPAIRMENT_LOSS
+    type: Float64
+    from: ASSET_IMPAIRMENT_LOSS
+    nullable: false
+  - name: ASSET_IMPAIRMENT_LOSS_QOQ
+    type: Float64
+    from: ASSET_IMPAIRMENT_LOSS_QOQ
+    nullable: false
+  - name: CREDIT_IMPAIRMENT_LOSS
+    type: Float64
+    from: CREDIT_IMPAIRMENT_LOSS
+    nullable: false
+  - name: CREDIT_IMPAIRMENT_LOSS_QOQ
+    type: Float64
+    from: CREDIT_IMPAIRMENT_LOSS_QOQ
+    nullable: false
+  - name: OTHER_INCOME
+    type: Float64
+    from: OTHER_INCOME
+    nullable: false
+  - name: OTHER_INCOME_QOQ
+    type: Float64
+    from: OTHER_INCOME_QOQ
+    nullable: false
+  - name: TOC_OTHER
+    type: Float64
+    from: TOC_OTHER
+    nullable: false
+  - name: TOC_OTHER_QOQ
+    type: Float64
+    from: TOC_OTHER_QOQ
+    nullable: false
+  - name: INVEST_INCOME
+    type: Float64
+    from: INVEST_INCOME
+    nullable: false
+  - name: INVEST_INCOME_QOQ
+    type: Float64
+    from: INVEST_INCOME_QOQ
+    nullable: false
+  - name: INVEST_JOINT_INCOME
+    type: Float64
+    from: INVEST_JOINT_INCOME
+    nullable: false
+  - name: INVEST_JOINT_INCOME_QOQ
+    type: Float64
+    from: INVEST_JOINT_INCOME_QOQ
+    nullable: false
+  - name: ACF_END_INCOME
+    type: Float64
+    from: ACF_END_INCOME
+    nullable: false
+  - name: ACF_END_INCOME_QOQ
+    type: Float64
+    from: ACF_END_INCOME_QOQ
+    nullable: false
+  - name: EXCHANGE_INCOME
+    type: Float64
+    from: EXCHANGE_INCOME
+    nullable: false
+  - name: EXCHANGE_INCOME_QOQ
+    type: Float64
+    from: EXCHANGE_INCOME_QOQ
+    nullable: false
+  - name: NET_EXPOSURE_INCOME
+    type: Float64
+    from: NET_EXPOSURE_INCOME
+    nullable: false
+  - name: NET_EXPOSURE_INCOME_QOQ
+    type: Float64
+    from: NET_EXPOSURE_INCOME_QOQ
+    nullable: false
+  - name: FAIRVALUE_CHANGE_INCOME
+    type: Float64
+    from: FAIRVALUE_CHANGE_INCOME
+    nullable: false
+  - name: FAIRVALUE_CHANGE_INCOME_QOQ
+    type: Float64
+    from: FAIRVALUE_CHANGE_INCOME_QOQ
+    nullable: false
+  - name: ASSET_DISPOSAL_INCOME
+    type: Float64
+    from: ASSET_DISPOSAL_INCOME
+    nullable: false
+  - name: ASSET_DISPOSAL_INCOME_QOQ
+    type: Float64
+    from: ASSET_DISPOSAL_INCOME_QOQ
+    nullable: false
+  - name: CREDIT_IMPAIRMENT_INCOME
+    type: Float64
+    from: CREDIT_IMPAIRMENT_INCOME
+    nullable: false
+  - name: CREDIT_IMPAIRMENT_INCOME_QOQ
+    type: Float64
+    from: CREDIT_IMPAIRMENT_INCOME_QOQ
+    nullable: false
+  - name: ASSET_IMPAIRMENT_INCOME
+    type: Float64
+    from: ASSET_IMPAIRMENT_INCOME
+    nullable: false
+  - name: ASSET_IMPAIRMENT_INCOME_QOQ
+    type: Float64
+    from: ASSET_IMPAIRMENT_INCOME_QOQ
+    nullable: false
+  - name: OPERATE_PROFIT
+    type: Float64
+    from: OPERATE_PROFIT
+    nullable: false
+  - name: OPERATE_PROFIT_QOQ
+    type: Float64
+    from: OPERATE_PROFIT_QOQ
+    nullable: false
+  - name: NONBUSINESS_INCOME
+    type: Float64
+    from: NONBUSINESS_INCOME
+    nullable: false
+  - name: NONBUSINESS_INCOME_QOQ
+    type: Float64
+    from: NONBUSINESS_INCOME_QOQ
+    nullable: false
+  - name: NONCURRENT_DISPOSAL_INCOME
+    type: Float64
+    from: NONCURRENT_DISPOSAL_INCOME
+    nullable: false
+  - name: NONCURRENT_DISPOSAL_INCOME_QOQ
+    type: Float64
+    from: NONCURRENT_DISPOSAL_INCOME_QOQ
+    nullable: false
+  - name: NONBUSINESS_EXPENSE
+    type: Float64
+    from: NONBUSINESS_EXPENSE
+    nullable: false
+  - name: NONBUSINESS_EXPENSE_QOQ
+    type: Float64
+    from: NONBUSINESS_EXPENSE_QOQ
+    nullable: false
+  - name: NONCURRENT_DISPOSAL_LOSS
+    type: Float64
+    from: NONCURRENT_DISPOSAL_LOSS
+    nullable: false
+  - name: NONCURRENT_DISPOSAL_LOSS_QOQ
+    type: Float64
+    from: NONCURRENT_DISPOSAL_LOSS_QOQ
+    nullable: false
+  - name: OPERATE_PROFIT_OTHER
+    type: Float64
+    from: OPERATE_PROFIT_OTHER
+    nullable: false
+  - name: OPERATE_PROFIT_OTHER_QOQ
+    type: Float64
+    from: OPERATE_PROFIT_OTHER_QOQ
+    nullable: false
+  - name: OPERATE_PROFIT_BALANCE
+    type: Float64
+    from: OPERATE_PROFIT_BALANCE
+    nullable: false
+  - name: OPERATE_PROFIT_BALANCE_QOQ
+    type: Float64
+    from: OPERATE_PROFIT_BALANCE_QOQ
+    nullable: false
+  - name: TOTAL_PROFIT
+    type: Float64
+    from: TOTAL_PROFIT
+    nullable: false
+  - name: TOTAL_PROFIT_QOQ
+    type: Float64
+    from: TOTAL_PROFIT_QOQ
+    nullable: false
+  - name: EFFECT_TP_OTHER
+    type: Float64
+    from: EFFECT_TP_OTHER
+    nullable: false
+  - name: EFFECT_TP_OTHER_QOQ
+    type: Float64
+    from: EFFECT_TP_OTHER_QOQ
+    nullable: false
+  - name: TOTAL_PROFIT_BALANCE
+    type: Float64
+    from: TOTAL_PROFIT_BALANCE
+    nullable: false
+  - name: TOTAL_PROFIT_BALANCE_QOQ
+    type: Float64
+    from: TOTAL_PROFIT_BALANCE_QOQ
+    nullable: false
+  - name: INCOME_TAX
+    type: Float64
+    from: INCOME_TAX
+    nullable: false
+  - name: INCOME_TAX_QOQ
+    type: Float64
+    from: INCOME_TAX_QOQ
+    nullable: false
+  - name: NETPROFIT
+    type: Float64
+    from: NETPROFIT
+    nullable: false
+  - name: NETPROFIT_QOQ
+    type: Float64
+    from: NETPROFIT_QOQ
+    nullable: false
+  - name: CONTINUED_NETPROFIT
+    type: Float64
+    from: CONTINUED_NETPROFIT
+    nullable: false
+  - name: CONTINUED_NETPROFIT_QOQ
+    type: Float64
+    from: CONTINUED_NETPROFIT_QOQ
+    nullable: false
+  - name: DISCONTINUED_NETPROFIT
+    type: Float64
+    from: DISCONTINUED_NETPROFIT
+    nullable: false
+  - name: DISCONTINUED_NETPROFIT_QOQ
+    type: Float64
+    from: DISCONTINUED_NETPROFIT_QOQ
+    nullable: false
+  - name: NETPROFIT_OTHER
+    type: Float64
+    from: NETPROFIT_OTHER
+    nullable: false
+  - name: NETPROFIT_OTHER_QOQ
+    type: Float64
+    from: NETPROFIT_OTHER_QOQ
+    nullable: false
+  - name: NETPROFIT_BALANCE
+    type: Float64
+    from: NETPROFIT_BALANCE
+    nullable: false
+  - name: NETPROFIT_BALANCE_QOQ
+    type: Float64
+    from: NETPROFIT_BALANCE_QOQ
+    nullable: false
+  - name: EFFECT_NETPROFIT_OTHER
+    type: Float64
+    from: EFFECT_NETPROFIT_OTHER
+    nullable: false
+  - name: EFFECT_NETPROFIT_OTHER_QOQ
+    type: Float64
+    from: EFFECT_NETPROFIT_OTHER_QOQ
+    nullable: false
+  - name: EFFECT_NETPROFIT_BALANCE
+    type: Float64
+    from: EFFECT_NETPROFIT_BALANCE
+    nullable: false
+  - name: EFFECT_NETPROFIT_BALANCE_QOQ
+    type: Float64
+    from: EFFECT_NETPROFIT_BALANCE_QOQ
+    nullable: false
+  - name: UNCONFIRM_INVEST_LOSS
+    type: Float64
+    from: UNCONFIRM_INVEST_LOSS
+    nullable: false
+  - name: UNCONFIRM_INVEST_LOSS_QOQ
+    type: Float64
+    from: UNCONFIRM_INVEST_LOSS_QOQ
+    nullable: false
+  - name: MINORITY_INTEREST
+    type: Float64
+    from: MINORITY_INTEREST
+    nullable: false
+  - name: MINORITY_INTEREST_QOQ
+    type: Float64
+    from: MINORITY_INTEREST_QOQ
+    nullable: false
+  - name: PARENT_NETPROFIT
+    type: Float64
+    from: PARENT_NETPROFIT
+    nullable: false
+  - name: PARENT_NETPROFIT_QOQ
+    type: Float64
+    from: PARENT_NETPROFIT_QOQ
+    nullable: false
+  - name: BASIC_EPS
+    type: Float64
+    from: BASIC_EPS
+    nullable: false
+  - name: BASIC_EPS_QOQ
+    type: Float64
+    from: BASIC_EPS_QOQ
+    nullable: false
+  - name: DILUTED_EPS
+    type: Float64
+    from: DILUTED_EPS
+    nullable: false
+  - name: DILUTED_EPS_QOQ
+    type: Float64
+    from: DILUTED_EPS_QOQ
+    nullable: false
+  - name: UNABLE_OCI
+    type: Float64
+    from: UNABLE_OCI
+    nullable: false
+  - name: UNABLE_OCI_QOQ
+    type: Float64
+    from: UNABLE_OCI_QOQ
+    nullable: false
+  - name: CREDITRISK_FAIRVALUE_CHANGE
+    type: Float64
+    from: CREDITRISK_FAIRVALUE_CHANGE
+    nullable: false
+  - name: CREDITRISK_FAIRVALUE_CHANGE_QOQ
+    type: Float64
+    from: CREDITRISK_FAIRVALUE_CHANGE_QOQ
+    nullable: false
+  - name: OTHERRIGHT_FAIRVALUE_CHANGE
+    type: Float64
+    from: OTHERRIGHT_FAIRVALUE_CHANGE
+    nullable: false
+  - name: OTHERRIGHT_FAIRVALUE_CHANGE_QOQ
+    type: Float64
+    from: OTHERRIGHT_FAIRVALUE_CHANGE_QOQ
+    nullable: false
+  - name: SETUP_PROFIT_CHANGE
+    type: Float64
+    from: SETUP_PROFIT_CHANGE
+    nullable: false
+  - name: SETUP_PROFIT_CHANGE_QOQ
+    type: Float64
+    from: SETUP_PROFIT_CHANGE_QOQ
+    nullable: false
+  - name: RIGHTLAW_UNABLE_OCI
+    type: Float64
+    from: RIGHTLAW_UNABLE_OCI
+    nullable: false
+  - name: RIGHTLAW_UNABLE_OCI_QOQ
+    type: Float64
+    from: RIGHTLAW_UNABLE_OCI_QOQ
+    nullable: false
+  - name: UNABLE_OCI_OTHER
+    type: Float64
+    from: UNABLE_OCI_OTHER
+    nullable: false
+  - name: UNABLE_OCI_OTHER_QOQ
+    type: Float64
+    from: UNABLE_OCI_OTHER_QOQ
+    nullable: false
+  - name: UNABLE_OCI_BALANCE
+    type: Float64
+    from: UNABLE_OCI_BALANCE
+    nullable: false
+  - name: UNABLE_OCI_BALANCE_QOQ
+    type: Float64
+    from: UNABLE_OCI_BALANCE_QOQ
+    nullable: false
+  - name: ABLE_OCI
+    type: Float64
+    from: ABLE_OCI
+    nullable: false
+  - name: ABLE_OCI_QOQ
+    type: Float64
+    from: ABLE_OCI_QOQ
+    nullable: false
+  - name: RIGHTLAW_ABLE_OCI
+    type: Float64
+    from: RIGHTLAW_ABLE_OCI
+    nullable: false
+  - name: RIGHTLAW_ABLE_OCI_QOQ
+    type: Float64
+    from: RIGHTLAW_ABLE_OCI_QOQ
+    nullable: false
+  - name: AFA_FAIRVALUE_CHANGE
+    type: Float64
+    from: AFA_FAIRVALUE_CHANGE
+    nullable: false
+  - name: AFA_FAIRVALUE_CHANGE_QOQ
+    type: Float64
+    from: AFA_FAIRVALUE_CHANGE_QOQ
+    nullable: false
+  - name: HMI_AFA
+    type: Float64
+    from: HMI_AFA
+    nullable: false
+  - name: HMI_AFA_QOQ
+    type: Float64
+    from: HMI_AFA_QOQ
+    nullable: false
+  - name: CASHFLOW_HEDGE_VALID
+    type: Float64
+    from: CASHFLOW_HEDGE_VALID
+    nullable: false
+  - name: CASHFLOW_HEDGE_VALID_QOQ
+    type: Float64
+    from: CASHFLOW_HEDGE_VALID_QOQ
+    nullable: false
+  - name: CREDITOR_FAIRVALUE_CHANGE
+    type: Float64
+    from: CREDITOR_FAIRVALUE_CHANGE
+    nullable: false
+  - name: CREDITOR_FAIRVALUE_CHANGE_QOQ
+    type: Float64
+    from: CREDITOR_FAIRVALUE_CHANGE_QOQ
+    nullable: false
+  - name: CREDITOR_IMPAIRMENT_RESERVE
+    type: Float64
+    from: CREDITOR_IMPAIRMENT_RESERVE
+    nullable: false
+  - name: CREDITOR_IMPAIRMENT_RESERVE_QOQ
+    type: Float64
+    from: CREDITOR_IMPAIRMENT_RESERVE_QOQ
+    nullable: false
+  - name: FINANCE_OCI_AMT
+    type: Float64
+    from: FINANCE_OCI_AMT
+    nullable: false
+  - name: FINANCE_OCI_AMT_QOQ
+    type: Float64
+    from: FINANCE_OCI_AMT_QOQ
+    nullable: false
+  - name: CONVERT_DIFF
+    type: Float64
+    from: CONVERT_DIFF
+    nullable: false
+  - name: CONVERT_DIFF_QOQ
+    type: Float64
+    from: CONVERT_DIFF_QOQ
+    nullable: false
+  - name: ABLE_OCI_OTHER
+    type: Float64
+    from: ABLE_OCI_OTHER
+    nullable: false
+  - name: ABLE_OCI_OTHER_QOQ
+    type: Float64
+    from: ABLE_OCI_OTHER_QOQ
+    nullable: false
+  - name: ABLE_OCI_BALANCE
+    type: Float64
+    from: ABLE_OCI_BALANCE
+    nullable: false
+  - name: ABLE_OCI_BALANCE_QOQ
+    type: Float64
+    from: ABLE_OCI_BALANCE_QOQ
+    nullable: false
+  - name: OCI_OTHER
+    type: Float64
+    from: OCI_OTHER
+    nullable: false
+  - name: OCI_OTHER_QOQ
+    type: Float64
+    from: OCI_OTHER_QOQ
+    nullable: false
+  - name: OCI_BALANCE
+    type: Float64
+    from: OCI_BALANCE
+    nullable: false
+  - name: OCI_BALANCE_QOQ
+    type: Float64
+    from: OCI_BALANCE_QOQ
+    nullable: false
+  - name: OTHER_COMPRE_INCOME
+    type: Float64
+    from: OTHER_COMPRE_INCOME
+    nullable: false
+  - name: OTHER_COMPRE_INCOME_QOQ
+    type: Float64
+    from: OTHER_COMPRE_INCOME_QOQ
+    nullable: false
+  - name: PARENT_OCI
+    type: Float64
+    from: PARENT_OCI
+    nullable: false
+  - name: PARENT_OCI_QOQ
+    type: Float64
+    from: PARENT_OCI_QOQ
+    nullable: false
+  - name: MINORITY_OCI
+    type: Float64
+    from: MINORITY_OCI
+    nullable: false
+  - name: MINORITY_OCI_QOQ
+    type: Float64
+    from: MINORITY_OCI_QOQ
+    nullable: false
+  - name: PARENT_OCI_OTHER
+    type: Float64
+    from: PARENT_OCI_OTHER
+    nullable: false
+  - name: PARENT_OCI_OTHER_QOQ
+    type: Float64
+    from: PARENT_OCI_OTHER_QOQ
+    nullable: false
+  - name: PARENT_OCI_BALANCE
+    type: Float64
+    from: PARENT_OCI_BALANCE
+    nullable: false
+  - name: PARENT_OCI_BALANCE_QOQ
+    type: Float64
+    from: PARENT_OCI_BALANCE_QOQ
+    nullable: false
+  - name: TOTAL_COMPRE_INCOME
+    type: Float64
+    from: TOTAL_COMPRE_INCOME
+    nullable: false
+  - name: TOTAL_COMPRE_INCOME_QOQ
+    type: Float64
+    from: TOTAL_COMPRE_INCOME_QOQ
+    nullable: false
+  - name: PARENT_TCI
+    type: Float64
+    from: PARENT_TCI
+    nullable: false
+  - name: PARENT_TCI_QOQ
+    type: Float64
+    from: PARENT_TCI_QOQ
+    nullable: false
+  - name: MINORITY_TCI
+    type: Float64
+    from: MINORITY_TCI
+    nullable: false
+  - name: MINORITY_TCI_QOQ
+    type: Float64
+    from: MINORITY_TCI_QOQ
+    nullable: false
+  - name: EFFECT_TCI_BALANCE
+    type: Float64
+    from: EFFECT_TCI_BALANCE
+    nullable: false
+  - name: EFFECT_TCI_BALANCE_QOQ
+    type: Float64
+    from: EFFECT_TCI_BALANCE_QOQ
+    nullable: false
+  - name: TCI_OTHER
+    type: Float64
+    from: TCI_OTHER
+    nullable: false
+  - name: TCI_OTHER_QOQ
+    type: Float64
+    from: TCI_OTHER_QOQ
+    nullable: false
+  - name: TCI_BALANCE
+    type: Float64
+    from: TCI_BALANCE
+    nullable: false
+  - name: TCI_BALANCE_QOQ
+    type: Float64
+    from: TCI_BALANCE_QOQ
+    nullable: false
+  - name: PRECOMBINE_PROFIT
+    type: Float64
+    from: PRECOMBINE_PROFIT
+    nullable: false
+  - name: PRECOMBINE_PROFIT_QOQ
+    type: Float64
+    from: PRECOMBINE_PROFIT_QOQ
+    nullable: false
+  - name: PRECOMBINE_TCI
+    type: Float64
+    from: PRECOMBINE_TCI
+    nullable: false
+  - name: PRECOMBINE_TCI_QOQ
+    type: Float64
+    from: PRECOMBINE_TCI_QOQ
+    nullable: false
+  - name: DEDUCT_PARENT_NETPROFIT
+    type: Float64
+    from: DEDUCT_PARENT_NETPROFIT
+    nullable: false
+  - name: DEDUCT_PARENT_NETPROFIT_QOQ
+    type: Float64
+    from: DEDUCT_PARENT_NETPROFIT_QOQ
+    nullable: false
+  - name: TOTAL_OPERATE_INCOME_YOY
+    type: Float64
+    from: TOTAL_OPERATE_INCOME_YOY
+    nullable: false
+  - name: OPERATE_INCOME_YOY
+    type: Float64
+    from: OPERATE_INCOME_YOY
+    nullable: false
+  - name: INTEREST_INCOME_YOY
+    type: Float64
+    from: INTEREST_INCOME_YOY
+    nullable: false
+  - name: EARNED_PREMIUM_YOY
+    type: Float64
+    from: EARNED_PREMIUM_YOY
+    nullable: false
+  - name: FEE_COMMISSION_INCOME_YOY
+    type: Float64
+    from: FEE_COMMISSION_INCOME_YOY
+    nullable: false
+  - name: OTHER_BUSINESS_INCOME_YOY
+    type: Float64
+    from: OTHER_BUSINESS_INCOME_YOY
+    nullable: false
+  - name: TOI_OTHER_YOY
+    type: Float64
+    from: TOI_OTHER_YOY
+    nullable: false
+  - name: TOTAL_OPERATE_COST_YOY
+    type: Float64
+    from: TOTAL_OPERATE_COST_YOY
+    nullable: false
+  - name: OPERATE_COST_YOY
+    type: Float64
+    from: OPERATE_COST_YOY
+    nullable: false
+  - name: INTEREST_EXPENSE_YOY
+    type: Float64
+    from: INTEREST_EXPENSE_YOY
+    nullable: false
+  - name: FEE_COMMISSION_EXPENSE_YOY
+    type: Float64
+    from: FEE_COMMISSION_EXPENSE_YOY
+    nullable: false
+  - name: RESEARCH_EXPENSE_YOY
+    type: Float64
+    from: RESEARCH_EXPENSE_YOY
+    nullable: false
+  - name: SURRENDER_VALUE_YOY
+    type: Float64
+    from: SURRENDER_VALUE_YOY
+    nullable: false
+  - name: NET_COMPENSATE_EXPENSE_YOY
+    type: Float64
+    from: NET_COMPENSATE_EXPENSE_YOY
+    nullable: false
+  - name: NET_CONTRACT_RESERVE_YOY
+    type: Float64
+    from: NET_CONTRACT_RESERVE_YOY
+    nullable: false
+  - name: POLICY_BONUS_EXPENSE_YOY
+    type: Float64
+    from: POLICY_BONUS_EXPENSE_YOY
+    nullable: false
+  - name: REINSURE_EXPENSE_YOY
+    type: Float64
+    from: REINSURE_EXPENSE_YOY
+    nullable: false
+  - name: OTHER_BUSINESS_COST_YOY
+    type: Float64
+    from: OTHER_BUSINESS_COST_YOY
+    nullable: false
+  - name: OPERATE_TAX_ADD_YOY
+    type: Float64
+    from: OPERATE_TAX_ADD_YOY
+    nullable: false
+  - name: SALE_EXPENSE_YOY
+    type: Float64
+    from: SALE_EXPENSE_YOY
+    nullable: false
+  - name: MANAGE_EXPENSE_YOY
+    type: Float64
+    from: MANAGE_EXPENSE_YOY
+    nullable: false
+  - name: ME_RESEARCH_EXPENSE_YOY
+    type: Float64
+    from: ME_RESEARCH_EXPENSE_YOY
+    nullable: false
+  - name: FINANCE_EXPENSE_YOY
+    type: Float64
+    from: FINANCE_EXPENSE_YOY
+    nullable: false
+  - name: FE_INTEREST_EXPENSE_YOY
+    type: Float64
+    from: FE_INTEREST_EXPENSE_YOY
+    nullable: false
+  - name: FE_INTEREST_INCOME_YOY
+    type: Float64
+    from: FE_INTEREST_INCOME_YOY
+    nullable: false
+  - name: ASSET_IMPAIRMENT_LOSS_YOY
+    type: Float64
+    from: ASSET_IMPAIRMENT_LOSS_YOY
+    nullable: false
+  - name: CREDIT_IMPAIRMENT_LOSS_YOY
+    type: Float64
+    from: CREDIT_IMPAIRMENT_LOSS_YOY
+    nullable: false
+  - name: OTHER_INCOME_YOY
+    type: Float64
+    from: OTHER_INCOME_YOY
+    nullable: false
+  - name: TOC_OTHER_YOY
+    type: Float64
+    from: TOC_OTHER_YOY
+    nullable: false
+  - name: INVEST_INCOME_YOY
+    type: Float64
+    from: INVEST_INCOME_YOY
+    nullable: false
+  - name: INVEST_JOINT_INCOME_YOY
+    type: Float64
+    from: INVEST_JOINT_INCOME_YOY
+    nullable: false
+  - name: ACF_END_INCOME_YOY
+    type: Float64
+    from: ACF_END_INCOME_YOY
+    nullable: false
+  - name: EXCHANGE_INCOME_YOY
+    type: Float64
+    from: EXCHANGE_INCOME_YOY
+    nullable: false
+  - name: NET_EXPOSURE_INCOME_YOY
+    type: Float64
+    from: NET_EXPOSURE_INCOME_YOY
+    nullable: false
+  - name: FAIRVALUE_CHANGE_INCOME_YOY
+    type: Float64
+    from: FAIRVALUE_CHANGE_INCOME_YOY
+    nullable: false
+  - name: ASSET_DISPOSAL_INCOME_YOY
+    type: Float64
+    from: ASSET_DISPOSAL_INCOME_YOY
+    nullable: false
+  - name: CREDIT_IMPAIRMENT_INCOME_YOY
+    type: Float64
+    from: CREDIT_IMPAIRMENT_INCOME_YOY
+    nullable: false
+  - name: ASSET_IMPAIRMENT_INCOME_YOY
+    type: Float64
+    from: ASSET_IMPAIRMENT_INCOME_YOY
+    nullable: false
+  - name: OPERATE_PROFIT_YOY
+    type: Float64
+    from: OPERATE_PROFIT_YOY
+    nullable: false
+  - name: NONBUSINESS_INCOME_YOY
+    type: Float64
+    from: NONBUSINESS_INCOME_YOY
+    nullable: false
+  - name: NONCURRENT_DISPOSAL_INCOME_YOY
+    type: Float64
+    from: NONCURRENT_DISPOSAL_INCOME_YOY
+    nullable: false
+  - name: NONBUSINESS_EXPENSE_YOY
+    type: Float64
+    from: NONBUSINESS_EXPENSE_YOY
+    nullable: false
+  - name: NONCURRENT_DISPOSAL_LOSS_YOY
+    type: Float64
+    from: NONCURRENT_DISPOSAL_LOSS_YOY
+    nullable: false
+  - name: OPERATE_PROFIT_OTHER_YOY
+    type: Float64
+    from: OPERATE_PROFIT_OTHER_YOY
+    nullable: false
+  - name: OPERATE_PROFIT_BALANCE_YOY
+    type: Float64
+    from: OPERATE_PROFIT_BALANCE_YOY
+    nullable: false
+  - name: TOTAL_PROFIT_YOY
+    type: Float64
+    from: TOTAL_PROFIT_YOY
+    nullable: false
+  - name: EFFECT_TP_OTHER_YOY
+    type: Float64
+    from: EFFECT_TP_OTHER_YOY
+    nullable: false
+  - name: TOTAL_PROFIT_BALANCE_YOY
+    type: Float64
+    from: TOTAL_PROFIT_BALANCE_YOY
+    nullable: false
+  - name: INCOME_TAX_YOY
+    type: Float64
+    from: INCOME_TAX_YOY
+    nullable: false
+  - name: NETPROFIT_YOY
+    type: Float64
+    from: NETPROFIT_YOY
+    nullable: false
+  - name: CONTINUED_NETPROFIT_YOY
+    type: Float64
+    from: CONTINUED_NETPROFIT_YOY
+    nullable: false
+  - name: DISCONTINUED_NETPROFIT_YOY
+    type: Float64
+    from: DISCONTINUED_NETPROFIT_YOY
+    nullable: false
+  - name: NETPROFIT_OTHER_YOY
+    type: Float64
+    from: NETPROFIT_OTHER_YOY
+    nullable: false
+  - name: NETPROFIT_BALANCE_YOY
+    type: Float64
+    from: NETPROFIT_BALANCE_YOY
+    nullable: false
+  - name: EFFECT_NETPROFIT_OTHER_YOY
+    type: Float64
+    from: EFFECT_NETPROFIT_OTHER_YOY
+    nullable: false
+  - name: EFFECT_NETPROFIT_BALANCE_YOY
+    type: Float64
+    from: EFFECT_NETPROFIT_BALANCE_YOY
+    nullable: false
+  - name: UNCONFIRM_INVEST_LOSS_YOY
+    type: Float64
+    from: UNCONFIRM_INVEST_LOSS_YOY
+    nullable: false
+  - name: MINORITY_INTEREST_YOY
+    type: Float64
+    from: MINORITY_INTEREST_YOY
+    nullable: false
+  - name: PARENT_NETPROFIT_YOY
+    type: Float64
+    from: PARENT_NETPROFIT_YOY
+    nullable: false
+  - name: BASIC_EPS_YOY
+    type: Float64
+    from: BASIC_EPS_YOY
+    nullable: false
+  - name: DILUTED_EPS_YOY
+    type: Float64
+    from: DILUTED_EPS_YOY
+    nullable: false
+  - name: UNABLE_OCI_YOY
+    type: Float64
+    from: UNABLE_OCI_YOY
+    nullable: false
+  - name: CREDITRISK_FAIRVALUE_CHANGE_YOY
+    type: Float64
+    from: CREDITRISK_FAIRVALUE_CHANGE_YOY
+    nullable: false
+  - name: OTHERRIGHT_FAIRVALUE_CHANGE_YOY
+    type: Float64
+    from: OTHERRIGHT_FAIRVALUE_CHANGE_YOY
+    nullable: false
+  - name: SETUP_PROFIT_CHANGE_YOY
+    type: Float64
+    from: SETUP_PROFIT_CHANGE_YOY
+    nullable: false
+  - name: RIGHTLAW_UNABLE_OCI_YOY
+    type: Float64
+    from: RIGHTLAW_UNABLE_OCI_YOY
+    nullable: false
+  - name: UNABLE_OCI_OTHER_YOY
+    type: Float64
+    from: UNABLE_OCI_OTHER_YOY
+    nullable: false
+  - name: UNABLE_OCI_BALANCE_YOY
+    type: Float64
+    from: UNABLE_OCI_BALANCE_YOY
+    nullable: false
+  - name: ABLE_OCI_YOY
+    type: Float64
+    from: ABLE_OCI_YOY
+    nullable: false
+  - name: RIGHTLAW_ABLE_OCI_YOY
+    type: Float64
+    from: RIGHTLAW_ABLE_OCI_YOY
+    nullable: false
+  - name: AFA_FAIRVALUE_CHANGE_YOY
+    type: Float64
+    from: AFA_FAIRVALUE_CHANGE_YOY
+    nullable: false
+  - name: HMI_AFA_YOY
+    type: Float64
+    from: HMI_AFA_YOY
+    nullable: false
+  - name: CASHFLOW_HEDGE_VALID_YOY
+    type: Float64
+    from: CASHFLOW_HEDGE_VALID_YOY
+    nullable: false
+  - name: CREDITOR_FAIRVALUE_CHANGE_YOY
+    type: Float64
+    from: CREDITOR_FAIRVALUE_CHANGE_YOY
+    nullable: false
+  - name: CREDITOR_IMPAIRMENT_RESERVE_YOY
+    type: Float64
+    from: CREDITOR_IMPAIRMENT_RESERVE_YOY
+    nullable: false
+  - name: FINANCE_OCI_AMT_YOY
+    type: Float64
+    from: FINANCE_OCI_AMT_YOY
+    nullable: false
+  - name: CONVERT_DIFF_YOY
+    type: Float64
+    from: CONVERT_DIFF_YOY
+    nullable: false
+  - name: ABLE_OCI_OTHER_YOY
+    type: Float64
+    from: ABLE_OCI_OTHER_YOY
+    nullable: false
+  - name: ABLE_OCI_BALANCE_YOY
+    type: Float64
+    from: ABLE_OCI_BALANCE_YOY
+    nullable: false
+  - name: OCI_OTHER_YOY
+    type: Float64
+    from: OCI_OTHER_YOY
+    nullable: false
+  - name: OCI_BALANCE_YOY
+    type: Float64
+    from: OCI_BALANCE_YOY
+    nullable: false
+  - name: OTHER_COMPRE_INCOME_YOY
+    type: Float64
+    from: OTHER_COMPRE_INCOME_YOY
+    nullable: false
+  - name: PARENT_OCI_YOY
+    type: Float64
+    from: PARENT_OCI_YOY
+    nullable: false
+  - name: MINORITY_OCI_YOY
+    type: Float64
+    from: MINORITY_OCI_YOY
+    nullable: false
+  - name: PARENT_OCI_OTHER_YOY
+    type: Float64
+    from: PARENT_OCI_OTHER_YOY
+    nullable: false
+  - name: PARENT_OCI_BALANCE_YOY
+    type: Float64
+    from: PARENT_OCI_BALANCE_YOY
+    nullable: false
+  - name: TOTAL_COMPRE_INCOME_YOY
+    type: Float64
+    from: TOTAL_COMPRE_INCOME_YOY
+    nullable: false
+  - name: PARENT_TCI_YOY
+    type: Float64
+    from: PARENT_TCI_YOY
+    nullable: false
+  - name: MINORITY_TCI_YOY
+    type: Float64
+    from: MINORITY_TCI_YOY
+    nullable: false
+  - name: EFFECT_TCI_BALANCE_YOY
+    type: Float64
+    from: EFFECT_TCI_BALANCE_YOY
+    nullable: false
+  - name: TCI_OTHER_YOY
+    type: Float64
+    from: TCI_OTHER_YOY
+    nullable: false
+  - name: TCI_BALANCE_YOY
+    type: Float64
+    from: TCI_BALANCE_YOY
+    nullable: false
+  - name: PRECOMBINE_PROFIT_YOY
+    type: Float64
+    from: PRECOMBINE_PROFIT_YOY
+    nullable: false
+  - name: PRECOMBINE_TCI_YOY
+    type: Float64
+    from: PRECOMBINE_TCI_YOY
+    nullable: false
+  - name: DEDUCT_PARENT_NETPROFIT_YOY
+    type: Float64
+    from: DEDUCT_PARENT_NETPROFIT_YOY
+    nullable: false
+dbt_staging:
+  status: not_started
+dataset_note_zh: 东方财富单季度利润表 F10 年度 raw 分区
+validation_notes:
+- Initial contract migrated from docs/references/data_dict and current raw sync specs.

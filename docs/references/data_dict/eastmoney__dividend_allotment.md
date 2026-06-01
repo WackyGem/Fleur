@@ -1,25 +1,36 @@
-# eastmoney__dividend_allotment 字段校对
+# eastmoney__dividend_allotment 数据字典
 
-> 生成时间: 2026-05-30 10:31:25 UTC
-> OpenAPI 文档: eastmoney__dividend_allotment.yaml
+本文件由 `pipeline/contracts/datasets/eastmoney__dividend_allotment.yml` 生成。字段事实以 contract 为准。
 
-## 字段对比
+- 数据集：`eastmoney__dividend_allotment`
+- 版本：`1`
+- 说明：东方财富分红配股 F10 年度 raw 分区
+- 粒度：one row per security code per report date
+- Source asset：`source/eastmoney__dividend_allotment`
+- Raw asset：`clickhouse/raw/eastmoney__dividend_allotment`
+- ClickHouse raw：`raw.eastmoney__dividend_allotment`
+- 分区策略：`year`
+- ORDER BY：`(SECUCODE, NOTICE_DATE)`
 
-| # | 字段名 | OpenAPI 类型 | 资产使用 | PyArrow 类型 | ClickHouse 类型 |
-|---|--------|-------------|---------|-------------|----------------|
-| 1 | SECUCODE | string | ✅ | string | LowCardinality(String) |
-| 2 | SECURITY_CODE | string | ✅ | string | LowCardinality(String) |
-| 3 | SECURITY_NAME_ABBR | string | ✅ | string | LowCardinality(String) |
-| 4 | NOTICE_DATE | string | ✅ | date32[day] | Date |
-| 5 | ISSUE_NUM | number | ✅ | double | Float64 |
-| 6 | TOTAL_RAISE_FUNDS | number | ✅ | double | Float64 |
-| 7 | ISSUE_PRICE | number | ✅ | double | Float64 |
-| 8 | EQUITY_RECORD_DATE | string | ✅ | date32[day] | Date |
-| 9 | EX_DIVIDEND_DATEE | string | ✅ | string | LowCardinality(String) |
-| 10 | EVENT_EXPLAIN | string | ✅ | string | LowCardinality(String) |
+## 字段链路
 
-## 统计
+| # | 外源字段 | 外源类型 | Parquet 类型 | ClickHouse raw 字段 | ClickHouse 类型 | stg 字段 | 中文描述 |
+|---|----------|----------|--------------|---------------------|-----------------|----------|----------|
+| 1 | `SECUCODE` | `string` | `string` | `SECUCODE` | `LowCardinality(String)` | `-` | 证券代码（含市场后缀） |
+| 2 | `SECURITY_CODE` | `string` | `string` | `SECURITY_CODE` | `LowCardinality(String)` | `-` | 证券代码（纯数字） |
+| 3 | `SECURITY_NAME_ABBR` | `string` | `string` | `SECURITY_NAME_ABBR` | `LowCardinality(String)` | `-` | 证券简称 |
+| 4 | `NOTICE_DATE` | `string` | `date32[day]` | `NOTICE_DATE` | `Date` | `-` | 公告日期 |
+| 5 | `ISSUE_NUM` | `number` | `double` | `ISSUE_NUM` | `Float64` | `-` | 配股数量 |
+| 6 | `TOTAL_RAISE_FUNDS` | `number` | `double` | `TOTAL_RAISE_FUNDS` | `Float64` | `-` | 配股募集资金总额 |
+| 7 | `ISSUE_PRICE` | `number` | `double` | `ISSUE_PRICE` | `Float64` | `-` | 配股价格 |
+| 8 | `EQUITY_RECORD_DATE` | `string` | `date32[day]` | `EQUITY_RECORD_DATE` | `Date` | `-` | 股权登记日 |
+| 9 | `EX_DIVIDEND_DATEE` | `string` | `string` | `EX_DIVIDEND_DATEE` | `LowCardinality(String)` | `-` | 除权除息日 |
+| 10 | `EVENT_EXPLAIN` | `string` | `string` | `EVENT_EXPLAIN` | `LowCardinality(String)` | `-` | 配股方案说明（如 "每10股配3股"） |
 
-- OpenAPI 字段总数: 10
-- 资产使用字段数: 10
-- 未使用字段数: 0
+## 数据集备注
+
+东方财富分红配股 F10 年度 raw 分区
+
+## 校验记录
+
+- Initial contract migrated from docs/references/data_dict and current raw sync specs.

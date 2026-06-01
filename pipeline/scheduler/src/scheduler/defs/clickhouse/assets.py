@@ -81,6 +81,11 @@ def _partitions_def_for_spec(
 
 def _metadata_for_spec(spec: ClickHouseRawTableSpec) -> Mapping[str, RawMetadataValue]:
     return {
+        "contract_dataset": spec.contract_dataset,
+        "contract_version": spec.contract_version,
+        "contract_schema_hash": spec.contract_schema_hash,
+        "source_schema_hash": spec.source_schema_hash,
+        "clickhouse_schema_hash": spec.clickhouse_schema_hash,
         "storage_mode": spec.storage_mode,
         "partition_key_name": spec.source_partition_key_name,
         "clickhouse_database": spec.clickhouse_database,

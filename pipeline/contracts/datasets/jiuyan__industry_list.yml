@@ -1,0 +1,318 @@
+dataset: jiuyan__industry_list
+version: 1
+owner: data
+grain: one row per industry article
+source_asset_key:
+- source
+- jiuyan__industry_list
+raw_asset_key:
+- clickhouse
+- raw
+- jiuyan__industry_list
+external:
+  provider: jiuyan
+  source_table_name: jiuyan__industry_list
+  source_description_zh: 韭研行业研究列表快照
+source:
+  protocol: http
+  payload_format: json
+  fields:
+  - name: industry_id
+    type: string
+    required: true
+    external_description_zh: 韭研行业研究记录唯一标识。
+  - name: title_red
+    type: integer
+    required: true
+    external_description_zh: 行业研究标题是否红色高亮展示。
+  - name: title_bold
+    type: integer
+    required: true
+    external_description_zh: 行业研究标题是否加粗展示。
+  - name: title
+    type: string
+    required: true
+    external_description_zh: 行业研究标题。
+  - name: author
+    type: string
+    required: true
+    external_description_zh: 行业研究内容作者。
+  - name: imgs
+    type: string
+    required: true
+    external_description_zh: 行业研究内容关联图片列表。
+  - name: keyword
+    type: string
+    required: true
+    external_description_zh: 行业研究内容关键词。
+  - name: content
+    type: string
+    required: true
+    external_description_zh: 行业研究正文内容。
+  - name: is_top
+    type: integer
+    required: true
+    external_description_zh: 行业研究内容是否置顶。
+  - name: status
+    type: integer
+    required: true
+    external_description_zh: 行业研究内容发布状态。
+  - name: sort_no
+    type: integer
+    required: true
+    external_description_zh: 行业研究内容展示排序号。
+  - name: forward_count
+    type: integer
+    required: true
+    external_description_zh: 行业研究内容转发次数。
+  - name: browsers_count
+    type: integer
+    required: true
+    external_description_zh: 行业研究内容浏览次数。
+  - name: is_delete
+    type: string
+    required: true
+    external_description_zh: 行业研究内容是否被标记为删除。
+  - name: delete_time
+    type: string
+    required: true
+    external_description_zh: 行业研究内容删除时间。
+  - name: create_time
+    type: string
+    required: true
+    external_description_zh: 行业研究内容创建时间。
+  - name: update_time
+    type: string
+    required: true
+    external_description_zh: 行业研究内容更新时间。
+parquet:
+  storage_mode: latest_snapshot
+  fields:
+  - name: industry_id
+    type: string
+    nullable: false
+  - name: title_red
+    type: bool
+    nullable: false
+  - name: title_bold
+    type: bool
+    nullable: false
+  - name: title
+    type: string
+    nullable: false
+  - name: author
+    type: string
+    nullable: false
+  - name: imgs
+    type: string
+    nullable: false
+  - name: keyword
+    type: string
+    nullable: false
+  - name: content
+    type: string
+    nullable: false
+  - name: is_top
+    type: bool
+    nullable: false
+  - name: status
+    type: int64
+    nullable: false
+  - name: sort_no
+    type: int64
+    nullable: false
+  - name: forward_count
+    type: int64
+    nullable: false
+  - name: browsers_count
+    type: int64
+    nullable: false
+  - name: is_delete
+    type: bool
+    nullable: false
+  - name: delete_time
+    type: timestamp[ns]
+    nullable: false
+  - name: create_time
+    type: timestamp[ns]
+    nullable: false
+  - name: update_time
+    type: timestamp[ns]
+    nullable: false
+clickhouse_raw:
+  database: raw
+  table: jiuyan__industry_list
+  partition_strategy: snapshot
+  engine: MergeTree
+  partition_by: tuple()
+  order_by:
+  - industry_id
+  allow_empty: false
+  sync_enabled: true
+  fields:
+  - name: industry_id
+    type: LowCardinality(String)
+    from: industry_id
+    nullable: false
+    reason: expected_low_cardinality_dimension
+  - name: title_red
+    type: Bool
+    from: title_red
+    nullable: false
+  - name: title_bold
+    type: Bool
+    from: title_bold
+    nullable: false
+  - name: title
+    type: String
+    from: title
+    nullable: false
+  - name: author
+    type: LowCardinality(String)
+    from: author
+    nullable: false
+    reason: expected_low_cardinality_dimension
+  - name: imgs
+    type: String
+    from: imgs
+    nullable: false
+  - name: keyword
+    type: String
+    from: keyword
+    nullable: false
+  - name: content
+    type: String
+    from: content
+    nullable: false
+  - name: is_top
+    type: Bool
+    from: is_top
+    nullable: false
+  - name: status
+    type: Int64
+    from: status
+    nullable: false
+  - name: sort_no
+    type: Int64
+    from: sort_no
+    nullable: false
+  - name: forward_count
+    type: Int64
+    from: forward_count
+    nullable: false
+  - name: browsers_count
+    type: Int64
+    from: browsers_count
+    nullable: false
+  - name: is_delete
+    type: Bool
+    from: is_delete
+    nullable: false
+  - name: delete_time
+    type: DateTime64(3)
+    from: delete_time
+    nullable: false
+  - name: create_time
+    type: DateTime64(3)
+    from: create_time
+    nullable: false
+  - name: update_time
+    type: DateTime64(3)
+    from: update_time
+    nullable: false
+dbt_staging:
+  model: stg_jiuyan__industry_list
+  materialized: view
+  status: active
+  primary_key:
+  - industry_id
+  fields:
+  - name: industry_id
+    from: industry_id
+    type: String
+    glossary_key: industry_id
+    tests:
+    - not_null
+  - name: title_red
+    from: title_red
+    type: Bool
+    glossary_key: title_red
+    tests: []
+  - name: title_bold
+    from: title_bold
+    type: Bool
+    glossary_key: title_bold
+    tests: []
+  - name: title
+    from: title
+    type: String
+    glossary_key: title
+    tests: []
+  - name: author
+    from: author
+    type: String
+    glossary_key: author
+    tests: []
+  - name: imgs
+    from: imgs
+    type: String
+    glossary_key: imgs
+    tests: []
+  - name: keyword
+    from: keyword
+    type: String
+    glossary_key: keyword
+    tests: []
+  - name: content
+    from: content
+    type: String
+    glossary_key: content
+    tests: []
+  - name: is_top
+    from: is_top
+    type: Bool
+    glossary_key: is_top
+    tests: []
+  - name: status
+    from: status
+    type: Int64
+    glossary_key: status
+    tests: []
+  - name: sort_no
+    from: sort_no
+    type: Int64
+    glossary_key: sort_no
+    tests: []
+  - name: forward_count
+    from: forward_count
+    type: Int64
+    glossary_key: forward_count
+    tests: []
+  - name: browsers_count
+    from: browsers_count
+    type: Int64
+    glossary_key: browsers_count
+    tests: []
+  - name: is_delete
+    from: is_delete
+    type: Bool
+    glossary_key: is_delete
+    tests: []
+  - name: delete_time
+    from: delete_time
+    type: DateTime64(3)
+    glossary_key: delete_time
+    tests: []
+  - name: create_time
+    from: create_time
+    type: DateTime64(3)
+    glossary_key: create_time
+    tests: []
+  - name: update_time
+    from: update_time
+    type: DateTime64(3)
+    glossary_key: update_time
+    tests: []
+dataset_note_zh: 韭研行业研究列表快照
+validation_notes:
+- Initial contract migrated from docs/references/data_dict and current raw sync specs.

@@ -11,6 +11,7 @@ dependencies = [
 
 [tool.uv.workspace]
 members = [
+    "contract_tools",
     "scheduler",
 ]
 
@@ -45,9 +46,11 @@ line-ending = "auto"
 minversion = "9.0"
 addopts = "-ra"
 pythonpath = [
+    "contract_tools/src",
     "scheduler",
 ]
 testpaths = [
+    "contract_tools/tests",
     "scheduler/tests",
 ]
 python_files = [
@@ -60,6 +63,7 @@ filterwarnings = [
 [tool.coverage.run]
 branch = true
 source = [
+    "contract_tools/src/fleur_contracts",
     "scheduler/src/scheduler",
 ]
 
@@ -70,6 +74,8 @@ fail_under = 70
 
 [tool.pyright]
 include = [
+    "contract_tools/src/fleur_contracts",
+    "contract_tools/tests",
     "scheduler/src/scheduler",
     "scheduler/tests",
 ]

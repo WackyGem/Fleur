@@ -1,0 +1,244 @@
+dataset: jiuyan__action_field_compacted
+version: 1
+owner: data
+grain: one row per stock code per source date/action field row
+source_asset_key:
+- source
+- jiuyan__action_field_compacted
+raw_asset_key:
+- clickhouse
+- raw
+- jiuyan__action_field_compacted
+external:
+  provider: jiuyan
+  source_table_name: jiuyan__action_field_compacted
+  source_description_zh: 韭研题材异动每日数据年度合并 raw 分区
+source:
+  protocol: generated
+  payload_format: tabular
+  fields:
+  - name: action_field_id
+    type: string
+    required: true
+    external_description_zh: 韭研行动领域记录唯一标识。
+  - name: name
+    type: string
+    required: true
+    external_description_zh: 行动领域名称。
+  - name: date
+    type: string
+    required: true
+    external_description_zh: 交易日期
+  - name: reason
+    type: string
+    required: true
+    external_description_zh: 行动领域形成或归类原因。
+  - name: sort_no
+    type: integer
+    required: true
+    external_description_zh: 行动领域展示排序号。
+  - name: is_delete
+    type: boolean
+    required: true
+    external_description_zh: 行动领域记录是否被标记为删除。
+  - name: delete_time
+    type: string
+    required: true
+    external_description_zh: 行动领域记录删除时间。
+  - name: create_time
+    type: string
+    required: true
+    external_description_zh: 行动领域记录创建时间。
+  - name: update_time
+    type: string
+    required: true
+    external_description_zh: 行动领域记录更新时间。
+  - name: count
+    type: integer
+    required: true
+    external_description_zh: 行动领域关联对象数量。
+  - name: code
+    type: string
+    required: true
+    external_description_zh: 证券代码
+  - name: time
+    type: string
+    required: true
+    external_description_zh: 行动领域事件时间。
+  - name: num
+    type: string
+    required: true
+    external_description_zh: 行动领域事件数量。
+  - name: price
+    type: integer
+    required: true
+    external_description_zh: 行动领域事件价格。
+  - name: day
+    type: integer
+    required: true
+    external_description_zh: 行动领域事件天数。
+  - name: edition
+    type: integer
+    required: true
+    external_description_zh: 行动领域数据版本。
+  - name: shares_range
+    type: number
+    required: true
+    external_description_zh: 行动领域涉及的股份区间。
+  - name: expound
+    type: string
+    required: true
+    external_description_zh: 行动领域补充说明。
+parquet:
+  storage_mode: partitioned
+  partition_key_name: year
+  fields:
+  - name: action_field_id
+    type: string
+    nullable: false
+  - name: name
+    type: string
+    nullable: false
+  - name: date
+    type: date32[day]
+    nullable: false
+  - name: reason
+    type: string
+    nullable: false
+  - name: sort_no
+    type: int64
+    nullable: false
+  - name: is_delete
+    type: bool
+    nullable: false
+  - name: delete_time
+    type: timestamp[ns]
+    nullable: false
+  - name: create_time
+    type: timestamp[ns]
+    nullable: false
+  - name: update_time
+    type: timestamp[ns]
+    nullable: false
+  - name: count
+    type: int64
+    nullable: false
+  - name: code
+    type: string
+    nullable: false
+  - name: time
+    type: time32[ms]
+    nullable: false
+  - name: num
+    type: string
+    nullable: false
+  - name: price
+    type: int64
+    nullable: false
+  - name: day
+    type: int64
+    nullable: false
+  - name: edition
+    type: int64
+    nullable: false
+  - name: shares_range
+    type: double
+    nullable: false
+  - name: expound
+    type: string
+    nullable: false
+clickhouse_raw:
+  database: raw
+  table: jiuyan__action_field_compacted
+  partition_strategy: year
+  engine: MergeTree
+  partition_by: '`year`'
+  order_by:
+  - date
+  - code
+  allow_empty: false
+  sync_enabled: true
+  fields:
+  - name: action_field_id
+    type: LowCardinality(String)
+    from: action_field_id
+    nullable: false
+    reason: expected_low_cardinality_dimension
+  - name: name
+    type: LowCardinality(String)
+    from: name
+    nullable: false
+    reason: expected_low_cardinality_dimension
+  - name: date
+    type: Date
+    from: date
+    nullable: false
+  - name: reason
+    type: LowCardinality(String)
+    from: reason
+    nullable: false
+    reason: expected_low_cardinality_dimension
+  - name: sort_no
+    type: Int64
+    from: sort_no
+    nullable: false
+  - name: is_delete
+    type: Bool
+    from: is_delete
+    nullable: false
+  - name: delete_time
+    type: DateTime64(3)
+    from: delete_time
+    nullable: false
+  - name: create_time
+    type: DateTime64(3)
+    from: create_time
+    nullable: false
+  - name: update_time
+    type: DateTime64(3)
+    from: update_time
+    nullable: false
+  - name: count
+    type: Int64
+    from: count
+    nullable: false
+  - name: code
+    type: LowCardinality(String)
+    from: code
+    nullable: false
+    reason: expected_low_cardinality_dimension
+  - name: time
+    type: String
+    from: time
+    nullable: false
+  - name: num
+    type: LowCardinality(String)
+    from: num
+    nullable: false
+    reason: expected_low_cardinality_dimension
+  - name: price
+    type: Int64
+    from: price
+    nullable: false
+  - name: day
+    type: Int64
+    from: day
+    nullable: false
+  - name: edition
+    type: Int64
+    from: edition
+    nullable: false
+  - name: shares_range
+    type: Float64
+    from: shares_range
+    nullable: false
+  - name: expound
+    type: LowCardinality(String)
+    from: expound
+    nullable: false
+    reason: expected_low_cardinality_dimension
+dbt_staging:
+  status: not_started
+dataset_note_zh: 韭研题材异动每日数据年度合并 raw 分区
+validation_notes:
+- Initial contract migrated from docs/references/data_dict and current raw sync specs.

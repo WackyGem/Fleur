@@ -9,6 +9,7 @@ resolution-markers = [
 
 [manifest]
 members = [
+    "contract-tools",
     "pipeline",
     "scheduler",
 ]
@@ -508,6 +509,25 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/84/1b/1ecdd371fa68839cfbda15cc671d0f6c92d2c42688df995a9bf6e36f3511/coloredlogs-14.0.tar.gz", hash = "sha256:a1fab193d2053aa6c0a97608c4342d031f1f93a3d1218432c59322441d31a505", size = 275863, upload-time = "2020-02-16T20:51:12.172Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/5c/2f/12747be360d6dea432e7b5dfae3419132cb008535cfe614af73b9ce2643b/coloredlogs-14.0-py2.py3-none-any.whl", hash = "sha256:346f58aad6afd48444c2468618623638dadab76e4e70d5e10822676f2d32226a", size = 43888, upload-time = "2020-02-16T20:51:09.712Z" },
+]
+
+[[package]]
+name = "contract-tools"
+version = "0.1.0"
+source = { editable = "contract_tools" }
+dependencies = [
+    { name = "clickhouse-connect" },
+    { name = "pyarrow" },
+    { name = "pydantic" },
+    { name = "pyyaml" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "clickhouse-connect", specifier = ">=1.1.1" },
+    { name = "pyarrow", specifier = ">=22.0.0" },
+    { name = "pydantic", specifier = ">=2.13.4" },
+    { name = "pyyaml", specifier = ">=6.0.3" },
 ]
 
 [[package]]
@@ -2622,6 +2642,7 @@ source = { editable = "scheduler" }
 dependencies = [
     { name = "aiohttp" },
     { name = "clickhouse-connect" },
+    { name = "contract-tools" },
     { name = "dagster" },
     { name = "dagster-slack" },
     { name = "psycopg", extra = ["binary"] },
@@ -2644,6 +2665,7 @@ dev = [
 requires-dist = [
     { name = "aiohttp", specifier = ">=3.13.5" },
     { name = "clickhouse-connect", specifier = ">=1.1.1" },
+    { name = "contract-tools", editable = "contract_tools" },
     { name = "dagster", specifier = "==1.13.6" },
     { name = "dagster-slack", specifier = "==0.29.6" },
     { name = "psycopg", extras = ["binary"], specifier = ">=3.2.10" },

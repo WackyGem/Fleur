@@ -1,36 +1,40 @@
-# baostock__query_history_k_data_plus_daily 字段校对
+# baostock__query_history_k_data_plus_daily 数据字典
 
-> 生成时间: 2026-06-01 00:00:00 UTC
-> OpenAPI 文档: BaoStock query_history_k_data_plus
+本文件由 `pipeline/contracts/datasets/baostock__query_history_k_data_plus_daily.yml` 生成。字段事实以 contract 为准。
 
-## 字段对比
+- 数据集：`baostock__query_history_k_data_plus_daily`
+- 版本：`1`
+- 说明：BaoStock 日频行情数据
+- 粒度：one row per stock code per trade date
+- Source asset：`source/baostock__query_history_k_data_plus_daily`
+- Raw asset：`clickhouse/raw/baostock__query_history_k_data_plus_daily`
+- ClickHouse raw：`raw.baostock__query_history_k_data_plus_daily`
+- 分区策略：`year`
+- ORDER BY：`(code, date)`
 
-| # | 字段名 | OpenAPI 类型 | 资产使用 | PyArrow 类型 | ClickHouse 类型 |
-|---|--------|-------------|---------|-------------|----------------|
-| 1 | date | string | ✅ | date32[day] | Date |
-| 2 | code | string | ✅ | string | LowCardinality(String) |
-| 3 | open | string | ✅ | double | Float64 |
-| 4 | high | string | ✅ | double | Float64 |
-| 5 | low | string | ✅ | double | Float64 |
-| 6 | close | string | ✅ | double | Float64 |
-| 7 | preclose | string | ✅ | double | Float64 |
-| 8 | volume | string | ✅ | int64 | Int64 |
-| 9 | amount | string | ✅ | double | Float64 |
-| 10 | adjustflag | string | ✅ | int8 | Int8 |
-| 11 | turn | string | ✅ | double | Float64 |
-| 12 | tradestatus | string | ✅ | int8 | Int8 |
-| 13 | pctChg | string | ✅ | double | Float64 |
-| 14 | isST | string | ✅ | int8 | Int8 |
+## 字段链路
 
-## ClickHouse raw 设计记录
+| # | 外源字段 | 外源类型 | Parquet 类型 | ClickHouse raw 字段 | ClickHouse 类型 | stg 字段 | 中文描述 |
+|---|----------|----------|--------------|---------------------|-----------------|----------|----------|
+| 1 | `date` | `string` | `date32[day]` | `date` | `Date` | `trade_date` | A 股市场交易日日期。 |
+| 2 | `code` | `string` | `string` | `code` | `LowCardinality(String)` | `code` | 证券、行业或业务对象在来源系统中的编码。 |
+| 3 | `open` | `string` | `double` | `open` | `Float64` | `open` | 交易标的在交易日开盘时的价格。 |
+| 4 | `high` | `string` | `double` | `high` | `Float64` | `high` | 交易标的在交易日内达到的最高价格。 |
+| 5 | `low` | `string` | `double` | `low` | `Float64` | `low` | 交易标的在交易日内达到的最低价格。 |
+| 6 | `close` | `string` | `double` | `close` | `Float64` | `close` | 交易标的在交易日收盘时的价格。 |
+| 7 | `preclose` | `string` | `double` | `preclose` | `Float64` | `preclose` | 交易标的上一交易日的收盘价格。 |
+| 8 | `volume` | `string` | `int64` | `volume` | `Int64` | `volume` | 交易日内成交数量或成交量。 |
+| 9 | `amount` | `string` | `double` | `amount` | `Float64` | `amount` | 交易日内成交金额，通常以人民币计价。 |
+| 10 | `adjustflag` | `string` | `int8` | `adjustflag` | `Int8` | `adjustflag` | 行情价格的复权处理标记，用于区分不复权、前复权和后复权口径。 |
+| 11 | `turn` | `string` | `double` | `turn` | `Float64` | `turn` | 交易日换手率。 |
+| 12 | `tradestatus` | `string` | `int8` | `tradestatus` | `Int8` | `tradestatus` | 证券在交易日内的交易状态。 |
+| 13 | `pctChg` | `string` | `double` | `pctChg` | `Float64` | `pct_chg` | 交易标的相对上一交易日的涨跌幅比例。 |
+| 14 | `isST` | `string` | `int8` | `isST` | `Int8` | `is_st` | 证券是否处于 ST 或风险警示状态。 |
 
-- 初始查询模式：dbt staging/marts 主要按证券代码 `code` 和交易日期 `date` 过滤。
-- 初始 `ORDER BY`：`(code, date)`。
-- `code` 预计为 A 股证券代码，基数低于 10,000，首批按 `LowCardinality(String)` 接入；首次环境 smoke test 需用 staging 表 `uniq(code)` 记录验证结果。
+## 数据集备注
 
-## 统计
+BaoStock 日频行情数据
 
-- OpenAPI 字段总数: 14
-- 资产使用字段数: 14
-- 未使用字段数: 0
+## 校验记录
 
+- Initial contract migrated from docs/references/data_dict and current raw sync specs.

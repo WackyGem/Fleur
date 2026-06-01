@@ -1,0 +1,60 @@
+dataset: sina__trade_calendar
+version: 1
+owner: data
+grain: one row per trade date
+source_asset_key:
+- source
+- sina__trade_calendar
+raw_asset_key:
+- clickhouse
+- raw
+- sina__trade_calendar
+external:
+  provider: sina
+  source_table_name: sina__trade_calendar
+  source_description_zh: 新浪 A 股交易日历快照
+source:
+  protocol: http
+  payload_format: tabular
+  fields:
+  - name: trade_date
+    type: N/A
+    required: true
+    external_description_zh: 新浪交易日历中的 A 股交易日期。
+parquet:
+  storage_mode: latest_snapshot
+  fields:
+  - name: trade_date
+    type: date32[day]
+    nullable: false
+clickhouse_raw:
+  database: raw
+  table: sina__trade_calendar
+  partition_strategy: snapshot
+  engine: MergeTree
+  partition_by: tuple()
+  order_by:
+  - trade_date
+  allow_empty: false
+  sync_enabled: true
+  fields:
+  - name: trade_date
+    type: Date
+    from: trade_date
+    nullable: false
+dbt_staging:
+  model: stg_sina__trade_calendar
+  materialized: view
+  status: active
+  primary_key:
+  - trade_date
+  fields:
+  - name: trade_date
+    from: trade_date
+    type: Date
+    glossary_key: trade_date
+    tests:
+    - not_null
+dataset_note_zh: 新浪 A 股交易日历快照
+validation_notes:
+- Initial contract migrated from docs/references/data_dict and current raw sync specs.

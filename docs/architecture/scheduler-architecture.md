@@ -28,6 +28,7 @@
 - **Object Store 模式**：`ObjectStore` 提供通用二进制对象存储，`ImageObjectStore` 只保留图片/OCR 业务映射。
 - **Service 层**：HTTP、BaoStock、OCR 等业务流程提取至 service 模块，asset 函数保持薄封装。
 - **资产契约元数据**：所有源资产必须保留 owner、kind tags、source/storage/layer tags 和分区/状态元数据。
+- **数据契约注册表**：ClickHouse raw specs、dbt source/staging YAML 和 data_dict 字段事实来自 `pipeline/contracts`，由 `pipeline/contract_tools` 校验和生成；source 业务代码不直接解析 contract。
 - **分区与失败策略**：`partitioning/policies.py` 统一处理 backfill 限制、交易日过滤和部分失败阈值。
 - **类型安全**：全项目使用准确类型，最小化 `Any` 使用。
 

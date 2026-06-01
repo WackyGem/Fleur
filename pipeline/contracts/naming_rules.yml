@@ -1,0 +1,1 @@
+canonical_field_pattern: "^[a-z][a-z0-9_]*$"

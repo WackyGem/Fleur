@@ -1,37 +1,97 @@
 version: 2
-
 sources:
-  - name: raw
-    schema: raw
-    description: ClickHouse raw tables synchronized from Dagster-published S3 Parquet assets.
-    tables:
-      - name: baostock__query_history_k_data_plus_daily
-        description: BaoStock daily K-line rows by natural-year raw partition.
-      - name: sina__trade_calendar
-        description: A-share trade calendar snapshot.
-      - name: baostock__query_stock_basic
-        description: BaoStock security basic-information snapshot.
-      - name: jiuyan__industry_list
-        description: JiuYan industry research list snapshot.
-      - name: jiuyan__industry_ocr_snapshot
-        description: Successful JiuYan OCR result snapshot.
-      - name: jiuyan__action_field_compacted
-        description: JiuYan action-field daily rows compacted into yearly raw partitions.
-      - name: ths__limit_up_pool_compacted
-        description: TongHuaShun limit-up pool daily rows compacted into yearly raw partitions.
-      - name: eastmoney__balance
-        description: EastMoney balance sheet F10 rows by natural-year raw partition.
-      - name: eastmoney__cashflow_sq
-        description: EastMoney single-quarter cashflow F10 rows by natural-year raw partition.
-      - name: eastmoney__cashflow_ytd
-        description: EastMoney year-to-date cashflow F10 rows by natural-year raw partition.
-      - name: eastmoney__dividend_allotment
-        description: EastMoney dividend allotment F10 rows by natural-year raw partition.
-      - name: eastmoney__dividend_main
-        description: EastMoney dividend main F10 rows by natural-year raw partition.
-      - name: eastmoney__equity_history
-        description: EastMoney equity history F10 rows by natural-year raw partition.
-      - name: eastmoney__income_sq
-        description: EastMoney single-quarter income F10 rows by natural-year raw partition.
-      - name: eastmoney__income_ytd
-        description: EastMoney year-to-date income F10 rows by natural-year raw partition.
+- name: raw
+  schema: raw
+  description: ClickHouse raw tables synchronized from Dagster-published S3 Parquet
+    assets.
+  tables:
+  - name: baostock__query_history_k_data_plus_daily
+    description: BaoStock daily K-line rows by natural-year raw partition.
+    meta:
+      contract_dataset: baostock__query_history_k_data_plus_daily
+      contract_version: 1
+      upstream_raw_asset: clickhouse/raw/baostock__query_history_k_data_plus_daily
+  - name: baostock__query_stock_basic
+    description: BaoStock security basic-information snapshot.
+    meta:
+      contract_dataset: baostock__query_stock_basic
+      contract_version: 1
+      upstream_raw_asset: clickhouse/raw/baostock__query_stock_basic
+  - name: eastmoney__balance
+    description: EastMoney balance sheet F10 rows by natural-year raw partition.
+    meta:
+      contract_dataset: eastmoney__balance
+      contract_version: 1
+      upstream_raw_asset: clickhouse/raw/eastmoney__balance
+  - name: eastmoney__cashflow_sq
+    description: EastMoney single-quarter cashflow F10 rows by natural-year raw partition.
+    meta:
+      contract_dataset: eastmoney__cashflow_sq
+      contract_version: 1
+      upstream_raw_asset: clickhouse/raw/eastmoney__cashflow_sq
+  - name: eastmoney__cashflow_ytd
+    description: EastMoney year-to-date cashflow F10 rows by natural-year raw partition.
+    meta:
+      contract_dataset: eastmoney__cashflow_ytd
+      contract_version: 1
+      upstream_raw_asset: clickhouse/raw/eastmoney__cashflow_ytd
+  - name: eastmoney__dividend_allotment
+    description: EastMoney dividend allotment F10 rows by natural-year raw partition.
+    meta:
+      contract_dataset: eastmoney__dividend_allotment
+      contract_version: 1
+      upstream_raw_asset: clickhouse/raw/eastmoney__dividend_allotment
+  - name: eastmoney__dividend_main
+    description: EastMoney dividend main F10 rows by natural-year raw partition.
+    meta:
+      contract_dataset: eastmoney__dividend_main
+      contract_version: 1
+      upstream_raw_asset: clickhouse/raw/eastmoney__dividend_main
+  - name: eastmoney__equity_history
+    description: EastMoney equity history F10 rows by natural-year raw partition.
+    meta:
+      contract_dataset: eastmoney__equity_history
+      contract_version: 1
+      upstream_raw_asset: clickhouse/raw/eastmoney__equity_history
+  - name: eastmoney__income_sq
+    description: EastMoney single-quarter income F10 rows by natural-year raw partition.
+    meta:
+      contract_dataset: eastmoney__income_sq
+      contract_version: 1
+      upstream_raw_asset: clickhouse/raw/eastmoney__income_sq
+  - name: eastmoney__income_ytd
+    description: EastMoney year-to-date income F10 rows by natural-year raw partition.
+    meta:
+      contract_dataset: eastmoney__income_ytd
+      contract_version: 1
+      upstream_raw_asset: clickhouse/raw/eastmoney__income_ytd
+  - name: jiuyan__action_field_compacted
+    description: JiuYan action-field daily rows compacted into yearly raw partitions.
+    meta:
+      contract_dataset: jiuyan__action_field_compacted
+      contract_version: 1
+      upstream_raw_asset: clickhouse/raw/jiuyan__action_field_compacted
+  - name: jiuyan__industry_list
+    description: JiuYan industry research list snapshot.
+    meta:
+      contract_dataset: jiuyan__industry_list
+      contract_version: 1
+      upstream_raw_asset: clickhouse/raw/jiuyan__industry_list
+  - name: jiuyan__industry_ocr_snapshot
+    description: Successful JiuYan OCR result snapshot.
+    meta:
+      contract_dataset: jiuyan__industry_ocr_snapshot
+      contract_version: 1
+      upstream_raw_asset: clickhouse/raw/jiuyan__industry_ocr_snapshot
+  - name: sina__trade_calendar
+    description: A-share trade calendar snapshot.
+    meta:
+      contract_dataset: sina__trade_calendar
+      contract_version: 1
+      upstream_raw_asset: clickhouse/raw/sina__trade_calendar
+  - name: ths__limit_up_pool_compacted
+    description: TongHuaShun limit-up pool daily rows compacted into yearly raw partitions.
+    meta:
+      contract_dataset: ths__limit_up_pool_compacted
+      contract_version: 1
+      upstream_raw_asset: clickhouse/raw/ths__limit_up_pool_compacted

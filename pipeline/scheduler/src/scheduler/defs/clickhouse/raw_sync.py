@@ -33,6 +33,11 @@ class RawSyncResult:
 
     def metadata(self) -> dict[str, RawMetadataValue]:
         return {
+            "contract_dataset": self.spec.contract_dataset,
+            "contract_version": self.spec.contract_version,
+            "contract_schema_hash": self.spec.contract_schema_hash,
+            "source_schema_hash": self.spec.source_schema_hash,
+            "clickhouse_schema_hash": self.spec.clickhouse_schema_hash,
             "clickhouse_database": self.spec.clickhouse_database,
             "clickhouse_table": self.spec.clickhouse_table,
             "staging_table": self.spec.staging_table,
@@ -112,7 +117,7 @@ class RawSyncService:
             s3_object_key=object_key,
             loaded_row_count=loaded_row_count,
             raw_row_count_after_replace=raw_row_count,
-            schema_hash=schema_hash(spec),
+            schema_hash=spec.clickhouse_schema_hash,
             clickhouse_insert_seconds=insert_seconds,
             clickhouse_validation_seconds=validation_seconds,
             clickhouse_replace_seconds=replace_seconds,
@@ -158,7 +163,7 @@ class RawSyncService:
             s3_object_key=object_key,
             loaded_row_count=loaded_row_count,
             raw_row_count_after_replace=raw_row_count,
-            schema_hash=schema_hash(spec),
+            schema_hash=spec.clickhouse_schema_hash,
             clickhouse_insert_seconds=insert_seconds,
             clickhouse_validation_seconds=validation_seconds,
             clickhouse_replace_seconds=replace_seconds,

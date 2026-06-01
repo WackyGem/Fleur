@@ -1,0 +1,380 @@
+dataset: eastmoney__dividend_main
+version: 1
+owner: data
+grain: one row per security code per report date
+source_asset_key:
+- source
+- eastmoney__dividend_main
+raw_asset_key:
+- clickhouse
+- raw
+- eastmoney__dividend_main
+external:
+  provider: eastmoney
+  source_table_name: eastmoney__dividend_main
+  source_description_zh: 东方财富分红主表 F10 年度 raw 分区
+source:
+  protocol: http
+  payload_format: json
+  fields:
+  - name: SECUCODE
+    type: string
+    required: true
+    external_description_zh: 证券代码（含市场后缀）
+  - name: SECURITY_CODE
+    type: string
+    required: true
+    external_description_zh: 证券代码（纯数字）
+  - name: SECURITY_NAME_ABBR
+    type: string
+    required: true
+    external_description_zh: 证券简称
+  - name: NOTICE_DATE
+    type: string
+    required: true
+    external_description_zh: 公告日期
+  - name: IMPL_PLAN_PROFILE
+    type: string
+    required: true
+    external_description_zh: 分红方案简述
+  - name: ASSIGN_PROGRESS
+    type: string
+    required: true
+    external_description_zh: 分配进度
+  - name: EQUITY_RECORD_DATE
+    type: number
+    required: true
+    external_description_zh: 股权登记日
+  - name: EX_DIVIDEND_DATE
+    type: number
+    required: true
+    external_description_zh: 除权除息日
+  - name: PAY_CASH_DATE
+    type: number
+    required: true
+    external_description_zh: 派息日
+  - name: IS_UNASSIGN
+    type: string
+    required: true
+    external_description_zh: 是否不分配："0" 否，"1" 是
+  - name: REPORT_DATE
+    type: string
+    required: true
+    external_description_zh: 报告期
+  - name: ASSIGN_OBJECT
+    type: string
+    required: true
+    external_description_zh: 分配对象
+  - name: IMPL_PLAN_NEWPROFILE
+    type: string
+    required: true
+    external_description_zh: 方案简介 + 进度后缀
+  - name: NEW_PROFILE
+    type: string
+    required: true
+    external_description_zh: 分红方案（含税）
+  - name: GMDECISION_NOTICE_DATE
+    type: number
+    required: true
+    external_description_zh: 股东大会决议公告日
+  - name: INFO_CODE
+    type: string
+    required: true
+    external_description_zh: 公告编号
+  - name: DAT_YAGGR
+    type: string
+    required: true
+    external_description_zh: 年度股东大会日期
+  - name: TOTAL_DIVIDEND
+    type: number
+    required: true
+    external_description_zh: 分红总额（元）
+  - name: TOTAL_DIVIDEND_A
+    type: number
+    required: true
+    external_description_zh: A股分红总额（元）
+  - name: REPORT_TIME
+    type: string
+    required: true
+    external_description_zh: 报告期截止日
+  - name: DAT_YAGGR_TODAY
+    type: string
+    required: true
+    external_description_zh: 是否今日年度股东大会
+  - name: NOTICE_TODAY
+    type: string
+    required: true
+    external_description_zh: 是否今日公告
+  - name: GMDECISION_TODAY
+    type: string
+    required: true
+    external_description_zh: 是否今日股东大会决议
+  - name: DIRECTORSUPERVISOR_TODAY
+    type: string
+    required: true
+    external_description_zh: 是否今日监事会决议
+  - name: EQUITY_TODAY
+    type: string
+    required: true
+    external_description_zh: 是否今日股权登记
+  - name: EX_DIVIDEND_TODAY
+    type: string
+    required: true
+    external_description_zh: 是否今日除权除息
+  - name: PAYCASH_TODAY
+    type: string
+    required: true
+    external_description_zh: 是否今日派息
+  - name: IS_PAYCASH
+    type: string
+    required: true
+    external_description_zh: 是否派息
+  - name: IS_EQUITY_RECENT
+    type: string
+    required: true
+    external_description_zh: 是否近期股权登记
+  - name: LAST_TRADE_DATE
+    type: number
+    required: true
+    external_description_zh: 最后交易日
+parquet:
+  storage_mode: partitioned
+  partition_key_name: year
+  fields:
+  - name: SECUCODE
+    type: string
+    nullable: false
+  - name: SECURITY_CODE
+    type: string
+    nullable: false
+  - name: SECURITY_NAME_ABBR
+    type: string
+    nullable: false
+  - name: NOTICE_DATE
+    type: date32[day]
+    nullable: false
+  - name: IMPL_PLAN_PROFILE
+    type: string
+    nullable: false
+  - name: ASSIGN_PROGRESS
+    type: string
+    nullable: false
+  - name: EQUITY_RECORD_DATE
+    type: date32[day]
+    nullable: false
+  - name: EX_DIVIDEND_DATE
+    type: date32[day]
+    nullable: false
+  - name: PAY_CASH_DATE
+    type: date32[day]
+    nullable: false
+  - name: IS_UNASSIGN
+    type: bool
+    nullable: false
+  - name: REPORT_DATE
+    type: string
+    nullable: false
+  - name: ASSIGN_OBJECT
+    type: string
+    nullable: false
+  - name: IMPL_PLAN_NEWPROFILE
+    type: string
+    nullable: false
+  - name: NEW_PROFILE
+    type: string
+    nullable: false
+  - name: GMDECISION_NOTICE_DATE
+    type: date32[day]
+    nullable: false
+  - name: INFO_CODE
+    type: string
+    nullable: false
+  - name: DAT_YAGGR
+    type: date32[day]
+    nullable: false
+  - name: TOTAL_DIVIDEND
+    type: double
+    nullable: false
+  - name: TOTAL_DIVIDEND_A
+    type: double
+    nullable: false
+  - name: REPORT_TIME
+    type: string
+    nullable: false
+  - name: DAT_YAGGR_TODAY
+    type: bool
+    nullable: false
+  - name: NOTICE_TODAY
+    type: bool
+    nullable: false
+  - name: GMDECISION_TODAY
+    type: bool
+    nullable: false
+  - name: DIRECTORSUPERVISOR_TODAY
+    type: bool
+    nullable: false
+  - name: EQUITY_TODAY
+    type: bool
+    nullable: false
+  - name: EX_DIVIDEND_TODAY
+    type: bool
+    nullable: false
+  - name: PAYCASH_TODAY
+    type: bool
+    nullable: false
+  - name: IS_PAYCASH
+    type: bool
+    nullable: false
+  - name: IS_EQUITY_RECENT
+    type: bool
+    nullable: false
+  - name: LAST_TRADE_DATE
+    type: date32[day]
+    nullable: false
+clickhouse_raw:
+  database: raw
+  table: eastmoney__dividend_main
+  partition_strategy: year
+  engine: MergeTree
+  partition_by: '`year`'
+  order_by:
+  - SECUCODE
+  - REPORT_DATE
+  allow_empty: true
+  sync_enabled: true
+  fields:
+  - name: SECUCODE
+    type: LowCardinality(String)
+    from: SECUCODE
+    nullable: false
+    reason: expected_low_cardinality_dimension
+  - name: SECURITY_CODE
+    type: LowCardinality(String)
+    from: SECURITY_CODE
+    nullable: false
+    reason: expected_low_cardinality_dimension
+  - name: SECURITY_NAME_ABBR
+    type: LowCardinality(String)
+    from: SECURITY_NAME_ABBR
+    nullable: false
+    reason: expected_low_cardinality_dimension
+  - name: NOTICE_DATE
+    type: Date
+    from: NOTICE_DATE
+    nullable: false
+  - name: IMPL_PLAN_PROFILE
+    type: LowCardinality(String)
+    from: IMPL_PLAN_PROFILE
+    nullable: false
+    reason: expected_low_cardinality_dimension
+  - name: ASSIGN_PROGRESS
+    type: LowCardinality(String)
+    from: ASSIGN_PROGRESS
+    nullable: false
+    reason: expected_low_cardinality_dimension
+  - name: EQUITY_RECORD_DATE
+    type: Date
+    from: EQUITY_RECORD_DATE
+    nullable: false
+  - name: EX_DIVIDEND_DATE
+    type: Date
+    from: EX_DIVIDEND_DATE
+    nullable: false
+  - name: PAY_CASH_DATE
+    type: Date
+    from: PAY_CASH_DATE
+    nullable: false
+  - name: IS_UNASSIGN
+    type: Bool
+    from: IS_UNASSIGN
+    nullable: false
+  - name: REPORT_DATE
+    type: LowCardinality(String)
+    from: REPORT_DATE
+    nullable: false
+    reason: expected_low_cardinality_dimension
+  - name: ASSIGN_OBJECT
+    type: LowCardinality(String)
+    from: ASSIGN_OBJECT
+    nullable: false
+    reason: expected_low_cardinality_dimension
+  - name: IMPL_PLAN_NEWPROFILE
+    type: LowCardinality(String)
+    from: IMPL_PLAN_NEWPROFILE
+    nullable: false
+    reason: expected_low_cardinality_dimension
+  - name: NEW_PROFILE
+    type: LowCardinality(String)
+    from: NEW_PROFILE
+    nullable: false
+    reason: expected_low_cardinality_dimension
+  - name: GMDECISION_NOTICE_DATE
+    type: Date
+    from: GMDECISION_NOTICE_DATE
+    nullable: false
+  - name: INFO_CODE
+    type: LowCardinality(String)
+    from: INFO_CODE
+    nullable: false
+    reason: expected_low_cardinality_dimension
+  - name: DAT_YAGGR
+    type: Date
+    from: DAT_YAGGR
+    nullable: false
+  - name: TOTAL_DIVIDEND
+    type: Float64
+    from: TOTAL_DIVIDEND
+    nullable: false
+  - name: TOTAL_DIVIDEND_A
+    type: Float64
+    from: TOTAL_DIVIDEND_A
+    nullable: false
+  - name: REPORT_TIME
+    type: String
+    from: REPORT_TIME
+    nullable: false
+  - name: DAT_YAGGR_TODAY
+    type: Bool
+    from: DAT_YAGGR_TODAY
+    nullable: false
+  - name: NOTICE_TODAY
+    type: Bool
+    from: NOTICE_TODAY
+    nullable: false
+  - name: GMDECISION_TODAY
+    type: Bool
+    from: GMDECISION_TODAY
+    nullable: false
+  - name: DIRECTORSUPERVISOR_TODAY
+    type: Bool
+    from: DIRECTORSUPERVISOR_TODAY
+    nullable: false
+  - name: EQUITY_TODAY
+    type: Bool
+    from: EQUITY_TODAY
+    nullable: false
+  - name: EX_DIVIDEND_TODAY
+    type: Bool
+    from: EX_DIVIDEND_TODAY
+    nullable: false
+  - name: PAYCASH_TODAY
+    type: Bool
+    from: PAYCASH_TODAY
+    nullable: false
+  - name: IS_PAYCASH
+    type: Bool
+    from: IS_PAYCASH
+    nullable: false
+  - name: IS_EQUITY_RECENT
+    type: Bool
+    from: IS_EQUITY_RECENT
+    nullable: false
+  - name: LAST_TRADE_DATE
+    type: Date
+    from: LAST_TRADE_DATE
+    nullable: false
+dbt_staging:
+  status: not_started
+dataset_note_zh: 东方财富分红主表 F10 年度 raw 分区
+validation_notes:
+- Initial contract migrated from docs/references/data_dict and current raw sync specs.

@@ -1,0 +1,4144 @@
+dataset: eastmoney__cashflow_sq
+version: 1
+owner: data
+grain: one row per security code per report date
+source_asset_key:
+- source
+- eastmoney__cashflow_sq
+raw_asset_key:
+- clickhouse
+- raw
+- eastmoney__cashflow_sq
+external:
+  provider: eastmoney
+  source_table_name: eastmoney__cashflow_sq
+  source_description_zh: 东方财富单季度现金流量表 F10 年度 raw 分区
+source:
+  protocol: http
+  payload_format: json
+  fields:
+  - name: SECUCODE
+    type: string
+    required: true
+    external_description_zh: 证券代码（含市场后缀）
+  - name: SECURITY_CODE
+    type: string
+    required: true
+    external_description_zh: 证券代码（纯数字）
+  - name: SECURITY_NAME_ABBR
+    type: string
+    required: true
+    external_description_zh: 证券简称
+  - name: ORG_CODE
+    type: string
+    required: true
+    external_description_zh: 机构代码
+  - name: ORG_TYPE
+    type: string
+    required: true
+    external_description_zh: 机构类型
+  - name: REPORT_DATE
+    type: string
+    required: true
+    external_description_zh: 报告期
+  - name: REPORT_TYPE
+    type: string
+    required: true
+    external_description_zh: 报告类型
+  - name: REPORT_DATE_NAME
+    type: string
+    required: true
+    external_description_zh: 报告期名称
+  - name: SECURITY_TYPE_CODE
+    type: string
+    required: true
+    external_description_zh: 证券类型代码
+  - name: NOTICE_DATE
+    type: string
+    required: true
+    external_description_zh: 公告日期
+  - name: UPDATE_DATE
+    type: string
+    required: true
+    external_description_zh: 更新日期
+  - name: CURRENCY
+    type: string
+    required: true
+    external_description_zh: 现金流量表单季度金额使用的币种。
+  - name: SALES_SERVICES
+    type: number
+    required: true
+    external_description_zh: 销售商品、提供劳务收到的现金
+  - name: DEPOSIT_INTERBANK_ADD
+    type: number
+    required: true
+    external_description_zh: 同业存放净增加额
+  - name: LOAN_PBC_ADD
+    type: number
+    required: true
+    external_description_zh: 向央行借款净增加额
+  - name: OFI_BF_ADD
+    type: number
+    required: true
+    external_description_zh: 向其他金融机构拆入资金净增加额
+  - name: RECEIVE_ORIGIC_PREMIUM
+    type: number
+    required: true
+    external_description_zh: 收到原保险合同保费现金
+  - name: RECEIVE_REINSURE_NET
+    type: number
+    required: true
+    external_description_zh: 收到再保险业务现金净额
+  - name: INSURED_INVEST_ADD
+    type: number
+    required: true
+    external_description_zh: 保户储金及投资款净增加额
+  - name: DISPOSAL_TFA_ADD
+    type: number
+    required: true
+    external_description_zh: 处置交易性金融资产净增加额
+  - name: RECEIVE_INTEREST_COMMISSION
+    type: number
+    required: true
+    external_description_zh: 收取利息和手续费现金
+  - name: BORROW_FUND_ADD
+    type: number
+    required: true
+    external_description_zh: 拆入资金净增加额
+  - name: LOAN_ADVANCE_REDUCE
+    type: number
+    required: true
+    external_description_zh: 发放贷款及垫款净减少额
+  - name: REPO_BUSINESS_ADD
+    type: number
+    required: true
+    external_description_zh: 回购业务资金净增加额
+  - name: RECEIVE_TAX_REFUND
+    type: number
+    required: true
+    external_description_zh: 收到的税费返还
+  - name: RECEIVE_OTHER_OPERATE
+    type: number
+    required: true
+    external_description_zh: 收到其他与经营活动有关的现金
+  - name: OPERATE_INFLOW_OTHER
+    type: number
+    required: true
+    external_description_zh: 经营活动现金流入其他
+  - name: OPERATE_INFLOW_BALANCE
+    type: number
+    required: true
+    external_description_zh: 经营活动现金流入平衡项
+  - name: TOTAL_OPERATE_INFLOW
+    type: number
+    required: true
+    external_description_zh: 经营活动现金流入小计
+  - name: BUY_SERVICES
+    type: number
+    required: true
+    external_description_zh: 购买商品、接受劳务支付的现金
+  - name: LOAN_ADVANCE_ADD
+    type: number
+    required: true
+    external_description_zh: 发放贷款及垫款净增加额
+  - name: PBC_INTERBANK_ADD
+    type: number
+    required: true
+    external_description_zh: 向央行借款净增加额
+  - name: PAY_ORIGIC_COMPENSATE
+    type: number
+    required: true
+    external_description_zh: 支付原保险合同赔付款项现金
+  - name: PAY_INTEREST_COMMISSION
+    type: number
+    required: true
+    external_description_zh: 支付利息和手续费现金
+  - name: PAY_POLICY_BONUS
+    type: number
+    required: true
+    external_description_zh: 保单红利支出
+  - name: PAY_STAFF_CASH
+    type: number
+    required: true
+    external_description_zh: 支付给职工以及为职工支付的现金
+  - name: PAY_ALL_TAX
+    type: number
+    required: true
+    external_description_zh: 支付的各项税费
+  - name: PAY_OTHER_OPERATE
+    type: number
+    required: true
+    external_description_zh: 支付其他与经营活动有关的现金
+  - name: OPERATE_OUTFLOW_OTHER
+    type: number
+    required: true
+    external_description_zh: 经营活动现金流出其他
+  - name: OPERATE_OUTFLOW_BALANCE
+    type: number
+    required: true
+    external_description_zh: 经营活动现金流出平衡项
+  - name: TOTAL_OPERATE_OUTFLOW
+    type: number
+    required: true
+    external_description_zh: 经营活动现金流出小计
+  - name: OPERATE_NETCASH_OTHER
+    type: number
+    required: true
+    external_description_zh: 经营活动净现金流量其他
+  - name: OPERATE_NETCASH_BALANCE
+    type: number
+    required: true
+    external_description_zh: 经营活动净现金流量平衡项
+  - name: NETCASH_OPERATE
+    type: number
+    required: true
+    external_description_zh: 经营活动产生的现金流量净额
+  - name: WITHDRAW_INVEST
+    type: number
+    required: true
+    external_description_zh: 收回投资收到的现金
+  - name: RECEIVE_INVEST_INCOME
+    type: number
+    required: true
+    external_description_zh: 取得投资收益收到的现金
+  - name: DISPOSAL_LONG_ASSET
+    type: number
+    required: true
+    external_description_zh: 处置固定资产等收回的现金净额
+  - name: DISPOSAL_SUBSIDIARY_OTHER
+    type: number
+    required: true
+    external_description_zh: 处置子公司及其他营业单位收到的现金净额
+  - name: REDUCE_PLEDGE_TIMEDEPOSITS
+    type: number
+    required: true
+    external_description_zh: 减少质押定期存款
+  - name: RECEIVE_OTHER_INVEST
+    type: number
+    required: true
+    external_description_zh: 收到其他与投资活动有关的现金
+  - name: INVEST_INFLOW_OTHER
+    type: number
+    required: true
+    external_description_zh: 投资活动现金流入其他
+  - name: INVEST_INFLOW_BALANCE
+    type: number
+    required: true
+    external_description_zh: 投资活动现金流入平衡项
+  - name: TOTAL_INVEST_INFLOW
+    type: number
+    required: true
+    external_description_zh: 投资活动现金流入小计
+  - name: CONSTRUCT_LONG_ASSET
+    type: number
+    required: true
+    external_description_zh: 购建固定资产等支付的现金
+  - name: INVEST_PAY_CASH
+    type: number
+    required: true
+    external_description_zh: 投资支付的现金
+  - name: PLEDGE_LOAN_ADD
+    type: number
+    required: true
+    external_description_zh: 质押贷款净增加额
+  - name: OBTAIN_SUBSIDIARY_OTHER
+    type: number
+    required: true
+    external_description_zh: 取得子公司及其他营业单位支付的现金净额
+  - name: ADD_PLEDGE_TIMEDEPOSITS
+    type: number
+    required: true
+    external_description_zh: 增加质押定期存款
+  - name: PAY_OTHER_INVEST
+    type: number
+    required: true
+    external_description_zh: 支付其他与投资活动有关的现金
+  - name: INVEST_OUTFLOW_OTHER
+    type: number
+    required: true
+    external_description_zh: 投资活动现金流出其他
+  - name: INVEST_OUTFLOW_BALANCE
+    type: number
+    required: true
+    external_description_zh: 投资活动现金流出平衡项
+  - name: TOTAL_INVEST_OUTFLOW
+    type: number
+    required: true
+    external_description_zh: 投资活动现金流出小计
+  - name: INVEST_NETCASH_OTHER
+    type: number
+    required: true
+    external_description_zh: 投资活动净现金流量其他
+  - name: INVEST_NETCASH_BALANCE
+    type: number
+    required: true
+    external_description_zh: 投资活动净现金流量平衡项
+  - name: NETCASH_INVEST
+    type: number
+    required: true
+    external_description_zh: 投资活动产生的现金流量净额
+  - name: ACCEPT_INVEST_CASH
+    type: number
+    required: true
+    external_description_zh: 吸收投资收到的现金
+  - name: SUBSIDIARY_ACCEPT_INVEST
+    type: number
+    required: true
+    external_description_zh: 子公司吸收少数股东投资收到的现金
+  - name: RECEIVE_LOAN_CASH
+    type: number
+    required: true
+    external_description_zh: 取得借款收到的现金
+  - name: ISSUE_BOND
+    type: number
+    required: true
+    external_description_zh: 发行债券收到的现金
+  - name: RECEIVE_OTHER_FINANCE
+    type: number
+    required: true
+    external_description_zh: 收到其他与筹资活动有关的现金
+  - name: FINANCE_INFLOW_OTHER
+    type: number
+    required: true
+    external_description_zh: 筹资活动现金流入其他
+  - name: FINANCE_INFLOW_BALANCE
+    type: number
+    required: true
+    external_description_zh: 筹资活动现金流入平衡项
+  - name: TOTAL_FINANCE_INFLOW
+    type: number
+    required: true
+    external_description_zh: 筹资活动现金流入小计
+  - name: PAY_DEBT_CASH
+    type: number
+    required: true
+    external_description_zh: 偿还债务支付的现金
+  - name: ASSIGN_DIVIDEND_PORFIT
+    type: number
+    required: true
+    external_description_zh: 分配股利、利润或偿付利息支付的现金
+  - name: SUBSIDIARY_PAY_DIVIDEND
+    type: number
+    required: true
+    external_description_zh: 子公司向少数股东支付的现金股利
+  - name: BUY_SUBSIDIARY_EQUITY
+    type: number
+    required: true
+    external_description_zh: 子公司减少现金
+  - name: PAY_OTHER_FINANCE
+    type: number
+    required: true
+    external_description_zh: 支付其他与筹资活动有关的现金
+  - name: SUBSIDIARY_REDUCE_CASH
+    type: number
+    required: true
+    external_description_zh: 子公司减少现金
+  - name: FINANCE_OUTFLOW_OTHER
+    type: number
+    required: true
+    external_description_zh: 筹资活动现金流出其他
+  - name: FINANCE_OUTFLOW_BALANCE
+    type: number
+    required: true
+    external_description_zh: 筹资活动现金流出平衡项
+  - name: TOTAL_FINANCE_OUTFLOW
+    type: number
+    required: true
+    external_description_zh: 筹资活动现金流出小计
+  - name: FINANCE_NETCASH_OTHER
+    type: number
+    required: true
+    external_description_zh: 筹资活动净现金流量其他
+  - name: FINANCE_NETCASH_BALANCE
+    type: number
+    required: true
+    external_description_zh: 筹资活动净现金流量平衡项
+  - name: NETCASH_FINANCE
+    type: number
+    required: true
+    external_description_zh: 筹资活动产生的现金流量净额
+  - name: RATE_CHANGE_EFFECT
+    type: number
+    required: true
+    external_description_zh: 汇率变动对现金及现金等价物的影响
+  - name: CCE_ADD_OTHER
+    type: number
+    required: true
+    external_description_zh: 现金及现金等价物净增加额其他
+  - name: CCE_ADD_BALANCE
+    type: number
+    required: true
+    external_description_zh: 现金及现金等价物净增加额平衡项
+  - name: CCE_ADD
+    type: number
+    required: true
+    external_description_zh: 现金及现金等价物净增加额
+  - name: BEGIN_CCE
+    type: number
+    required: true
+    external_description_zh: 期初现金及现金等价物余额
+  - name: END_CCE_OTHER
+    type: number
+    required: true
+    external_description_zh: 期末现金及现金等价物余额其他
+  - name: END_CCE_BALANCE
+    type: number
+    required: true
+    external_description_zh: 期末现金及现金等价物余额平衡项
+  - name: END_CCE
+    type: number
+    required: true
+    external_description_zh: 期末现金及现金等价物余额
+  - name: SALES_SERVICES_QOQ
+    type: number
+    required: true
+    external_description_zh: 销售商品、提供劳务收到的现金环比增长率（%）
+  - name: DEPOSIT_INTERBANK_ADD_QOQ
+    type: number
+    required: true
+    external_description_zh: 同业存放净增加额环比增长率（%）
+  - name: LOAN_PBC_ADD_QOQ
+    type: number
+    required: true
+    external_description_zh: 向央行借款净增加额环比增长率（%）
+  - name: OFI_BF_ADD_QOQ
+    type: number
+    required: true
+    external_description_zh: 向其他金融机构拆入资金净增加额环比增长率（%）
+  - name: RECEIVE_ORIGIC_PREMIUM_QOQ
+    type: number
+    required: true
+    external_description_zh: 收到原保险合同保费现金环比增长率（%）
+  - name: RECEIVE_REINSURE_NET_QOQ
+    type: number
+    required: true
+    external_description_zh: 收到再保险业务现金净额环比增长率（%）
+  - name: INSURED_INVEST_ADD_QOQ
+    type: number
+    required: true
+    external_description_zh: 保户储金及投资款净增加额环比增长率（%）
+  - name: DISPOSAL_TFA_ADD_QOQ
+    type: number
+    required: true
+    external_description_zh: 处置交易性金融资产净增加额环比增长率（%）
+  - name: RECEIVE_INTEREST_COMMISSION_QOQ
+    type: number
+    required: true
+    external_description_zh: 收取利息和手续费现金环比增长率（%）
+  - name: BORROW_FUND_ADD_QOQ
+    type: number
+    required: true
+    external_description_zh: 拆入资金净增加额环比增长率（%）
+  - name: LOAN_ADVANCE_REDUCE_QOQ
+    type: number
+    required: true
+    external_description_zh: 发放贷款及垫款净减少额环比增长率（%）
+  - name: REPO_BUSINESS_ADD_QOQ
+    type: number
+    required: true
+    external_description_zh: 回购业务资金净增加额环比增长率（%）
+  - name: RECEIVE_TAX_REFUND_QOQ
+    type: number
+    required: true
+    external_description_zh: 收到的税费返还环比增长率（%）
+  - name: RECEIVE_OTHER_OPERATE_QOQ
+    type: number
+    required: true
+    external_description_zh: 收到其他与经营活动有关的现金环比增长率（%）
+  - name: OPERATE_INFLOW_OTHER_QOQ
+    type: number
+    required: true
+    external_description_zh: 经营活动现金流入其他环比增长率（%）
+  - name: OPERATE_INFLOW_BALANCE_QOQ
+    type: number
+    required: true
+    external_description_zh: 经营活动现金流入平衡项环比增长率（%）
+  - name: TOTAL_OPERATE_INFLOW_QOQ
+    type: number
+    required: true
+    external_description_zh: 经营活动现金流入小计环比增长率（%）
+  - name: BUY_SERVICES_QOQ
+    type: number
+    required: true
+    external_description_zh: 购买商品、接受劳务支付的现金环比增长率（%）
+  - name: LOAN_ADVANCE_ADD_QOQ
+    type: number
+    required: true
+    external_description_zh: 发放贷款及垫款净增加额环比增长率（%）
+  - name: PBC_INTERBANK_ADD_QOQ
+    type: number
+    required: true
+    external_description_zh: 向央行借款净增加额环比增长率（%）
+  - name: PAY_ORIGIC_COMPENSATE_QOQ
+    type: number
+    required: true
+    external_description_zh: 支付原保险合同赔付款项现金环比增长率（%）
+  - name: PAY_INTEREST_COMMISSION_QOQ
+    type: number
+    required: true
+    external_description_zh: 支付利息和手续费现金环比增长率（%）
+  - name: PAY_POLICY_BONUS_QOQ
+    type: number
+    required: true
+    external_description_zh: 保单红利支出环比增长率（%）
+  - name: PAY_STAFF_CASH_QOQ
+    type: number
+    required: true
+    external_description_zh: 支付给职工以及为职工支付的现金环比增长率（%）
+  - name: PAY_ALL_TAX_QOQ
+    type: number
+    required: true
+    external_description_zh: 支付的各项税费环比增长率（%）
+  - name: PAY_OTHER_OPERATE_QOQ
+    type: number
+    required: true
+    external_description_zh: 支付其他与经营活动有关的现金环比增长率（%）
+  - name: OPERATE_OUTFLOW_OTHER_QOQ
+    type: number
+    required: true
+    external_description_zh: 经营活动现金流出其他环比增长率（%）
+  - name: OPERATE_OUTFLOW_BALANCE_QOQ
+    type: number
+    required: true
+    external_description_zh: 经营活动现金流出平衡项环比增长率（%）
+  - name: TOTAL_OPERATE_OUTFLOW_QOQ
+    type: number
+    required: true
+    external_description_zh: 经营活动现金流出小计环比增长率（%）
+  - name: OPERATE_NETCASH_OTHER_QOQ
+    type: number
+    required: true
+    external_description_zh: 经营活动净现金流量其他环比增长率（%）
+  - name: OPERATE_NETCASH_BALANCE_QOQ
+    type: number
+    required: true
+    external_description_zh: 经营活动净现金流量平衡项环比增长率（%）
+  - name: NETCASH_OPERATE_QOQ
+    type: number
+    required: true
+    external_description_zh: 经营活动产生的现金流量净额环比增长率（%）
+  - name: WITHDRAW_INVEST_QOQ
+    type: number
+    required: true
+    external_description_zh: 收回投资收到的现金环比增长率（%）
+  - name: RECEIVE_INVEST_INCOME_QOQ
+    type: number
+    required: true
+    external_description_zh: 取得投资收益收到的现金环比增长率（%）
+  - name: DISPOSAL_LONG_ASSET_QOQ
+    type: number
+    required: true
+    external_description_zh: 处置固定资产等收回的现金净额环比增长率（%）
+  - name: DISPOSAL_SUBSIDIARY_OTHER_QOQ
+    type: number
+    required: true
+    external_description_zh: 处置子公司及其他营业单位收到的现金净额环比增长率（%）
+  - name: REDUCE_PLEDGE_TIMEDEPOSITS_QOQ
+    type: number
+    required: true
+    external_description_zh: 减少质押定期存款环比增长率（%）
+  - name: RECEIVE_OTHER_INVEST_QOQ
+    type: number
+    required: true
+    external_description_zh: 收到其他与投资活动有关的现金环比增长率（%）
+  - name: INVEST_INFLOW_OTHER_QOQ
+    type: number
+    required: true
+    external_description_zh: 投资活动现金流入其他环比增长率（%）
+  - name: INVEST_INFLOW_BALANCE_QOQ
+    type: number
+    required: true
+    external_description_zh: 投资活动现金流入平衡项环比增长率（%）
+  - name: TOTAL_INVEST_INFLOW_QOQ
+    type: number
+    required: true
+    external_description_zh: 投资活动现金流入小计环比增长率（%）
+  - name: CONSTRUCT_LONG_ASSET_QOQ
+    type: number
+    required: true
+    external_description_zh: 购建固定资产等支付的现金环比增长率（%）
+  - name: INVEST_PAY_CASH_QOQ
+    type: number
+    required: true
+    external_description_zh: 投资支付的现金环比增长率（%）
+  - name: PLEDGE_LOAN_ADD_QOQ
+    type: number
+    required: true
+    external_description_zh: 质押贷款净增加额环比增长率（%）
+  - name: OBTAIN_SUBSIDIARY_OTHER_QOQ
+    type: number
+    required: true
+    external_description_zh: 取得子公司及其他营业单位支付的现金净额环比增长率（%）
+  - name: ADD_PLEDGE_TIMEDEPOSITS_QOQ
+    type: number
+    required: true
+    external_description_zh: 增加质押定期存款环比增长率（%）
+  - name: PAY_OTHER_INVEST_QOQ
+    type: number
+    required: true
+    external_description_zh: 支付其他与投资活动有关的现金环比增长率（%）
+  - name: INVEST_OUTFLOW_OTHER_QOQ
+    type: number
+    required: true
+    external_description_zh: 投资活动现金流出其他环比增长率（%）
+  - name: INVEST_OUTFLOW_BALANCE_QOQ
+    type: number
+    required: true
+    external_description_zh: 投资活动现金流出平衡项环比增长率（%）
+  - name: TOTAL_INVEST_OUTFLOW_QOQ
+    type: number
+    required: true
+    external_description_zh: 投资活动现金流出小计环比增长率（%）
+  - name: INVEST_NETCASH_OTHER_QOQ
+    type: number
+    required: true
+    external_description_zh: 投资活动净现金流量其他环比增长率（%）
+  - name: INVEST_NETCASH_BALANCE_QOQ
+    type: number
+    required: true
+    external_description_zh: 投资活动净现金流量平衡项环比增长率（%）
+  - name: NETCASH_INVEST_QOQ
+    type: number
+    required: true
+    external_description_zh: 投资活动产生的现金流量净额环比增长率（%）
+  - name: ACCEPT_INVEST_CASH_QOQ
+    type: number
+    required: true
+    external_description_zh: 吸收投资收到的现金环比增长率（%）
+  - name: SUBSIDIARY_ACCEPT_INVEST_QOQ
+    type: number
+    required: true
+    external_description_zh: 子公司吸收少数股东投资收到的现金环比增长率（%）
+  - name: RECEIVE_LOAN_CASH_QOQ
+    type: number
+    required: true
+    external_description_zh: 取得借款收到的现金环比增长率（%）
+  - name: ISSUE_BOND_QOQ
+    type: number
+    required: true
+    external_description_zh: 发行债券收到的现金环比增长率（%）
+  - name: RECEIVE_OTHER_FINANCE_QOQ
+    type: number
+    required: true
+    external_description_zh: 收到其他与筹资活动有关的现金环比增长率（%）
+  - name: FINANCE_INFLOW_OTHER_QOQ
+    type: number
+    required: true
+    external_description_zh: 筹资活动现金流入其他环比增长率（%）
+  - name: FINANCE_INFLOW_BALANCE_QOQ
+    type: number
+    required: true
+    external_description_zh: 筹资活动现金流入平衡项环比增长率（%）
+  - name: TOTAL_FINANCE_INFLOW_QOQ
+    type: number
+    required: true
+    external_description_zh: 筹资活动现金流入小计环比增长率（%）
+  - name: PAY_DEBT_CASH_QOQ
+    type: number
+    required: true
+    external_description_zh: 偿还债务支付的现金环比增长率（%）
+  - name: ASSIGN_DIVIDEND_PORFIT_QOQ
+    type: number
+    required: true
+    external_description_zh: 分配股利、利润或偿付利息支付的现金环比增长率（%）
+  - name: SUBSIDIARY_PAY_DIVIDEND_QOQ
+    type: number
+    required: true
+    external_description_zh: 子公司向少数股东支付的现金股利环比增长率（%）
+  - name: BUY_SUBSIDIARY_EQUITY_QOQ
+    type: number
+    required: true
+    external_description_zh: 子公司减少现金环比增长率（%）
+  - name: PAY_OTHER_FINANCE_QOQ
+    type: number
+    required: true
+    external_description_zh: 支付其他与筹资活动有关的现金环比增长率（%）
+  - name: SUBSIDIARY_REDUCE_CASH_QOQ
+    type: number
+    required: true
+    external_description_zh: 子公司减少现金环比增长率（%）
+  - name: FINANCE_OUTFLOW_OTHER_QOQ
+    type: number
+    required: true
+    external_description_zh: 筹资活动现金流出其他环比增长率（%）
+  - name: FINANCE_OUTFLOW_BALANCE_QOQ
+    type: number
+    required: true
+    external_description_zh: 筹资活动现金流出平衡项环比增长率（%）
+  - name: TOTAL_FINANCE_OUTFLOW_QOQ
+    type: number
+    required: true
+    external_description_zh: 筹资活动现金流出小计环比增长率（%）
+  - name: FINANCE_NETCASH_OTHER_QOQ
+    type: number
+    required: true
+    external_description_zh: 筹资活动净现金流量其他环比增长率（%）
+  - name: FINANCE_NETCASH_BALANCE_QOQ
+    type: number
+    required: true
+    external_description_zh: 筹资活动净现金流量平衡项环比增长率（%）
+  - name: NETCASH_FINANCE_QOQ
+    type: number
+    required: true
+    external_description_zh: 筹资活动产生的现金流量净额环比增长率（%）
+  - name: RATE_CHANGE_EFFECT_QOQ
+    type: number
+    required: true
+    external_description_zh: 汇率变动对现金及现金等价物的影响环比增长率（%）
+  - name: CCE_ADD_OTHER_QOQ
+    type: number
+    required: true
+    external_description_zh: 现金及现金等价物净增加额其他环比增长率（%）
+  - name: CCE_ADD_BALANCE_QOQ
+    type: number
+    required: true
+    external_description_zh: 现金及现金等价物净增加额平衡项环比增长率（%）
+  - name: CCE_ADD_QOQ
+    type: number
+    required: true
+    external_description_zh: 现金及现金等价物净增加额环比增长率（%）
+  - name: BEGIN_CCE_QOQ
+    type: number
+    required: true
+    external_description_zh: 期初现金及现金等价物余额环比增长率（%）
+  - name: END_CCE_OTHER_QOQ
+    type: number
+    required: true
+    external_description_zh: 期末现金及现金等价物余额其他环比增长率（%）
+  - name: END_CCE_BALANCE_QOQ
+    type: number
+    required: true
+    external_description_zh: 期末现金及现金等价物余额平衡项环比增长率（%）
+  - name: END_CCE_QOQ
+    type: number
+    required: true
+    external_description_zh: 期末现金及现金等价物余额环比增长率（%）
+  - name: NETPROFIT
+    type: number
+    required: true
+    external_description_zh: 净利润（间接法起点）
+  - name: ASSET_IMPAIRMENT
+    type: number
+    required: true
+    external_description_zh: 资产减值准备
+  - name: FA_IR_DEPR
+    type: number
+    required: true
+    external_description_zh: 固定资产折旧、油气资产折耗、生产性生物资产折旧
+  - name: OILGAS_BIOLOGY_DEPR
+    type: number
+    required: true
+    external_description_zh: 油气资产折耗、生产性生物资产折旧
+  - name: IR_DEPR
+    type: number
+    required: true
+    external_description_zh: 折旧与摊销
+  - name: IA_AMORTIZE
+    type: number
+    required: true
+    external_description_zh: 无形资产摊销
+  - name: LPE_AMORTIZE
+    type: number
+    required: true
+    external_description_zh: 长期待摊费用摊销
+  - name: DEFER_INCOME_AMORTIZE
+    type: number
+    required: true
+    external_description_zh: 待摊费用减少（减：增加）
+  - name: PREPAID_EXPENSE_REDUCE
+    type: number
+    required: true
+    external_description_zh: 预提费用增加（减：减少）
+  - name: ACCRUED_EXPENSE_ADD
+    type: number
+    required: true
+    external_description_zh: 预提费用变动
+  - name: DISPOSAL_LONGASSET_LOSS
+    type: number
+    required: true
+    external_description_zh: 处置固定资产等的损失
+  - name: FA_SCRAP_LOSS
+    type: number
+    required: true
+    external_description_zh: 固定资产报废损失
+  - name: FAIRVALUE_CHANGE_LOSS
+    type: number
+    required: true
+    external_description_zh: 公允价值变动损失
+  - name: FINANCE_EXPENSE
+    type: number
+    required: true
+    external_description_zh: 财务费用
+  - name: INVEST_LOSS
+    type: number
+    required: true
+    external_description_zh: 投资损失
+  - name: DEFER_TAX
+    type: number
+    required: true
+    external_description_zh: 递延所得税资产减少（增加以"-"号填列）
+  - name: DT_ASSET_REDUCE
+    type: number
+    required: true
+    external_description_zh: 递延所得税资产减少
+  - name: DT_LIAB_ADD
+    type: number
+    required: true
+    external_description_zh: 递延所得税负债增加
+  - name: PREDICT_LIAB_ADD
+    type: number
+    required: true
+    external_description_zh: 预计负债增加
+  - name: INVENTORY_REDUCE
+    type: number
+    required: true
+    external_description_zh: 存货的减少（增加以"-"号填列）
+  - name: OPERATE_RECE_REDUCE
+    type: number
+    required: true
+    external_description_zh: 经营性应收项目的减少
+  - name: OPERATE_PAYABLE_ADD
+    type: number
+    required: true
+    external_description_zh: 经营性应付项目的增加
+  - name: OTHER
+    type: number
+    required: true
+    external_description_zh: 现金流量表单季度补充资料中的其他项目。
+  - name: OPERATE_NETCASH_OTHERNOTE
+    type: number
+    required: true
+    external_description_zh: 经营活动产生的现金流量净额（附注）
+  - name: OPERATE_NETCASH_BALANCENOTE
+    type: number
+    required: true
+    external_description_zh: 经营活动净现金流量（附注）平衡项
+  - name: NETCASH_OPERATENOTE
+    type: number
+    required: true
+    external_description_zh: 经营活动产生的现金流量净额（附注）
+  - name: DEBT_TRANSFER_CAPITAL
+    type: number
+    required: true
+    external_description_zh: 债务转为资本
+  - name: CONVERT_BOND_1YEAR
+    type: number
+    required: true
+    external_description_zh: 一年内到期的可转换公司债券
+  - name: FINLEASE_OBTAIN_FA
+    type: number
+    required: true
+    external_description_zh: 融资租入固定资产
+  - name: UNINVOLVE_INVESTFIN_OTHER
+    type: number
+    required: true
+    external_description_zh: 不涉及现金收支的投资和筹资活动其他
+  - name: END_CASH
+    type: number
+    required: true
+    external_description_zh: 现金期末余额
+  - name: BEGIN_CASH
+    type: number
+    required: true
+    external_description_zh: 现金期初余额
+  - name: END_CASH_EQUIVALENTS
+    type: number
+    required: true
+    external_description_zh: 现金等价物期末余额
+  - name: BEGIN_CASH_EQUIVALENTS
+    type: number
+    required: true
+    external_description_zh: 现金等价物期初余额
+  - name: CCE_ADD_OTHERNOTE
+    type: number
+    required: true
+    external_description_zh: 现金及现金等价物净增加额（附注）
+  - name: CCE_ADD_BALANCENOTE
+    type: number
+    required: true
+    external_description_zh: 现金及现金等价物净增加额（附注）平衡项
+  - name: CCE_ADDNOTE
+    type: number
+    required: true
+    external_description_zh: 现金及现金等价物净增加额（附注）
+  - name: MINORITY_INTEREST
+    type: number
+    required: true
+    external_description_zh: 少数股东损益
+  - name: NETPROFIT_QOQ
+    type: number
+    required: true
+    external_description_zh: 净利润环比增长率（%）
+  - name: ASSET_IMPAIRMENT_QOQ
+    type: number
+    required: true
+    external_description_zh: 资产减值准备环比增长率（%）
+  - name: FA_IR_DEPR_QOQ
+    type: number
+    required: true
+    external_description_zh: 固定资产折旧、油气资产折耗、生产性生物资产折旧环比增长率（%）
+  - name: OILGAS_BIOLOGY_DEPR_QOQ
+    type: number
+    required: true
+    external_description_zh: 油气资产折耗、生产性生物资产折旧环比增长率（%）
+  - name: IR_DEPR_QOQ
+    type: number
+    required: true
+    external_description_zh: 折旧与摊销环比增长率（%）
+  - name: IA_AMORTIZE_QOQ
+    type: number
+    required: true
+    external_description_zh: 无形资产摊销环比增长率（%）
+  - name: LPE_AMORTIZE_QOQ
+    type: number
+    required: true
+    external_description_zh: 长期待摊费用摊销环比增长率（%）
+  - name: DEFER_INCOME_AMORTIZE_QOQ
+    type: number
+    required: true
+    external_description_zh: 待摊费用减少（减：增加）环比增长率（%）
+  - name: PREPAID_EXPENSE_REDUCE_QOQ
+    type: number
+    required: true
+    external_description_zh: 预提费用增加（减：减少）环比增长率（%）
+  - name: ACCRUED_EXPENSE_ADD_QOQ
+    type: number
+    required: true
+    external_description_zh: 预提费用变动环比增长率（%）
+  - name: DISPOSAL_LONGASSET_LOSS_QOQ
+    type: number
+    required: true
+    external_description_zh: 处置固定资产等的损失环比增长率（%）
+  - name: FA_SCRAP_LOSS_QOQ
+    type: number
+    required: true
+    external_description_zh: 固定资产报废损失环比增长率（%）
+  - name: FAIRVALUE_CHANGE_LOSS_QOQ
+    type: number
+    required: true
+    external_description_zh: 公允价值变动损失环比增长率（%）
+  - name: FINANCE_EXPENSE_QOQ
+    type: number
+    required: true
+    external_description_zh: 财务费用环比增长率（%）
+  - name: INVEST_LOSS_QOQ
+    type: number
+    required: true
+    external_description_zh: 投资损失环比增长率（%）
+  - name: DEFER_TAX_QOQ
+    type: number
+    required: true
+    external_description_zh: 递延所得税资产减少（增加以"-"号填列）环比增长率（%）
+  - name: DT_ASSET_REDUCE_QOQ
+    type: number
+    required: true
+    external_description_zh: 递延所得税资产减少环比增长率（%）
+  - name: DT_LIAB_ADD_QOQ
+    type: number
+    required: true
+    external_description_zh: 递延所得税负债增加环比增长率（%）
+  - name: PREDICT_LIAB_ADD_QOQ
+    type: number
+    required: true
+    external_description_zh: 预计负债增加环比增长率（%）
+  - name: INVENTORY_REDUCE_QOQ
+    type: number
+    required: true
+    external_description_zh: 存货的减少（增加以"-"号填列）环比增长率（%）
+  - name: OPERATE_RECE_REDUCE_QOQ
+    type: number
+    required: true
+    external_description_zh: 经营性应收项目的减少环比增长率（%）
+  - name: OPERATE_PAYABLE_ADD_QOQ
+    type: number
+    required: true
+    external_description_zh: 经营性应付项目的增加环比增长率（%）
+  - name: OTHER_QOQ
+    type: number
+    required: true
+    external_description_zh: 其他环比增长率（%）
+  - name: OPERATE_NETCASH_OTHERNOTE_QOQ
+    type: number
+    required: true
+    external_description_zh: 经营活动产生的现金流量净额（附注）环比增长率（%）
+  - name: OPERATE_NETCASH_BALANCENOTE_QOQ
+    type: number
+    required: true
+    external_description_zh: 经营活动净现金流量（附注）平衡项环比增长率（%）
+  - name: NETCASH_OPERATENOTE_QOQ
+    type: number
+    required: true
+    external_description_zh: 经营活动产生的现金流量净额（附注）环比增长率（%）
+  - name: DEBT_TRANSFER_CAPITAL_QOQ
+    type: number
+    required: true
+    external_description_zh: 债务转为资本环比增长率（%）
+  - name: CONVERT_BOND_1YEAR_QOQ
+    type: number
+    required: true
+    external_description_zh: 一年内到期的可转换公司债券环比增长率（%）
+  - name: FINLEASE_OBTAIN_FA_QOQ
+    type: number
+    required: true
+    external_description_zh: 融资租入固定资产环比增长率（%）
+  - name: UNINVOLVE_INVESTFIN_OTHER_QOQ
+    type: number
+    required: true
+    external_description_zh: 不涉及现金收支的投资和筹资活动其他环比增长率（%）
+  - name: END_CASH_QOQ
+    type: number
+    required: true
+    external_description_zh: 现金期末余额环比增长率（%）
+  - name: BEGIN_CASH_QOQ
+    type: number
+    required: true
+    external_description_zh: 现金期初余额环比增长率（%）
+  - name: END_CASH_EQUIVALENTS_QOQ
+    type: number
+    required: true
+    external_description_zh: 现金等价物期末余额环比增长率（%）
+  - name: BEGIN_CASH_EQUIVALENTS_QOQ
+    type: number
+    required: true
+    external_description_zh: 现金等价物期初余额环比增长率（%）
+  - name: CCE_ADD_OTHERNOTE_QOQ
+    type: number
+    required: true
+    external_description_zh: 现金及现金等价物净增加额（附注）环比增长率（%）
+  - name: CCE_ADD_BALANCENOTE_QOQ
+    type: number
+    required: true
+    external_description_zh: 现金及现金等价物净增加额（附注）平衡项环比增长率（%）
+  - name: CCE_ADDNOTE_QOQ
+    type: number
+    required: true
+    external_description_zh: 现金及现金等价物净增加额（附注）环比增长率（%）
+  - name: MINORITY_INTEREST_QOQ
+    type: number
+    required: true
+    external_description_zh: 少数股东损益环比增长率（%）
+  - name: OPINION_TYPE
+    type: number
+    required: true
+    external_description_zh: 审计意见类型
+  - name: OSOPINION_TYPE
+    type: number
+    required: true
+    external_description_zh: 内控审计意见类型
+  - name: LISTING_STATE
+    type: string
+    required: true
+    external_description_zh: 上市状态
+  - name: SALES_SERVICES_YOY
+    type: number
+    required: true
+    external_description_zh: 销售商品、提供劳务收到的现金同比增长率（%）
+  - name: DEPOSIT_INTERBANK_ADD_YOY
+    type: number
+    required: true
+    external_description_zh: 同业存放净增加额同比增长率（%）
+  - name: LOAN_PBC_ADD_YOY
+    type: number
+    required: true
+    external_description_zh: 向央行借款净增加额同比增长率（%）
+  - name: OFI_BF_ADD_YOY
+    type: number
+    required: true
+    external_description_zh: 向其他金融机构拆入资金净增加额同比增长率（%）
+  - name: RECEIVE_ORIGIC_PREMIUM_YOY
+    type: number
+    required: true
+    external_description_zh: 收到原保险合同保费现金同比增长率（%）
+  - name: RECEIVE_REINSURE_NET_YOY
+    type: number
+    required: true
+    external_description_zh: 收到再保险业务现金净额同比增长率（%）
+  - name: INSURED_INVEST_ADD_YOY
+    type: number
+    required: true
+    external_description_zh: 保户储金及投资款净增加额同比增长率（%）
+  - name: DISPOSAL_TFA_ADD_YOY
+    type: number
+    required: true
+    external_description_zh: 处置交易性金融资产净增加额同比增长率（%）
+  - name: RECEIVE_INTEREST_COMMISSION_YOY
+    type: number
+    required: true
+    external_description_zh: 收取利息和手续费现金同比增长率（%）
+  - name: BORROW_FUND_ADD_YOY
+    type: number
+    required: true
+    external_description_zh: 拆入资金净增加额同比增长率（%）
+  - name: LOAN_ADVANCE_REDUCE_YOY
+    type: number
+    required: true
+    external_description_zh: 发放贷款及垫款净减少额同比增长率（%）
+  - name: REPO_BUSINESS_ADD_YOY
+    type: number
+    required: true
+    external_description_zh: 回购业务资金净增加额同比增长率（%）
+  - name: RECEIVE_TAX_REFUND_YOY
+    type: number
+    required: true
+    external_description_zh: 收到的税费返还同比增长率（%）
+  - name: RECEIVE_OTHER_OPERATE_YOY
+    type: number
+    required: true
+    external_description_zh: 收到其他与经营活动有关的现金同比增长率（%）
+  - name: OPERATE_INFLOW_OTHER_YOY
+    type: number
+    required: true
+    external_description_zh: 经营活动现金流入其他同比增长率（%）
+  - name: OPERATE_INFLOW_BALANCE_YOY
+    type: number
+    required: true
+    external_description_zh: 经营活动现金流入平衡项同比增长率（%）
+  - name: TOTAL_OPERATE_INFLOW_YOY
+    type: number
+    required: true
+    external_description_zh: 经营活动现金流入小计同比增长率（%）
+  - name: BUY_SERVICES_YOY
+    type: number
+    required: true
+    external_description_zh: 购买商品、接受劳务支付的现金同比增长率（%）
+  - name: LOAN_ADVANCE_ADD_YOY
+    type: number
+    required: true
+    external_description_zh: 发放贷款及垫款净增加额同比增长率（%）
+  - name: PBC_INTERBANK_ADD_YOY
+    type: number
+    required: true
+    external_description_zh: 向央行借款净增加额同比增长率（%）
+  - name: PAY_ORIGIC_COMPENSATE_YOY
+    type: number
+    required: true
+    external_description_zh: 支付原保险合同赔付款项现金同比增长率（%）
+  - name: PAY_INTEREST_COMMISSION_YOY
+    type: number
+    required: true
+    external_description_zh: 支付利息和手续费现金同比增长率（%）
+  - name: PAY_POLICY_BONUS_YOY
+    type: number
+    required: true
+    external_description_zh: 保单红利支出同比增长率（%）
+  - name: PAY_STAFF_CASH_YOY
+    type: number
+    required: true
+    external_description_zh: 支付给职工以及为职工支付的现金同比增长率（%）
+  - name: PAY_ALL_TAX_YOY
+    type: number
+    required: true
+    external_description_zh: 支付的各项税费同比增长率（%）
+  - name: PAY_OTHER_OPERATE_YOY
+    type: number
+    required: true
+    external_description_zh: 支付其他与经营活动有关的现金同比增长率（%）
+  - name: OPERATE_OUTFLOW_OTHER_YOY
+    type: number
+    required: true
+    external_description_zh: 经营活动现金流出其他同比增长率（%）
+  - name: OPERATE_OUTFLOW_BALANCE_YOY
+    type: number
+    required: true
+    external_description_zh: 经营活动现金流出平衡项同比增长率（%）
+  - name: TOTAL_OPERATE_OUTFLOW_YOY
+    type: number
+    required: true
+    external_description_zh: 经营活动现金流出小计同比增长率（%）
+  - name: OPERATE_NETCASH_OTHER_YOY
+    type: number
+    required: true
+    external_description_zh: 经营活动净现金流量其他同比增长率（%）
+  - name: OPERATE_NETCASH_BALANCE_YOY
+    type: number
+    required: true
+    external_description_zh: 经营活动净现金流量平衡项同比增长率（%）
+  - name: NETCASH_OPERATE_YOY
+    type: number
+    required: true
+    external_description_zh: 经营活动产生的现金流量净额同比增长率（%）
+  - name: WITHDRAW_INVEST_YOY
+    type: number
+    required: true
+    external_description_zh: 收回投资收到的现金同比增长率（%）
+  - name: RECEIVE_INVEST_INCOME_YOY
+    type: number
+    required: true
+    external_description_zh: 取得投资收益收到的现金同比增长率（%）
+  - name: DISPOSAL_LONG_ASSET_YOY
+    type: number
+    required: true
+    external_description_zh: 处置固定资产等收回的现金净额同比增长率（%）
+  - name: DISPOSAL_SUBSIDIARY_OTHER_YOY
+    type: number
+    required: true
+    external_description_zh: 处置子公司及其他营业单位收到的现金净额同比增长率（%）
+  - name: REDUCE_PLEDGE_TIMEDEPOSITS_YOY
+    type: number
+    required: true
+    external_description_zh: 减少质押定期存款同比增长率（%）
+  - name: RECEIVE_OTHER_INVEST_YOY
+    type: number
+    required: true
+    external_description_zh: 收到其他与投资活动有关的现金同比增长率（%）
+  - name: INVEST_INFLOW_OTHER_YOY
+    type: number
+    required: true
+    external_description_zh: 投资活动现金流入其他同比增长率（%）
+  - name: INVEST_INFLOW_BALANCE_YOY
+    type: number
+    required: true
+    external_description_zh: 投资活动现金流入平衡项同比增长率（%）
+  - name: TOTAL_INVEST_INFLOW_YOY
+    type: number
+    required: true
+    external_description_zh: 投资活动现金流入小计同比增长率（%）
+  - name: CONSTRUCT_LONG_ASSET_YOY
+    type: number
+    required: true
+    external_description_zh: 购建固定资产等支付的现金同比增长率（%）
+  - name: INVEST_PAY_CASH_YOY
+    type: number
+    required: true
+    external_description_zh: 投资支付的现金同比增长率（%）
+  - name: PLEDGE_LOAN_ADD_YOY
+    type: number
+    required: true
+    external_description_zh: 质押贷款净增加额同比增长率（%）
+  - name: OBTAIN_SUBSIDIARY_OTHER_YOY
+    type: number
+    required: true
+    external_description_zh: 取得子公司及其他营业单位支付的现金净额同比增长率（%）
+  - name: ADD_PLEDGE_TIMEDEPOSITS_YOY
+    type: number
+    required: true
+    external_description_zh: 增加质押定期存款同比增长率（%）
+  - name: PAY_OTHER_INVEST_YOY
+    type: number
+    required: true
+    external_description_zh: 支付其他与投资活动有关的现金同比增长率（%）
+  - name: INVEST_OUTFLOW_OTHER_YOY
+    type: number
+    required: true
+    external_description_zh: 投资活动现金流出其他同比增长率（%）
+  - name: INVEST_OUTFLOW_BALANCE_YOY
+    type: number
+    required: true
+    external_description_zh: 投资活动现金流出平衡项同比增长率（%）
+  - name: TOTAL_INVEST_OUTFLOW_YOY
+    type: number
+    required: true
+    external_description_zh: 投资活动现金流出小计同比增长率（%）
+  - name: INVEST_NETCASH_OTHER_YOY
+    type: number
+    required: true
+    external_description_zh: 投资活动净现金流量其他同比增长率（%）
+  - name: INVEST_NETCASH_BALANCE_YOY
+    type: number
+    required: true
+    external_description_zh: 投资活动净现金流量平衡项同比增长率（%）
+  - name: NETCASH_INVEST_YOY
+    type: number
+    required: true
+    external_description_zh: 投资活动产生的现金流量净额同比增长率（%）
+  - name: ACCEPT_INVEST_CASH_YOY
+    type: number
+    required: true
+    external_description_zh: 吸收投资收到的现金同比增长率（%）
+  - name: SUBSIDIARY_ACCEPT_INVEST_YOY
+    type: number
+    required: true
+    external_description_zh: 子公司吸收少数股东投资收到的现金同比增长率（%）
+  - name: RECEIVE_LOAN_CASH_YOY
+    type: number
+    required: true
+    external_description_zh: 取得借款收到的现金同比增长率（%）
+  - name: ISSUE_BOND_YOY
+    type: number
+    required: true
+    external_description_zh: 发行债券收到的现金同比增长率（%）
+  - name: RECEIVE_OTHER_FINANCE_YOY
+    type: number
+    required: true
+    external_description_zh: 收到其他与筹资活动有关的现金同比增长率（%）
+  - name: FINANCE_INFLOW_OTHER_YOY
+    type: number
+    required: true
+    external_description_zh: 筹资活动现金流入其他同比增长率（%）
+  - name: FINANCE_INFLOW_BALANCE_YOY
+    type: number
+    required: true
+    external_description_zh: 筹资活动现金流入平衡项同比增长率（%）
+  - name: TOTAL_FINANCE_INFLOW_YOY
+    type: number
+    required: true
+    external_description_zh: 筹资活动现金流入小计同比增长率（%）
+  - name: PAY_DEBT_CASH_YOY
+    type: number
+    required: true
+    external_description_zh: 偿还债务支付的现金同比增长率（%）
+  - name: ASSIGN_DIVIDEND_PORFIT_YOY
+    type: number
+    required: true
+    external_description_zh: 分配股利、利润或偿付利息支付的现金同比增长率（%）
+  - name: SUBSIDIARY_PAY_DIVIDEND_YOY
+    type: number
+    required: true
+    external_description_zh: 子公司向少数股东支付的现金股利同比增长率（%）
+  - name: BUY_SUBSIDIARY_EQUITY_YOY
+    type: number
+    required: true
+    external_description_zh: 子公司减少现金同比增长率（%）
+  - name: PAY_OTHER_FINANCE_YOY
+    type: number
+    required: true
+    external_description_zh: 支付其他与筹资活动有关的现金同比增长率（%）
+  - name: SUBSIDIARY_REDUCE_CASH_YOY
+    type: number
+    required: true
+    external_description_zh: 子公司减少现金同比增长率（%）
+  - name: FINANCE_OUTFLOW_OTHER_YOY
+    type: number
+    required: true
+    external_description_zh: 筹资活动现金流出其他同比增长率（%）
+  - name: FINANCE_OUTFLOW_BALANCE_YOY
+    type: number
+    required: true
+    external_description_zh: 筹资活动现金流出平衡项同比增长率（%）
+  - name: TOTAL_FINANCE_OUTFLOW_YOY
+    type: number
+    required: true
+    external_description_zh: 筹资活动现金流出小计同比增长率（%）
+  - name: FINANCE_NETCASH_OTHER_YOY
+    type: number
+    required: true
+    external_description_zh: 筹资活动净现金流量其他同比增长率（%）
+  - name: FINANCE_NETCASH_BALANCE_YOY
+    type: number
+    required: true
+    external_description_zh: 筹资活动净现金流量平衡项同比增长率（%）
+  - name: NETCASH_FINANCE_YOY
+    type: number
+    required: true
+    external_description_zh: 筹资活动产生的现金流量净额同比增长率（%）
+  - name: RATE_CHANGE_EFFECT_YOY
+    type: number
+    required: true
+    external_description_zh: 汇率变动对现金及现金等价物的影响同比增长率（%）
+  - name: CCE_ADD_OTHER_YOY
+    type: number
+    required: true
+    external_description_zh: 现金及现金等价物净增加额其他同比增长率（%）
+  - name: CCE_ADD_BALANCE_YOY
+    type: number
+    required: true
+    external_description_zh: 现金及现金等价物净增加额平衡项同比增长率（%）
+  - name: CCE_ADD_YOY
+    type: number
+    required: true
+    external_description_zh: 现金及现金等价物净增加额同比增长率（%）
+  - name: BEGIN_CCE_YOY
+    type: number
+    required: true
+    external_description_zh: 期初现金及现金等价物余额同比增长率（%）
+  - name: END_CCE_OTHER_YOY
+    type: number
+    required: true
+    external_description_zh: 期末现金及现金等价物余额其他同比增长率（%）
+  - name: END_CCE_BALANCE_YOY
+    type: number
+    required: true
+    external_description_zh: 期末现金及现金等价物余额平衡项同比增长率（%）
+  - name: END_CCE_YOY
+    type: number
+    required: true
+    external_description_zh: 期末现金及现金等价物余额同比增长率（%）
+  - name: NETPROFIT_YOY
+    type: number
+    required: true
+    external_description_zh: 净利润同比增长率（%）
+  - name: ASSET_IMPAIRMENT_YOY
+    type: number
+    required: true
+    external_description_zh: 资产减值准备同比增长率（%）
+  - name: FA_IR_DEPR_YOY
+    type: number
+    required: true
+    external_description_zh: 固定资产折旧、油气资产折耗、生产性生物资产折旧同比增长率（%）
+  - name: OILGAS_BIOLOGY_DEPR_YOY
+    type: number
+    required: true
+    external_description_zh: 油气资产折耗、生产性生物资产折旧同比增长率（%）
+  - name: IR_DEPR_YOY
+    type: number
+    required: true
+    external_description_zh: 折旧与摊销同比增长率（%）
+  - name: IA_AMORTIZE_YOY
+    type: number
+    required: true
+    external_description_zh: 无形资产摊销同比增长率（%）
+  - name: LPE_AMORTIZE_YOY
+    type: number
+    required: true
+    external_description_zh: 长期待摊费用摊销同比增长率（%）
+  - name: DEFER_INCOME_AMORTIZE_YOY
+    type: number
+    required: true
+    external_description_zh: 待摊费用减少（减：增加）同比增长率（%）
+  - name: PREPAID_EXPENSE_REDUCE_YOY
+    type: number
+    required: true
+    external_description_zh: 预提费用增加（减：减少）同比增长率（%）
+  - name: ACCRUED_EXPENSE_ADD_YOY
+    type: number
+    required: true
+    external_description_zh: 预提费用变动同比增长率（%）
+  - name: DISPOSAL_LONGASSET_LOSS_YOY
+    type: number
+    required: true
+    external_description_zh: 处置固定资产等的损失同比增长率（%）
+  - name: FA_SCRAP_LOSS_YOY
+    type: number
+    required: true
+    external_description_zh: 固定资产报废损失同比增长率（%）
+  - name: FAIRVALUE_CHANGE_LOSS_YOY
+    type: number
+    required: true
+    external_description_zh: 公允价值变动损失同比增长率（%）
+  - name: FINANCE_EXPENSE_YOY
+    type: number
+    required: true
+    external_description_zh: 财务费用同比增长率（%）
+  - name: INVEST_LOSS_YOY
+    type: number
+    required: true
+    external_description_zh: 投资损失同比增长率（%）
+  - name: DEFER_TAX_YOY
+    type: number
+    required: true
+    external_description_zh: 递延所得税资产减少（增加以"-"号填列）同比增长率（%）
+  - name: DT_ASSET_REDUCE_YOY
+    type: number
+    required: true
+    external_description_zh: 递延所得税资产减少同比增长率（%）
+  - name: DT_LIAB_ADD_YOY
+    type: number
+    required: true
+    external_description_zh: 递延所得税负债增加同比增长率（%）
+  - name: PREDICT_LIAB_ADD_YOY
+    type: number
+    required: true
+    external_description_zh: 预计负债增加同比增长率（%）
+  - name: INVENTORY_REDUCE_YOY
+    type: number
+    required: true
+    external_description_zh: 存货的减少（增加以"-"号填列）同比增长率（%）
+  - name: OPERATE_RECE_REDUCE_YOY
+    type: number
+    required: true
+    external_description_zh: 经营性应收项目的减少同比增长率（%）
+  - name: OPERATE_PAYABLE_ADD_YOY
+    type: number
+    required: true
+    external_description_zh: 经营性应付项目的增加同比增长率（%）
+  - name: OTHER_YOY
+    type: number
+    required: true
+    external_description_zh: 其他同比增长率（%）
+  - name: OPERATE_NETCASH_OTHERNOTE_YOY
+    type: number
+    required: true
+    external_description_zh: 经营活动产生的现金流量净额（附注）同比增长率（%）
+  - name: OPERATE_NETCASH_BALANCENOTE_YOY
+    type: number
+    required: true
+    external_description_zh: 经营活动净现金流量（附注）平衡项同比增长率（%）
+  - name: NETCASH_OPERATENOTE_YOY
+    type: number
+    required: true
+    external_description_zh: 经营活动产生的现金流量净额（附注）同比增长率（%）
+  - name: DEBT_TRANSFER_CAPITAL_YOY
+    type: number
+    required: true
+    external_description_zh: 债务转为资本同比增长率（%）
+  - name: CONVERT_BOND_1YEAR_YOY
+    type: number
+    required: true
+    external_description_zh: 一年内到期的可转换公司债券同比增长率（%）
+  - name: FINLEASE_OBTAIN_FA_YOY
+    type: number
+    required: true
+    external_description_zh: 融资租入固定资产同比增长率（%）
+  - name: UNINVOLVE_INVESTFIN_OTHER_YOY
+    type: number
+    required: true
+    external_description_zh: 不涉及现金收支的投资和筹资活动其他同比增长率（%）
+  - name: END_CASH_YOY
+    type: number
+    required: true
+    external_description_zh: 现金期末余额同比增长率（%）
+  - name: BEGIN_CASH_YOY
+    type: number
+    required: true
+    external_description_zh: 现金期初余额同比增长率（%）
+  - name: END_CASH_EQUIVALENTS_YOY
+    type: number
+    required: true
+    external_description_zh: 现金等价物期末余额同比增长率（%）
+  - name: BEGIN_CASH_EQUIVALENTS_YOY
+    type: number
+    required: true
+    external_description_zh: 现金等价物期初余额同比增长率（%）
+  - name: CCE_ADD_OTHERNOTE_YOY
+    type: number
+    required: true
+    external_description_zh: 现金及现金等价物净增加额（附注）同比增长率（%）
+  - name: CCE_ADD_BALANCENOTE_YOY
+    type: number
+    required: true
+    external_description_zh: 现金及现金等价物净增加额（附注）平衡项同比增长率（%）
+  - name: CCE_ADDNOTE_YOY
+    type: number
+    required: true
+    external_description_zh: 现金及现金等价物净增加额（附注）同比增长率（%）
+  - name: MINORITY_INTEREST_YOY
+    type: number
+    required: true
+    external_description_zh: 少数股东损益同比增长率（%）
+parquet:
+  storage_mode: partitioned
+  partition_key_name: year
+  fields:
+  - name: SECUCODE
+    type: string
+    nullable: false
+  - name: SECURITY_CODE
+    type: string
+    nullable: false
+  - name: SECURITY_NAME_ABBR
+    type: string
+    nullable: false
+  - name: ORG_CODE
+    type: string
+    nullable: false
+  - name: ORG_TYPE
+    type: string
+    nullable: false
+  - name: REPORT_DATE
+    type: date32[day]
+    nullable: false
+  - name: REPORT_TYPE
+    type: string
+    nullable: false
+  - name: REPORT_DATE_NAME
+    type: string
+    nullable: false
+  - name: SECURITY_TYPE_CODE
+    type: string
+    nullable: false
+  - name: NOTICE_DATE
+    type: date32[day]
+    nullable: false
+  - name: UPDATE_DATE
+    type: date32[day]
+    nullable: false
+  - name: CURRENCY
+    type: string
+    nullable: false
+  - name: SALES_SERVICES
+    type: double
+    nullable: false
+  - name: DEPOSIT_INTERBANK_ADD
+    type: double
+    nullable: false
+  - name: LOAN_PBC_ADD
+    type: double
+    nullable: false
+  - name: OFI_BF_ADD
+    type: double
+    nullable: false
+  - name: RECEIVE_ORIGIC_PREMIUM
+    type: double
+    nullable: false
+  - name: RECEIVE_REINSURE_NET
+    type: double
+    nullable: false
+  - name: INSURED_INVEST_ADD
+    type: double
+    nullable: false
+  - name: DISPOSAL_TFA_ADD
+    type: double
+    nullable: false
+  - name: RECEIVE_INTEREST_COMMISSION
+    type: double
+    nullable: false
+  - name: BORROW_FUND_ADD
+    type: double
+    nullable: false
+  - name: LOAN_ADVANCE_REDUCE
+    type: double
+    nullable: false
+  - name: REPO_BUSINESS_ADD
+    type: double
+    nullable: false
+  - name: RECEIVE_TAX_REFUND
+    type: double
+    nullable: false
+  - name: RECEIVE_OTHER_OPERATE
+    type: double
+    nullable: false
+  - name: OPERATE_INFLOW_OTHER
+    type: double
+    nullable: false
+  - name: OPERATE_INFLOW_BALANCE
+    type: double
+    nullable: false
+  - name: TOTAL_OPERATE_INFLOW
+    type: double
+    nullable: false
+  - name: BUY_SERVICES
+    type: double
+    nullable: false
+  - name: LOAN_ADVANCE_ADD
+    type: double
+    nullable: false
+  - name: PBC_INTERBANK_ADD
+    type: double
+    nullable: false
+  - name: PAY_ORIGIC_COMPENSATE
+    type: double
+    nullable: false
+  - name: PAY_INTEREST_COMMISSION
+    type: double
+    nullable: false
+  - name: PAY_POLICY_BONUS
+    type: double
+    nullable: false
+  - name: PAY_STAFF_CASH
+    type: double
+    nullable: false
+  - name: PAY_ALL_TAX
+    type: double
+    nullable: false
+  - name: PAY_OTHER_OPERATE
+    type: double
+    nullable: false
+  - name: OPERATE_OUTFLOW_OTHER
+    type: double
+    nullable: false
+  - name: OPERATE_OUTFLOW_BALANCE
+    type: double
+    nullable: false
+  - name: TOTAL_OPERATE_OUTFLOW
+    type: double
+    nullable: false
+  - name: OPERATE_NETCASH_OTHER
+    type: double
+    nullable: false
+  - name: OPERATE_NETCASH_BALANCE
+    type: double
+    nullable: false
+  - name: NETCASH_OPERATE
+    type: double
+    nullable: false
+  - name: WITHDRAW_INVEST
+    type: double
+    nullable: false
+  - name: RECEIVE_INVEST_INCOME
+    type: double
+    nullable: false
+  - name: DISPOSAL_LONG_ASSET
+    type: double
+    nullable: false
+  - name: DISPOSAL_SUBSIDIARY_OTHER
+    type: double
+    nullable: false
+  - name: REDUCE_PLEDGE_TIMEDEPOSITS
+    type: double
+    nullable: false
+  - name: RECEIVE_OTHER_INVEST
+    type: double
+    nullable: false
+  - name: INVEST_INFLOW_OTHER
+    type: double
+    nullable: false
+  - name: INVEST_INFLOW_BALANCE
+    type: double
+    nullable: false
+  - name: TOTAL_INVEST_INFLOW
+    type: double
+    nullable: false
+  - name: CONSTRUCT_LONG_ASSET
+    type: double
+    nullable: false
+  - name: INVEST_PAY_CASH
+    type: double
+    nullable: false
+  - name: PLEDGE_LOAN_ADD
+    type: double
+    nullable: false
+  - name: OBTAIN_SUBSIDIARY_OTHER
+    type: double
+    nullable: false
+  - name: ADD_PLEDGE_TIMEDEPOSITS
+    type: double
+    nullable: false
+  - name: PAY_OTHER_INVEST
+    type: double
+    nullable: false
+  - name: INVEST_OUTFLOW_OTHER
+    type: double
+    nullable: false
+  - name: INVEST_OUTFLOW_BALANCE
+    type: double
+    nullable: false
+  - name: TOTAL_INVEST_OUTFLOW
+    type: double
+    nullable: false
+  - name: INVEST_NETCASH_OTHER
+    type: double
+    nullable: false
+  - name: INVEST_NETCASH_BALANCE
+    type: double
+    nullable: false
+  - name: NETCASH_INVEST
+    type: double
+    nullable: false
+  - name: ACCEPT_INVEST_CASH
+    type: double
+    nullable: false
+  - name: SUBSIDIARY_ACCEPT_INVEST
+    type: double
+    nullable: false
+  - name: RECEIVE_LOAN_CASH
+    type: double
+    nullable: false
+  - name: ISSUE_BOND
+    type: double
+    nullable: false
+  - name: RECEIVE_OTHER_FINANCE
+    type: double
+    nullable: false
+  - name: FINANCE_INFLOW_OTHER
+    type: double
+    nullable: false
+  - name: FINANCE_INFLOW_BALANCE
+    type: double
+    nullable: false
+  - name: TOTAL_FINANCE_INFLOW
+    type: double
+    nullable: false
+  - name: PAY_DEBT_CASH
+    type: double
+    nullable: false
+  - name: ASSIGN_DIVIDEND_PORFIT
+    type: double
+    nullable: false
+  - name: SUBSIDIARY_PAY_DIVIDEND
+    type: double
+    nullable: false
+  - name: BUY_SUBSIDIARY_EQUITY
+    type: double
+    nullable: false
+  - name: PAY_OTHER_FINANCE
+    type: double
+    nullable: false
+  - name: SUBSIDIARY_REDUCE_CASH
+    type: double
+    nullable: false
+  - name: FINANCE_OUTFLOW_OTHER
+    type: double
+    nullable: false
+  - name: FINANCE_OUTFLOW_BALANCE
+    type: double
+    nullable: false
+  - name: TOTAL_FINANCE_OUTFLOW
+    type: double
+    nullable: false
+  - name: FINANCE_NETCASH_OTHER
+    type: double
+    nullable: false
+  - name: FINANCE_NETCASH_BALANCE
+    type: double
+    nullable: false
+  - name: NETCASH_FINANCE
+    type: double
+    nullable: false
+  - name: RATE_CHANGE_EFFECT
+    type: double
+    nullable: false
+  - name: CCE_ADD_OTHER
+    type: double
+    nullable: false
+  - name: CCE_ADD_BALANCE
+    type: double
+    nullable: false
+  - name: CCE_ADD
+    type: double
+    nullable: false
+  - name: BEGIN_CCE
+    type: double
+    nullable: false
+  - name: END_CCE_OTHER
+    type: double
+    nullable: false
+  - name: END_CCE_BALANCE
+    type: double
+    nullable: false
+  - name: END_CCE
+    type: double
+    nullable: false
+  - name: SALES_SERVICES_QOQ
+    type: double
+    nullable: false
+  - name: DEPOSIT_INTERBANK_ADD_QOQ
+    type: double
+    nullable: false
+  - name: LOAN_PBC_ADD_QOQ
+    type: double
+    nullable: false
+  - name: OFI_BF_ADD_QOQ
+    type: double
+    nullable: false
+  - name: RECEIVE_ORIGIC_PREMIUM_QOQ
+    type: double
+    nullable: false
+  - name: RECEIVE_REINSURE_NET_QOQ
+    type: double
+    nullable: false
+  - name: INSURED_INVEST_ADD_QOQ
+    type: double
+    nullable: false
+  - name: DISPOSAL_TFA_ADD_QOQ
+    type: double
+    nullable: false
+  - name: RECEIVE_INTEREST_COMMISSION_QOQ
+    type: double
+    nullable: false
+  - name: BORROW_FUND_ADD_QOQ
+    type: double
+    nullable: false
+  - name: LOAN_ADVANCE_REDUCE_QOQ
+    type: double
+    nullable: false
+  - name: REPO_BUSINESS_ADD_QOQ
+    type: double
+    nullable: false
+  - name: RECEIVE_TAX_REFUND_QOQ
+    type: double
+    nullable: false
+  - name: RECEIVE_OTHER_OPERATE_QOQ
+    type: double
+    nullable: false
+  - name: OPERATE_INFLOW_OTHER_QOQ
+    type: double
+    nullable: false
+  - name: OPERATE_INFLOW_BALANCE_QOQ
+    type: double
+    nullable: false
+  - name: TOTAL_OPERATE_INFLOW_QOQ
+    type: double
+    nullable: false
+  - name: BUY_SERVICES_QOQ
+    type: double
+    nullable: false
+  - name: LOAN_ADVANCE_ADD_QOQ
+    type: double
+    nullable: false
+  - name: PBC_INTERBANK_ADD_QOQ
+    type: double
+    nullable: false
+  - name: PAY_ORIGIC_COMPENSATE_QOQ
+    type: double
+    nullable: false
+  - name: PAY_INTEREST_COMMISSION_QOQ
+    type: double
+    nullable: false
+  - name: PAY_POLICY_BONUS_QOQ
+    type: double
+    nullable: false
+  - name: PAY_STAFF_CASH_QOQ
+    type: double
+    nullable: false
+  - name: PAY_ALL_TAX_QOQ
+    type: double
+    nullable: false
+  - name: PAY_OTHER_OPERATE_QOQ
+    type: double
+    nullable: false
+  - name: OPERATE_OUTFLOW_OTHER_QOQ
+    type: double
+    nullable: false
+  - name: OPERATE_OUTFLOW_BALANCE_QOQ
+    type: double
+    nullable: false
+  - name: TOTAL_OPERATE_OUTFLOW_QOQ
+    type: double
+    nullable: false
+  - name: OPERATE_NETCASH_OTHER_QOQ
+    type: double
+    nullable: false
+  - name: OPERATE_NETCASH_BALANCE_QOQ
+    type: double
+    nullable: false
+  - name: NETCASH_OPERATE_QOQ
+    type: double
+    nullable: false
+  - name: WITHDRAW_INVEST_QOQ
+    type: double
+    nullable: false
+  - name: RECEIVE_INVEST_INCOME_QOQ
+    type: double
+    nullable: false
+  - name: DISPOSAL_LONG_ASSET_QOQ
+    type: double
+    nullable: false
+  - name: DISPOSAL_SUBSIDIARY_OTHER_QOQ
+    type: double
+    nullable: false
+  - name: REDUCE_PLEDGE_TIMEDEPOSITS_QOQ
+    type: double
+    nullable: false
+  - name: RECEIVE_OTHER_INVEST_QOQ
+    type: double
+    nullable: false
+  - name: INVEST_INFLOW_OTHER_QOQ
+    type: double
+    nullable: false
+  - name: INVEST_INFLOW_BALANCE_QOQ
+    type: double
+    nullable: false
+  - name: TOTAL_INVEST_INFLOW_QOQ
+    type: double
+    nullable: false
+  - name: CONSTRUCT_LONG_ASSET_QOQ
+    type: double
+    nullable: false
+  - name: INVEST_PAY_CASH_QOQ
+    type: double
+    nullable: false
+  - name: PLEDGE_LOAN_ADD_QOQ
+    type: double
+    nullable: false
+  - name: OBTAIN_SUBSIDIARY_OTHER_QOQ
+    type: double
+    nullable: false
+  - name: ADD_PLEDGE_TIMEDEPOSITS_QOQ
+    type: double
+    nullable: false
+  - name: PAY_OTHER_INVEST_QOQ
+    type: double
+    nullable: false
+  - name: INVEST_OUTFLOW_OTHER_QOQ
+    type: double
+    nullable: false
+  - name: INVEST_OUTFLOW_BALANCE_QOQ
+    type: double
+    nullable: false
+  - name: TOTAL_INVEST_OUTFLOW_QOQ
+    type: double
+    nullable: false
+  - name: INVEST_NETCASH_OTHER_QOQ
+    type: double
+    nullable: false
+  - name: INVEST_NETCASH_BALANCE_QOQ
+    type: double
+    nullable: false
+  - name: NETCASH_INVEST_QOQ
+    type: double
+    nullable: false
+  - name: ACCEPT_INVEST_CASH_QOQ
+    type: double
+    nullable: false
+  - name: SUBSIDIARY_ACCEPT_INVEST_QOQ
+    type: double
+    nullable: false
+  - name: RECEIVE_LOAN_CASH_QOQ
+    type: double
+    nullable: false
+  - name: ISSUE_BOND_QOQ
+    type: double
+    nullable: false
+  - name: RECEIVE_OTHER_FINANCE_QOQ
+    type: double
+    nullable: false
+  - name: FINANCE_INFLOW_OTHER_QOQ
+    type: double
+    nullable: false
+  - name: FINANCE_INFLOW_BALANCE_QOQ
+    type: double
+    nullable: false
+  - name: TOTAL_FINANCE_INFLOW_QOQ
+    type: double
+    nullable: false
+  - name: PAY_DEBT_CASH_QOQ
+    type: double
+    nullable: false
+  - name: ASSIGN_DIVIDEND_PORFIT_QOQ
+    type: double
+    nullable: false
+  - name: SUBSIDIARY_PAY_DIVIDEND_QOQ
+    type: double
+    nullable: false
+  - name: BUY_SUBSIDIARY_EQUITY_QOQ
+    type: double
+    nullable: false
+  - name: PAY_OTHER_FINANCE_QOQ
+    type: double
+    nullable: false
+  - name: SUBSIDIARY_REDUCE_CASH_QOQ
+    type: double
+    nullable: false
+  - name: FINANCE_OUTFLOW_OTHER_QOQ
+    type: double
+    nullable: false
+  - name: FINANCE_OUTFLOW_BALANCE_QOQ
+    type: double
+    nullable: false
+  - name: TOTAL_FINANCE_OUTFLOW_QOQ
+    type: double
+    nullable: false
+  - name: FINANCE_NETCASH_OTHER_QOQ
+    type: double
+    nullable: false
+  - name: FINANCE_NETCASH_BALANCE_QOQ
+    type: double
+    nullable: false
+  - name: NETCASH_FINANCE_QOQ
+    type: double
+    nullable: false
+  - name: RATE_CHANGE_EFFECT_QOQ
+    type: double
+    nullable: false
+  - name: CCE_ADD_OTHER_QOQ
+    type: double
+    nullable: false
+  - name: CCE_ADD_BALANCE_QOQ
+    type: double
+    nullable: false
+  - name: CCE_ADD_QOQ
+    type: double
+    nullable: false
+  - name: BEGIN_CCE_QOQ
+    type: double
+    nullable: false
+  - name: END_CCE_OTHER_QOQ
+    type: double
+    nullable: false
+  - name: END_CCE_BALANCE_QOQ
+    type: double
+    nullable: false
+  - name: END_CCE_QOQ
+    type: double
+    nullable: false
+  - name: NETPROFIT
+    type: double
+    nullable: false
+  - name: ASSET_IMPAIRMENT
+    type: double
+    nullable: false
+  - name: FA_IR_DEPR
+    type: double
+    nullable: false
+  - name: OILGAS_BIOLOGY_DEPR
+    type: double
+    nullable: false
+  - name: IR_DEPR
+    type: double
+    nullable: false
+  - name: IA_AMORTIZE
+    type: double
+    nullable: false
+  - name: LPE_AMORTIZE
+    type: double
+    nullable: false
+  - name: DEFER_INCOME_AMORTIZE
+    type: double
+    nullable: false
+  - name: PREPAID_EXPENSE_REDUCE
+    type: double
+    nullable: false
+  - name: ACCRUED_EXPENSE_ADD
+    type: double
+    nullable: false
+  - name: DISPOSAL_LONGASSET_LOSS
+    type: double
+    nullable: false
+  - name: FA_SCRAP_LOSS
+    type: double
+    nullable: false
+  - name: FAIRVALUE_CHANGE_LOSS
+    type: double
+    nullable: false
+  - name: FINANCE_EXPENSE
+    type: double
+    nullable: false
+  - name: INVEST_LOSS
+    type: double
+    nullable: false
+  - name: DEFER_TAX
+    type: double
+    nullable: false
+  - name: DT_ASSET_REDUCE
+    type: double
+    nullable: false
+  - name: DT_LIAB_ADD
+    type: double
+    nullable: false
+  - name: PREDICT_LIAB_ADD
+    type: double
+    nullable: false
+  - name: INVENTORY_REDUCE
+    type: double
+    nullable: false
+  - name: OPERATE_RECE_REDUCE
+    type: double
+    nullable: false
+  - name: OPERATE_PAYABLE_ADD
+    type: double
+    nullable: false
+  - name: OTHER
+    type: double
+    nullable: false
+  - name: OPERATE_NETCASH_OTHERNOTE
+    type: double
+    nullable: false
+  - name: OPERATE_NETCASH_BALANCENOTE
+    type: double
+    nullable: false
+  - name: NETCASH_OPERATENOTE
+    type: double
+    nullable: false
+  - name: DEBT_TRANSFER_CAPITAL
+    type: double
+    nullable: false
+  - name: CONVERT_BOND_1YEAR
+    type: double
+    nullable: false
+  - name: FINLEASE_OBTAIN_FA
+    type: double
+    nullable: false
+  - name: UNINVOLVE_INVESTFIN_OTHER
+    type: double
+    nullable: false
+  - name: END_CASH
+    type: double
+    nullable: false
+  - name: BEGIN_CASH
+    type: double
+    nullable: false
+  - name: END_CASH_EQUIVALENTS
+    type: double
+    nullable: false
+  - name: BEGIN_CASH_EQUIVALENTS
+    type: double
+    nullable: false
+  - name: CCE_ADD_OTHERNOTE
+    type: double
+    nullable: false
+  - name: CCE_ADD_BALANCENOTE
+    type: double
+    nullable: false
+  - name: CCE_ADDNOTE
+    type: double
+    nullable: false
+  - name: MINORITY_INTEREST
+    type: double
+    nullable: false
+  - name: NETPROFIT_QOQ
+    type: double
+    nullable: false
+  - name: ASSET_IMPAIRMENT_QOQ
+    type: double
+    nullable: false
+  - name: FA_IR_DEPR_QOQ
+    type: double
+    nullable: false
+  - name: OILGAS_BIOLOGY_DEPR_QOQ
+    type: double
+    nullable: false
+  - name: IR_DEPR_QOQ
+    type: double
+    nullable: false
+  - name: IA_AMORTIZE_QOQ
+    type: double
+    nullable: false
+  - name: LPE_AMORTIZE_QOQ
+    type: double
+    nullable: false
+  - name: DEFER_INCOME_AMORTIZE_QOQ
+    type: double
+    nullable: false
+  - name: PREPAID_EXPENSE_REDUCE_QOQ
+    type: double
+    nullable: false
+  - name: ACCRUED_EXPENSE_ADD_QOQ
+    type: double
+    nullable: false
+  - name: DISPOSAL_LONGASSET_LOSS_QOQ
+    type: double
+    nullable: false
+  - name: FA_SCRAP_LOSS_QOQ
+    type: double
+    nullable: false
+  - name: FAIRVALUE_CHANGE_LOSS_QOQ
+    type: double
+    nullable: false
+  - name: FINANCE_EXPENSE_QOQ
+    type: double
+    nullable: false
+  - name: INVEST_LOSS_QOQ
+    type: double
+    nullable: false
+  - name: DEFER_TAX_QOQ
+    type: double
+    nullable: false
+  - name: DT_ASSET_REDUCE_QOQ
+    type: double
+    nullable: false
+  - name: DT_LIAB_ADD_QOQ
+    type: double
+    nullable: false
+  - name: PREDICT_LIAB_ADD_QOQ
+    type: double
+    nullable: false
+  - name: INVENTORY_REDUCE_QOQ
+    type: double
+    nullable: false
+  - name: OPERATE_RECE_REDUCE_QOQ
+    type: double
+    nullable: false
+  - name: OPERATE_PAYABLE_ADD_QOQ
+    type: double
+    nullable: false
+  - name: OTHER_QOQ
+    type: double
+    nullable: false
+  - name: OPERATE_NETCASH_OTHERNOTE_QOQ
+    type: double
+    nullable: false
+  - name: OPERATE_NETCASH_BALANCENOTE_QOQ
+    type: double
+    nullable: false
+  - name: NETCASH_OPERATENOTE_QOQ
+    type: double
+    nullable: false
+  - name: DEBT_TRANSFER_CAPITAL_QOQ
+    type: double
+    nullable: false
+  - name: CONVERT_BOND_1YEAR_QOQ
+    type: double
+    nullable: false
+  - name: FINLEASE_OBTAIN_FA_QOQ
+    type: double
+    nullable: false
+  - name: UNINVOLVE_INVESTFIN_OTHER_QOQ
+    type: double
+    nullable: false
+  - name: END_CASH_QOQ
+    type: double
+    nullable: false
+  - name: BEGIN_CASH_QOQ
+    type: double
+    nullable: false
+  - name: END_CASH_EQUIVALENTS_QOQ
+    type: double
+    nullable: false
+  - name: BEGIN_CASH_EQUIVALENTS_QOQ
+    type: double
+    nullable: false
+  - name: CCE_ADD_OTHERNOTE_QOQ
+    type: double
+    nullable: false
+  - name: CCE_ADD_BALANCENOTE_QOQ
+    type: double
+    nullable: false
+  - name: CCE_ADDNOTE_QOQ
+    type: double
+    nullable: false
+  - name: MINORITY_INTEREST_QOQ
+    type: double
+    nullable: false
+  - name: OPINION_TYPE
+    type: string
+    nullable: false
+  - name: OSOPINION_TYPE
+    type: string
+    nullable: false
+  - name: LISTING_STATE
+    type: string
+    nullable: false
+  - name: SALES_SERVICES_YOY
+    type: double
+    nullable: false
+  - name: DEPOSIT_INTERBANK_ADD_YOY
+    type: double
+    nullable: false
+  - name: LOAN_PBC_ADD_YOY
+    type: double
+    nullable: false
+  - name: OFI_BF_ADD_YOY
+    type: double
+    nullable: false
+  - name: RECEIVE_ORIGIC_PREMIUM_YOY
+    type: double
+    nullable: false
+  - name: RECEIVE_REINSURE_NET_YOY
+    type: double
+    nullable: false
+  - name: INSURED_INVEST_ADD_YOY
+    type: double
+    nullable: false
+  - name: DISPOSAL_TFA_ADD_YOY
+    type: double
+    nullable: false
+  - name: RECEIVE_INTEREST_COMMISSION_YOY
+    type: double
+    nullable: false
+  - name: BORROW_FUND_ADD_YOY
+    type: double
+    nullable: false
+  - name: LOAN_ADVANCE_REDUCE_YOY
+    type: double
+    nullable: false
+  - name: REPO_BUSINESS_ADD_YOY
+    type: double
+    nullable: false
+  - name: RECEIVE_TAX_REFUND_YOY
+    type: double
+    nullable: false
+  - name: RECEIVE_OTHER_OPERATE_YOY
+    type: double
+    nullable: false
+  - name: OPERATE_INFLOW_OTHER_YOY
+    type: double
+    nullable: false
+  - name: OPERATE_INFLOW_BALANCE_YOY
+    type: double
+    nullable: false
+  - name: TOTAL_OPERATE_INFLOW_YOY
+    type: double
+    nullable: false
+  - name: BUY_SERVICES_YOY
+    type: double
+    nullable: false
+  - name: LOAN_ADVANCE_ADD_YOY
+    type: double
+    nullable: false
+  - name: PBC_INTERBANK_ADD_YOY
+    type: double
+    nullable: false
+  - name: PAY_ORIGIC_COMPENSATE_YOY
+    type: double
+    nullable: false
+  - name: PAY_INTEREST_COMMISSION_YOY
+    type: double
+    nullable: false
+  - name: PAY_POLICY_BONUS_YOY
+    type: double
+    nullable: false
+  - name: PAY_STAFF_CASH_YOY
+    type: double
+    nullable: false
+  - name: PAY_ALL_TAX_YOY
+    type: double
+    nullable: false
+  - name: PAY_OTHER_OPERATE_YOY
+    type: double
+    nullable: false
+  - name: OPERATE_OUTFLOW_OTHER_YOY
+    type: double
+    nullable: false
+  - name: OPERATE_OUTFLOW_BALANCE_YOY
+    type: double
+    nullable: false
+  - name: TOTAL_OPERATE_OUTFLOW_YOY
+    type: double
+    nullable: false
+  - name: OPERATE_NETCASH_OTHER_YOY
+    type: double
+    nullable: false
+  - name: OPERATE_NETCASH_BALANCE_YOY
+    type: double
+    nullable: false
+  - name: NETCASH_OPERATE_YOY
+    type: double
+    nullable: false
+  - name: WITHDRAW_INVEST_YOY
+    type: double
+    nullable: false
+  - name: RECEIVE_INVEST_INCOME_YOY
+    type: double
+    nullable: false
+  - name: DISPOSAL_LONG_ASSET_YOY
+    type: double
+    nullable: false
+  - name: DISPOSAL_SUBSIDIARY_OTHER_YOY
+    type: double
+    nullable: false
+  - name: REDUCE_PLEDGE_TIMEDEPOSITS_YOY
+    type: double
+    nullable: false
+  - name: RECEIVE_OTHER_INVEST_YOY
+    type: double
+    nullable: false
+  - name: INVEST_INFLOW_OTHER_YOY
+    type: double
+    nullable: false
+  - name: INVEST_INFLOW_BALANCE_YOY
+    type: double
+    nullable: false
+  - name: TOTAL_INVEST_INFLOW_YOY
+    type: double
+    nullable: false
+  - name: CONSTRUCT_LONG_ASSET_YOY
+    type: double
+    nullable: false
+  - name: INVEST_PAY_CASH_YOY
+    type: double
+    nullable: false
+  - name: PLEDGE_LOAN_ADD_YOY
+    type: double
+    nullable: false
+  - name: OBTAIN_SUBSIDIARY_OTHER_YOY
+    type: double
+    nullable: false
+  - name: ADD_PLEDGE_TIMEDEPOSITS_YOY
+    type: double
+    nullable: false
+  - name: PAY_OTHER_INVEST_YOY
+    type: double
+    nullable: false
+  - name: INVEST_OUTFLOW_OTHER_YOY
+    type: double
+    nullable: false
+  - name: INVEST_OUTFLOW_BALANCE_YOY
+    type: double
+    nullable: false
+  - name: TOTAL_INVEST_OUTFLOW_YOY
+    type: double
+    nullable: false
+  - name: INVEST_NETCASH_OTHER_YOY
+    type: double
+    nullable: false
+  - name: INVEST_NETCASH_BALANCE_YOY
+    type: double
+    nullable: false
+  - name: NETCASH_INVEST_YOY
+    type: double
+    nullable: false
+  - name: ACCEPT_INVEST_CASH_YOY
+    type: double
+    nullable: false
+  - name: SUBSIDIARY_ACCEPT_INVEST_YOY
+    type: double
+    nullable: false
+  - name: RECEIVE_LOAN_CASH_YOY
+    type: double
+    nullable: false
+  - name: ISSUE_BOND_YOY
+    type: double
+    nullable: false
+  - name: RECEIVE_OTHER_FINANCE_YOY
+    type: double
+    nullable: false
+  - name: FINANCE_INFLOW_OTHER_YOY
+    type: double
+    nullable: false
+  - name: FINANCE_INFLOW_BALANCE_YOY
+    type: double
+    nullable: false
+  - name: TOTAL_FINANCE_INFLOW_YOY
+    type: double
+    nullable: false
+  - name: PAY_DEBT_CASH_YOY
+    type: double
+    nullable: false
+  - name: ASSIGN_DIVIDEND_PORFIT_YOY
+    type: double
+    nullable: false
+  - name: SUBSIDIARY_PAY_DIVIDEND_YOY
+    type: double
+    nullable: false
+  - name: BUY_SUBSIDIARY_EQUITY_YOY
+    type: double
+    nullable: false
+  - name: PAY_OTHER_FINANCE_YOY
+    type: double
+    nullable: false
+  - name: SUBSIDIARY_REDUCE_CASH_YOY
+    type: double
+    nullable: false
+  - name: FINANCE_OUTFLOW_OTHER_YOY
+    type: double
+    nullable: false
+  - name: FINANCE_OUTFLOW_BALANCE_YOY
+    type: double
+    nullable: false
+  - name: TOTAL_FINANCE_OUTFLOW_YOY
+    type: double
+    nullable: false
+  - name: FINANCE_NETCASH_OTHER_YOY
+    type: double
+    nullable: false
+  - name: FINANCE_NETCASH_BALANCE_YOY
+    type: double
+    nullable: false
+  - name: NETCASH_FINANCE_YOY
+    type: double
+    nullable: false
+  - name: RATE_CHANGE_EFFECT_YOY
+    type: double
+    nullable: false
+  - name: CCE_ADD_OTHER_YOY
+    type: double
+    nullable: false
+  - name: CCE_ADD_BALANCE_YOY
+    type: double
+    nullable: false
+  - name: CCE_ADD_YOY
+    type: double
+    nullable: false
+  - name: BEGIN_CCE_YOY
+    type: double
+    nullable: false
+  - name: END_CCE_OTHER_YOY
+    type: double
+    nullable: false
+  - name: END_CCE_BALANCE_YOY
+    type: double
+    nullable: false
+  - name: END_CCE_YOY
+    type: double
+    nullable: false
+  - name: NETPROFIT_YOY
+    type: double
+    nullable: false
+  - name: ASSET_IMPAIRMENT_YOY
+    type: double
+    nullable: false
+  - name: FA_IR_DEPR_YOY
+    type: double
+    nullable: false
+  - name: OILGAS_BIOLOGY_DEPR_YOY
+    type: double
+    nullable: false
+  - name: IR_DEPR_YOY
+    type: double
+    nullable: false
+  - name: IA_AMORTIZE_YOY
+    type: double
+    nullable: false
+  - name: LPE_AMORTIZE_YOY
+    type: double
+    nullable: false
+  - name: DEFER_INCOME_AMORTIZE_YOY
+    type: double
+    nullable: false
+  - name: PREPAID_EXPENSE_REDUCE_YOY
+    type: double
+    nullable: false
+  - name: ACCRUED_EXPENSE_ADD_YOY
+    type: double
+    nullable: false
+  - name: DISPOSAL_LONGASSET_LOSS_YOY
+    type: double
+    nullable: false
+  - name: FA_SCRAP_LOSS_YOY
+    type: double
+    nullable: false
+  - name: FAIRVALUE_CHANGE_LOSS_YOY
+    type: double
+    nullable: false
+  - name: FINANCE_EXPENSE_YOY
+    type: double
+    nullable: false
+  - name: INVEST_LOSS_YOY
+    type: double
+    nullable: false
+  - name: DEFER_TAX_YOY
+    type: double
+    nullable: false
+  - name: DT_ASSET_REDUCE_YOY
+    type: double
+    nullable: false
+  - name: DT_LIAB_ADD_YOY
+    type: double
+    nullable: false
+  - name: PREDICT_LIAB_ADD_YOY
+    type: double
+    nullable: false
+  - name: INVENTORY_REDUCE_YOY
+    type: double
+    nullable: false
+  - name: OPERATE_RECE_REDUCE_YOY
+    type: double
+    nullable: false
+  - name: OPERATE_PAYABLE_ADD_YOY
+    type: double
+    nullable: false
+  - name: OTHER_YOY
+    type: double
+    nullable: false
+  - name: OPERATE_NETCASH_OTHERNOTE_YOY
+    type: double
+    nullable: false
+  - name: OPERATE_NETCASH_BALANCENOTE_YOY
+    type: double
+    nullable: false
+  - name: NETCASH_OPERATENOTE_YOY
+    type: double
+    nullable: false
+  - name: DEBT_TRANSFER_CAPITAL_YOY
+    type: double
+    nullable: false
+  - name: CONVERT_BOND_1YEAR_YOY
+    type: double
+    nullable: false
+  - name: FINLEASE_OBTAIN_FA_YOY
+    type: double
+    nullable: false
+  - name: UNINVOLVE_INVESTFIN_OTHER_YOY
+    type: double
+    nullable: false
+  - name: END_CASH_YOY
+    type: double
+    nullable: false
+  - name: BEGIN_CASH_YOY
+    type: double
+    nullable: false
+  - name: END_CASH_EQUIVALENTS_YOY
+    type: double
+    nullable: false
+  - name: BEGIN_CASH_EQUIVALENTS_YOY
+    type: double
+    nullable: false
+  - name: CCE_ADD_OTHERNOTE_YOY
+    type: double
+    nullable: false
+  - name: CCE_ADD_BALANCENOTE_YOY
+    type: double
+    nullable: false
+  - name: CCE_ADDNOTE_YOY
+    type: double
+    nullable: false
+  - name: MINORITY_INTEREST_YOY
+    type: double
+    nullable: false
+clickhouse_raw:
+  database: raw
+  table: eastmoney__cashflow_sq
+  partition_strategy: year
+  engine: MergeTree
+  partition_by: '`year`'
+  order_by:
+  - SECUCODE
+  - REPORT_DATE
+  allow_empty: true
+  sync_enabled: true
+  fields:
+  - name: SECUCODE
+    type: LowCardinality(String)
+    from: SECUCODE
+    nullable: false
+    reason: expected_low_cardinality_dimension
+  - name: SECURITY_CODE
+    type: LowCardinality(String)
+    from: SECURITY_CODE
+    nullable: false
+    reason: expected_low_cardinality_dimension
+  - name: SECURITY_NAME_ABBR
+    type: LowCardinality(String)
+    from: SECURITY_NAME_ABBR
+    nullable: false
+    reason: expected_low_cardinality_dimension
+  - name: ORG_CODE
+    type: LowCardinality(String)
+    from: ORG_CODE
+    nullable: false
+    reason: expected_low_cardinality_dimension
+  - name: ORG_TYPE
+    type: LowCardinality(String)
+    from: ORG_TYPE
+    nullable: false
+    reason: expected_low_cardinality_dimension
+  - name: REPORT_DATE
+    type: Date
+    from: REPORT_DATE
+    nullable: false
+  - name: REPORT_TYPE
+    type: LowCardinality(String)
+    from: REPORT_TYPE
+    nullable: false
+    reason: expected_low_cardinality_dimension
+  - name: REPORT_DATE_NAME
+    type: LowCardinality(String)
+    from: REPORT_DATE_NAME
+    nullable: false
+    reason: expected_low_cardinality_dimension
+  - name: SECURITY_TYPE_CODE
+    type: LowCardinality(String)
+    from: SECURITY_TYPE_CODE
+    nullable: false
+    reason: expected_low_cardinality_dimension
+  - name: NOTICE_DATE
+    type: Date
+    from: NOTICE_DATE
+    nullable: false
+  - name: UPDATE_DATE
+    type: Date
+    from: UPDATE_DATE
+    nullable: false
+  - name: CURRENCY
+    type: LowCardinality(String)
+    from: CURRENCY
+    nullable: false
+    reason: expected_low_cardinality_dimension
+  - name: SALES_SERVICES
+    type: Float64
+    from: SALES_SERVICES
+    nullable: false
+  - name: DEPOSIT_INTERBANK_ADD
+    type: Float64
+    from: DEPOSIT_INTERBANK_ADD
+    nullable: false
+  - name: LOAN_PBC_ADD
+    type: Float64
+    from: LOAN_PBC_ADD
+    nullable: false
+  - name: OFI_BF_ADD
+    type: Float64
+    from: OFI_BF_ADD
+    nullable: false
+  - name: RECEIVE_ORIGIC_PREMIUM
+    type: Float64
+    from: RECEIVE_ORIGIC_PREMIUM
+    nullable: false
+  - name: RECEIVE_REINSURE_NET
+    type: Float64
+    from: RECEIVE_REINSURE_NET
+    nullable: false
+  - name: INSURED_INVEST_ADD
+    type: Float64
+    from: INSURED_INVEST_ADD
+    nullable: false
+  - name: DISPOSAL_TFA_ADD
+    type: Float64
+    from: DISPOSAL_TFA_ADD
+    nullable: false
+  - name: RECEIVE_INTEREST_COMMISSION
+    type: Float64
+    from: RECEIVE_INTEREST_COMMISSION
+    nullable: false
+  - name: BORROW_FUND_ADD
+    type: Float64
+    from: BORROW_FUND_ADD
+    nullable: false
+  - name: LOAN_ADVANCE_REDUCE
+    type: Float64
+    from: LOAN_ADVANCE_REDUCE
+    nullable: false
+  - name: REPO_BUSINESS_ADD
+    type: Float64
+    from: REPO_BUSINESS_ADD
+    nullable: false
+  - name: RECEIVE_TAX_REFUND
+    type: Float64
+    from: RECEIVE_TAX_REFUND
+    nullable: false
+  - name: RECEIVE_OTHER_OPERATE
+    type: Float64
+    from: RECEIVE_OTHER_OPERATE
+    nullable: false
+  - name: OPERATE_INFLOW_OTHER
+    type: Float64
+    from: OPERATE_INFLOW_OTHER
+    nullable: false
+  - name: OPERATE_INFLOW_BALANCE
+    type: Float64
+    from: OPERATE_INFLOW_BALANCE
+    nullable: false
+  - name: TOTAL_OPERATE_INFLOW
+    type: Float64
+    from: TOTAL_OPERATE_INFLOW
+    nullable: false
+  - name: BUY_SERVICES
+    type: Float64
+    from: BUY_SERVICES
+    nullable: false
+  - name: LOAN_ADVANCE_ADD
+    type: Float64
+    from: LOAN_ADVANCE_ADD
+    nullable: false
+  - name: PBC_INTERBANK_ADD
+    type: Float64
+    from: PBC_INTERBANK_ADD
+    nullable: false
+  - name: PAY_ORIGIC_COMPENSATE
+    type: Float64
+    from: PAY_ORIGIC_COMPENSATE
+    nullable: false
+  - name: PAY_INTEREST_COMMISSION
+    type: Float64
+    from: PAY_INTEREST_COMMISSION
+    nullable: false
+  - name: PAY_POLICY_BONUS
+    type: Float64
+    from: PAY_POLICY_BONUS
+    nullable: false
+  - name: PAY_STAFF_CASH
+    type: Float64
+    from: PAY_STAFF_CASH
+    nullable: false
+  - name: PAY_ALL_TAX
+    type: Float64
+    from: PAY_ALL_TAX
+    nullable: false
+  - name: PAY_OTHER_OPERATE
+    type: Float64
+    from: PAY_OTHER_OPERATE
+    nullable: false
+  - name: OPERATE_OUTFLOW_OTHER
+    type: Float64
+    from: OPERATE_OUTFLOW_OTHER
+    nullable: false
+  - name: OPERATE_OUTFLOW_BALANCE
+    type: Float64
+    from: OPERATE_OUTFLOW_BALANCE
+    nullable: false
+  - name: TOTAL_OPERATE_OUTFLOW
+    type: Float64
+    from: TOTAL_OPERATE_OUTFLOW
+    nullable: false
+  - name: OPERATE_NETCASH_OTHER
+    type: Float64
+    from: OPERATE_NETCASH_OTHER
+    nullable: false
+  - name: OPERATE_NETCASH_BALANCE
+    type: Float64
+    from: OPERATE_NETCASH_BALANCE
+    nullable: false
+  - name: NETCASH_OPERATE
+    type: Float64
+    from: NETCASH_OPERATE
+    nullable: false
+  - name: WITHDRAW_INVEST
+    type: Float64
+    from: WITHDRAW_INVEST
+    nullable: false
+  - name: RECEIVE_INVEST_INCOME
+    type: Float64
+    from: RECEIVE_INVEST_INCOME
+    nullable: false
+  - name: DISPOSAL_LONG_ASSET
+    type: Float64
+    from: DISPOSAL_LONG_ASSET
+    nullable: false
+  - name: DISPOSAL_SUBSIDIARY_OTHER
+    type: Float64
+    from: DISPOSAL_SUBSIDIARY_OTHER
+    nullable: false
+  - name: REDUCE_PLEDGE_TIMEDEPOSITS
+    type: Float64
+    from: REDUCE_PLEDGE_TIMEDEPOSITS
+    nullable: false
+  - name: RECEIVE_OTHER_INVEST
+    type: Float64
+    from: RECEIVE_OTHER_INVEST
+    nullable: false
+  - name: INVEST_INFLOW_OTHER
+    type: Float64
+    from: INVEST_INFLOW_OTHER
+    nullable: false
+  - name: INVEST_INFLOW_BALANCE
+    type: Float64
+    from: INVEST_INFLOW_BALANCE
+    nullable: false
+  - name: TOTAL_INVEST_INFLOW
+    type: Float64
+    from: TOTAL_INVEST_INFLOW
+    nullable: false
+  - name: CONSTRUCT_LONG_ASSET
+    type: Float64
+    from: CONSTRUCT_LONG_ASSET
+    nullable: false
+  - name: INVEST_PAY_CASH
+    type: Float64
+    from: INVEST_PAY_CASH
+    nullable: false
+  - name: PLEDGE_LOAN_ADD
+    type: Float64
+    from: PLEDGE_LOAN_ADD
+    nullable: false
+  - name: OBTAIN_SUBSIDIARY_OTHER
+    type: Float64
+    from: OBTAIN_SUBSIDIARY_OTHER
+    nullable: false
+  - name: ADD_PLEDGE_TIMEDEPOSITS
+    type: Float64
+    from: ADD_PLEDGE_TIMEDEPOSITS
+    nullable: false
+  - name: PAY_OTHER_INVEST
+    type: Float64
+    from: PAY_OTHER_INVEST
+    nullable: false
+  - name: INVEST_OUTFLOW_OTHER
+    type: Float64
+    from: INVEST_OUTFLOW_OTHER
+    nullable: false
+  - name: INVEST_OUTFLOW_BALANCE
+    type: Float64
+    from: INVEST_OUTFLOW_BALANCE
+    nullable: false
+  - name: TOTAL_INVEST_OUTFLOW
+    type: Float64
+    from: TOTAL_INVEST_OUTFLOW
+    nullable: false
+  - name: INVEST_NETCASH_OTHER
+    type: Float64
+    from: INVEST_NETCASH_OTHER
+    nullable: false
+  - name: INVEST_NETCASH_BALANCE
+    type: Float64
+    from: INVEST_NETCASH_BALANCE
+    nullable: false
+  - name: NETCASH_INVEST
+    type: Float64
+    from: NETCASH_INVEST
+    nullable: false
+  - name: ACCEPT_INVEST_CASH
+    type: Float64
+    from: ACCEPT_INVEST_CASH
+    nullable: false
+  - name: SUBSIDIARY_ACCEPT_INVEST
+    type: Float64
+    from: SUBSIDIARY_ACCEPT_INVEST
+    nullable: false
+  - name: RECEIVE_LOAN_CASH
+    type: Float64
+    from: RECEIVE_LOAN_CASH
+    nullable: false
+  - name: ISSUE_BOND
+    type: Float64
+    from: ISSUE_BOND
+    nullable: false
+  - name: RECEIVE_OTHER_FINANCE
+    type: Float64
+    from: RECEIVE_OTHER_FINANCE
+    nullable: false
+  - name: FINANCE_INFLOW_OTHER
+    type: Float64
+    from: FINANCE_INFLOW_OTHER
+    nullable: false
+  - name: FINANCE_INFLOW_BALANCE
+    type: Float64
+    from: FINANCE_INFLOW_BALANCE
+    nullable: false
+  - name: TOTAL_FINANCE_INFLOW
+    type: Float64
+    from: TOTAL_FINANCE_INFLOW
+    nullable: false
+  - name: PAY_DEBT_CASH
+    type: Float64
+    from: PAY_DEBT_CASH
+    nullable: false
+  - name: ASSIGN_DIVIDEND_PORFIT
+    type: Float64
+    from: ASSIGN_DIVIDEND_PORFIT
+    nullable: false
+  - name: SUBSIDIARY_PAY_DIVIDEND
+    type: Float64
+    from: SUBSIDIARY_PAY_DIVIDEND
+    nullable: false
+  - name: BUY_SUBSIDIARY_EQUITY
+    type: Float64
+    from: BUY_SUBSIDIARY_EQUITY
+    nullable: false
+  - name: PAY_OTHER_FINANCE
+    type: Float64
+    from: PAY_OTHER_FINANCE
+    nullable: false
+  - name: SUBSIDIARY_REDUCE_CASH
+    type: Float64
+    from: SUBSIDIARY_REDUCE_CASH
+    nullable: false
+  - name: FINANCE_OUTFLOW_OTHER
+    type: Float64
+    from: FINANCE_OUTFLOW_OTHER
+    nullable: false
+  - name: FINANCE_OUTFLOW_BALANCE
+    type: Float64
+    from: FINANCE_OUTFLOW_BALANCE
+    nullable: false
+  - name: TOTAL_FINANCE_OUTFLOW
+    type: Float64
+    from: TOTAL_FINANCE_OUTFLOW
+    nullable: false
+  - name: FINANCE_NETCASH_OTHER
+    type: Float64
+    from: FINANCE_NETCASH_OTHER
+    nullable: false
+  - name: FINANCE_NETCASH_BALANCE
+    type: Float64
+    from: FINANCE_NETCASH_BALANCE
+    nullable: false
+  - name: NETCASH_FINANCE
+    type: Float64
+    from: NETCASH_FINANCE
+    nullable: false
+  - name: RATE_CHANGE_EFFECT
+    type: Float64
+    from: RATE_CHANGE_EFFECT
+    nullable: false
+  - name: CCE_ADD_OTHER
+    type: Float64
+    from: CCE_ADD_OTHER
+    nullable: false
+  - name: CCE_ADD_BALANCE
+    type: Float64
+    from: CCE_ADD_BALANCE
+    nullable: false
+  - name: CCE_ADD
+    type: Float64
+    from: CCE_ADD
+    nullable: false
+  - name: BEGIN_CCE
+    type: Float64
+    from: BEGIN_CCE
+    nullable: false
+  - name: END_CCE_OTHER
+    type: Float64
+    from: END_CCE_OTHER
+    nullable: false
+  - name: END_CCE_BALANCE
+    type: Float64
+    from: END_CCE_BALANCE
+    nullable: false
+  - name: END_CCE
+    type: Float64
+    from: END_CCE
+    nullable: false
+  - name: SALES_SERVICES_QOQ
+    type: Float64
+    from: SALES_SERVICES_QOQ
+    nullable: false
+  - name: DEPOSIT_INTERBANK_ADD_QOQ
+    type: Float64
+    from: DEPOSIT_INTERBANK_ADD_QOQ
+    nullable: false
+  - name: LOAN_PBC_ADD_QOQ
+    type: Float64
+    from: LOAN_PBC_ADD_QOQ
+    nullable: false
+  - name: OFI_BF_ADD_QOQ
+    type: Float64
+    from: OFI_BF_ADD_QOQ
+    nullable: false
+  - name: RECEIVE_ORIGIC_PREMIUM_QOQ
+    type: Float64
+    from: RECEIVE_ORIGIC_PREMIUM_QOQ
+    nullable: false
+  - name: RECEIVE_REINSURE_NET_QOQ
+    type: Float64
+    from: RECEIVE_REINSURE_NET_QOQ
+    nullable: false
+  - name: INSURED_INVEST_ADD_QOQ
+    type: Float64
+    from: INSURED_INVEST_ADD_QOQ
+    nullable: false
+  - name: DISPOSAL_TFA_ADD_QOQ
+    type: Float64
+    from: DISPOSAL_TFA_ADD_QOQ
+    nullable: false
+  - name: RECEIVE_INTEREST_COMMISSION_QOQ
+    type: Float64
+    from: RECEIVE_INTEREST_COMMISSION_QOQ
+    nullable: false
+  - name: BORROW_FUND_ADD_QOQ
+    type: Float64
+    from: BORROW_FUND_ADD_QOQ
+    nullable: false
+  - name: LOAN_ADVANCE_REDUCE_QOQ
+    type: Float64
+    from: LOAN_ADVANCE_REDUCE_QOQ
+    nullable: false
+  - name: REPO_BUSINESS_ADD_QOQ
+    type: Float64
+    from: REPO_BUSINESS_ADD_QOQ
+    nullable: false
+  - name: RECEIVE_TAX_REFUND_QOQ
+    type: Float64
+    from: RECEIVE_TAX_REFUND_QOQ
+    nullable: false
+  - name: RECEIVE_OTHER_OPERATE_QOQ
+    type: Float64
+    from: RECEIVE_OTHER_OPERATE_QOQ
+    nullable: false
+  - name: OPERATE_INFLOW_OTHER_QOQ
+    type: Float64
+    from: OPERATE_INFLOW_OTHER_QOQ
+    nullable: false
+  - name: OPERATE_INFLOW_BALANCE_QOQ
+    type: Float64
+    from: OPERATE_INFLOW_BALANCE_QOQ
+    nullable: false
+  - name: TOTAL_OPERATE_INFLOW_QOQ
+    type: Float64
+    from: TOTAL_OPERATE_INFLOW_QOQ
+    nullable: false
+  - name: BUY_SERVICES_QOQ
+    type: Float64
+    from: BUY_SERVICES_QOQ
+    nullable: false
+  - name: LOAN_ADVANCE_ADD_QOQ
+    type: Float64
+    from: LOAN_ADVANCE_ADD_QOQ
+    nullable: false
+  - name: PBC_INTERBANK_ADD_QOQ
+    type: Float64
+    from: PBC_INTERBANK_ADD_QOQ
+    nullable: false
+  - name: PAY_ORIGIC_COMPENSATE_QOQ
+    type: Float64
+    from: PAY_ORIGIC_COMPENSATE_QOQ
+    nullable: false
+  - name: PAY_INTEREST_COMMISSION_QOQ
+    type: Float64
+    from: PAY_INTEREST_COMMISSION_QOQ
+    nullable: false
+  - name: PAY_POLICY_BONUS_QOQ
+    type: Float64
+    from: PAY_POLICY_BONUS_QOQ
+    nullable: false
+  - name: PAY_STAFF_CASH_QOQ
+    type: Float64
+    from: PAY_STAFF_CASH_QOQ
+    nullable: false
+  - name: PAY_ALL_TAX_QOQ
+    type: Float64
+    from: PAY_ALL_TAX_QOQ
+    nullable: false
+  - name: PAY_OTHER_OPERATE_QOQ
+    type: Float64
+    from: PAY_OTHER_OPERATE_QOQ
+    nullable: false
+  - name: OPERATE_OUTFLOW_OTHER_QOQ
+    type: Float64
+    from: OPERATE_OUTFLOW_OTHER_QOQ
+    nullable: false
+  - name: OPERATE_OUTFLOW_BALANCE_QOQ
+    type: Float64
+    from: OPERATE_OUTFLOW_BALANCE_QOQ
+    nullable: false
+  - name: TOTAL_OPERATE_OUTFLOW_QOQ
+    type: Float64
+    from: TOTAL_OPERATE_OUTFLOW_QOQ
+    nullable: false
+  - name: OPERATE_NETCASH_OTHER_QOQ
+    type: Float64
+    from: OPERATE_NETCASH_OTHER_QOQ
+    nullable: false
+  - name: OPERATE_NETCASH_BALANCE_QOQ
+    type: Float64
+    from: OPERATE_NETCASH_BALANCE_QOQ
+    nullable: false
+  - name: NETCASH_OPERATE_QOQ
+    type: Float64
+    from: NETCASH_OPERATE_QOQ
+    nullable: false
+  - name: WITHDRAW_INVEST_QOQ
+    type: Float64
+    from: WITHDRAW_INVEST_QOQ
+    nullable: false
+  - name: RECEIVE_INVEST_INCOME_QOQ
+    type: Float64
+    from: RECEIVE_INVEST_INCOME_QOQ
+    nullable: false
+  - name: DISPOSAL_LONG_ASSET_QOQ
+    type: Float64
+    from: DISPOSAL_LONG_ASSET_QOQ
+    nullable: false
+  - name: DISPOSAL_SUBSIDIARY_OTHER_QOQ
+    type: Float64
+    from: DISPOSAL_SUBSIDIARY_OTHER_QOQ
+    nullable: false
+  - name: REDUCE_PLEDGE_TIMEDEPOSITS_QOQ
+    type: Float64
+    from: REDUCE_PLEDGE_TIMEDEPOSITS_QOQ
+    nullable: false
+  - name: RECEIVE_OTHER_INVEST_QOQ
+    type: Float64
+    from: RECEIVE_OTHER_INVEST_QOQ
+    nullable: false
+  - name: INVEST_INFLOW_OTHER_QOQ
+    type: Float64
+    from: INVEST_INFLOW_OTHER_QOQ
+    nullable: false
+  - name: INVEST_INFLOW_BALANCE_QOQ
+    type: Float64
+    from: INVEST_INFLOW_BALANCE_QOQ
+    nullable: false
+  - name: TOTAL_INVEST_INFLOW_QOQ
+    type: Float64
+    from: TOTAL_INVEST_INFLOW_QOQ
+    nullable: false
+  - name: CONSTRUCT_LONG_ASSET_QOQ
+    type: Float64
+    from: CONSTRUCT_LONG_ASSET_QOQ
+    nullable: false
+  - name: INVEST_PAY_CASH_QOQ
+    type: Float64
+    from: INVEST_PAY_CASH_QOQ
+    nullable: false
+  - name: PLEDGE_LOAN_ADD_QOQ
+    type: Float64
+    from: PLEDGE_LOAN_ADD_QOQ
+    nullable: false
+  - name: OBTAIN_SUBSIDIARY_OTHER_QOQ
+    type: Float64
+    from: OBTAIN_SUBSIDIARY_OTHER_QOQ
+    nullable: false
+  - name: ADD_PLEDGE_TIMEDEPOSITS_QOQ
+    type: Float64
+    from: ADD_PLEDGE_TIMEDEPOSITS_QOQ
+    nullable: false
+  - name: PAY_OTHER_INVEST_QOQ
+    type: Float64
+    from: PAY_OTHER_INVEST_QOQ
+    nullable: false
+  - name: INVEST_OUTFLOW_OTHER_QOQ
+    type: Float64
+    from: INVEST_OUTFLOW_OTHER_QOQ
+    nullable: false
+  - name: INVEST_OUTFLOW_BALANCE_QOQ
+    type: Float64
+    from: INVEST_OUTFLOW_BALANCE_QOQ
+    nullable: false
+  - name: TOTAL_INVEST_OUTFLOW_QOQ
+    type: Float64
+    from: TOTAL_INVEST_OUTFLOW_QOQ
+    nullable: false
+  - name: INVEST_NETCASH_OTHER_QOQ
+    type: Float64
+    from: INVEST_NETCASH_OTHER_QOQ
+    nullable: false
+  - name: INVEST_NETCASH_BALANCE_QOQ
+    type: Float64
+    from: INVEST_NETCASH_BALANCE_QOQ
+    nullable: false
+  - name: NETCASH_INVEST_QOQ
+    type: Float64
+    from: NETCASH_INVEST_QOQ
+    nullable: false
+  - name: ACCEPT_INVEST_CASH_QOQ
+    type: Float64
+    from: ACCEPT_INVEST_CASH_QOQ
+    nullable: false
+  - name: SUBSIDIARY_ACCEPT_INVEST_QOQ
+    type: Float64
+    from: SUBSIDIARY_ACCEPT_INVEST_QOQ
+    nullable: false
+  - name: RECEIVE_LOAN_CASH_QOQ
+    type: Float64
+    from: RECEIVE_LOAN_CASH_QOQ
+    nullable: false
+  - name: ISSUE_BOND_QOQ
+    type: Float64
+    from: ISSUE_BOND_QOQ
+    nullable: false
+  - name: RECEIVE_OTHER_FINANCE_QOQ
+    type: Float64
+    from: RECEIVE_OTHER_FINANCE_QOQ
+    nullable: false
+  - name: FINANCE_INFLOW_OTHER_QOQ
+    type: Float64
+    from: FINANCE_INFLOW_OTHER_QOQ
+    nullable: false
+  - name: FINANCE_INFLOW_BALANCE_QOQ
+    type: Float64
+    from: FINANCE_INFLOW_BALANCE_QOQ
+    nullable: false
+  - name: TOTAL_FINANCE_INFLOW_QOQ
+    type: Float64
+    from: TOTAL_FINANCE_INFLOW_QOQ
+    nullable: false
+  - name: PAY_DEBT_CASH_QOQ
+    type: Float64
+    from: PAY_DEBT_CASH_QOQ
+    nullable: false
+  - name: ASSIGN_DIVIDEND_PORFIT_QOQ
+    type: Float64
+    from: ASSIGN_DIVIDEND_PORFIT_QOQ
+    nullable: false
+  - name: SUBSIDIARY_PAY_DIVIDEND_QOQ
+    type: Float64
+    from: SUBSIDIARY_PAY_DIVIDEND_QOQ
+    nullable: false
+  - name: BUY_SUBSIDIARY_EQUITY_QOQ
+    type: Float64
+    from: BUY_SUBSIDIARY_EQUITY_QOQ
+    nullable: false
+  - name: PAY_OTHER_FINANCE_QOQ
+    type: Float64
+    from: PAY_OTHER_FINANCE_QOQ
+    nullable: false
+  - name: SUBSIDIARY_REDUCE_CASH_QOQ
+    type: Float64
+    from: SUBSIDIARY_REDUCE_CASH_QOQ
+    nullable: false
+  - name: FINANCE_OUTFLOW_OTHER_QOQ
+    type: Float64
+    from: FINANCE_OUTFLOW_OTHER_QOQ
+    nullable: false
+  - name: FINANCE_OUTFLOW_BALANCE_QOQ
+    type: Float64
+    from: FINANCE_OUTFLOW_BALANCE_QOQ
+    nullable: false
+  - name: TOTAL_FINANCE_OUTFLOW_QOQ
+    type: Float64
+    from: TOTAL_FINANCE_OUTFLOW_QOQ
+    nullable: false
+  - name: FINANCE_NETCASH_OTHER_QOQ
+    type: Float64
+    from: FINANCE_NETCASH_OTHER_QOQ
+    nullable: false
+  - name: FINANCE_NETCASH_BALANCE_QOQ
+    type: Float64
+    from: FINANCE_NETCASH_BALANCE_QOQ
+    nullable: false
+  - name: NETCASH_FINANCE_QOQ
+    type: Float64
+    from: NETCASH_FINANCE_QOQ
+    nullable: false
+  - name: RATE_CHANGE_EFFECT_QOQ
+    type: Float64
+    from: RATE_CHANGE_EFFECT_QOQ
+    nullable: false
+  - name: CCE_ADD_OTHER_QOQ
+    type: Float64
+    from: CCE_ADD_OTHER_QOQ
+    nullable: false
+  - name: CCE_ADD_BALANCE_QOQ
+    type: Float64
+    from: CCE_ADD_BALANCE_QOQ
+    nullable: false
+  - name: CCE_ADD_QOQ
+    type: Float64
+    from: CCE_ADD_QOQ
+    nullable: false
+  - name: BEGIN_CCE_QOQ
+    type: Float64
+    from: BEGIN_CCE_QOQ
+    nullable: false
+  - name: END_CCE_OTHER_QOQ
+    type: Float64
+    from: END_CCE_OTHER_QOQ
+    nullable: false
+  - name: END_CCE_BALANCE_QOQ
+    type: Float64
+    from: END_CCE_BALANCE_QOQ
+    nullable: false
+  - name: END_CCE_QOQ
+    type: Float64
+    from: END_CCE_QOQ
+    nullable: false
+  - name: NETPROFIT
+    type: Float64
+    from: NETPROFIT
+    nullable: false
+  - name: ASSET_IMPAIRMENT
+    type: Float64
+    from: ASSET_IMPAIRMENT
+    nullable: false
+  - name: FA_IR_DEPR
+    type: Float64
+    from: FA_IR_DEPR
+    nullable: false
+  - name: OILGAS_BIOLOGY_DEPR
+    type: Float64
+    from: OILGAS_BIOLOGY_DEPR
+    nullable: false
+  - name: IR_DEPR
+    type: Float64
+    from: IR_DEPR
+    nullable: false
+  - name: IA_AMORTIZE
+    type: Float64
+    from: IA_AMORTIZE
+    nullable: false
+  - name: LPE_AMORTIZE
+    type: Float64
+    from: LPE_AMORTIZE
+    nullable: false
+  - name: DEFER_INCOME_AMORTIZE
+    type: Float64
+    from: DEFER_INCOME_AMORTIZE
+    nullable: false
+  - name: PREPAID_EXPENSE_REDUCE
+    type: Float64
+    from: PREPAID_EXPENSE_REDUCE
+    nullable: false
+  - name: ACCRUED_EXPENSE_ADD
+    type: Float64
+    from: ACCRUED_EXPENSE_ADD
+    nullable: false
+  - name: DISPOSAL_LONGASSET_LOSS
+    type: Float64
+    from: DISPOSAL_LONGASSET_LOSS
+    nullable: false
+  - name: FA_SCRAP_LOSS
+    type: Float64
+    from: FA_SCRAP_LOSS
+    nullable: false
+  - name: FAIRVALUE_CHANGE_LOSS
+    type: Float64
+    from: FAIRVALUE_CHANGE_LOSS
+    nullable: false
+  - name: FINANCE_EXPENSE
+    type: Float64
+    from: FINANCE_EXPENSE
+    nullable: false
+  - name: INVEST_LOSS
+    type: Float64
+    from: INVEST_LOSS
+    nullable: false
+  - name: DEFER_TAX
+    type: Float64
+    from: DEFER_TAX
+    nullable: false
+  - name: DT_ASSET_REDUCE
+    type: Float64
+    from: DT_ASSET_REDUCE
+    nullable: false
+  - name: DT_LIAB_ADD
+    type: Float64
+    from: DT_LIAB_ADD
+    nullable: false
+  - name: PREDICT_LIAB_ADD
+    type: Float64
+    from: PREDICT_LIAB_ADD
+    nullable: false
+  - name: INVENTORY_REDUCE
+    type: Float64
+    from: INVENTORY_REDUCE
+    nullable: false
+  - name: OPERATE_RECE_REDUCE
+    type: Float64
+    from: OPERATE_RECE_REDUCE
+    nullable: false
+  - name: OPERATE_PAYABLE_ADD
+    type: Float64
+    from: OPERATE_PAYABLE_ADD
+    nullable: false
+  - name: OTHER
+    type: Float64
+    from: OTHER
+    nullable: false
+  - name: OPERATE_NETCASH_OTHERNOTE
+    type: Float64
+    from: OPERATE_NETCASH_OTHERNOTE
+    nullable: false
+  - name: OPERATE_NETCASH_BALANCENOTE
+    type: Float64
+    from: OPERATE_NETCASH_BALANCENOTE
+    nullable: false
+  - name: NETCASH_OPERATENOTE
+    type: Float64
+    from: NETCASH_OPERATENOTE
+    nullable: false
+  - name: DEBT_TRANSFER_CAPITAL
+    type: Float64
+    from: DEBT_TRANSFER_CAPITAL
+    nullable: false
+  - name: CONVERT_BOND_1YEAR
+    type: Float64
+    from: CONVERT_BOND_1YEAR
+    nullable: false
+  - name: FINLEASE_OBTAIN_FA
+    type: Float64
+    from: FINLEASE_OBTAIN_FA
+    nullable: false
+  - name: UNINVOLVE_INVESTFIN_OTHER
+    type: Float64
+    from: UNINVOLVE_INVESTFIN_OTHER
+    nullable: false
+  - name: END_CASH
+    type: Float64
+    from: END_CASH
+    nullable: false
+  - name: BEGIN_CASH
+    type: Float64
+    from: BEGIN_CASH
+    nullable: false
+  - name: END_CASH_EQUIVALENTS
+    type: Float64
+    from: END_CASH_EQUIVALENTS
+    nullable: false
+  - name: BEGIN_CASH_EQUIVALENTS
+    type: Float64
+    from: BEGIN_CASH_EQUIVALENTS
+    nullable: false
+  - name: CCE_ADD_OTHERNOTE
+    type: Float64
+    from: CCE_ADD_OTHERNOTE
+    nullable: false
+  - name: CCE_ADD_BALANCENOTE
+    type: Float64
+    from: CCE_ADD_BALANCENOTE
+    nullable: false
+  - name: CCE_ADDNOTE
+    type: Float64
+    from: CCE_ADDNOTE
+    nullable: false
+  - name: MINORITY_INTEREST
+    type: Float64
+    from: MINORITY_INTEREST
+    nullable: false
+  - name: NETPROFIT_QOQ
+    type: Float64
+    from: NETPROFIT_QOQ
+    nullable: false
+  - name: ASSET_IMPAIRMENT_QOQ
+    type: Float64
+    from: ASSET_IMPAIRMENT_QOQ
+    nullable: false
+  - name: FA_IR_DEPR_QOQ
+    type: Float64
+    from: FA_IR_DEPR_QOQ
+    nullable: false
+  - name: OILGAS_BIOLOGY_DEPR_QOQ
+    type: Float64
+    from: OILGAS_BIOLOGY_DEPR_QOQ
+    nullable: false
+  - name: IR_DEPR_QOQ
+    type: Float64
+    from: IR_DEPR_QOQ
+    nullable: false
+  - name: IA_AMORTIZE_QOQ
+    type: Float64
+    from: IA_AMORTIZE_QOQ
+    nullable: false
+  - name: LPE_AMORTIZE_QOQ
+    type: Float64
+    from: LPE_AMORTIZE_QOQ
+    nullable: false
+  - name: DEFER_INCOME_AMORTIZE_QOQ
+    type: Float64
+    from: DEFER_INCOME_AMORTIZE_QOQ
+    nullable: false
+  - name: PREPAID_EXPENSE_REDUCE_QOQ
+    type: Float64
+    from: PREPAID_EXPENSE_REDUCE_QOQ
+    nullable: false
+  - name: ACCRUED_EXPENSE_ADD_QOQ
+    type: Float64
+    from: ACCRUED_EXPENSE_ADD_QOQ
+    nullable: false
+  - name: DISPOSAL_LONGASSET_LOSS_QOQ
+    type: Float64
+    from: DISPOSAL_LONGASSET_LOSS_QOQ
+    nullable: false
+  - name: FA_SCRAP_LOSS_QOQ
+    type: Float64
+    from: FA_SCRAP_LOSS_QOQ
+    nullable: false
+  - name: FAIRVALUE_CHANGE_LOSS_QOQ
+    type: Float64
+    from: FAIRVALUE_CHANGE_LOSS_QOQ
+    nullable: false
+  - name: FINANCE_EXPENSE_QOQ
+    type: Float64
+    from: FINANCE_EXPENSE_QOQ
+    nullable: false
+  - name: INVEST_LOSS_QOQ
+    type: Float64
+    from: INVEST_LOSS_QOQ
+    nullable: false
+  - name: DEFER_TAX_QOQ
+    type: Float64
+    from: DEFER_TAX_QOQ
+    nullable: false
+  - name: DT_ASSET_REDUCE_QOQ
+    type: Float64
+    from: DT_ASSET_REDUCE_QOQ
+    nullable: false
+  - name: DT_LIAB_ADD_QOQ
+    type: Float64
+    from: DT_LIAB_ADD_QOQ
+    nullable: false
+  - name: PREDICT_LIAB_ADD_QOQ
+    type: Float64
+    from: PREDICT_LIAB_ADD_QOQ
+    nullable: false
+  - name: INVENTORY_REDUCE_QOQ
+    type: Float64
+    from: INVENTORY_REDUCE_QOQ
+    nullable: false
+  - name: OPERATE_RECE_REDUCE_QOQ
+    type: Float64
+    from: OPERATE_RECE_REDUCE_QOQ
+    nullable: false
+  - name: OPERATE_PAYABLE_ADD_QOQ
+    type: Float64
+    from: OPERATE_PAYABLE_ADD_QOQ
+    nullable: false
+  - name: OTHER_QOQ
+    type: Float64
+    from: OTHER_QOQ
+    nullable: false
+  - name: OPERATE_NETCASH_OTHERNOTE_QOQ
+    type: Float64
+    from: OPERATE_NETCASH_OTHERNOTE_QOQ
+    nullable: false
+  - name: OPERATE_NETCASH_BALANCENOTE_QOQ
+    type: Float64
+    from: OPERATE_NETCASH_BALANCENOTE_QOQ
+    nullable: false
+  - name: NETCASH_OPERATENOTE_QOQ
+    type: Float64
+    from: NETCASH_OPERATENOTE_QOQ
+    nullable: false
+  - name: DEBT_TRANSFER_CAPITAL_QOQ
+    type: Float64
+    from: DEBT_TRANSFER_CAPITAL_QOQ
+    nullable: false
+  - name: CONVERT_BOND_1YEAR_QOQ
+    type: Float64
+    from: CONVERT_BOND_1YEAR_QOQ
+    nullable: false
+  - name: FINLEASE_OBTAIN_FA_QOQ
+    type: Float64
+    from: FINLEASE_OBTAIN_FA_QOQ
+    nullable: false
+  - name: UNINVOLVE_INVESTFIN_OTHER_QOQ
+    type: Float64
+    from: UNINVOLVE_INVESTFIN_OTHER_QOQ
+    nullable: false
+  - name: END_CASH_QOQ
+    type: Float64
+    from: END_CASH_QOQ
+    nullable: false
+  - name: BEGIN_CASH_QOQ
+    type: Float64
+    from: BEGIN_CASH_QOQ
+    nullable: false
+  - name: END_CASH_EQUIVALENTS_QOQ
+    type: Float64
+    from: END_CASH_EQUIVALENTS_QOQ
+    nullable: false
+  - name: BEGIN_CASH_EQUIVALENTS_QOQ
+    type: Float64
+    from: BEGIN_CASH_EQUIVALENTS_QOQ
+    nullable: false
+  - name: CCE_ADD_OTHERNOTE_QOQ
+    type: Float64
+    from: CCE_ADD_OTHERNOTE_QOQ
+    nullable: false
+  - name: CCE_ADD_BALANCENOTE_QOQ
+    type: Float64
+    from: CCE_ADD_BALANCENOTE_QOQ
+    nullable: false
+  - name: CCE_ADDNOTE_QOQ
+    type: Float64
+    from: CCE_ADDNOTE_QOQ
+    nullable: false
+  - name: MINORITY_INTEREST_QOQ
+    type: Float64
+    from: MINORITY_INTEREST_QOQ
+    nullable: false
+  - name: OPINION_TYPE
+    type: LowCardinality(String)
+    from: OPINION_TYPE
+    nullable: false
+    reason: expected_low_cardinality_dimension
+  - name: OSOPINION_TYPE
+    type: LowCardinality(String)
+    from: OSOPINION_TYPE
+    nullable: false
+    reason: expected_low_cardinality_dimension
+  - name: LISTING_STATE
+    type: LowCardinality(String)
+    from: LISTING_STATE
+    nullable: false
+    reason: expected_low_cardinality_dimension
+  - name: SALES_SERVICES_YOY
+    type: Float64
+    from: SALES_SERVICES_YOY
+    nullable: false
+  - name: DEPOSIT_INTERBANK_ADD_YOY
+    type: Float64
+    from: DEPOSIT_INTERBANK_ADD_YOY
+    nullable: false
+  - name: LOAN_PBC_ADD_YOY
+    type: Float64
+    from: LOAN_PBC_ADD_YOY
+    nullable: false
+  - name: OFI_BF_ADD_YOY
+    type: Float64
+    from: OFI_BF_ADD_YOY
+    nullable: false
+  - name: RECEIVE_ORIGIC_PREMIUM_YOY
+    type: Float64
+    from: RECEIVE_ORIGIC_PREMIUM_YOY
+    nullable: false
+  - name: RECEIVE_REINSURE_NET_YOY
+    type: Float64
+    from: RECEIVE_REINSURE_NET_YOY
+    nullable: false
+  - name: INSURED_INVEST_ADD_YOY
+    type: Float64
+    from: INSURED_INVEST_ADD_YOY
+    nullable: false
+  - name: DISPOSAL_TFA_ADD_YOY
+    type: Float64
+    from: DISPOSAL_TFA_ADD_YOY
+    nullable: false
+  - name: RECEIVE_INTEREST_COMMISSION_YOY
+    type: Float64
+    from: RECEIVE_INTEREST_COMMISSION_YOY
+    nullable: false
+  - name: BORROW_FUND_ADD_YOY
+    type: Float64
+    from: BORROW_FUND_ADD_YOY
+    nullable: false
+  - name: LOAN_ADVANCE_REDUCE_YOY
+    type: Float64
+    from: LOAN_ADVANCE_REDUCE_YOY
+    nullable: false
+  - name: REPO_BUSINESS_ADD_YOY
+    type: Float64
+    from: REPO_BUSINESS_ADD_YOY
+    nullable: false
+  - name: RECEIVE_TAX_REFUND_YOY
+    type: Float64
+    from: RECEIVE_TAX_REFUND_YOY
+    nullable: false
+  - name: RECEIVE_OTHER_OPERATE_YOY
+    type: Float64
+    from: RECEIVE_OTHER_OPERATE_YOY
+    nullable: false
+  - name: OPERATE_INFLOW_OTHER_YOY
+    type: Float64
+    from: OPERATE_INFLOW_OTHER_YOY
+    nullable: false
+  - name: OPERATE_INFLOW_BALANCE_YOY
+    type: Float64
+    from: OPERATE_INFLOW_BALANCE_YOY
+    nullable: false
+  - name: TOTAL_OPERATE_INFLOW_YOY
+    type: Float64
+    from: TOTAL_OPERATE_INFLOW_YOY
+    nullable: false
+  - name: BUY_SERVICES_YOY
+    type: Float64
+    from: BUY_SERVICES_YOY
+    nullable: false
+  - name: LOAN_ADVANCE_ADD_YOY
+    type: Float64
+    from: LOAN_ADVANCE_ADD_YOY
+    nullable: false
+  - name: PBC_INTERBANK_ADD_YOY
+    type: Float64
+    from: PBC_INTERBANK_ADD_YOY
+    nullable: false
+  - name: PAY_ORIGIC_COMPENSATE_YOY
+    type: Float64
+    from: PAY_ORIGIC_COMPENSATE_YOY
+    nullable: false
+  - name: PAY_INTEREST_COMMISSION_YOY
+    type: Float64
+    from: PAY_INTEREST_COMMISSION_YOY
+    nullable: false
+  - name: PAY_POLICY_BONUS_YOY
+    type: Float64
+    from: PAY_POLICY_BONUS_YOY
+    nullable: false
+  - name: PAY_STAFF_CASH_YOY
+    type: Float64
+    from: PAY_STAFF_CASH_YOY
+    nullable: false
+  - name: PAY_ALL_TAX_YOY
+    type: Float64
+    from: PAY_ALL_TAX_YOY
+    nullable: false
+  - name: PAY_OTHER_OPERATE_YOY
+    type: Float64
+    from: PAY_OTHER_OPERATE_YOY
+    nullable: false
+  - name: OPERATE_OUTFLOW_OTHER_YOY
+    type: Float64
+    from: OPERATE_OUTFLOW_OTHER_YOY
+    nullable: false
+  - name: OPERATE_OUTFLOW_BALANCE_YOY
+    type: Float64
+    from: OPERATE_OUTFLOW_BALANCE_YOY
+    nullable: false
+  - name: TOTAL_OPERATE_OUTFLOW_YOY
+    type: Float64
+    from: TOTAL_OPERATE_OUTFLOW_YOY
+    nullable: false
+  - name: OPERATE_NETCASH_OTHER_YOY
+    type: Float64
+    from: OPERATE_NETCASH_OTHER_YOY
+    nullable: false
+  - name: OPERATE_NETCASH_BALANCE_YOY
+    type: Float64
+    from: OPERATE_NETCASH_BALANCE_YOY
+    nullable: false
+  - name: NETCASH_OPERATE_YOY
+    type: Float64
+    from: NETCASH_OPERATE_YOY
+    nullable: false
+  - name: WITHDRAW_INVEST_YOY
+    type: Float64
+    from: WITHDRAW_INVEST_YOY
+    nullable: false
+  - name: RECEIVE_INVEST_INCOME_YOY
+    type: Float64
+    from: RECEIVE_INVEST_INCOME_YOY
+    nullable: false
+  - name: DISPOSAL_LONG_ASSET_YOY
+    type: Float64
+    from: DISPOSAL_LONG_ASSET_YOY
+    nullable: false
+  - name: DISPOSAL_SUBSIDIARY_OTHER_YOY
+    type: Float64
+    from: DISPOSAL_SUBSIDIARY_OTHER_YOY
+    nullable: false
+  - name: REDUCE_PLEDGE_TIMEDEPOSITS_YOY
+    type: Float64
+    from: REDUCE_PLEDGE_TIMEDEPOSITS_YOY
+    nullable: false
+  - name: RECEIVE_OTHER_INVEST_YOY
+    type: Float64
+    from: RECEIVE_OTHER_INVEST_YOY
+    nullable: false
+  - name: INVEST_INFLOW_OTHER_YOY
+    type: Float64
+    from: INVEST_INFLOW_OTHER_YOY
+    nullable: false
+  - name: INVEST_INFLOW_BALANCE_YOY
+    type: Float64
+    from: INVEST_INFLOW_BALANCE_YOY
+    nullable: false
+  - name: TOTAL_INVEST_INFLOW_YOY
+    type: Float64
+    from: TOTAL_INVEST_INFLOW_YOY
+    nullable: false
+  - name: CONSTRUCT_LONG_ASSET_YOY
+    type: Float64
+    from: CONSTRUCT_LONG_ASSET_YOY
+    nullable: false
+  - name: INVEST_PAY_CASH_YOY
+    type: Float64
+    from: INVEST_PAY_CASH_YOY
+    nullable: false
+  - name: PLEDGE_LOAN_ADD_YOY
+    type: Float64
+    from: PLEDGE_LOAN_ADD_YOY
+    nullable: false
+  - name: OBTAIN_SUBSIDIARY_OTHER_YOY
+    type: Float64
+    from: OBTAIN_SUBSIDIARY_OTHER_YOY
+    nullable: false
+  - name: ADD_PLEDGE_TIMEDEPOSITS_YOY
+    type: Float64
+    from: ADD_PLEDGE_TIMEDEPOSITS_YOY
+    nullable: false
+  - name: PAY_OTHER_INVEST_YOY
+    type: Float64
+    from: PAY_OTHER_INVEST_YOY
+    nullable: false
+  - name: INVEST_OUTFLOW_OTHER_YOY
+    type: Float64
+    from: INVEST_OUTFLOW_OTHER_YOY
+    nullable: false
+  - name: INVEST_OUTFLOW_BALANCE_YOY
+    type: Float64
+    from: INVEST_OUTFLOW_BALANCE_YOY
+    nullable: false
+  - name: TOTAL_INVEST_OUTFLOW_YOY
+    type: Float64
+    from: TOTAL_INVEST_OUTFLOW_YOY
+    nullable: false
+  - name: INVEST_NETCASH_OTHER_YOY
+    type: Float64
+    from: INVEST_NETCASH_OTHER_YOY
+    nullable: false
+  - name: INVEST_NETCASH_BALANCE_YOY
+    type: Float64
+    from: INVEST_NETCASH_BALANCE_YOY
+    nullable: false
+  - name: NETCASH_INVEST_YOY
+    type: Float64
+    from: NETCASH_INVEST_YOY
+    nullable: false
+  - name: ACCEPT_INVEST_CASH_YOY
+    type: Float64
+    from: ACCEPT_INVEST_CASH_YOY
+    nullable: false
+  - name: SUBSIDIARY_ACCEPT_INVEST_YOY
+    type: Float64
+    from: SUBSIDIARY_ACCEPT_INVEST_YOY
+    nullable: false
+  - name: RECEIVE_LOAN_CASH_YOY
+    type: Float64
+    from: RECEIVE_LOAN_CASH_YOY
+    nullable: false
+  - name: ISSUE_BOND_YOY
+    type: Float64
+    from: ISSUE_BOND_YOY
+    nullable: false
+  - name: RECEIVE_OTHER_FINANCE_YOY
+    type: Float64
+    from: RECEIVE_OTHER_FINANCE_YOY
+    nullable: false
+  - name: FINANCE_INFLOW_OTHER_YOY
+    type: Float64
+    from: FINANCE_INFLOW_OTHER_YOY
+    nullable: false
+  - name: FINANCE_INFLOW_BALANCE_YOY
+    type: Float64
+    from: FINANCE_INFLOW_BALANCE_YOY
+    nullable: false
+  - name: TOTAL_FINANCE_INFLOW_YOY
+    type: Float64
+    from: TOTAL_FINANCE_INFLOW_YOY
+    nullable: false
+  - name: PAY_DEBT_CASH_YOY
+    type: Float64
+    from: PAY_DEBT_CASH_YOY
+    nullable: false
+  - name: ASSIGN_DIVIDEND_PORFIT_YOY
+    type: Float64
+    from: ASSIGN_DIVIDEND_PORFIT_YOY
+    nullable: false
+  - name: SUBSIDIARY_PAY_DIVIDEND_YOY
+    type: Float64
+    from: SUBSIDIARY_PAY_DIVIDEND_YOY
+    nullable: false
+  - name: BUY_SUBSIDIARY_EQUITY_YOY
+    type: Float64
+    from: BUY_SUBSIDIARY_EQUITY_YOY
+    nullable: false
+  - name: PAY_OTHER_FINANCE_YOY
+    type: Float64
+    from: PAY_OTHER_FINANCE_YOY
+    nullable: false
+  - name: SUBSIDIARY_REDUCE_CASH_YOY
+    type: Float64
+    from: SUBSIDIARY_REDUCE_CASH_YOY
+    nullable: false
+  - name: FINANCE_OUTFLOW_OTHER_YOY
+    type: Float64
+    from: FINANCE_OUTFLOW_OTHER_YOY
+    nullable: false
+  - name: FINANCE_OUTFLOW_BALANCE_YOY
+    type: Float64
+    from: FINANCE_OUTFLOW_BALANCE_YOY
+    nullable: false
+  - name: TOTAL_FINANCE_OUTFLOW_YOY
+    type: Float64
+    from: TOTAL_FINANCE_OUTFLOW_YOY
+    nullable: false
+  - name: FINANCE_NETCASH_OTHER_YOY
+    type: Float64
+    from: FINANCE_NETCASH_OTHER_YOY
+    nullable: false
+  - name: FINANCE_NETCASH_BALANCE_YOY
+    type: Float64
+    from: FINANCE_NETCASH_BALANCE_YOY
+    nullable: false
+  - name: NETCASH_FINANCE_YOY
+    type: Float64
+    from: NETCASH_FINANCE_YOY
+    nullable: false
+  - name: RATE_CHANGE_EFFECT_YOY
+    type: Float64
+    from: RATE_CHANGE_EFFECT_YOY
+    nullable: false
+  - name: CCE_ADD_OTHER_YOY
+    type: Float64
+    from: CCE_ADD_OTHER_YOY
+    nullable: false
+  - name: CCE_ADD_BALANCE_YOY
+    type: Float64
+    from: CCE_ADD_BALANCE_YOY
+    nullable: false
+  - name: CCE_ADD_YOY
+    type: Float64
+    from: CCE_ADD_YOY
+    nullable: false
+  - name: BEGIN_CCE_YOY
+    type: Float64
+    from: BEGIN_CCE_YOY
+    nullable: false
+  - name: END_CCE_OTHER_YOY
+    type: Float64
+    from: END_CCE_OTHER_YOY
+    nullable: false
+  - name: END_CCE_BALANCE_YOY
+    type: Float64
+    from: END_CCE_BALANCE_YOY
+    nullable: false
+  - name: END_CCE_YOY
+    type: Float64
+    from: END_CCE_YOY
+    nullable: false
+  - name: NETPROFIT_YOY
+    type: Float64
+    from: NETPROFIT_YOY
+    nullable: false
+  - name: ASSET_IMPAIRMENT_YOY
+    type: Float64
+    from: ASSET_IMPAIRMENT_YOY
+    nullable: false
+  - name: FA_IR_DEPR_YOY
+    type: Float64
+    from: FA_IR_DEPR_YOY
+    nullable: false
+  - name: OILGAS_BIOLOGY_DEPR_YOY
+    type: Float64
+    from: OILGAS_BIOLOGY_DEPR_YOY
+    nullable: false
+  - name: IR_DEPR_YOY
+    type: Float64
+    from: IR_DEPR_YOY
+    nullable: false
+  - name: IA_AMORTIZE_YOY
+    type: Float64
+    from: IA_AMORTIZE_YOY
+    nullable: false
+  - name: LPE_AMORTIZE_YOY
+    type: Float64
+    from: LPE_AMORTIZE_YOY
+    nullable: false
+  - name: DEFER_INCOME_AMORTIZE_YOY
+    type: Float64
+    from: DEFER_INCOME_AMORTIZE_YOY
+    nullable: false
+  - name: PREPAID_EXPENSE_REDUCE_YOY
+    type: Float64
+    from: PREPAID_EXPENSE_REDUCE_YOY
+    nullable: false
+  - name: ACCRUED_EXPENSE_ADD_YOY
+    type: Float64
+    from: ACCRUED_EXPENSE_ADD_YOY
+    nullable: false
+  - name: DISPOSAL_LONGASSET_LOSS_YOY
+    type: Float64
+    from: DISPOSAL_LONGASSET_LOSS_YOY
+    nullable: false
+  - name: FA_SCRAP_LOSS_YOY
+    type: Float64
+    from: FA_SCRAP_LOSS_YOY
+    nullable: false
+  - name: FAIRVALUE_CHANGE_LOSS_YOY
+    type: Float64
+    from: FAIRVALUE_CHANGE_LOSS_YOY
+    nullable: false
+  - name: FINANCE_EXPENSE_YOY
+    type: Float64
+    from: FINANCE_EXPENSE_YOY
+    nullable: false
+  - name: INVEST_LOSS_YOY
+    type: Float64
+    from: INVEST_LOSS_YOY
+    nullable: false
+  - name: DEFER_TAX_YOY
+    type: Float64
+    from: DEFER_TAX_YOY
+    nullable: false
+  - name: DT_ASSET_REDUCE_YOY
+    type: Float64
+    from: DT_ASSET_REDUCE_YOY
+    nullable: false
+  - name: DT_LIAB_ADD_YOY
+    type: Float64
+    from: DT_LIAB_ADD_YOY
+    nullable: false
+  - name: PREDICT_LIAB_ADD_YOY
+    type: Float64
+    from: PREDICT_LIAB_ADD_YOY
+    nullable: false
+  - name: INVENTORY_REDUCE_YOY
+    type: Float64
+    from: INVENTORY_REDUCE_YOY
+    nullable: false
+  - name: OPERATE_RECE_REDUCE_YOY
+    type: Float64
+    from: OPERATE_RECE_REDUCE_YOY
+    nullable: false
+  - name: OPERATE_PAYABLE_ADD_YOY
+    type: Float64
+    from: OPERATE_PAYABLE_ADD_YOY
+    nullable: false
+  - name: OTHER_YOY
+    type: Float64
+    from: OTHER_YOY
+    nullable: false
+  - name: OPERATE_NETCASH_OTHERNOTE_YOY
+    type: Float64
+    from: OPERATE_NETCASH_OTHERNOTE_YOY
+    nullable: false
+  - name: OPERATE_NETCASH_BALANCENOTE_YOY
+    type: Float64
+    from: OPERATE_NETCASH_BALANCENOTE_YOY
+    nullable: false
+  - name: NETCASH_OPERATENOTE_YOY
+    type: Float64
+    from: NETCASH_OPERATENOTE_YOY
+    nullable: false
+  - name: DEBT_TRANSFER_CAPITAL_YOY
+    type: Float64
+    from: DEBT_TRANSFER_CAPITAL_YOY
+    nullable: false
+  - name: CONVERT_BOND_1YEAR_YOY
+    type: Float64
+    from: CONVERT_BOND_1YEAR_YOY
+    nullable: false
+  - name: FINLEASE_OBTAIN_FA_YOY
+    type: Float64
+    from: FINLEASE_OBTAIN_FA_YOY
+    nullable: false
+  - name: UNINVOLVE_INVESTFIN_OTHER_YOY
+    type: Float64
+    from: UNINVOLVE_INVESTFIN_OTHER_YOY
+    nullable: false
+  - name: END_CASH_YOY
+    type: Float64
+    from: END_CASH_YOY
+    nullable: false
+  - name: BEGIN_CASH_YOY
+    type: Float64
+    from: BEGIN_CASH_YOY
+    nullable: false
+  - name: END_CASH_EQUIVALENTS_YOY
+    type: Float64
+    from: END_CASH_EQUIVALENTS_YOY
+    nullable: false
+  - name: BEGIN_CASH_EQUIVALENTS_YOY
+    type: Float64
+    from: BEGIN_CASH_EQUIVALENTS_YOY
+    nullable: false
+  - name: CCE_ADD_OTHERNOTE_YOY
+    type: Float64
+    from: CCE_ADD_OTHERNOTE_YOY
+    nullable: false
+  - name: CCE_ADD_BALANCENOTE_YOY
+    type: Float64
+    from: CCE_ADD_BALANCENOTE_YOY
+    nullable: false
+  - name: CCE_ADDNOTE_YOY
+    type: Float64
+    from: CCE_ADDNOTE_YOY
+    nullable: false
+  - name: MINORITY_INTEREST_YOY
+    type: Float64
+    from: MINORITY_INTEREST_YOY
+    nullable: false
+dbt_staging:
+  status: not_started
+dataset_note_zh: 东方财富单季度现金流量表 F10 年度 raw 分区
+validation_notes:
+- Initial contract migrated from docs/references/data_dict and current raw sync specs.

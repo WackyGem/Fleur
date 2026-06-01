@@ -1,0 +1,807 @@
+dataset: eastmoney__equity_history
+version: 1
+owner: data
+grain: one row per security code per report date
+source_asset_key:
+- source
+- eastmoney__equity_history
+raw_asset_key:
+- clickhouse
+- raw
+- eastmoney__equity_history
+external:
+  provider: eastmoney
+  source_table_name: eastmoney__equity_history
+  source_description_zh: 东方财富股本变动历史 F10 年度 raw 分区
+source:
+  protocol: http
+  payload_format: json
+  fields:
+  - name: SECUCODE
+    type: string
+    required: true
+    external_description_zh: 证券代码（含市场后缀）
+  - name: SECURITY_CODE
+    type: string
+    required: true
+    external_description_zh: 证券代码（纯数字）
+  - name: ORG_CODE
+    type: string
+    required: true
+    external_description_zh: 机构代码
+  - name: END_DATE
+    type: string
+    required: true
+    external_description_zh: 股本变动截止日
+  - name: CHANGE_REASON
+    type: string
+    required: true
+    external_description_zh: 变动原因
+  - name: LIMITED_SHARES
+    type: number
+    required: true
+    external_description_zh: 有限售条件股份
+  - name: UNLIMITED_SHARES
+    type: number
+    required: true
+    external_description_zh: 无限售条件股份（已流通）
+  - name: TOTAL_SHARES
+    type: number
+    required: true
+    external_description_zh: 总股本
+  - name: LIMITED_SHARES_RATIO
+    type: number
+    required: true
+    external_description_zh: 限售股比例（%）
+  - name: LISTED_SHARES_RATIO
+    type: number
+    required: true
+    external_description_zh: 已流通股比例（%）
+  - name: TOTAL_SHARES_RATIO
+    type: string
+    required: true
+    external_description_zh: 总股本比例（%）
+  - name: LISTED_A_SHARES
+    type: number
+    required: true
+    external_description_zh: 已上市流通 A 股
+  - name: LIMITED_A_SHARES
+    type: number
+    required: true
+    external_description_zh: 限售 A 股
+  - name: LISTED_A_SHARES_RATIO
+    type: number
+    required: true
+    external_description_zh: A 股流通比例（%）
+  - name: LIMITED_A_SHARES_RATIO
+    type: number
+    required: true
+    external_description_zh: 限售A股比例（%）
+  - name: B_FREE_SHARE
+    type: number
+    required: true
+    external_description_zh: 已上市流通 B 股
+  - name: H_FREE_SHARE
+    type: number
+    required: true
+    external_description_zh: 已上市流通 H 股
+  - name: B_FREE_SHARE_RATIO
+    type: number
+    required: true
+    external_description_zh: B股流通比例（%）
+  - name: H_FREE_SHARE_RATIO
+    type: number
+    required: true
+    external_description_zh: H 股流通比例（%）
+  - name: SECURITY_TYPE_CODE
+    type: string
+    required: true
+    external_description_zh: 证券类型代码
+  - name: NON_FREE_SHARES
+    type: number
+    required: true
+    external_description_zh: 非自由流通股
+  - name: NON_FREESHARES_RATIO
+    type: number
+    required: true
+    external_description_zh: 非流通股比例（%）
+  - name: LIMITED_B_SHARES
+    type: number
+    required: true
+    external_description_zh: 限售 B 股
+  - name: LIMITED_BSHARES_RATIO
+    type: number
+    required: true
+    external_description_zh: 限售B股比例（%）
+  - name: OTHER_FREE_SHARES
+    type: number
+    required: true
+    external_description_zh: 其他已上市流通股
+  - name: OTHER_FREESHARES_RATIO
+    type: number
+    required: true
+    external_description_zh: 其他流通股比例（%）
+  - name: LIMITED_STATE_SHARES
+    type: number
+    required: true
+    external_description_zh: 国家持股（限售）
+  - name: LIMITED_STATE_LEGAL
+    type: number
+    required: true
+    external_description_zh: 国有法人持股（限售）
+  - name: LIMITED_OTHARS
+    type: number
+    required: true
+    external_description_zh: 其他限售股份
+  - name: LIMITED_DOMESTIC_NOSTATE
+    type: number
+    required: true
+    external_description_zh: 境内非国有法人持股（限售）
+  - name: LIMITED_DOMESTIC_NATURAL
+    type: number
+    required: true
+    external_description_zh: 境内自然人持股（限售）
+  - name: LOCK_SHARES
+    type: number
+    required: true
+    external_description_zh: 锁定股份
+  - name: LIMITED_FOREIGN_SHARES
+    type: number
+    required: true
+    external_description_zh: 外资持股（限售）
+  - name: LIMITED_OVERSEAS_NOSTATE
+    type: number
+    required: true
+    external_description_zh: 境外非国有法人持股（限售）
+  - name: LIMITED_OVERSEAS_NATURAL
+    type: number
+    required: true
+    external_description_zh: 境外自然人持股（限售）
+  - name: LIMITED_H_SHARES
+    type: number
+    required: true
+    external_description_zh: 限售 H 股
+  - name: SPONSOR_SHARES
+    type: number
+    required: true
+    external_description_zh: 发起人股份
+  - name: STATE_SPONSOR_SHARES
+    type: number
+    required: true
+    external_description_zh: 国家发起人股份
+  - name: SPONSOR_SOCIAL_SHARES
+    type: number
+    required: true
+    external_description_zh: 社会发起人股份
+  - name: RAISE_SHARES
+    type: number
+    required: true
+    external_description_zh: 募集法人股份
+  - name: RAISE_STATE_SHARES
+    type: number
+    required: true
+    external_description_zh: 国家募集法人股份
+  - name: RAISE_DOMESTIC_SHARES
+    type: number
+    required: true
+    external_description_zh: 境内募集法人股份
+  - name: RAISE_OVERSEAS_SHARES
+    type: number
+    required: true
+    external_description_zh: 境外募集法人股份
+  - name: NOTICE_DATE
+    type: string
+    required: true
+    external_description_zh: 公告披露日
+  - name: LISTING_DATE
+    type: string
+    required: true
+    external_description_zh: 上市流通日期
+  - name: LIMITED_SHARES_CHANGE
+    type: number
+    required: true
+    external_description_zh: 限售股变动量
+  - name: UNLIMITED_SHARES_CHANGE
+    type: number
+    required: true
+    external_description_zh: 流通股变动量
+  - name: TOTAL_SHARES_CHANGE
+    type: number
+    required: true
+    external_description_zh: 总股本变动量
+  - name: LISTED_ASHARES_CHANGE
+    type: number
+    required: true
+    external_description_zh: 已上市流通A股变动量
+  - name: LIMITED_ASHARES_CHANGE
+    type: number
+    required: true
+    external_description_zh: 限售A股变动量
+  - name: B_FREESHARE_CHANGE
+    type: number
+    required: true
+    external_description_zh: B股流通变动量
+  - name: H_FREESHARE_CHANGE
+    type: number
+    required: true
+    external_description_zh: H股流通变动量
+  - name: LIMITED_BSHARES_CHANGE
+    type: number
+    required: true
+    external_description_zh: 限售B股变动量
+  - name: NONFREE_SHARES_CHANGE
+    type: number
+    required: true
+    external_description_zh: 非流通股变动量
+  - name: OTHERFREE_SHARES_CHANGE
+    type: number
+    required: true
+    external_description_zh: 其他流通股变动量
+  - name: FREE_SHARES
+    type: number
+    required: true
+    external_description_zh: 流通股（通常 = TOTAL_SHARES）
+  - name: CHANGE_REASON_EXPLAIN
+    type: string
+    required: true
+    external_description_zh: 变动原因详细说明
+  - name: LIMITED_H_SHARES_RATIO
+    type: number
+    required: true
+    external_description_zh: 限售H股比例（%）
+  - name: LIMITED_H_SHARES_CHANGE
+    type: number
+    required: true
+    external_description_zh: 限售H股变动量
+  - name: IS_FREE_WINDOW
+    type: string
+    required: true
+    external_description_zh: 是否为自由流通窗口
+  - name: IS_LIMITED_WINDOW
+    type: string
+    required: true
+    external_description_zh: 是否限售窗口
+  - name: LISTED_A_RATIOPC
+    type: number
+    required: true
+    external_description_zh: A 股占已流通比例（%）
+  - name: LISTED_B_RATIOPC
+    type: number
+    required: true
+    external_description_zh: B股占已流通比例（%）
+  - name: LISTED_H_RATIOPC
+    type: number
+    required: true
+    external_description_zh: H 股占已流通比例（%）
+  - name: LISTED_OTHER_RATIOPC
+    type: number
+    required: true
+    external_description_zh: 其他占已流通比例（%）
+  - name: LISTED_SUM_RATIOPC
+    type: number
+    required: true
+    external_description_zh: 合计占已流通比例（%）
+  - name: MARKET_CODE
+    type: string
+    required: true
+    external_description_zh: 市场代码
+  - name: IS_USE
+    type: string
+    required: true
+    external_description_zh: 是否有效
+  - name: SECURITY_NAME_ABBR
+    type: string
+    required: true
+    external_description_zh: 证券简称
+parquet:
+  storage_mode: partitioned
+  partition_key_name: year
+  fields:
+  - name: SECUCODE
+    type: string
+    nullable: false
+  - name: SECURITY_CODE
+    type: string
+    nullable: false
+  - name: ORG_CODE
+    type: string
+    nullable: false
+  - name: END_DATE
+    type: date32[day]
+    nullable: false
+  - name: CHANGE_REASON
+    type: string
+    nullable: false
+  - name: LIMITED_SHARES
+    type: double
+    nullable: false
+  - name: UNLIMITED_SHARES
+    type: double
+    nullable: false
+  - name: TOTAL_SHARES
+    type: double
+    nullable: false
+  - name: LIMITED_SHARES_RATIO
+    type: double
+    nullable: false
+  - name: LISTED_SHARES_RATIO
+    type: double
+    nullable: false
+  - name: TOTAL_SHARES_RATIO
+    type: double
+    nullable: false
+  - name: LISTED_A_SHARES
+    type: double
+    nullable: false
+  - name: LIMITED_A_SHARES
+    type: double
+    nullable: false
+  - name: LISTED_A_SHARES_RATIO
+    type: double
+    nullable: false
+  - name: LIMITED_A_SHARES_RATIO
+    type: double
+    nullable: false
+  - name: B_FREE_SHARE
+    type: double
+    nullable: false
+  - name: H_FREE_SHARE
+    type: double
+    nullable: false
+  - name: B_FREE_SHARE_RATIO
+    type: double
+    nullable: false
+  - name: H_FREE_SHARE_RATIO
+    type: double
+    nullable: false
+  - name: SECURITY_TYPE_CODE
+    type: string
+    nullable: false
+  - name: NON_FREE_SHARES
+    type: double
+    nullable: false
+  - name: NON_FREESHARES_RATIO
+    type: double
+    nullable: false
+  - name: LIMITED_B_SHARES
+    type: double
+    nullable: false
+  - name: LIMITED_BSHARES_RATIO
+    type: double
+    nullable: false
+  - name: OTHER_FREE_SHARES
+    type: double
+    nullable: false
+  - name: OTHER_FREESHARES_RATIO
+    type: double
+    nullable: false
+  - name: LIMITED_STATE_SHARES
+    type: double
+    nullable: false
+  - name: LIMITED_STATE_LEGAL
+    type: double
+    nullable: false
+  - name: LIMITED_OTHARS
+    type: double
+    nullable: false
+  - name: LIMITED_DOMESTIC_NOSTATE
+    type: double
+    nullable: false
+  - name: LIMITED_DOMESTIC_NATURAL
+    type: double
+    nullable: false
+  - name: LOCK_SHARES
+    type: double
+    nullable: false
+  - name: LIMITED_FOREIGN_SHARES
+    type: double
+    nullable: false
+  - name: LIMITED_OVERSEAS_NOSTATE
+    type: double
+    nullable: false
+  - name: LIMITED_OVERSEAS_NATURAL
+    type: double
+    nullable: false
+  - name: LIMITED_H_SHARES
+    type: double
+    nullable: false
+  - name: SPONSOR_SHARES
+    type: double
+    nullable: false
+  - name: STATE_SPONSOR_SHARES
+    type: double
+    nullable: false
+  - name: SPONSOR_SOCIAL_SHARES
+    type: double
+    nullable: false
+  - name: RAISE_SHARES
+    type: double
+    nullable: false
+  - name: RAISE_STATE_SHARES
+    type: double
+    nullable: false
+  - name: RAISE_DOMESTIC_SHARES
+    type: double
+    nullable: false
+  - name: RAISE_OVERSEAS_SHARES
+    type: double
+    nullable: false
+  - name: NOTICE_DATE
+    type: date32[day]
+    nullable: false
+  - name: LISTING_DATE
+    type: date32[day]
+    nullable: false
+  - name: LIMITED_SHARES_CHANGE
+    type: double
+    nullable: false
+  - name: UNLIMITED_SHARES_CHANGE
+    type: double
+    nullable: false
+  - name: TOTAL_SHARES_CHANGE
+    type: double
+    nullable: false
+  - name: LISTED_ASHARES_CHANGE
+    type: double
+    nullable: false
+  - name: LIMITED_ASHARES_CHANGE
+    type: double
+    nullable: false
+  - name: B_FREESHARE_CHANGE
+    type: double
+    nullable: false
+  - name: H_FREESHARE_CHANGE
+    type: double
+    nullable: false
+  - name: LIMITED_BSHARES_CHANGE
+    type: double
+    nullable: false
+  - name: NONFREE_SHARES_CHANGE
+    type: double
+    nullable: false
+  - name: OTHERFREE_SHARES_CHANGE
+    type: double
+    nullable: false
+  - name: FREE_SHARES
+    type: double
+    nullable: false
+  - name: CHANGE_REASON_EXPLAIN
+    type: string
+    nullable: false
+  - name: LIMITED_H_SHARES_RATIO
+    type: double
+    nullable: false
+  - name: LIMITED_H_SHARES_CHANGE
+    type: double
+    nullable: false
+  - name: IS_FREE_WINDOW
+    type: bool
+    nullable: false
+  - name: IS_LIMITED_WINDOW
+    type: bool
+    nullable: false
+  - name: LISTED_A_RATIOPC
+    type: double
+    nullable: false
+  - name: LISTED_B_RATIOPC
+    type: double
+    nullable: false
+  - name: LISTED_H_RATIOPC
+    type: double
+    nullable: false
+  - name: LISTED_OTHER_RATIOPC
+    type: double
+    nullable: false
+  - name: LISTED_SUM_RATIOPC
+    type: double
+    nullable: false
+  - name: MARKET_CODE
+    type: string
+    nullable: false
+  - name: IS_USE
+    type: bool
+    nullable: false
+  - name: SECURITY_NAME_ABBR
+    type: string
+    nullable: false
+clickhouse_raw:
+  database: raw
+  table: eastmoney__equity_history
+  partition_strategy: year
+  engine: MergeTree
+  partition_by: '`year`'
+  order_by:
+  - SECUCODE
+  - END_DATE
+  allow_empty: true
+  sync_enabled: true
+  fields:
+  - name: SECUCODE
+    type: LowCardinality(String)
+    from: SECUCODE
+    nullable: false
+    reason: expected_low_cardinality_dimension
+  - name: SECURITY_CODE
+    type: LowCardinality(String)
+    from: SECURITY_CODE
+    nullable: false
+    reason: expected_low_cardinality_dimension
+  - name: ORG_CODE
+    type: LowCardinality(String)
+    from: ORG_CODE
+    nullable: false
+    reason: expected_low_cardinality_dimension
+  - name: END_DATE
+    type: Date
+    from: END_DATE
+    nullable: false
+  - name: CHANGE_REASON
+    type: LowCardinality(String)
+    from: CHANGE_REASON
+    nullable: false
+    reason: expected_low_cardinality_dimension
+  - name: LIMITED_SHARES
+    type: Float64
+    from: LIMITED_SHARES
+    nullable: false
+  - name: UNLIMITED_SHARES
+    type: Float64
+    from: UNLIMITED_SHARES
+    nullable: false
+  - name: TOTAL_SHARES
+    type: Float64
+    from: TOTAL_SHARES
+    nullable: false
+  - name: LIMITED_SHARES_RATIO
+    type: Float64
+    from: LIMITED_SHARES_RATIO
+    nullable: false
+  - name: LISTED_SHARES_RATIO
+    type: Float64
+    from: LISTED_SHARES_RATIO
+    nullable: false
+  - name: TOTAL_SHARES_RATIO
+    type: Float64
+    from: TOTAL_SHARES_RATIO
+    nullable: false
+  - name: LISTED_A_SHARES
+    type: Float64
+    from: LISTED_A_SHARES
+    nullable: false
+  - name: LIMITED_A_SHARES
+    type: Float64
+    from: LIMITED_A_SHARES
+    nullable: false
+  - name: LISTED_A_SHARES_RATIO
+    type: Float64
+    from: LISTED_A_SHARES_RATIO
+    nullable: false
+  - name: LIMITED_A_SHARES_RATIO
+    type: Float64
+    from: LIMITED_A_SHARES_RATIO
+    nullable: false
+  - name: B_FREE_SHARE
+    type: Float64
+    from: B_FREE_SHARE
+    nullable: false
+  - name: H_FREE_SHARE
+    type: Float64
+    from: H_FREE_SHARE
+    nullable: false
+  - name: B_FREE_SHARE_RATIO
+    type: Float64
+    from: B_FREE_SHARE_RATIO
+    nullable: false
+  - name: H_FREE_SHARE_RATIO
+    type: Float64
+    from: H_FREE_SHARE_RATIO
+    nullable: false
+  - name: SECURITY_TYPE_CODE
+    type: LowCardinality(String)
+    from: SECURITY_TYPE_CODE
+    nullable: false
+    reason: expected_low_cardinality_dimension
+  - name: NON_FREE_SHARES
+    type: Float64
+    from: NON_FREE_SHARES
+    nullable: false
+  - name: NON_FREESHARES_RATIO
+    type: Float64
+    from: NON_FREESHARES_RATIO
+    nullable: false
+  - name: LIMITED_B_SHARES
+    type: Float64
+    from: LIMITED_B_SHARES
+    nullable: false
+  - name: LIMITED_BSHARES_RATIO
+    type: Float64
+    from: LIMITED_BSHARES_RATIO
+    nullable: false
+  - name: OTHER_FREE_SHARES
+    type: Float64
+    from: OTHER_FREE_SHARES
+    nullable: false
+  - name: OTHER_FREESHARES_RATIO
+    type: Float64
+    from: OTHER_FREESHARES_RATIO
+    nullable: false
+  - name: LIMITED_STATE_SHARES
+    type: Float64
+    from: LIMITED_STATE_SHARES
+    nullable: false
+  - name: LIMITED_STATE_LEGAL
+    type: Float64
+    from: LIMITED_STATE_LEGAL
+    nullable: false
+  - name: LIMITED_OTHARS
+    type: Float64
+    from: LIMITED_OTHARS
+    nullable: false
+  - name: LIMITED_DOMESTIC_NOSTATE
+    type: Float64
+    from: LIMITED_DOMESTIC_NOSTATE
+    nullable: false
+  - name: LIMITED_DOMESTIC_NATURAL
+    type: Float64
+    from: LIMITED_DOMESTIC_NATURAL
+    nullable: false
+  - name: LOCK_SHARES
+    type: Float64
+    from: LOCK_SHARES
+    nullable: false
+  - name: LIMITED_FOREIGN_SHARES
+    type: Float64
+    from: LIMITED_FOREIGN_SHARES
+    nullable: false
+  - name: LIMITED_OVERSEAS_NOSTATE
+    type: Float64
+    from: LIMITED_OVERSEAS_NOSTATE
+    nullable: false
+  - name: LIMITED_OVERSEAS_NATURAL
+    type: Float64
+    from: LIMITED_OVERSEAS_NATURAL
+    nullable: false
+  - name: LIMITED_H_SHARES
+    type: Float64
+    from: LIMITED_H_SHARES
+    nullable: false
+  - name: SPONSOR_SHARES
+    type: Float64
+    from: SPONSOR_SHARES
+    nullable: false
+  - name: STATE_SPONSOR_SHARES
+    type: Float64
+    from: STATE_SPONSOR_SHARES
+    nullable: false
+  - name: SPONSOR_SOCIAL_SHARES
+    type: Float64
+    from: SPONSOR_SOCIAL_SHARES
+    nullable: false
+  - name: RAISE_SHARES
+    type: Float64
+    from: RAISE_SHARES
+    nullable: false
+  - name: RAISE_STATE_SHARES
+    type: Float64
+    from: RAISE_STATE_SHARES
+    nullable: false
+  - name: RAISE_DOMESTIC_SHARES
+    type: Float64
+    from: RAISE_DOMESTIC_SHARES
+    nullable: false
+  - name: RAISE_OVERSEAS_SHARES
+    type: Float64
+    from: RAISE_OVERSEAS_SHARES
+    nullable: false
+  - name: NOTICE_DATE
+    type: Date
+    from: NOTICE_DATE
+    nullable: false
+  - name: LISTING_DATE
+    type: Date
+    from: LISTING_DATE
+    nullable: false
+  - name: LIMITED_SHARES_CHANGE
+    type: Float64
+    from: LIMITED_SHARES_CHANGE
+    nullable: false
+  - name: UNLIMITED_SHARES_CHANGE
+    type: Float64
+    from: UNLIMITED_SHARES_CHANGE
+    nullable: false
+  - name: TOTAL_SHARES_CHANGE
+    type: Float64
+    from: TOTAL_SHARES_CHANGE
+    nullable: false
+  - name: LISTED_ASHARES_CHANGE
+    type: Float64
+    from: LISTED_ASHARES_CHANGE
+    nullable: false
+  - name: LIMITED_ASHARES_CHANGE
+    type: Float64
+    from: LIMITED_ASHARES_CHANGE
+    nullable: false
+  - name: B_FREESHARE_CHANGE
+    type: Float64
+    from: B_FREESHARE_CHANGE
+    nullable: false
+  - name: H_FREESHARE_CHANGE
+    type: Float64
+    from: H_FREESHARE_CHANGE
+    nullable: false
+  - name: LIMITED_BSHARES_CHANGE
+    type: Float64
+    from: LIMITED_BSHARES_CHANGE
+    nullable: false
+  - name: NONFREE_SHARES_CHANGE
+    type: Float64
+    from: NONFREE_SHARES_CHANGE
+    nullable: false
+  - name: OTHERFREE_SHARES_CHANGE
+    type: Float64
+    from: OTHERFREE_SHARES_CHANGE
+    nullable: false
+  - name: FREE_SHARES
+    type: Float64
+    from: FREE_SHARES
+    nullable: false
+  - name: CHANGE_REASON_EXPLAIN
+    type: LowCardinality(String)
+    from: CHANGE_REASON_EXPLAIN
+    nullable: false
+    reason: expected_low_cardinality_dimension
+  - name: LIMITED_H_SHARES_RATIO
+    type: Float64
+    from: LIMITED_H_SHARES_RATIO
+    nullable: false
+  - name: LIMITED_H_SHARES_CHANGE
+    type: Float64
+    from: LIMITED_H_SHARES_CHANGE
+    nullable: false
+  - name: IS_FREE_WINDOW
+    type: Bool
+    from: IS_FREE_WINDOW
+    nullable: false
+  - name: IS_LIMITED_WINDOW
+    type: Bool
+    from: IS_LIMITED_WINDOW
+    nullable: false
+  - name: LISTED_A_RATIOPC
+    type: Float64
+    from: LISTED_A_RATIOPC
+    nullable: false
+  - name: LISTED_B_RATIOPC
+    type: Float64
+    from: LISTED_B_RATIOPC
+    nullable: false
+  - name: LISTED_H_RATIOPC
+    type: Float64
+    from: LISTED_H_RATIOPC
+    nullable: false
+  - name: LISTED_OTHER_RATIOPC
+    type: Float64
+    from: LISTED_OTHER_RATIOPC
+    nullable: false
+  - name: LISTED_SUM_RATIOPC
+    type: Float64
+    from: LISTED_SUM_RATIOPC
+    nullable: false
+  - name: MARKET_CODE
+    type: LowCardinality(String)
+    from: MARKET_CODE
+    nullable: false
+    reason: expected_low_cardinality_dimension
+  - name: IS_USE
+    type: Bool
+    from: IS_USE
+    nullable: false
+  - name: SECURITY_NAME_ABBR
+    type: LowCardinality(String)
+    from: SECURITY_NAME_ABBR
+    nullable: false
+    reason: expected_low_cardinality_dimension
+dbt_staging:
+  status: not_started
+dataset_note_zh: 东方财富股本变动历史 F10 年度 raw 分区
+validation_notes:
+- Initial contract migrated from docs/references/data_dict and current raw sync specs.

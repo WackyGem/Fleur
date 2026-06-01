@@ -1,0 +1,60 @@
+baostock__query_history_k_data_plus_daily:
+  name: baostock__query_history_k_data_plus_daily
+  description_zh: BaoStock 日频行情数据
+  description: BaoStock daily K-line rows by natural-year raw partition.
+baostock__query_stock_basic:
+  name: baostock__query_stock_basic
+  description_zh: BaoStock 证券基础信息快照
+  description: BaoStock security basic-information snapshot.
+eastmoney__balance:
+  name: eastmoney__balance
+  description_zh: 东方财富资产负债表 F10 年度 raw 分区
+  description: EastMoney balance sheet F10 rows by natural-year raw partition.
+eastmoney__cashflow_sq:
+  name: eastmoney__cashflow_sq
+  description_zh: 东方财富单季度现金流量表 F10 年度 raw 分区
+  description: EastMoney single-quarter cashflow F10 rows by natural-year raw partition.
+eastmoney__cashflow_ytd:
+  name: eastmoney__cashflow_ytd
+  description_zh: 东方财富年初至今现金流量表 F10 年度 raw 分区
+  description: EastMoney year-to-date cashflow F10 rows by natural-year raw partition.
+eastmoney__dividend_allotment:
+  name: eastmoney__dividend_allotment
+  description_zh: 东方财富分红配股 F10 年度 raw 分区
+  description: EastMoney dividend allotment F10 rows by natural-year raw partition.
+eastmoney__dividend_main:
+  name: eastmoney__dividend_main
+  description_zh: 东方财富分红主表 F10 年度 raw 分区
+  description: EastMoney dividend main F10 rows by natural-year raw partition.
+eastmoney__equity_history:
+  name: eastmoney__equity_history
+  description_zh: 东方财富股本变动历史 F10 年度 raw 分区
+  description: EastMoney equity history F10 rows by natural-year raw partition.
+eastmoney__income_sq:
+  name: eastmoney__income_sq
+  description_zh: 东方财富单季度利润表 F10 年度 raw 分区
+  description: EastMoney single-quarter income F10 rows by natural-year raw partition.
+eastmoney__income_ytd:
+  name: eastmoney__income_ytd
+  description_zh: 东方财富年初至今利润表 F10 年度 raw 分区
+  description: EastMoney year-to-date income F10 rows by natural-year raw partition.
+jiuyan__action_field_compacted:
+  name: jiuyan__action_field_compacted
+  description_zh: 韭研题材异动每日数据年度合并 raw 分区
+  description: JiuYan action-field daily rows compacted into yearly raw partitions.
+jiuyan__industry_list:
+  name: jiuyan__industry_list
+  description_zh: 韭研行业研究列表快照
+  description: JiuYan industry research list snapshot.
+jiuyan__industry_ocr_snapshot:
+  name: jiuyan__industry_ocr_snapshot
+  description_zh: 韭研 OCR 成功结果快照
+  description: Successful JiuYan OCR result snapshot.
+sina__trade_calendar:
+  name: sina__trade_calendar
+  description_zh: 新浪 A 股交易日历快照
+  description: A-share trade calendar snapshot.
+ths__limit_up_pool_compacted:
+  name: ths__limit_up_pool_compacted
+  description_zh: 同花顺涨停池每日数据年度合并 raw 分区
+  description: TongHuaShun limit-up pool daily rows compacted into yearly raw partitions.

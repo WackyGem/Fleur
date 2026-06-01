@@ -1,31 +1,34 @@
-# jiuyan__industry_ocr_snapshot 字段校对
+# jiuyan__industry_ocr_snapshot 数据字典
 
-> 生成时间: 2026-06-01 00:00:00 UTC
-> OpenAPI 文档: jiuyan__industry_ocr.yaml
-> 实现来源: `pipeline/scheduler/src/scheduler/defs/sources/jiuyan/industry_ocr_snapshot.py`
+本文件由 `pipeline/contracts/datasets/jiuyan__industry_ocr_snapshot.yml` 生成。字段事实以 contract 为准。
 
-## 字段对比
+- 数据集：`jiuyan__industry_ocr_snapshot`
+- 版本：`1`
+- 说明：韭研 OCR 成功结果快照
+- 粒度：one row per OCR result row per industry image
+- Source asset：`source/jiuyan__industry_ocr_snapshot`
+- Raw asset：`clickhouse/raw/jiuyan__industry_ocr_snapshot`
+- ClickHouse raw：`raw.jiuyan__industry_ocr_snapshot`
+- 分区策略：`snapshot`
+- ORDER BY：`(industry_id, image_filename, ocr_row_index)`
 
-| # | 字段名 | OpenAPI 类型 | 资产使用 | PyArrow 类型 | ClickHouse 类型 |
-|---|--------|-------------|---------|-------------|----------------|
-| 1 | industry_id | N/A | ✅ | string | LowCardinality(String) |
-| 2 | image_filename | N/A | ✅ | string | String |
-| 3 | image_index | N/A | ✅ | int32 | Int32 |
-| 4 | ocr_row_index | N/A | ✅ | int32 | Int32 |
-| 5 | stock_name | string | ✅ | string | LowCardinality(String) |
-| 6 | theme_path | array | ✅ | string | LowCardinality(String) |
-| 7 | relation | N/A | ✅ | string | LowCardinality(String) |
-| 8 | source | string | ✅ | string | LowCardinality(String) |
+## 字段链路
 
-## 字段说明
+| # | 外源字段 | 外源类型 | Parquet 类型 | ClickHouse raw 字段 | ClickHouse 类型 | stg 字段 | 中文描述 |
+|---|----------|----------|--------------|---------------------|-----------------|----------|----------|
+| 1 | `industry_id` | `N/A` | `string` | `industry_id` | `LowCardinality(String)` | `industry_id` | 行业研究记录在来源系统中的唯一标识。 |
+| 2 | `image_filename` | `N/A` | `string` | `image_filename` | `String` | `image_filename` | 来源图片在本地或对象存储中的文件名。 |
+| 3 | `image_index` | `N/A` | `int32` | `image_index` | `Int32` | `image_index` | 同一批图片中的图片顺序编号。 |
+| 4 | `ocr_row_index` | `N/A` | `int32` | `ocr_row_index` | `Int32` | `ocr_row_index` | 图片 OCR 结果中的行序号。 |
+| 5 | `stock_name` | `string` | `string` | `stock_name` | `LowCardinality(String)` | `stock_name` | 股票或证券的中文简称。 |
+| 6 | `theme_path` | `array` | `string` | `theme_path` | `LowCardinality(String)` | `theme_path` | 题材或主题在来源系统中的层级路径。 |
+| 7 | `relation` | `N/A` | `string` | `relation` | `LowCardinality(String)` | `relation` | 记录之间或主题之间的关联说明。 |
+| 8 | `source` | `string` | `string` | `source` | `LowCardinality(String)` | `source` | 记录来源系统、渠道或原始文件来源。 |
 
-- `jiuyan__industry_ocr_snapshot` 是 source 层 latest snapshot 发布资产，读取已成功 OCR 的单图结果和 PostgreSQL 状态清单后合并输出。
-- `image_filename`、`image_index`、`ocr_row_index` 是 snapshot 发布时补充的技术定位字段，不来自 OCR OpenAPI 响应。
-- `theme_path` 在 OCR 响应中是 array，进入 source parquet 时按逗号连接为 string。
-- `relation` 来自 OCR 归一化字段，对应 OpenAPI 示例中的 `relevance`、`相关性`、`说明` 或 `业务说明` 等别名。
+## 数据集备注
 
-## 统计
+韭研 OCR 成功结果快照
 
-- OpenAPI 字段总数: 8
-- 资产使用字段数: 8
-- 未使用字段数: 3
+## 校验记录
+
+- Initial contract migrated from docs/references/data_dict and current raw sync specs.

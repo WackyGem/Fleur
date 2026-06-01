@@ -1,16 +1,27 @@
-# sina__trade_calendar 字段校对
+# sina__trade_calendar 数据字典
 
-> 生成时间: 2026-05-30 10:31:26 UTC
-> OpenAPI 文档: sina__calendar.yaml
+本文件由 `pipeline/contracts/datasets/sina__trade_calendar.yml` 生成。字段事实以 contract 为准。
 
-## 字段对比
+- 数据集：`sina__trade_calendar`
+- 版本：`1`
+- 说明：新浪 A 股交易日历快照
+- 粒度：one row per trade date
+- Source asset：`source/sina__trade_calendar`
+- Raw asset：`clickhouse/raw/sina__trade_calendar`
+- ClickHouse raw：`raw.sina__trade_calendar`
+- 分区策略：`snapshot`
+- ORDER BY：`(trade_date)`
 
-| # | 字段名 | OpenAPI 类型 | 资产使用 | PyArrow 类型 | ClickHouse 类型 |
-|---|--------|-------------|---------|-------------|----------------|
-| 1 | trade_date | N/A | ✅ | date32[day] | Date |
+## 字段链路
 
-## 统计
+| # | 外源字段 | 外源类型 | Parquet 类型 | ClickHouse raw 字段 | ClickHouse 类型 | stg 字段 | 中文描述 |
+|---|----------|----------|--------------|---------------------|-----------------|----------|----------|
+| 1 | `trade_date` | `N/A` | `date32[day]` | `trade_date` | `Date` | `trade_date` | A 股市场交易日日期。 |
 
-- OpenAPI 字段总数: 0
-- 资产使用字段数: 1
-- 未使用字段数: 0
+## 数据集备注
+
+新浪 A 股交易日历快照
+
+## 校验记录
+
+- Initial contract migrated from docs/references/data_dict and current raw sync specs.

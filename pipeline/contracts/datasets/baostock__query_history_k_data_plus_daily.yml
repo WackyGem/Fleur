@@ -1,0 +1,273 @@
+dataset: baostock__query_history_k_data_plus_daily
+version: 1
+owner: data
+grain: one row per stock code per trade date
+source_asset_key:
+- source
+- baostock__query_history_k_data_plus_daily
+raw_asset_key:
+- clickhouse
+- raw
+- baostock__query_history_k_data_plus_daily
+external:
+  provider: baostock
+  source_table_name: baostock__query_history_k_data_plus_daily
+  source_description_zh: BaoStock 日频行情数据
+source:
+  protocol: tcp
+  payload_format: tabular
+  fields:
+  - name: date
+    type: string
+    required: true
+    external_description_zh: BaoStock 行情接口返回的交易日期。
+  - name: code
+    type: string
+    required: true
+    external_description_zh: BaoStock 行情接口返回的证券代码。
+  - name: open
+    type: string
+    required: true
+    external_description_zh: 交易日开盘价。
+  - name: high
+    type: string
+    required: true
+    external_description_zh: 交易日最高价。
+  - name: low
+    type: string
+    required: true
+    external_description_zh: 交易日最低价。
+  - name: close
+    type: string
+    required: true
+    external_description_zh: 交易日收盘价。
+  - name: preclose
+    type: string
+    required: true
+    external_description_zh: 上一交易日收盘价。
+  - name: volume
+    type: string
+    required: true
+    external_description_zh: 交易日成交量。
+  - name: amount
+    type: string
+    required: true
+    external_description_zh: 交易日成交金额。
+  - name: adjustflag
+    type: string
+    required: true
+    external_description_zh: 行情复权标记，用于区分不复权、前复权和后复权。
+  - name: turn
+    type: string
+    required: true
+    external_description_zh: 交易日换手率。
+  - name: tradestatus
+    type: string
+    required: true
+    external_description_zh: 交易日交易状态。
+  - name: pctChg
+    type: string
+    required: true
+    external_description_zh: 交易日涨跌幅。
+  - name: isST
+    type: string
+    required: true
+    external_description_zh: 证券是否为 ST 或风险警示状态。
+parquet:
+  storage_mode: partitioned
+  partition_key_name: year
+  fields:
+  - name: date
+    type: date32[day]
+    nullable: false
+  - name: code
+    type: string
+    nullable: false
+  - name: open
+    type: double
+    nullable: false
+  - name: high
+    type: double
+    nullable: false
+  - name: low
+    type: double
+    nullable: false
+  - name: close
+    type: double
+    nullable: false
+  - name: preclose
+    type: double
+    nullable: false
+  - name: volume
+    type: int64
+    nullable: false
+  - name: amount
+    type: double
+    nullable: false
+  - name: adjustflag
+    type: int8
+    nullable: false
+  - name: turn
+    type: double
+    nullable: false
+  - name: tradestatus
+    type: int8
+    nullable: false
+  - name: pctChg
+    type: double
+    nullable: false
+  - name: isST
+    type: int8
+    nullable: false
+clickhouse_raw:
+  database: raw
+  table: baostock__query_history_k_data_plus_daily
+  partition_strategy: year
+  engine: MergeTree
+  partition_by: '`year`'
+  order_by:
+  - code
+  - date
+  allow_empty: false
+  sync_enabled: true
+  fields:
+  - name: date
+    type: Date
+    from: date
+    nullable: false
+  - name: code
+    type: LowCardinality(String)
+    from: code
+    nullable: false
+    reason: expected_low_cardinality_dimension
+  - name: open
+    type: Float64
+    from: open
+    nullable: false
+  - name: high
+    type: Float64
+    from: high
+    nullable: false
+  - name: low
+    type: Float64
+    from: low
+    nullable: false
+  - name: close
+    type: Float64
+    from: close
+    nullable: false
+  - name: preclose
+    type: Float64
+    from: preclose
+    nullable: false
+  - name: volume
+    type: Int64
+    from: volume
+    nullable: false
+  - name: amount
+    type: Float64
+    from: amount
+    nullable: false
+  - name: adjustflag
+    type: Int8
+    from: adjustflag
+    nullable: false
+  - name: turn
+    type: Float64
+    from: turn
+    nullable: false
+  - name: tradestatus
+    type: Int8
+    from: tradestatus
+    nullable: false
+  - name: pctChg
+    type: Float64
+    from: pctChg
+    nullable: false
+  - name: isST
+    type: Int8
+    from: isST
+    nullable: false
+dbt_staging:
+  model: stg_baostock__query_history_k_data_plus_daily
+  materialized: view
+  status: active
+  primary_key:
+  - code
+  - trade_date
+  fields:
+  - name: trade_date
+    from: date
+    type: Date
+    glossary_key: trade_date
+    tests:
+    - not_null
+  - name: code
+    from: code
+    type: String
+    glossary_key: code
+    tests:
+    - not_null
+  - name: open
+    from: open
+    type: Float64
+    glossary_key: open
+    tests: []
+  - name: high
+    from: high
+    type: Float64
+    glossary_key: high
+    tests: []
+  - name: low
+    from: low
+    type: Float64
+    glossary_key: low
+    tests: []
+  - name: close
+    from: close
+    type: Float64
+    glossary_key: close
+    tests: []
+  - name: preclose
+    from: preclose
+    type: Float64
+    glossary_key: preclose
+    tests: []
+  - name: volume
+    from: volume
+    type: Int64
+    glossary_key: volume
+    tests: []
+  - name: amount
+    from: amount
+    type: Float64
+    glossary_key: amount
+    tests: []
+  - name: adjustflag
+    from: adjustflag
+    type: Int8
+    glossary_key: adjustflag
+    tests: []
+  - name: turn
+    from: turn
+    type: Float64
+    glossary_key: turn
+    tests: []
+  - name: tradestatus
+    from: tradestatus
+    type: Int8
+    glossary_key: tradestatus
+    tests: []
+  - name: pct_chg
+    from: pctChg
+    type: Float64
+    glossary_key: pct_chg
+    tests: []
+  - name: is_st
+    from: isST
+    type: Int8
+    glossary_key: is_st
+    tests: []
+dataset_note_zh: BaoStock 日频行情数据
+validation_notes:
+- Initial contract migrated from docs/references/data_dict and current raw sync specs.

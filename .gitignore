@@ -8,6 +8,8 @@ __pycache__/
 target/
 logs/
 dbt_packages/
+.user.yml
+**/.user.yml
 
 .dagster/
 .dg/

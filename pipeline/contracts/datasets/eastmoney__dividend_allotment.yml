@@ -1,0 +1,155 @@
+dataset: eastmoney__dividend_allotment
+version: 1
+owner: data
+grain: one row per security code per report date
+source_asset_key:
+- source
+- eastmoney__dividend_allotment
+raw_asset_key:
+- clickhouse
+- raw
+- eastmoney__dividend_allotment
+external:
+  provider: eastmoney
+  source_table_name: eastmoney__dividend_allotment
+  source_description_zh: 东方财富分红配股 F10 年度 raw 分区
+source:
+  protocol: http
+  payload_format: json
+  fields:
+  - name: SECUCODE
+    type: string
+    required: true
+    external_description_zh: 证券代码（含市场后缀）
+  - name: SECURITY_CODE
+    type: string
+    required: true
+    external_description_zh: 证券代码（纯数字）
+  - name: SECURITY_NAME_ABBR
+    type: string
+    required: true
+    external_description_zh: 证券简称
+  - name: NOTICE_DATE
+    type: string
+    required: true
+    external_description_zh: 公告日期
+  - name: ISSUE_NUM
+    type: number
+    required: true
+    external_description_zh: 配股数量
+  - name: TOTAL_RAISE_FUNDS
+    type: number
+    required: true
+    external_description_zh: 配股募集资金总额
+  - name: ISSUE_PRICE
+    type: number
+    required: true
+    external_description_zh: 配股价格
+  - name: EQUITY_RECORD_DATE
+    type: string
+    required: true
+    external_description_zh: 股权登记日
+  - name: EX_DIVIDEND_DATEE
+    type: string
+    required: true
+    external_description_zh: 除权除息日
+  - name: EVENT_EXPLAIN
+    type: string
+    required: true
+    external_description_zh: 配股方案说明（如 "每10股配3股"）
+parquet:
+  storage_mode: partitioned
+  partition_key_name: year
+  fields:
+  - name: SECUCODE
+    type: string
+    nullable: false
+  - name: SECURITY_CODE
+    type: string
+    nullable: false
+  - name: SECURITY_NAME_ABBR
+    type: string
+    nullable: false
+  - name: NOTICE_DATE
+    type: date32[day]
+    nullable: false
+  - name: ISSUE_NUM
+    type: double
+    nullable: false
+  - name: TOTAL_RAISE_FUNDS
+    type: double
+    nullable: false
+  - name: ISSUE_PRICE
+    type: double
+    nullable: false
+  - name: EQUITY_RECORD_DATE
+    type: date32[day]
+    nullable: false
+  - name: EX_DIVIDEND_DATEE
+    type: string
+    nullable: false
+  - name: EVENT_EXPLAIN
+    type: string
+    nullable: false
+clickhouse_raw:
+  database: raw
+  table: eastmoney__dividend_allotment
+  partition_strategy: year
+  engine: MergeTree
+  partition_by: '`year`'
+  order_by:
+  - SECUCODE
+  - NOTICE_DATE
+  allow_empty: true
+  sync_enabled: true
+  fields:
+  - name: SECUCODE
+    type: LowCardinality(String)
+    from: SECUCODE
+    nullable: false
+    reason: expected_low_cardinality_dimension
+  - name: SECURITY_CODE
+    type: LowCardinality(String)
+    from: SECURITY_CODE
+    nullable: false
+    reason: expected_low_cardinality_dimension
+  - name: SECURITY_NAME_ABBR
+    type: LowCardinality(String)
+    from: SECURITY_NAME_ABBR
+    nullable: false
+    reason: expected_low_cardinality_dimension
+  - name: NOTICE_DATE
+    type: Date
+    from: NOTICE_DATE
+    nullable: false
+  - name: ISSUE_NUM
+    type: Float64
+    from: ISSUE_NUM
+    nullable: false
+  - name: TOTAL_RAISE_FUNDS
+    type: Float64
+    from: TOTAL_RAISE_FUNDS
+    nullable: false
+  - name: ISSUE_PRICE
+    type: Float64
+    from: ISSUE_PRICE
+    nullable: false
+  - name: EQUITY_RECORD_DATE
+    type: Date
+    from: EQUITY_RECORD_DATE
+    nullable: false
+  - name: EX_DIVIDEND_DATEE
+    type: LowCardinality(String)
+    from: EX_DIVIDEND_DATEE
+    nullable: false
+    reason: expected_low_cardinality_dimension
+  - name: EVENT_EXPLAIN
+    type: LowCardinality(String)
+    from: EVENT_EXPLAIN
+    nullable: false
+    reason: expected_low_cardinality_dimension
+dbt_staging:
+  status: not_started
+dataset_note_zh: 东方财富分红配股 F10 年度 raw 分区
+validation_notes:
+- Initial contract migrated from docs/references/data_dict and current raw sync specs.

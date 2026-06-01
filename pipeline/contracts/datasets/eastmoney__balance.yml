@@ -1,0 +1,3561 @@
+dataset: eastmoney__balance
+version: 1
+owner: data
+grain: one row per security code per report date
+source_asset_key:
+- source
+- eastmoney__balance
+raw_asset_key:
+- clickhouse
+- raw
+- eastmoney__balance
+external:
+  provider: eastmoney
+  source_table_name: eastmoney__balance
+  source_description_zh: 东方财富资产负债表 F10 年度 raw 分区
+source:
+  protocol: http
+  payload_format: json
+  fields:
+  - name: SECUCODE
+    type: string
+    required: true
+    external_description_zh: 证券代码（含市场后缀）
+  - name: SECURITY_CODE
+    type: string
+    required: true
+    external_description_zh: 证券代码（纯数字）
+  - name: SECURITY_NAME_ABBR
+    type: string
+    required: true
+    external_description_zh: 证券简称
+  - name: ORG_CODE
+    type: string
+    required: true
+    external_description_zh: 机构代码
+  - name: ORG_TYPE
+    type: string
+    required: true
+    external_description_zh: 机构类型
+  - name: REPORT_DATE
+    type: string
+    required: true
+    external_description_zh: 报告期
+  - name: REPORT_TYPE
+    type: string
+    required: true
+    external_description_zh: 报告类型
+  - name: REPORT_DATE_NAME
+    type: string
+    required: true
+    external_description_zh: 报告期名称
+  - name: SECURITY_TYPE_CODE
+    type: string
+    required: true
+    external_description_zh: 证券类型代码
+  - name: NOTICE_DATE
+    type: string
+    required: true
+    external_description_zh: 公告日期
+  - name: UPDATE_DATE
+    type: string
+    required: true
+    external_description_zh: 更新日期
+  - name: CURRENCY
+    type: string
+    required: true
+    external_description_zh: 资产负债表披露金额使用的币种。
+  - name: ACCEPT_DEPOSIT_INTERBANK
+    type: number
+    required: true
+    external_description_zh: 同业存放
+  - name: ACCOUNTS_PAYABLE
+    type: number
+    required: true
+    external_description_zh: 应付账款
+  - name: ACCOUNTS_RECE
+    type: number
+    required: true
+    external_description_zh: 应收账款
+  - name: ACCRUED_EXPENSE
+    type: number
+    required: true
+    external_description_zh: 预提费用
+  - name: ADVANCE_RECEIVABLES
+    type: number
+    required: true
+    external_description_zh: 预收款项
+  - name: AGENT_TRADE_SECURITY
+    type: number
+    required: true
+    external_description_zh: 代理买卖证券款
+  - name: AGENT_UNDERWRITE_SECURITY
+    type: number
+    required: true
+    external_description_zh: 代理承销证券款
+  - name: AMORTIZE_COST_FINASSET
+    type: number
+    required: true
+    external_description_zh: 以摊余成本计量的金融资产
+  - name: AMORTIZE_COST_FINLIAB
+    type: number
+    required: true
+    external_description_zh: 以摊余成本计量的金融负债
+  - name: AMORTIZE_COST_NCFINASSET
+    type: number
+    required: true
+    external_description_zh: 非流动金融资产（摊余成本）
+  - name: AMORTIZE_COST_NCFINLIAB
+    type: number
+    required: true
+    external_description_zh: 非流动金融负债（摊余成本）
+  - name: APPOINT_FVTPL_FINASSET
+    type: number
+    required: true
+    external_description_zh: 指定为FVTPL的金融资产
+  - name: APPOINT_FVTPL_FINLIAB
+    type: number
+    required: true
+    external_description_zh: 指定为FVTPL的金融负债
+  - name: ASSET_BALANCE
+    type: number
+    required: true
+    external_description_zh: 资产平衡项
+  - name: ASSET_OTHER
+    type: number
+    required: true
+    external_description_zh: 资产其他项
+  - name: ASSIGN_CASH_DIVIDEND
+    type: number
+    required: true
+    external_description_zh: 应付现金股利
+  - name: AVAILABLE_SALE_FINASSET
+    type: number
+    required: true
+    external_description_zh: 可供出售金融资产
+  - name: BOND_PAYABLE
+    type: number
+    required: true
+    external_description_zh: 应付债券
+  - name: BORROW_FUND
+    type: number
+    required: true
+    external_description_zh: 拆入资金
+  - name: BUY_RESALE_FINASSET
+    type: number
+    required: true
+    external_description_zh: 买入返售金融资产
+  - name: CAPITAL_RESERVE
+    type: number
+    required: true
+    external_description_zh: 资本公积
+  - name: CIP
+    type: number
+    required: true
+    external_description_zh: 在建工程
+  - name: CONSUMPTIVE_BIOLOGICAL_ASSET
+    type: number
+    required: true
+    external_description_zh: 消耗性生物资产
+  - name: CONTRACT_ASSET
+    type: number
+    required: true
+    external_description_zh: 合同资产
+  - name: CONTRACT_LIAB
+    type: number
+    required: true
+    external_description_zh: 合同负债
+  - name: CONVERT_DIFF
+    type: number
+    required: true
+    external_description_zh: 外币报表折算差额
+  - name: CREDITOR_INVEST
+    type: number
+    required: true
+    external_description_zh: 债权投资
+  - name: CURRENT_ASSET_BALANCE
+    type: number
+    required: true
+    external_description_zh: 流动资产平衡项
+  - name: CURRENT_ASSET_OTHER
+    type: number
+    required: true
+    external_description_zh: 流动资产其他项
+  - name: CURRENT_LIAB_BALANCE
+    type: number
+    required: true
+    external_description_zh: 流动负债平衡项
+  - name: CURRENT_LIAB_OTHER
+    type: number
+    required: true
+    external_description_zh: 流动负债其他项
+  - name: DEFER_INCOME
+    type: number
+    required: true
+    external_description_zh: 递延收益
+  - name: DEFER_INCOME_1YEAR
+    type: number
+    required: true
+    external_description_zh: 一年内到期递延收益
+  - name: DEFER_TAX_ASSET
+    type: number
+    required: true
+    external_description_zh: 递延所得税资产
+  - name: DEFER_TAX_LIAB
+    type: number
+    required: true
+    external_description_zh: 递延所得税负债
+  - name: DERIVE_FINASSET
+    type: number
+    required: true
+    external_description_zh: 衍生金融资产
+  - name: DERIVE_FINLIAB
+    type: number
+    required: true
+    external_description_zh: 衍生金融负债
+  - name: DEVELOP_EXPENSE
+    type: number
+    required: true
+    external_description_zh: 开发支出
+  - name: DIV_HOLDSALE_ASSET
+    type: number
+    required: true
+    external_description_zh: 持有待售资产（除）
+  - name: DIV_HOLDSALE_LIAB
+    type: number
+    required: true
+    external_description_zh: 持有待售负债（除）
+  - name: DIVIDEND_PAYABLE
+    type: number
+    required: true
+    external_description_zh: 应付股利
+  - name: DIVIDEND_RECE
+    type: number
+    required: true
+    external_description_zh: 应收股利
+  - name: EQUITY_BALANCE
+    type: number
+    required: true
+    external_description_zh: 所有者权益平衡项
+  - name: EQUITY_OTHER
+    type: number
+    required: true
+    external_description_zh: 所有者权益其他项
+  - name: EXPORT_REFUND_RECE
+    type: number
+    required: true
+    external_description_zh: 应收出口退税
+  - name: FEE_COMMISSION_PAYABLE
+    type: number
+    required: true
+    external_description_zh: 应付手续费及佣金
+  - name: FIN_FUND
+    type: number
+    required: true
+    external_description_zh: 金融往来资金
+  - name: FINANCE_RECE
+    type: number
+    required: true
+    external_description_zh: 金融应收款
+  - name: FIXED_ASSET
+    type: number
+    required: true
+    external_description_zh: 固定资产
+  - name: FIXED_ASSET_DISPOSAL
+    type: number
+    required: true
+    external_description_zh: 固定资产清理
+  - name: FVTOCI_FINASSET
+    type: number
+    required: true
+    external_description_zh: 以公允价值计量且其变动计入其他综合收益的金融资产
+  - name: FVTOCI_NCFINASSET
+    type: number
+    required: true
+    external_description_zh: 其他非流动金融资产（FVTOCI）
+  - name: FVTPL_FINASSET
+    type: number
+    required: true
+    external_description_zh: 以公允价值计量且其变动计入当期损益的金融资产
+  - name: FVTPL_FINLIAB
+    type: number
+    required: true
+    external_description_zh: 以公允价值计量且其变动计入当期损益的金融负债
+  - name: GENERAL_RISK_RESERVE
+    type: number
+    required: true
+    external_description_zh: 一般风险准备
+  - name: GOODWILL
+    type: number
+    required: true
+    external_description_zh: 资产负债表披露的商誉金额。
+  - name: HOLD_MATURITY_INVEST
+    type: number
+    required: true
+    external_description_zh: 持有至到期投资
+  - name: HOLDSALE_ASSET
+    type: number
+    required: true
+    external_description_zh: 持有待售资产
+  - name: HOLDSALE_LIAB
+    type: number
+    required: true
+    external_description_zh: 持有待售负债
+  - name: INSURANCE_CONTRACT_RESERVE
+    type: number
+    required: true
+    external_description_zh: 保险合同准备金
+  - name: INTANGIBLE_ASSET
+    type: number
+    required: true
+    external_description_zh: 无形资产
+  - name: INTEREST_PAYABLE
+    type: number
+    required: true
+    external_description_zh: 应付利息
+  - name: INTEREST_RECE
+    type: number
+    required: true
+    external_description_zh: 应收利息
+  - name: INTERNAL_PAYABLE
+    type: number
+    required: true
+    external_description_zh: 内部应付款
+  - name: INTERNAL_RECE
+    type: number
+    required: true
+    external_description_zh: 内部应收款
+  - name: INVENTORY
+    type: number
+    required: true
+    external_description_zh: 资产负债表披露的存货金额。
+  - name: INVEST_REALESTATE
+    type: number
+    required: true
+    external_description_zh: 投资性房地产
+  - name: LEASE_LIAB
+    type: number
+    required: true
+    external_description_zh: 租赁负债
+  - name: LEND_FUND
+    type: number
+    required: true
+    external_description_zh: 拆出资金
+  - name: LIAB_BALANCE
+    type: number
+    required: true
+    external_description_zh: 负债平衡项
+  - name: LIAB_EQUITY_BALANCE
+    type: number
+    required: true
+    external_description_zh: 负债和所有者权益平衡项
+  - name: LIAB_EQUITY_OTHER
+    type: number
+    required: true
+    external_description_zh: 负债和所有者权益其他项
+  - name: LIAB_OTHER
+    type: number
+    required: true
+    external_description_zh: 负债其他项
+  - name: LOAN_ADVANCE
+    type: number
+    required: true
+    external_description_zh: 发放贷款及垫款
+  - name: LOAN_PBC
+    type: number
+    required: true
+    external_description_zh: 向央行借款
+  - name: LONG_EQUITY_INVEST
+    type: number
+    required: true
+    external_description_zh: 长期股权投资
+  - name: LONG_LOAN
+    type: number
+    required: true
+    external_description_zh: 长期借款
+  - name: LONG_PAYABLE
+    type: number
+    required: true
+    external_description_zh: 长期应付款
+  - name: LONG_PREPAID_EXPENSE
+    type: number
+    required: true
+    external_description_zh: 长期待摊费用
+  - name: LONG_RECE
+    type: number
+    required: true
+    external_description_zh: 长期应收款
+  - name: LONG_STAFFSALARY_PAYABLE
+    type: number
+    required: true
+    external_description_zh: 长期应付职工薪酬
+  - name: MINORITY_EQUITY
+    type: number
+    required: true
+    external_description_zh: 少数股东权益
+  - name: MONETARYFUNDS
+    type: number
+    required: true
+    external_description_zh: 货币资金
+  - name: NONCURRENT_ASSET_1YEAR
+    type: number
+    required: true
+    external_description_zh: 一年内到期的非流动资产
+  - name: NONCURRENT_ASSET_BALANCE
+    type: number
+    required: true
+    external_description_zh: 非流动资产平衡项
+  - name: NONCURRENT_ASSET_OTHER
+    type: number
+    required: true
+    external_description_zh: 非流动资产其他项
+  - name: NONCURRENT_LIAB_1YEAR
+    type: number
+    required: true
+    external_description_zh: 一年内到期的非流动负债
+  - name: NONCURRENT_LIAB_BALANCE
+    type: number
+    required: true
+    external_description_zh: 非流动负债平衡项
+  - name: NONCURRENT_LIAB_OTHER
+    type: number
+    required: true
+    external_description_zh: 非流动负债其他项
+  - name: NOTE_ACCOUNTS_PAYABLE
+    type: number
+    required: true
+    external_description_zh: 应付票据及应付账款
+  - name: NOTE_ACCOUNTS_RECE
+    type: number
+    required: true
+    external_description_zh: 应收票据及应收账款
+  - name: NOTE_PAYABLE
+    type: number
+    required: true
+    external_description_zh: 应付票据
+  - name: NOTE_RECE
+    type: number
+    required: true
+    external_description_zh: 应收票据
+  - name: OIL_GAS_ASSET
+    type: number
+    required: true
+    external_description_zh: 油气资产
+  - name: OTHER_COMPRE_INCOME
+    type: number
+    required: true
+    external_description_zh: 其他综合收益
+  - name: OTHER_CREDITOR_INVEST
+    type: number
+    required: true
+    external_description_zh: 其他债权投资
+  - name: OTHER_CURRENT_ASSET
+    type: number
+    required: true
+    external_description_zh: 其他流动资产
+  - name: OTHER_CURRENT_LIAB
+    type: number
+    required: true
+    external_description_zh: 其他流动负债
+  - name: OTHER_EQUITY_INVEST
+    type: number
+    required: true
+    external_description_zh: 其他权益工具投资
+  - name: OTHER_EQUITY_OTHER
+    type: number
+    required: true
+    external_description_zh: 其他权益其他项
+  - name: OTHER_EQUITY_TOOL
+    type: number
+    required: true
+    external_description_zh: 其他权益工具
+  - name: OTHER_NONCURRENT_ASSET
+    type: number
+    required: true
+    external_description_zh: 其他非流动资产
+  - name: OTHER_NONCURRENT_FINASSET
+    type: number
+    required: true
+    external_description_zh: 其他非流动金融资产
+  - name: OTHER_NONCURRENT_LIAB
+    type: number
+    required: true
+    external_description_zh: 其他非流动负债
+  - name: OTHER_PAYABLE
+    type: number
+    required: true
+    external_description_zh: 其他应付款
+  - name: OTHER_RECE
+    type: number
+    required: true
+    external_description_zh: 其他应收款
+  - name: PARENT_EQUITY_BALANCE
+    type: number
+    required: true
+    external_description_zh: 归母权益平衡项
+  - name: PARENT_EQUITY_OTHER
+    type: number
+    required: true
+    external_description_zh: 归母权益其他项
+  - name: PERPETUAL_BOND
+    type: number
+    required: true
+    external_description_zh: 永续债
+  - name: PERPETUAL_BOND_PAYBALE
+    type: number
+    required: true
+    external_description_zh: 永续债（负债端）
+  - name: PREDICT_CURRENT_LIAB
+    type: number
+    required: true
+    external_description_zh: 预计流动负债
+  - name: PREDICT_LIAB
+    type: number
+    required: true
+    external_description_zh: 预计负债
+  - name: PREFERRED_SHARES
+    type: number
+    required: true
+    external_description_zh: 优先股
+  - name: PREFERRED_SHARES_PAYBALE
+    type: number
+    required: true
+    external_description_zh: 应付优先股
+  - name: PREMIUM_RECE
+    type: number
+    required: true
+    external_description_zh: 预收保费
+  - name: PREPAYMENT
+    type: number
+    required: true
+    external_description_zh: 预付款项
+  - name: PRODUCTIVE_BIOLOGY_ASSET
+    type: number
+    required: true
+    external_description_zh: 生产性生物资产
+  - name: PROJECT_MATERIAL
+    type: number
+    required: true
+    external_description_zh: 工程物资
+  - name: RC_RESERVE_RECE
+    type: number
+    required: true
+    external_description_zh: 再保合同应收准备金
+  - name: REINSURE_PAYABLE
+    type: number
+    required: true
+    external_description_zh: 应付再保款
+  - name: REINSURE_RECE
+    type: number
+    required: true
+    external_description_zh: 应收再保款
+  - name: SELL_REPO_FINASSET
+    type: number
+    required: true
+    external_description_zh: 卖出回购金融资产款
+  - name: SETTLE_EXCESS_RESERVE
+    type: number
+    required: true
+    external_description_zh: 清算备付金
+  - name: SHARE_CAPITAL
+    type: number
+    required: true
+    external_description_zh: 实收资本（股本）
+  - name: SHORT_BOND_PAYABLE
+    type: number
+    required: true
+    external_description_zh: 短期应付债券
+  - name: SHORT_FIN_PAYABLE
+    type: number
+    required: true
+    external_description_zh: 短期金融负债
+  - name: SHORT_LOAN
+    type: number
+    required: true
+    external_description_zh: 短期借款
+  - name: SPECIAL_PAYABLE
+    type: number
+    required: true
+    external_description_zh: 专项应付款
+  - name: SPECIAL_RESERVE
+    type: number
+    required: true
+    external_description_zh: 专项储备
+  - name: STAFF_SALARY_PAYABLE
+    type: number
+    required: true
+    external_description_zh: 应付职工薪酬
+  - name: SUBSIDY_RECE
+    type: number
+    required: true
+    external_description_zh: 应收补贴
+  - name: SURPLUS_RESERVE
+    type: number
+    required: true
+    external_description_zh: 盈余公积
+  - name: TAX_PAYABLE
+    type: number
+    required: true
+    external_description_zh: 应交税费
+  - name: TOTAL_ASSETS
+    type: number
+    required: true
+    external_description_zh: 资产总计
+  - name: TOTAL_CURRENT_ASSETS
+    type: number
+    required: true
+    external_description_zh: 流动资产合计
+  - name: TOTAL_CURRENT_LIAB
+    type: number
+    required: true
+    external_description_zh: 流动负债合计
+  - name: TOTAL_EQUITY
+    type: number
+    required: true
+    external_description_zh: 所有者权益合计
+  - name: TOTAL_LIAB_EQUITY
+    type: number
+    required: true
+    external_description_zh: 负债和所有者权益总计
+  - name: TOTAL_LIABILITIES
+    type: number
+    required: true
+    external_description_zh: 负债合计
+  - name: TOTAL_NONCURRENT_ASSETS
+    type: number
+    required: true
+    external_description_zh: 非流动资产合计
+  - name: TOTAL_NONCURRENT_LIAB
+    type: number
+    required: true
+    external_description_zh: 非流动负债合计
+  - name: TOTAL_OTHER_PAYABLE
+    type: number
+    required: true
+    external_description_zh: 其他应付款合计
+  - name: TOTAL_OTHER_RECE
+    type: number
+    required: true
+    external_description_zh: 其他应收款合计
+  - name: TOTAL_PARENT_EQUITY
+    type: number
+    required: true
+    external_description_zh: 归属于母公司股东权益合计
+  - name: TRADE_FINASSET
+    type: number
+    required: true
+    external_description_zh: 交易性金融资产
+  - name: TRADE_FINASSET_NOTFVTPL
+    type: number
+    required: true
+    external_description_zh: 非FVTPL交易性金融资产
+  - name: TRADE_FINLIAB
+    type: number
+    required: true
+    external_description_zh: 交易性金融负债
+  - name: TRADE_FINLIAB_NOTFVTPL
+    type: number
+    required: true
+    external_description_zh: 非FVTPL交易性金融负债
+  - name: TREASURY_SHARES
+    type: number
+    required: true
+    external_description_zh: 库存股
+  - name: UNASSIGN_RPOFIT
+    type: number
+    required: true
+    external_description_zh: 未分配利润
+  - name: UNCONFIRM_INVEST_LOSS
+    type: number
+    required: true
+    external_description_zh: 未确认投资损失
+  - name: USERIGHT_ASSET
+    type: number
+    required: true
+    external_description_zh: 使用权资产
+  - name: ACCEPT_DEPOSIT_INTERBANK_YOY
+    type: number
+    required: true
+    external_description_zh: 同业存放同比增长率（%）
+  - name: ACCOUNTS_PAYABLE_YOY
+    type: number
+    required: true
+    external_description_zh: 应付账款同比增长率（%）
+  - name: ACCOUNTS_RECE_YOY
+    type: number
+    required: true
+    external_description_zh: 应收账款同比增长率（%）
+  - name: ACCRUED_EXPENSE_YOY
+    type: number
+    required: true
+    external_description_zh: 预提费用同比增长率（%）
+  - name: ADVANCE_RECEIVABLES_YOY
+    type: number
+    required: true
+    external_description_zh: 预收款项同比增长率（%）
+  - name: AGENT_TRADE_SECURITY_YOY
+    type: number
+    required: true
+    external_description_zh: 代理买卖证券款同比增长率（%）
+  - name: AGENT_UNDERWRITE_SECURITY_YOY
+    type: number
+    required: true
+    external_description_zh: 代理承销证券款同比增长率（%）
+  - name: AMORTIZE_COST_FINASSET_YOY
+    type: number
+    required: true
+    external_description_zh: 以摊余成本计量的金融资产同比增长率（%）
+  - name: AMORTIZE_COST_FINLIAB_YOY
+    type: number
+    required: true
+    external_description_zh: 以摊余成本计量的金融负债同比增长率（%）
+  - name: AMORTIZE_COST_NCFINASSET_YOY
+    type: number
+    required: true
+    external_description_zh: 非流动金融资产（摊余成本）同比增长率（%）
+  - name: AMORTIZE_COST_NCFINLIAB_YOY
+    type: number
+    required: true
+    external_description_zh: 非流动金融负债（摊余成本）同比增长率（%）
+  - name: APPOINT_FVTPL_FINASSET_YOY
+    type: number
+    required: true
+    external_description_zh: 指定为FVTPL的金融资产同比增长率（%）
+  - name: APPOINT_FVTPL_FINLIAB_YOY
+    type: number
+    required: true
+    external_description_zh: 指定为FVTPL的金融负债同比增长率（%）
+  - name: ASSET_BALANCE_YOY
+    type: number
+    required: true
+    external_description_zh: 资产平衡项同比增长率（%）
+  - name: ASSET_OTHER_YOY
+    type: number
+    required: true
+    external_description_zh: 资产其他项同比增长率（%）
+  - name: ASSIGN_CASH_DIVIDEND_YOY
+    type: number
+    required: true
+    external_description_zh: 应付现金股利同比增长率（%）
+  - name: AVAILABLE_SALE_FINASSET_YOY
+    type: number
+    required: true
+    external_description_zh: 可供出售金融资产同比增长率（%）
+  - name: BOND_PAYABLE_YOY
+    type: number
+    required: true
+    external_description_zh: 应付债券同比增长率（%）
+  - name: BORROW_FUND_YOY
+    type: number
+    required: true
+    external_description_zh: 拆入资金同比增长率（%）
+  - name: BUY_RESALE_FINASSET_YOY
+    type: number
+    required: true
+    external_description_zh: 买入返售金融资产同比增长率（%）
+  - name: CAPITAL_RESERVE_YOY
+    type: number
+    required: true
+    external_description_zh: 资本公积同比增长率（%）
+  - name: CIP_YOY
+    type: number
+    required: true
+    external_description_zh: 在建工程同比增长率（%）
+  - name: CONSUMPTIVE_BIOLOGICAL_ASSET_YOY
+    type: number
+    required: true
+    external_description_zh: 消耗性生物资产同比增长率（%）
+  - name: CONTRACT_ASSET_YOY
+    type: number
+    required: true
+    external_description_zh: 合同资产同比增长率（%）
+  - name: CONTRACT_LIAB_YOY
+    type: number
+    required: true
+    external_description_zh: 合同负债同比增长率（%）
+  - name: CONVERT_DIFF_YOY
+    type: number
+    required: true
+    external_description_zh: 外币报表折算差额同比增长率（%）
+  - name: CREDITOR_INVEST_YOY
+    type: number
+    required: true
+    external_description_zh: 债权投资同比增长率（%）
+  - name: CURRENT_ASSET_BALANCE_YOY
+    type: number
+    required: true
+    external_description_zh: 流动资产平衡项同比增长率（%）
+  - name: CURRENT_ASSET_OTHER_YOY
+    type: number
+    required: true
+    external_description_zh: 流动资产其他项同比增长率（%）
+  - name: CURRENT_LIAB_BALANCE_YOY
+    type: number
+    required: true
+    external_description_zh: 流动负债平衡项同比增长率（%）
+  - name: CURRENT_LIAB_OTHER_YOY
+    type: number
+    required: true
+    external_description_zh: 流动负债其他项同比增长率（%）
+  - name: DEFER_INCOME_1YEAR_YOY
+    type: number
+    required: true
+    external_description_zh: 一年内到期递延收益同比增长率（%）
+  - name: DEFER_INCOME_YOY
+    type: number
+    required: true
+    external_description_zh: 递延收益同比增长率（%）
+  - name: DEFER_TAX_ASSET_YOY
+    type: number
+    required: true
+    external_description_zh: 递延所得税资产同比增长率（%）
+  - name: DEFER_TAX_LIAB_YOY
+    type: number
+    required: true
+    external_description_zh: 递延所得税负债同比增长率（%）
+  - name: DERIVE_FINASSET_YOY
+    type: number
+    required: true
+    external_description_zh: 衍生金融资产同比增长率（%）
+  - name: DERIVE_FINLIAB_YOY
+    type: number
+    required: true
+    external_description_zh: 衍生金融负债同比增长率（%）
+  - name: DEVELOP_EXPENSE_YOY
+    type: number
+    required: true
+    external_description_zh: 开发支出同比增长率（%）
+  - name: DIV_HOLDSALE_ASSET_YOY
+    type: number
+    required: true
+    external_description_zh: 持有待售资产（除）同比增长率（%）
+  - name: DIV_HOLDSALE_LIAB_YOY
+    type: number
+    required: true
+    external_description_zh: 持有待售负债（除）同比增长率（%）
+  - name: DIVIDEND_PAYABLE_YOY
+    type: number
+    required: true
+    external_description_zh: 应付股利同比增长率（%）
+  - name: DIVIDEND_RECE_YOY
+    type: number
+    required: true
+    external_description_zh: 应收股利同比增长率（%）
+  - name: EQUITY_BALANCE_YOY
+    type: number
+    required: true
+    external_description_zh: 所有者权益平衡项同比增长率（%）
+  - name: EQUITY_OTHER_YOY
+    type: number
+    required: true
+    external_description_zh: 所有者权益其他项同比增长率（%）
+  - name: EXPORT_REFUND_RECE_YOY
+    type: number
+    required: true
+    external_description_zh: 应收出口退税同比增长率（%）
+  - name: FEE_COMMISSION_PAYABLE_YOY
+    type: number
+    required: true
+    external_description_zh: 应付手续费及佣金同比增长率（%）
+  - name: FIN_FUND_YOY
+    type: number
+    required: true
+    external_description_zh: 金融往来资金同比增长率（%）
+  - name: FINANCE_RECE_YOY
+    type: number
+    required: true
+    external_description_zh: 金融应收款同比增长率（%）
+  - name: FIXED_ASSET_DISPOSAL_YOY
+    type: number
+    required: true
+    external_description_zh: 固定资产清理同比增长率（%）
+  - name: FIXED_ASSET_YOY
+    type: number
+    required: true
+    external_description_zh: 固定资产同比增长率（%）
+  - name: FVTOCI_FINASSET_YOY
+    type: number
+    required: true
+    external_description_zh: 以公允价值计量且其变动计入其他综合收益的金融资产同比增长率（%）
+  - name: FVTOCI_NCFINASSET_YOY
+    type: number
+    required: true
+    external_description_zh: 其他非流动金融资产（FVTOCI）同比增长率（%）
+  - name: FVTPL_FINASSET_YOY
+    type: number
+    required: true
+    external_description_zh: 以公允价值计量且其变动计入当期损益的金融资产同比增长率（%）
+  - name: FVTPL_FINLIAB_YOY
+    type: number
+    required: true
+    external_description_zh: 以公允价值计量且其变动计入当期损益的金融负债同比增长率（%）
+  - name: GENERAL_RISK_RESERVE_YOY
+    type: number
+    required: true
+    external_description_zh: 一般风险准备同比增长率（%）
+  - name: GOODWILL_YOY
+    type: number
+    required: true
+    external_description_zh: 商誉同比增长率（%）
+  - name: HOLD_MATURITY_INVEST_YOY
+    type: number
+    required: true
+    external_description_zh: 持有至到期投资同比增长率（%）
+  - name: HOLDSALE_ASSET_YOY
+    type: number
+    required: true
+    external_description_zh: 持有待售资产同比增长率（%）
+  - name: HOLDSALE_LIAB_YOY
+    type: number
+    required: true
+    external_description_zh: 持有待售负债同比增长率（%）
+  - name: INSURANCE_CONTRACT_RESERVE_YOY
+    type: number
+    required: true
+    external_description_zh: 保险合同准备金同比增长率（%）
+  - name: INTANGIBLE_ASSET_YOY
+    type: number
+    required: true
+    external_description_zh: 无形资产同比增长率（%）
+  - name: INTEREST_PAYABLE_YOY
+    type: number
+    required: true
+    external_description_zh: 应付利息同比增长率（%）
+  - name: INTEREST_RECE_YOY
+    type: number
+    required: true
+    external_description_zh: 应收利息同比增长率（%）
+  - name: INTERNAL_PAYABLE_YOY
+    type: number
+    required: true
+    external_description_zh: 内部应付款同比增长率（%）
+  - name: INTERNAL_RECE_YOY
+    type: number
+    required: true
+    external_description_zh: 内部应收款同比增长率（%）
+  - name: INVENTORY_YOY
+    type: number
+    required: true
+    external_description_zh: 存货同比增长率（%）
+  - name: INVEST_REALESTATE_YOY
+    type: number
+    required: true
+    external_description_zh: 投资性房地产同比增长率（%）
+  - name: LEASE_LIAB_YOY
+    type: number
+    required: true
+    external_description_zh: 租赁负债同比增长率（%）
+  - name: LEND_FUND_YOY
+    type: number
+    required: true
+    external_description_zh: 拆出资金同比增长率（%）
+  - name: LIAB_BALANCE_YOY
+    type: number
+    required: true
+    external_description_zh: 负债平衡项同比增长率（%）
+  - name: LIAB_EQUITY_BALANCE_YOY
+    type: number
+    required: true
+    external_description_zh: 负债和所有者权益平衡项同比增长率（%）
+  - name: LIAB_EQUITY_OTHER_YOY
+    type: number
+    required: true
+    external_description_zh: 负债和所有者权益其他项同比增长率（%）
+  - name: LIAB_OTHER_YOY
+    type: number
+    required: true
+    external_description_zh: 负债其他项同比增长率（%）
+  - name: LOAN_ADVANCE_YOY
+    type: number
+    required: true
+    external_description_zh: 发放贷款及垫款同比增长率（%）
+  - name: LOAN_PBC_YOY
+    type: number
+    required: true
+    external_description_zh: 向央行借款同比增长率（%）
+  - name: LONG_EQUITY_INVEST_YOY
+    type: number
+    required: true
+    external_description_zh: 长期股权投资同比增长率（%）
+  - name: LONG_LOAN_YOY
+    type: number
+    required: true
+    external_description_zh: 长期借款同比增长率（%）
+  - name: LONG_PAYABLE_YOY
+    type: number
+    required: true
+    external_description_zh: 长期应付款同比增长率（%）
+  - name: LONG_PREPAID_EXPENSE_YOY
+    type: number
+    required: true
+    external_description_zh: 长期待摊费用同比增长率（%）
+  - name: LONG_RECE_YOY
+    type: number
+    required: true
+    external_description_zh: 长期应收款同比增长率（%）
+  - name: LONG_STAFFSALARY_PAYABLE_YOY
+    type: number
+    required: true
+    external_description_zh: 长期应付职工薪酬同比增长率（%）
+  - name: MINORITY_EQUITY_YOY
+    type: number
+    required: true
+    external_description_zh: 少数股东权益同比增长率（%）
+  - name: MONETARYFUNDS_YOY
+    type: number
+    required: true
+    external_description_zh: 货币资金同比增长率（%）
+  - name: NONCURRENT_ASSET_1YEAR_YOY
+    type: number
+    required: true
+    external_description_zh: 一年内到期的非流动资产同比增长率（%）
+  - name: NONCURRENT_ASSET_BALANCE_YOY
+    type: number
+    required: true
+    external_description_zh: 非流动资产平衡项同比增长率（%）
+  - name: NONCURRENT_ASSET_OTHER_YOY
+    type: number
+    required: true
+    external_description_zh: 非流动资产其他项同比增长率（%）
+  - name: NONCURRENT_LIAB_1YEAR_YOY
+    type: number
+    required: true
+    external_description_zh: 一年内到期的非流动负债同比增长率（%）
+  - name: NONCURRENT_LIAB_BALANCE_YOY
+    type: number
+    required: true
+    external_description_zh: 非流动负债平衡项同比增长率（%）
+  - name: NONCURRENT_LIAB_OTHER_YOY
+    type: number
+    required: true
+    external_description_zh: 非流动负债其他项同比增长率（%）
+  - name: NOTE_ACCOUNTS_PAYABLE_YOY
+    type: number
+    required: true
+    external_description_zh: 应付票据及应付账款同比增长率（%）
+  - name: NOTE_ACCOUNTS_RECE_YOY
+    type: number
+    required: true
+    external_description_zh: 应收票据及应收账款同比增长率（%）
+  - name: NOTE_PAYABLE_YOY
+    type: number
+    required: true
+    external_description_zh: 应付票据同比增长率（%）
+  - name: NOTE_RECE_YOY
+    type: number
+    required: true
+    external_description_zh: 应收票据同比增长率（%）
+  - name: OIL_GAS_ASSET_YOY
+    type: number
+    required: true
+    external_description_zh: 油气资产同比增长率（%）
+  - name: OTHER_COMPRE_INCOME_YOY
+    type: number
+    required: true
+    external_description_zh: 其他综合收益总额同比增长率（%）
+  - name: OTHER_CREDITOR_INVEST_YOY
+    type: number
+    required: true
+    external_description_zh: 其他债权投资同比增长率（%）
+  - name: OTHER_CURRENT_ASSET_YOY
+    type: number
+    required: true
+    external_description_zh: 其他流动资产同比增长率（%）
+  - name: OTHER_CURRENT_LIAB_YOY
+    type: number
+    required: true
+    external_description_zh: 其他流动负债同比增长率（%）
+  - name: OTHER_EQUITY_INVEST_YOY
+    type: number
+    required: true
+    external_description_zh: 其他权益工具投资同比增长率（%）
+  - name: OTHER_EQUITY_OTHER_YOY
+    type: number
+    required: true
+    external_description_zh: 其他权益其他项同比增长率（%）
+  - name: OTHER_EQUITY_TOOL_YOY
+    type: number
+    required: true
+    external_description_zh: 其他权益工具同比增长率（%）
+  - name: OTHER_NONCURRENT_ASSET_YOY
+    type: number
+    required: true
+    external_description_zh: 其他非流动资产同比增长率（%）
+  - name: OTHER_NONCURRENT_FINASSET_YOY
+    type: number
+    required: true
+    external_description_zh: 其他非流动金融资产同比增长率（%）
+  - name: OTHER_NONCURRENT_LIAB_YOY
+    type: number
+    required: true
+    external_description_zh: 其他非流动负债同比增长率（%）
+  - name: OTHER_PAYABLE_YOY
+    type: number
+    required: true
+    external_description_zh: 其他应付款同比增长率（%）
+  - name: OTHER_RECE_YOY
+    type: number
+    required: true
+    external_description_zh: 其他应收款同比增长率（%）
+  - name: PARENT_EQUITY_BALANCE_YOY
+    type: number
+    required: true
+    external_description_zh: 归母权益平衡项同比增长率（%）
+  - name: PARENT_EQUITY_OTHER_YOY
+    type: number
+    required: true
+    external_description_zh: 归母权益其他项同比增长率（%）
+  - name: PERPETUAL_BOND_PAYBALE_YOY
+    type: number
+    required: true
+    external_description_zh: 永续债（负债端）同比增长率（%）
+  - name: PERPETUAL_BOND_YOY
+    type: number
+    required: true
+    external_description_zh: 永续债同比增长率（%）
+  - name: PREDICT_CURRENT_LIAB_YOY
+    type: number
+    required: true
+    external_description_zh: 预计流动负债同比增长率（%）
+  - name: PREDICT_LIAB_YOY
+    type: number
+    required: true
+    external_description_zh: 预计负债同比增长率（%）
+  - name: PREFERRED_SHARES_PAYBALE_YOY
+    type: number
+    required: true
+    external_description_zh: 应付优先股同比增长率（%）
+  - name: PREFERRED_SHARES_YOY
+    type: number
+    required: true
+    external_description_zh: 优先股同比增长率（%）
+  - name: PREMIUM_RECE_YOY
+    type: number
+    required: true
+    external_description_zh: 预收保费同比增长率（%）
+  - name: PREPAYMENT_YOY
+    type: number
+    required: true
+    external_description_zh: 预付款项同比增长率（%）
+  - name: PRODUCTIVE_BIOLOGY_ASSET_YOY
+    type: number
+    required: true
+    external_description_zh: 生产性生物资产同比增长率（%）
+  - name: PROJECT_MATERIAL_YOY
+    type: number
+    required: true
+    external_description_zh: 工程物资同比增长率（%）
+  - name: RC_RESERVE_RECE_YOY
+    type: number
+    required: true
+    external_description_zh: 再保合同应收准备金同比增长率（%）
+  - name: REINSURE_PAYABLE_YOY
+    type: number
+    required: true
+    external_description_zh: 应付再保款同比增长率（%）
+  - name: REINSURE_RECE_YOY
+    type: number
+    required: true
+    external_description_zh: 应收再保款同比增长率（%）
+  - name: SELL_REPO_FINASSET_YOY
+    type: number
+    required: true
+    external_description_zh: 卖出回购金融资产款同比增长率（%）
+  - name: SETTLE_EXCESS_RESERVE_YOY
+    type: number
+    required: true
+    external_description_zh: 清算备付金同比增长率（%）
+  - name: SHARE_CAPITAL_YOY
+    type: number
+    required: true
+    external_description_zh: 实收资本（股本）同比增长率（%）
+  - name: SHORT_BOND_PAYABLE_YOY
+    type: number
+    required: true
+    external_description_zh: 短期应付债券同比增长率（%）
+  - name: SHORT_FIN_PAYABLE_YOY
+    type: number
+    required: true
+    external_description_zh: 短期金融负债同比增长率（%）
+  - name: SHORT_LOAN_YOY
+    type: number
+    required: true
+    external_description_zh: 短期借款同比增长率（%）
+  - name: SPECIAL_PAYABLE_YOY
+    type: number
+    required: true
+    external_description_zh: 专项应付款同比增长率（%）
+  - name: SPECIAL_RESERVE_YOY
+    type: number
+    required: true
+    external_description_zh: 专项储备同比增长率（%）
+  - name: STAFF_SALARY_PAYABLE_YOY
+    type: number
+    required: true
+    external_description_zh: 应付职工薪酬同比增长率（%）
+  - name: SUBSIDY_RECE_YOY
+    type: number
+    required: true
+    external_description_zh: 应收补贴同比增长率（%）
+  - name: SURPLUS_RESERVE_YOY
+    type: number
+    required: true
+    external_description_zh: 盈余公积同比增长率（%）
+  - name: TAX_PAYABLE_YOY
+    type: number
+    required: true
+    external_description_zh: 应交税费同比增长率（%）
+  - name: TOTAL_ASSETS_YOY
+    type: number
+    required: true
+    external_description_zh: 资产总计同比增长率（%）
+  - name: TOTAL_CURRENT_ASSETS_YOY
+    type: number
+    required: true
+    external_description_zh: 流动资产合计同比增长率（%）
+  - name: TOTAL_CURRENT_LIAB_YOY
+    type: number
+    required: true
+    external_description_zh: 流动负债合计同比增长率（%）
+  - name: TOTAL_EQUITY_YOY
+    type: number
+    required: true
+    external_description_zh: 所有者权益合计同比增长率（%）
+  - name: TOTAL_LIAB_EQUITY_YOY
+    type: number
+    required: true
+    external_description_zh: 负债和所有者权益总计同比增长率（%）
+  - name: TOTAL_LIABILITIES_YOY
+    type: number
+    required: true
+    external_description_zh: 负债合计同比增长率（%）
+  - name: TOTAL_NONCURRENT_ASSETS_YOY
+    type: number
+    required: true
+    external_description_zh: 非流动资产合计同比增长率（%）
+  - name: TOTAL_NONCURRENT_LIAB_YOY
+    type: number
+    required: true
+    external_description_zh: 非流动负债合计同比增长率（%）
+  - name: TOTAL_OTHER_PAYABLE_YOY
+    type: number
+    required: true
+    external_description_zh: 其他应付款合计同比增长率（%）
+  - name: TOTAL_OTHER_RECE_YOY
+    type: number
+    required: true
+    external_description_zh: 其他应收款合计同比增长率（%）
+  - name: TOTAL_PARENT_EQUITY_YOY
+    type: number
+    required: true
+    external_description_zh: 归属于母公司股东权益合计同比增长率（%）
+  - name: TRADE_FINASSET_NOTFVTPL_YOY
+    type: number
+    required: true
+    external_description_zh: 非FVTPL交易性金融资产同比增长率（%）
+  - name: TRADE_FINASSET_YOY
+    type: number
+    required: true
+    external_description_zh: 交易性金融资产同比增长率（%）
+  - name: TRADE_FINLIAB_NOTFVTPL_YOY
+    type: number
+    required: true
+    external_description_zh: 非FVTPL交易性金融负债同比增长率（%）
+  - name: TRADE_FINLIAB_YOY
+    type: number
+    required: true
+    external_description_zh: 交易性金融负债同比增长率（%）
+  - name: TREASURY_SHARES_YOY
+    type: number
+    required: true
+    external_description_zh: 库存股同比增长率（%）
+  - name: UNASSIGN_RPOFIT_YOY
+    type: number
+    required: true
+    external_description_zh: 未分配利润同比增长率（%）
+  - name: UNCONFIRM_INVEST_LOSS_YOY
+    type: number
+    required: true
+    external_description_zh: 未确认投资损失同比增长率（%）
+  - name: USERIGHT_ASSET_YOY
+    type: number
+    required: true
+    external_description_zh: 使用权资产同比增长率（%）
+  - name: OPINION_TYPE
+    type: number
+    required: true
+    external_description_zh: 审计意见类型
+  - name: OSOPINION_TYPE
+    type: number
+    required: true
+    external_description_zh: 内控审计意见类型
+  - name: LISTING_STATE
+    type: string
+    required: true
+    external_description_zh: 上市状态
+parquet:
+  storage_mode: partitioned
+  partition_key_name: year
+  fields:
+  - name: SECUCODE
+    type: string
+    nullable: false
+  - name: SECURITY_CODE
+    type: string
+    nullable: false
+  - name: SECURITY_NAME_ABBR
+    type: string
+    nullable: false
+  - name: ORG_CODE
+    type: string
+    nullable: false
+  - name: ORG_TYPE
+    type: string
+    nullable: false
+  - name: REPORT_DATE
+    type: date32[day]
+    nullable: false
+  - name: REPORT_TYPE
+    type: string
+    nullable: false
+  - name: REPORT_DATE_NAME
+    type: string
+    nullable: false
+  - name: SECURITY_TYPE_CODE
+    type: string
+    nullable: false
+  - name: NOTICE_DATE
+    type: date32[day]
+    nullable: false
+  - name: UPDATE_DATE
+    type: date32[day]
+    nullable: false
+  - name: CURRENCY
+    type: string
+    nullable: false
+  - name: ACCEPT_DEPOSIT_INTERBANK
+    type: double
+    nullable: false
+  - name: ACCOUNTS_PAYABLE
+    type: double
+    nullable: false
+  - name: ACCOUNTS_RECE
+    type: double
+    nullable: false
+  - name: ACCRUED_EXPENSE
+    type: double
+    nullable: false
+  - name: ADVANCE_RECEIVABLES
+    type: double
+    nullable: false
+  - name: AGENT_TRADE_SECURITY
+    type: double
+    nullable: false
+  - name: AGENT_UNDERWRITE_SECURITY
+    type: double
+    nullable: false
+  - name: AMORTIZE_COST_FINASSET
+    type: double
+    nullable: false
+  - name: AMORTIZE_COST_FINLIAB
+    type: double
+    nullable: false
+  - name: AMORTIZE_COST_NCFINASSET
+    type: double
+    nullable: false
+  - name: AMORTIZE_COST_NCFINLIAB
+    type: double
+    nullable: false
+  - name: APPOINT_FVTPL_FINASSET
+    type: double
+    nullable: false
+  - name: APPOINT_FVTPL_FINLIAB
+    type: double
+    nullable: false
+  - name: ASSET_BALANCE
+    type: double
+    nullable: false
+  - name: ASSET_OTHER
+    type: double
+    nullable: false
+  - name: ASSIGN_CASH_DIVIDEND
+    type: double
+    nullable: false
+  - name: AVAILABLE_SALE_FINASSET
+    type: double
+    nullable: false
+  - name: BOND_PAYABLE
+    type: double
+    nullable: false
+  - name: BORROW_FUND
+    type: double
+    nullable: false
+  - name: BUY_RESALE_FINASSET
+    type: double
+    nullable: false
+  - name: CAPITAL_RESERVE
+    type: double
+    nullable: false
+  - name: CIP
+    type: double
+    nullable: false
+  - name: CONSUMPTIVE_BIOLOGICAL_ASSET
+    type: double
+    nullable: false
+  - name: CONTRACT_ASSET
+    type: double
+    nullable: false
+  - name: CONTRACT_LIAB
+    type: double
+    nullable: false
+  - name: CONVERT_DIFF
+    type: double
+    nullable: false
+  - name: CREDITOR_INVEST
+    type: double
+    nullable: false
+  - name: CURRENT_ASSET_BALANCE
+    type: double
+    nullable: false
+  - name: CURRENT_ASSET_OTHER
+    type: double
+    nullable: false
+  - name: CURRENT_LIAB_BALANCE
+    type: double
+    nullable: false
+  - name: CURRENT_LIAB_OTHER
+    type: double
+    nullable: false
+  - name: DEFER_INCOME
+    type: double
+    nullable: false
+  - name: DEFER_INCOME_1YEAR
+    type: double
+    nullable: false
+  - name: DEFER_TAX_ASSET
+    type: double
+    nullable: false
+  - name: DEFER_TAX_LIAB
+    type: double
+    nullable: false
+  - name: DERIVE_FINASSET
+    type: double
+    nullable: false
+  - name: DERIVE_FINLIAB
+    type: double
+    nullable: false
+  - name: DEVELOP_EXPENSE
+    type: double
+    nullable: false
+  - name: DIV_HOLDSALE_ASSET
+    type: double
+    nullable: false
+  - name: DIV_HOLDSALE_LIAB
+    type: double
+    nullable: false
+  - name: DIVIDEND_PAYABLE
+    type: double
+    nullable: false
+  - name: DIVIDEND_RECE
+    type: double
+    nullable: false
+  - name: EQUITY_BALANCE
+    type: double
+    nullable: false
+  - name: EQUITY_OTHER
+    type: double
+    nullable: false
+  - name: EXPORT_REFUND_RECE
+    type: double
+    nullable: false
+  - name: FEE_COMMISSION_PAYABLE
+    type: double
+    nullable: false
+  - name: FIN_FUND
+    type: double
+    nullable: false
+  - name: FINANCE_RECE
+    type: double
+    nullable: false
+  - name: FIXED_ASSET
+    type: double
+    nullable: false
+  - name: FIXED_ASSET_DISPOSAL
+    type: double
+    nullable: false
+  - name: FVTOCI_FINASSET
+    type: double
+    nullable: false
+  - name: FVTOCI_NCFINASSET
+    type: double
+    nullable: false
+  - name: FVTPL_FINASSET
+    type: double
+    nullable: false
+  - name: FVTPL_FINLIAB
+    type: double
+    nullable: false
+  - name: GENERAL_RISK_RESERVE
+    type: double
+    nullable: false
+  - name: GOODWILL
+    type: double
+    nullable: false
+  - name: HOLD_MATURITY_INVEST
+    type: double
+    nullable: false
+  - name: HOLDSALE_ASSET
+    type: double
+    nullable: false
+  - name: HOLDSALE_LIAB
+    type: double
+    nullable: false
+  - name: INSURANCE_CONTRACT_RESERVE
+    type: double
+    nullable: false
+  - name: INTANGIBLE_ASSET
+    type: double
+    nullable: false
+  - name: INTEREST_PAYABLE
+    type: double
+    nullable: false
+  - name: INTEREST_RECE
+    type: double
+    nullable: false
+  - name: INTERNAL_PAYABLE
+    type: double
+    nullable: false
+  - name: INTERNAL_RECE
+    type: double
+    nullable: false
+  - name: INVENTORY
+    type: double
+    nullable: false
+  - name: INVEST_REALESTATE
+    type: double
+    nullable: false
+  - name: LEASE_LIAB
+    type: double
+    nullable: false
+  - name: LEND_FUND
+    type: double
+    nullable: false
+  - name: LIAB_BALANCE
+    type: double
+    nullable: false
+  - name: LIAB_EQUITY_BALANCE
+    type: double
+    nullable: false
+  - name: LIAB_EQUITY_OTHER
+    type: double
+    nullable: false
+  - name: LIAB_OTHER
+    type: double
+    nullable: false
+  - name: LOAN_ADVANCE
+    type: double
+    nullable: false
+  - name: LOAN_PBC
+    type: double
+    nullable: false
+  - name: LONG_EQUITY_INVEST
+    type: double
+    nullable: false
+  - name: LONG_LOAN
+    type: double
+    nullable: false
+  - name: LONG_PAYABLE
+    type: double
+    nullable: false
+  - name: LONG_PREPAID_EXPENSE
+    type: double
+    nullable: false
+  - name: LONG_RECE
+    type: double
+    nullable: false
+  - name: LONG_STAFFSALARY_PAYABLE
+    type: double
+    nullable: false
+  - name: MINORITY_EQUITY
+    type: double
+    nullable: false
+  - name: MONETARYFUNDS
+    type: double
+    nullable: false
+  - name: NONCURRENT_ASSET_1YEAR
+    type: double
+    nullable: false
+  - name: NONCURRENT_ASSET_BALANCE
+    type: double
+    nullable: false
+  - name: NONCURRENT_ASSET_OTHER
+    type: double
+    nullable: false
+  - name: NONCURRENT_LIAB_1YEAR
+    type: double
+    nullable: false
+  - name: NONCURRENT_LIAB_BALANCE
+    type: double
+    nullable: false
+  - name: NONCURRENT_LIAB_OTHER
+    type: double
+    nullable: false
+  - name: NOTE_ACCOUNTS_PAYABLE
+    type: double
+    nullable: false
+  - name: NOTE_ACCOUNTS_RECE
+    type: double
+    nullable: false
+  - name: NOTE_PAYABLE
+    type: double
+    nullable: false
+  - name: NOTE_RECE
+    type: double
+    nullable: false
+  - name: OIL_GAS_ASSET
+    type: double
+    nullable: false
+  - name: OTHER_COMPRE_INCOME
+    type: double
+    nullable: false
+  - name: OTHER_CREDITOR_INVEST
+    type: double
+    nullable: false
+  - name: OTHER_CURRENT_ASSET
+    type: double
+    nullable: false
+  - name: OTHER_CURRENT_LIAB
+    type: double
+    nullable: false
+  - name: OTHER_EQUITY_INVEST
+    type: double
+    nullable: false
+  - name: OTHER_EQUITY_OTHER
+    type: double
+    nullable: false
+  - name: OTHER_EQUITY_TOOL
+    type: double
+    nullable: false
+  - name: OTHER_NONCURRENT_ASSET
+    type: double
+    nullable: false
+  - name: OTHER_NONCURRENT_FINASSET
+    type: double
+    nullable: false
+  - name: OTHER_NONCURRENT_LIAB
+    type: double
+    nullable: false
+  - name: OTHER_PAYABLE
+    type: double
+    nullable: false
+  - name: OTHER_RECE
+    type: double
+    nullable: false
+  - name: PARENT_EQUITY_BALANCE
+    type: double
+    nullable: false
+  - name: PARENT_EQUITY_OTHER
+    type: double
+    nullable: false
+  - name: PERPETUAL_BOND
+    type: double
+    nullable: false
+  - name: PERPETUAL_BOND_PAYBALE
+    type: double
+    nullable: false
+  - name: PREDICT_CURRENT_LIAB
+    type: double
+    nullable: false
+  - name: PREDICT_LIAB
+    type: double
+    nullable: false
+  - name: PREFERRED_SHARES
+    type: double
+    nullable: false
+  - name: PREFERRED_SHARES_PAYBALE
+    type: double
+    nullable: false
+  - name: PREMIUM_RECE
+    type: double
+    nullable: false
+  - name: PREPAYMENT
+    type: double
+    nullable: false
+  - name: PRODUCTIVE_BIOLOGY_ASSET
+    type: double
+    nullable: false
+  - name: PROJECT_MATERIAL
+    type: double
+    nullable: false
+  - name: RC_RESERVE_RECE
+    type: double
+    nullable: false
+  - name: REINSURE_PAYABLE
+    type: double
+    nullable: false
+  - name: REINSURE_RECE
+    type: double
+    nullable: false
+  - name: SELL_REPO_FINASSET
+    type: double
+    nullable: false
+  - name: SETTLE_EXCESS_RESERVE
+    type: double
+    nullable: false
+  - name: SHARE_CAPITAL
+    type: double
+    nullable: false
+  - name: SHORT_BOND_PAYABLE
+    type: double
+    nullable: false
+  - name: SHORT_FIN_PAYABLE
+    type: double
+    nullable: false
+  - name: SHORT_LOAN
+    type: double
+    nullable: false
+  - name: SPECIAL_PAYABLE
+    type: double
+    nullable: false
+  - name: SPECIAL_RESERVE
+    type: double
+    nullable: false
+  - name: STAFF_SALARY_PAYABLE
+    type: double
+    nullable: false
+  - name: SUBSIDY_RECE
+    type: double
+    nullable: false
+  - name: SURPLUS_RESERVE
+    type: double
+    nullable: false
+  - name: TAX_PAYABLE
+    type: double
+    nullable: false
+  - name: TOTAL_ASSETS
+    type: double
+    nullable: false
+  - name: TOTAL_CURRENT_ASSETS
+    type: double
+    nullable: false
+  - name: TOTAL_CURRENT_LIAB
+    type: double
+    nullable: false
+  - name: TOTAL_EQUITY
+    type: double
+    nullable: false
+  - name: TOTAL_LIAB_EQUITY
+    type: double
+    nullable: false
+  - name: TOTAL_LIABILITIES
+    type: double
+    nullable: false
+  - name: TOTAL_NONCURRENT_ASSETS
+    type: double
+    nullable: false
+  - name: TOTAL_NONCURRENT_LIAB
+    type: double
+    nullable: false
+  - name: TOTAL_OTHER_PAYABLE
+    type: double
+    nullable: false
+  - name: TOTAL_OTHER_RECE
+    type: double
+    nullable: false
+  - name: TOTAL_PARENT_EQUITY
+    type: double
+    nullable: false
+  - name: TRADE_FINASSET
+    type: double
+    nullable: false
+  - name: TRADE_FINASSET_NOTFVTPL
+    type: double
+    nullable: false
+  - name: TRADE_FINLIAB
+    type: double
+    nullable: false
+  - name: TRADE_FINLIAB_NOTFVTPL
+    type: double
+    nullable: false
+  - name: TREASURY_SHARES
+    type: double
+    nullable: false
+  - name: UNASSIGN_RPOFIT
+    type: double
+    nullable: false
+  - name: UNCONFIRM_INVEST_LOSS
+    type: double
+    nullable: false
+  - name: USERIGHT_ASSET
+    type: double
+    nullable: false
+  - name: ACCEPT_DEPOSIT_INTERBANK_YOY
+    type: double
+    nullable: false
+  - name: ACCOUNTS_PAYABLE_YOY
+    type: double
+    nullable: false
+  - name: ACCOUNTS_RECE_YOY
+    type: double
+    nullable: false
+  - name: ACCRUED_EXPENSE_YOY
+    type: double
+    nullable: false
+  - name: ADVANCE_RECEIVABLES_YOY
+    type: double
+    nullable: false
+  - name: AGENT_TRADE_SECURITY_YOY
+    type: double
+    nullable: false
+  - name: AGENT_UNDERWRITE_SECURITY_YOY
+    type: double
+    nullable: false
+  - name: AMORTIZE_COST_FINASSET_YOY
+    type: double
+    nullable: false
+  - name: AMORTIZE_COST_FINLIAB_YOY
+    type: double
+    nullable: false
+  - name: AMORTIZE_COST_NCFINASSET_YOY
+    type: double
+    nullable: false
+  - name: AMORTIZE_COST_NCFINLIAB_YOY
+    type: double
+    nullable: false
+  - name: APPOINT_FVTPL_FINASSET_YOY
+    type: double
+    nullable: false
+  - name: APPOINT_FVTPL_FINLIAB_YOY
+    type: double
+    nullable: false
+  - name: ASSET_BALANCE_YOY
+    type: double
+    nullable: false
+  - name: ASSET_OTHER_YOY
+    type: double
+    nullable: false
+  - name: ASSIGN_CASH_DIVIDEND_YOY
+    type: double
+    nullable: false
+  - name: AVAILABLE_SALE_FINASSET_YOY
+    type: double
+    nullable: false
+  - name: BOND_PAYABLE_YOY
+    type: double
+    nullable: false
+  - name: BORROW_FUND_YOY
+    type: double
+    nullable: false
+  - name: BUY_RESALE_FINASSET_YOY
+    type: double
+    nullable: false
+  - name: CAPITAL_RESERVE_YOY
+    type: double
+    nullable: false
+  - name: CIP_YOY
+    type: double
+    nullable: false
+  - name: CONSUMPTIVE_BIOLOGICAL_ASSET_YOY
+    type: double
+    nullable: false
+  - name: CONTRACT_ASSET_YOY
+    type: double
+    nullable: false
+  - name: CONTRACT_LIAB_YOY
+    type: double
+    nullable: false
+  - name: CONVERT_DIFF_YOY
+    type: double
+    nullable: false
+  - name: CREDITOR_INVEST_YOY
+    type: double
+    nullable: false
+  - name: CURRENT_ASSET_BALANCE_YOY
+    type: double
+    nullable: false
+  - name: CURRENT_ASSET_OTHER_YOY
+    type: double
+    nullable: false
+  - name: CURRENT_LIAB_BALANCE_YOY
+    type: double
+    nullable: false
+  - name: CURRENT_LIAB_OTHER_YOY
+    type: double
+    nullable: false
+  - name: DEFER_INCOME_1YEAR_YOY
+    type: double
+    nullable: false
+  - name: DEFER_INCOME_YOY
+    type: double
+    nullable: false
+  - name: DEFER_TAX_ASSET_YOY
+    type: double
+    nullable: false
+  - name: DEFER_TAX_LIAB_YOY
+    type: double
+    nullable: false
+  - name: DERIVE_FINASSET_YOY
+    type: double
+    nullable: false
+  - name: DERIVE_FINLIAB_YOY
+    type: double
+    nullable: false
+  - name: DEVELOP_EXPENSE_YOY
+    type: double
+    nullable: false
+  - name: DIV_HOLDSALE_ASSET_YOY
+    type: double
+    nullable: false
+  - name: DIV_HOLDSALE_LIAB_YOY
+    type: double
+    nullable: false
+  - name: DIVIDEND_PAYABLE_YOY
+    type: double
+    nullable: false
+  - name: DIVIDEND_RECE_YOY
+    type: double
+    nullable: false
+  - name: EQUITY_BALANCE_YOY
+    type: double
+    nullable: false
+  - name: EQUITY_OTHER_YOY
+    type: double
+    nullable: false
+  - name: EXPORT_REFUND_RECE_YOY
+    type: double
+    nullable: false
+  - name: FEE_COMMISSION_PAYABLE_YOY
+    type: double
+    nullable: false
+  - name: FIN_FUND_YOY
+    type: double
+    nullable: false
+  - name: FINANCE_RECE_YOY
+    type: double
+    nullable: false
+  - name: FIXED_ASSET_DISPOSAL_YOY
+    type: double
+    nullable: false
+  - name: FIXED_ASSET_YOY
+    type: double
+    nullable: false
+  - name: FVTOCI_FINASSET_YOY
+    type: double
+    nullable: false
+  - name: FVTOCI_NCFINASSET_YOY
+    type: double
+    nullable: false
+  - name: FVTPL_FINASSET_YOY
+    type: double
+    nullable: false
+  - name: FVTPL_FINLIAB_YOY
+    type: double
+    nullable: false
+  - name: GENERAL_RISK_RESERVE_YOY
+    type: double
+    nullable: false
+  - name: GOODWILL_YOY
+    type: double
+    nullable: false
+  - name: HOLD_MATURITY_INVEST_YOY
+    type: double
+    nullable: false
+  - name: HOLDSALE_ASSET_YOY
+    type: double
+    nullable: false
+  - name: HOLDSALE_LIAB_YOY
+    type: double
+    nullable: false
+  - name: INSURANCE_CONTRACT_RESERVE_YOY
+    type: double
+    nullable: false
+  - name: INTANGIBLE_ASSET_YOY
+    type: double
+    nullable: false
+  - name: INTEREST_PAYABLE_YOY
+    type: double
+    nullable: false
+  - name: INTEREST_RECE_YOY
+    type: double
+    nullable: false
+  - name: INTERNAL_PAYABLE_YOY
+    type: double
+    nullable: false
+  - name: INTERNAL_RECE_YOY
+    type: double
+    nullable: false
+  - name: INVENTORY_YOY
+    type: double
+    nullable: false
+  - name: INVEST_REALESTATE_YOY
+    type: double
+    nullable: false
+  - name: LEASE_LIAB_YOY
+    type: double
+    nullable: false
+  - name: LEND_FUND_YOY
+    type: double
+    nullable: false
+  - name: LIAB_BALANCE_YOY
+    type: double
+    nullable: false
+  - name: LIAB_EQUITY_BALANCE_YOY
+    type: double
+    nullable: false
+  - name: LIAB_EQUITY_OTHER_YOY
+    type: double
+    nullable: false
+  - name: LIAB_OTHER_YOY
+    type: double
+    nullable: false
+  - name: LOAN_ADVANCE_YOY
+    type: double
+    nullable: false
+  - name: LOAN_PBC_YOY
+    type: double
+    nullable: false
+  - name: LONG_EQUITY_INVEST_YOY
+    type: double
+    nullable: false
+  - name: LONG_LOAN_YOY
+    type: double
+    nullable: false
+  - name: LONG_PAYABLE_YOY
+    type: double
+    nullable: false
+  - name: LONG_PREPAID_EXPENSE_YOY
+    type: double
+    nullable: false
+  - name: LONG_RECE_YOY
+    type: double
+    nullable: false
+  - name: LONG_STAFFSALARY_PAYABLE_YOY
+    type: double
+    nullable: false
+  - name: MINORITY_EQUITY_YOY
+    type: double
+    nullable: false
+  - name: MONETARYFUNDS_YOY
+    type: double
+    nullable: false
+  - name: NONCURRENT_ASSET_1YEAR_YOY
+    type: double
+    nullable: false
+  - name: NONCURRENT_ASSET_BALANCE_YOY
+    type: double
+    nullable: false
+  - name: NONCURRENT_ASSET_OTHER_YOY
+    type: double
+    nullable: false
+  - name: NONCURRENT_LIAB_1YEAR_YOY
+    type: double
+    nullable: false
+  - name: NONCURRENT_LIAB_BALANCE_YOY
+    type: double
+    nullable: false
+  - name: NONCURRENT_LIAB_OTHER_YOY
+    type: double
+    nullable: false
+  - name: NOTE_ACCOUNTS_PAYABLE_YOY
+    type: double
+    nullable: false
+  - name: NOTE_ACCOUNTS_RECE_YOY
+    type: double
+    nullable: false
+  - name: NOTE_PAYABLE_YOY
+    type: double
+    nullable: false
+  - name: NOTE_RECE_YOY
+    type: double
+    nullable: false
+  - name: OIL_GAS_ASSET_YOY
+    type: double
+    nullable: false
+  - name: OTHER_COMPRE_INCOME_YOY
+    type: double
+    nullable: false
+  - name: OTHER_CREDITOR_INVEST_YOY
+    type: double
+    nullable: false
+  - name: OTHER_CURRENT_ASSET_YOY
+    type: double
+    nullable: false
+  - name: OTHER_CURRENT_LIAB_YOY
+    type: double
+    nullable: false
+  - name: OTHER_EQUITY_INVEST_YOY
+    type: double
+    nullable: false
+  - name: OTHER_EQUITY_OTHER_YOY
+    type: double
+    nullable: false
+  - name: OTHER_EQUITY_TOOL_YOY
+    type: double
+    nullable: false
+  - name: OTHER_NONCURRENT_ASSET_YOY
+    type: double
+    nullable: false
+  - name: OTHER_NONCURRENT_FINASSET_YOY
+    type: double
+    nullable: false
+  - name: OTHER_NONCURRENT_LIAB_YOY
+    type: double
+    nullable: false
+  - name: OTHER_PAYABLE_YOY
+    type: double
+    nullable: false
+  - name: OTHER_RECE_YOY
+    type: double
+    nullable: false
+  - name: PARENT_EQUITY_BALANCE_YOY
+    type: double
+    nullable: false
+  - name: PARENT_EQUITY_OTHER_YOY
+    type: double
+    nullable: false
+  - name: PERPETUAL_BOND_PAYBALE_YOY
+    type: double
+    nullable: false
+  - name: PERPETUAL_BOND_YOY
+    type: double
+    nullable: false
+  - name: PREDICT_CURRENT_LIAB_YOY
+    type: double
+    nullable: false
+  - name: PREDICT_LIAB_YOY
+    type: double
+    nullable: false
+  - name: PREFERRED_SHARES_PAYBALE_YOY
+    type: double
+    nullable: false
+  - name: PREFERRED_SHARES_YOY
+    type: double
+    nullable: false
+  - name: PREMIUM_RECE_YOY
+    type: double
+    nullable: false
+  - name: PREPAYMENT_YOY
+    type: double
+    nullable: false
+  - name: PRODUCTIVE_BIOLOGY_ASSET_YOY
+    type: double
+    nullable: false
+  - name: PROJECT_MATERIAL_YOY
+    type: double
+    nullable: false
+  - name: RC_RESERVE_RECE_YOY
+    type: double
+    nullable: false
+  - name: REINSURE_PAYABLE_YOY
+    type: double
+    nullable: false
+  - name: REINSURE_RECE_YOY
+    type: double
+    nullable: false
+  - name: SELL_REPO_FINASSET_YOY
+    type: double
+    nullable: false
+  - name: SETTLE_EXCESS_RESERVE_YOY
+    type: double
+    nullable: false
+  - name: SHARE_CAPITAL_YOY
+    type: double
+    nullable: false
+  - name: SHORT_BOND_PAYABLE_YOY
+    type: double
+    nullable: false
+  - name: SHORT_FIN_PAYABLE_YOY
+    type: double
+    nullable: false
+  - name: SHORT_LOAN_YOY
+    type: double
+    nullable: false
+  - name: SPECIAL_PAYABLE_YOY
+    type: double
+    nullable: false
+  - name: SPECIAL_RESERVE_YOY
+    type: double
+    nullable: false
+  - name: STAFF_SALARY_PAYABLE_YOY
+    type: double
+    nullable: false
+  - name: SUBSIDY_RECE_YOY
+    type: double
+    nullable: false
+  - name: SURPLUS_RESERVE_YOY
+    type: double
+    nullable: false
+  - name: TAX_PAYABLE_YOY
+    type: double
+    nullable: false
+  - name: TOTAL_ASSETS_YOY
+    type: double
+    nullable: false
+  - name: TOTAL_CURRENT_ASSETS_YOY
+    type: double
+    nullable: false
+  - name: TOTAL_CURRENT_LIAB_YOY
+    type: double
+    nullable: false
+  - name: TOTAL_EQUITY_YOY
+    type: double
+    nullable: false
+  - name: TOTAL_LIAB_EQUITY_YOY
+    type: double
+    nullable: false
+  - name: TOTAL_LIABILITIES_YOY
+    type: double
+    nullable: false
+  - name: TOTAL_NONCURRENT_ASSETS_YOY
+    type: double
+    nullable: false
+  - name: TOTAL_NONCURRENT_LIAB_YOY
+    type: double
+    nullable: false
+  - name: TOTAL_OTHER_PAYABLE_YOY
+    type: double
+    nullable: false
+  - name: TOTAL_OTHER_RECE_YOY
+    type: double
+    nullable: false
+  - name: TOTAL_PARENT_EQUITY_YOY
+    type: double
+    nullable: false
+  - name: TRADE_FINASSET_NOTFVTPL_YOY
+    type: double
+    nullable: false
+  - name: TRADE_FINASSET_YOY
+    type: double
+    nullable: false
+  - name: TRADE_FINLIAB_NOTFVTPL_YOY
+    type: double
+    nullable: false
+  - name: TRADE_FINLIAB_YOY
+    type: double
+    nullable: false
+  - name: TREASURY_SHARES_YOY
+    type: double
+    nullable: false
+  - name: UNASSIGN_RPOFIT_YOY
+    type: double
+    nullable: false
+  - name: UNCONFIRM_INVEST_LOSS_YOY
+    type: double
+    nullable: false
+  - name: USERIGHT_ASSET_YOY
+    type: double
+    nullable: false
+  - name: OPINION_TYPE
+    type: string
+    nullable: false
+  - name: OSOPINION_TYPE
+    type: string
+    nullable: false
+  - name: LISTING_STATE
+    type: string
+    nullable: false
+clickhouse_raw:
+  database: raw
+  table: eastmoney__balance
+  partition_strategy: year
+  engine: MergeTree
+  partition_by: '`year`'
+  order_by:
+  - SECUCODE
+  - REPORT_DATE
+  allow_empty: true
+  sync_enabled: true
+  fields:
+  - name: SECUCODE
+    type: LowCardinality(String)
+    from: SECUCODE
+    nullable: false
+    reason: expected_low_cardinality_dimension
+  - name: SECURITY_CODE
+    type: LowCardinality(String)
+    from: SECURITY_CODE
+    nullable: false
+    reason: expected_low_cardinality_dimension
+  - name: SECURITY_NAME_ABBR
+    type: LowCardinality(String)
+    from: SECURITY_NAME_ABBR
+    nullable: false
+    reason: expected_low_cardinality_dimension
+  - name: ORG_CODE
+    type: LowCardinality(String)
+    from: ORG_CODE
+    nullable: false
+    reason: expected_low_cardinality_dimension
+  - name: ORG_TYPE
+    type: LowCardinality(String)
+    from: ORG_TYPE
+    nullable: false
+    reason: expected_low_cardinality_dimension
+  - name: REPORT_DATE
+    type: Date
+    from: REPORT_DATE
+    nullable: false
+  - name: REPORT_TYPE
+    type: LowCardinality(String)
+    from: REPORT_TYPE
+    nullable: false
+    reason: expected_low_cardinality_dimension
+  - name: REPORT_DATE_NAME
+    type: LowCardinality(String)
+    from: REPORT_DATE_NAME
+    nullable: false
+    reason: expected_low_cardinality_dimension
+  - name: SECURITY_TYPE_CODE
+    type: LowCardinality(String)
+    from: SECURITY_TYPE_CODE
+    nullable: false
+    reason: expected_low_cardinality_dimension
+  - name: NOTICE_DATE
+    type: Date
+    from: NOTICE_DATE
+    nullable: false
+  - name: UPDATE_DATE
+    type: Date
+    from: UPDATE_DATE
+    nullable: false
+  - name: CURRENCY
+    type: LowCardinality(String)
+    from: CURRENCY
+    nullable: false
+    reason: expected_low_cardinality_dimension
+  - name: ACCEPT_DEPOSIT_INTERBANK
+    type: Float64
+    from: ACCEPT_DEPOSIT_INTERBANK
+    nullable: false
+  - name: ACCOUNTS_PAYABLE
+    type: Float64
+    from: ACCOUNTS_PAYABLE
+    nullable: false
+  - name: ACCOUNTS_RECE
+    type: Float64
+    from: ACCOUNTS_RECE
+    nullable: false
+  - name: ACCRUED_EXPENSE
+    type: Float64
+    from: ACCRUED_EXPENSE
+    nullable: false
+  - name: ADVANCE_RECEIVABLES
+    type: Float64
+    from: ADVANCE_RECEIVABLES
+    nullable: false
+  - name: AGENT_TRADE_SECURITY
+    type: Float64
+    from: AGENT_TRADE_SECURITY
+    nullable: false
+  - name: AGENT_UNDERWRITE_SECURITY
+    type: Float64
+    from: AGENT_UNDERWRITE_SECURITY
+    nullable: false
+  - name: AMORTIZE_COST_FINASSET
+    type: Float64
+    from: AMORTIZE_COST_FINASSET
+    nullable: false
+  - name: AMORTIZE_COST_FINLIAB
+    type: Float64
+    from: AMORTIZE_COST_FINLIAB
+    nullable: false
+  - name: AMORTIZE_COST_NCFINASSET
+    type: Float64
+    from: AMORTIZE_COST_NCFINASSET
+    nullable: false
+  - name: AMORTIZE_COST_NCFINLIAB
+    type: Float64
+    from: AMORTIZE_COST_NCFINLIAB
+    nullable: false
+  - name: APPOINT_FVTPL_FINASSET
+    type: Float64
+    from: APPOINT_FVTPL_FINASSET
+    nullable: false
+  - name: APPOINT_FVTPL_FINLIAB
+    type: Float64
+    from: APPOINT_FVTPL_FINLIAB
+    nullable: false
+  - name: ASSET_BALANCE
+    type: Float64
+    from: ASSET_BALANCE
+    nullable: false
+  - name: ASSET_OTHER
+    type: Float64
+    from: ASSET_OTHER
+    nullable: false
+  - name: ASSIGN_CASH_DIVIDEND
+    type: Float64
+    from: ASSIGN_CASH_DIVIDEND
+    nullable: false
+  - name: AVAILABLE_SALE_FINASSET
+    type: Float64
+    from: AVAILABLE_SALE_FINASSET
+    nullable: false
+  - name: BOND_PAYABLE
+    type: Float64
+    from: BOND_PAYABLE
+    nullable: false
+  - name: BORROW_FUND
+    type: Float64
+    from: BORROW_FUND
+    nullable: false
+  - name: BUY_RESALE_FINASSET
+    type: Float64
+    from: BUY_RESALE_FINASSET
+    nullable: false
+  - name: CAPITAL_RESERVE
+    type: Float64
+    from: CAPITAL_RESERVE
+    nullable: false
+  - name: CIP
+    type: Float64
+    from: CIP
+    nullable: false
+  - name: CONSUMPTIVE_BIOLOGICAL_ASSET
+    type: Float64
+    from: CONSUMPTIVE_BIOLOGICAL_ASSET
+    nullable: false
+  - name: CONTRACT_ASSET
+    type: Float64
+    from: CONTRACT_ASSET
+    nullable: false
+  - name: CONTRACT_LIAB
+    type: Float64
+    from: CONTRACT_LIAB
+    nullable: false
+  - name: CONVERT_DIFF
+    type: Float64
+    from: CONVERT_DIFF
+    nullable: false
+  - name: CREDITOR_INVEST
+    type: Float64
+    from: CREDITOR_INVEST
+    nullable: false
+  - name: CURRENT_ASSET_BALANCE
+    type: Float64
+    from: CURRENT_ASSET_BALANCE
+    nullable: false
+  - name: CURRENT_ASSET_OTHER
+    type: Float64
+    from: CURRENT_ASSET_OTHER
+    nullable: false
+  - name: CURRENT_LIAB_BALANCE
+    type: Float64
+    from: CURRENT_LIAB_BALANCE
+    nullable: false
+  - name: CURRENT_LIAB_OTHER
+    type: Float64
+    from: CURRENT_LIAB_OTHER
+    nullable: false
+  - name: DEFER_INCOME
+    type: Float64
+    from: DEFER_INCOME
+    nullable: false
+  - name: DEFER_INCOME_1YEAR
+    type: Float64
+    from: DEFER_INCOME_1YEAR
+    nullable: false
+  - name: DEFER_TAX_ASSET
+    type: Float64
+    from: DEFER_TAX_ASSET
+    nullable: false
+  - name: DEFER_TAX_LIAB
+    type: Float64
+    from: DEFER_TAX_LIAB
+    nullable: false
+  - name: DERIVE_FINASSET
+    type: Float64
+    from: DERIVE_FINASSET
+    nullable: false
+  - name: DERIVE_FINLIAB
+    type: Float64
+    from: DERIVE_FINLIAB
+    nullable: false
+  - name: DEVELOP_EXPENSE
+    type: Float64
+    from: DEVELOP_EXPENSE
+    nullable: false
+  - name: DIV_HOLDSALE_ASSET
+    type: Float64
+    from: DIV_HOLDSALE_ASSET
+    nullable: false
+  - name: DIV_HOLDSALE_LIAB
+    type: Float64
+    from: DIV_HOLDSALE_LIAB
+    nullable: false
+  - name: DIVIDEND_PAYABLE
+    type: Float64
+    from: DIVIDEND_PAYABLE
+    nullable: false
+  - name: DIVIDEND_RECE
+    type: Float64
+    from: DIVIDEND_RECE
+    nullable: false
+  - name: EQUITY_BALANCE
+    type: Float64
+    from: EQUITY_BALANCE
+    nullable: false
+  - name: EQUITY_OTHER
+    type: Float64
+    from: EQUITY_OTHER
+    nullable: false
+  - name: EXPORT_REFUND_RECE
+    type: Float64
+    from: EXPORT_REFUND_RECE
+    nullable: false
+  - name: FEE_COMMISSION_PAYABLE
+    type: Float64
+    from: FEE_COMMISSION_PAYABLE
+    nullable: false
+  - name: FIN_FUND
+    type: Float64
+    from: FIN_FUND
+    nullable: false
+  - name: FINANCE_RECE
+    type: Float64
+    from: FINANCE_RECE
+    nullable: false
+  - name: FIXED_ASSET
+    type: Float64
+    from: FIXED_ASSET
+    nullable: false
+  - name: FIXED_ASSET_DISPOSAL
+    type: Float64
+    from: FIXED_ASSET_DISPOSAL
+    nullable: false
+  - name: FVTOCI_FINASSET
+    type: Float64
+    from: FVTOCI_FINASSET
+    nullable: false
+  - name: FVTOCI_NCFINASSET
+    type: Float64
+    from: FVTOCI_NCFINASSET
+    nullable: false
+  - name: FVTPL_FINASSET
+    type: Float64
+    from: FVTPL_FINASSET
+    nullable: false
+  - name: FVTPL_FINLIAB
+    type: Float64
+    from: FVTPL_FINLIAB
+    nullable: false
+  - name: GENERAL_RISK_RESERVE
+    type: Float64
+    from: GENERAL_RISK_RESERVE
+    nullable: false
+  - name: GOODWILL
+    type: Float64
+    from: GOODWILL
+    nullable: false
+  - name: HOLD_MATURITY_INVEST
+    type: Float64
+    from: HOLD_MATURITY_INVEST
+    nullable: false
+  - name: HOLDSALE_ASSET
+    type: Float64
+    from: HOLDSALE_ASSET
+    nullable: false
+  - name: HOLDSALE_LIAB
+    type: Float64
+    from: HOLDSALE_LIAB
+    nullable: false
+  - name: INSURANCE_CONTRACT_RESERVE
+    type: Float64
+    from: INSURANCE_CONTRACT_RESERVE
+    nullable: false
+  - name: INTANGIBLE_ASSET
+    type: Float64
+    from: INTANGIBLE_ASSET
+    nullable: false
+  - name: INTEREST_PAYABLE
+    type: Float64
+    from: INTEREST_PAYABLE
+    nullable: false
+  - name: INTEREST_RECE
+    type: Float64
+    from: INTEREST_RECE
+    nullable: false
+  - name: INTERNAL_PAYABLE
+    type: Float64
+    from: INTERNAL_PAYABLE
+    nullable: false
+  - name: INTERNAL_RECE
+    type: Float64
+    from: INTERNAL_RECE
+    nullable: false
+  - name: INVENTORY
+    type: Float64
+    from: INVENTORY
+    nullable: false
+  - name: INVEST_REALESTATE
+    type: Float64
+    from: INVEST_REALESTATE
+    nullable: false
+  - name: LEASE_LIAB
+    type: Float64
+    from: LEASE_LIAB
+    nullable: false
+  - name: LEND_FUND
+    type: Float64
+    from: LEND_FUND
+    nullable: false
+  - name: LIAB_BALANCE
+    type: Float64
+    from: LIAB_BALANCE
+    nullable: false
+  - name: LIAB_EQUITY_BALANCE
+    type: Float64
+    from: LIAB_EQUITY_BALANCE
+    nullable: false
+  - name: LIAB_EQUITY_OTHER
+    type: Float64
+    from: LIAB_EQUITY_OTHER
+    nullable: false
+  - name: LIAB_OTHER
+    type: Float64
+    from: LIAB_OTHER
+    nullable: false
+  - name: LOAN_ADVANCE
+    type: Float64
+    from: LOAN_ADVANCE
+    nullable: false
+  - name: LOAN_PBC
+    type: Float64
+    from: LOAN_PBC
+    nullable: false
+  - name: LONG_EQUITY_INVEST
+    type: Float64
+    from: LONG_EQUITY_INVEST
+    nullable: false
+  - name: LONG_LOAN
+    type: Float64
+    from: LONG_LOAN
+    nullable: false
+  - name: LONG_PAYABLE
+    type: Float64
+    from: LONG_PAYABLE
+    nullable: false
+  - name: LONG_PREPAID_EXPENSE
+    type: Float64
+    from: LONG_PREPAID_EXPENSE
+    nullable: false
+  - name: LONG_RECE
+    type: Float64
+    from: LONG_RECE
+    nullable: false
+  - name: LONG_STAFFSALARY_PAYABLE
+    type: Float64
+    from: LONG_STAFFSALARY_PAYABLE
+    nullable: false
+  - name: MINORITY_EQUITY
+    type: Float64
+    from: MINORITY_EQUITY
+    nullable: false
+  - name: MONETARYFUNDS
+    type: Float64
+    from: MONETARYFUNDS
+    nullable: false
+  - name: NONCURRENT_ASSET_1YEAR
+    type: Float64
+    from: NONCURRENT_ASSET_1YEAR
+    nullable: false
+  - name: NONCURRENT_ASSET_BALANCE
+    type: Float64
+    from: NONCURRENT_ASSET_BALANCE
+    nullable: false
+  - name: NONCURRENT_ASSET_OTHER
+    type: Float64
+    from: NONCURRENT_ASSET_OTHER
+    nullable: false
+  - name: NONCURRENT_LIAB_1YEAR
+    type: Float64
+    from: NONCURRENT_LIAB_1YEAR
+    nullable: false
+  - name: NONCURRENT_LIAB_BALANCE
+    type: Float64
+    from: NONCURRENT_LIAB_BALANCE
+    nullable: false
+  - name: NONCURRENT_LIAB_OTHER
+    type: Float64
+    from: NONCURRENT_LIAB_OTHER
+    nullable: false
+  - name: NOTE_ACCOUNTS_PAYABLE
+    type: Float64
+    from: NOTE_ACCOUNTS_PAYABLE
+    nullable: false
+  - name: NOTE_ACCOUNTS_RECE
+    type: Float64
+    from: NOTE_ACCOUNTS_RECE
+    nullable: false
+  - name: NOTE_PAYABLE
+    type: Float64
+    from: NOTE_PAYABLE
+    nullable: false
+  - name: NOTE_RECE
+    type: Float64
+    from: NOTE_RECE
+    nullable: false
+  - name: OIL_GAS_ASSET
+    type: Float64
+    from: OIL_GAS_ASSET
+    nullable: false
+  - name: OTHER_COMPRE_INCOME
+    type: Float64
+    from: OTHER_COMPRE_INCOME
+    nullable: false
+  - name: OTHER_CREDITOR_INVEST
+    type: Float64
+    from: OTHER_CREDITOR_INVEST
+    nullable: false
+  - name: OTHER_CURRENT_ASSET
+    type: Float64
+    from: OTHER_CURRENT_ASSET
+    nullable: false
+  - name: OTHER_CURRENT_LIAB
+    type: Float64
+    from: OTHER_CURRENT_LIAB
+    nullable: false
+  - name: OTHER_EQUITY_INVEST
+    type: Float64
+    from: OTHER_EQUITY_INVEST
+    nullable: false
+  - name: OTHER_EQUITY_OTHER
+    type: Float64
+    from: OTHER_EQUITY_OTHER
+    nullable: false
+  - name: OTHER_EQUITY_TOOL
+    type: Float64
+    from: OTHER_EQUITY_TOOL
+    nullable: false
+  - name: OTHER_NONCURRENT_ASSET
+    type: Float64
+    from: OTHER_NONCURRENT_ASSET
+    nullable: false
+  - name: OTHER_NONCURRENT_FINASSET
+    type: Float64
+    from: OTHER_NONCURRENT_FINASSET
+    nullable: false
+  - name: OTHER_NONCURRENT_LIAB
+    type: Float64
+    from: OTHER_NONCURRENT_LIAB
+    nullable: false
+  - name: OTHER_PAYABLE
+    type: Float64
+    from: OTHER_PAYABLE
+    nullable: false
+  - name: OTHER_RECE
+    type: Float64
+    from: OTHER_RECE
+    nullable: false
+  - name: PARENT_EQUITY_BALANCE
+    type: Float64
+    from: PARENT_EQUITY_BALANCE
+    nullable: false
+  - name: PARENT_EQUITY_OTHER
+    type: Float64
+    from: PARENT_EQUITY_OTHER
+    nullable: false
+  - name: PERPETUAL_BOND
+    type: Float64
+    from: PERPETUAL_BOND
+    nullable: false
+  - name: PERPETUAL_BOND_PAYBALE
+    type: Float64
+    from: PERPETUAL_BOND_PAYBALE
+    nullable: false
+  - name: PREDICT_CURRENT_LIAB
+    type: Float64
+    from: PREDICT_CURRENT_LIAB
+    nullable: false
+  - name: PREDICT_LIAB
+    type: Float64
+    from: PREDICT_LIAB
+    nullable: false
+  - name: PREFERRED_SHARES
+    type: Float64
+    from: PREFERRED_SHARES
+    nullable: false
+  - name: PREFERRED_SHARES_PAYBALE
+    type: Float64
+    from: PREFERRED_SHARES_PAYBALE
+    nullable: false
+  - name: PREMIUM_RECE
+    type: Float64
+    from: PREMIUM_RECE
+    nullable: false
+  - name: PREPAYMENT
+    type: Float64
+    from: PREPAYMENT
+    nullable: false
+  - name: PRODUCTIVE_BIOLOGY_ASSET
+    type: Float64
+    from: PRODUCTIVE_BIOLOGY_ASSET
+    nullable: false
+  - name: PROJECT_MATERIAL
+    type: Float64
+    from: PROJECT_MATERIAL
+    nullable: false
+  - name: RC_RESERVE_RECE
+    type: Float64
+    from: RC_RESERVE_RECE
+    nullable: false
+  - name: REINSURE_PAYABLE
+    type: Float64
+    from: REINSURE_PAYABLE
+    nullable: false
+  - name: REINSURE_RECE
+    type: Float64
+    from: REINSURE_RECE
+    nullable: false
+  - name: SELL_REPO_FINASSET
+    type: Float64
+    from: SELL_REPO_FINASSET
+    nullable: false
+  - name: SETTLE_EXCESS_RESERVE
+    type: Float64
+    from: SETTLE_EXCESS_RESERVE
+    nullable: false
+  - name: SHARE_CAPITAL
+    type: Float64
+    from: SHARE_CAPITAL
+    nullable: false
+  - name: SHORT_BOND_PAYABLE
+    type: Float64
+    from: SHORT_BOND_PAYABLE
+    nullable: false
+  - name: SHORT_FIN_PAYABLE
+    type: Float64
+    from: SHORT_FIN_PAYABLE
+    nullable: false
+  - name: SHORT_LOAN
+    type: Float64
+    from: SHORT_LOAN
+    nullable: false
+  - name: SPECIAL_PAYABLE
+    type: Float64
+    from: SPECIAL_PAYABLE
+    nullable: false
+  - name: SPECIAL_RESERVE
+    type: Float64
+    from: SPECIAL_RESERVE
+    nullable: false
+  - name: STAFF_SALARY_PAYABLE
+    type: Float64
+    from: STAFF_SALARY_PAYABLE
+    nullable: false
+  - name: SUBSIDY_RECE
+    type: Float64
+    from: SUBSIDY_RECE
+    nullable: false
+  - name: SURPLUS_RESERVE
+    type: Float64
+    from: SURPLUS_RESERVE
+    nullable: false
+  - name: TAX_PAYABLE
+    type: Float64
+    from: TAX_PAYABLE
+    nullable: false
+  - name: TOTAL_ASSETS
+    type: Float64
+    from: TOTAL_ASSETS
+    nullable: false
+  - name: TOTAL_CURRENT_ASSETS
+    type: Float64
+    from: TOTAL_CURRENT_ASSETS
+    nullable: false
+  - name: TOTAL_CURRENT_LIAB
+    type: Float64
+    from: TOTAL_CURRENT_LIAB
+    nullable: false
+  - name: TOTAL_EQUITY
+    type: Float64
+    from: TOTAL_EQUITY
+    nullable: false
+  - name: TOTAL_LIAB_EQUITY
+    type: Float64
+    from: TOTAL_LIAB_EQUITY
+    nullable: false
+  - name: TOTAL_LIABILITIES
+    type: Float64
+    from: TOTAL_LIABILITIES
+    nullable: false
+  - name: TOTAL_NONCURRENT_ASSETS
+    type: Float64
+    from: TOTAL_NONCURRENT_ASSETS
+    nullable: false
+  - name: TOTAL_NONCURRENT_LIAB
+    type: Float64
+    from: TOTAL_NONCURRENT_LIAB
+    nullable: false
+  - name: TOTAL_OTHER_PAYABLE
+    type: Float64
+    from: TOTAL_OTHER_PAYABLE
+    nullable: false
+  - name: TOTAL_OTHER_RECE
+    type: Float64
+    from: TOTAL_OTHER_RECE
+    nullable: false
+  - name: TOTAL_PARENT_EQUITY
+    type: Float64
+    from: TOTAL_PARENT_EQUITY
+    nullable: false
+  - name: TRADE_FINASSET
+    type: Float64
+    from: TRADE_FINASSET
+    nullable: false
+  - name: TRADE_FINASSET_NOTFVTPL
+    type: Float64
+    from: TRADE_FINASSET_NOTFVTPL
+    nullable: false
+  - name: TRADE_FINLIAB
+    type: Float64
+    from: TRADE_FINLIAB
+    nullable: false
+  - name: TRADE_FINLIAB_NOTFVTPL
+    type: Float64
+    from: TRADE_FINLIAB_NOTFVTPL
+    nullable: false
+  - name: TREASURY_SHARES
+    type: Float64
+    from: TREASURY_SHARES
+    nullable: false
+  - name: UNASSIGN_RPOFIT
+    type: Float64
+    from: UNASSIGN_RPOFIT
+    nullable: false
+  - name: UNCONFIRM_INVEST_LOSS
+    type: Float64
+    from: UNCONFIRM_INVEST_LOSS
+    nullable: false
+  - name: USERIGHT_ASSET
+    type: Float64
+    from: USERIGHT_ASSET
+    nullable: false
+  - name: ACCEPT_DEPOSIT_INTERBANK_YOY
+    type: Float64
+    from: ACCEPT_DEPOSIT_INTERBANK_YOY
+    nullable: false
+  - name: ACCOUNTS_PAYABLE_YOY
+    type: Float64
+    from: ACCOUNTS_PAYABLE_YOY
+    nullable: false
+  - name: ACCOUNTS_RECE_YOY
+    type: Float64
+    from: ACCOUNTS_RECE_YOY
+    nullable: false
+  - name: ACCRUED_EXPENSE_YOY
+    type: Float64
+    from: ACCRUED_EXPENSE_YOY
+    nullable: false
+  - name: ADVANCE_RECEIVABLES_YOY
+    type: Float64
+    from: ADVANCE_RECEIVABLES_YOY
+    nullable: false
+  - name: AGENT_TRADE_SECURITY_YOY
+    type: Float64
+    from: AGENT_TRADE_SECURITY_YOY
+    nullable: false
+  - name: AGENT_UNDERWRITE_SECURITY_YOY
+    type: Float64
+    from: AGENT_UNDERWRITE_SECURITY_YOY
+    nullable: false
+  - name: AMORTIZE_COST_FINASSET_YOY
+    type: Float64
+    from: AMORTIZE_COST_FINASSET_YOY
+    nullable: false
+  - name: AMORTIZE_COST_FINLIAB_YOY
+    type: Float64
+    from: AMORTIZE_COST_FINLIAB_YOY
+    nullable: false
+  - name: AMORTIZE_COST_NCFINASSET_YOY
+    type: Float64
+    from: AMORTIZE_COST_NCFINASSET_YOY
+    nullable: false
+  - name: AMORTIZE_COST_NCFINLIAB_YOY
+    type: Float64
+    from: AMORTIZE_COST_NCFINLIAB_YOY
+    nullable: false
+  - name: APPOINT_FVTPL_FINASSET_YOY
+    type: Float64
+    from: APPOINT_FVTPL_FINASSET_YOY
+    nullable: false
+  - name: APPOINT_FVTPL_FINLIAB_YOY
+    type: Float64
+    from: APPOINT_FVTPL_FINLIAB_YOY
+    nullable: false
+  - name: ASSET_BALANCE_YOY
+    type: Float64
+    from: ASSET_BALANCE_YOY
+    nullable: false
+  - name: ASSET_OTHER_YOY
+    type: Float64
+    from: ASSET_OTHER_YOY
+    nullable: false
+  - name: ASSIGN_CASH_DIVIDEND_YOY
+    type: Float64
+    from: ASSIGN_CASH_DIVIDEND_YOY
+    nullable: false
+  - name: AVAILABLE_SALE_FINASSET_YOY
+    type: Float64
+    from: AVAILABLE_SALE_FINASSET_YOY
+    nullable: false
+  - name: BOND_PAYABLE_YOY
+    type: Float64
+    from: BOND_PAYABLE_YOY
+    nullable: false
+  - name: BORROW_FUND_YOY
+    type: Float64
+    from: BORROW_FUND_YOY
+    nullable: false
+  - name: BUY_RESALE_FINASSET_YOY
+    type: Float64
+    from: BUY_RESALE_FINASSET_YOY
+    nullable: false
+  - name: CAPITAL_RESERVE_YOY
+    type: Float64
+    from: CAPITAL_RESERVE_YOY
+    nullable: false
+  - name: CIP_YOY
+    type: Float64
+    from: CIP_YOY
+    nullable: false
+  - name: CONSUMPTIVE_BIOLOGICAL_ASSET_YOY
+    type: Float64
+    from: CONSUMPTIVE_BIOLOGICAL_ASSET_YOY
+    nullable: false
+  - name: CONTRACT_ASSET_YOY
+    type: Float64
+    from: CONTRACT_ASSET_YOY
+    nullable: false
+  - name: CONTRACT_LIAB_YOY
+    type: Float64
+    from: CONTRACT_LIAB_YOY
+    nullable: false
+  - name: CONVERT_DIFF_YOY
+    type: Float64
+    from: CONVERT_DIFF_YOY
+    nullable: false
+  - name: CREDITOR_INVEST_YOY
+    type: Float64
+    from: CREDITOR_INVEST_YOY
+    nullable: false
+  - name: CURRENT_ASSET_BALANCE_YOY
+    type: Float64
+    from: CURRENT_ASSET_BALANCE_YOY
+    nullable: false
+  - name: CURRENT_ASSET_OTHER_YOY
+    type: Float64
+    from: CURRENT_ASSET_OTHER_YOY
+    nullable: false
+  - name: CURRENT_LIAB_BALANCE_YOY
+    type: Float64
+    from: CURRENT_LIAB_BALANCE_YOY
+    nullable: false
+  - name: CURRENT_LIAB_OTHER_YOY
+    type: Float64
+    from: CURRENT_LIAB_OTHER_YOY
+    nullable: false
+  - name: DEFER_INCOME_1YEAR_YOY
+    type: Float64
+    from: DEFER_INCOME_1YEAR_YOY
+    nullable: false
+  - name: DEFER_INCOME_YOY
+    type: Float64
+    from: DEFER_INCOME_YOY
+    nullable: false
+  - name: DEFER_TAX_ASSET_YOY
+    type: Float64
+    from: DEFER_TAX_ASSET_YOY
+    nullable: false
+  - name: DEFER_TAX_LIAB_YOY
+    type: Float64
+    from: DEFER_TAX_LIAB_YOY
+    nullable: false
+  - name: DERIVE_FINASSET_YOY
+    type: Float64
+    from: DERIVE_FINASSET_YOY
+    nullable: false
+  - name: DERIVE_FINLIAB_YOY
+    type: Float64
+    from: DERIVE_FINLIAB_YOY
+    nullable: false
+  - name: DEVELOP_EXPENSE_YOY
+    type: Float64
+    from: DEVELOP_EXPENSE_YOY
+    nullable: false
+  - name: DIV_HOLDSALE_ASSET_YOY
+    type: Float64
+    from: DIV_HOLDSALE_ASSET_YOY
+    nullable: false
+  - name: DIV_HOLDSALE_LIAB_YOY
+    type: Float64
+    from: DIV_HOLDSALE_LIAB_YOY
+    nullable: false
+  - name: DIVIDEND_PAYABLE_YOY
+    type: Float64
+    from: DIVIDEND_PAYABLE_YOY
+    nullable: false
+  - name: DIVIDEND_RECE_YOY
+    type: Float64
+    from: DIVIDEND_RECE_YOY
+    nullable: false
+  - name: EQUITY_BALANCE_YOY
+    type: Float64
+    from: EQUITY_BALANCE_YOY
+    nullable: false
+  - name: EQUITY_OTHER_YOY
+    type: Float64
+    from: EQUITY_OTHER_YOY
+    nullable: false
+  - name: EXPORT_REFUND_RECE_YOY
+    type: Float64
+    from: EXPORT_REFUND_RECE_YOY
+    nullable: false
+  - name: FEE_COMMISSION_PAYABLE_YOY
+    type: Float64
+    from: FEE_COMMISSION_PAYABLE_YOY
+    nullable: false
+  - name: FIN_FUND_YOY
+    type: Float64
+    from: FIN_FUND_YOY
+    nullable: false
+  - name: FINANCE_RECE_YOY
+    type: Float64
+    from: FINANCE_RECE_YOY
+    nullable: false
+  - name: FIXED_ASSET_DISPOSAL_YOY
+    type: Float64
+    from: FIXED_ASSET_DISPOSAL_YOY
+    nullable: false
+  - name: FIXED_ASSET_YOY
+    type: Float64
+    from: FIXED_ASSET_YOY
+    nullable: false
+  - name: FVTOCI_FINASSET_YOY
+    type: Float64
+    from: FVTOCI_FINASSET_YOY
+    nullable: false
+  - name: FVTOCI_NCFINASSET_YOY
+    type: Float64
+    from: FVTOCI_NCFINASSET_YOY
+    nullable: false
+  - name: FVTPL_FINASSET_YOY
+    type: Float64
+    from: FVTPL_FINASSET_YOY
+    nullable: false
+  - name: FVTPL_FINLIAB_YOY
+    type: Float64
+    from: FVTPL_FINLIAB_YOY
+    nullable: false
+  - name: GENERAL_RISK_RESERVE_YOY
+    type: Float64
+    from: GENERAL_RISK_RESERVE_YOY
+    nullable: false
+  - name: GOODWILL_YOY
+    type: Float64
+    from: GOODWILL_YOY
+    nullable: false
+  - name: HOLD_MATURITY_INVEST_YOY
+    type: Float64
+    from: HOLD_MATURITY_INVEST_YOY
+    nullable: false
+  - name: HOLDSALE_ASSET_YOY
+    type: Float64
+    from: HOLDSALE_ASSET_YOY
+    nullable: false
+  - name: HOLDSALE_LIAB_YOY
+    type: Float64
+    from: HOLDSALE_LIAB_YOY
+    nullable: false
+  - name: INSURANCE_CONTRACT_RESERVE_YOY
+    type: Float64
+    from: INSURANCE_CONTRACT_RESERVE_YOY
+    nullable: false
+  - name: INTANGIBLE_ASSET_YOY
+    type: Float64
+    from: INTANGIBLE_ASSET_YOY
+    nullable: false
+  - name: INTEREST_PAYABLE_YOY
+    type: Float64
+    from: INTEREST_PAYABLE_YOY
+    nullable: false
+  - name: INTEREST_RECE_YOY
+    type: Float64
+    from: INTEREST_RECE_YOY
+    nullable: false
+  - name: INTERNAL_PAYABLE_YOY
+    type: Float64
+    from: INTERNAL_PAYABLE_YOY
+    nullable: false
+  - name: INTERNAL_RECE_YOY
+    type: Float64
+    from: INTERNAL_RECE_YOY
+    nullable: false
+  - name: INVENTORY_YOY
+    type: Float64
+    from: INVENTORY_YOY
+    nullable: false
+  - name: INVEST_REALESTATE_YOY
+    type: Float64
+    from: INVEST_REALESTATE_YOY
+    nullable: false
+  - name: LEASE_LIAB_YOY
+    type: Float64
+    from: LEASE_LIAB_YOY
+    nullable: false
+  - name: LEND_FUND_YOY
+    type: Float64
+    from: LEND_FUND_YOY
+    nullable: false
+  - name: LIAB_BALANCE_YOY
+    type: Float64
+    from: LIAB_BALANCE_YOY
+    nullable: false
+  - name: LIAB_EQUITY_BALANCE_YOY
+    type: Float64
+    from: LIAB_EQUITY_BALANCE_YOY
+    nullable: false
+  - name: LIAB_EQUITY_OTHER_YOY
+    type: Float64
+    from: LIAB_EQUITY_OTHER_YOY
+    nullable: false
+  - name: LIAB_OTHER_YOY
+    type: Float64
+    from: LIAB_OTHER_YOY
+    nullable: false
+  - name: LOAN_ADVANCE_YOY
+    type: Float64
+    from: LOAN_ADVANCE_YOY
+    nullable: false
+  - name: LOAN_PBC_YOY
+    type: Float64
+    from: LOAN_PBC_YOY
+    nullable: false
+  - name: LONG_EQUITY_INVEST_YOY
+    type: Float64
+    from: LONG_EQUITY_INVEST_YOY
+    nullable: false
+  - name: LONG_LOAN_YOY
+    type: Float64
+    from: LONG_LOAN_YOY
+    nullable: false
+  - name: LONG_PAYABLE_YOY
+    type: Float64
+    from: LONG_PAYABLE_YOY
+    nullable: false
+  - name: LONG_PREPAID_EXPENSE_YOY
+    type: Float64
+    from: LONG_PREPAID_EXPENSE_YOY
+    nullable: false
+  - name: LONG_RECE_YOY
+    type: Float64
+    from: LONG_RECE_YOY
+    nullable: false
+  - name: LONG_STAFFSALARY_PAYABLE_YOY
+    type: Float64
+    from: LONG_STAFFSALARY_PAYABLE_YOY
+    nullable: false
+  - name: MINORITY_EQUITY_YOY
+    type: Float64
+    from: MINORITY_EQUITY_YOY
+    nullable: false
+  - name: MONETARYFUNDS_YOY
+    type: Float64
+    from: MONETARYFUNDS_YOY
+    nullable: false
+  - name: NONCURRENT_ASSET_1YEAR_YOY
+    type: Float64
+    from: NONCURRENT_ASSET_1YEAR_YOY
+    nullable: false
+  - name: NONCURRENT_ASSET_BALANCE_YOY
+    type: Float64
+    from: NONCURRENT_ASSET_BALANCE_YOY
+    nullable: false
+  - name: NONCURRENT_ASSET_OTHER_YOY
+    type: Float64
+    from: NONCURRENT_ASSET_OTHER_YOY
+    nullable: false
+  - name: NONCURRENT_LIAB_1YEAR_YOY
+    type: Float64
+    from: NONCURRENT_LIAB_1YEAR_YOY
+    nullable: false
+  - name: NONCURRENT_LIAB_BALANCE_YOY
+    type: Float64
+    from: NONCURRENT_LIAB_BALANCE_YOY
+    nullable: false
+  - name: NONCURRENT_LIAB_OTHER_YOY
+    type: Float64
+    from: NONCURRENT_LIAB_OTHER_YOY
+    nullable: false
+  - name: NOTE_ACCOUNTS_PAYABLE_YOY
+    type: Float64
+    from: NOTE_ACCOUNTS_PAYABLE_YOY
+    nullable: false
+  - name: NOTE_ACCOUNTS_RECE_YOY
+    type: Float64
+    from: NOTE_ACCOUNTS_RECE_YOY
+    nullable: false
+  - name: NOTE_PAYABLE_YOY
+    type: Float64
+    from: NOTE_PAYABLE_YOY
+    nullable: false
+  - name: NOTE_RECE_YOY
+    type: Float64
+    from: NOTE_RECE_YOY
+    nullable: false
+  - name: OIL_GAS_ASSET_YOY
+    type: Float64
+    from: OIL_GAS_ASSET_YOY
+    nullable: false
+  - name: OTHER_COMPRE_INCOME_YOY
+    type: Float64
+    from: OTHER_COMPRE_INCOME_YOY
+    nullable: false
+  - name: OTHER_CREDITOR_INVEST_YOY
+    type: Float64
+    from: OTHER_CREDITOR_INVEST_YOY
+    nullable: false
+  - name: OTHER_CURRENT_ASSET_YOY
+    type: Float64
+    from: OTHER_CURRENT_ASSET_YOY
+    nullable: false
+  - name: OTHER_CURRENT_LIAB_YOY
+    type: Float64
+    from: OTHER_CURRENT_LIAB_YOY
+    nullable: false
+  - name: OTHER_EQUITY_INVEST_YOY
+    type: Float64
+    from: OTHER_EQUITY_INVEST_YOY
+    nullable: false
+  - name: OTHER_EQUITY_OTHER_YOY
+    type: Float64
+    from: OTHER_EQUITY_OTHER_YOY
+    nullable: false
+  - name: OTHER_EQUITY_TOOL_YOY
+    type: Float64
+    from: OTHER_EQUITY_TOOL_YOY
+    nullable: false
+  - name: OTHER_NONCURRENT_ASSET_YOY
+    type: Float64
+    from: OTHER_NONCURRENT_ASSET_YOY
+    nullable: false
+  - name: OTHER_NONCURRENT_FINASSET_YOY
+    type: Float64
+    from: OTHER_NONCURRENT_FINASSET_YOY
+    nullable: false
+  - name: OTHER_NONCURRENT_LIAB_YOY
+    type: Float64
+    from: OTHER_NONCURRENT_LIAB_YOY
+    nullable: false
+  - name: OTHER_PAYABLE_YOY
+    type: Float64
+    from: OTHER_PAYABLE_YOY
+    nullable: false
+  - name: OTHER_RECE_YOY
+    type: Float64
+    from: OTHER_RECE_YOY
+    nullable: false
+  - name: PARENT_EQUITY_BALANCE_YOY
+    type: Float64
+    from: PARENT_EQUITY_BALANCE_YOY
+    nullable: false
+  - name: PARENT_EQUITY_OTHER_YOY
+    type: Float64
+    from: PARENT_EQUITY_OTHER_YOY
+    nullable: false
+  - name: PERPETUAL_BOND_PAYBALE_YOY
+    type: Float64
+    from: PERPETUAL_BOND_PAYBALE_YOY
+    nullable: false
+  - name: PERPETUAL_BOND_YOY
+    type: Float64
+    from: PERPETUAL_BOND_YOY
+    nullable: false
+  - name: PREDICT_CURRENT_LIAB_YOY
+    type: Float64
+    from: PREDICT_CURRENT_LIAB_YOY
+    nullable: false
+  - name: PREDICT_LIAB_YOY
+    type: Float64
+    from: PREDICT_LIAB_YOY
+    nullable: false
+  - name: PREFERRED_SHARES_PAYBALE_YOY
+    type: Float64
+    from: PREFERRED_SHARES_PAYBALE_YOY
+    nullable: false
+  - name: PREFERRED_SHARES_YOY
+    type: Float64
+    from: PREFERRED_SHARES_YOY
+    nullable: false
+  - name: PREMIUM_RECE_YOY
+    type: Float64
+    from: PREMIUM_RECE_YOY
+    nullable: false
+  - name: PREPAYMENT_YOY
+    type: Float64
+    from: PREPAYMENT_YOY
+    nullable: false
+  - name: PRODUCTIVE_BIOLOGY_ASSET_YOY
+    type: Float64
+    from: PRODUCTIVE_BIOLOGY_ASSET_YOY
+    nullable: false
+  - name: PROJECT_MATERIAL_YOY
+    type: Float64
+    from: PROJECT_MATERIAL_YOY
+    nullable: false
+  - name: RC_RESERVE_RECE_YOY
+    type: Float64
+    from: RC_RESERVE_RECE_YOY
+    nullable: false
+  - name: REINSURE_PAYABLE_YOY
+    type: Float64
+    from: REINSURE_PAYABLE_YOY
+    nullable: false
+  - name: REINSURE_RECE_YOY
+    type: Float64
+    from: REINSURE_RECE_YOY
+    nullable: false
+  - name: SELL_REPO_FINASSET_YOY
+    type: Float64
+    from: SELL_REPO_FINASSET_YOY
+    nullable: false
+  - name: SETTLE_EXCESS_RESERVE_YOY
+    type: Float64
+    from: SETTLE_EXCESS_RESERVE_YOY
+    nullable: false
+  - name: SHARE_CAPITAL_YOY
+    type: Float64
+    from: SHARE_CAPITAL_YOY
+    nullable: false
+  - name: SHORT_BOND_PAYABLE_YOY
+    type: Float64
+    from: SHORT_BOND_PAYABLE_YOY
+    nullable: false
+  - name: SHORT_FIN_PAYABLE_YOY
+    type: Float64
+    from: SHORT_FIN_PAYABLE_YOY
+    nullable: false
+  - name: SHORT_LOAN_YOY
+    type: Float64
+    from: SHORT_LOAN_YOY
+    nullable: false
+  - name: SPECIAL_PAYABLE_YOY
+    type: Float64
+    from: SPECIAL_PAYABLE_YOY
+    nullable: false
+  - name: SPECIAL_RESERVE_YOY
+    type: Float64
+    from: SPECIAL_RESERVE_YOY
+    nullable: false
+  - name: STAFF_SALARY_PAYABLE_YOY
+    type: Float64
+    from: STAFF_SALARY_PAYABLE_YOY
+    nullable: false
+  - name: SUBSIDY_RECE_YOY
+    type: Float64
+    from: SUBSIDY_RECE_YOY
+    nullable: false
+  - name: SURPLUS_RESERVE_YOY
+    type: Float64
+    from: SURPLUS_RESERVE_YOY
+    nullable: false
+  - name: TAX_PAYABLE_YOY
+    type: Float64
+    from: TAX_PAYABLE_YOY
+    nullable: false
+  - name: TOTAL_ASSETS_YOY
+    type: Float64
+    from: TOTAL_ASSETS_YOY
+    nullable: false
+  - name: TOTAL_CURRENT_ASSETS_YOY
+    type: Float64
+    from: TOTAL_CURRENT_ASSETS_YOY
+    nullable: false
+  - name: TOTAL_CURRENT_LIAB_YOY
+    type: Float64
+    from: TOTAL_CURRENT_LIAB_YOY
+    nullable: false
+  - name: TOTAL_EQUITY_YOY
+    type: Float64
+    from: TOTAL_EQUITY_YOY
+    nullable: false
+  - name: TOTAL_LIAB_EQUITY_YOY
+    type: Float64
+    from: TOTAL_LIAB_EQUITY_YOY
+    nullable: false
+  - name: TOTAL_LIABILITIES_YOY
+    type: Float64
+    from: TOTAL_LIABILITIES_YOY
+    nullable: false
+  - name: TOTAL_NONCURRENT_ASSETS_YOY
+    type: Float64
+    from: TOTAL_NONCURRENT_ASSETS_YOY
+    nullable: false
+  - name: TOTAL_NONCURRENT_LIAB_YOY
+    type: Float64
+    from: TOTAL_NONCURRENT_LIAB_YOY
+    nullable: false
+  - name: TOTAL_OTHER_PAYABLE_YOY
+    type: Float64
+    from: TOTAL_OTHER_PAYABLE_YOY
+    nullable: false
+  - name: TOTAL_OTHER_RECE_YOY
+    type: Float64
+    from: TOTAL_OTHER_RECE_YOY
+    nullable: false
+  - name: TOTAL_PARENT_EQUITY_YOY
+    type: Float64
+    from: TOTAL_PARENT_EQUITY_YOY
+    nullable: false
+  - name: TRADE_FINASSET_NOTFVTPL_YOY
+    type: Float64
+    from: TRADE_FINASSET_NOTFVTPL_YOY
+    nullable: false
+  - name: TRADE_FINASSET_YOY
+    type: Float64
+    from: TRADE_FINASSET_YOY
+    nullable: false
+  - name: TRADE_FINLIAB_NOTFVTPL_YOY
+    type: Float64
+    from: TRADE_FINLIAB_NOTFVTPL_YOY
+    nullable: false
+  - name: TRADE_FINLIAB_YOY
+    type: Float64
+    from: TRADE_FINLIAB_YOY
+    nullable: false
+  - name: TREASURY_SHARES_YOY
+    type: Float64
+    from: TREASURY_SHARES_YOY
+    nullable: false
+  - name: UNASSIGN_RPOFIT_YOY
+    type: Float64
+    from: UNASSIGN_RPOFIT_YOY
+    nullable: false
+  - name: UNCONFIRM_INVEST_LOSS_YOY
+    type: Float64
+    from: UNCONFIRM_INVEST_LOSS_YOY
+    nullable: false
+  - name: USERIGHT_ASSET_YOY
+    type: Float64
+    from: USERIGHT_ASSET_YOY
+    nullable: false
+  - name: OPINION_TYPE
+    type: LowCardinality(String)
+    from: OPINION_TYPE
+    nullable: false
+    reason: expected_low_cardinality_dimension
+  - name: OSOPINION_TYPE
+    type: LowCardinality(String)
+    from: OSOPINION_TYPE
+    nullable: false
+    reason: expected_low_cardinality_dimension
+  - name: LISTING_STATE
+    type: LowCardinality(String)
+    from: LISTING_STATE
+    nullable: false
+    reason: expected_low_cardinality_dimension
+dbt_staging:
+  status: not_started
+dataset_note_zh: 东方财富资产负债表 F10 年度 raw 分区
+validation_notes:
+- Initial contract migrated from docs/references/data_dict and current raw sync specs.

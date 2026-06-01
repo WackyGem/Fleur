@@ -1,269 +1,280 @@
-# eastmoney__cashflow_ytd 字段校对
+# eastmoney__cashflow_ytd 数据字典
 
-> 生成时间: 2026-05-30 10:31:25 UTC
-> OpenAPI 文档: eastmoney__cashflow_ytd.yaml
+本文件由 `pipeline/contracts/datasets/eastmoney__cashflow_ytd.yml` 生成。字段事实以 contract 为准。
 
-## 字段对比
+- 数据集：`eastmoney__cashflow_ytd`
+- 版本：`1`
+- 说明：东方财富年初至今现金流量表 F10 年度 raw 分区
+- 粒度：one row per security code per report date
+- Source asset：`source/eastmoney__cashflow_ytd`
+- Raw asset：`clickhouse/raw/eastmoney__cashflow_ytd`
+- ClickHouse raw：`raw.eastmoney__cashflow_ytd`
+- 分区策略：`year`
+- ORDER BY：`(SECUCODE, REPORT_DATE)`
 
-| # | 字段名 | OpenAPI 类型 | 资产使用 | PyArrow 类型 | ClickHouse 类型 |
-|---|--------|-------------|---------|-------------|----------------|
-| 1 | SECUCODE | string | ✅ | string | LowCardinality(String) |
-| 2 | SECURITY_CODE | string | ✅ | string | LowCardinality(String) |
-| 3 | SECURITY_NAME_ABBR | string | ✅ | string | LowCardinality(String) |
-| 4 | ORG_CODE | string | ✅ | string | LowCardinality(String) |
-| 5 | ORG_TYPE | string | ✅ | string | LowCardinality(String) |
-| 6 | REPORT_DATE | string | ✅ | date32[day] | Date |
-| 7 | REPORT_TYPE | string | ✅ | string | LowCardinality(String) |
-| 8 | REPORT_DATE_NAME | string | ✅ | string | LowCardinality(String) |
-| 9 | SECURITY_TYPE_CODE | string | ✅ | string | LowCardinality(String) |
-| 10 | NOTICE_DATE | string | ✅ | date32[day] | Date |
-| 11 | UPDATE_DATE | string | ✅ | date32[day] | Date |
-| 12 | CURRENCY | string | ✅ | string | LowCardinality(String) |
-| 13 | SALES_SERVICES | number | ✅ | double | Float64 |
-| 14 | DEPOSIT_INTERBANK_ADD | number | ✅ | double | Float64 |
-| 15 | LOAN_PBC_ADD | number | ✅ | double | Float64 |
-| 16 | OFI_BF_ADD | number | ✅ | double | Float64 |
-| 17 | RECEIVE_ORIGIC_PREMIUM | number | ✅ | double | Float64 |
-| 18 | RECEIVE_REINSURE_NET | number | ✅ | double | Float64 |
-| 19 | INSURED_INVEST_ADD | number | ✅ | double | Float64 |
-| 20 | DISPOSAL_TFA_ADD | number | ✅ | double | Float64 |
-| 21 | RECEIVE_INTEREST_COMMISSION | number | ✅ | double | Float64 |
-| 22 | BORROW_FUND_ADD | number | ✅ | double | Float64 |
-| 23 | LOAN_ADVANCE_REDUCE | number | ✅ | double | Float64 |
-| 24 | REPO_BUSINESS_ADD | number | ✅ | double | Float64 |
-| 25 | RECEIVE_TAX_REFUND | number | ✅ | double | Float64 |
-| 26 | RECEIVE_OTHER_OPERATE | number | ✅ | double | Float64 |
-| 27 | OPERATE_INFLOW_OTHER | number | ✅ | double | Float64 |
-| 28 | OPERATE_INFLOW_BALANCE | number | ✅ | double | Float64 |
-| 29 | TOTAL_OPERATE_INFLOW | number | ✅ | double | Float64 |
-| 30 | BUY_SERVICES | number | ✅ | double | Float64 |
-| 31 | LOAN_ADVANCE_ADD | number | ✅ | double | Float64 |
-| 32 | PBC_INTERBANK_ADD | number | ✅ | double | Float64 |
-| 33 | PAY_ORIGIC_COMPENSATE | number | ✅ | double | Float64 |
-| 34 | PAY_INTEREST_COMMISSION | number | ✅ | double | Float64 |
-| 35 | PAY_POLICY_BONUS | number | ✅ | double | Float64 |
-| 36 | PAY_STAFF_CASH | number | ✅ | double | Float64 |
-| 37 | PAY_ALL_TAX | number | ✅ | double | Float64 |
-| 38 | PAY_OTHER_OPERATE | number | ✅ | double | Float64 |
-| 39 | OPERATE_OUTFLOW_OTHER | number | ✅ | double | Float64 |
-| 40 | OPERATE_OUTFLOW_BALANCE | number | ✅ | double | Float64 |
-| 41 | TOTAL_OPERATE_OUTFLOW | number | ✅ | double | Float64 |
-| 42 | OPERATE_NETCASH_OTHER | number | ✅ | double | Float64 |
-| 43 | OPERATE_NETCASH_BALANCE | number | ✅ | double | Float64 |
-| 44 | NETCASH_OPERATE | number | ✅ | double | Float64 |
-| 45 | WITHDRAW_INVEST | number | ✅ | double | Float64 |
-| 46 | RECEIVE_INVEST_INCOME | number | ✅ | double | Float64 |
-| 47 | DISPOSAL_LONG_ASSET | number | ✅ | double | Float64 |
-| 48 | DISPOSAL_SUBSIDIARY_OTHER | number | ✅ | double | Float64 |
-| 49 | REDUCE_PLEDGE_TIMEDEPOSITS | number | ✅ | double | Float64 |
-| 50 | RECEIVE_OTHER_INVEST | number | ✅ | double | Float64 |
-| 51 | INVEST_INFLOW_OTHER | number | ✅ | double | Float64 |
-| 52 | INVEST_INFLOW_BALANCE | number | ✅ | double | Float64 |
-| 53 | TOTAL_INVEST_INFLOW | number | ✅ | double | Float64 |
-| 54 | CONSTRUCT_LONG_ASSET | number | ✅ | double | Float64 |
-| 55 | INVEST_PAY_CASH | number | ✅ | double | Float64 |
-| 56 | PLEDGE_LOAN_ADD | number | ✅ | double | Float64 |
-| 57 | OBTAIN_SUBSIDIARY_OTHER | number | ✅ | double | Float64 |
-| 58 | ADD_PLEDGE_TIMEDEPOSITS | number | ✅ | double | Float64 |
-| 59 | PAY_OTHER_INVEST | number | ✅ | double | Float64 |
-| 60 | INVEST_OUTFLOW_OTHER | number | ✅ | double | Float64 |
-| 61 | INVEST_OUTFLOW_BALANCE | number | ✅ | double | Float64 |
-| 62 | TOTAL_INVEST_OUTFLOW | number | ✅ | double | Float64 |
-| 63 | INVEST_NETCASH_OTHER | number | ✅ | double | Float64 |
-| 64 | INVEST_NETCASH_BALANCE | number | ✅ | double | Float64 |
-| 65 | NETCASH_INVEST | number | ✅ | double | Float64 |
-| 66 | ACCEPT_INVEST_CASH | number | ✅ | double | Float64 |
-| 67 | SUBSIDIARY_ACCEPT_INVEST | number | ✅ | double | Float64 |
-| 68 | RECEIVE_LOAN_CASH | number | ✅ | double | Float64 |
-| 69 | ISSUE_BOND | number | ✅ | double | Float64 |
-| 70 | RECEIVE_OTHER_FINANCE | number | ✅ | double | Float64 |
-| 71 | FINANCE_INFLOW_OTHER | number | ✅ | double | Float64 |
-| 72 | FINANCE_INFLOW_BALANCE | number | ✅ | double | Float64 |
-| 73 | TOTAL_FINANCE_INFLOW | number | ✅ | double | Float64 |
-| 74 | PAY_DEBT_CASH | number | ✅ | double | Float64 |
-| 75 | ASSIGN_DIVIDEND_PORFIT | number | ✅ | double | Float64 |
-| 76 | SUBSIDIARY_PAY_DIVIDEND | number | ✅ | double | Float64 |
-| 77 | BUY_SUBSIDIARY_EQUITY | number | ✅ | double | Float64 |
-| 78 | PAY_OTHER_FINANCE | number | ✅ | double | Float64 |
-| 79 | SUBSIDIARY_REDUCE_CASH | number | ✅ | double | Float64 |
-| 80 | FINANCE_OUTFLOW_OTHER | number | ✅ | double | Float64 |
-| 81 | FINANCE_OUTFLOW_BALANCE | number | ✅ | double | Float64 |
-| 82 | TOTAL_FINANCE_OUTFLOW | number | ✅ | double | Float64 |
-| 83 | FINANCE_NETCASH_OTHER | number | ✅ | double | Float64 |
-| 84 | FINANCE_NETCASH_BALANCE | number | ✅ | double | Float64 |
-| 85 | NETCASH_FINANCE | number | ✅ | double | Float64 |
-| 86 | RATE_CHANGE_EFFECT | number | ✅ | double | Float64 |
-| 87 | CCE_ADD_OTHER | number | ✅ | double | Float64 |
-| 88 | CCE_ADD_BALANCE | number | ✅ | double | Float64 |
-| 89 | CCE_ADD | number | ✅ | double | Float64 |
-| 90 | BEGIN_CCE | number | ✅ | double | Float64 |
-| 91 | END_CCE_OTHER | number | ✅ | double | Float64 |
-| 92 | END_CCE_BALANCE | number | ✅ | double | Float64 |
-| 93 | END_CCE | number | ✅ | double | Float64 |
-| 94 | NETPROFIT | number | ✅ | double | Float64 |
-| 95 | ASSET_IMPAIRMENT | number | ✅ | double | Float64 |
-| 96 | FA_IR_DEPR | number | ✅ | double | Float64 |
-| 97 | OILGAS_BIOLOGY_DEPR | number | ✅ | double | Float64 |
-| 98 | IR_DEPR | number | ✅ | double | Float64 |
-| 99 | IA_AMORTIZE | number | ✅ | double | Float64 |
-| 100 | LPE_AMORTIZE | number | ✅ | double | Float64 |
-| 101 | DEFER_INCOME_AMORTIZE | number | ✅ | double | Float64 |
-| 102 | PREPAID_EXPENSE_REDUCE | number | ✅ | double | Float64 |
-| 103 | ACCRUED_EXPENSE_ADD | number | ✅ | double | Float64 |
-| 104 | DISPOSAL_LONGASSET_LOSS | number | ✅ | double | Float64 |
-| 105 | FA_SCRAP_LOSS | number | ✅ | double | Float64 |
-| 106 | FAIRVALUE_CHANGE_LOSS | number | ✅ | double | Float64 |
-| 107 | FINANCE_EXPENSE | number | ✅ | double | Float64 |
-| 108 | INVEST_LOSS | number | ✅ | double | Float64 |
-| 109 | DEFER_TAX | number | ✅ | double | Float64 |
-| 110 | DT_ASSET_REDUCE | number | ✅ | double | Float64 |
-| 111 | DT_LIAB_ADD | number | ✅ | double | Float64 |
-| 112 | PREDICT_LIAB_ADD | number | ✅ | double | Float64 |
-| 113 | INVENTORY_REDUCE | number | ✅ | double | Float64 |
-| 114 | OPERATE_RECE_REDUCE | number | ✅ | double | Float64 |
-| 115 | OPERATE_PAYABLE_ADD | number | ✅ | double | Float64 |
-| 116 | OTHER | number | ✅ | double | Float64 |
-| 117 | OPERATE_NETCASH_OTHERNOTE | number | ✅ | double | Float64 |
-| 118 | OPERATE_NETCASH_BALANCENOTE | number | ✅ | double | Float64 |
-| 119 | NETCASH_OPERATENOTE | number | ✅ | double | Float64 |
-| 120 | DEBT_TRANSFER_CAPITAL | number | ✅ | double | Float64 |
-| 121 | CONVERT_BOND_1YEAR | number | ✅ | double | Float64 |
-| 122 | FINLEASE_OBTAIN_FA | number | ✅ | double | Float64 |
-| 123 | UNINVOLVE_INVESTFIN_OTHER | number | ✅ | double | Float64 |
-| 124 | END_CASH | number | ✅ | double | Float64 |
-| 125 | BEGIN_CASH | number | ✅ | double | Float64 |
-| 126 | END_CASH_EQUIVALENTS | number | ✅ | double | Float64 |
-| 127 | BEGIN_CASH_EQUIVALENTS | number | ✅ | double | Float64 |
-| 128 | CCE_ADD_OTHERNOTE | number | ✅ | double | Float64 |
-| 129 | CCE_ADD_BALANCENOTE | number | ✅ | double | Float64 |
-| 130 | CCE_ADDNOTE | number | ✅ | double | Float64 |
-| 131 | SALES_SERVICES_YOY | number | ✅ | double | Float64 |
-| 132 | DEPOSIT_INTERBANK_ADD_YOY | number | ✅ | double | Float64 |
-| 133 | LOAN_PBC_ADD_YOY | number | ✅ | double | Float64 |
-| 134 | OFI_BF_ADD_YOY | number | ✅ | double | Float64 |
-| 135 | RECEIVE_ORIGIC_PREMIUM_YOY | number | ✅ | double | Float64 |
-| 136 | RECEIVE_REINSURE_NET_YOY | number | ✅ | double | Float64 |
-| 137 | INSURED_INVEST_ADD_YOY | number | ✅ | double | Float64 |
-| 138 | DISPOSAL_TFA_ADD_YOY | number | ✅ | double | Float64 |
-| 139 | RECEIVE_INTEREST_COMMISSION_YOY | number | ✅ | double | Float64 |
-| 140 | BORROW_FUND_ADD_YOY | number | ✅ | double | Float64 |
-| 141 | LOAN_ADVANCE_REDUCE_YOY | number | ✅ | double | Float64 |
-| 142 | REPO_BUSINESS_ADD_YOY | number | ✅ | double | Float64 |
-| 143 | RECEIVE_TAX_REFUND_YOY | number | ✅ | double | Float64 |
-| 144 | RECEIVE_OTHER_OPERATE_YOY | number | ✅ | double | Float64 |
-| 145 | OPERATE_INFLOW_OTHER_YOY | number | ✅ | double | Float64 |
-| 146 | OPERATE_INFLOW_BALANCE_YOY | number | ✅ | double | Float64 |
-| 147 | TOTAL_OPERATE_INFLOW_YOY | number | ✅ | double | Float64 |
-| 148 | BUY_SERVICES_YOY | number | ✅ | double | Float64 |
-| 149 | LOAN_ADVANCE_ADD_YOY | number | ✅ | double | Float64 |
-| 150 | PBC_INTERBANK_ADD_YOY | number | ✅ | double | Float64 |
-| 151 | PAY_ORIGIC_COMPENSATE_YOY | number | ✅ | double | Float64 |
-| 152 | PAY_INTEREST_COMMISSION_YOY | number | ✅ | double | Float64 |
-| 153 | PAY_POLICY_BONUS_YOY | number | ✅ | double | Float64 |
-| 154 | PAY_STAFF_CASH_YOY | number | ✅ | double | Float64 |
-| 155 | PAY_ALL_TAX_YOY | number | ✅ | double | Float64 |
-| 156 | PAY_OTHER_OPERATE_YOY | number | ✅ | double | Float64 |
-| 157 | OPERATE_OUTFLOW_OTHER_YOY | number | ✅ | double | Float64 |
-| 158 | OPERATE_OUTFLOW_BALANCE_YOY | number | ✅ | double | Float64 |
-| 159 | TOTAL_OPERATE_OUTFLOW_YOY | number | ✅ | double | Float64 |
-| 160 | OPERATE_NETCASH_OTHER_YOY | number | ✅ | double | Float64 |
-| 161 | OPERATE_NETCASH_BALANCE_YOY | number | ✅ | double | Float64 |
-| 162 | NETCASH_OPERATE_YOY | number | ✅ | double | Float64 |
-| 163 | WITHDRAW_INVEST_YOY | number | ✅ | double | Float64 |
-| 164 | RECEIVE_INVEST_INCOME_YOY | number | ✅ | double | Float64 |
-| 165 | DISPOSAL_LONG_ASSET_YOY | number | ✅ | double | Float64 |
-| 166 | DISPOSAL_SUBSIDIARY_OTHER_YOY | number | ✅ | double | Float64 |
-| 167 | REDUCE_PLEDGE_TIMEDEPOSITS_YOY | number | ✅ | double | Float64 |
-| 168 | RECEIVE_OTHER_INVEST_YOY | number | ✅ | double | Float64 |
-| 169 | INVEST_INFLOW_OTHER_YOY | number | ✅ | double | Float64 |
-| 170 | INVEST_INFLOW_BALANCE_YOY | number | ✅ | double | Float64 |
-| 171 | TOTAL_INVEST_INFLOW_YOY | number | ✅ | double | Float64 |
-| 172 | CONSTRUCT_LONG_ASSET_YOY | number | ✅ | double | Float64 |
-| 173 | INVEST_PAY_CASH_YOY | number | ✅ | double | Float64 |
-| 174 | PLEDGE_LOAN_ADD_YOY | number | ✅ | double | Float64 |
-| 175 | OBTAIN_SUBSIDIARY_OTHER_YOY | number | ✅ | double | Float64 |
-| 176 | ADD_PLEDGE_TIMEDEPOSITS_YOY | number | ✅ | double | Float64 |
-| 177 | PAY_OTHER_INVEST_YOY | number | ✅ | double | Float64 |
-| 178 | INVEST_OUTFLOW_OTHER_YOY | number | ✅ | double | Float64 |
-| 179 | INVEST_OUTFLOW_BALANCE_YOY | number | ✅ | double | Float64 |
-| 180 | TOTAL_INVEST_OUTFLOW_YOY | number | ✅ | double | Float64 |
-| 181 | INVEST_NETCASH_OTHER_YOY | number | ✅ | double | Float64 |
-| 182 | INVEST_NETCASH_BALANCE_YOY | number | ✅ | double | Float64 |
-| 183 | NETCASH_INVEST_YOY | number | ✅ | double | Float64 |
-| 184 | ACCEPT_INVEST_CASH_YOY | number | ✅ | double | Float64 |
-| 185 | SUBSIDIARY_ACCEPT_INVEST_YOY | number | ✅ | double | Float64 |
-| 186 | RECEIVE_LOAN_CASH_YOY | number | ✅ | double | Float64 |
-| 187 | ISSUE_BOND_YOY | number | ✅ | double | Float64 |
-| 188 | RECEIVE_OTHER_FINANCE_YOY | number | ✅ | double | Float64 |
-| 189 | FINANCE_INFLOW_OTHER_YOY | number | ✅ | double | Float64 |
-| 190 | FINANCE_INFLOW_BALANCE_YOY | number | ✅ | double | Float64 |
-| 191 | TOTAL_FINANCE_INFLOW_YOY | number | ✅ | double | Float64 |
-| 192 | PAY_DEBT_CASH_YOY | number | ✅ | double | Float64 |
-| 193 | ASSIGN_DIVIDEND_PORFIT_YOY | number | ✅ | double | Float64 |
-| 194 | SUBSIDIARY_PAY_DIVIDEND_YOY | number | ✅ | double | Float64 |
-| 195 | BUY_SUBSIDIARY_EQUITY_YOY | number | ✅ | double | Float64 |
-| 196 | PAY_OTHER_FINANCE_YOY | number | ✅ | double | Float64 |
-| 197 | SUBSIDIARY_REDUCE_CASH_YOY | number | ✅ | double | Float64 |
-| 198 | FINANCE_OUTFLOW_OTHER_YOY | number | ✅ | double | Float64 |
-| 199 | FINANCE_OUTFLOW_BALANCE_YOY | number | ✅ | double | Float64 |
-| 200 | TOTAL_FINANCE_OUTFLOW_YOY | number | ✅ | double | Float64 |
-| 201 | FINANCE_NETCASH_OTHER_YOY | number | ✅ | double | Float64 |
-| 202 | FINANCE_NETCASH_BALANCE_YOY | number | ✅ | double | Float64 |
-| 203 | NETCASH_FINANCE_YOY | number | ✅ | double | Float64 |
-| 204 | RATE_CHANGE_EFFECT_YOY | number | ✅ | double | Float64 |
-| 205 | CCE_ADD_OTHER_YOY | number | ✅ | double | Float64 |
-| 206 | CCE_ADD_BALANCE_YOY | number | ✅ | double | Float64 |
-| 207 | CCE_ADD_YOY | number | ✅ | double | Float64 |
-| 208 | BEGIN_CCE_YOY | number | ✅ | double | Float64 |
-| 209 | END_CCE_OTHER_YOY | number | ✅ | double | Float64 |
-| 210 | END_CCE_BALANCE_YOY | number | ✅ | double | Float64 |
-| 211 | END_CCE_YOY | number | ✅ | double | Float64 |
-| 212 | NETPROFIT_YOY | number | ✅ | double | Float64 |
-| 213 | ASSET_IMPAIRMENT_YOY | number | ✅ | double | Float64 |
-| 214 | FA_IR_DEPR_YOY | number | ✅ | double | Float64 |
-| 215 | OILGAS_BIOLOGY_DEPR_YOY | number | ✅ | double | Float64 |
-| 216 | IR_DEPR_YOY | number | ✅ | double | Float64 |
-| 217 | IA_AMORTIZE_YOY | number | ✅ | double | Float64 |
-| 218 | LPE_AMORTIZE_YOY | number | ✅ | double | Float64 |
-| 219 | DEFER_INCOME_AMORTIZE_YOY | number | ✅ | double | Float64 |
-| 220 | PREPAID_EXPENSE_REDUCE_YOY | number | ✅ | double | Float64 |
-| 221 | ACCRUED_EXPENSE_ADD_YOY | number | ✅ | double | Float64 |
-| 222 | DISPOSAL_LONGASSET_LOSS_YOY | number | ✅ | double | Float64 |
-| 223 | FA_SCRAP_LOSS_YOY | number | ✅ | double | Float64 |
-| 224 | FAIRVALUE_CHANGE_LOSS_YOY | number | ✅ | double | Float64 |
-| 225 | FINANCE_EXPENSE_YOY | number | ✅ | double | Float64 |
-| 226 | INVEST_LOSS_YOY | number | ✅ | double | Float64 |
-| 227 | DEFER_TAX_YOY | number | ✅ | double | Float64 |
-| 228 | DT_ASSET_REDUCE_YOY | number | ✅ | double | Float64 |
-| 229 | DT_LIAB_ADD_YOY | number | ✅ | double | Float64 |
-| 230 | PREDICT_LIAB_ADD_YOY | number | ✅ | double | Float64 |
-| 231 | INVENTORY_REDUCE_YOY | number | ✅ | double | Float64 |
-| 232 | OPERATE_RECE_REDUCE_YOY | number | ✅ | double | Float64 |
-| 233 | OPERATE_PAYABLE_ADD_YOY | number | ✅ | double | Float64 |
-| 234 | OTHER_YOY | number | ✅ | double | Float64 |
-| 235 | OPERATE_NETCASH_OTHERNOTE_YOY | number | ✅ | double | Float64 |
-| 236 | OPERATE_NETCASH_BALANCENOTE_YOY | number | ✅ | double | Float64 |
-| 237 | NETCASH_OPERATENOTE_YOY | number | ✅ | double | Float64 |
-| 238 | DEBT_TRANSFER_CAPITAL_YOY | number | ✅ | double | Float64 |
-| 239 | CONVERT_BOND_1YEAR_YOY | number | ✅ | double | Float64 |
-| 240 | FINLEASE_OBTAIN_FA_YOY | number | ✅ | double | Float64 |
-| 241 | UNINVOLVE_INVESTFIN_OTHER_YOY | number | ✅ | double | Float64 |
-| 242 | END_CASH_YOY | number | ✅ | double | Float64 |
-| 243 | BEGIN_CASH_YOY | number | ✅ | double | Float64 |
-| 244 | END_CASH_EQUIVALENTS_YOY | number | ✅ | double | Float64 |
-| 245 | BEGIN_CASH_EQUIVALENTS_YOY | number | ✅ | double | Float64 |
-| 246 | CCE_ADD_OTHERNOTE_YOY | number | ✅ | double | Float64 |
-| 247 | CCE_ADD_BALANCENOTE_YOY | number | ✅ | double | Float64 |
-| 248 | CCE_ADDNOTE_YOY | number | ✅ | double | Float64 |
-| 249 | OPINION_TYPE | number | ✅ | string | LowCardinality(String) |
-| 250 | OSOPINION_TYPE | number | ✅ | string | LowCardinality(String) |
-| 251 | MINORITY_INTEREST | number | ✅ | double | Float64 |
-| 252 | MINORITY_INTEREST_YOY | number | ✅ | double | Float64 |
-| 253 | USERIGHT_ASSET_AMORTIZE | number | ✅ | double | Float64 |
-| 254 | USERIGHT_ASSET_AMORTIZE_YOY | number | ✅ | double | Float64 |
+## 字段链路
 
-## 统计
+| # | 外源字段 | 外源类型 | Parquet 类型 | ClickHouse raw 字段 | ClickHouse 类型 | stg 字段 | 中文描述 |
+|---|----------|----------|--------------|---------------------|-----------------|----------|----------|
+| 1 | `SECUCODE` | `string` | `string` | `SECUCODE` | `LowCardinality(String)` | `-` | 证券代码（含市场后缀） |
+| 2 | `SECURITY_CODE` | `string` | `string` | `SECURITY_CODE` | `LowCardinality(String)` | `-` | 证券代码（纯数字） |
+| 3 | `SECURITY_NAME_ABBR` | `string` | `string` | `SECURITY_NAME_ABBR` | `LowCardinality(String)` | `-` | 证券简称 |
+| 4 | `ORG_CODE` | `string` | `string` | `ORG_CODE` | `LowCardinality(String)` | `-` | 机构代码 |
+| 5 | `ORG_TYPE` | `string` | `string` | `ORG_TYPE` | `LowCardinality(String)` | `-` | 机构类型 |
+| 6 | `REPORT_DATE` | `string` | `date32[day]` | `REPORT_DATE` | `Date` | `-` | 报告期 |
+| 7 | `REPORT_TYPE` | `string` | `string` | `REPORT_TYPE` | `LowCardinality(String)` | `-` | 报告类型 |
+| 8 | `REPORT_DATE_NAME` | `string` | `string` | `REPORT_DATE_NAME` | `LowCardinality(String)` | `-` | 报告期名称 |
+| 9 | `SECURITY_TYPE_CODE` | `string` | `string` | `SECURITY_TYPE_CODE` | `LowCardinality(String)` | `-` | 证券类型代码 |
+| 10 | `NOTICE_DATE` | `string` | `date32[day]` | `NOTICE_DATE` | `Date` | `-` | 公告日期 |
+| 11 | `UPDATE_DATE` | `string` | `date32[day]` | `UPDATE_DATE` | `Date` | `-` | 更新日期 |
+| 12 | `CURRENCY` | `string` | `string` | `CURRENCY` | `LowCardinality(String)` | `-` | 现金流量表年初至报告期末金额使用的币种。 |
+| 13 | `SALES_SERVICES` | `number` | `double` | `SALES_SERVICES` | `Float64` | `-` | 销售商品、提供劳务收到的现金 |
+| 14 | `DEPOSIT_INTERBANK_ADD` | `number` | `double` | `DEPOSIT_INTERBANK_ADD` | `Float64` | `-` | 同业存放净增加额 |
+| 15 | `LOAN_PBC_ADD` | `number` | `double` | `LOAN_PBC_ADD` | `Float64` | `-` | 向央行借款净增加额 |
+| 16 | `OFI_BF_ADD` | `number` | `double` | `OFI_BF_ADD` | `Float64` | `-` | 向其他金融机构拆入资金净增加额 |
+| 17 | `RECEIVE_ORIGIC_PREMIUM` | `number` | `double` | `RECEIVE_ORIGIC_PREMIUM` | `Float64` | `-` | 收到原保险合同保费现金 |
+| 18 | `RECEIVE_REINSURE_NET` | `number` | `double` | `RECEIVE_REINSURE_NET` | `Float64` | `-` | 收到再保险业务现金净额 |
+| 19 | `INSURED_INVEST_ADD` | `number` | `double` | `INSURED_INVEST_ADD` | `Float64` | `-` | 保户储金及投资款净增加额 |
+| 20 | `DISPOSAL_TFA_ADD` | `number` | `double` | `DISPOSAL_TFA_ADD` | `Float64` | `-` | 处置交易性金融资产净增加额 |
+| 21 | `RECEIVE_INTEREST_COMMISSION` | `number` | `double` | `RECEIVE_INTEREST_COMMISSION` | `Float64` | `-` | 收取利息和手续费现金 |
+| 22 | `BORROW_FUND_ADD` | `number` | `double` | `BORROW_FUND_ADD` | `Float64` | `-` | 拆入资金净增加额 |
+| 23 | `LOAN_ADVANCE_REDUCE` | `number` | `double` | `LOAN_ADVANCE_REDUCE` | `Float64` | `-` | 发放贷款及垫款净减少额 |
+| 24 | `REPO_BUSINESS_ADD` | `number` | `double` | `REPO_BUSINESS_ADD` | `Float64` | `-` | 回购业务资金净增加额 |
+| 25 | `RECEIVE_TAX_REFUND` | `number` | `double` | `RECEIVE_TAX_REFUND` | `Float64` | `-` | 收到的税费返还 |
+| 26 | `RECEIVE_OTHER_OPERATE` | `number` | `double` | `RECEIVE_OTHER_OPERATE` | `Float64` | `-` | 收到其他与经营活动有关的现金 |
+| 27 | `OPERATE_INFLOW_OTHER` | `number` | `double` | `OPERATE_INFLOW_OTHER` | `Float64` | `-` | 经营活动现金流入其他 |
+| 28 | `OPERATE_INFLOW_BALANCE` | `number` | `double` | `OPERATE_INFLOW_BALANCE` | `Float64` | `-` | 经营活动现金流入平衡项 |
+| 29 | `TOTAL_OPERATE_INFLOW` | `number` | `double` | `TOTAL_OPERATE_INFLOW` | `Float64` | `-` | 经营活动现金流入小计 |
+| 30 | `BUY_SERVICES` | `number` | `double` | `BUY_SERVICES` | `Float64` | `-` | 购买商品、接受劳务支付的现金 |
+| 31 | `LOAN_ADVANCE_ADD` | `number` | `double` | `LOAN_ADVANCE_ADD` | `Float64` | `-` | 发放贷款及垫款净增加额 |
+| 32 | `PBC_INTERBANK_ADD` | `number` | `double` | `PBC_INTERBANK_ADD` | `Float64` | `-` | 向央行借款净增加额 |
+| 33 | `PAY_ORIGIC_COMPENSATE` | `number` | `double` | `PAY_ORIGIC_COMPENSATE` | `Float64` | `-` | 支付原保险合同赔付款项现金 |
+| 34 | `PAY_INTEREST_COMMISSION` | `number` | `double` | `PAY_INTEREST_COMMISSION` | `Float64` | `-` | 支付利息和手续费现金 |
+| 35 | `PAY_POLICY_BONUS` | `number` | `double` | `PAY_POLICY_BONUS` | `Float64` | `-` | 保单红利支出 |
+| 36 | `PAY_STAFF_CASH` | `number` | `double` | `PAY_STAFF_CASH` | `Float64` | `-` | 支付给职工以及为职工支付的现金 |
+| 37 | `PAY_ALL_TAX` | `number` | `double` | `PAY_ALL_TAX` | `Float64` | `-` | 支付的各项税费 |
+| 38 | `PAY_OTHER_OPERATE` | `number` | `double` | `PAY_OTHER_OPERATE` | `Float64` | `-` | 支付其他与经营活动有关的现金 |
+| 39 | `OPERATE_OUTFLOW_OTHER` | `number` | `double` | `OPERATE_OUTFLOW_OTHER` | `Float64` | `-` | 经营活动现金流出其他 |
+| 40 | `OPERATE_OUTFLOW_BALANCE` | `number` | `double` | `OPERATE_OUTFLOW_BALANCE` | `Float64` | `-` | 经营活动现金流出平衡项 |
+| 41 | `TOTAL_OPERATE_OUTFLOW` | `number` | `double` | `TOTAL_OPERATE_OUTFLOW` | `Float64` | `-` | 经营活动现金流出小计 |
+| 42 | `OPERATE_NETCASH_OTHER` | `number` | `double` | `OPERATE_NETCASH_OTHER` | `Float64` | `-` | 经营活动净现金流量其他 |
+| 43 | `OPERATE_NETCASH_BALANCE` | `number` | `double` | `OPERATE_NETCASH_BALANCE` | `Float64` | `-` | 经营活动净现金流量平衡项 |
+| 44 | `NETCASH_OPERATE` | `number` | `double` | `NETCASH_OPERATE` | `Float64` | `-` | 经营活动产生的现金流量净额 |
+| 45 | `WITHDRAW_INVEST` | `number` | `double` | `WITHDRAW_INVEST` | `Float64` | `-` | 收回投资收到的现金 |
+| 46 | `RECEIVE_INVEST_INCOME` | `number` | `double` | `RECEIVE_INVEST_INCOME` | `Float64` | `-` | 取得投资收益收到的现金 |
+| 47 | `DISPOSAL_LONG_ASSET` | `number` | `double` | `DISPOSAL_LONG_ASSET` | `Float64` | `-` | 处置固定资产等收回的现金净额 |
+| 48 | `DISPOSAL_SUBSIDIARY_OTHER` | `number` | `double` | `DISPOSAL_SUBSIDIARY_OTHER` | `Float64` | `-` | 处置子公司及其他营业单位收到的现金净额 |
+| 49 | `REDUCE_PLEDGE_TIMEDEPOSITS` | `number` | `double` | `REDUCE_PLEDGE_TIMEDEPOSITS` | `Float64` | `-` | 减少质押定期存款 |
+| 50 | `RECEIVE_OTHER_INVEST` | `number` | `double` | `RECEIVE_OTHER_INVEST` | `Float64` | `-` | 收到其他与投资活动有关的现金 |
+| 51 | `INVEST_INFLOW_OTHER` | `number` | `double` | `INVEST_INFLOW_OTHER` | `Float64` | `-` | 投资活动现金流入其他 |
+| 52 | `INVEST_INFLOW_BALANCE` | `number` | `double` | `INVEST_INFLOW_BALANCE` | `Float64` | `-` | 投资活动现金流入平衡项 |
+| 53 | `TOTAL_INVEST_INFLOW` | `number` | `double` | `TOTAL_INVEST_INFLOW` | `Float64` | `-` | 投资活动现金流入小计 |
+| 54 | `CONSTRUCT_LONG_ASSET` | `number` | `double` | `CONSTRUCT_LONG_ASSET` | `Float64` | `-` | 购建固定资产等支付的现金 |
+| 55 | `INVEST_PAY_CASH` | `number` | `double` | `INVEST_PAY_CASH` | `Float64` | `-` | 投资支付的现金 |
+| 56 | `PLEDGE_LOAN_ADD` | `number` | `double` | `PLEDGE_LOAN_ADD` | `Float64` | `-` | 质押贷款净增加额 |
+| 57 | `OBTAIN_SUBSIDIARY_OTHER` | `number` | `double` | `OBTAIN_SUBSIDIARY_OTHER` | `Float64` | `-` | 取得子公司及其他营业单位支付的现金净额 |
+| 58 | `ADD_PLEDGE_TIMEDEPOSITS` | `number` | `double` | `ADD_PLEDGE_TIMEDEPOSITS` | `Float64` | `-` | 增加质押定期存款 |
+| 59 | `PAY_OTHER_INVEST` | `number` | `double` | `PAY_OTHER_INVEST` | `Float64` | `-` | 支付其他与投资活动有关的现金 |
+| 60 | `INVEST_OUTFLOW_OTHER` | `number` | `double` | `INVEST_OUTFLOW_OTHER` | `Float64` | `-` | 投资活动现金流出其他 |
+| 61 | `INVEST_OUTFLOW_BALANCE` | `number` | `double` | `INVEST_OUTFLOW_BALANCE` | `Float64` | `-` | 投资活动现金流出平衡项 |
+| 62 | `TOTAL_INVEST_OUTFLOW` | `number` | `double` | `TOTAL_INVEST_OUTFLOW` | `Float64` | `-` | 投资活动现金流出小计 |
+| 63 | `INVEST_NETCASH_OTHER` | `number` | `double` | `INVEST_NETCASH_OTHER` | `Float64` | `-` | 投资活动净现金流量其他 |
+| 64 | `INVEST_NETCASH_BALANCE` | `number` | `double` | `INVEST_NETCASH_BALANCE` | `Float64` | `-` | 投资活动净现金流量平衡项 |
+| 65 | `NETCASH_INVEST` | `number` | `double` | `NETCASH_INVEST` | `Float64` | `-` | 投资活动产生的现金流量净额 |
+| 66 | `ACCEPT_INVEST_CASH` | `number` | `double` | `ACCEPT_INVEST_CASH` | `Float64` | `-` | 吸收投资收到的现金 |
+| 67 | `SUBSIDIARY_ACCEPT_INVEST` | `number` | `double` | `SUBSIDIARY_ACCEPT_INVEST` | `Float64` | `-` | 子公司吸收少数股东投资收到的现金 |
+| 68 | `RECEIVE_LOAN_CASH` | `number` | `double` | `RECEIVE_LOAN_CASH` | `Float64` | `-` | 取得借款收到的现金 |
+| 69 | `ISSUE_BOND` | `number` | `double` | `ISSUE_BOND` | `Float64` | `-` | 发行债券收到的现金 |
+| 70 | `RECEIVE_OTHER_FINANCE` | `number` | `double` | `RECEIVE_OTHER_FINANCE` | `Float64` | `-` | 收到其他与筹资活动有关的现金 |
+| 71 | `FINANCE_INFLOW_OTHER` | `number` | `double` | `FINANCE_INFLOW_OTHER` | `Float64` | `-` | 筹资活动现金流入其他 |
+| 72 | `FINANCE_INFLOW_BALANCE` | `number` | `double` | `FINANCE_INFLOW_BALANCE` | `Float64` | `-` | 筹资活动现金流入平衡项 |
+| 73 | `TOTAL_FINANCE_INFLOW` | `number` | `double` | `TOTAL_FINANCE_INFLOW` | `Float64` | `-` | 筹资活动现金流入小计 |
+| 74 | `PAY_DEBT_CASH` | `number` | `double` | `PAY_DEBT_CASH` | `Float64` | `-` | 偿还债务支付的现金 |
+| 75 | `ASSIGN_DIVIDEND_PORFIT` | `number` | `double` | `ASSIGN_DIVIDEND_PORFIT` | `Float64` | `-` | 分配股利、利润或偿付利息支付的现金 |
+| 76 | `SUBSIDIARY_PAY_DIVIDEND` | `number` | `double` | `SUBSIDIARY_PAY_DIVIDEND` | `Float64` | `-` | 子公司向少数股东支付的现金股利 |
+| 77 | `BUY_SUBSIDIARY_EQUITY` | `number` | `double` | `BUY_SUBSIDIARY_EQUITY` | `Float64` | `-` | 子公司减少现金 |
+| 78 | `PAY_OTHER_FINANCE` | `number` | `double` | `PAY_OTHER_FINANCE` | `Float64` | `-` | 支付其他与筹资活动有关的现金 |
+| 79 | `SUBSIDIARY_REDUCE_CASH` | `number` | `double` | `SUBSIDIARY_REDUCE_CASH` | `Float64` | `-` | 子公司减少现金 |
+| 80 | `FINANCE_OUTFLOW_OTHER` | `number` | `double` | `FINANCE_OUTFLOW_OTHER` | `Float64` | `-` | 筹资活动现金流出其他 |
+| 81 | `FINANCE_OUTFLOW_BALANCE` | `number` | `double` | `FINANCE_OUTFLOW_BALANCE` | `Float64` | `-` | 筹资活动现金流出平衡项 |
+| 82 | `TOTAL_FINANCE_OUTFLOW` | `number` | `double` | `TOTAL_FINANCE_OUTFLOW` | `Float64` | `-` | 筹资活动现金流出小计 |
+| 83 | `FINANCE_NETCASH_OTHER` | `number` | `double` | `FINANCE_NETCASH_OTHER` | `Float64` | `-` | 筹资活动净现金流量其他 |
+| 84 | `FINANCE_NETCASH_BALANCE` | `number` | `double` | `FINANCE_NETCASH_BALANCE` | `Float64` | `-` | 筹资活动净现金流量平衡项 |
+| 85 | `NETCASH_FINANCE` | `number` | `double` | `NETCASH_FINANCE` | `Float64` | `-` | 筹资活动产生的现金流量净额 |
+| 86 | `RATE_CHANGE_EFFECT` | `number` | `double` | `RATE_CHANGE_EFFECT` | `Float64` | `-` | 汇率变动对现金及现金等价物的影响 |
+| 87 | `CCE_ADD_OTHER` | `number` | `double` | `CCE_ADD_OTHER` | `Float64` | `-` | 现金及现金等价物净增加额其他 |
+| 88 | `CCE_ADD_BALANCE` | `number` | `double` | `CCE_ADD_BALANCE` | `Float64` | `-` | 现金及现金等价物净增加额平衡项 |
+| 89 | `CCE_ADD` | `number` | `double` | `CCE_ADD` | `Float64` | `-` | 现金及现金等价物净增加额 |
+| 90 | `BEGIN_CCE` | `number` | `double` | `BEGIN_CCE` | `Float64` | `-` | 期初现金及现金等价物余额 |
+| 91 | `END_CCE_OTHER` | `number` | `double` | `END_CCE_OTHER` | `Float64` | `-` | 期末现金及现金等价物余额其他 |
+| 92 | `END_CCE_BALANCE` | `number` | `double` | `END_CCE_BALANCE` | `Float64` | `-` | 期末现金及现金等价物余额平衡项 |
+| 93 | `END_CCE` | `number` | `double` | `END_CCE` | `Float64` | `-` | 期末现金及现金等价物余额 |
+| 94 | `NETPROFIT` | `number` | `double` | `NETPROFIT` | `Float64` | `-` | 净利润（间接法起点） |
+| 95 | `ASSET_IMPAIRMENT` | `number` | `double` | `ASSET_IMPAIRMENT` | `Float64` | `-` | 资产减值准备 |
+| 96 | `FA_IR_DEPR` | `number` | `double` | `FA_IR_DEPR` | `Float64` | `-` | 固定资产折旧、油气资产折耗、生产性生物资产折旧 |
+| 97 | `OILGAS_BIOLOGY_DEPR` | `number` | `double` | `OILGAS_BIOLOGY_DEPR` | `Float64` | `-` | 油气资产折耗、生产性生物资产折旧 |
+| 98 | `IR_DEPR` | `number` | `double` | `IR_DEPR` | `Float64` | `-` | 折旧与摊销 |
+| 99 | `IA_AMORTIZE` | `number` | `double` | `IA_AMORTIZE` | `Float64` | `-` | 无形资产摊销 |
+| 100 | `LPE_AMORTIZE` | `number` | `double` | `LPE_AMORTIZE` | `Float64` | `-` | 长期待摊费用摊销 |
+| 101 | `DEFER_INCOME_AMORTIZE` | `number` | `double` | `DEFER_INCOME_AMORTIZE` | `Float64` | `-` | 待摊费用减少（减：增加） |
+| 102 | `PREPAID_EXPENSE_REDUCE` | `number` | `double` | `PREPAID_EXPENSE_REDUCE` | `Float64` | `-` | 预提费用增加（减：减少） |
+| 103 | `ACCRUED_EXPENSE_ADD` | `number` | `double` | `ACCRUED_EXPENSE_ADD` | `Float64` | `-` | 预提费用变动 |
+| 104 | `DISPOSAL_LONGASSET_LOSS` | `number` | `double` | `DISPOSAL_LONGASSET_LOSS` | `Float64` | `-` | 处置固定资产等的损失 |
+| 105 | `FA_SCRAP_LOSS` | `number` | `double` | `FA_SCRAP_LOSS` | `Float64` | `-` | 固定资产报废损失 |
+| 106 | `FAIRVALUE_CHANGE_LOSS` | `number` | `double` | `FAIRVALUE_CHANGE_LOSS` | `Float64` | `-` | 公允价值变动损失 |
+| 107 | `FINANCE_EXPENSE` | `number` | `double` | `FINANCE_EXPENSE` | `Float64` | `-` | 财务费用 |
+| 108 | `INVEST_LOSS` | `number` | `double` | `INVEST_LOSS` | `Float64` | `-` | 投资损失 |
+| 109 | `DEFER_TAX` | `number` | `double` | `DEFER_TAX` | `Float64` | `-` | 递延所得税资产减少（增加以"-"号填列） |
+| 110 | `DT_ASSET_REDUCE` | `number` | `double` | `DT_ASSET_REDUCE` | `Float64` | `-` | 递延所得税资产减少 |
+| 111 | `DT_LIAB_ADD` | `number` | `double` | `DT_LIAB_ADD` | `Float64` | `-` | 递延所得税负债增加 |
+| 112 | `PREDICT_LIAB_ADD` | `number` | `double` | `PREDICT_LIAB_ADD` | `Float64` | `-` | 预计负债增加 |
+| 113 | `INVENTORY_REDUCE` | `number` | `double` | `INVENTORY_REDUCE` | `Float64` | `-` | 存货的减少（增加以"-"号填列） |
+| 114 | `OPERATE_RECE_REDUCE` | `number` | `double` | `OPERATE_RECE_REDUCE` | `Float64` | `-` | 经营性应收项目的减少 |
+| 115 | `OPERATE_PAYABLE_ADD` | `number` | `double` | `OPERATE_PAYABLE_ADD` | `Float64` | `-` | 经营性应付项目的增加 |
+| 116 | `OTHER` | `number` | `double` | `OTHER` | `Float64` | `-` | 现金流量表年初至报告期末补充资料中的其他项目。 |
+| 117 | `OPERATE_NETCASH_OTHERNOTE` | `number` | `double` | `OPERATE_NETCASH_OTHERNOTE` | `Float64` | `-` | 经营活动产生的现金流量净额（附注） |
+| 118 | `OPERATE_NETCASH_BALANCENOTE` | `number` | `double` | `OPERATE_NETCASH_BALANCENOTE` | `Float64` | `-` | 经营活动净现金流量（附注）平衡项 |
+| 119 | `NETCASH_OPERATENOTE` | `number` | `double` | `NETCASH_OPERATENOTE` | `Float64` | `-` | 经营活动产生的现金流量净额（附注） |
+| 120 | `DEBT_TRANSFER_CAPITAL` | `number` | `double` | `DEBT_TRANSFER_CAPITAL` | `Float64` | `-` | 债务转为资本 |
+| 121 | `CONVERT_BOND_1YEAR` | `number` | `double` | `CONVERT_BOND_1YEAR` | `Float64` | `-` | 一年内到期的可转换公司债券 |
+| 122 | `FINLEASE_OBTAIN_FA` | `number` | `double` | `FINLEASE_OBTAIN_FA` | `Float64` | `-` | 融资租入固定资产 |
+| 123 | `UNINVOLVE_INVESTFIN_OTHER` | `number` | `double` | `UNINVOLVE_INVESTFIN_OTHER` | `Float64` | `-` | 不涉及现金收支的投资和筹资活动其他 |
+| 124 | `END_CASH` | `number` | `double` | `END_CASH` | `Float64` | `-` | 现金期末余额 |
+| 125 | `BEGIN_CASH` | `number` | `double` | `BEGIN_CASH` | `Float64` | `-` | 现金期初余额 |
+| 126 | `END_CASH_EQUIVALENTS` | `number` | `double` | `END_CASH_EQUIVALENTS` | `Float64` | `-` | 现金等价物期末余额 |
+| 127 | `BEGIN_CASH_EQUIVALENTS` | `number` | `double` | `BEGIN_CASH_EQUIVALENTS` | `Float64` | `-` | 现金等价物期初余额 |
+| 128 | `CCE_ADD_OTHERNOTE` | `number` | `double` | `CCE_ADD_OTHERNOTE` | `Float64` | `-` | 现金及现金等价物净增加额（附注） |
+| 129 | `CCE_ADD_BALANCENOTE` | `number` | `double` | `CCE_ADD_BALANCENOTE` | `Float64` | `-` | 现金及现金等价物净增加额（附注）平衡项 |
+| 130 | `CCE_ADDNOTE` | `number` | `double` | `CCE_ADDNOTE` | `Float64` | `-` | 现金及现金等价物净增加额（附注） |
+| 131 | `SALES_SERVICES_YOY` | `number` | `double` | `SALES_SERVICES_YOY` | `Float64` | `-` | 销售商品、提供劳务收到的现金同比增长率（%） |
+| 132 | `DEPOSIT_INTERBANK_ADD_YOY` | `number` | `double` | `DEPOSIT_INTERBANK_ADD_YOY` | `Float64` | `-` | 同业存放净增加额同比增长率（%） |
+| 133 | `LOAN_PBC_ADD_YOY` | `number` | `double` | `LOAN_PBC_ADD_YOY` | `Float64` | `-` | 向央行借款净增加额同比增长率（%） |
+| 134 | `OFI_BF_ADD_YOY` | `number` | `double` | `OFI_BF_ADD_YOY` | `Float64` | `-` | 向其他金融机构拆入资金净增加额同比增长率（%） |
+| 135 | `RECEIVE_ORIGIC_PREMIUM_YOY` | `number` | `double` | `RECEIVE_ORIGIC_PREMIUM_YOY` | `Float64` | `-` | 收到原保险合同保费现金同比增长率（%） |
+| 136 | `RECEIVE_REINSURE_NET_YOY` | `number` | `double` | `RECEIVE_REINSURE_NET_YOY` | `Float64` | `-` | 收到再保险业务现金净额同比增长率（%） |
+| 137 | `INSURED_INVEST_ADD_YOY` | `number` | `double` | `INSURED_INVEST_ADD_YOY` | `Float64` | `-` | 保户储金及投资款净增加额同比增长率（%） |
+| 138 | `DISPOSAL_TFA_ADD_YOY` | `number` | `double` | `DISPOSAL_TFA_ADD_YOY` | `Float64` | `-` | 处置交易性金融资产净增加额同比增长率（%） |
+| 139 | `RECEIVE_INTEREST_COMMISSION_YOY` | `number` | `double` | `RECEIVE_INTEREST_COMMISSION_YOY` | `Float64` | `-` | 收取利息和手续费现金同比增长率（%） |
+| 140 | `BORROW_FUND_ADD_YOY` | `number` | `double` | `BORROW_FUND_ADD_YOY` | `Float64` | `-` | 拆入资金净增加额同比增长率（%） |
+| 141 | `LOAN_ADVANCE_REDUCE_YOY` | `number` | `double` | `LOAN_ADVANCE_REDUCE_YOY` | `Float64` | `-` | 发放贷款及垫款净减少额同比增长率（%） |
+| 142 | `REPO_BUSINESS_ADD_YOY` | `number` | `double` | `REPO_BUSINESS_ADD_YOY` | `Float64` | `-` | 回购业务资金净增加额同比增长率（%） |
+| 143 | `RECEIVE_TAX_REFUND_YOY` | `number` | `double` | `RECEIVE_TAX_REFUND_YOY` | `Float64` | `-` | 收到的税费返还同比增长率（%） |
+| 144 | `RECEIVE_OTHER_OPERATE_YOY` | `number` | `double` | `RECEIVE_OTHER_OPERATE_YOY` | `Float64` | `-` | 收到其他与经营活动有关的现金同比增长率（%） |
+| 145 | `OPERATE_INFLOW_OTHER_YOY` | `number` | `double` | `OPERATE_INFLOW_OTHER_YOY` | `Float64` | `-` | 经营活动现金流入其他同比增长率（%） |
+| 146 | `OPERATE_INFLOW_BALANCE_YOY` | `number` | `double` | `OPERATE_INFLOW_BALANCE_YOY` | `Float64` | `-` | 经营活动现金流入平衡项同比增长率（%） |
+| 147 | `TOTAL_OPERATE_INFLOW_YOY` | `number` | `double` | `TOTAL_OPERATE_INFLOW_YOY` | `Float64` | `-` | 经营活动现金流入小计同比增长率（%） |
+| 148 | `BUY_SERVICES_YOY` | `number` | `double` | `BUY_SERVICES_YOY` | `Float64` | `-` | 购买商品、接受劳务支付的现金同比增长率（%） |
+| 149 | `LOAN_ADVANCE_ADD_YOY` | `number` | `double` | `LOAN_ADVANCE_ADD_YOY` | `Float64` | `-` | 发放贷款及垫款净增加额同比增长率（%） |
+| 150 | `PBC_INTERBANK_ADD_YOY` | `number` | `double` | `PBC_INTERBANK_ADD_YOY` | `Float64` | `-` | 向央行借款净增加额同比增长率（%） |
+| 151 | `PAY_ORIGIC_COMPENSATE_YOY` | `number` | `double` | `PAY_ORIGIC_COMPENSATE_YOY` | `Float64` | `-` | 支付原保险合同赔付款项现金同比增长率（%） |
+| 152 | `PAY_INTEREST_COMMISSION_YOY` | `number` | `double` | `PAY_INTEREST_COMMISSION_YOY` | `Float64` | `-` | 支付利息和手续费现金同比增长率（%） |
+| 153 | `PAY_POLICY_BONUS_YOY` | `number` | `double` | `PAY_POLICY_BONUS_YOY` | `Float64` | `-` | 保单红利支出同比增长率（%） |
+| 154 | `PAY_STAFF_CASH_YOY` | `number` | `double` | `PAY_STAFF_CASH_YOY` | `Float64` | `-` | 支付给职工以及为职工支付的现金同比增长率（%） |
+| 155 | `PAY_ALL_TAX_YOY` | `number` | `double` | `PAY_ALL_TAX_YOY` | `Float64` | `-` | 支付的各项税费同比增长率（%） |
+| 156 | `PAY_OTHER_OPERATE_YOY` | `number` | `double` | `PAY_OTHER_OPERATE_YOY` | `Float64` | `-` | 支付其他与经营活动有关的现金同比增长率（%） |
+| 157 | `OPERATE_OUTFLOW_OTHER_YOY` | `number` | `double` | `OPERATE_OUTFLOW_OTHER_YOY` | `Float64` | `-` | 经营活动现金流出其他同比增长率（%） |
+| 158 | `OPERATE_OUTFLOW_BALANCE_YOY` | `number` | `double` | `OPERATE_OUTFLOW_BALANCE_YOY` | `Float64` | `-` | 经营活动现金流出平衡项同比增长率（%） |
+| 159 | `TOTAL_OPERATE_OUTFLOW_YOY` | `number` | `double` | `TOTAL_OPERATE_OUTFLOW_YOY` | `Float64` | `-` | 经营活动现金流出小计同比增长率（%） |
+| 160 | `OPERATE_NETCASH_OTHER_YOY` | `number` | `double` | `OPERATE_NETCASH_OTHER_YOY` | `Float64` | `-` | 经营活动净现金流量其他同比增长率（%） |
+| 161 | `OPERATE_NETCASH_BALANCE_YOY` | `number` | `double` | `OPERATE_NETCASH_BALANCE_YOY` | `Float64` | `-` | 经营活动净现金流量平衡项同比增长率（%） |
+| 162 | `NETCASH_OPERATE_YOY` | `number` | `double` | `NETCASH_OPERATE_YOY` | `Float64` | `-` | 经营活动产生的现金流量净额同比增长率（%） |
+| 163 | `WITHDRAW_INVEST_YOY` | `number` | `double` | `WITHDRAW_INVEST_YOY` | `Float64` | `-` | 收回投资收到的现金同比增长率（%） |
+| 164 | `RECEIVE_INVEST_INCOME_YOY` | `number` | `double` | `RECEIVE_INVEST_INCOME_YOY` | `Float64` | `-` | 取得投资收益收到的现金同比增长率（%） |
+| 165 | `DISPOSAL_LONG_ASSET_YOY` | `number` | `double` | `DISPOSAL_LONG_ASSET_YOY` | `Float64` | `-` | 处置固定资产等收回的现金净额同比增长率（%） |
+| 166 | `DISPOSAL_SUBSIDIARY_OTHER_YOY` | `number` | `double` | `DISPOSAL_SUBSIDIARY_OTHER_YOY` | `Float64` | `-` | 处置子公司及其他营业单位收到的现金净额同比增长率（%） |
+| 167 | `REDUCE_PLEDGE_TIMEDEPOSITS_YOY` | `number` | `double` | `REDUCE_PLEDGE_TIMEDEPOSITS_YOY` | `Float64` | `-` | 减少质押定期存款同比增长率（%） |
+| 168 | `RECEIVE_OTHER_INVEST_YOY` | `number` | `double` | `RECEIVE_OTHER_INVEST_YOY` | `Float64` | `-` | 收到其他与投资活动有关的现金同比增长率（%） |
+| 169 | `INVEST_INFLOW_OTHER_YOY` | `number` | `double` | `INVEST_INFLOW_OTHER_YOY` | `Float64` | `-` | 投资活动现金流入其他同比增长率（%） |
+| 170 | `INVEST_INFLOW_BALANCE_YOY` | `number` | `double` | `INVEST_INFLOW_BALANCE_YOY` | `Float64` | `-` | 投资活动现金流入平衡项同比增长率（%） |
+| 171 | `TOTAL_INVEST_INFLOW_YOY` | `number` | `double` | `TOTAL_INVEST_INFLOW_YOY` | `Float64` | `-` | 投资活动现金流入小计同比增长率（%） |
+| 172 | `CONSTRUCT_LONG_ASSET_YOY` | `number` | `double` | `CONSTRUCT_LONG_ASSET_YOY` | `Float64` | `-` | 购建固定资产等支付的现金同比增长率（%） |
+| 173 | `INVEST_PAY_CASH_YOY` | `number` | `double` | `INVEST_PAY_CASH_YOY` | `Float64` | `-` | 投资支付的现金同比增长率（%） |
+| 174 | `PLEDGE_LOAN_ADD_YOY` | `number` | `double` | `PLEDGE_LOAN_ADD_YOY` | `Float64` | `-` | 质押贷款净增加额同比增长率（%） |
+| 175 | `OBTAIN_SUBSIDIARY_OTHER_YOY` | `number` | `double` | `OBTAIN_SUBSIDIARY_OTHER_YOY` | `Float64` | `-` | 取得子公司及其他营业单位支付的现金净额同比增长率（%） |
+| 176 | `ADD_PLEDGE_TIMEDEPOSITS_YOY` | `number` | `double` | `ADD_PLEDGE_TIMEDEPOSITS_YOY` | `Float64` | `-` | 增加质押定期存款同比增长率（%） |
+| 177 | `PAY_OTHER_INVEST_YOY` | `number` | `double` | `PAY_OTHER_INVEST_YOY` | `Float64` | `-` | 支付其他与投资活动有关的现金同比增长率（%） |
+| 178 | `INVEST_OUTFLOW_OTHER_YOY` | `number` | `double` | `INVEST_OUTFLOW_OTHER_YOY` | `Float64` | `-` | 投资活动现金流出其他同比增长率（%） |
+| 179 | `INVEST_OUTFLOW_BALANCE_YOY` | `number` | `double` | `INVEST_OUTFLOW_BALANCE_YOY` | `Float64` | `-` | 投资活动现金流出平衡项同比增长率（%） |
+| 180 | `TOTAL_INVEST_OUTFLOW_YOY` | `number` | `double` | `TOTAL_INVEST_OUTFLOW_YOY` | `Float64` | `-` | 投资活动现金流出小计同比增长率（%） |
+| 181 | `INVEST_NETCASH_OTHER_YOY` | `number` | `double` | `INVEST_NETCASH_OTHER_YOY` | `Float64` | `-` | 投资活动净现金流量其他同比增长率（%） |
+| 182 | `INVEST_NETCASH_BALANCE_YOY` | `number` | `double` | `INVEST_NETCASH_BALANCE_YOY` | `Float64` | `-` | 投资活动净现金流量平衡项同比增长率（%） |
+| 183 | `NETCASH_INVEST_YOY` | `number` | `double` | `NETCASH_INVEST_YOY` | `Float64` | `-` | 投资活动产生的现金流量净额同比增长率（%） |
+| 184 | `ACCEPT_INVEST_CASH_YOY` | `number` | `double` | `ACCEPT_INVEST_CASH_YOY` | `Float64` | `-` | 吸收投资收到的现金同比增长率（%） |
+| 185 | `SUBSIDIARY_ACCEPT_INVEST_YOY` | `number` | `double` | `SUBSIDIARY_ACCEPT_INVEST_YOY` | `Float64` | `-` | 子公司吸收少数股东投资收到的现金同比增长率（%） |
+| 186 | `RECEIVE_LOAN_CASH_YOY` | `number` | `double` | `RECEIVE_LOAN_CASH_YOY` | `Float64` | `-` | 取得借款收到的现金同比增长率（%） |
+| 187 | `ISSUE_BOND_YOY` | `number` | `double` | `ISSUE_BOND_YOY` | `Float64` | `-` | 发行债券收到的现金同比增长率（%） |
+| 188 | `RECEIVE_OTHER_FINANCE_YOY` | `number` | `double` | `RECEIVE_OTHER_FINANCE_YOY` | `Float64` | `-` | 收到其他与筹资活动有关的现金同比增长率（%） |
+| 189 | `FINANCE_INFLOW_OTHER_YOY` | `number` | `double` | `FINANCE_INFLOW_OTHER_YOY` | `Float64` | `-` | 筹资活动现金流入其他同比增长率（%） |
+| 190 | `FINANCE_INFLOW_BALANCE_YOY` | `number` | `double` | `FINANCE_INFLOW_BALANCE_YOY` | `Float64` | `-` | 筹资活动现金流入平衡项同比增长率（%） |
+| 191 | `TOTAL_FINANCE_INFLOW_YOY` | `number` | `double` | `TOTAL_FINANCE_INFLOW_YOY` | `Float64` | `-` | 筹资活动现金流入小计同比增长率（%） |
+| 192 | `PAY_DEBT_CASH_YOY` | `number` | `double` | `PAY_DEBT_CASH_YOY` | `Float64` | `-` | 偿还债务支付的现金同比增长率（%） |
+| 193 | `ASSIGN_DIVIDEND_PORFIT_YOY` | `number` | `double` | `ASSIGN_DIVIDEND_PORFIT_YOY` | `Float64` | `-` | 分配股利、利润或偿付利息支付的现金同比增长率（%） |
+| 194 | `SUBSIDIARY_PAY_DIVIDEND_YOY` | `number` | `double` | `SUBSIDIARY_PAY_DIVIDEND_YOY` | `Float64` | `-` | 子公司向少数股东支付的现金股利同比增长率（%） |
+| 195 | `BUY_SUBSIDIARY_EQUITY_YOY` | `number` | `double` | `BUY_SUBSIDIARY_EQUITY_YOY` | `Float64` | `-` | 子公司减少现金同比增长率（%） |
+| 196 | `PAY_OTHER_FINANCE_YOY` | `number` | `double` | `PAY_OTHER_FINANCE_YOY` | `Float64` | `-` | 支付其他与筹资活动有关的现金同比增长率（%） |
+| 197 | `SUBSIDIARY_REDUCE_CASH_YOY` | `number` | `double` | `SUBSIDIARY_REDUCE_CASH_YOY` | `Float64` | `-` | 子公司减少现金同比增长率（%） |
+| 198 | `FINANCE_OUTFLOW_OTHER_YOY` | `number` | `double` | `FINANCE_OUTFLOW_OTHER_YOY` | `Float64` | `-` | 筹资活动现金流出其他同比增长率（%） |
+| 199 | `FINANCE_OUTFLOW_BALANCE_YOY` | `number` | `double` | `FINANCE_OUTFLOW_BALANCE_YOY` | `Float64` | `-` | 筹资活动现金流出平衡项同比增长率（%） |
+| 200 | `TOTAL_FINANCE_OUTFLOW_YOY` | `number` | `double` | `TOTAL_FINANCE_OUTFLOW_YOY` | `Float64` | `-` | 筹资活动现金流出小计同比增长率（%） |
+| 201 | `FINANCE_NETCASH_OTHER_YOY` | `number` | `double` | `FINANCE_NETCASH_OTHER_YOY` | `Float64` | `-` | 筹资活动净现金流量其他同比增长率（%） |
+| 202 | `FINANCE_NETCASH_BALANCE_YOY` | `number` | `double` | `FINANCE_NETCASH_BALANCE_YOY` | `Float64` | `-` | 筹资活动净现金流量平衡项同比增长率（%） |
+| 203 | `NETCASH_FINANCE_YOY` | `number` | `double` | `NETCASH_FINANCE_YOY` | `Float64` | `-` | 筹资活动产生的现金流量净额同比增长率（%） |
+| 204 | `RATE_CHANGE_EFFECT_YOY` | `number` | `double` | `RATE_CHANGE_EFFECT_YOY` | `Float64` | `-` | 汇率变动对现金及现金等价物的影响同比增长率（%） |
+| 205 | `CCE_ADD_OTHER_YOY` | `number` | `double` | `CCE_ADD_OTHER_YOY` | `Float64` | `-` | 现金及现金等价物净增加额其他同比增长率（%） |
+| 206 | `CCE_ADD_BALANCE_YOY` | `number` | `double` | `CCE_ADD_BALANCE_YOY` | `Float64` | `-` | 现金及现金等价物净增加额平衡项同比增长率（%） |
+| 207 | `CCE_ADD_YOY` | `number` | `double` | `CCE_ADD_YOY` | `Float64` | `-` | 现金及现金等价物净增加额同比增长率（%） |
+| 208 | `BEGIN_CCE_YOY` | `number` | `double` | `BEGIN_CCE_YOY` | `Float64` | `-` | 期初现金及现金等价物余额同比增长率（%） |
+| 209 | `END_CCE_OTHER_YOY` | `number` | `double` | `END_CCE_OTHER_YOY` | `Float64` | `-` | 期末现金及现金等价物余额其他同比增长率（%） |
+| 210 | `END_CCE_BALANCE_YOY` | `number` | `double` | `END_CCE_BALANCE_YOY` | `Float64` | `-` | 期末现金及现金等价物余额平衡项同比增长率（%） |
+| 211 | `END_CCE_YOY` | `number` | `double` | `END_CCE_YOY` | `Float64` | `-` | 期末现金及现金等价物余额同比增长率（%） |
+| 212 | `NETPROFIT_YOY` | `number` | `double` | `NETPROFIT_YOY` | `Float64` | `-` | 净利润同比增长率（%） |
+| 213 | `ASSET_IMPAIRMENT_YOY` | `number` | `double` | `ASSET_IMPAIRMENT_YOY` | `Float64` | `-` | 资产减值准备同比增长率（%） |
+| 214 | `FA_IR_DEPR_YOY` | `number` | `double` | `FA_IR_DEPR_YOY` | `Float64` | `-` | 固定资产折旧、油气资产折耗、生产性生物资产折旧同比增长率（%） |
+| 215 | `OILGAS_BIOLOGY_DEPR_YOY` | `number` | `double` | `OILGAS_BIOLOGY_DEPR_YOY` | `Float64` | `-` | 油气资产折耗、生产性生物资产折旧同比增长率（%） |
+| 216 | `IR_DEPR_YOY` | `number` | `double` | `IR_DEPR_YOY` | `Float64` | `-` | 折旧与摊销同比增长率（%） |
+| 217 | `IA_AMORTIZE_YOY` | `number` | `double` | `IA_AMORTIZE_YOY` | `Float64` | `-` | 无形资产摊销同比增长率（%） |
+| 218 | `LPE_AMORTIZE_YOY` | `number` | `double` | `LPE_AMORTIZE_YOY` | `Float64` | `-` | 长期待摊费用摊销同比增长率（%） |
+| 219 | `DEFER_INCOME_AMORTIZE_YOY` | `number` | `double` | `DEFER_INCOME_AMORTIZE_YOY` | `Float64` | `-` | 待摊费用减少（减：增加）同比增长率（%） |
+| 220 | `PREPAID_EXPENSE_REDUCE_YOY` | `number` | `double` | `PREPAID_EXPENSE_REDUCE_YOY` | `Float64` | `-` | 预提费用增加（减：减少）同比增长率（%） |
+| 221 | `ACCRUED_EXPENSE_ADD_YOY` | `number` | `double` | `ACCRUED_EXPENSE_ADD_YOY` | `Float64` | `-` | 预提费用变动同比增长率（%） |
+| 222 | `DISPOSAL_LONGASSET_LOSS_YOY` | `number` | `double` | `DISPOSAL_LONGASSET_LOSS_YOY` | `Float64` | `-` | 处置固定资产等的损失同比增长率（%） |
+| 223 | `FA_SCRAP_LOSS_YOY` | `number` | `double` | `FA_SCRAP_LOSS_YOY` | `Float64` | `-` | 固定资产报废损失同比增长率（%） |
+| 224 | `FAIRVALUE_CHANGE_LOSS_YOY` | `number` | `double` | `FAIRVALUE_CHANGE_LOSS_YOY` | `Float64` | `-` | 公允价值变动损失同比增长率（%） |
+| 225 | `FINANCE_EXPENSE_YOY` | `number` | `double` | `FINANCE_EXPENSE_YOY` | `Float64` | `-` | 财务费用同比增长率（%） |
+| 226 | `INVEST_LOSS_YOY` | `number` | `double` | `INVEST_LOSS_YOY` | `Float64` | `-` | 投资损失同比增长率（%） |
+| 227 | `DEFER_TAX_YOY` | `number` | `double` | `DEFER_TAX_YOY` | `Float64` | `-` | 递延所得税资产减少（增加以"-"号填列）同比增长率（%） |
+| 228 | `DT_ASSET_REDUCE_YOY` | `number` | `double` | `DT_ASSET_REDUCE_YOY` | `Float64` | `-` | 递延所得税资产减少同比增长率（%） |
+| 229 | `DT_LIAB_ADD_YOY` | `number` | `double` | `DT_LIAB_ADD_YOY` | `Float64` | `-` | 递延所得税负债增加同比增长率（%） |
+| 230 | `PREDICT_LIAB_ADD_YOY` | `number` | `double` | `PREDICT_LIAB_ADD_YOY` | `Float64` | `-` | 预计负债增加同比增长率（%） |
+| 231 | `INVENTORY_REDUCE_YOY` | `number` | `double` | `INVENTORY_REDUCE_YOY` | `Float64` | `-` | 存货的减少（增加以"-"号填列）同比增长率（%） |
+| 232 | `OPERATE_RECE_REDUCE_YOY` | `number` | `double` | `OPERATE_RECE_REDUCE_YOY` | `Float64` | `-` | 经营性应收项目的减少同比增长率（%） |
+| 233 | `OPERATE_PAYABLE_ADD_YOY` | `number` | `double` | `OPERATE_PAYABLE_ADD_YOY` | `Float64` | `-` | 经营性应付项目的增加同比增长率（%） |
+| 234 | `OTHER_YOY` | `number` | `double` | `OTHER_YOY` | `Float64` | `-` | 其他同比增长率（%） |
+| 235 | `OPERATE_NETCASH_OTHERNOTE_YOY` | `number` | `double` | `OPERATE_NETCASH_OTHERNOTE_YOY` | `Float64` | `-` | 经营活动产生的现金流量净额（附注）同比增长率（%） |
+| 236 | `OPERATE_NETCASH_BALANCENOTE_YOY` | `number` | `double` | `OPERATE_NETCASH_BALANCENOTE_YOY` | `Float64` | `-` | 经营活动净现金流量（附注）平衡项同比增长率（%） |
+| 237 | `NETCASH_OPERATENOTE_YOY` | `number` | `double` | `NETCASH_OPERATENOTE_YOY` | `Float64` | `-` | 经营活动产生的现金流量净额（附注）同比增长率（%） |
+| 238 | `DEBT_TRANSFER_CAPITAL_YOY` | `number` | `double` | `DEBT_TRANSFER_CAPITAL_YOY` | `Float64` | `-` | 债务转为资本同比增长率（%） |
+| 239 | `CONVERT_BOND_1YEAR_YOY` | `number` | `double` | `CONVERT_BOND_1YEAR_YOY` | `Float64` | `-` | 一年内到期的可转换公司债券同比增长率（%） |
+| 240 | `FINLEASE_OBTAIN_FA_YOY` | `number` | `double` | `FINLEASE_OBTAIN_FA_YOY` | `Float64` | `-` | 融资租入固定资产同比增长率（%） |
+| 241 | `UNINVOLVE_INVESTFIN_OTHER_YOY` | `number` | `double` | `UNINVOLVE_INVESTFIN_OTHER_YOY` | `Float64` | `-` | 不涉及现金收支的投资和筹资活动其他同比增长率（%） |
+| 242 | `END_CASH_YOY` | `number` | `double` | `END_CASH_YOY` | `Float64` | `-` | 现金期末余额同比增长率（%） |
+| 243 | `BEGIN_CASH_YOY` | `number` | `double` | `BEGIN_CASH_YOY` | `Float64` | `-` | 现金期初余额同比增长率（%） |
+| 244 | `END_CASH_EQUIVALENTS_YOY` | `number` | `double` | `END_CASH_EQUIVALENTS_YOY` | `Float64` | `-` | 现金等价物期末余额同比增长率（%） |
+| 245 | `BEGIN_CASH_EQUIVALENTS_YOY` | `number` | `double` | `BEGIN_CASH_EQUIVALENTS_YOY` | `Float64` | `-` | 现金等价物期初余额同比增长率（%） |
+| 246 | `CCE_ADD_OTHERNOTE_YOY` | `number` | `double` | `CCE_ADD_OTHERNOTE_YOY` | `Float64` | `-` | 现金及现金等价物净增加额（附注）同比增长率（%） |
+| 247 | `CCE_ADD_BALANCENOTE_YOY` | `number` | `double` | `CCE_ADD_BALANCENOTE_YOY` | `Float64` | `-` | 现金及现金等价物净增加额（附注）平衡项同比增长率（%） |
+| 248 | `CCE_ADDNOTE_YOY` | `number` | `double` | `CCE_ADDNOTE_YOY` | `Float64` | `-` | 现金及现金等价物净增加额（附注）同比增长率（%） |
+| 249 | `OPINION_TYPE` | `number` | `string` | `OPINION_TYPE` | `LowCardinality(String)` | `-` | 审计意见类型 |
+| 250 | `OSOPINION_TYPE` | `number` | `string` | `OSOPINION_TYPE` | `LowCardinality(String)` | `-` | 内控审计意见类型 |
+| 251 | `MINORITY_INTEREST` | `number` | `double` | `MINORITY_INTEREST` | `Float64` | `-` | 少数股东损益 |
+| 252 | `MINORITY_INTEREST_YOY` | `number` | `double` | `MINORITY_INTEREST_YOY` | `Float64` | `-` | 少数股东损益同比增长率（%） |
+| 253 | `USERIGHT_ASSET_AMORTIZE` | `number` | `double` | `USERIGHT_ASSET_AMORTIZE` | `Float64` | `-` | 使用权资产摊销 |
+| 254 | `USERIGHT_ASSET_AMORTIZE_YOY` | `number` | `double` | `USERIGHT_ASSET_AMORTIZE_YOY` | `Float64` | `-` | 使用权资产摊销同比增长率（%） |
 
-- OpenAPI 字段总数: 254
-- 资产使用字段数: 254
-- 未使用字段数: 0
+## 数据集备注
+
+东方财富年初至今现金流量表 F10 年度 raw 分区
+
+## 校验记录
+
+- Initial contract migrated from docs/references/data_dict and current raw sync specs.

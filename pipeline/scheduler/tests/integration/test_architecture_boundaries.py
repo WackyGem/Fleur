@@ -80,3 +80,11 @@ def test_source_code_does_not_reference_slack_configuration() -> None:
         for path in source_root.rglob("*.py"):
             content = path.read_text(encoding="utf-8")
             assert "SLACK_" not in content, str(path)
+
+
+def test_source_business_code_does_not_parse_contract_registry() -> None:
+    for source_root in (DEFS_ROOT / "sources", DEFS_ROOT / "baostock"):
+        for path in source_root.rglob("*.py"):
+            content = path.read_text(encoding="utf-8")
+            assert "fleur_contracts" not in content, str(path)
+            assert "pipeline/contracts" not in content, str(path)

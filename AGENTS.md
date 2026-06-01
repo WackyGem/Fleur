@@ -7,6 +7,8 @@ mono-fleur/
 ├── pipeline/           # Python 数据工作区，由 uv 管理
 │   ├── scheduler/      # Dagster 调度项目（scheduler）
 │   ├── elt/            # dbt 转换项目（elt）
+│   ├── contract_tools/ # 数据契约校验与生成工具
+│   ├── contracts/      # 数据契约注册表（字段事实源）
 │   └── migrate/        # Alembic 数据库迁移
 ├── deploy/             # 部署配置
 │   ├── docker-compose.yml
@@ -48,6 +50,7 @@ uv sync --all-packages --all-groups
 |--------|------|----------|------|
 | scheduler | `pipeline/scheduler/` | uv (pyproject.toml) | Dagster 调度与资产定义 |
 | elt | `pipeline/elt/` | uv (pyproject.toml) | dbt 数据转换 |
+| contract_tools | `pipeline/contract_tools/` | uv (pyproject.toml) | contract registry 校验与生成 |
 | migrate | `pipeline/migrate/` | uv (pyproject.toml) | Alembic 数据库迁移 |
 
 ## Dagster（scheduler）
@@ -70,6 +73,19 @@ uv sync --all-packages --all-groups
 - 开发时优先使用 `dbt build --select ...` 而非 `dbt run`
 - 初始 `models/example` 内容已移除，保留空目录结构
 
+## 数据契约（contracts）
+
+- 字段事实源：`pipeline/contracts/datasets/*.yml`
+- 生成/校验工具：`pipeline/contract_tools/`
+- dbt `sources.yml`、`staging.yml` 和 `docs/references/data_dict/*.md` 由 contract 生成或校验
+- 修改字段事实后运行：
+
+```bash
+cd pipeline
+uv run fleur-contracts validate
+uv run fleur-contracts generate --check
+```
+
 ## 数据库迁移（migrate）
 
 - 迁移路径：`pipeline/migrate/`
@@ -89,16 +105,16 @@ uv run alembic upgrade head
 cd pipeline
 
 # 代码检查
-uv run ruff check scheduler/src scheduler/tests migrate
+uv run ruff check scheduler/src scheduler/tests contract_tools/src contract_tools/tests migrate
 
 # 代码格式化
-uv run ruff format scheduler/src scheduler/tests migrate
+uv run ruff format scheduler/src scheduler/tests contract_tools/src contract_tools/tests migrate
 
 # 类型检查
-uv run pyright scheduler/src/scheduler scheduler/tests
+uv run pyright scheduler/src/scheduler scheduler/tests contract_tools/src/fleur_contracts contract_tools/tests
 
 # 测试
-uv run pytest scheduler/tests --cov=scheduler/src/scheduler --cov-report=term-missing
+uv run pytest scheduler/tests contract_tools/tests --cov=scheduler/src/scheduler --cov=contract_tools/src/fleur_contracts --cov-report=term-missing
 
 # Dagster definitions 检查
 cd scheduler
@@ -132,5 +148,6 @@ uv run dg check defs
 | `answering-natural-language-questions-with-dbt` | 从仓库数据、指标、KPI、语义层或临时 SQL 回答业务/分析问题。不用于 dbt 模型开发 |
 | `fetching-dbt-docs` | 查找 dbt Core、dbt Cloud/平台或 dbt 语义层的 dbt 文档 |
 | `configuring-dbt-mcp-server` | 设置、配置或排查 AI 工具的 dbt MCP 服务器 |
+| `fleur-contract-data-dictionary` | 维护数据契约、字段 glossary、中文字段描述、dbt YAML 和 data_dict 生成/校验工作流 |
 | `fleur-harness` | 维护项目 harness、agent 可读性、docs/skills 路由、架构约束、长期计划、文档治理和质量闭环 |
 | `fleur-worktree` | 管理 mono-fleur 的 Git worktree、多分支、多 agent 并行任务、隔离验证、合并和清理流程 |
