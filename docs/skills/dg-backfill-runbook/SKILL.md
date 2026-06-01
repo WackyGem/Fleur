@@ -48,6 +48,7 @@ cd pipeline
 uv run dg launch --target-path scheduler --assets "key:source/ths__limit_up_pool" --partition-range "2024-01-01...2024-01-31"
 uv run dg launch --target-path scheduler --assets "key:source/baostock__query_history_k_data_plus_daily" --partition 2024
 uv run dg launch --target-path scheduler --job eastmoney__daily_job --partition 2024
+uv run dg launch --target-path scheduler --assets "key:clickhouse/raw/jiuyan__industry_ocr_snapshot"
 ```
 
 ## 什么时候改用 Python CLI
