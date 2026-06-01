@@ -5,307 +5,307 @@
 
 ## 字段对比
 
-| # | 字段名 | OpenAPI 类型 | 资产使用 | PyArrow 类型 |
-|---|--------|-------------|---------|-------------|
-| 1 | SECUCODE | string | ✅ | string |
-| 2 | SECURITY_CODE | string | ✅ | string |
-| 3 | SECURITY_NAME_ABBR | string | ✅ | string |
-| 4 | ORG_CODE | string | ✅ | string |
-| 5 | ORG_TYPE | string | ✅ | string |
-| 6 | REPORT_DATE | string | ✅ | date32[day] |
-| 7 | REPORT_TYPE | string | ✅ | string |
-| 8 | REPORT_DATE_NAME | string | ✅ | string |
-| 9 | SECURITY_TYPE_CODE | string | ✅ | string |
-| 10 | NOTICE_DATE | string | ✅ | date32[day] |
-| 11 | UPDATE_DATE | string | ✅ | date32[day] |
-| 12 | CURRENCY | string | ✅ | string |
-| 13 | OPINION_TYPE | number | ✅ | string |
-| 14 | OSOPINION_TYPE | number | ✅ | string |
-| 15 | TOTAL_OPERATE_INCOME | number | ✅ | double |
-| 16 | TOTAL_OPERATE_INCOME_QOQ | number | ✅ | double |
-| 17 | OPERATE_INCOME | number | ✅ | double |
-| 18 | OPERATE_INCOME_QOQ | number | ✅ | double |
-| 19 | INTEREST_INCOME | number | ✅ | double |
-| 20 | INTEREST_INCOME_QOQ | number | ✅ | double |
-| 21 | EARNED_PREMIUM | number | ✅ | double |
-| 22 | EARNED_PREMIUM_QOQ | number | ✅ | double |
-| 23 | FEE_COMMISSION_INCOME | number | ✅ | double |
-| 24 | FEE_COMMISSION_INCOME_QOQ | number | ✅ | double |
-| 25 | OTHER_BUSINESS_INCOME | number | ✅ | double |
-| 26 | OTHER_BUSINESS_INCOME_QOQ | number | ✅ | double |
-| 27 | TOI_OTHER | number | ✅ | double |
-| 28 | TOI_OTHER_QOQ | number | ✅ | double |
-| 29 | TOTAL_OPERATE_COST | number | ✅ | double |
-| 30 | TOTAL_OPERATE_COST_QOQ | number | ✅ | double |
-| 31 | OPERATE_COST | number | ✅ | double |
-| 32 | OPERATE_COST_QOQ | number | ✅ | double |
-| 33 | INTEREST_EXPENSE | number | ✅ | double |
-| 34 | INTEREST_EXPENSE_QOQ | number | ✅ | double |
-| 35 | FEE_COMMISSION_EXPENSE | number | ✅ | double |
-| 36 | FEE_COMMISSION_EXPENSE_QOQ | number | ✅ | double |
-| 37 | RESEARCH_EXPENSE | number | ✅ | double |
-| 38 | RESEARCH_EXPENSE_QOQ | number | ✅ | double |
-| 39 | SURRENDER_VALUE | number | ✅ | double |
-| 40 | SURRENDER_VALUE_QOQ | number | ✅ | double |
-| 41 | NET_COMPENSATE_EXPENSE | number | ✅ | double |
-| 42 | NET_COMPENSATE_EXPENSE_QOQ | number | ✅ | double |
-| 43 | NET_CONTRACT_RESERVE | number | ✅ | double |
-| 44 | NET_CONTRACT_RESERVE_QOQ | number | ✅ | double |
-| 45 | POLICY_BONUS_EXPENSE | number | ✅ | double |
-| 46 | POLICY_BONUS_EXPENSE_QOQ | number | ✅ | double |
-| 47 | REINSURE_EXPENSE | number | ✅ | double |
-| 48 | REINSURE_EXPENSE_QOQ | number | ✅ | double |
-| 49 | OTHER_BUSINESS_COST | number | ✅ | double |
-| 50 | OTHER_BUSINESS_COST_QOQ | number | ✅ | double |
-| 51 | OPERATE_TAX_ADD | number | ✅ | double |
-| 52 | OPERATE_TAX_ADD_QOQ | number | ✅ | double |
-| 53 | SALE_EXPENSE | number | ✅ | double |
-| 54 | SALE_EXPENSE_QOQ | number | ✅ | double |
-| 55 | MANAGE_EXPENSE | number | ✅ | double |
-| 56 | MANAGE_EXPENSE_QOQ | number | ✅ | double |
-| 57 | ME_RESEARCH_EXPENSE | number | ✅ | double |
-| 58 | ME_RESEARCH_EXPENSE_QOQ | number | ✅ | double |
-| 59 | FINANCE_EXPENSE | number | ✅ | double |
-| 60 | FINANCE_EXPENSE_QOQ | number | ✅ | double |
-| 61 | FE_INTEREST_EXPENSE | number | ✅ | double |
-| 62 | FE_INTEREST_EXPENSE_QOQ | number | ✅ | double |
-| 63 | FE_INTEREST_INCOME | number | ✅ | double |
-| 64 | FE_INTEREST_INCOME_QOQ | number | ✅ | double |
-| 65 | ASSET_IMPAIRMENT_LOSS | number | ✅ | double |
-| 66 | ASSET_IMPAIRMENT_LOSS_QOQ | number | ✅ | double |
-| 67 | CREDIT_IMPAIRMENT_LOSS | number | ✅ | double |
-| 68 | CREDIT_IMPAIRMENT_LOSS_QOQ | number | ✅ | double |
-| 69 | OTHER_INCOME | number | ✅ | double |
-| 70 | OTHER_INCOME_QOQ | number | ✅ | double |
-| 71 | TOC_OTHER | number | ✅ | double |
-| 72 | TOC_OTHER_QOQ | number | ✅ | double |
-| 73 | INVEST_INCOME | number | ✅ | double |
-| 74 | INVEST_INCOME_QOQ | number | ✅ | double |
-| 75 | INVEST_JOINT_INCOME | number | ✅ | double |
-| 76 | INVEST_JOINT_INCOME_QOQ | number | ✅ | double |
-| 77 | ACF_END_INCOME | number | ✅ | double |
-| 78 | ACF_END_INCOME_QOQ | number | ✅ | double |
-| 79 | EXCHANGE_INCOME | number | ✅ | double |
-| 80 | EXCHANGE_INCOME_QOQ | number | ✅ | double |
-| 81 | NET_EXPOSURE_INCOME | number | ✅ | double |
-| 82 | NET_EXPOSURE_INCOME_QOQ | number | ✅ | double |
-| 83 | FAIRVALUE_CHANGE_INCOME | number | ✅ | double |
-| 84 | FAIRVALUE_CHANGE_INCOME_QOQ | number | ✅ | double |
-| 85 | ASSET_DISPOSAL_INCOME | number | ✅ | double |
-| 86 | ASSET_DISPOSAL_INCOME_QOQ | number | ✅ | double |
-| 87 | CREDIT_IMPAIRMENT_INCOME | number | ✅ | double |
-| 88 | CREDIT_IMPAIRMENT_INCOME_QOQ | number | ✅ | double |
-| 89 | ASSET_IMPAIRMENT_INCOME | number | ✅ | double |
-| 90 | ASSET_IMPAIRMENT_INCOME_QOQ | number | ✅ | double |
-| 91 | OPERATE_PROFIT | number | ✅ | double |
-| 92 | OPERATE_PROFIT_QOQ | number | ✅ | double |
-| 93 | NONBUSINESS_INCOME | number | ✅ | double |
-| 94 | NONBUSINESS_INCOME_QOQ | number | ✅ | double |
-| 95 | NONCURRENT_DISPOSAL_INCOME | number | ✅ | double |
-| 96 | NONCURRENT_DISPOSAL_INCOME_QOQ | number | ✅ | double |
-| 97 | NONBUSINESS_EXPENSE | number | ✅ | double |
-| 98 | NONBUSINESS_EXPENSE_QOQ | number | ✅ | double |
-| 99 | NONCURRENT_DISPOSAL_LOSS | number | ✅ | double |
-| 100 | NONCURRENT_DISPOSAL_LOSS_QOQ | number | ✅ | double |
-| 101 | OPERATE_PROFIT_OTHER | number | ✅ | double |
-| 102 | OPERATE_PROFIT_OTHER_QOQ | number | ✅ | double |
-| 103 | OPERATE_PROFIT_BALANCE | number | ✅ | double |
-| 104 | OPERATE_PROFIT_BALANCE_QOQ | number | ✅ | double |
-| 105 | TOTAL_PROFIT | number | ✅ | double |
-| 106 | TOTAL_PROFIT_QOQ | number | ✅ | double |
-| 107 | EFFECT_TP_OTHER | number | ✅ | double |
-| 108 | EFFECT_TP_OTHER_QOQ | number | ✅ | double |
-| 109 | TOTAL_PROFIT_BALANCE | number | ✅ | double |
-| 110 | TOTAL_PROFIT_BALANCE_QOQ | number | ✅ | double |
-| 111 | INCOME_TAX | number | ✅ | double |
-| 112 | INCOME_TAX_QOQ | number | ✅ | double |
-| 113 | NETPROFIT | number | ✅ | double |
-| 114 | NETPROFIT_QOQ | number | ✅ | double |
-| 115 | CONTINUED_NETPROFIT | number | ✅ | double |
-| 116 | CONTINUED_NETPROFIT_QOQ | number | ✅ | double |
-| 117 | DISCONTINUED_NETPROFIT | number | ✅ | double |
-| 118 | DISCONTINUED_NETPROFIT_QOQ | number | ✅ | double |
-| 119 | NETPROFIT_OTHER | number | ✅ | double |
-| 120 | NETPROFIT_OTHER_QOQ | number | ✅ | double |
-| 121 | NETPROFIT_BALANCE | number | ✅ | double |
-| 122 | NETPROFIT_BALANCE_QOQ | number | ✅ | double |
-| 123 | EFFECT_NETPROFIT_OTHER | number | ✅ | double |
-| 124 | EFFECT_NETPROFIT_OTHER_QOQ | number | ✅ | double |
-| 125 | EFFECT_NETPROFIT_BALANCE | number | ✅ | double |
-| 126 | EFFECT_NETPROFIT_BALANCE_QOQ | number | ✅ | double |
-| 127 | UNCONFIRM_INVEST_LOSS | number | ✅ | double |
-| 128 | UNCONFIRM_INVEST_LOSS_QOQ | number | ✅ | double |
-| 129 | MINORITY_INTEREST | number | ✅ | double |
-| 130 | MINORITY_INTEREST_QOQ | number | ✅ | double |
-| 131 | PARENT_NETPROFIT | number | ✅ | double |
-| 132 | PARENT_NETPROFIT_QOQ | number | ✅ | double |
-| 133 | BASIC_EPS | number | ✅ | double |
-| 134 | BASIC_EPS_QOQ | number | ✅ | double |
-| 135 | DILUTED_EPS | number | ✅ | double |
-| 136 | DILUTED_EPS_QOQ | number | ✅ | double |
-| 137 | UNABLE_OCI | number | ✅ | double |
-| 138 | UNABLE_OCI_QOQ | number | ✅ | double |
-| 139 | CREDITRISK_FAIRVALUE_CHANGE | number | ✅ | double |
-| 140 | CREDITRISK_FAIRVALUE_CHANGE_QOQ | number | ✅ | double |
-| 141 | OTHERRIGHT_FAIRVALUE_CHANGE | number | ✅ | double |
-| 142 | OTHERRIGHT_FAIRVALUE_CHANGE_QOQ | number | ✅ | double |
-| 143 | SETUP_PROFIT_CHANGE | number | ✅ | double |
-| 144 | SETUP_PROFIT_CHANGE_QOQ | number | ✅ | double |
-| 145 | RIGHTLAW_UNABLE_OCI | number | ✅ | double |
-| 146 | RIGHTLAW_UNABLE_OCI_QOQ | number | ✅ | double |
-| 147 | UNABLE_OCI_OTHER | number | ✅ | double |
-| 148 | UNABLE_OCI_OTHER_QOQ | number | ✅ | double |
-| 149 | UNABLE_OCI_BALANCE | number | ✅ | double |
-| 150 | UNABLE_OCI_BALANCE_QOQ | number | ✅ | double |
-| 151 | ABLE_OCI | number | ✅ | double |
-| 152 | ABLE_OCI_QOQ | number | ✅ | double |
-| 153 | RIGHTLAW_ABLE_OCI | number | ✅ | double |
-| 154 | RIGHTLAW_ABLE_OCI_QOQ | number | ✅ | double |
-| 155 | AFA_FAIRVALUE_CHANGE | number | ✅ | double |
-| 156 | AFA_FAIRVALUE_CHANGE_QOQ | number | ✅ | double |
-| 157 | HMI_AFA | number | ✅ | double |
-| 158 | HMI_AFA_QOQ | number | ✅ | double |
-| 159 | CASHFLOW_HEDGE_VALID | number | ✅ | double |
-| 160 | CASHFLOW_HEDGE_VALID_QOQ | number | ✅ | double |
-| 161 | CREDITOR_FAIRVALUE_CHANGE | number | ✅ | double |
-| 162 | CREDITOR_FAIRVALUE_CHANGE_QOQ | number | ✅ | double |
-| 163 | CREDITOR_IMPAIRMENT_RESERVE | number | ✅ | double |
-| 164 | CREDITOR_IMPAIRMENT_RESERVE_QOQ | number | ✅ | double |
-| 165 | FINANCE_OCI_AMT | number | ✅ | double |
-| 166 | FINANCE_OCI_AMT_QOQ | number | ✅ | double |
-| 167 | CONVERT_DIFF | number | ✅ | double |
-| 168 | CONVERT_DIFF_QOQ | number | ✅ | double |
-| 169 | ABLE_OCI_OTHER | number | ✅ | double |
-| 170 | ABLE_OCI_OTHER_QOQ | number | ✅ | double |
-| 171 | ABLE_OCI_BALANCE | number | ✅ | double |
-| 172 | ABLE_OCI_BALANCE_QOQ | number | ✅ | double |
-| 173 | OCI_OTHER | number | ✅ | double |
-| 174 | OCI_OTHER_QOQ | number | ✅ | double |
-| 175 | OCI_BALANCE | number | ✅ | double |
-| 176 | OCI_BALANCE_QOQ | number | ✅ | double |
-| 177 | OTHER_COMPRE_INCOME | number | ✅ | double |
-| 178 | OTHER_COMPRE_INCOME_QOQ | number | ✅ | double |
-| 179 | PARENT_OCI | number | ✅ | double |
-| 180 | PARENT_OCI_QOQ | number | ✅ | double |
-| 181 | MINORITY_OCI | number | ✅ | double |
-| 182 | MINORITY_OCI_QOQ | number | ✅ | double |
-| 183 | PARENT_OCI_OTHER | number | ✅ | double |
-| 184 | PARENT_OCI_OTHER_QOQ | number | ✅ | double |
-| 185 | PARENT_OCI_BALANCE | number | ✅ | double |
-| 186 | PARENT_OCI_BALANCE_QOQ | number | ✅ | double |
-| 187 | TOTAL_COMPRE_INCOME | number | ✅ | double |
-| 188 | TOTAL_COMPRE_INCOME_QOQ | number | ✅ | double |
-| 189 | PARENT_TCI | number | ✅ | double |
-| 190 | PARENT_TCI_QOQ | number | ✅ | double |
-| 191 | MINORITY_TCI | number | ✅ | double |
-| 192 | MINORITY_TCI_QOQ | number | ✅ | double |
-| 193 | EFFECT_TCI_BALANCE | number | ✅ | double |
-| 194 | EFFECT_TCI_BALANCE_QOQ | number | ✅ | double |
-| 195 | TCI_OTHER | number | ✅ | double |
-| 196 | TCI_OTHER_QOQ | number | ✅ | double |
-| 197 | TCI_BALANCE | number | ✅ | double |
-| 198 | TCI_BALANCE_QOQ | number | ✅ | double |
-| 199 | PRECOMBINE_PROFIT | number | ✅ | double |
-| 200 | PRECOMBINE_PROFIT_QOQ | number | ✅ | double |
-| 201 | PRECOMBINE_TCI | number | ✅ | double |
-| 202 | PRECOMBINE_TCI_QOQ | number | ✅ | double |
-| 203 | DEDUCT_PARENT_NETPROFIT | number | ✅ | double |
-| 204 | DEDUCT_PARENT_NETPROFIT_QOQ | number | ✅ | double |
-| 205 | TOTAL_OPERATE_INCOME_YOY | number | ✅ | double |
-| 206 | OPERATE_INCOME_YOY | number | ✅ | double |
-| 207 | INTEREST_INCOME_YOY | number | ✅ | double |
-| 208 | EARNED_PREMIUM_YOY | number | ✅ | double |
-| 209 | FEE_COMMISSION_INCOME_YOY | number | ✅ | double |
-| 210 | OTHER_BUSINESS_INCOME_YOY | number | ✅ | double |
-| 211 | TOI_OTHER_YOY | number | ✅ | double |
-| 212 | TOTAL_OPERATE_COST_YOY | number | ✅ | double |
-| 213 | OPERATE_COST_YOY | number | ✅ | double |
-| 214 | INTEREST_EXPENSE_YOY | number | ✅ | double |
-| 215 | FEE_COMMISSION_EXPENSE_YOY | number | ✅ | double |
-| 216 | RESEARCH_EXPENSE_YOY | number | ✅ | double |
-| 217 | SURRENDER_VALUE_YOY | number | ✅ | double |
-| 218 | NET_COMPENSATE_EXPENSE_YOY | number | ✅ | double |
-| 219 | NET_CONTRACT_RESERVE_YOY | number | ✅ | double |
-| 220 | POLICY_BONUS_EXPENSE_YOY | number | ✅ | double |
-| 221 | REINSURE_EXPENSE_YOY | number | ✅ | double |
-| 222 | OTHER_BUSINESS_COST_YOY | number | ✅ | double |
-| 223 | OPERATE_TAX_ADD_YOY | number | ✅ | double |
-| 224 | SALE_EXPENSE_YOY | number | ✅ | double |
-| 225 | MANAGE_EXPENSE_YOY | number | ✅ | double |
-| 226 | ME_RESEARCH_EXPENSE_YOY | number | ✅ | double |
-| 227 | FINANCE_EXPENSE_YOY | number | ✅ | double |
-| 228 | FE_INTEREST_EXPENSE_YOY | number | ✅ | double |
-| 229 | FE_INTEREST_INCOME_YOY | number | ✅ | double |
-| 230 | ASSET_IMPAIRMENT_LOSS_YOY | number | ✅ | double |
-| 231 | CREDIT_IMPAIRMENT_LOSS_YOY | number | ✅ | double |
-| 232 | OTHER_INCOME_YOY | number | ✅ | double |
-| 233 | TOC_OTHER_YOY | number | ✅ | double |
-| 234 | INVEST_INCOME_YOY | number | ✅ | double |
-| 235 | INVEST_JOINT_INCOME_YOY | number | ✅ | double |
-| 236 | ACF_END_INCOME_YOY | number | ✅ | double |
-| 237 | EXCHANGE_INCOME_YOY | number | ✅ | double |
-| 238 | NET_EXPOSURE_INCOME_YOY | number | ✅ | double |
-| 239 | FAIRVALUE_CHANGE_INCOME_YOY | number | ✅ | double |
-| 240 | ASSET_DISPOSAL_INCOME_YOY | number | ✅ | double |
-| 241 | CREDIT_IMPAIRMENT_INCOME_YOY | number | ✅ | double |
-| 242 | ASSET_IMPAIRMENT_INCOME_YOY | number | ✅ | double |
-| 243 | OPERATE_PROFIT_YOY | number | ✅ | double |
-| 244 | NONBUSINESS_INCOME_YOY | number | ✅ | double |
-| 245 | NONCURRENT_DISPOSAL_INCOME_YOY | number | ✅ | double |
-| 246 | NONBUSINESS_EXPENSE_YOY | number | ✅ | double |
-| 247 | NONCURRENT_DISPOSAL_LOSS_YOY | number | ✅ | double |
-| 248 | OPERATE_PROFIT_OTHER_YOY | number | ✅ | double |
-| 249 | OPERATE_PROFIT_BALANCE_YOY | number | ✅ | double |
-| 250 | TOTAL_PROFIT_YOY | number | ✅ | double |
-| 251 | EFFECT_TP_OTHER_YOY | number | ✅ | double |
-| 252 | TOTAL_PROFIT_BALANCE_YOY | number | ✅ | double |
-| 253 | INCOME_TAX_YOY | number | ✅ | double |
-| 254 | NETPROFIT_YOY | number | ✅ | double |
-| 255 | CONTINUED_NETPROFIT_YOY | number | ✅ | double |
-| 256 | DISCONTINUED_NETPROFIT_YOY | number | ✅ | double |
-| 257 | NETPROFIT_OTHER_YOY | number | ✅ | double |
-| 258 | NETPROFIT_BALANCE_YOY | number | ✅ | double |
-| 259 | EFFECT_NETPROFIT_OTHER_YOY | number | ✅ | double |
-| 260 | EFFECT_NETPROFIT_BALANCE_YOY | number | ✅ | double |
-| 261 | UNCONFIRM_INVEST_LOSS_YOY | number | ✅ | double |
-| 262 | MINORITY_INTEREST_YOY | number | ✅ | double |
-| 263 | PARENT_NETPROFIT_YOY | number | ✅ | double |
-| 264 | BASIC_EPS_YOY | number | ✅ | double |
-| 265 | DILUTED_EPS_YOY | number | ✅ | double |
-| 266 | UNABLE_OCI_YOY | number | ✅ | double |
-| 267 | CREDITRISK_FAIRVALUE_CHANGE_YOY | number | ✅ | double |
-| 268 | OTHERRIGHT_FAIRVALUE_CHANGE_YOY | number | ✅ | double |
-| 269 | SETUP_PROFIT_CHANGE_YOY | number | ✅ | double |
-| 270 | RIGHTLAW_UNABLE_OCI_YOY | number | ✅ | double |
-| 271 | UNABLE_OCI_OTHER_YOY | number | ✅ | double |
-| 272 | UNABLE_OCI_BALANCE_YOY | number | ✅ | double |
-| 273 | ABLE_OCI_YOY | number | ✅ | double |
-| 274 | RIGHTLAW_ABLE_OCI_YOY | number | ✅ | double |
-| 275 | AFA_FAIRVALUE_CHANGE_YOY | number | ✅ | double |
-| 276 | HMI_AFA_YOY | number | ✅ | double |
-| 277 | CASHFLOW_HEDGE_VALID_YOY | number | ✅ | double |
-| 278 | CREDITOR_FAIRVALUE_CHANGE_YOY | number | ✅ | double |
-| 279 | CREDITOR_IMPAIRMENT_RESERVE_YOY | number | ✅ | double |
-| 280 | FINANCE_OCI_AMT_YOY | number | ✅ | double |
-| 281 | CONVERT_DIFF_YOY | number | ✅ | double |
-| 282 | ABLE_OCI_OTHER_YOY | number | ✅ | double |
-| 283 | ABLE_OCI_BALANCE_YOY | number | ✅ | double |
-| 284 | OCI_OTHER_YOY | number | ✅ | double |
-| 285 | OCI_BALANCE_YOY | number | ✅ | double |
-| 286 | OTHER_COMPRE_INCOME_YOY | number | ✅ | double |
-| 287 | PARENT_OCI_YOY | number | ✅ | double |
-| 288 | MINORITY_OCI_YOY | number | ✅ | double |
-| 289 | PARENT_OCI_OTHER_YOY | number | ✅ | double |
-| 290 | PARENT_OCI_BALANCE_YOY | number | ✅ | double |
-| 291 | TOTAL_COMPRE_INCOME_YOY | number | ✅ | double |
-| 292 | PARENT_TCI_YOY | number | ✅ | double |
-| 293 | MINORITY_TCI_YOY | number | ✅ | double |
-| 294 | EFFECT_TCI_BALANCE_YOY | number | ✅ | double |
-| 295 | TCI_OTHER_YOY | number | ✅ | double |
-| 296 | TCI_BALANCE_YOY | number | ✅ | double |
-| 297 | PRECOMBINE_PROFIT_YOY | number | ✅ | double |
-| 298 | PRECOMBINE_TCI_YOY | number | ✅ | double |
-| 299 | DEDUCT_PARENT_NETPROFIT_YOY | number | ✅ | double |
+| # | 字段名 | OpenAPI 类型 | 资产使用 | PyArrow 类型 | ClickHouse 类型 |
+|---|--------|-------------|---------|-------------|----------------|
+| 1 | SECUCODE | string | ✅ | string | LowCardinality(String) |
+| 2 | SECURITY_CODE | string | ✅ | string | LowCardinality(String) |
+| 3 | SECURITY_NAME_ABBR | string | ✅ | string | LowCardinality(String) |
+| 4 | ORG_CODE | string | ✅ | string | LowCardinality(String) |
+| 5 | ORG_TYPE | string | ✅ | string | LowCardinality(String) |
+| 6 | REPORT_DATE | string | ✅ | date32[day] | Date |
+| 7 | REPORT_TYPE | string | ✅ | string | LowCardinality(String) |
+| 8 | REPORT_DATE_NAME | string | ✅ | string | LowCardinality(String) |
+| 9 | SECURITY_TYPE_CODE | string | ✅ | string | LowCardinality(String) |
+| 10 | NOTICE_DATE | string | ✅ | date32[day] | Date |
+| 11 | UPDATE_DATE | string | ✅ | date32[day] | Date |
+| 12 | CURRENCY | string | ✅ | string | LowCardinality(String) |
+| 13 | OPINION_TYPE | number | ✅ | string | LowCardinality(String) |
+| 14 | OSOPINION_TYPE | number | ✅ | string | LowCardinality(String) |
+| 15 | TOTAL_OPERATE_INCOME | number | ✅ | double | Float64 |
+| 16 | TOTAL_OPERATE_INCOME_QOQ | number | ✅ | double | Float64 |
+| 17 | OPERATE_INCOME | number | ✅ | double | Float64 |
+| 18 | OPERATE_INCOME_QOQ | number | ✅ | double | Float64 |
+| 19 | INTEREST_INCOME | number | ✅ | double | Float64 |
+| 20 | INTEREST_INCOME_QOQ | number | ✅ | double | Float64 |
+| 21 | EARNED_PREMIUM | number | ✅ | double | Float64 |
+| 22 | EARNED_PREMIUM_QOQ | number | ✅ | double | Float64 |
+| 23 | FEE_COMMISSION_INCOME | number | ✅ | double | Float64 |
+| 24 | FEE_COMMISSION_INCOME_QOQ | number | ✅ | double | Float64 |
+| 25 | OTHER_BUSINESS_INCOME | number | ✅ | double | Float64 |
+| 26 | OTHER_BUSINESS_INCOME_QOQ | number | ✅ | double | Float64 |
+| 27 | TOI_OTHER | number | ✅ | double | Float64 |
+| 28 | TOI_OTHER_QOQ | number | ✅ | double | Float64 |
+| 29 | TOTAL_OPERATE_COST | number | ✅ | double | Float64 |
+| 30 | TOTAL_OPERATE_COST_QOQ | number | ✅ | double | Float64 |
+| 31 | OPERATE_COST | number | ✅ | double | Float64 |
+| 32 | OPERATE_COST_QOQ | number | ✅ | double | Float64 |
+| 33 | INTEREST_EXPENSE | number | ✅ | double | Float64 |
+| 34 | INTEREST_EXPENSE_QOQ | number | ✅ | double | Float64 |
+| 35 | FEE_COMMISSION_EXPENSE | number | ✅ | double | Float64 |
+| 36 | FEE_COMMISSION_EXPENSE_QOQ | number | ✅ | double | Float64 |
+| 37 | RESEARCH_EXPENSE | number | ✅ | double | Float64 |
+| 38 | RESEARCH_EXPENSE_QOQ | number | ✅ | double | Float64 |
+| 39 | SURRENDER_VALUE | number | ✅ | double | Float64 |
+| 40 | SURRENDER_VALUE_QOQ | number | ✅ | double | Float64 |
+| 41 | NET_COMPENSATE_EXPENSE | number | ✅ | double | Float64 |
+| 42 | NET_COMPENSATE_EXPENSE_QOQ | number | ✅ | double | Float64 |
+| 43 | NET_CONTRACT_RESERVE | number | ✅ | double | Float64 |
+| 44 | NET_CONTRACT_RESERVE_QOQ | number | ✅ | double | Float64 |
+| 45 | POLICY_BONUS_EXPENSE | number | ✅ | double | Float64 |
+| 46 | POLICY_BONUS_EXPENSE_QOQ | number | ✅ | double | Float64 |
+| 47 | REINSURE_EXPENSE | number | ✅ | double | Float64 |
+| 48 | REINSURE_EXPENSE_QOQ | number | ✅ | double | Float64 |
+| 49 | OTHER_BUSINESS_COST | number | ✅ | double | Float64 |
+| 50 | OTHER_BUSINESS_COST_QOQ | number | ✅ | double | Float64 |
+| 51 | OPERATE_TAX_ADD | number | ✅ | double | Float64 |
+| 52 | OPERATE_TAX_ADD_QOQ | number | ✅ | double | Float64 |
+| 53 | SALE_EXPENSE | number | ✅ | double | Float64 |
+| 54 | SALE_EXPENSE_QOQ | number | ✅ | double | Float64 |
+| 55 | MANAGE_EXPENSE | number | ✅ | double | Float64 |
+| 56 | MANAGE_EXPENSE_QOQ | number | ✅ | double | Float64 |
+| 57 | ME_RESEARCH_EXPENSE | number | ✅ | double | Float64 |
+| 58 | ME_RESEARCH_EXPENSE_QOQ | number | ✅ | double | Float64 |
+| 59 | FINANCE_EXPENSE | number | ✅ | double | Float64 |
+| 60 | FINANCE_EXPENSE_QOQ | number | ✅ | double | Float64 |
+| 61 | FE_INTEREST_EXPENSE | number | ✅ | double | Float64 |
+| 62 | FE_INTEREST_EXPENSE_QOQ | number | ✅ | double | Float64 |
+| 63 | FE_INTEREST_INCOME | number | ✅ | double | Float64 |
+| 64 | FE_INTEREST_INCOME_QOQ | number | ✅ | double | Float64 |
+| 65 | ASSET_IMPAIRMENT_LOSS | number | ✅ | double | Float64 |
+| 66 | ASSET_IMPAIRMENT_LOSS_QOQ | number | ✅ | double | Float64 |
+| 67 | CREDIT_IMPAIRMENT_LOSS | number | ✅ | double | Float64 |
+| 68 | CREDIT_IMPAIRMENT_LOSS_QOQ | number | ✅ | double | Float64 |
+| 69 | OTHER_INCOME | number | ✅ | double | Float64 |
+| 70 | OTHER_INCOME_QOQ | number | ✅ | double | Float64 |
+| 71 | TOC_OTHER | number | ✅ | double | Float64 |
+| 72 | TOC_OTHER_QOQ | number | ✅ | double | Float64 |
+| 73 | INVEST_INCOME | number | ✅ | double | Float64 |
+| 74 | INVEST_INCOME_QOQ | number | ✅ | double | Float64 |
+| 75 | INVEST_JOINT_INCOME | number | ✅ | double | Float64 |
+| 76 | INVEST_JOINT_INCOME_QOQ | number | ✅ | double | Float64 |
+| 77 | ACF_END_INCOME | number | ✅ | double | Float64 |
+| 78 | ACF_END_INCOME_QOQ | number | ✅ | double | Float64 |
+| 79 | EXCHANGE_INCOME | number | ✅ | double | Float64 |
+| 80 | EXCHANGE_INCOME_QOQ | number | ✅ | double | Float64 |
+| 81 | NET_EXPOSURE_INCOME | number | ✅ | double | Float64 |
+| 82 | NET_EXPOSURE_INCOME_QOQ | number | ✅ | double | Float64 |
+| 83 | FAIRVALUE_CHANGE_INCOME | number | ✅ | double | Float64 |
+| 84 | FAIRVALUE_CHANGE_INCOME_QOQ | number | ✅ | double | Float64 |
+| 85 | ASSET_DISPOSAL_INCOME | number | ✅ | double | Float64 |
+| 86 | ASSET_DISPOSAL_INCOME_QOQ | number | ✅ | double | Float64 |
+| 87 | CREDIT_IMPAIRMENT_INCOME | number | ✅ | double | Float64 |
+| 88 | CREDIT_IMPAIRMENT_INCOME_QOQ | number | ✅ | double | Float64 |
+| 89 | ASSET_IMPAIRMENT_INCOME | number | ✅ | double | Float64 |
+| 90 | ASSET_IMPAIRMENT_INCOME_QOQ | number | ✅ | double | Float64 |
+| 91 | OPERATE_PROFIT | number | ✅ | double | Float64 |
+| 92 | OPERATE_PROFIT_QOQ | number | ✅ | double | Float64 |
+| 93 | NONBUSINESS_INCOME | number | ✅ | double | Float64 |
+| 94 | NONBUSINESS_INCOME_QOQ | number | ✅ | double | Float64 |
+| 95 | NONCURRENT_DISPOSAL_INCOME | number | ✅ | double | Float64 |
+| 96 | NONCURRENT_DISPOSAL_INCOME_QOQ | number | ✅ | double | Float64 |
+| 97 | NONBUSINESS_EXPENSE | number | ✅ | double | Float64 |
+| 98 | NONBUSINESS_EXPENSE_QOQ | number | ✅ | double | Float64 |
+| 99 | NONCURRENT_DISPOSAL_LOSS | number | ✅ | double | Float64 |
+| 100 | NONCURRENT_DISPOSAL_LOSS_QOQ | number | ✅ | double | Float64 |
+| 101 | OPERATE_PROFIT_OTHER | number | ✅ | double | Float64 |
+| 102 | OPERATE_PROFIT_OTHER_QOQ | number | ✅ | double | Float64 |
+| 103 | OPERATE_PROFIT_BALANCE | number | ✅ | double | Float64 |
+| 104 | OPERATE_PROFIT_BALANCE_QOQ | number | ✅ | double | Float64 |
+| 105 | TOTAL_PROFIT | number | ✅ | double | Float64 |
+| 106 | TOTAL_PROFIT_QOQ | number | ✅ | double | Float64 |
+| 107 | EFFECT_TP_OTHER | number | ✅ | double | Float64 |
+| 108 | EFFECT_TP_OTHER_QOQ | number | ✅ | double | Float64 |
+| 109 | TOTAL_PROFIT_BALANCE | number | ✅ | double | Float64 |
+| 110 | TOTAL_PROFIT_BALANCE_QOQ | number | ✅ | double | Float64 |
+| 111 | INCOME_TAX | number | ✅ | double | Float64 |
+| 112 | INCOME_TAX_QOQ | number | ✅ | double | Float64 |
+| 113 | NETPROFIT | number | ✅ | double | Float64 |
+| 114 | NETPROFIT_QOQ | number | ✅ | double | Float64 |
+| 115 | CONTINUED_NETPROFIT | number | ✅ | double | Float64 |
+| 116 | CONTINUED_NETPROFIT_QOQ | number | ✅ | double | Float64 |
+| 117 | DISCONTINUED_NETPROFIT | number | ✅ | double | Float64 |
+| 118 | DISCONTINUED_NETPROFIT_QOQ | number | ✅ | double | Float64 |
+| 119 | NETPROFIT_OTHER | number | ✅ | double | Float64 |
+| 120 | NETPROFIT_OTHER_QOQ | number | ✅ | double | Float64 |
+| 121 | NETPROFIT_BALANCE | number | ✅ | double | Float64 |
+| 122 | NETPROFIT_BALANCE_QOQ | number | ✅ | double | Float64 |
+| 123 | EFFECT_NETPROFIT_OTHER | number | ✅ | double | Float64 |
+| 124 | EFFECT_NETPROFIT_OTHER_QOQ | number | ✅ | double | Float64 |
+| 125 | EFFECT_NETPROFIT_BALANCE | number | ✅ | double | Float64 |
+| 126 | EFFECT_NETPROFIT_BALANCE_QOQ | number | ✅ | double | Float64 |
+| 127 | UNCONFIRM_INVEST_LOSS | number | ✅ | double | Float64 |
+| 128 | UNCONFIRM_INVEST_LOSS_QOQ | number | ✅ | double | Float64 |
+| 129 | MINORITY_INTEREST | number | ✅ | double | Float64 |
+| 130 | MINORITY_INTEREST_QOQ | number | ✅ | double | Float64 |
+| 131 | PARENT_NETPROFIT | number | ✅ | double | Float64 |
+| 132 | PARENT_NETPROFIT_QOQ | number | ✅ | double | Float64 |
+| 133 | BASIC_EPS | number | ✅ | double | Float64 |
+| 134 | BASIC_EPS_QOQ | number | ✅ | double | Float64 |
+| 135 | DILUTED_EPS | number | ✅ | double | Float64 |
+| 136 | DILUTED_EPS_QOQ | number | ✅ | double | Float64 |
+| 137 | UNABLE_OCI | number | ✅ | double | Float64 |
+| 138 | UNABLE_OCI_QOQ | number | ✅ | double | Float64 |
+| 139 | CREDITRISK_FAIRVALUE_CHANGE | number | ✅ | double | Float64 |
+| 140 | CREDITRISK_FAIRVALUE_CHANGE_QOQ | number | ✅ | double | Float64 |
+| 141 | OTHERRIGHT_FAIRVALUE_CHANGE | number | ✅ | double | Float64 |
+| 142 | OTHERRIGHT_FAIRVALUE_CHANGE_QOQ | number | ✅ | double | Float64 |
+| 143 | SETUP_PROFIT_CHANGE | number | ✅ | double | Float64 |
+| 144 | SETUP_PROFIT_CHANGE_QOQ | number | ✅ | double | Float64 |
+| 145 | RIGHTLAW_UNABLE_OCI | number | ✅ | double | Float64 |
+| 146 | RIGHTLAW_UNABLE_OCI_QOQ | number | ✅ | double | Float64 |
+| 147 | UNABLE_OCI_OTHER | number | ✅ | double | Float64 |
+| 148 | UNABLE_OCI_OTHER_QOQ | number | ✅ | double | Float64 |
+| 149 | UNABLE_OCI_BALANCE | number | ✅ | double | Float64 |
+| 150 | UNABLE_OCI_BALANCE_QOQ | number | ✅ | double | Float64 |
+| 151 | ABLE_OCI | number | ✅ | double | Float64 |
+| 152 | ABLE_OCI_QOQ | number | ✅ | double | Float64 |
+| 153 | RIGHTLAW_ABLE_OCI | number | ✅ | double | Float64 |
+| 154 | RIGHTLAW_ABLE_OCI_QOQ | number | ✅ | double | Float64 |
+| 155 | AFA_FAIRVALUE_CHANGE | number | ✅ | double | Float64 |
+| 156 | AFA_FAIRVALUE_CHANGE_QOQ | number | ✅ | double | Float64 |
+| 157 | HMI_AFA | number | ✅ | double | Float64 |
+| 158 | HMI_AFA_QOQ | number | ✅ | double | Float64 |
+| 159 | CASHFLOW_HEDGE_VALID | number | ✅ | double | Float64 |
+| 160 | CASHFLOW_HEDGE_VALID_QOQ | number | ✅ | double | Float64 |
+| 161 | CREDITOR_FAIRVALUE_CHANGE | number | ✅ | double | Float64 |
+| 162 | CREDITOR_FAIRVALUE_CHANGE_QOQ | number | ✅ | double | Float64 |
+| 163 | CREDITOR_IMPAIRMENT_RESERVE | number | ✅ | double | Float64 |
+| 164 | CREDITOR_IMPAIRMENT_RESERVE_QOQ | number | ✅ | double | Float64 |
+| 165 | FINANCE_OCI_AMT | number | ✅ | double | Float64 |
+| 166 | FINANCE_OCI_AMT_QOQ | number | ✅ | double | Float64 |
+| 167 | CONVERT_DIFF | number | ✅ | double | Float64 |
+| 168 | CONVERT_DIFF_QOQ | number | ✅ | double | Float64 |
+| 169 | ABLE_OCI_OTHER | number | ✅ | double | Float64 |
+| 170 | ABLE_OCI_OTHER_QOQ | number | ✅ | double | Float64 |
+| 171 | ABLE_OCI_BALANCE | number | ✅ | double | Float64 |
+| 172 | ABLE_OCI_BALANCE_QOQ | number | ✅ | double | Float64 |
+| 173 | OCI_OTHER | number | ✅ | double | Float64 |
+| 174 | OCI_OTHER_QOQ | number | ✅ | double | Float64 |
+| 175 | OCI_BALANCE | number | ✅ | double | Float64 |
+| 176 | OCI_BALANCE_QOQ | number | ✅ | double | Float64 |
+| 177 | OTHER_COMPRE_INCOME | number | ✅ | double | Float64 |
+| 178 | OTHER_COMPRE_INCOME_QOQ | number | ✅ | double | Float64 |
+| 179 | PARENT_OCI | number | ✅ | double | Float64 |
+| 180 | PARENT_OCI_QOQ | number | ✅ | double | Float64 |
+| 181 | MINORITY_OCI | number | ✅ | double | Float64 |
+| 182 | MINORITY_OCI_QOQ | number | ✅ | double | Float64 |
+| 183 | PARENT_OCI_OTHER | number | ✅ | double | Float64 |
+| 184 | PARENT_OCI_OTHER_QOQ | number | ✅ | double | Float64 |
+| 185 | PARENT_OCI_BALANCE | number | ✅ | double | Float64 |
+| 186 | PARENT_OCI_BALANCE_QOQ | number | ✅ | double | Float64 |
+| 187 | TOTAL_COMPRE_INCOME | number | ✅ | double | Float64 |
+| 188 | TOTAL_COMPRE_INCOME_QOQ | number | ✅ | double | Float64 |
+| 189 | PARENT_TCI | number | ✅ | double | Float64 |
+| 190 | PARENT_TCI_QOQ | number | ✅ | double | Float64 |
+| 191 | MINORITY_TCI | number | ✅ | double | Float64 |
+| 192 | MINORITY_TCI_QOQ | number | ✅ | double | Float64 |
+| 193 | EFFECT_TCI_BALANCE | number | ✅ | double | Float64 |
+| 194 | EFFECT_TCI_BALANCE_QOQ | number | ✅ | double | Float64 |
+| 195 | TCI_OTHER | number | ✅ | double | Float64 |
+| 196 | TCI_OTHER_QOQ | number | ✅ | double | Float64 |
+| 197 | TCI_BALANCE | number | ✅ | double | Float64 |
+| 198 | TCI_BALANCE_QOQ | number | ✅ | double | Float64 |
+| 199 | PRECOMBINE_PROFIT | number | ✅ | double | Float64 |
+| 200 | PRECOMBINE_PROFIT_QOQ | number | ✅ | double | Float64 |
+| 201 | PRECOMBINE_TCI | number | ✅ | double | Float64 |
+| 202 | PRECOMBINE_TCI_QOQ | number | ✅ | double | Float64 |
+| 203 | DEDUCT_PARENT_NETPROFIT | number | ✅ | double | Float64 |
+| 204 | DEDUCT_PARENT_NETPROFIT_QOQ | number | ✅ | double | Float64 |
+| 205 | TOTAL_OPERATE_INCOME_YOY | number | ✅ | double | Float64 |
+| 206 | OPERATE_INCOME_YOY | number | ✅ | double | Float64 |
+| 207 | INTEREST_INCOME_YOY | number | ✅ | double | Float64 |
+| 208 | EARNED_PREMIUM_YOY | number | ✅ | double | Float64 |
+| 209 | FEE_COMMISSION_INCOME_YOY | number | ✅ | double | Float64 |
+| 210 | OTHER_BUSINESS_INCOME_YOY | number | ✅ | double | Float64 |
+| 211 | TOI_OTHER_YOY | number | ✅ | double | Float64 |
+| 212 | TOTAL_OPERATE_COST_YOY | number | ✅ | double | Float64 |
+| 213 | OPERATE_COST_YOY | number | ✅ | double | Float64 |
+| 214 | INTEREST_EXPENSE_YOY | number | ✅ | double | Float64 |
+| 215 | FEE_COMMISSION_EXPENSE_YOY | number | ✅ | double | Float64 |
+| 216 | RESEARCH_EXPENSE_YOY | number | ✅ | double | Float64 |
+| 217 | SURRENDER_VALUE_YOY | number | ✅ | double | Float64 |
+| 218 | NET_COMPENSATE_EXPENSE_YOY | number | ✅ | double | Float64 |
+| 219 | NET_CONTRACT_RESERVE_YOY | number | ✅ | double | Float64 |
+| 220 | POLICY_BONUS_EXPENSE_YOY | number | ✅ | double | Float64 |
+| 221 | REINSURE_EXPENSE_YOY | number | ✅ | double | Float64 |
+| 222 | OTHER_BUSINESS_COST_YOY | number | ✅ | double | Float64 |
+| 223 | OPERATE_TAX_ADD_YOY | number | ✅ | double | Float64 |
+| 224 | SALE_EXPENSE_YOY | number | ✅ | double | Float64 |
+| 225 | MANAGE_EXPENSE_YOY | number | ✅ | double | Float64 |
+| 226 | ME_RESEARCH_EXPENSE_YOY | number | ✅ | double | Float64 |
+| 227 | FINANCE_EXPENSE_YOY | number | ✅ | double | Float64 |
+| 228 | FE_INTEREST_EXPENSE_YOY | number | ✅ | double | Float64 |
+| 229 | FE_INTEREST_INCOME_YOY | number | ✅ | double | Float64 |
+| 230 | ASSET_IMPAIRMENT_LOSS_YOY | number | ✅ | double | Float64 |
+| 231 | CREDIT_IMPAIRMENT_LOSS_YOY | number | ✅ | double | Float64 |
+| 232 | OTHER_INCOME_YOY | number | ✅ | double | Float64 |
+| 233 | TOC_OTHER_YOY | number | ✅ | double | Float64 |
+| 234 | INVEST_INCOME_YOY | number | ✅ | double | Float64 |
+| 235 | INVEST_JOINT_INCOME_YOY | number | ✅ | double | Float64 |
+| 236 | ACF_END_INCOME_YOY | number | ✅ | double | Float64 |
+| 237 | EXCHANGE_INCOME_YOY | number | ✅ | double | Float64 |
+| 238 | NET_EXPOSURE_INCOME_YOY | number | ✅ | double | Float64 |
+| 239 | FAIRVALUE_CHANGE_INCOME_YOY | number | ✅ | double | Float64 |
+| 240 | ASSET_DISPOSAL_INCOME_YOY | number | ✅ | double | Float64 |
+| 241 | CREDIT_IMPAIRMENT_INCOME_YOY | number | ✅ | double | Float64 |
+| 242 | ASSET_IMPAIRMENT_INCOME_YOY | number | ✅ | double | Float64 |
+| 243 | OPERATE_PROFIT_YOY | number | ✅ | double | Float64 |
+| 244 | NONBUSINESS_INCOME_YOY | number | ✅ | double | Float64 |
+| 245 | NONCURRENT_DISPOSAL_INCOME_YOY | number | ✅ | double | Float64 |
+| 246 | NONBUSINESS_EXPENSE_YOY | number | ✅ | double | Float64 |
+| 247 | NONCURRENT_DISPOSAL_LOSS_YOY | number | ✅ | double | Float64 |
+| 248 | OPERATE_PROFIT_OTHER_YOY | number | ✅ | double | Float64 |
+| 249 | OPERATE_PROFIT_BALANCE_YOY | number | ✅ | double | Float64 |
+| 250 | TOTAL_PROFIT_YOY | number | ✅ | double | Float64 |
+| 251 | EFFECT_TP_OTHER_YOY | number | ✅ | double | Float64 |
+| 252 | TOTAL_PROFIT_BALANCE_YOY | number | ✅ | double | Float64 |
+| 253 | INCOME_TAX_YOY | number | ✅ | double | Float64 |
+| 254 | NETPROFIT_YOY | number | ✅ | double | Float64 |
+| 255 | CONTINUED_NETPROFIT_YOY | number | ✅ | double | Float64 |
+| 256 | DISCONTINUED_NETPROFIT_YOY | number | ✅ | double | Float64 |
+| 257 | NETPROFIT_OTHER_YOY | number | ✅ | double | Float64 |
+| 258 | NETPROFIT_BALANCE_YOY | number | ✅ | double | Float64 |
+| 259 | EFFECT_NETPROFIT_OTHER_YOY | number | ✅ | double | Float64 |
+| 260 | EFFECT_NETPROFIT_BALANCE_YOY | number | ✅ | double | Float64 |
+| 261 | UNCONFIRM_INVEST_LOSS_YOY | number | ✅ | double | Float64 |
+| 262 | MINORITY_INTEREST_YOY | number | ✅ | double | Float64 |
+| 263 | PARENT_NETPROFIT_YOY | number | ✅ | double | Float64 |
+| 264 | BASIC_EPS_YOY | number | ✅ | double | Float64 |
+| 265 | DILUTED_EPS_YOY | number | ✅ | double | Float64 |
+| 266 | UNABLE_OCI_YOY | number | ✅ | double | Float64 |
+| 267 | CREDITRISK_FAIRVALUE_CHANGE_YOY | number | ✅ | double | Float64 |
+| 268 | OTHERRIGHT_FAIRVALUE_CHANGE_YOY | number | ✅ | double | Float64 |
+| 269 | SETUP_PROFIT_CHANGE_YOY | number | ✅ | double | Float64 |
+| 270 | RIGHTLAW_UNABLE_OCI_YOY | number | ✅ | double | Float64 |
+| 271 | UNABLE_OCI_OTHER_YOY | number | ✅ | double | Float64 |
+| 272 | UNABLE_OCI_BALANCE_YOY | number | ✅ | double | Float64 |
+| 273 | ABLE_OCI_YOY | number | ✅ | double | Float64 |
+| 274 | RIGHTLAW_ABLE_OCI_YOY | number | ✅ | double | Float64 |
+| 275 | AFA_FAIRVALUE_CHANGE_YOY | number | ✅ | double | Float64 |
+| 276 | HMI_AFA_YOY | number | ✅ | double | Float64 |
+| 277 | CASHFLOW_HEDGE_VALID_YOY | number | ✅ | double | Float64 |
+| 278 | CREDITOR_FAIRVALUE_CHANGE_YOY | number | ✅ | double | Float64 |
+| 279 | CREDITOR_IMPAIRMENT_RESERVE_YOY | number | ✅ | double | Float64 |
+| 280 | FINANCE_OCI_AMT_YOY | number | ✅ | double | Float64 |
+| 281 | CONVERT_DIFF_YOY | number | ✅ | double | Float64 |
+| 282 | ABLE_OCI_OTHER_YOY | number | ✅ | double | Float64 |
+| 283 | ABLE_OCI_BALANCE_YOY | number | ✅ | double | Float64 |
+| 284 | OCI_OTHER_YOY | number | ✅ | double | Float64 |
+| 285 | OCI_BALANCE_YOY | number | ✅ | double | Float64 |
+| 286 | OTHER_COMPRE_INCOME_YOY | number | ✅ | double | Float64 |
+| 287 | PARENT_OCI_YOY | number | ✅ | double | Float64 |
+| 288 | MINORITY_OCI_YOY | number | ✅ | double | Float64 |
+| 289 | PARENT_OCI_OTHER_YOY | number | ✅ | double | Float64 |
+| 290 | PARENT_OCI_BALANCE_YOY | number | ✅ | double | Float64 |
+| 291 | TOTAL_COMPRE_INCOME_YOY | number | ✅ | double | Float64 |
+| 292 | PARENT_TCI_YOY | number | ✅ | double | Float64 |
+| 293 | MINORITY_TCI_YOY | number | ✅ | double | Float64 |
+| 294 | EFFECT_TCI_BALANCE_YOY | number | ✅ | double | Float64 |
+| 295 | TCI_OTHER_YOY | number | ✅ | double | Float64 |
+| 296 | TCI_BALANCE_YOY | number | ✅ | double | Float64 |
+| 297 | PRECOMBINE_PROFIT_YOY | number | ✅ | double | Float64 |
+| 298 | PRECOMBINE_TCI_YOY | number | ✅ | double | Float64 |
+| 299 | DEDUCT_PARENT_NETPROFIT_YOY | number | ✅ | double | Float64 |
 
 ## 统计
 

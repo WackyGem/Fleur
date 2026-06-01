@@ -5,327 +5,327 @@
 
 ## 字段对比
 
-| # | 字段名 | OpenAPI 类型 | 资产使用 | PyArrow 类型 |
-|---|--------|-------------|---------|-------------|
-| 1 | SECUCODE | string | ✅ | string |
-| 2 | SECURITY_CODE | string | ✅ | string |
-| 3 | SECURITY_NAME_ABBR | string | ✅ | string |
-| 4 | ORG_CODE | string | ✅ | string |
-| 5 | ORG_TYPE | string | ✅ | string |
-| 6 | REPORT_DATE | string | ✅ | date32[day] |
-| 7 | REPORT_TYPE | string | ✅ | string |
-| 8 | REPORT_DATE_NAME | string | ✅ | string |
-| 9 | SECURITY_TYPE_CODE | string | ✅ | string |
-| 10 | NOTICE_DATE | string | ✅ | date32[day] |
-| 11 | UPDATE_DATE | string | ✅ | date32[day] |
-| 12 | CURRENCY | string | ✅ | string |
-| 13 | ACCEPT_DEPOSIT_INTERBANK | number | ✅ | double |
-| 14 | ACCOUNTS_PAYABLE | number | ✅ | double |
-| 15 | ACCOUNTS_RECE | number | ✅ | double |
-| 16 | ACCRUED_EXPENSE | number | ✅ | double |
-| 17 | ADVANCE_RECEIVABLES | number | ✅ | double |
-| 18 | AGENT_TRADE_SECURITY | number | ✅ | double |
-| 19 | AGENT_UNDERWRITE_SECURITY | number | ✅ | double |
-| 20 | AMORTIZE_COST_FINASSET | number | ✅ | double |
-| 21 | AMORTIZE_COST_FINLIAB | number | ✅ | double |
-| 22 | AMORTIZE_COST_NCFINASSET | number | ✅ | double |
-| 23 | AMORTIZE_COST_NCFINLIAB | number | ✅ | double |
-| 24 | APPOINT_FVTPL_FINASSET | number | ✅ | double |
-| 25 | APPOINT_FVTPL_FINLIAB | number | ✅ | double |
-| 26 | ASSET_BALANCE | number | ✅ | double |
-| 27 | ASSET_OTHER | number | ✅ | double |
-| 28 | ASSIGN_CASH_DIVIDEND | number | ✅ | double |
-| 29 | AVAILABLE_SALE_FINASSET | number | ✅ | double |
-| 30 | BOND_PAYABLE | number | ✅ | double |
-| 31 | BORROW_FUND | number | ✅ | double |
-| 32 | BUY_RESALE_FINASSET | number | ✅ | double |
-| 33 | CAPITAL_RESERVE | number | ✅ | double |
-| 34 | CIP | number | ✅ | double |
-| 35 | CONSUMPTIVE_BIOLOGICAL_ASSET | number | ✅ | double |
-| 36 | CONTRACT_ASSET | number | ✅ | double |
-| 37 | CONTRACT_LIAB | number | ✅ | double |
-| 38 | CONVERT_DIFF | number | ✅ | double |
-| 39 | CREDITOR_INVEST | number | ✅ | double |
-| 40 | CURRENT_ASSET_BALANCE | number | ✅ | double |
-| 41 | CURRENT_ASSET_OTHER | number | ✅ | double |
-| 42 | CURRENT_LIAB_BALANCE | number | ✅ | double |
-| 43 | CURRENT_LIAB_OTHER | number | ✅ | double |
-| 44 | DEFER_INCOME | number | ✅ | double |
-| 45 | DEFER_INCOME_1YEAR | number | ✅ | double |
-| 46 | DEFER_TAX_ASSET | number | ✅ | double |
-| 47 | DEFER_TAX_LIAB | number | ✅ | double |
-| 48 | DERIVE_FINASSET | number | ✅ | double |
-| 49 | DERIVE_FINLIAB | number | ✅ | double |
-| 50 | DEVELOP_EXPENSE | number | ✅ | double |
-| 51 | DIV_HOLDSALE_ASSET | number | ✅ | double |
-| 52 | DIV_HOLDSALE_LIAB | number | ✅ | double |
-| 53 | DIVIDEND_PAYABLE | number | ✅ | double |
-| 54 | DIVIDEND_RECE | number | ✅ | double |
-| 55 | EQUITY_BALANCE | number | ✅ | double |
-| 56 | EQUITY_OTHER | number | ✅ | double |
-| 57 | EXPORT_REFUND_RECE | number | ✅ | double |
-| 58 | FEE_COMMISSION_PAYABLE | number | ✅ | double |
-| 59 | FIN_FUND | number | ✅ | double |
-| 60 | FINANCE_RECE | number | ✅ | double |
-| 61 | FIXED_ASSET | number | ✅ | double |
-| 62 | FIXED_ASSET_DISPOSAL | number | ✅ | double |
-| 63 | FVTOCI_FINASSET | number | ✅ | double |
-| 64 | FVTOCI_NCFINASSET | number | ✅ | double |
-| 65 | FVTPL_FINASSET | number | ✅ | double |
-| 66 | FVTPL_FINLIAB | number | ✅ | double |
-| 67 | GENERAL_RISK_RESERVE | number | ✅ | double |
-| 68 | GOODWILL | number | ✅ | double |
-| 69 | HOLD_MATURITY_INVEST | number | ✅ | double |
-| 70 | HOLDSALE_ASSET | number | ✅ | double |
-| 71 | HOLDSALE_LIAB | number | ✅ | double |
-| 72 | INSURANCE_CONTRACT_RESERVE | number | ✅ | double |
-| 73 | INTANGIBLE_ASSET | number | ✅ | double |
-| 74 | INTEREST_PAYABLE | number | ✅ | double |
-| 75 | INTEREST_RECE | number | ✅ | double |
-| 76 | INTERNAL_PAYABLE | number | ✅ | double |
-| 77 | INTERNAL_RECE | number | ✅ | double |
-| 78 | INVENTORY | number | ✅ | double |
-| 79 | INVEST_REALESTATE | number | ✅ | double |
-| 80 | LEASE_LIAB | number | ✅ | double |
-| 81 | LEND_FUND | number | ✅ | double |
-| 82 | LIAB_BALANCE | number | ✅ | double |
-| 83 | LIAB_EQUITY_BALANCE | number | ✅ | double |
-| 84 | LIAB_EQUITY_OTHER | number | ✅ | double |
-| 85 | LIAB_OTHER | number | ✅ | double |
-| 86 | LOAN_ADVANCE | number | ✅ | double |
-| 87 | LOAN_PBC | number | ✅ | double |
-| 88 | LONG_EQUITY_INVEST | number | ✅ | double |
-| 89 | LONG_LOAN | number | ✅ | double |
-| 90 | LONG_PAYABLE | number | ✅ | double |
-| 91 | LONG_PREPAID_EXPENSE | number | ✅ | double |
-| 92 | LONG_RECE | number | ✅ | double |
-| 93 | LONG_STAFFSALARY_PAYABLE | number | ✅ | double |
-| 94 | MINORITY_EQUITY | number | ✅ | double |
-| 95 | MONETARYFUNDS | number | ✅ | double |
-| 96 | NONCURRENT_ASSET_1YEAR | number | ✅ | double |
-| 97 | NONCURRENT_ASSET_BALANCE | number | ✅ | double |
-| 98 | NONCURRENT_ASSET_OTHER | number | ✅ | double |
-| 99 | NONCURRENT_LIAB_1YEAR | number | ✅ | double |
-| 100 | NONCURRENT_LIAB_BALANCE | number | ✅ | double |
-| 101 | NONCURRENT_LIAB_OTHER | number | ✅ | double |
-| 102 | NOTE_ACCOUNTS_PAYABLE | number | ✅ | double |
-| 103 | NOTE_ACCOUNTS_RECE | number | ✅ | double |
-| 104 | NOTE_PAYABLE | number | ✅ | double |
-| 105 | NOTE_RECE | number | ✅ | double |
-| 106 | OIL_GAS_ASSET | number | ✅ | double |
-| 107 | OTHER_COMPRE_INCOME | number | ✅ | double |
-| 108 | OTHER_CREDITOR_INVEST | number | ✅ | double |
-| 109 | OTHER_CURRENT_ASSET | number | ✅ | double |
-| 110 | OTHER_CURRENT_LIAB | number | ✅ | double |
-| 111 | OTHER_EQUITY_INVEST | number | ✅ | double |
-| 112 | OTHER_EQUITY_OTHER | number | ✅ | double |
-| 113 | OTHER_EQUITY_TOOL | number | ✅ | double |
-| 114 | OTHER_NONCURRENT_ASSET | number | ✅ | double |
-| 115 | OTHER_NONCURRENT_FINASSET | number | ✅ | double |
-| 116 | OTHER_NONCURRENT_LIAB | number | ✅ | double |
-| 117 | OTHER_PAYABLE | number | ✅ | double |
-| 118 | OTHER_RECE | number | ✅ | double |
-| 119 | PARENT_EQUITY_BALANCE | number | ✅ | double |
-| 120 | PARENT_EQUITY_OTHER | number | ✅ | double |
-| 121 | PERPETUAL_BOND | number | ✅ | double |
-| 122 | PERPETUAL_BOND_PAYBALE | number | ✅ | double |
-| 123 | PREDICT_CURRENT_LIAB | number | ✅ | double |
-| 124 | PREDICT_LIAB | number | ✅ | double |
-| 125 | PREFERRED_SHARES | number | ✅ | double |
-| 126 | PREFERRED_SHARES_PAYBALE | number | ✅ | double |
-| 127 | PREMIUM_RECE | number | ✅ | double |
-| 128 | PREPAYMENT | number | ✅ | double |
-| 129 | PRODUCTIVE_BIOLOGY_ASSET | number | ✅ | double |
-| 130 | PROJECT_MATERIAL | number | ✅ | double |
-| 131 | RC_RESERVE_RECE | number | ✅ | double |
-| 132 | REINSURE_PAYABLE | number | ✅ | double |
-| 133 | REINSURE_RECE | number | ✅ | double |
-| 134 | SELL_REPO_FINASSET | number | ✅ | double |
-| 135 | SETTLE_EXCESS_RESERVE | number | ✅ | double |
-| 136 | SHARE_CAPITAL | number | ✅ | double |
-| 137 | SHORT_BOND_PAYABLE | number | ✅ | double |
-| 138 | SHORT_FIN_PAYABLE | number | ✅ | double |
-| 139 | SHORT_LOAN | number | ✅ | double |
-| 140 | SPECIAL_PAYABLE | number | ✅ | double |
-| 141 | SPECIAL_RESERVE | number | ✅ | double |
-| 142 | STAFF_SALARY_PAYABLE | number | ✅ | double |
-| 143 | SUBSIDY_RECE | number | ✅ | double |
-| 144 | SURPLUS_RESERVE | number | ✅ | double |
-| 145 | TAX_PAYABLE | number | ✅ | double |
-| 146 | TOTAL_ASSETS | number | ✅ | double |
-| 147 | TOTAL_CURRENT_ASSETS | number | ✅ | double |
-| 148 | TOTAL_CURRENT_LIAB | number | ✅ | double |
-| 149 | TOTAL_EQUITY | number | ✅ | double |
-| 150 | TOTAL_LIAB_EQUITY | number | ✅ | double |
-| 151 | TOTAL_LIABILITIES | number | ✅ | double |
-| 152 | TOTAL_NONCURRENT_ASSETS | number | ✅ | double |
-| 153 | TOTAL_NONCURRENT_LIAB | number | ✅ | double |
-| 154 | TOTAL_OTHER_PAYABLE | number | ✅ | double |
-| 155 | TOTAL_OTHER_RECE | number | ✅ | double |
-| 156 | TOTAL_PARENT_EQUITY | number | ✅ | double |
-| 157 | TRADE_FINASSET | number | ✅ | double |
-| 158 | TRADE_FINASSET_NOTFVTPL | number | ✅ | double |
-| 159 | TRADE_FINLIAB | number | ✅ | double |
-| 160 | TRADE_FINLIAB_NOTFVTPL | number | ✅ | double |
-| 161 | TREASURY_SHARES | number | ✅ | double |
-| 162 | UNASSIGN_RPOFIT | number | ✅ | double |
-| 163 | UNCONFIRM_INVEST_LOSS | number | ✅ | double |
-| 164 | USERIGHT_ASSET | number | ✅ | double |
-| 165 | ACCEPT_DEPOSIT_INTERBANK_YOY | number | ✅ | double |
-| 166 | ACCOUNTS_PAYABLE_YOY | number | ✅ | double |
-| 167 | ACCOUNTS_RECE_YOY | number | ✅ | double |
-| 168 | ACCRUED_EXPENSE_YOY | number | ✅ | double |
-| 169 | ADVANCE_RECEIVABLES_YOY | number | ✅ | double |
-| 170 | AGENT_TRADE_SECURITY_YOY | number | ✅ | double |
-| 171 | AGENT_UNDERWRITE_SECURITY_YOY | number | ✅ | double |
-| 172 | AMORTIZE_COST_FINASSET_YOY | number | ✅ | double |
-| 173 | AMORTIZE_COST_FINLIAB_YOY | number | ✅ | double |
-| 174 | AMORTIZE_COST_NCFINASSET_YOY | number | ✅ | double |
-| 175 | AMORTIZE_COST_NCFINLIAB_YOY | number | ✅ | double |
-| 176 | APPOINT_FVTPL_FINASSET_YOY | number | ✅ | double |
-| 177 | APPOINT_FVTPL_FINLIAB_YOY | number | ✅ | double |
-| 178 | ASSET_BALANCE_YOY | number | ✅ | double |
-| 179 | ASSET_OTHER_YOY | number | ✅ | double |
-| 180 | ASSIGN_CASH_DIVIDEND_YOY | number | ✅ | double |
-| 181 | AVAILABLE_SALE_FINASSET_YOY | number | ✅ | double |
-| 182 | BOND_PAYABLE_YOY | number | ✅ | double |
-| 183 | BORROW_FUND_YOY | number | ✅ | double |
-| 184 | BUY_RESALE_FINASSET_YOY | number | ✅ | double |
-| 185 | CAPITAL_RESERVE_YOY | number | ✅ | double |
-| 186 | CIP_YOY | number | ✅ | double |
-| 187 | CONSUMPTIVE_BIOLOGICAL_ASSET_YOY | number | ✅ | double |
-| 188 | CONTRACT_ASSET_YOY | number | ✅ | double |
-| 189 | CONTRACT_LIAB_YOY | number | ✅ | double |
-| 190 | CONVERT_DIFF_YOY | number | ✅ | double |
-| 191 | CREDITOR_INVEST_YOY | number | ✅ | double |
-| 192 | CURRENT_ASSET_BALANCE_YOY | number | ✅ | double |
-| 193 | CURRENT_ASSET_OTHER_YOY | number | ✅ | double |
-| 194 | CURRENT_LIAB_BALANCE_YOY | number | ✅ | double |
-| 195 | CURRENT_LIAB_OTHER_YOY | number | ✅ | double |
-| 196 | DEFER_INCOME_1YEAR_YOY | number | ✅ | double |
-| 197 | DEFER_INCOME_YOY | number | ✅ | double |
-| 198 | DEFER_TAX_ASSET_YOY | number | ✅ | double |
-| 199 | DEFER_TAX_LIAB_YOY | number | ✅ | double |
-| 200 | DERIVE_FINASSET_YOY | number | ✅ | double |
-| 201 | DERIVE_FINLIAB_YOY | number | ✅ | double |
-| 202 | DEVELOP_EXPENSE_YOY | number | ✅ | double |
-| 203 | DIV_HOLDSALE_ASSET_YOY | number | ✅ | double |
-| 204 | DIV_HOLDSALE_LIAB_YOY | number | ✅ | double |
-| 205 | DIVIDEND_PAYABLE_YOY | number | ✅ | double |
-| 206 | DIVIDEND_RECE_YOY | number | ✅ | double |
-| 207 | EQUITY_BALANCE_YOY | number | ✅ | double |
-| 208 | EQUITY_OTHER_YOY | number | ✅ | double |
-| 209 | EXPORT_REFUND_RECE_YOY | number | ✅ | double |
-| 210 | FEE_COMMISSION_PAYABLE_YOY | number | ✅ | double |
-| 211 | FIN_FUND_YOY | number | ✅ | double |
-| 212 | FINANCE_RECE_YOY | number | ✅ | double |
-| 213 | FIXED_ASSET_DISPOSAL_YOY | number | ✅ | double |
-| 214 | FIXED_ASSET_YOY | number | ✅ | double |
-| 215 | FVTOCI_FINASSET_YOY | number | ✅ | double |
-| 216 | FVTOCI_NCFINASSET_YOY | number | ✅ | double |
-| 217 | FVTPL_FINASSET_YOY | number | ✅ | double |
-| 218 | FVTPL_FINLIAB_YOY | number | ✅ | double |
-| 219 | GENERAL_RISK_RESERVE_YOY | number | ✅ | double |
-| 220 | GOODWILL_YOY | number | ✅ | double |
-| 221 | HOLD_MATURITY_INVEST_YOY | number | ✅ | double |
-| 222 | HOLDSALE_ASSET_YOY | number | ✅ | double |
-| 223 | HOLDSALE_LIAB_YOY | number | ✅ | double |
-| 224 | INSURANCE_CONTRACT_RESERVE_YOY | number | ✅ | double |
-| 225 | INTANGIBLE_ASSET_YOY | number | ✅ | double |
-| 226 | INTEREST_PAYABLE_YOY | number | ✅ | double |
-| 227 | INTEREST_RECE_YOY | number | ✅ | double |
-| 228 | INTERNAL_PAYABLE_YOY | number | ✅ | double |
-| 229 | INTERNAL_RECE_YOY | number | ✅ | double |
-| 230 | INVENTORY_YOY | number | ✅ | double |
-| 231 | INVEST_REALESTATE_YOY | number | ✅ | double |
-| 232 | LEASE_LIAB_YOY | number | ✅ | double |
-| 233 | LEND_FUND_YOY | number | ✅ | double |
-| 234 | LIAB_BALANCE_YOY | number | ✅ | double |
-| 235 | LIAB_EQUITY_BALANCE_YOY | number | ✅ | double |
-| 236 | LIAB_EQUITY_OTHER_YOY | number | ✅ | double |
-| 237 | LIAB_OTHER_YOY | number | ✅ | double |
-| 238 | LOAN_ADVANCE_YOY | number | ✅ | double |
-| 239 | LOAN_PBC_YOY | number | ✅ | double |
-| 240 | LONG_EQUITY_INVEST_YOY | number | ✅ | double |
-| 241 | LONG_LOAN_YOY | number | ✅ | double |
-| 242 | LONG_PAYABLE_YOY | number | ✅ | double |
-| 243 | LONG_PREPAID_EXPENSE_YOY | number | ✅ | double |
-| 244 | LONG_RECE_YOY | number | ✅ | double |
-| 245 | LONG_STAFFSALARY_PAYABLE_YOY | number | ✅ | double |
-| 246 | MINORITY_EQUITY_YOY | number | ✅ | double |
-| 247 | MONETARYFUNDS_YOY | number | ✅ | double |
-| 248 | NONCURRENT_ASSET_1YEAR_YOY | number | ✅ | double |
-| 249 | NONCURRENT_ASSET_BALANCE_YOY | number | ✅ | double |
-| 250 | NONCURRENT_ASSET_OTHER_YOY | number | ✅ | double |
-| 251 | NONCURRENT_LIAB_1YEAR_YOY | number | ✅ | double |
-| 252 | NONCURRENT_LIAB_BALANCE_YOY | number | ✅ | double |
-| 253 | NONCURRENT_LIAB_OTHER_YOY | number | ✅ | double |
-| 254 | NOTE_ACCOUNTS_PAYABLE_YOY | number | ✅ | double |
-| 255 | NOTE_ACCOUNTS_RECE_YOY | number | ✅ | double |
-| 256 | NOTE_PAYABLE_YOY | number | ✅ | double |
-| 257 | NOTE_RECE_YOY | number | ✅ | double |
-| 258 | OIL_GAS_ASSET_YOY | number | ✅ | double |
-| 259 | OTHER_COMPRE_INCOME_YOY | number | ✅ | double |
-| 260 | OTHER_CREDITOR_INVEST_YOY | number | ✅ | double |
-| 261 | OTHER_CURRENT_ASSET_YOY | number | ✅ | double |
-| 262 | OTHER_CURRENT_LIAB_YOY | number | ✅ | double |
-| 263 | OTHER_EQUITY_INVEST_YOY | number | ✅ | double |
-| 264 | OTHER_EQUITY_OTHER_YOY | number | ✅ | double |
-| 265 | OTHER_EQUITY_TOOL_YOY | number | ✅ | double |
-| 266 | OTHER_NONCURRENT_ASSET_YOY | number | ✅ | double |
-| 267 | OTHER_NONCURRENT_FINASSET_YOY | number | ✅ | double |
-| 268 | OTHER_NONCURRENT_LIAB_YOY | number | ✅ | double |
-| 269 | OTHER_PAYABLE_YOY | number | ✅ | double |
-| 270 | OTHER_RECE_YOY | number | ✅ | double |
-| 271 | PARENT_EQUITY_BALANCE_YOY | number | ✅ | double |
-| 272 | PARENT_EQUITY_OTHER_YOY | number | ✅ | double |
-| 273 | PERPETUAL_BOND_PAYBALE_YOY | number | ✅ | double |
-| 274 | PERPETUAL_BOND_YOY | number | ✅ | double |
-| 275 | PREDICT_CURRENT_LIAB_YOY | number | ✅ | double |
-| 276 | PREDICT_LIAB_YOY | number | ✅ | double |
-| 277 | PREFERRED_SHARES_PAYBALE_YOY | number | ✅ | double |
-| 278 | PREFERRED_SHARES_YOY | number | ✅ | double |
-| 279 | PREMIUM_RECE_YOY | number | ✅ | double |
-| 280 | PREPAYMENT_YOY | number | ✅ | double |
-| 281 | PRODUCTIVE_BIOLOGY_ASSET_YOY | number | ✅ | double |
-| 282 | PROJECT_MATERIAL_YOY | number | ✅ | double |
-| 283 | RC_RESERVE_RECE_YOY | number | ✅ | double |
-| 284 | REINSURE_PAYABLE_YOY | number | ✅ | double |
-| 285 | REINSURE_RECE_YOY | number | ✅ | double |
-| 286 | SELL_REPO_FINASSET_YOY | number | ✅ | double |
-| 287 | SETTLE_EXCESS_RESERVE_YOY | number | ✅ | double |
-| 288 | SHARE_CAPITAL_YOY | number | ✅ | double |
-| 289 | SHORT_BOND_PAYABLE_YOY | number | ✅ | double |
-| 290 | SHORT_FIN_PAYABLE_YOY | number | ✅ | double |
-| 291 | SHORT_LOAN_YOY | number | ✅ | double |
-| 292 | SPECIAL_PAYABLE_YOY | number | ✅ | double |
-| 293 | SPECIAL_RESERVE_YOY | number | ✅ | double |
-| 294 | STAFF_SALARY_PAYABLE_YOY | number | ✅ | double |
-| 295 | SUBSIDY_RECE_YOY | number | ✅ | double |
-| 296 | SURPLUS_RESERVE_YOY | number | ✅ | double |
-| 297 | TAX_PAYABLE_YOY | number | ✅ | double |
-| 298 | TOTAL_ASSETS_YOY | number | ✅ | double |
-| 299 | TOTAL_CURRENT_ASSETS_YOY | number | ✅ | double |
-| 300 | TOTAL_CURRENT_LIAB_YOY | number | ✅ | double |
-| 301 | TOTAL_EQUITY_YOY | number | ✅ | double |
-| 302 | TOTAL_LIAB_EQUITY_YOY | number | ✅ | double |
-| 303 | TOTAL_LIABILITIES_YOY | number | ✅ | double |
-| 304 | TOTAL_NONCURRENT_ASSETS_YOY | number | ✅ | double |
-| 305 | TOTAL_NONCURRENT_LIAB_YOY | number | ✅ | double |
-| 306 | TOTAL_OTHER_PAYABLE_YOY | number | ✅ | double |
-| 307 | TOTAL_OTHER_RECE_YOY | number | ✅ | double |
-| 308 | TOTAL_PARENT_EQUITY_YOY | number | ✅ | double |
-| 309 | TRADE_FINASSET_NOTFVTPL_YOY | number | ✅ | double |
-| 310 | TRADE_FINASSET_YOY | number | ✅ | double |
-| 311 | TRADE_FINLIAB_NOTFVTPL_YOY | number | ✅ | double |
-| 312 | TRADE_FINLIAB_YOY | number | ✅ | double |
-| 313 | TREASURY_SHARES_YOY | number | ✅ | double |
-| 314 | UNASSIGN_RPOFIT_YOY | number | ✅ | double |
-| 315 | UNCONFIRM_INVEST_LOSS_YOY | number | ✅ | double |
-| 316 | USERIGHT_ASSET_YOY | number | ✅ | double |
-| 317 | OPINION_TYPE | number | ✅ | string |
-| 318 | OSOPINION_TYPE | number | ✅ | string |
-| 319 | LISTING_STATE | string | ✅ | string |
+| # | 字段名 | OpenAPI 类型 | 资产使用 | PyArrow 类型 | ClickHouse 类型 |
+|---|--------|-------------|---------|-------------|----------------|
+| 1 | SECUCODE | string | ✅ | string | LowCardinality(String) |
+| 2 | SECURITY_CODE | string | ✅ | string | LowCardinality(String) |
+| 3 | SECURITY_NAME_ABBR | string | ✅ | string | LowCardinality(String) |
+| 4 | ORG_CODE | string | ✅ | string | LowCardinality(String) |
+| 5 | ORG_TYPE | string | ✅ | string | LowCardinality(String) |
+| 6 | REPORT_DATE | string | ✅ | date32[day] | Date |
+| 7 | REPORT_TYPE | string | ✅ | string | LowCardinality(String) |
+| 8 | REPORT_DATE_NAME | string | ✅ | string | LowCardinality(String) |
+| 9 | SECURITY_TYPE_CODE | string | ✅ | string | LowCardinality(String) |
+| 10 | NOTICE_DATE | string | ✅ | date32[day] | Date |
+| 11 | UPDATE_DATE | string | ✅ | date32[day] | Date |
+| 12 | CURRENCY | string | ✅ | string | LowCardinality(String) |
+| 13 | ACCEPT_DEPOSIT_INTERBANK | number | ✅ | double | Float64 |
+| 14 | ACCOUNTS_PAYABLE | number | ✅ | double | Float64 |
+| 15 | ACCOUNTS_RECE | number | ✅ | double | Float64 |
+| 16 | ACCRUED_EXPENSE | number | ✅ | double | Float64 |
+| 17 | ADVANCE_RECEIVABLES | number | ✅ | double | Float64 |
+| 18 | AGENT_TRADE_SECURITY | number | ✅ | double | Float64 |
+| 19 | AGENT_UNDERWRITE_SECURITY | number | ✅ | double | Float64 |
+| 20 | AMORTIZE_COST_FINASSET | number | ✅ | double | Float64 |
+| 21 | AMORTIZE_COST_FINLIAB | number | ✅ | double | Float64 |
+| 22 | AMORTIZE_COST_NCFINASSET | number | ✅ | double | Float64 |
+| 23 | AMORTIZE_COST_NCFINLIAB | number | ✅ | double | Float64 |
+| 24 | APPOINT_FVTPL_FINASSET | number | ✅ | double | Float64 |
+| 25 | APPOINT_FVTPL_FINLIAB | number | ✅ | double | Float64 |
+| 26 | ASSET_BALANCE | number | ✅ | double | Float64 |
+| 27 | ASSET_OTHER | number | ✅ | double | Float64 |
+| 28 | ASSIGN_CASH_DIVIDEND | number | ✅ | double | Float64 |
+| 29 | AVAILABLE_SALE_FINASSET | number | ✅ | double | Float64 |
+| 30 | BOND_PAYABLE | number | ✅ | double | Float64 |
+| 31 | BORROW_FUND | number | ✅ | double | Float64 |
+| 32 | BUY_RESALE_FINASSET | number | ✅ | double | Float64 |
+| 33 | CAPITAL_RESERVE | number | ✅ | double | Float64 |
+| 34 | CIP | number | ✅ | double | Float64 |
+| 35 | CONSUMPTIVE_BIOLOGICAL_ASSET | number | ✅ | double | Float64 |
+| 36 | CONTRACT_ASSET | number | ✅ | double | Float64 |
+| 37 | CONTRACT_LIAB | number | ✅ | double | Float64 |
+| 38 | CONVERT_DIFF | number | ✅ | double | Float64 |
+| 39 | CREDITOR_INVEST | number | ✅ | double | Float64 |
+| 40 | CURRENT_ASSET_BALANCE | number | ✅ | double | Float64 |
+| 41 | CURRENT_ASSET_OTHER | number | ✅ | double | Float64 |
+| 42 | CURRENT_LIAB_BALANCE | number | ✅ | double | Float64 |
+| 43 | CURRENT_LIAB_OTHER | number | ✅ | double | Float64 |
+| 44 | DEFER_INCOME | number | ✅ | double | Float64 |
+| 45 | DEFER_INCOME_1YEAR | number | ✅ | double | Float64 |
+| 46 | DEFER_TAX_ASSET | number | ✅ | double | Float64 |
+| 47 | DEFER_TAX_LIAB | number | ✅ | double | Float64 |
+| 48 | DERIVE_FINASSET | number | ✅ | double | Float64 |
+| 49 | DERIVE_FINLIAB | number | ✅ | double | Float64 |
+| 50 | DEVELOP_EXPENSE | number | ✅ | double | Float64 |
+| 51 | DIV_HOLDSALE_ASSET | number | ✅ | double | Float64 |
+| 52 | DIV_HOLDSALE_LIAB | number | ✅ | double | Float64 |
+| 53 | DIVIDEND_PAYABLE | number | ✅ | double | Float64 |
+| 54 | DIVIDEND_RECE | number | ✅ | double | Float64 |
+| 55 | EQUITY_BALANCE | number | ✅ | double | Float64 |
+| 56 | EQUITY_OTHER | number | ✅ | double | Float64 |
+| 57 | EXPORT_REFUND_RECE | number | ✅ | double | Float64 |
+| 58 | FEE_COMMISSION_PAYABLE | number | ✅ | double | Float64 |
+| 59 | FIN_FUND | number | ✅ | double | Float64 |
+| 60 | FINANCE_RECE | number | ✅ | double | Float64 |
+| 61 | FIXED_ASSET | number | ✅ | double | Float64 |
+| 62 | FIXED_ASSET_DISPOSAL | number | ✅ | double | Float64 |
+| 63 | FVTOCI_FINASSET | number | ✅ | double | Float64 |
+| 64 | FVTOCI_NCFINASSET | number | ✅ | double | Float64 |
+| 65 | FVTPL_FINASSET | number | ✅ | double | Float64 |
+| 66 | FVTPL_FINLIAB | number | ✅ | double | Float64 |
+| 67 | GENERAL_RISK_RESERVE | number | ✅ | double | Float64 |
+| 68 | GOODWILL | number | ✅ | double | Float64 |
+| 69 | HOLD_MATURITY_INVEST | number | ✅ | double | Float64 |
+| 70 | HOLDSALE_ASSET | number | ✅ | double | Float64 |
+| 71 | HOLDSALE_LIAB | number | ✅ | double | Float64 |
+| 72 | INSURANCE_CONTRACT_RESERVE | number | ✅ | double | Float64 |
+| 73 | INTANGIBLE_ASSET | number | ✅ | double | Float64 |
+| 74 | INTEREST_PAYABLE | number | ✅ | double | Float64 |
+| 75 | INTEREST_RECE | number | ✅ | double | Float64 |
+| 76 | INTERNAL_PAYABLE | number | ✅ | double | Float64 |
+| 77 | INTERNAL_RECE | number | ✅ | double | Float64 |
+| 78 | INVENTORY | number | ✅ | double | Float64 |
+| 79 | INVEST_REALESTATE | number | ✅ | double | Float64 |
+| 80 | LEASE_LIAB | number | ✅ | double | Float64 |
+| 81 | LEND_FUND | number | ✅ | double | Float64 |
+| 82 | LIAB_BALANCE | number | ✅ | double | Float64 |
+| 83 | LIAB_EQUITY_BALANCE | number | ✅ | double | Float64 |
+| 84 | LIAB_EQUITY_OTHER | number | ✅ | double | Float64 |
+| 85 | LIAB_OTHER | number | ✅ | double | Float64 |
+| 86 | LOAN_ADVANCE | number | ✅ | double | Float64 |
+| 87 | LOAN_PBC | number | ✅ | double | Float64 |
+| 88 | LONG_EQUITY_INVEST | number | ✅ | double | Float64 |
+| 89 | LONG_LOAN | number | ✅ | double | Float64 |
+| 90 | LONG_PAYABLE | number | ✅ | double | Float64 |
+| 91 | LONG_PREPAID_EXPENSE | number | ✅ | double | Float64 |
+| 92 | LONG_RECE | number | ✅ | double | Float64 |
+| 93 | LONG_STAFFSALARY_PAYABLE | number | ✅ | double | Float64 |
+| 94 | MINORITY_EQUITY | number | ✅ | double | Float64 |
+| 95 | MONETARYFUNDS | number | ✅ | double | Float64 |
+| 96 | NONCURRENT_ASSET_1YEAR | number | ✅ | double | Float64 |
+| 97 | NONCURRENT_ASSET_BALANCE | number | ✅ | double | Float64 |
+| 98 | NONCURRENT_ASSET_OTHER | number | ✅ | double | Float64 |
+| 99 | NONCURRENT_LIAB_1YEAR | number | ✅ | double | Float64 |
+| 100 | NONCURRENT_LIAB_BALANCE | number | ✅ | double | Float64 |
+| 101 | NONCURRENT_LIAB_OTHER | number | ✅ | double | Float64 |
+| 102 | NOTE_ACCOUNTS_PAYABLE | number | ✅ | double | Float64 |
+| 103 | NOTE_ACCOUNTS_RECE | number | ✅ | double | Float64 |
+| 104 | NOTE_PAYABLE | number | ✅ | double | Float64 |
+| 105 | NOTE_RECE | number | ✅ | double | Float64 |
+| 106 | OIL_GAS_ASSET | number | ✅ | double | Float64 |
+| 107 | OTHER_COMPRE_INCOME | number | ✅ | double | Float64 |
+| 108 | OTHER_CREDITOR_INVEST | number | ✅ | double | Float64 |
+| 109 | OTHER_CURRENT_ASSET | number | ✅ | double | Float64 |
+| 110 | OTHER_CURRENT_LIAB | number | ✅ | double | Float64 |
+| 111 | OTHER_EQUITY_INVEST | number | ✅ | double | Float64 |
+| 112 | OTHER_EQUITY_OTHER | number | ✅ | double | Float64 |
+| 113 | OTHER_EQUITY_TOOL | number | ✅ | double | Float64 |
+| 114 | OTHER_NONCURRENT_ASSET | number | ✅ | double | Float64 |
+| 115 | OTHER_NONCURRENT_FINASSET | number | ✅ | double | Float64 |
+| 116 | OTHER_NONCURRENT_LIAB | number | ✅ | double | Float64 |
+| 117 | OTHER_PAYABLE | number | ✅ | double | Float64 |
+| 118 | OTHER_RECE | number | ✅ | double | Float64 |
+| 119 | PARENT_EQUITY_BALANCE | number | ✅ | double | Float64 |
+| 120 | PARENT_EQUITY_OTHER | number | ✅ | double | Float64 |
+| 121 | PERPETUAL_BOND | number | ✅ | double | Float64 |
+| 122 | PERPETUAL_BOND_PAYBALE | number | ✅ | double | Float64 |
+| 123 | PREDICT_CURRENT_LIAB | number | ✅ | double | Float64 |
+| 124 | PREDICT_LIAB | number | ✅ | double | Float64 |
+| 125 | PREFERRED_SHARES | number | ✅ | double | Float64 |
+| 126 | PREFERRED_SHARES_PAYBALE | number | ✅ | double | Float64 |
+| 127 | PREMIUM_RECE | number | ✅ | double | Float64 |
+| 128 | PREPAYMENT | number | ✅ | double | Float64 |
+| 129 | PRODUCTIVE_BIOLOGY_ASSET | number | ✅ | double | Float64 |
+| 130 | PROJECT_MATERIAL | number | ✅ | double | Float64 |
+| 131 | RC_RESERVE_RECE | number | ✅ | double | Float64 |
+| 132 | REINSURE_PAYABLE | number | ✅ | double | Float64 |
+| 133 | REINSURE_RECE | number | ✅ | double | Float64 |
+| 134 | SELL_REPO_FINASSET | number | ✅ | double | Float64 |
+| 135 | SETTLE_EXCESS_RESERVE | number | ✅ | double | Float64 |
+| 136 | SHARE_CAPITAL | number | ✅ | double | Float64 |
+| 137 | SHORT_BOND_PAYABLE | number | ✅ | double | Float64 |
+| 138 | SHORT_FIN_PAYABLE | number | ✅ | double | Float64 |
+| 139 | SHORT_LOAN | number | ✅ | double | Float64 |
+| 140 | SPECIAL_PAYABLE | number | ✅ | double | Float64 |
+| 141 | SPECIAL_RESERVE | number | ✅ | double | Float64 |
+| 142 | STAFF_SALARY_PAYABLE | number | ✅ | double | Float64 |
+| 143 | SUBSIDY_RECE | number | ✅ | double | Float64 |
+| 144 | SURPLUS_RESERVE | number | ✅ | double | Float64 |
+| 145 | TAX_PAYABLE | number | ✅ | double | Float64 |
+| 146 | TOTAL_ASSETS | number | ✅ | double | Float64 |
+| 147 | TOTAL_CURRENT_ASSETS | number | ✅ | double | Float64 |
+| 148 | TOTAL_CURRENT_LIAB | number | ✅ | double | Float64 |
+| 149 | TOTAL_EQUITY | number | ✅ | double | Float64 |
+| 150 | TOTAL_LIAB_EQUITY | number | ✅ | double | Float64 |
+| 151 | TOTAL_LIABILITIES | number | ✅ | double | Float64 |
+| 152 | TOTAL_NONCURRENT_ASSETS | number | ✅ | double | Float64 |
+| 153 | TOTAL_NONCURRENT_LIAB | number | ✅ | double | Float64 |
+| 154 | TOTAL_OTHER_PAYABLE | number | ✅ | double | Float64 |
+| 155 | TOTAL_OTHER_RECE | number | ✅ | double | Float64 |
+| 156 | TOTAL_PARENT_EQUITY | number | ✅ | double | Float64 |
+| 157 | TRADE_FINASSET | number | ✅ | double | Float64 |
+| 158 | TRADE_FINASSET_NOTFVTPL | number | ✅ | double | Float64 |
+| 159 | TRADE_FINLIAB | number | ✅ | double | Float64 |
+| 160 | TRADE_FINLIAB_NOTFVTPL | number | ✅ | double | Float64 |
+| 161 | TREASURY_SHARES | number | ✅ | double | Float64 |
+| 162 | UNASSIGN_RPOFIT | number | ✅ | double | Float64 |
+| 163 | UNCONFIRM_INVEST_LOSS | number | ✅ | double | Float64 |
+| 164 | USERIGHT_ASSET | number | ✅ | double | Float64 |
+| 165 | ACCEPT_DEPOSIT_INTERBANK_YOY | number | ✅ | double | Float64 |
+| 166 | ACCOUNTS_PAYABLE_YOY | number | ✅ | double | Float64 |
+| 167 | ACCOUNTS_RECE_YOY | number | ✅ | double | Float64 |
+| 168 | ACCRUED_EXPENSE_YOY | number | ✅ | double | Float64 |
+| 169 | ADVANCE_RECEIVABLES_YOY | number | ✅ | double | Float64 |
+| 170 | AGENT_TRADE_SECURITY_YOY | number | ✅ | double | Float64 |
+| 171 | AGENT_UNDERWRITE_SECURITY_YOY | number | ✅ | double | Float64 |
+| 172 | AMORTIZE_COST_FINASSET_YOY | number | ✅ | double | Float64 |
+| 173 | AMORTIZE_COST_FINLIAB_YOY | number | ✅ | double | Float64 |
+| 174 | AMORTIZE_COST_NCFINASSET_YOY | number | ✅ | double | Float64 |
+| 175 | AMORTIZE_COST_NCFINLIAB_YOY | number | ✅ | double | Float64 |
+| 176 | APPOINT_FVTPL_FINASSET_YOY | number | ✅ | double | Float64 |
+| 177 | APPOINT_FVTPL_FINLIAB_YOY | number | ✅ | double | Float64 |
+| 178 | ASSET_BALANCE_YOY | number | ✅ | double | Float64 |
+| 179 | ASSET_OTHER_YOY | number | ✅ | double | Float64 |
+| 180 | ASSIGN_CASH_DIVIDEND_YOY | number | ✅ | double | Float64 |
+| 181 | AVAILABLE_SALE_FINASSET_YOY | number | ✅ | double | Float64 |
+| 182 | BOND_PAYABLE_YOY | number | ✅ | double | Float64 |
+| 183 | BORROW_FUND_YOY | number | ✅ | double | Float64 |
+| 184 | BUY_RESALE_FINASSET_YOY | number | ✅ | double | Float64 |
+| 185 | CAPITAL_RESERVE_YOY | number | ✅ | double | Float64 |
+| 186 | CIP_YOY | number | ✅ | double | Float64 |
+| 187 | CONSUMPTIVE_BIOLOGICAL_ASSET_YOY | number | ✅ | double | Float64 |
+| 188 | CONTRACT_ASSET_YOY | number | ✅ | double | Float64 |
+| 189 | CONTRACT_LIAB_YOY | number | ✅ | double | Float64 |
+| 190 | CONVERT_DIFF_YOY | number | ✅ | double | Float64 |
+| 191 | CREDITOR_INVEST_YOY | number | ✅ | double | Float64 |
+| 192 | CURRENT_ASSET_BALANCE_YOY | number | ✅ | double | Float64 |
+| 193 | CURRENT_ASSET_OTHER_YOY | number | ✅ | double | Float64 |
+| 194 | CURRENT_LIAB_BALANCE_YOY | number | ✅ | double | Float64 |
+| 195 | CURRENT_LIAB_OTHER_YOY | number | ✅ | double | Float64 |
+| 196 | DEFER_INCOME_1YEAR_YOY | number | ✅ | double | Float64 |
+| 197 | DEFER_INCOME_YOY | number | ✅ | double | Float64 |
+| 198 | DEFER_TAX_ASSET_YOY | number | ✅ | double | Float64 |
+| 199 | DEFER_TAX_LIAB_YOY | number | ✅ | double | Float64 |
+| 200 | DERIVE_FINASSET_YOY | number | ✅ | double | Float64 |
+| 201 | DERIVE_FINLIAB_YOY | number | ✅ | double | Float64 |
+| 202 | DEVELOP_EXPENSE_YOY | number | ✅ | double | Float64 |
+| 203 | DIV_HOLDSALE_ASSET_YOY | number | ✅ | double | Float64 |
+| 204 | DIV_HOLDSALE_LIAB_YOY | number | ✅ | double | Float64 |
+| 205 | DIVIDEND_PAYABLE_YOY | number | ✅ | double | Float64 |
+| 206 | DIVIDEND_RECE_YOY | number | ✅ | double | Float64 |
+| 207 | EQUITY_BALANCE_YOY | number | ✅ | double | Float64 |
+| 208 | EQUITY_OTHER_YOY | number | ✅ | double | Float64 |
+| 209 | EXPORT_REFUND_RECE_YOY | number | ✅ | double | Float64 |
+| 210 | FEE_COMMISSION_PAYABLE_YOY | number | ✅ | double | Float64 |
+| 211 | FIN_FUND_YOY | number | ✅ | double | Float64 |
+| 212 | FINANCE_RECE_YOY | number | ✅ | double | Float64 |
+| 213 | FIXED_ASSET_DISPOSAL_YOY | number | ✅ | double | Float64 |
+| 214 | FIXED_ASSET_YOY | number | ✅ | double | Float64 |
+| 215 | FVTOCI_FINASSET_YOY | number | ✅ | double | Float64 |
+| 216 | FVTOCI_NCFINASSET_YOY | number | ✅ | double | Float64 |
+| 217 | FVTPL_FINASSET_YOY | number | ✅ | double | Float64 |
+| 218 | FVTPL_FINLIAB_YOY | number | ✅ | double | Float64 |
+| 219 | GENERAL_RISK_RESERVE_YOY | number | ✅ | double | Float64 |
+| 220 | GOODWILL_YOY | number | ✅ | double | Float64 |
+| 221 | HOLD_MATURITY_INVEST_YOY | number | ✅ | double | Float64 |
+| 222 | HOLDSALE_ASSET_YOY | number | ✅ | double | Float64 |
+| 223 | HOLDSALE_LIAB_YOY | number | ✅ | double | Float64 |
+| 224 | INSURANCE_CONTRACT_RESERVE_YOY | number | ✅ | double | Float64 |
+| 225 | INTANGIBLE_ASSET_YOY | number | ✅ | double | Float64 |
+| 226 | INTEREST_PAYABLE_YOY | number | ✅ | double | Float64 |
+| 227 | INTEREST_RECE_YOY | number | ✅ | double | Float64 |
+| 228 | INTERNAL_PAYABLE_YOY | number | ✅ | double | Float64 |
+| 229 | INTERNAL_RECE_YOY | number | ✅ | double | Float64 |
+| 230 | INVENTORY_YOY | number | ✅ | double | Float64 |
+| 231 | INVEST_REALESTATE_YOY | number | ✅ | double | Float64 |
+| 232 | LEASE_LIAB_YOY | number | ✅ | double | Float64 |
+| 233 | LEND_FUND_YOY | number | ✅ | double | Float64 |
+| 234 | LIAB_BALANCE_YOY | number | ✅ | double | Float64 |
+| 235 | LIAB_EQUITY_BALANCE_YOY | number | ✅ | double | Float64 |
+| 236 | LIAB_EQUITY_OTHER_YOY | number | ✅ | double | Float64 |
+| 237 | LIAB_OTHER_YOY | number | ✅ | double | Float64 |
+| 238 | LOAN_ADVANCE_YOY | number | ✅ | double | Float64 |
+| 239 | LOAN_PBC_YOY | number | ✅ | double | Float64 |
+| 240 | LONG_EQUITY_INVEST_YOY | number | ✅ | double | Float64 |
+| 241 | LONG_LOAN_YOY | number | ✅ | double | Float64 |
+| 242 | LONG_PAYABLE_YOY | number | ✅ | double | Float64 |
+| 243 | LONG_PREPAID_EXPENSE_YOY | number | ✅ | double | Float64 |
+| 244 | LONG_RECE_YOY | number | ✅ | double | Float64 |
+| 245 | LONG_STAFFSALARY_PAYABLE_YOY | number | ✅ | double | Float64 |
+| 246 | MINORITY_EQUITY_YOY | number | ✅ | double | Float64 |
+| 247 | MONETARYFUNDS_YOY | number | ✅ | double | Float64 |
+| 248 | NONCURRENT_ASSET_1YEAR_YOY | number | ✅ | double | Float64 |
+| 249 | NONCURRENT_ASSET_BALANCE_YOY | number | ✅ | double | Float64 |
+| 250 | NONCURRENT_ASSET_OTHER_YOY | number | ✅ | double | Float64 |
+| 251 | NONCURRENT_LIAB_1YEAR_YOY | number | ✅ | double | Float64 |
+| 252 | NONCURRENT_LIAB_BALANCE_YOY | number | ✅ | double | Float64 |
+| 253 | NONCURRENT_LIAB_OTHER_YOY | number | ✅ | double | Float64 |
+| 254 | NOTE_ACCOUNTS_PAYABLE_YOY | number | ✅ | double | Float64 |
+| 255 | NOTE_ACCOUNTS_RECE_YOY | number | ✅ | double | Float64 |
+| 256 | NOTE_PAYABLE_YOY | number | ✅ | double | Float64 |
+| 257 | NOTE_RECE_YOY | number | ✅ | double | Float64 |
+| 258 | OIL_GAS_ASSET_YOY | number | ✅ | double | Float64 |
+| 259 | OTHER_COMPRE_INCOME_YOY | number | ✅ | double | Float64 |
+| 260 | OTHER_CREDITOR_INVEST_YOY | number | ✅ | double | Float64 |
+| 261 | OTHER_CURRENT_ASSET_YOY | number | ✅ | double | Float64 |
+| 262 | OTHER_CURRENT_LIAB_YOY | number | ✅ | double | Float64 |
+| 263 | OTHER_EQUITY_INVEST_YOY | number | ✅ | double | Float64 |
+| 264 | OTHER_EQUITY_OTHER_YOY | number | ✅ | double | Float64 |
+| 265 | OTHER_EQUITY_TOOL_YOY | number | ✅ | double | Float64 |
+| 266 | OTHER_NONCURRENT_ASSET_YOY | number | ✅ | double | Float64 |
+| 267 | OTHER_NONCURRENT_FINASSET_YOY | number | ✅ | double | Float64 |
+| 268 | OTHER_NONCURRENT_LIAB_YOY | number | ✅ | double | Float64 |
+| 269 | OTHER_PAYABLE_YOY | number | ✅ | double | Float64 |
+| 270 | OTHER_RECE_YOY | number | ✅ | double | Float64 |
+| 271 | PARENT_EQUITY_BALANCE_YOY | number | ✅ | double | Float64 |
+| 272 | PARENT_EQUITY_OTHER_YOY | number | ✅ | double | Float64 |
+| 273 | PERPETUAL_BOND_PAYBALE_YOY | number | ✅ | double | Float64 |
+| 274 | PERPETUAL_BOND_YOY | number | ✅ | double | Float64 |
+| 275 | PREDICT_CURRENT_LIAB_YOY | number | ✅ | double | Float64 |
+| 276 | PREDICT_LIAB_YOY | number | ✅ | double | Float64 |
+| 277 | PREFERRED_SHARES_PAYBALE_YOY | number | ✅ | double | Float64 |
+| 278 | PREFERRED_SHARES_YOY | number | ✅ | double | Float64 |
+| 279 | PREMIUM_RECE_YOY | number | ✅ | double | Float64 |
+| 280 | PREPAYMENT_YOY | number | ✅ | double | Float64 |
+| 281 | PRODUCTIVE_BIOLOGY_ASSET_YOY | number | ✅ | double | Float64 |
+| 282 | PROJECT_MATERIAL_YOY | number | ✅ | double | Float64 |
+| 283 | RC_RESERVE_RECE_YOY | number | ✅ | double | Float64 |
+| 284 | REINSURE_PAYABLE_YOY | number | ✅ | double | Float64 |
+| 285 | REINSURE_RECE_YOY | number | ✅ | double | Float64 |
+| 286 | SELL_REPO_FINASSET_YOY | number | ✅ | double | Float64 |
+| 287 | SETTLE_EXCESS_RESERVE_YOY | number | ✅ | double | Float64 |
+| 288 | SHARE_CAPITAL_YOY | number | ✅ | double | Float64 |
+| 289 | SHORT_BOND_PAYABLE_YOY | number | ✅ | double | Float64 |
+| 290 | SHORT_FIN_PAYABLE_YOY | number | ✅ | double | Float64 |
+| 291 | SHORT_LOAN_YOY | number | ✅ | double | Float64 |
+| 292 | SPECIAL_PAYABLE_YOY | number | ✅ | double | Float64 |
+| 293 | SPECIAL_RESERVE_YOY | number | ✅ | double | Float64 |
+| 294 | STAFF_SALARY_PAYABLE_YOY | number | ✅ | double | Float64 |
+| 295 | SUBSIDY_RECE_YOY | number | ✅ | double | Float64 |
+| 296 | SURPLUS_RESERVE_YOY | number | ✅ | double | Float64 |
+| 297 | TAX_PAYABLE_YOY | number | ✅ | double | Float64 |
+| 298 | TOTAL_ASSETS_YOY | number | ✅ | double | Float64 |
+| 299 | TOTAL_CURRENT_ASSETS_YOY | number | ✅ | double | Float64 |
+| 300 | TOTAL_CURRENT_LIAB_YOY | number | ✅ | double | Float64 |
+| 301 | TOTAL_EQUITY_YOY | number | ✅ | double | Float64 |
+| 302 | TOTAL_LIAB_EQUITY_YOY | number | ✅ | double | Float64 |
+| 303 | TOTAL_LIABILITIES_YOY | number | ✅ | double | Float64 |
+| 304 | TOTAL_NONCURRENT_ASSETS_YOY | number | ✅ | double | Float64 |
+| 305 | TOTAL_NONCURRENT_LIAB_YOY | number | ✅ | double | Float64 |
+| 306 | TOTAL_OTHER_PAYABLE_YOY | number | ✅ | double | Float64 |
+| 307 | TOTAL_OTHER_RECE_YOY | number | ✅ | double | Float64 |
+| 308 | TOTAL_PARENT_EQUITY_YOY | number | ✅ | double | Float64 |
+| 309 | TRADE_FINASSET_NOTFVTPL_YOY | number | ✅ | double | Float64 |
+| 310 | TRADE_FINASSET_YOY | number | ✅ | double | Float64 |
+| 311 | TRADE_FINLIAB_NOTFVTPL_YOY | number | ✅ | double | Float64 |
+| 312 | TRADE_FINLIAB_YOY | number | ✅ | double | Float64 |
+| 313 | TREASURY_SHARES_YOY | number | ✅ | double | Float64 |
+| 314 | UNASSIGN_RPOFIT_YOY | number | ✅ | double | Float64 |
+| 315 | UNCONFIRM_INVEST_LOSS_YOY | number | ✅ | double | Float64 |
+| 316 | USERIGHT_ASSET_YOY | number | ✅ | double | Float64 |
+| 317 | OPINION_TYPE | number | ✅ | string | LowCardinality(String) |
+| 318 | OSOPINION_TYPE | number | ✅ | string | LowCardinality(String) |
+| 319 | LISTING_STATE | string | ✅ | string | LowCardinality(String) |
 
 ## 统计
 

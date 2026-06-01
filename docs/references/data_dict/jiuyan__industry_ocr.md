@@ -5,13 +5,13 @@
 
 ## 字段对比
 
-| # | 字段名 | OpenAPI 类型 | 资产使用 | PyArrow 类型 |
-|---|--------|-------------|---------|-------------|
-| 1 | stock_name | string | ✅ | string |
-| 2 | theme_path | array | ✅ | string |
-| 3 | source | string | ✅ | string |
-| 4 | industry_id | N/A | ✅ | string |
-| 5 | relation | N/A | ✅ | string |
+| # | 字段名 | OpenAPI 类型 | 资产使用 | PyArrow 类型 | ClickHouse 类型 |
+|---|--------|-------------|---------|-------------|----------------|
+| 1 | stock_name | string | ✅ | string | LowCardinality(String) |
+| 2 | theme_path | array | ✅ | string | LowCardinality(String) |
+| 3 | source | string | ✅ | string | LowCardinality(String) |
+| 4 | industry_id | N/A | ✅ | string | LowCardinality(String) |
+| 5 | relation | N/A | ✅ | string | LowCardinality(String) |
 
 ## 统计
 

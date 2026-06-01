@@ -5,380 +5,380 @@
 
 ## 字段对比
 
-| # | 字段名 | OpenAPI 类型 | 资产使用 | PyArrow 类型 |
-|---|--------|-------------|---------|-------------|
-| 1 | SECUCODE | string | ✅ | string |
-| 2 | SECURITY_CODE | string | ✅ | string |
-| 3 | SECURITY_NAME_ABBR | string | ✅ | string |
-| 4 | ORG_CODE | string | ✅ | string |
-| 5 | ORG_TYPE | string | ✅ | string |
-| 6 | REPORT_DATE | string | ✅ | date32[day] |
-| 7 | REPORT_TYPE | string | ✅ | string |
-| 8 | REPORT_DATE_NAME | string | ✅ | string |
-| 9 | SECURITY_TYPE_CODE | string | ✅ | string |
-| 10 | NOTICE_DATE | string | ✅ | date32[day] |
-| 11 | UPDATE_DATE | string | ✅ | date32[day] |
-| 12 | CURRENCY | string | ✅ | string |
-| 13 | SALES_SERVICES | number | ✅ | double |
-| 14 | DEPOSIT_INTERBANK_ADD | number | ✅ | double |
-| 15 | LOAN_PBC_ADD | number | ✅ | double |
-| 16 | OFI_BF_ADD | number | ✅ | double |
-| 17 | RECEIVE_ORIGIC_PREMIUM | number | ✅ | double |
-| 18 | RECEIVE_REINSURE_NET | number | ✅ | double |
-| 19 | INSURED_INVEST_ADD | number | ✅ | double |
-| 20 | DISPOSAL_TFA_ADD | number | ✅ | double |
-| 21 | RECEIVE_INTEREST_COMMISSION | number | ✅ | double |
-| 22 | BORROW_FUND_ADD | number | ✅ | double |
-| 23 | LOAN_ADVANCE_REDUCE | number | ✅ | double |
-| 24 | REPO_BUSINESS_ADD | number | ✅ | double |
-| 25 | RECEIVE_TAX_REFUND | number | ✅ | double |
-| 26 | RECEIVE_OTHER_OPERATE | number | ✅ | double |
-| 27 | OPERATE_INFLOW_OTHER | number | ✅ | double |
-| 28 | OPERATE_INFLOW_BALANCE | number | ✅ | double |
-| 29 | TOTAL_OPERATE_INFLOW | number | ✅ | double |
-| 30 | BUY_SERVICES | number | ✅ | double |
-| 31 | LOAN_ADVANCE_ADD | number | ✅ | double |
-| 32 | PBC_INTERBANK_ADD | number | ✅ | double |
-| 33 | PAY_ORIGIC_COMPENSATE | number | ✅ | double |
-| 34 | PAY_INTEREST_COMMISSION | number | ✅ | double |
-| 35 | PAY_POLICY_BONUS | number | ✅ | double |
-| 36 | PAY_STAFF_CASH | number | ✅ | double |
-| 37 | PAY_ALL_TAX | number | ✅ | double |
-| 38 | PAY_OTHER_OPERATE | number | ✅ | double |
-| 39 | OPERATE_OUTFLOW_OTHER | number | ✅ | double |
-| 40 | OPERATE_OUTFLOW_BALANCE | number | ✅ | double |
-| 41 | TOTAL_OPERATE_OUTFLOW | number | ✅ | double |
-| 42 | OPERATE_NETCASH_OTHER | number | ✅ | double |
-| 43 | OPERATE_NETCASH_BALANCE | number | ✅ | double |
-| 44 | NETCASH_OPERATE | number | ✅ | double |
-| 45 | WITHDRAW_INVEST | number | ✅ | double |
-| 46 | RECEIVE_INVEST_INCOME | number | ✅ | double |
-| 47 | DISPOSAL_LONG_ASSET | number | ✅ | double |
-| 48 | DISPOSAL_SUBSIDIARY_OTHER | number | ✅ | double |
-| 49 | REDUCE_PLEDGE_TIMEDEPOSITS | number | ✅ | double |
-| 50 | RECEIVE_OTHER_INVEST | number | ✅ | double |
-| 51 | INVEST_INFLOW_OTHER | number | ✅ | double |
-| 52 | INVEST_INFLOW_BALANCE | number | ✅ | double |
-| 53 | TOTAL_INVEST_INFLOW | number | ✅ | double |
-| 54 | CONSTRUCT_LONG_ASSET | number | ✅ | double |
-| 55 | INVEST_PAY_CASH | number | ✅ | double |
-| 56 | PLEDGE_LOAN_ADD | number | ✅ | double |
-| 57 | OBTAIN_SUBSIDIARY_OTHER | number | ✅ | double |
-| 58 | ADD_PLEDGE_TIMEDEPOSITS | number | ✅ | double |
-| 59 | PAY_OTHER_INVEST | number | ✅ | double |
-| 60 | INVEST_OUTFLOW_OTHER | number | ✅ | double |
-| 61 | INVEST_OUTFLOW_BALANCE | number | ✅ | double |
-| 62 | TOTAL_INVEST_OUTFLOW | number | ✅ | double |
-| 63 | INVEST_NETCASH_OTHER | number | ✅ | double |
-| 64 | INVEST_NETCASH_BALANCE | number | ✅ | double |
-| 65 | NETCASH_INVEST | number | ✅ | double |
-| 66 | ACCEPT_INVEST_CASH | number | ✅ | double |
-| 67 | SUBSIDIARY_ACCEPT_INVEST | number | ✅ | double |
-| 68 | RECEIVE_LOAN_CASH | number | ✅ | double |
-| 69 | ISSUE_BOND | number | ✅ | double |
-| 70 | RECEIVE_OTHER_FINANCE | number | ✅ | double |
-| 71 | FINANCE_INFLOW_OTHER | number | ✅ | double |
-| 72 | FINANCE_INFLOW_BALANCE | number | ✅ | double |
-| 73 | TOTAL_FINANCE_INFLOW | number | ✅ | double |
-| 74 | PAY_DEBT_CASH | number | ✅ | double |
-| 75 | ASSIGN_DIVIDEND_PORFIT | number | ✅ | double |
-| 76 | SUBSIDIARY_PAY_DIVIDEND | number | ✅ | double |
-| 77 | BUY_SUBSIDIARY_EQUITY | number | ✅ | double |
-| 78 | PAY_OTHER_FINANCE | number | ✅ | double |
-| 79 | SUBSIDIARY_REDUCE_CASH | number | ✅ | double |
-| 80 | FINANCE_OUTFLOW_OTHER | number | ✅ | double |
-| 81 | FINANCE_OUTFLOW_BALANCE | number | ✅ | double |
-| 82 | TOTAL_FINANCE_OUTFLOW | number | ✅ | double |
-| 83 | FINANCE_NETCASH_OTHER | number | ✅ | double |
-| 84 | FINANCE_NETCASH_BALANCE | number | ✅ | double |
-| 85 | NETCASH_FINANCE | number | ✅ | double |
-| 86 | RATE_CHANGE_EFFECT | number | ✅ | double |
-| 87 | CCE_ADD_OTHER | number | ✅ | double |
-| 88 | CCE_ADD_BALANCE | number | ✅ | double |
-| 89 | CCE_ADD | number | ✅ | double |
-| 90 | BEGIN_CCE | number | ✅ | double |
-| 91 | END_CCE_OTHER | number | ✅ | double |
-| 92 | END_CCE_BALANCE | number | ✅ | double |
-| 93 | END_CCE | number | ✅ | double |
-| 94 | SALES_SERVICES_QOQ | number | ✅ | double |
-| 95 | DEPOSIT_INTERBANK_ADD_QOQ | number | ✅ | double |
-| 96 | LOAN_PBC_ADD_QOQ | number | ✅ | double |
-| 97 | OFI_BF_ADD_QOQ | number | ✅ | double |
-| 98 | RECEIVE_ORIGIC_PREMIUM_QOQ | number | ✅ | double |
-| 99 | RECEIVE_REINSURE_NET_QOQ | number | ✅ | double |
-| 100 | INSURED_INVEST_ADD_QOQ | number | ✅ | double |
-| 101 | DISPOSAL_TFA_ADD_QOQ | number | ✅ | double |
-| 102 | RECEIVE_INTEREST_COMMISSION_QOQ | number | ✅ | double |
-| 103 | BORROW_FUND_ADD_QOQ | number | ✅ | double |
-| 104 | LOAN_ADVANCE_REDUCE_QOQ | number | ✅ | double |
-| 105 | REPO_BUSINESS_ADD_QOQ | number | ✅ | double |
-| 106 | RECEIVE_TAX_REFUND_QOQ | number | ✅ | double |
-| 107 | RECEIVE_OTHER_OPERATE_QOQ | number | ✅ | double |
-| 108 | OPERATE_INFLOW_OTHER_QOQ | number | ✅ | double |
-| 109 | OPERATE_INFLOW_BALANCE_QOQ | number | ✅ | double |
-| 110 | TOTAL_OPERATE_INFLOW_QOQ | number | ✅ | double |
-| 111 | BUY_SERVICES_QOQ | number | ✅ | double |
-| 112 | LOAN_ADVANCE_ADD_QOQ | number | ✅ | double |
-| 113 | PBC_INTERBANK_ADD_QOQ | number | ✅ | double |
-| 114 | PAY_ORIGIC_COMPENSATE_QOQ | number | ✅ | double |
-| 115 | PAY_INTEREST_COMMISSION_QOQ | number | ✅ | double |
-| 116 | PAY_POLICY_BONUS_QOQ | number | ✅ | double |
-| 117 | PAY_STAFF_CASH_QOQ | number | ✅ | double |
-| 118 | PAY_ALL_TAX_QOQ | number | ✅ | double |
-| 119 | PAY_OTHER_OPERATE_QOQ | number | ✅ | double |
-| 120 | OPERATE_OUTFLOW_OTHER_QOQ | number | ✅ | double |
-| 121 | OPERATE_OUTFLOW_BALANCE_QOQ | number | ✅ | double |
-| 122 | TOTAL_OPERATE_OUTFLOW_QOQ | number | ✅ | double |
-| 123 | OPERATE_NETCASH_OTHER_QOQ | number | ✅ | double |
-| 124 | OPERATE_NETCASH_BALANCE_QOQ | number | ✅ | double |
-| 125 | NETCASH_OPERATE_QOQ | number | ✅ | double |
-| 126 | WITHDRAW_INVEST_QOQ | number | ✅ | double |
-| 127 | RECEIVE_INVEST_INCOME_QOQ | number | ✅ | double |
-| 128 | DISPOSAL_LONG_ASSET_QOQ | number | ✅ | double |
-| 129 | DISPOSAL_SUBSIDIARY_OTHER_QOQ | number | ✅ | double |
-| 130 | REDUCE_PLEDGE_TIMEDEPOSITS_QOQ | number | ✅ | double |
-| 131 | RECEIVE_OTHER_INVEST_QOQ | number | ✅ | double |
-| 132 | INVEST_INFLOW_OTHER_QOQ | number | ✅ | double |
-| 133 | INVEST_INFLOW_BALANCE_QOQ | number | ✅ | double |
-| 134 | TOTAL_INVEST_INFLOW_QOQ | number | ✅ | double |
-| 135 | CONSTRUCT_LONG_ASSET_QOQ | number | ✅ | double |
-| 136 | INVEST_PAY_CASH_QOQ | number | ✅ | double |
-| 137 | PLEDGE_LOAN_ADD_QOQ | number | ✅ | double |
-| 138 | OBTAIN_SUBSIDIARY_OTHER_QOQ | number | ✅ | double |
-| 139 | ADD_PLEDGE_TIMEDEPOSITS_QOQ | number | ✅ | double |
-| 140 | PAY_OTHER_INVEST_QOQ | number | ✅ | double |
-| 141 | INVEST_OUTFLOW_OTHER_QOQ | number | ✅ | double |
-| 142 | INVEST_OUTFLOW_BALANCE_QOQ | number | ✅ | double |
-| 143 | TOTAL_INVEST_OUTFLOW_QOQ | number | ✅ | double |
-| 144 | INVEST_NETCASH_OTHER_QOQ | number | ✅ | double |
-| 145 | INVEST_NETCASH_BALANCE_QOQ | number | ✅ | double |
-| 146 | NETCASH_INVEST_QOQ | number | ✅ | double |
-| 147 | ACCEPT_INVEST_CASH_QOQ | number | ✅ | double |
-| 148 | SUBSIDIARY_ACCEPT_INVEST_QOQ | number | ✅ | double |
-| 149 | RECEIVE_LOAN_CASH_QOQ | number | ✅ | double |
-| 150 | ISSUE_BOND_QOQ | number | ✅ | double |
-| 151 | RECEIVE_OTHER_FINANCE_QOQ | number | ✅ | double |
-| 152 | FINANCE_INFLOW_OTHER_QOQ | number | ✅ | double |
-| 153 | FINANCE_INFLOW_BALANCE_QOQ | number | ✅ | double |
-| 154 | TOTAL_FINANCE_INFLOW_QOQ | number | ✅ | double |
-| 155 | PAY_DEBT_CASH_QOQ | number | ✅ | double |
-| 156 | ASSIGN_DIVIDEND_PORFIT_QOQ | number | ✅ | double |
-| 157 | SUBSIDIARY_PAY_DIVIDEND_QOQ | number | ✅ | double |
-| 158 | BUY_SUBSIDIARY_EQUITY_QOQ | number | ✅ | double |
-| 159 | PAY_OTHER_FINANCE_QOQ | number | ✅ | double |
-| 160 | SUBSIDIARY_REDUCE_CASH_QOQ | number | ✅ | double |
-| 161 | FINANCE_OUTFLOW_OTHER_QOQ | number | ✅ | double |
-| 162 | FINANCE_OUTFLOW_BALANCE_QOQ | number | ✅ | double |
-| 163 | TOTAL_FINANCE_OUTFLOW_QOQ | number | ✅ | double |
-| 164 | FINANCE_NETCASH_OTHER_QOQ | number | ✅ | double |
-| 165 | FINANCE_NETCASH_BALANCE_QOQ | number | ✅ | double |
-| 166 | NETCASH_FINANCE_QOQ | number | ✅ | double |
-| 167 | RATE_CHANGE_EFFECT_QOQ | number | ✅ | double |
-| 168 | CCE_ADD_OTHER_QOQ | number | ✅ | double |
-| 169 | CCE_ADD_BALANCE_QOQ | number | ✅ | double |
-| 170 | CCE_ADD_QOQ | number | ✅ | double |
-| 171 | BEGIN_CCE_QOQ | number | ✅ | double |
-| 172 | END_CCE_OTHER_QOQ | number | ✅ | double |
-| 173 | END_CCE_BALANCE_QOQ | number | ✅ | double |
-| 174 | END_CCE_QOQ | number | ✅ | double |
-| 175 | NETPROFIT | number | ✅ | double |
-| 176 | ASSET_IMPAIRMENT | number | ✅ | double |
-| 177 | FA_IR_DEPR | number | ✅ | double |
-| 178 | OILGAS_BIOLOGY_DEPR | number | ✅ | double |
-| 179 | IR_DEPR | number | ✅ | double |
-| 180 | IA_AMORTIZE | number | ✅ | double |
-| 181 | LPE_AMORTIZE | number | ✅ | double |
-| 182 | DEFER_INCOME_AMORTIZE | number | ✅ | double |
-| 183 | PREPAID_EXPENSE_REDUCE | number | ✅ | double |
-| 184 | ACCRUED_EXPENSE_ADD | number | ✅ | double |
-| 185 | DISPOSAL_LONGASSET_LOSS | number | ✅ | double |
-| 186 | FA_SCRAP_LOSS | number | ✅ | double |
-| 187 | FAIRVALUE_CHANGE_LOSS | number | ✅ | double |
-| 188 | FINANCE_EXPENSE | number | ✅ | double |
-| 189 | INVEST_LOSS | number | ✅ | double |
-| 190 | DEFER_TAX | number | ✅ | double |
-| 191 | DT_ASSET_REDUCE | number | ✅ | double |
-| 192 | DT_LIAB_ADD | number | ✅ | double |
-| 193 | PREDICT_LIAB_ADD | number | ✅ | double |
-| 194 | INVENTORY_REDUCE | number | ✅ | double |
-| 195 | OPERATE_RECE_REDUCE | number | ✅ | double |
-| 196 | OPERATE_PAYABLE_ADD | number | ✅ | double |
-| 197 | OTHER | number | ✅ | double |
-| 198 | OPERATE_NETCASH_OTHERNOTE | number | ✅ | double |
-| 199 | OPERATE_NETCASH_BALANCENOTE | number | ✅ | double |
-| 200 | NETCASH_OPERATENOTE | number | ✅ | double |
-| 201 | DEBT_TRANSFER_CAPITAL | number | ✅ | double |
-| 202 | CONVERT_BOND_1YEAR | number | ✅ | double |
-| 203 | FINLEASE_OBTAIN_FA | number | ✅ | double |
-| 204 | UNINVOLVE_INVESTFIN_OTHER | number | ✅ | double |
-| 205 | END_CASH | number | ✅ | double |
-| 206 | BEGIN_CASH | number | ✅ | double |
-| 207 | END_CASH_EQUIVALENTS | number | ✅ | double |
-| 208 | BEGIN_CASH_EQUIVALENTS | number | ✅ | double |
-| 209 | CCE_ADD_OTHERNOTE | number | ✅ | double |
-| 210 | CCE_ADD_BALANCENOTE | number | ✅ | double |
-| 211 | CCE_ADDNOTE | number | ✅ | double |
-| 212 | MINORITY_INTEREST | number | ✅ | double |
-| 213 | NETPROFIT_QOQ | number | ✅ | double |
-| 214 | ASSET_IMPAIRMENT_QOQ | number | ✅ | double |
-| 215 | FA_IR_DEPR_QOQ | number | ✅ | double |
-| 216 | OILGAS_BIOLOGY_DEPR_QOQ | number | ✅ | double |
-| 217 | IR_DEPR_QOQ | number | ✅ | double |
-| 218 | IA_AMORTIZE_QOQ | number | ✅ | double |
-| 219 | LPE_AMORTIZE_QOQ | number | ✅ | double |
-| 220 | DEFER_INCOME_AMORTIZE_QOQ | number | ✅ | double |
-| 221 | PREPAID_EXPENSE_REDUCE_QOQ | number | ✅ | double |
-| 222 | ACCRUED_EXPENSE_ADD_QOQ | number | ✅ | double |
-| 223 | DISPOSAL_LONGASSET_LOSS_QOQ | number | ✅ | double |
-| 224 | FA_SCRAP_LOSS_QOQ | number | ✅ | double |
-| 225 | FAIRVALUE_CHANGE_LOSS_QOQ | number | ✅ | double |
-| 226 | FINANCE_EXPENSE_QOQ | number | ✅ | double |
-| 227 | INVEST_LOSS_QOQ | number | ✅ | double |
-| 228 | DEFER_TAX_QOQ | number | ✅ | double |
-| 229 | DT_ASSET_REDUCE_QOQ | number | ✅ | double |
-| 230 | DT_LIAB_ADD_QOQ | number | ✅ | double |
-| 231 | PREDICT_LIAB_ADD_QOQ | number | ✅ | double |
-| 232 | INVENTORY_REDUCE_QOQ | number | ✅ | double |
-| 233 | OPERATE_RECE_REDUCE_QOQ | number | ✅ | double |
-| 234 | OPERATE_PAYABLE_ADD_QOQ | number | ✅ | double |
-| 235 | OTHER_QOQ | number | ✅ | double |
-| 236 | OPERATE_NETCASH_OTHERNOTE_QOQ | number | ✅ | double |
-| 237 | OPERATE_NETCASH_BALANCENOTE_QOQ | number | ✅ | double |
-| 238 | NETCASH_OPERATENOTE_QOQ | number | ✅ | double |
-| 239 | DEBT_TRANSFER_CAPITAL_QOQ | number | ✅ | double |
-| 240 | CONVERT_BOND_1YEAR_QOQ | number | ✅ | double |
-| 241 | FINLEASE_OBTAIN_FA_QOQ | number | ✅ | double |
-| 242 | UNINVOLVE_INVESTFIN_OTHER_QOQ | number | ✅ | double |
-| 243 | END_CASH_QOQ | number | ✅ | double |
-| 244 | BEGIN_CASH_QOQ | number | ✅ | double |
-| 245 | END_CASH_EQUIVALENTS_QOQ | number | ✅ | double |
-| 246 | BEGIN_CASH_EQUIVALENTS_QOQ | number | ✅ | double |
-| 247 | CCE_ADD_OTHERNOTE_QOQ | number | ✅ | double |
-| 248 | CCE_ADD_BALANCENOTE_QOQ | number | ✅ | double |
-| 249 | CCE_ADDNOTE_QOQ | number | ✅ | double |
-| 250 | MINORITY_INTEREST_QOQ | number | ✅ | double |
-| 251 | OPINION_TYPE | number | ✅ | string |
-| 252 | OSOPINION_TYPE | number | ✅ | string |
-| 253 | LISTING_STATE | string | ✅ | string |
-| 254 | SALES_SERVICES_YOY | number | ✅ | double |
-| 255 | DEPOSIT_INTERBANK_ADD_YOY | number | ✅ | double |
-| 256 | LOAN_PBC_ADD_YOY | number | ✅ | double |
-| 257 | OFI_BF_ADD_YOY | number | ✅ | double |
-| 258 | RECEIVE_ORIGIC_PREMIUM_YOY | number | ✅ | double |
-| 259 | RECEIVE_REINSURE_NET_YOY | number | ✅ | double |
-| 260 | INSURED_INVEST_ADD_YOY | number | ✅ | double |
-| 261 | DISPOSAL_TFA_ADD_YOY | number | ✅ | double |
-| 262 | RECEIVE_INTEREST_COMMISSION_YOY | number | ✅ | double |
-| 263 | BORROW_FUND_ADD_YOY | number | ✅ | double |
-| 264 | LOAN_ADVANCE_REDUCE_YOY | number | ✅ | double |
-| 265 | REPO_BUSINESS_ADD_YOY | number | ✅ | double |
-| 266 | RECEIVE_TAX_REFUND_YOY | number | ✅ | double |
-| 267 | RECEIVE_OTHER_OPERATE_YOY | number | ✅ | double |
-| 268 | OPERATE_INFLOW_OTHER_YOY | number | ✅ | double |
-| 269 | OPERATE_INFLOW_BALANCE_YOY | number | ✅ | double |
-| 270 | TOTAL_OPERATE_INFLOW_YOY | number | ✅ | double |
-| 271 | BUY_SERVICES_YOY | number | ✅ | double |
-| 272 | LOAN_ADVANCE_ADD_YOY | number | ✅ | double |
-| 273 | PBC_INTERBANK_ADD_YOY | number | ✅ | double |
-| 274 | PAY_ORIGIC_COMPENSATE_YOY | number | ✅ | double |
-| 275 | PAY_INTEREST_COMMISSION_YOY | number | ✅ | double |
-| 276 | PAY_POLICY_BONUS_YOY | number | ✅ | double |
-| 277 | PAY_STAFF_CASH_YOY | number | ✅ | double |
-| 278 | PAY_ALL_TAX_YOY | number | ✅ | double |
-| 279 | PAY_OTHER_OPERATE_YOY | number | ✅ | double |
-| 280 | OPERATE_OUTFLOW_OTHER_YOY | number | ✅ | double |
-| 281 | OPERATE_OUTFLOW_BALANCE_YOY | number | ✅ | double |
-| 282 | TOTAL_OPERATE_OUTFLOW_YOY | number | ✅ | double |
-| 283 | OPERATE_NETCASH_OTHER_YOY | number | ✅ | double |
-| 284 | OPERATE_NETCASH_BALANCE_YOY | number | ✅ | double |
-| 285 | NETCASH_OPERATE_YOY | number | ✅ | double |
-| 286 | WITHDRAW_INVEST_YOY | number | ✅ | double |
-| 287 | RECEIVE_INVEST_INCOME_YOY | number | ✅ | double |
-| 288 | DISPOSAL_LONG_ASSET_YOY | number | ✅ | double |
-| 289 | DISPOSAL_SUBSIDIARY_OTHER_YOY | number | ✅ | double |
-| 290 | REDUCE_PLEDGE_TIMEDEPOSITS_YOY | number | ✅ | double |
-| 291 | RECEIVE_OTHER_INVEST_YOY | number | ✅ | double |
-| 292 | INVEST_INFLOW_OTHER_YOY | number | ✅ | double |
-| 293 | INVEST_INFLOW_BALANCE_YOY | number | ✅ | double |
-| 294 | TOTAL_INVEST_INFLOW_YOY | number | ✅ | double |
-| 295 | CONSTRUCT_LONG_ASSET_YOY | number | ✅ | double |
-| 296 | INVEST_PAY_CASH_YOY | number | ✅ | double |
-| 297 | PLEDGE_LOAN_ADD_YOY | number | ✅ | double |
-| 298 | OBTAIN_SUBSIDIARY_OTHER_YOY | number | ✅ | double |
-| 299 | ADD_PLEDGE_TIMEDEPOSITS_YOY | number | ✅ | double |
-| 300 | PAY_OTHER_INVEST_YOY | number | ✅ | double |
-| 301 | INVEST_OUTFLOW_OTHER_YOY | number | ✅ | double |
-| 302 | INVEST_OUTFLOW_BALANCE_YOY | number | ✅ | double |
-| 303 | TOTAL_INVEST_OUTFLOW_YOY | number | ✅ | double |
-| 304 | INVEST_NETCASH_OTHER_YOY | number | ✅ | double |
-| 305 | INVEST_NETCASH_BALANCE_YOY | number | ✅ | double |
-| 306 | NETCASH_INVEST_YOY | number | ✅ | double |
-| 307 | ACCEPT_INVEST_CASH_YOY | number | ✅ | double |
-| 308 | SUBSIDIARY_ACCEPT_INVEST_YOY | number | ✅ | double |
-| 309 | RECEIVE_LOAN_CASH_YOY | number | ✅ | double |
-| 310 | ISSUE_BOND_YOY | number | ✅ | double |
-| 311 | RECEIVE_OTHER_FINANCE_YOY | number | ✅ | double |
-| 312 | FINANCE_INFLOW_OTHER_YOY | number | ✅ | double |
-| 313 | FINANCE_INFLOW_BALANCE_YOY | number | ✅ | double |
-| 314 | TOTAL_FINANCE_INFLOW_YOY | number | ✅ | double |
-| 315 | PAY_DEBT_CASH_YOY | number | ✅ | double |
-| 316 | ASSIGN_DIVIDEND_PORFIT_YOY | number | ✅ | double |
-| 317 | SUBSIDIARY_PAY_DIVIDEND_YOY | number | ✅ | double |
-| 318 | BUY_SUBSIDIARY_EQUITY_YOY | number | ✅ | double |
-| 319 | PAY_OTHER_FINANCE_YOY | number | ✅ | double |
-| 320 | SUBSIDIARY_REDUCE_CASH_YOY | number | ✅ | double |
-| 321 | FINANCE_OUTFLOW_OTHER_YOY | number | ✅ | double |
-| 322 | FINANCE_OUTFLOW_BALANCE_YOY | number | ✅ | double |
-| 323 | TOTAL_FINANCE_OUTFLOW_YOY | number | ✅ | double |
-| 324 | FINANCE_NETCASH_OTHER_YOY | number | ✅ | double |
-| 325 | FINANCE_NETCASH_BALANCE_YOY | number | ✅ | double |
-| 326 | NETCASH_FINANCE_YOY | number | ✅ | double |
-| 327 | RATE_CHANGE_EFFECT_YOY | number | ✅ | double |
-| 328 | CCE_ADD_OTHER_YOY | number | ✅ | double |
-| 329 | CCE_ADD_BALANCE_YOY | number | ✅ | double |
-| 330 | CCE_ADD_YOY | number | ✅ | double |
-| 331 | BEGIN_CCE_YOY | number | ✅ | double |
-| 332 | END_CCE_OTHER_YOY | number | ✅ | double |
-| 333 | END_CCE_BALANCE_YOY | number | ✅ | double |
-| 334 | END_CCE_YOY | number | ✅ | double |
-| 335 | NETPROFIT_YOY | number | ✅ | double |
-| 336 | ASSET_IMPAIRMENT_YOY | number | ✅ | double |
-| 337 | FA_IR_DEPR_YOY | number | ✅ | double |
-| 338 | OILGAS_BIOLOGY_DEPR_YOY | number | ✅ | double |
-| 339 | IR_DEPR_YOY | number | ✅ | double |
-| 340 | IA_AMORTIZE_YOY | number | ✅ | double |
-| 341 | LPE_AMORTIZE_YOY | number | ✅ | double |
-| 342 | DEFER_INCOME_AMORTIZE_YOY | number | ✅ | double |
-| 343 | PREPAID_EXPENSE_REDUCE_YOY | number | ✅ | double |
-| 344 | ACCRUED_EXPENSE_ADD_YOY | number | ✅ | double |
-| 345 | DISPOSAL_LONGASSET_LOSS_YOY | number | ✅ | double |
-| 346 | FA_SCRAP_LOSS_YOY | number | ✅ | double |
-| 347 | FAIRVALUE_CHANGE_LOSS_YOY | number | ✅ | double |
-| 348 | FINANCE_EXPENSE_YOY | number | ✅ | double |
-| 349 | INVEST_LOSS_YOY | number | ✅ | double |
-| 350 | DEFER_TAX_YOY | number | ✅ | double |
-| 351 | DT_ASSET_REDUCE_YOY | number | ✅ | double |
-| 352 | DT_LIAB_ADD_YOY | number | ✅ | double |
-| 353 | PREDICT_LIAB_ADD_YOY | number | ✅ | double |
-| 354 | INVENTORY_REDUCE_YOY | number | ✅ | double |
-| 355 | OPERATE_RECE_REDUCE_YOY | number | ✅ | double |
-| 356 | OPERATE_PAYABLE_ADD_YOY | number | ✅ | double |
-| 357 | OTHER_YOY | number | ✅ | double |
-| 358 | OPERATE_NETCASH_OTHERNOTE_YOY | number | ✅ | double |
-| 359 | OPERATE_NETCASH_BALANCENOTE_YOY | number | ✅ | double |
-| 360 | NETCASH_OPERATENOTE_YOY | number | ✅ | double |
-| 361 | DEBT_TRANSFER_CAPITAL_YOY | number | ✅ | double |
-| 362 | CONVERT_BOND_1YEAR_YOY | number | ✅ | double |
-| 363 | FINLEASE_OBTAIN_FA_YOY | number | ✅ | double |
-| 364 | UNINVOLVE_INVESTFIN_OTHER_YOY | number | ✅ | double |
-| 365 | END_CASH_YOY | number | ✅ | double |
-| 366 | BEGIN_CASH_YOY | number | ✅ | double |
-| 367 | END_CASH_EQUIVALENTS_YOY | number | ✅ | double |
-| 368 | BEGIN_CASH_EQUIVALENTS_YOY | number | ✅ | double |
-| 369 | CCE_ADD_OTHERNOTE_YOY | number | ✅ | double |
-| 370 | CCE_ADD_BALANCENOTE_YOY | number | ✅ | double |
-| 371 | CCE_ADDNOTE_YOY | number | ✅ | double |
-| 372 | MINORITY_INTEREST_YOY | number | ✅ | double |
+| # | 字段名 | OpenAPI 类型 | 资产使用 | PyArrow 类型 | ClickHouse 类型 |
+|---|--------|-------------|---------|-------------|----------------|
+| 1 | SECUCODE | string | ✅ | string | LowCardinality(String) |
+| 2 | SECURITY_CODE | string | ✅ | string | LowCardinality(String) |
+| 3 | SECURITY_NAME_ABBR | string | ✅ | string | LowCardinality(String) |
+| 4 | ORG_CODE | string | ✅ | string | LowCardinality(String) |
+| 5 | ORG_TYPE | string | ✅ | string | LowCardinality(String) |
+| 6 | REPORT_DATE | string | ✅ | date32[day] | Date |
+| 7 | REPORT_TYPE | string | ✅ | string | LowCardinality(String) |
+| 8 | REPORT_DATE_NAME | string | ✅ | string | LowCardinality(String) |
+| 9 | SECURITY_TYPE_CODE | string | ✅ | string | LowCardinality(String) |
+| 10 | NOTICE_DATE | string | ✅ | date32[day] | Date |
+| 11 | UPDATE_DATE | string | ✅ | date32[day] | Date |
+| 12 | CURRENCY | string | ✅ | string | LowCardinality(String) |
+| 13 | SALES_SERVICES | number | ✅ | double | Float64 |
+| 14 | DEPOSIT_INTERBANK_ADD | number | ✅ | double | Float64 |
+| 15 | LOAN_PBC_ADD | number | ✅ | double | Float64 |
+| 16 | OFI_BF_ADD | number | ✅ | double | Float64 |
+| 17 | RECEIVE_ORIGIC_PREMIUM | number | ✅ | double | Float64 |
+| 18 | RECEIVE_REINSURE_NET | number | ✅ | double | Float64 |
+| 19 | INSURED_INVEST_ADD | number | ✅ | double | Float64 |
+| 20 | DISPOSAL_TFA_ADD | number | ✅ | double | Float64 |
+| 21 | RECEIVE_INTEREST_COMMISSION | number | ✅ | double | Float64 |
+| 22 | BORROW_FUND_ADD | number | ✅ | double | Float64 |
+| 23 | LOAN_ADVANCE_REDUCE | number | ✅ | double | Float64 |
+| 24 | REPO_BUSINESS_ADD | number | ✅ | double | Float64 |
+| 25 | RECEIVE_TAX_REFUND | number | ✅ | double | Float64 |
+| 26 | RECEIVE_OTHER_OPERATE | number | ✅ | double | Float64 |
+| 27 | OPERATE_INFLOW_OTHER | number | ✅ | double | Float64 |
+| 28 | OPERATE_INFLOW_BALANCE | number | ✅ | double | Float64 |
+| 29 | TOTAL_OPERATE_INFLOW | number | ✅ | double | Float64 |
+| 30 | BUY_SERVICES | number | ✅ | double | Float64 |
+| 31 | LOAN_ADVANCE_ADD | number | ✅ | double | Float64 |
+| 32 | PBC_INTERBANK_ADD | number | ✅ | double | Float64 |
+| 33 | PAY_ORIGIC_COMPENSATE | number | ✅ | double | Float64 |
+| 34 | PAY_INTEREST_COMMISSION | number | ✅ | double | Float64 |
+| 35 | PAY_POLICY_BONUS | number | ✅ | double | Float64 |
+| 36 | PAY_STAFF_CASH | number | ✅ | double | Float64 |
+| 37 | PAY_ALL_TAX | number | ✅ | double | Float64 |
+| 38 | PAY_OTHER_OPERATE | number | ✅ | double | Float64 |
+| 39 | OPERATE_OUTFLOW_OTHER | number | ✅ | double | Float64 |
+| 40 | OPERATE_OUTFLOW_BALANCE | number | ✅ | double | Float64 |
+| 41 | TOTAL_OPERATE_OUTFLOW | number | ✅ | double | Float64 |
+| 42 | OPERATE_NETCASH_OTHER | number | ✅ | double | Float64 |
+| 43 | OPERATE_NETCASH_BALANCE | number | ✅ | double | Float64 |
+| 44 | NETCASH_OPERATE | number | ✅ | double | Float64 |
+| 45 | WITHDRAW_INVEST | number | ✅ | double | Float64 |
+| 46 | RECEIVE_INVEST_INCOME | number | ✅ | double | Float64 |
+| 47 | DISPOSAL_LONG_ASSET | number | ✅ | double | Float64 |
+| 48 | DISPOSAL_SUBSIDIARY_OTHER | number | ✅ | double | Float64 |
+| 49 | REDUCE_PLEDGE_TIMEDEPOSITS | number | ✅ | double | Float64 |
+| 50 | RECEIVE_OTHER_INVEST | number | ✅ | double | Float64 |
+| 51 | INVEST_INFLOW_OTHER | number | ✅ | double | Float64 |
+| 52 | INVEST_INFLOW_BALANCE | number | ✅ | double | Float64 |
+| 53 | TOTAL_INVEST_INFLOW | number | ✅ | double | Float64 |
+| 54 | CONSTRUCT_LONG_ASSET | number | ✅ | double | Float64 |
+| 55 | INVEST_PAY_CASH | number | ✅ | double | Float64 |
+| 56 | PLEDGE_LOAN_ADD | number | ✅ | double | Float64 |
+| 57 | OBTAIN_SUBSIDIARY_OTHER | number | ✅ | double | Float64 |
+| 58 | ADD_PLEDGE_TIMEDEPOSITS | number | ✅ | double | Float64 |
+| 59 | PAY_OTHER_INVEST | number | ✅ | double | Float64 |
+| 60 | INVEST_OUTFLOW_OTHER | number | ✅ | double | Float64 |
+| 61 | INVEST_OUTFLOW_BALANCE | number | ✅ | double | Float64 |
+| 62 | TOTAL_INVEST_OUTFLOW | number | ✅ | double | Float64 |
+| 63 | INVEST_NETCASH_OTHER | number | ✅ | double | Float64 |
+| 64 | INVEST_NETCASH_BALANCE | number | ✅ | double | Float64 |
+| 65 | NETCASH_INVEST | number | ✅ | double | Float64 |
+| 66 | ACCEPT_INVEST_CASH | number | ✅ | double | Float64 |
+| 67 | SUBSIDIARY_ACCEPT_INVEST | number | ✅ | double | Float64 |
+| 68 | RECEIVE_LOAN_CASH | number | ✅ | double | Float64 |
+| 69 | ISSUE_BOND | number | ✅ | double | Float64 |
+| 70 | RECEIVE_OTHER_FINANCE | number | ✅ | double | Float64 |
+| 71 | FINANCE_INFLOW_OTHER | number | ✅ | double | Float64 |
+| 72 | FINANCE_INFLOW_BALANCE | number | ✅ | double | Float64 |
+| 73 | TOTAL_FINANCE_INFLOW | number | ✅ | double | Float64 |
+| 74 | PAY_DEBT_CASH | number | ✅ | double | Float64 |
+| 75 | ASSIGN_DIVIDEND_PORFIT | number | ✅ | double | Float64 |
+| 76 | SUBSIDIARY_PAY_DIVIDEND | number | ✅ | double | Float64 |
+| 77 | BUY_SUBSIDIARY_EQUITY | number | ✅ | double | Float64 |
+| 78 | PAY_OTHER_FINANCE | number | ✅ | double | Float64 |
+| 79 | SUBSIDIARY_REDUCE_CASH | number | ✅ | double | Float64 |
+| 80 | FINANCE_OUTFLOW_OTHER | number | ✅ | double | Float64 |
+| 81 | FINANCE_OUTFLOW_BALANCE | number | ✅ | double | Float64 |
+| 82 | TOTAL_FINANCE_OUTFLOW | number | ✅ | double | Float64 |
+| 83 | FINANCE_NETCASH_OTHER | number | ✅ | double | Float64 |
+| 84 | FINANCE_NETCASH_BALANCE | number | ✅ | double | Float64 |
+| 85 | NETCASH_FINANCE | number | ✅ | double | Float64 |
+| 86 | RATE_CHANGE_EFFECT | number | ✅ | double | Float64 |
+| 87 | CCE_ADD_OTHER | number | ✅ | double | Float64 |
+| 88 | CCE_ADD_BALANCE | number | ✅ | double | Float64 |
+| 89 | CCE_ADD | number | ✅ | double | Float64 |
+| 90 | BEGIN_CCE | number | ✅ | double | Float64 |
+| 91 | END_CCE_OTHER | number | ✅ | double | Float64 |
+| 92 | END_CCE_BALANCE | number | ✅ | double | Float64 |
+| 93 | END_CCE | number | ✅ | double | Float64 |
+| 94 | SALES_SERVICES_QOQ | number | ✅ | double | Float64 |
+| 95 | DEPOSIT_INTERBANK_ADD_QOQ | number | ✅ | double | Float64 |
+| 96 | LOAN_PBC_ADD_QOQ | number | ✅ | double | Float64 |
+| 97 | OFI_BF_ADD_QOQ | number | ✅ | double | Float64 |
+| 98 | RECEIVE_ORIGIC_PREMIUM_QOQ | number | ✅ | double | Float64 |
+| 99 | RECEIVE_REINSURE_NET_QOQ | number | ✅ | double | Float64 |
+| 100 | INSURED_INVEST_ADD_QOQ | number | ✅ | double | Float64 |
+| 101 | DISPOSAL_TFA_ADD_QOQ | number | ✅ | double | Float64 |
+| 102 | RECEIVE_INTEREST_COMMISSION_QOQ | number | ✅ | double | Float64 |
+| 103 | BORROW_FUND_ADD_QOQ | number | ✅ | double | Float64 |
+| 104 | LOAN_ADVANCE_REDUCE_QOQ | number | ✅ | double | Float64 |
+| 105 | REPO_BUSINESS_ADD_QOQ | number | ✅ | double | Float64 |
+| 106 | RECEIVE_TAX_REFUND_QOQ | number | ✅ | double | Float64 |
+| 107 | RECEIVE_OTHER_OPERATE_QOQ | number | ✅ | double | Float64 |
+| 108 | OPERATE_INFLOW_OTHER_QOQ | number | ✅ | double | Float64 |
+| 109 | OPERATE_INFLOW_BALANCE_QOQ | number | ✅ | double | Float64 |
+| 110 | TOTAL_OPERATE_INFLOW_QOQ | number | ✅ | double | Float64 |
+| 111 | BUY_SERVICES_QOQ | number | ✅ | double | Float64 |
+| 112 | LOAN_ADVANCE_ADD_QOQ | number | ✅ | double | Float64 |
+| 113 | PBC_INTERBANK_ADD_QOQ | number | ✅ | double | Float64 |
+| 114 | PAY_ORIGIC_COMPENSATE_QOQ | number | ✅ | double | Float64 |
+| 115 | PAY_INTEREST_COMMISSION_QOQ | number | ✅ | double | Float64 |
+| 116 | PAY_POLICY_BONUS_QOQ | number | ✅ | double | Float64 |
+| 117 | PAY_STAFF_CASH_QOQ | number | ✅ | double | Float64 |
+| 118 | PAY_ALL_TAX_QOQ | number | ✅ | double | Float64 |
+| 119 | PAY_OTHER_OPERATE_QOQ | number | ✅ | double | Float64 |
+| 120 | OPERATE_OUTFLOW_OTHER_QOQ | number | ✅ | double | Float64 |
+| 121 | OPERATE_OUTFLOW_BALANCE_QOQ | number | ✅ | double | Float64 |
+| 122 | TOTAL_OPERATE_OUTFLOW_QOQ | number | ✅ | double | Float64 |
+| 123 | OPERATE_NETCASH_OTHER_QOQ | number | ✅ | double | Float64 |
+| 124 | OPERATE_NETCASH_BALANCE_QOQ | number | ✅ | double | Float64 |
+| 125 | NETCASH_OPERATE_QOQ | number | ✅ | double | Float64 |
+| 126 | WITHDRAW_INVEST_QOQ | number | ✅ | double | Float64 |
+| 127 | RECEIVE_INVEST_INCOME_QOQ | number | ✅ | double | Float64 |
+| 128 | DISPOSAL_LONG_ASSET_QOQ | number | ✅ | double | Float64 |
+| 129 | DISPOSAL_SUBSIDIARY_OTHER_QOQ | number | ✅ | double | Float64 |
+| 130 | REDUCE_PLEDGE_TIMEDEPOSITS_QOQ | number | ✅ | double | Float64 |
+| 131 | RECEIVE_OTHER_INVEST_QOQ | number | ✅ | double | Float64 |
+| 132 | INVEST_INFLOW_OTHER_QOQ | number | ✅ | double | Float64 |
+| 133 | INVEST_INFLOW_BALANCE_QOQ | number | ✅ | double | Float64 |
+| 134 | TOTAL_INVEST_INFLOW_QOQ | number | ✅ | double | Float64 |
+| 135 | CONSTRUCT_LONG_ASSET_QOQ | number | ✅ | double | Float64 |
+| 136 | INVEST_PAY_CASH_QOQ | number | ✅ | double | Float64 |
+| 137 | PLEDGE_LOAN_ADD_QOQ | number | ✅ | double | Float64 |
+| 138 | OBTAIN_SUBSIDIARY_OTHER_QOQ | number | ✅ | double | Float64 |
+| 139 | ADD_PLEDGE_TIMEDEPOSITS_QOQ | number | ✅ | double | Float64 |
+| 140 | PAY_OTHER_INVEST_QOQ | number | ✅ | double | Float64 |
+| 141 | INVEST_OUTFLOW_OTHER_QOQ | number | ✅ | double | Float64 |
+| 142 | INVEST_OUTFLOW_BALANCE_QOQ | number | ✅ | double | Float64 |
+| 143 | TOTAL_INVEST_OUTFLOW_QOQ | number | ✅ | double | Float64 |
+| 144 | INVEST_NETCASH_OTHER_QOQ | number | ✅ | double | Float64 |
+| 145 | INVEST_NETCASH_BALANCE_QOQ | number | ✅ | double | Float64 |
+| 146 | NETCASH_INVEST_QOQ | number | ✅ | double | Float64 |
+| 147 | ACCEPT_INVEST_CASH_QOQ | number | ✅ | double | Float64 |
+| 148 | SUBSIDIARY_ACCEPT_INVEST_QOQ | number | ✅ | double | Float64 |
+| 149 | RECEIVE_LOAN_CASH_QOQ | number | ✅ | double | Float64 |
+| 150 | ISSUE_BOND_QOQ | number | ✅ | double | Float64 |
+| 151 | RECEIVE_OTHER_FINANCE_QOQ | number | ✅ | double | Float64 |
+| 152 | FINANCE_INFLOW_OTHER_QOQ | number | ✅ | double | Float64 |
+| 153 | FINANCE_INFLOW_BALANCE_QOQ | number | ✅ | double | Float64 |
+| 154 | TOTAL_FINANCE_INFLOW_QOQ | number | ✅ | double | Float64 |
+| 155 | PAY_DEBT_CASH_QOQ | number | ✅ | double | Float64 |
+| 156 | ASSIGN_DIVIDEND_PORFIT_QOQ | number | ✅ | double | Float64 |
+| 157 | SUBSIDIARY_PAY_DIVIDEND_QOQ | number | ✅ | double | Float64 |
+| 158 | BUY_SUBSIDIARY_EQUITY_QOQ | number | ✅ | double | Float64 |
+| 159 | PAY_OTHER_FINANCE_QOQ | number | ✅ | double | Float64 |
+| 160 | SUBSIDIARY_REDUCE_CASH_QOQ | number | ✅ | double | Float64 |
+| 161 | FINANCE_OUTFLOW_OTHER_QOQ | number | ✅ | double | Float64 |
+| 162 | FINANCE_OUTFLOW_BALANCE_QOQ | number | ✅ | double | Float64 |
+| 163 | TOTAL_FINANCE_OUTFLOW_QOQ | number | ✅ | double | Float64 |
+| 164 | FINANCE_NETCASH_OTHER_QOQ | number | ✅ | double | Float64 |
+| 165 | FINANCE_NETCASH_BALANCE_QOQ | number | ✅ | double | Float64 |
+| 166 | NETCASH_FINANCE_QOQ | number | ✅ | double | Float64 |
+| 167 | RATE_CHANGE_EFFECT_QOQ | number | ✅ | double | Float64 |
+| 168 | CCE_ADD_OTHER_QOQ | number | ✅ | double | Float64 |
+| 169 | CCE_ADD_BALANCE_QOQ | number | ✅ | double | Float64 |
+| 170 | CCE_ADD_QOQ | number | ✅ | double | Float64 |
+| 171 | BEGIN_CCE_QOQ | number | ✅ | double | Float64 |
+| 172 | END_CCE_OTHER_QOQ | number | ✅ | double | Float64 |
+| 173 | END_CCE_BALANCE_QOQ | number | ✅ | double | Float64 |
+| 174 | END_CCE_QOQ | number | ✅ | double | Float64 |
+| 175 | NETPROFIT | number | ✅ | double | Float64 |
+| 176 | ASSET_IMPAIRMENT | number | ✅ | double | Float64 |
+| 177 | FA_IR_DEPR | number | ✅ | double | Float64 |
+| 178 | OILGAS_BIOLOGY_DEPR | number | ✅ | double | Float64 |
+| 179 | IR_DEPR | number | ✅ | double | Float64 |
+| 180 | IA_AMORTIZE | number | ✅ | double | Float64 |
+| 181 | LPE_AMORTIZE | number | ✅ | double | Float64 |
+| 182 | DEFER_INCOME_AMORTIZE | number | ✅ | double | Float64 |
+| 183 | PREPAID_EXPENSE_REDUCE | number | ✅ | double | Float64 |
+| 184 | ACCRUED_EXPENSE_ADD | number | ✅ | double | Float64 |
+| 185 | DISPOSAL_LONGASSET_LOSS | number | ✅ | double | Float64 |
+| 186 | FA_SCRAP_LOSS | number | ✅ | double | Float64 |
+| 187 | FAIRVALUE_CHANGE_LOSS | number | ✅ | double | Float64 |
+| 188 | FINANCE_EXPENSE | number | ✅ | double | Float64 |
+| 189 | INVEST_LOSS | number | ✅ | double | Float64 |
+| 190 | DEFER_TAX | number | ✅ | double | Float64 |
+| 191 | DT_ASSET_REDUCE | number | ✅ | double | Float64 |
+| 192 | DT_LIAB_ADD | number | ✅ | double | Float64 |
+| 193 | PREDICT_LIAB_ADD | number | ✅ | double | Float64 |
+| 194 | INVENTORY_REDUCE | number | ✅ | double | Float64 |
+| 195 | OPERATE_RECE_REDUCE | number | ✅ | double | Float64 |
+| 196 | OPERATE_PAYABLE_ADD | number | ✅ | double | Float64 |
+| 197 | OTHER | number | ✅ | double | Float64 |
+| 198 | OPERATE_NETCASH_OTHERNOTE | number | ✅ | double | Float64 |
+| 199 | OPERATE_NETCASH_BALANCENOTE | number | ✅ | double | Float64 |
+| 200 | NETCASH_OPERATENOTE | number | ✅ | double | Float64 |
+| 201 | DEBT_TRANSFER_CAPITAL | number | ✅ | double | Float64 |
+| 202 | CONVERT_BOND_1YEAR | number | ✅ | double | Float64 |
+| 203 | FINLEASE_OBTAIN_FA | number | ✅ | double | Float64 |
+| 204 | UNINVOLVE_INVESTFIN_OTHER | number | ✅ | double | Float64 |
+| 205 | END_CASH | number | ✅ | double | Float64 |
+| 206 | BEGIN_CASH | number | ✅ | double | Float64 |
+| 207 | END_CASH_EQUIVALENTS | number | ✅ | double | Float64 |
+| 208 | BEGIN_CASH_EQUIVALENTS | number | ✅ | double | Float64 |
+| 209 | CCE_ADD_OTHERNOTE | number | ✅ | double | Float64 |
+| 210 | CCE_ADD_BALANCENOTE | number | ✅ | double | Float64 |
+| 211 | CCE_ADDNOTE | number | ✅ | double | Float64 |
+| 212 | MINORITY_INTEREST | number | ✅ | double | Float64 |
+| 213 | NETPROFIT_QOQ | number | ✅ | double | Float64 |
+| 214 | ASSET_IMPAIRMENT_QOQ | number | ✅ | double | Float64 |
+| 215 | FA_IR_DEPR_QOQ | number | ✅ | double | Float64 |
+| 216 | OILGAS_BIOLOGY_DEPR_QOQ | number | ✅ | double | Float64 |
+| 217 | IR_DEPR_QOQ | number | ✅ | double | Float64 |
+| 218 | IA_AMORTIZE_QOQ | number | ✅ | double | Float64 |
+| 219 | LPE_AMORTIZE_QOQ | number | ✅ | double | Float64 |
+| 220 | DEFER_INCOME_AMORTIZE_QOQ | number | ✅ | double | Float64 |
+| 221 | PREPAID_EXPENSE_REDUCE_QOQ | number | ✅ | double | Float64 |
+| 222 | ACCRUED_EXPENSE_ADD_QOQ | number | ✅ | double | Float64 |
+| 223 | DISPOSAL_LONGASSET_LOSS_QOQ | number | ✅ | double | Float64 |
+| 224 | FA_SCRAP_LOSS_QOQ | number | ✅ | double | Float64 |
+| 225 | FAIRVALUE_CHANGE_LOSS_QOQ | number | ✅ | double | Float64 |
+| 226 | FINANCE_EXPENSE_QOQ | number | ✅ | double | Float64 |
+| 227 | INVEST_LOSS_QOQ | number | ✅ | double | Float64 |
+| 228 | DEFER_TAX_QOQ | number | ✅ | double | Float64 |
+| 229 | DT_ASSET_REDUCE_QOQ | number | ✅ | double | Float64 |
+| 230 | DT_LIAB_ADD_QOQ | number | ✅ | double | Float64 |
+| 231 | PREDICT_LIAB_ADD_QOQ | number | ✅ | double | Float64 |
+| 232 | INVENTORY_REDUCE_QOQ | number | ✅ | double | Float64 |
+| 233 | OPERATE_RECE_REDUCE_QOQ | number | ✅ | double | Float64 |
+| 234 | OPERATE_PAYABLE_ADD_QOQ | number | ✅ | double | Float64 |
+| 235 | OTHER_QOQ | number | ✅ | double | Float64 |
+| 236 | OPERATE_NETCASH_OTHERNOTE_QOQ | number | ✅ | double | Float64 |
+| 237 | OPERATE_NETCASH_BALANCENOTE_QOQ | number | ✅ | double | Float64 |
+| 238 | NETCASH_OPERATENOTE_QOQ | number | ✅ | double | Float64 |
+| 239 | DEBT_TRANSFER_CAPITAL_QOQ | number | ✅ | double | Float64 |
+| 240 | CONVERT_BOND_1YEAR_QOQ | number | ✅ | double | Float64 |
+| 241 | FINLEASE_OBTAIN_FA_QOQ | number | ✅ | double | Float64 |
+| 242 | UNINVOLVE_INVESTFIN_OTHER_QOQ | number | ✅ | double | Float64 |
+| 243 | END_CASH_QOQ | number | ✅ | double | Float64 |
+| 244 | BEGIN_CASH_QOQ | number | ✅ | double | Float64 |
+| 245 | END_CASH_EQUIVALENTS_QOQ | number | ✅ | double | Float64 |
+| 246 | BEGIN_CASH_EQUIVALENTS_QOQ | number | ✅ | double | Float64 |
+| 247 | CCE_ADD_OTHERNOTE_QOQ | number | ✅ | double | Float64 |
+| 248 | CCE_ADD_BALANCENOTE_QOQ | number | ✅ | double | Float64 |
+| 249 | CCE_ADDNOTE_QOQ | number | ✅ | double | Float64 |
+| 250 | MINORITY_INTEREST_QOQ | number | ✅ | double | Float64 |
+| 251 | OPINION_TYPE | number | ✅ | string | LowCardinality(String) |
+| 252 | OSOPINION_TYPE | number | ✅ | string | LowCardinality(String) |
+| 253 | LISTING_STATE | string | ✅ | string | LowCardinality(String) |
+| 254 | SALES_SERVICES_YOY | number | ✅ | double | Float64 |
+| 255 | DEPOSIT_INTERBANK_ADD_YOY | number | ✅ | double | Float64 |
+| 256 | LOAN_PBC_ADD_YOY | number | ✅ | double | Float64 |
+| 257 | OFI_BF_ADD_YOY | number | ✅ | double | Float64 |
+| 258 | RECEIVE_ORIGIC_PREMIUM_YOY | number | ✅ | double | Float64 |
+| 259 | RECEIVE_REINSURE_NET_YOY | number | ✅ | double | Float64 |
+| 260 | INSURED_INVEST_ADD_YOY | number | ✅ | double | Float64 |
+| 261 | DISPOSAL_TFA_ADD_YOY | number | ✅ | double | Float64 |
+| 262 | RECEIVE_INTEREST_COMMISSION_YOY | number | ✅ | double | Float64 |
+| 263 | BORROW_FUND_ADD_YOY | number | ✅ | double | Float64 |
+| 264 | LOAN_ADVANCE_REDUCE_YOY | number | ✅ | double | Float64 |
+| 265 | REPO_BUSINESS_ADD_YOY | number | ✅ | double | Float64 |
+| 266 | RECEIVE_TAX_REFUND_YOY | number | ✅ | double | Float64 |
+| 267 | RECEIVE_OTHER_OPERATE_YOY | number | ✅ | double | Float64 |
+| 268 | OPERATE_INFLOW_OTHER_YOY | number | ✅ | double | Float64 |
+| 269 | OPERATE_INFLOW_BALANCE_YOY | number | ✅ | double | Float64 |
+| 270 | TOTAL_OPERATE_INFLOW_YOY | number | ✅ | double | Float64 |
+| 271 | BUY_SERVICES_YOY | number | ✅ | double | Float64 |
+| 272 | LOAN_ADVANCE_ADD_YOY | number | ✅ | double | Float64 |
+| 273 | PBC_INTERBANK_ADD_YOY | number | ✅ | double | Float64 |
+| 274 | PAY_ORIGIC_COMPENSATE_YOY | number | ✅ | double | Float64 |
+| 275 | PAY_INTEREST_COMMISSION_YOY | number | ✅ | double | Float64 |
+| 276 | PAY_POLICY_BONUS_YOY | number | ✅ | double | Float64 |
+| 277 | PAY_STAFF_CASH_YOY | number | ✅ | double | Float64 |
+| 278 | PAY_ALL_TAX_YOY | number | ✅ | double | Float64 |
+| 279 | PAY_OTHER_OPERATE_YOY | number | ✅ | double | Float64 |
+| 280 | OPERATE_OUTFLOW_OTHER_YOY | number | ✅ | double | Float64 |
+| 281 | OPERATE_OUTFLOW_BALANCE_YOY | number | ✅ | double | Float64 |
+| 282 | TOTAL_OPERATE_OUTFLOW_YOY | number | ✅ | double | Float64 |
+| 283 | OPERATE_NETCASH_OTHER_YOY | number | ✅ | double | Float64 |
+| 284 | OPERATE_NETCASH_BALANCE_YOY | number | ✅ | double | Float64 |
+| 285 | NETCASH_OPERATE_YOY | number | ✅ | double | Float64 |
+| 286 | WITHDRAW_INVEST_YOY | number | ✅ | double | Float64 |
+| 287 | RECEIVE_INVEST_INCOME_YOY | number | ✅ | double | Float64 |
+| 288 | DISPOSAL_LONG_ASSET_YOY | number | ✅ | double | Float64 |
+| 289 | DISPOSAL_SUBSIDIARY_OTHER_YOY | number | ✅ | double | Float64 |
+| 290 | REDUCE_PLEDGE_TIMEDEPOSITS_YOY | number | ✅ | double | Float64 |
+| 291 | RECEIVE_OTHER_INVEST_YOY | number | ✅ | double | Float64 |
+| 292 | INVEST_INFLOW_OTHER_YOY | number | ✅ | double | Float64 |
+| 293 | INVEST_INFLOW_BALANCE_YOY | number | ✅ | double | Float64 |
+| 294 | TOTAL_INVEST_INFLOW_YOY | number | ✅ | double | Float64 |
+| 295 | CONSTRUCT_LONG_ASSET_YOY | number | ✅ | double | Float64 |
+| 296 | INVEST_PAY_CASH_YOY | number | ✅ | double | Float64 |
+| 297 | PLEDGE_LOAN_ADD_YOY | number | ✅ | double | Float64 |
+| 298 | OBTAIN_SUBSIDIARY_OTHER_YOY | number | ✅ | double | Float64 |
+| 299 | ADD_PLEDGE_TIMEDEPOSITS_YOY | number | ✅ | double | Float64 |
+| 300 | PAY_OTHER_INVEST_YOY | number | ✅ | double | Float64 |
+| 301 | INVEST_OUTFLOW_OTHER_YOY | number | ✅ | double | Float64 |
+| 302 | INVEST_OUTFLOW_BALANCE_YOY | number | ✅ | double | Float64 |
+| 303 | TOTAL_INVEST_OUTFLOW_YOY | number | ✅ | double | Float64 |
+| 304 | INVEST_NETCASH_OTHER_YOY | number | ✅ | double | Float64 |
+| 305 | INVEST_NETCASH_BALANCE_YOY | number | ✅ | double | Float64 |
+| 306 | NETCASH_INVEST_YOY | number | ✅ | double | Float64 |
+| 307 | ACCEPT_INVEST_CASH_YOY | number | ✅ | double | Float64 |
+| 308 | SUBSIDIARY_ACCEPT_INVEST_YOY | number | ✅ | double | Float64 |
+| 309 | RECEIVE_LOAN_CASH_YOY | number | ✅ | double | Float64 |
+| 310 | ISSUE_BOND_YOY | number | ✅ | double | Float64 |
+| 311 | RECEIVE_OTHER_FINANCE_YOY | number | ✅ | double | Float64 |
+| 312 | FINANCE_INFLOW_OTHER_YOY | number | ✅ | double | Float64 |
+| 313 | FINANCE_INFLOW_BALANCE_YOY | number | ✅ | double | Float64 |
+| 314 | TOTAL_FINANCE_INFLOW_YOY | number | ✅ | double | Float64 |
+| 315 | PAY_DEBT_CASH_YOY | number | ✅ | double | Float64 |
+| 316 | ASSIGN_DIVIDEND_PORFIT_YOY | number | ✅ | double | Float64 |
+| 317 | SUBSIDIARY_PAY_DIVIDEND_YOY | number | ✅ | double | Float64 |
+| 318 | BUY_SUBSIDIARY_EQUITY_YOY | number | ✅ | double | Float64 |
+| 319 | PAY_OTHER_FINANCE_YOY | number | ✅ | double | Float64 |
+| 320 | SUBSIDIARY_REDUCE_CASH_YOY | number | ✅ | double | Float64 |
+| 321 | FINANCE_OUTFLOW_OTHER_YOY | number | ✅ | double | Float64 |
+| 322 | FINANCE_OUTFLOW_BALANCE_YOY | number | ✅ | double | Float64 |
+| 323 | TOTAL_FINANCE_OUTFLOW_YOY | number | ✅ | double | Float64 |
+| 324 | FINANCE_NETCASH_OTHER_YOY | number | ✅ | double | Float64 |
+| 325 | FINANCE_NETCASH_BALANCE_YOY | number | ✅ | double | Float64 |
+| 326 | NETCASH_FINANCE_YOY | number | ✅ | double | Float64 |
+| 327 | RATE_CHANGE_EFFECT_YOY | number | ✅ | double | Float64 |
+| 328 | CCE_ADD_OTHER_YOY | number | ✅ | double | Float64 |
+| 329 | CCE_ADD_BALANCE_YOY | number | ✅ | double | Float64 |
+| 330 | CCE_ADD_YOY | number | ✅ | double | Float64 |
+| 331 | BEGIN_CCE_YOY | number | ✅ | double | Float64 |
+| 332 | END_CCE_OTHER_YOY | number | ✅ | double | Float64 |
+| 333 | END_CCE_BALANCE_YOY | number | ✅ | double | Float64 |
+| 334 | END_CCE_YOY | number | ✅ | double | Float64 |
+| 335 | NETPROFIT_YOY | number | ✅ | double | Float64 |
+| 336 | ASSET_IMPAIRMENT_YOY | number | ✅ | double | Float64 |
+| 337 | FA_IR_DEPR_YOY | number | ✅ | double | Float64 |
+| 338 | OILGAS_BIOLOGY_DEPR_YOY | number | ✅ | double | Float64 |
+| 339 | IR_DEPR_YOY | number | ✅ | double | Float64 |
+| 340 | IA_AMORTIZE_YOY | number | ✅ | double | Float64 |
+| 341 | LPE_AMORTIZE_YOY | number | ✅ | double | Float64 |
+| 342 | DEFER_INCOME_AMORTIZE_YOY | number | ✅ | double | Float64 |
+| 343 | PREPAID_EXPENSE_REDUCE_YOY | number | ✅ | double | Float64 |
+| 344 | ACCRUED_EXPENSE_ADD_YOY | number | ✅ | double | Float64 |
+| 345 | DISPOSAL_LONGASSET_LOSS_YOY | number | ✅ | double | Float64 |
+| 346 | FA_SCRAP_LOSS_YOY | number | ✅ | double | Float64 |
+| 347 | FAIRVALUE_CHANGE_LOSS_YOY | number | ✅ | double | Float64 |
+| 348 | FINANCE_EXPENSE_YOY | number | ✅ | double | Float64 |
+| 349 | INVEST_LOSS_YOY | number | ✅ | double | Float64 |
+| 350 | DEFER_TAX_YOY | number | ✅ | double | Float64 |
+| 351 | DT_ASSET_REDUCE_YOY | number | ✅ | double | Float64 |
+| 352 | DT_LIAB_ADD_YOY | number | ✅ | double | Float64 |
+| 353 | PREDICT_LIAB_ADD_YOY | number | ✅ | double | Float64 |
+| 354 | INVENTORY_REDUCE_YOY | number | ✅ | double | Float64 |
+| 355 | OPERATE_RECE_REDUCE_YOY | number | ✅ | double | Float64 |
+| 356 | OPERATE_PAYABLE_ADD_YOY | number | ✅ | double | Float64 |
+| 357 | OTHER_YOY | number | ✅ | double | Float64 |
+| 358 | OPERATE_NETCASH_OTHERNOTE_YOY | number | ✅ | double | Float64 |
+| 359 | OPERATE_NETCASH_BALANCENOTE_YOY | number | ✅ | double | Float64 |
+| 360 | NETCASH_OPERATENOTE_YOY | number | ✅ | double | Float64 |
+| 361 | DEBT_TRANSFER_CAPITAL_YOY | number | ✅ | double | Float64 |
+| 362 | CONVERT_BOND_1YEAR_YOY | number | ✅ | double | Float64 |
+| 363 | FINLEASE_OBTAIN_FA_YOY | number | ✅ | double | Float64 |
+| 364 | UNINVOLVE_INVESTFIN_OTHER_YOY | number | ✅ | double | Float64 |
+| 365 | END_CASH_YOY | number | ✅ | double | Float64 |
+| 366 | BEGIN_CASH_YOY | number | ✅ | double | Float64 |
+| 367 | END_CASH_EQUIVALENTS_YOY | number | ✅ | double | Float64 |
+| 368 | BEGIN_CASH_EQUIVALENTS_YOY | number | ✅ | double | Float64 |
+| 369 | CCE_ADD_OTHERNOTE_YOY | number | ✅ | double | Float64 |
+| 370 | CCE_ADD_BALANCENOTE_YOY | number | ✅ | double | Float64 |
+| 371 | CCE_ADDNOTE_YOY | number | ✅ | double | Float64 |
+| 372 | MINORITY_INTEREST_YOY | number | ✅ | double | Float64 |
 
 ## 统计
 

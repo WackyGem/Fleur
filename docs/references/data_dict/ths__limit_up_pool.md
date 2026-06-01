@@ -5,31 +5,31 @@
 
 ## 字段对比
 
-| # | 字段名 | OpenAPI 类型 | 资产使用 | PyArrow 类型 |
-|---|--------|-------------|---------|-------------|
-| 1 | open_num | number | ✅ | int64 |
-| 2 | first_limit_up_time | string | ✅ | timestamp[ns, tz=UTC] |
-| 3 | last_limit_up_time | string | ✅ | timestamp[ns, tz=UTC] |
-| 4 | code | string | ✅ | string |
-| 5 | limit_up_type | string | ✅ | string |
-| 6 | order_volume | number | ✅ | double |
-| 7 | is_new | number | ✅ | bool |
-| 8 | limit_up_suc_rate | number | ✅ | double |
-| 9 | currency_value | number | ✅ | double |
-| 10 | market_id | number | ✅ | int64 |
-| 11 | is_again_limit | number | ✅ | bool |
-| 12 | change_rate | number | ✅ | double |
-| 13 | turnover_rate | number | ✅ | double |
-| 14 | reason_type | string | ✅ | string |
-| 15 | order_amount | number | ✅ | double |
-| 16 | high_days | string | ✅ | string |
-| 17 | name | string | ✅ | string |
-| 18 | high_days_value | number | ✅ | int64 |
-| 19 | change_tag | string | ✅ | string |
-| 20 | market_type | string | ✅ | string |
-| 21 | latest | number | ✅ | double |
-| 22 | time_preview | array | ❌ | - |
-| 23 | date | N/A | ✅ | date32[day] |
+| # | 字段名 | OpenAPI 类型 | 资产使用 | PyArrow 类型 | ClickHouse 类型 |
+|---|--------|-------------|---------|-------------|----------------|
+| 1 | open_num | number | ✅ | int64 | Int64 |
+| 2 | first_limit_up_time | string | ✅ | timestamp[ns, tz=UTC] | DateTime64(3, 'UTC') |
+| 3 | last_limit_up_time | string | ✅ | timestamp[ns, tz=UTC] | DateTime64(3, 'UTC') |
+| 4 | code | string | ✅ | string | LowCardinality(String) |
+| 5 | limit_up_type | string | ✅ | string | LowCardinality(String) |
+| 6 | order_volume | number | ✅ | double | Float64 |
+| 7 | is_new | number | ✅ | bool | Bool |
+| 8 | limit_up_suc_rate | number | ✅ | double | Float64 |
+| 9 | currency_value | number | ✅ | double | Float64 |
+| 10 | market_id | number | ✅ | int64 | Int64 |
+| 11 | is_again_limit | number | ✅ | bool | Bool |
+| 12 | change_rate | number | ✅ | double | Float64 |
+| 13 | turnover_rate | number | ✅ | double | Float64 |
+| 14 | reason_type | string | ✅ | string | LowCardinality(String) |
+| 15 | order_amount | number | ✅ | double | Float64 |
+| 16 | high_days | string | ✅ | string | LowCardinality(String) |
+| 17 | name | string | ✅ | string | LowCardinality(String) |
+| 18 | high_days_value | number | ✅ | int64 | Int64 |
+| 19 | change_tag | string | ✅ | string | LowCardinality(String) |
+| 20 | market_type | string | ✅ | string | LowCardinality(String) |
+| 21 | latest | number | ✅ | double | Float64 |
+| 22 | time_preview | array | ❌ | - | - |
+| 23 | date | N/A | ✅ | date32[day] | Date |
 
 ## 统计
 
