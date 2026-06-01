@@ -23,3 +23,8 @@ env
 .env
 .ace-tool/
 .dev/
+
+
+#  cache
+.pytest_cache/
+.ruff_cache/
