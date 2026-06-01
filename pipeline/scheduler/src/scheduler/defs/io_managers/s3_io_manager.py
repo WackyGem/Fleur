@@ -17,6 +17,13 @@ from scheduler.defs.config.env import (
     RUSTFS_SECRET_KEY,
 )
 from scheduler.defs.config.models import S3Config
+from scheduler.defs.contract_schemas import (
+    CONTRACT_SCHEMA_HASHES,
+    CONTRACT_VERSIONS,
+    PARQUET_SCHEMA_HASHES,
+    PARQUET_SCHEMAS,
+    SOURCE_SCHEMA_HASHES,
+)
 from scheduler.defs.storage.dataset_service import (
     DatasetLocation,
     DatasetWriteOptions,
@@ -66,6 +73,7 @@ class S3IOManager(dg.ConfigurableIOManager):
                 raise RuntimeError(msg)
             partition_tables = self.validate_partition_tables(obj, allow_empty=allow_empty)
             validated_at = time.perf_counter()
+            self.validate_contract_partition_schemas(asset_key, partition_tables)
             partition_keys = set(context.asset_partition_keys)
             table_keys = set(partition_tables)
             if table_keys != partition_keys:
@@ -82,6 +90,7 @@ class S3IOManager(dg.ConfigurableIOManager):
         elif storage_mode == "latest_snapshot":
             table = self.validate_table(obj, allow_empty=allow_empty)
             validated_at = time.perf_counter()
+            self.validate_contract_schema(asset_key, table)
             write_result = service.write_latest_snapshot(
                 location,
                 table,
@@ -94,6 +103,7 @@ class S3IOManager(dg.ConfigurableIOManager):
 
         metadata: dict[str, RawMetadataValue] = {
             **service.metadata(result=write_result, options=options),
+            **self.contract_metadata(asset_key),
             "io_manager_validate_seconds": elapsed_seconds(started_at, validated_at),
             "s3_filesystem_build_seconds": elapsed_seconds(
                 validated_at,
@@ -195,6 +205,63 @@ class S3IOManager(dg.ConfigurableIOManager):
             msg = "S3IOManager refuses to write an empty partition table mapping"
             raise ValueError(msg)
         return tables
+
+    def validate_contract_schema(self, asset_key: dg.AssetKey, table: pa.Table) -> None:
+        dataset = self.contract_dataset(asset_key)
+        expected_schema = self.expected_schema(dataset, asset_key=asset_key)
+        if table.schema == expected_schema:
+            return
+        msg = (
+            "S3IOManager Parquet schema mismatch for "
+            f"asset={asset_key.to_user_string()}, dataset={dataset}: "
+            f"expected schema={expected_schema}, actual schema={table.schema}"
+        )
+        raise RuntimeError(msg)
+
+    def validate_contract_partition_schemas(
+        self,
+        asset_key: dg.AssetKey,
+        partition_tables: Mapping[str, pa.Table],
+    ) -> None:
+        dataset = self.contract_dataset(asset_key)
+        expected_schema = self.expected_schema(dataset, asset_key=asset_key)
+        for partition_key, table in partition_tables.items():
+            if table.schema == expected_schema:
+                continue
+            msg = (
+                "S3IOManager Parquet schema mismatch for "
+                f"asset={asset_key.to_user_string()}, dataset={dataset}, "
+                f"partition_key={partition_key}: expected schema={expected_schema}, "
+                f"actual schema={table.schema}"
+            )
+            raise RuntimeError(msg)
+
+    def contract_metadata(self, asset_key: dg.AssetKey) -> dict[str, RawMetadataValue]:
+        dataset = self.contract_dataset(asset_key)
+        self.expected_schema(dataset, asset_key=asset_key)
+        return {
+            "contract_dataset": dataset,
+            "contract_version": CONTRACT_VERSIONS[dataset],
+            "contract_schema_hash": CONTRACT_SCHEMA_HASHES[dataset],
+            "source_schema_hash": SOURCE_SCHEMA_HASHES[dataset],
+            "parquet_schema_hash": PARQUET_SCHEMA_HASHES[dataset],
+        }
+
+    def contract_dataset(self, asset_key: dg.AssetKey) -> str:
+        if not asset_key.path:
+            msg = "S3IOManager requires a non-empty asset key for contract schema lookup"
+            raise RuntimeError(msg)
+        return asset_key.path[-1]
+
+    def expected_schema(self, dataset: str, *, asset_key: dg.AssetKey) -> pa.Schema:
+        expected_schema = PARQUET_SCHEMAS.get(dataset)
+        if expected_schema is None:
+            msg = (
+                "S3IOManager could not find generated Parquet schema for "
+                f"asset={asset_key.to_user_string()}, dataset={dataset}"
+            )
+            raise RuntimeError(msg)
+        return expected_schema
 
     def partition_column_count(self, partition_tables: Mapping[str, pa.Table]) -> int:
         return partition_column_count(partition_tables)

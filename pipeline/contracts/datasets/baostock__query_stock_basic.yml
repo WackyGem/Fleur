@@ -74,15 +74,13 @@ clickhouse_raw:
   sync_enabled: true
   fields:
   - name: code
-    type: LowCardinality(String)
+    type: String
     from: code
     nullable: false
-    reason: expected_low_cardinality_dimension
   - name: code_name
-    type: LowCardinality(String)
+    type: String
     from: code_name
     nullable: false
-    reason: expected_low_cardinality_dimension
   - name: ipoDate
     type: Date
     from: ipoDate

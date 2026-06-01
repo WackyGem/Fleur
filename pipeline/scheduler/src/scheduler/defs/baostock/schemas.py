@@ -5,15 +5,15 @@ from typing import Any
 import pyarrow as pa
 
 from scheduler.defs.baostock.protocol import BaostockProtocolError, BaostockResponse
+from scheduler.defs.contract_schemas import (
+    BAOSTOCK_QUERY_HISTORY_K_DATA_PLUS_DAILY_SCHEMA,
+    BAOSTOCK_QUERY_STOCK_BASIC_SCHEMA,
+)
 
-STOCK_BASIC_FIELDS = [
-    "code",
-    "code_name",
-    "ipoDate",
-    "outDate",
-    "type",
-    "status",
-]
+STOCK_BASIC_SCHEMA = BAOSTOCK_QUERY_STOCK_BASIC_SCHEMA
+K_HISTORY_DAILY_SCHEMA = BAOSTOCK_QUERY_HISTORY_K_DATA_PLUS_DAILY_SCHEMA
+
+STOCK_BASIC_FIELDS = STOCK_BASIC_SCHEMA.names
 K_HISTORY_DAILY_FIELDS = [
     "date",
     "code",
@@ -31,37 +31,6 @@ K_HISTORY_DAILY_FIELDS = [
     "isST",
 ]
 K_HISTORY_DAILY_FIELD_PARAM = ",".join(K_HISTORY_DAILY_FIELDS)
-
-# 带类型的 schema 定义
-STOCK_BASIC_SCHEMA = pa.schema(
-    [
-        pa.field("code", pa.string()),
-        pa.field("code_name", pa.string()),
-        pa.field("ipoDate", pa.date32()),
-        pa.field("outDate", pa.date32()),  # 空字符串表示未退市，需特殊处理
-        pa.field("type", pa.int8()),
-        pa.field("status", pa.int8()),
-    ]
-)
-
-K_HISTORY_DAILY_SCHEMA = pa.schema(
-    [
-        pa.field("date", pa.date32()),
-        pa.field("code", pa.string()),
-        pa.field("open", pa.float64()),
-        pa.field("high", pa.float64()),
-        pa.field("low", pa.float64()),
-        pa.field("close", pa.float64()),
-        pa.field("preclose", pa.float64()),
-        pa.field("volume", pa.int64()),
-        pa.field("amount", pa.float64()),
-        pa.field("adjustflag", pa.int8()),
-        pa.field("turn", pa.float64()),
-        pa.field("tradestatus", pa.int8()),
-        pa.field("pctChg", pa.float64()),
-        pa.field("isST", pa.bool_()),
-    ]
-)
 
 
 def response_to_table(response: BaostockResponse, schema: pa.Schema) -> pa.Table:

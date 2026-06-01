@@ -56,5 +56,6 @@ def ths__limit_up_pool_compacted(
     return compact_daily_asset_by_year(
         context,
         raw_asset_key=ths__limit_up_pool.key,
+        output_dataset="ths__limit_up_pool_compacted",
         s3_settings=s3_settings,
     )

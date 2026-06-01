@@ -8,9 +8,9 @@ from typing import Any, Literal
 import pyarrow as pa
 
 from scheduler.defs.common.schema import typed_table
+from scheduler.defs.contract_schemas import PARQUET_SCHEMAS
 from scheduler.defs.http.schemas import unknown_field_count_for_mapping
 from scheduler.defs.sources.eastmoney.generated.fields import EASTMONEY_FIELD_NAMES
-from scheduler.defs.sources.eastmoney.generated.schemas import EASTMONEY_SCHEMAS
 
 ApiFamily = Literal["data_get", "data_v1_get"]
 
@@ -145,6 +145,10 @@ ENDPOINT_CONFIGS: tuple[EastmoneyEndpointConfig, ...] = (
     ),
 )
 
+EASTMONEY_SCHEMAS: dict[str, pa.Schema] = {
+    endpoint.asset_name: PARQUET_SCHEMAS[endpoint.asset_name] for endpoint in ENDPOINT_CONFIGS
+}
+
 
 def endpoint_by_asset_name(asset_name: str) -> EastmoneyEndpointConfig:
     for endpoint in ENDPOINT_CONFIGS:
@@ -169,10 +173,7 @@ def eastmoney_business_field_names(asset_name: str) -> tuple[str, ...]:
 
 
 def eastmoney_typed_schema(endpoint: EastmoneyEndpointConfig) -> pa.Schema:
-    """为 EastMoney 端点返回显式定义的 schema。
-
-    Schema 从 eastmoney/schemas.py 查表获取，逐字段定义，不依赖模式推断。
-    """
+    """为 EastMoney 端点返回全局 contract generated schema。"""
     schema = EASTMONEY_SCHEMAS.get(endpoint.asset_name)
     if schema is None:
         msg = f"No explicit schema defined for EastMoney asset: {endpoint.asset_name}"

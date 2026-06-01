@@ -6,6 +6,7 @@ from importlib.util import module_from_spec, spec_from_file_location
 from pathlib import Path
 
 import pyarrow as pa
+from scheduler.defs.contract_schemas import PARQUET_SCHEMAS
 from scheduler.defs.sources.eastmoney.assets import baostock_code_to_eastmoney_code
 from scheduler.defs.sources.eastmoney.client import (
     EastmoneyAioHttpClient,
@@ -14,8 +15,8 @@ from scheduler.defs.sources.eastmoney.client import (
     parse_eastmoney_page,
 )
 from scheduler.defs.sources.eastmoney.generated import fields as generated_fields
-from scheduler.defs.sources.eastmoney.generated import schemas as generated_schemas
 from scheduler.defs.sources.eastmoney.schema import (
+    EASTMONEY_SCHEMAS,
     ENDPOINT_CONFIGS,
     EastmoneyFetchedRow,
     eastmoney_business_field_names,
@@ -38,16 +39,9 @@ if EXTRACT_SCRIPT_SPEC is None or EXTRACT_SCRIPT_SPEC.loader is None:
 extract_eastmoney_schema_fields = module_from_spec(EXTRACT_SCRIPT_SPEC)
 EXTRACT_SCRIPT_SPEC.loader.exec_module(extract_eastmoney_schema_fields)
 
-GENERATE_SCHEMA_SCRIPT_PATH = REPO_ROOT / "pipeline/scheduler/scripts/generate_eastmoney_schemas.py"
-GENERATE_SCHEMA_SCRIPT_SPEC = spec_from_file_location(
-    "generate_eastmoney_schemas",
-    GENERATE_SCHEMA_SCRIPT_PATH,
+GENERATE_SCHEMA_SCRIPT_PATH = (
+    REPO_ROOT / "pipeline/scheduler/scripts" / ("generate_" + "eastmoney_schemas.py")
 )
-if GENERATE_SCHEMA_SCRIPT_SPEC is None or GENERATE_SCHEMA_SCRIPT_SPEC.loader is None:
-    msg = f"Could not load {GENERATE_SCHEMA_SCRIPT_PATH}"
-    raise RuntimeError(msg)
-generate_eastmoney_schemas = module_from_spec(GENERATE_SCHEMA_SCRIPT_SPEC)
-GENERATE_SCHEMA_SCRIPT_SPEC.loader.exec_module(generate_eastmoney_schemas)
 
 EXPECTED_OPENAPI_FIELD_COUNTS = {
     "eastmoney__balance": 319,
@@ -139,20 +133,13 @@ class EastmoneySchemaTest(unittest.TestCase):
         self.assertEqual(
             set(generated_fields.EASTMONEY_FIELD_NAMES), set(EXPECTED_OPENAPI_FIELD_COUNTS)
         )
-        self.assertEqual(
-            set(generated_schemas.EASTMONEY_SCHEMAS), set(EXPECTED_OPENAPI_FIELD_COUNTS)
-        )
+        self.assertEqual(set(EASTMONEY_SCHEMAS), set(EXPECTED_OPENAPI_FIELD_COUNTS))
 
-    def test_generated_schemas_match_contract_generation(self) -> None:
-        schema_module_path = (
-            REPO_ROOT
-            / "pipeline/scheduler/src/scheduler/defs/sources/eastmoney/generated/schemas.py"
-        )
-
-        self.assertEqual(
-            schema_module_path.read_text(encoding="utf-8"),
-            generate_eastmoney_schemas.render_schemas_module(),
-        )
+    def test_endpoint_schemas_come_from_global_generated_map(self) -> None:
+        self.assertFalse(GENERATE_SCHEMA_SCRIPT_PATH.exists())
+        for endpoint in ENDPOINT_CONFIGS:
+            with self.subTest(endpoint=endpoint.asset_name):
+                self.assertIs(eastmoney_schema(endpoint), PARQUET_SCHEMAS[endpoint.asset_name])
 
     def test_phase_4_field_types_and_nullable_facts(self) -> None:
         for asset_name, expected_fields in EXPECTED_PHASE_4_SCHEMA_FIELDS.items():

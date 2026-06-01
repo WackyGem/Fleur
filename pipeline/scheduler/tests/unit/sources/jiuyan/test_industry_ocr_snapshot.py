@@ -155,7 +155,7 @@ def test_build_industry_ocr_snapshot_merges_per_image_tables_with_lineage_column
     assert result.metadata["ocr_pending_count"] == 2
     assert result.metadata["ocr_failed_count"] == 1
     assert result.metadata["ocr_running_count"] == 3
-    assert result.metadata["snapshot_schema_version"] == 1
+    assert "snapshot_schema_version" not in result.metadata
 
 
 def test_build_industry_ocr_snapshot_counts_zero_row_success_images() -> None:

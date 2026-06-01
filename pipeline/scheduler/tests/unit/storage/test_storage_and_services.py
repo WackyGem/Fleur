@@ -2,12 +2,14 @@ from __future__ import annotations
 
 import asyncio
 import hashlib
+from datetime import date
 from typing import Any, cast
 
 import dagster as dg
 import pyarrow as pa
 import pytest
 from scheduler.defs.config.models import S3Config
+from scheduler.defs.contract_schemas import PARQUET_SCHEMAS
 from scheduler.defs.io_managers import s3_io_manager
 from scheduler.defs.io_managers.s3_io_manager import S3IOManager
 from scheduler.defs.ocr.service import run_bounded_ocr_batch
@@ -174,19 +176,28 @@ def test_s3_io_manager_writes_latest_snapshot_and_records_metadata(
         secret_key="secret",
         region_name="region",
     )
+    table = pa.table(
+        {"trade_date": [date(2026, 1, 2), date(2026, 1, 5)]},
+        schema=PARQUET_SCHEMAS["sina__trade_calendar"],
+    )
     context = dg.build_output_context(
-        asset_key=dg.AssetKey(["source", "market", "asset"]),
+        asset_key=dg.AssetKey(["source", "sina__trade_calendar"]),
         definition_metadata={"storage_mode": "latest_snapshot"},
     )
 
-    manager.handle_output(context, pa.table({"value": ["one", "two"]}))
+    manager.handle_output(context, table)
 
-    assert written[0]["base_dir"] == "bucket/source/market/asset"
+    assert written[0]["base_dir"] == "bucket/source/sina__trade_calendar"
     metadata = context.consume_logged_metadata()
     assert metadata["row_count"].value == 2
     assert metadata["column_count"].value == 1
     assert metadata["storage_mode"].text == "latest_snapshot"
-    assert metadata["s3_key"].text == "source/market/asset/000000_0.parquet"
+    assert metadata["s3_key"].text == "source/sina__trade_calendar/000000_0.parquet"
+    assert metadata["contract_dataset"].text == "sina__trade_calendar"
+    assert metadata["contract_version"].value == 1
+    assert metadata["contract_schema_hash"].text
+    assert metadata["source_schema_hash"].text
+    assert metadata["parquet_schema_hash"].text
 
 
 def test_s3_io_manager_writes_partitioned_tables_and_records_partition_metadata(
@@ -223,8 +234,9 @@ def test_s3_io_manager_writes_partitioned_tables_and_records_partition_metadata(
         secret_key="secret",
         region_name="region",
     )
+    schema = PARQUET_SCHEMAS["baostock__query_history_k_data_plus_daily"]
     context = dg.build_output_context(
-        asset_key=dg.AssetKey(["source", "partitioned"]),
+        asset_key=dg.AssetKey(["source", "baostock__query_history_k_data_plus_daily"]),
         asset_partitions_def=dg.StaticPartitionsDefinition(["2025", "2026"]),
         asset_partition_key_range=dg.PartitionKeyRange("2025", "2026"),
         definition_metadata={
@@ -237,18 +249,37 @@ def test_s3_io_manager_writes_partitioned_tables_and_records_partition_metadata(
     manager.handle_output(
         context,
         {
-            "2025": pa.table({"value": []}, schema=pa.schema([("value", pa.string())])),
-            "2026": pa.table({"value": ["ok"]}),
+            "2025": pa.table({field.name: [] for field in schema}, schema=schema),
+            "2026": pa.table(
+                {
+                    "date": [date(2026, 1, 2)],
+                    "code": ["sh.600000"],
+                    "open": [10.0],
+                    "high": [11.0],
+                    "low": [9.0],
+                    "close": [10.5],
+                    "preclose": [10.0],
+                    "volume": [1000],
+                    "amount": [10_500.0],
+                    "adjustflag": [3],
+                    "turn": [1.1],
+                    "tradestatus": [1],
+                    "pctChg": [5.0],
+                    "isST": [False],
+                },
+                schema=schema,
+            ),
         },
     )
 
     assert [call["partition_key"] for call in written] == ["2025", "2026"]
     metadata = context.consume_logged_metadata()
     assert metadata["row_count"].value == 1
-    assert metadata["column_count"].value == 1
+    assert metadata["column_count"].value == 14
     assert metadata["partition_key_name"].text == "year"
     assert cast(Any, metadata["partition_row_counts"]).data == {"2025": 0, "2026": 1}
     assert cast(Any, metadata["empty_partition_keys"]).data == ["2025"]
+    assert metadata["contract_dataset"].text == "baostock__query_history_k_data_plus_daily"
 
 
 def test_s3_io_manager_validates_output_shape() -> None:
@@ -291,14 +322,77 @@ def test_s3_io_manager_rejects_partition_key_mismatches(
         region_name="region",
     )
     context = dg.build_output_context(
-        asset_key=dg.AssetKey(["source", "partitioned"]),
+        asset_key=dg.AssetKey(["source", "baostock__query_history_k_data_plus_daily"]),
         asset_partitions_def=dg.StaticPartitionsDefinition(["2026"]),
         partition_key="2026",
-        definition_metadata={"storage_mode": "partitioned", "partition_key_name": "year"},
+        definition_metadata={
+            "storage_mode": "partitioned",
+            "partition_key_name": "year",
+            "allow_empty": True,
+        },
     )
 
     with pytest.raises(RuntimeError, match="keys must match"):
-        manager.handle_output(context, {"2025": pa.table({"value": ["ok"]})})
+        manager.handle_output(
+            context,
+            {
+                "2025": pa.table(
+                    {
+                        field.name: []
+                        for field in PARQUET_SCHEMAS["baostock__query_history_k_data_plus_daily"]
+                    },
+                    schema=PARQUET_SCHEMAS["baostock__query_history_k_data_plus_daily"],
+                )
+            },
+        )
+
+
+def test_s3_io_manager_rejects_latest_snapshot_schema_mismatch() -> None:
+    manager = S3IOManager(
+        endpoint="http://rustfs.test",
+        bucket="bucket",
+        access_key="access",
+        secret_key="secret",
+        region_name="region",
+    )
+
+    with pytest.raises(RuntimeError, match="schema mismatch.*sina__trade_calendar"):
+        manager.validate_contract_schema(
+            dg.AssetKey(["source", "sina__trade_calendar"]),
+            pa.table({"trade_date": ["2026-01-02"]}),
+        )
+
+
+def test_s3_io_manager_rejects_partition_schema_mismatch_with_partition_key() -> None:
+    manager = S3IOManager(
+        endpoint="http://rustfs.test",
+        bucket="bucket",
+        access_key="access",
+        secret_key="secret",
+        region_name="region",
+    )
+
+    with pytest.raises(RuntimeError, match="partition_key=2026"):
+        manager.validate_contract_partition_schemas(
+            dg.AssetKey(["source", "baostock__query_history_k_data_plus_daily"]),
+            {"2026": pa.table({"date": ["2026-01-02"]})},
+        )
+
+
+def test_s3_io_manager_rejects_missing_generated_schema() -> None:
+    manager = S3IOManager(
+        endpoint="http://rustfs.test",
+        bucket="bucket",
+        access_key="access",
+        secret_key="secret",
+        region_name="region",
+    )
+
+    with pytest.raises(RuntimeError, match="could not find generated Parquet schema"):
+        manager.expected_schema(
+            "unknown__dataset",
+            asset_key=dg.AssetKey(["source", "unknown__dataset"]),
+        )
 
 
 def test_run_bounded_ocr_batch_limits_concurrency_and_collects_successes() -> None:

@@ -56,5 +56,6 @@ def jiuyan__action_field_compacted(
     return compact_daily_asset_by_year(
         context,
         raw_asset_key=jiuyan__action_field.key,
+        output_dataset="jiuyan__action_field_compacted",
         s3_settings=s3_settings,
     )

@@ -7,6 +7,7 @@ from enum import StrEnum
 import dagster as dg
 import pyarrow as pa
 
+from scheduler.defs.contract_schemas import JIUYAN_INDUSTRY_OCR_SCHEMA
 from scheduler.defs.market.asset_keys import SOURCE_ASSET_KEY_PREFIX
 from scheduler.defs.ocr.schemas import parse_json_array, require_mapping_row
 
@@ -14,16 +15,6 @@ THEME_PATH_DELIMITER = ","
 JIUYAN_INDUSTRY_IMAGES_ASSET_KEY = dg.AssetKey([SOURCE_ASSET_KEY_PREFIX, "jiuyan__industry_images"])
 JIUYAN_INDUSTRY_OCR_ASSET_KEY = dg.AssetKey([SOURCE_ASSET_KEY_PREFIX, "jiuyan__industry_ocr"])
 JIUYAN_INDUSTRY_OCR_S3_PREFIX = "source/jiuyan__industry_ocr"
-
-JIUYAN_INDUSTRY_OCR_SCHEMA = pa.schema(
-    [
-        pa.field("industry_id", pa.string(), nullable=False),
-        pa.field("stock_name", pa.string(), nullable=False),
-        pa.field("theme_path", pa.string(), nullable=False),
-        pa.field("relation", pa.string(), nullable=False),
-        pa.field("source", pa.string(), nullable=False),
-    ]
-)
 
 
 class DownloadStatus(StrEnum):

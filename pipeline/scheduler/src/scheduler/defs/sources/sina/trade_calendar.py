@@ -16,6 +16,7 @@ from scheduler.defs.asset_contracts import (
 from scheduler.defs.common.async_boundary import run_async_boundary
 from scheduler.defs.common.metadata import RawMetadataValue
 from scheduler.defs.common.retry import DEFAULT_RETRY_POLICY
+from scheduler.defs.contract_schemas import SINA_TRADE_CALENDAR_SCHEMA
 from scheduler.defs.http.client import (
     HttpFetchStats,
     HttpRequest,
@@ -297,10 +298,9 @@ async def _fetch_sina_trade_calendar_with_stats(
 
 
 def trade_calendar_dates_to_table(trade_dates: TradeCalendarDates) -> pa.Table:
-    schema = pa.schema([pa.field("trade_date", pa.date32())])
     return pa.Table.from_arrays(
         [pa.array(trade_dates, type=pa.date32())],
-        schema=schema,
+        schema=SINA_TRADE_CALENDAR_SCHEMA,
     )
 
 

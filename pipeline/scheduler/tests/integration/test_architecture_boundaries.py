@@ -88,3 +88,23 @@ def test_source_business_code_does_not_parse_contract_registry() -> None:
             content = path.read_text(encoding="utf-8")
             assert "fleur_contracts" not in content, str(path)
             assert "pipeline/contracts" not in content, str(path)
+
+
+def test_contract_imports_are_owned_by_boundary_modules() -> None:
+    allowed = {
+        DEFS_ROOT / "clickhouse" / "specs.py",
+        DEFS_ROOT / "contract_schemas.py",
+    }
+
+    for path in DEFS_ROOT.rglob("*.py"):
+        content = path.read_text(encoding="utf-8")
+        if path in allowed:
+            continue
+        assert "fleur_contracts" not in content, str(path)
+
+
+def test_scheduler_code_does_not_reference_generated_parquet_schemas() -> None:
+    prohibited = ".".join(("scheduler", "defs", "generated", "parquet_schemas"))
+    for path in DEFS_ROOT.rglob("*.py"):
+        content = path.read_text(encoding="utf-8")
+        assert prohibited not in content, str(path)

@@ -4,6 +4,12 @@
 
 状态：Draft
 
+Superseded note（2026-06-01）：
+
+- 本计划 Phase 2 中的 scheduler checked-in generated Parquet schema module 方案已被 `docs/plans/0022.2-direct-contract-parquet-schema-boundary-plan.md` 替代。
+- 应保留的成果包括 `fleur_contracts.adapters.parquet`、source schema replacement、`S3IOManager` schema guard、materialization metadata 和 EastMoney 专用 Parquet schema 删除。
+- 当前 scheduler Parquet schema boundary 是 `pipeline/scheduler/src/scheduler/defs/contract_schemas.py`，不再运行 `pipeline/scheduler/scripts/generate_parquet_schemas.py`。
+
 关联文档：
 
 - `docs/RFC/0011-contract-driven-parquet-schema-adapter.md`

@@ -6,6 +6,7 @@ from zoneinfo import ZoneInfo
 import dagster as dg
 import pyarrow as pa
 
+from scheduler.defs.contract_schemas import PARQUET_SCHEMAS
 from scheduler.defs.market.readers import S3TradeCalendarReader
 from scheduler.defs.market.trade_calendar import trade_date_partition_keys_for_year
 from scheduler.defs.resources.s3 import S3SettingsResource
@@ -16,6 +17,7 @@ def compact_daily_asset_by_year(
     context: dg.AssetExecutionContext,
     *,
     raw_asset_key: dg.AssetKey,
+    output_dataset: str,
     s3_settings: S3SettingsResource,
 ) -> dg.MaterializeResult[dict[str, pa.Table]]:
     partition_key = context.partition_key
@@ -41,7 +43,10 @@ def compact_daily_asset_by_year(
         )
         raise RuntimeError(msg)
 
-    table = pa.concat_tables(read_result.tables, promote_options="default")
+    table = _compact_table_for_output_schema(
+        pa.concat_tables(read_result.tables, promote_options="default"),
+        dataset=output_dataset,
+    )
     return dg.MaterializeResult(
         value={partition_key: table},
         metadata={
@@ -85,3 +90,16 @@ def run_tag(context: dg.AssetExecutionContext, key: str) -> str | None:
         return context.run.tags.get(key)
     except Exception:
         return context.op_execution_context.run_tags.get(key)
+
+
+def _compact_table_for_output_schema(table: pa.Table, *, dataset: str) -> pa.Table:
+    expected_schema = PARQUET_SCHEMAS[dataset]
+    if table.schema == expected_schema:
+        return table
+    missing_fields = [
+        field_name for field_name in expected_schema.names if field_name not in table.schema.names
+    ]
+    if missing_fields:
+        msg = f"Compacted dataset {dataset} is missing fields: {missing_fields}"
+        raise RuntimeError(msg)
+    return table.select(expected_schema.names).cast(expected_schema)

@@ -16,6 +16,7 @@ from scheduler.defs.asset_contracts import (
 )
 from scheduler.defs.common.clock import elapsed_seconds
 from scheduler.defs.common.metadata import RawMetadataValue
+from scheduler.defs.contract_schemas import JIUYAN_INDUSTRY_OCR_SNAPSHOT_SCHEMA
 from scheduler.defs.market.asset_keys import SOURCE_ASSET_KEY_PREFIX
 from scheduler.defs.repositories.industry_images import (
     OcrStatusSummary,
@@ -28,26 +29,10 @@ from scheduler.defs.sources.jiuyan.ocr_schema import JIUYAN_INDUSTRY_OCR_SCHEMA
 
 __all__ = [
     "JIUYAN_INDUSTRY_OCR_SNAPSHOT_SCHEMA",
-    "SNAPSHOT_SCHEMA_VERSION",
     "IndustryOcrSnapshotBuildResult",
     "build_industry_ocr_snapshot",
     "jiuyan__industry_ocr_snapshot",
 ]
-
-SNAPSHOT_SCHEMA_VERSION = 1
-
-JIUYAN_INDUSTRY_OCR_SNAPSHOT_SCHEMA = pa.schema(
-    [
-        pa.field("industry_id", pa.string(), nullable=False),
-        pa.field("image_filename", pa.string(), nullable=False),
-        pa.field("image_index", pa.int32(), nullable=False),
-        pa.field("ocr_row_index", pa.int32(), nullable=False),
-        pa.field("stock_name", pa.string(), nullable=False),
-        pa.field("theme_path", pa.string(), nullable=False),
-        pa.field("relation", pa.string(), nullable=False),
-        pa.field("source", pa.string(), nullable=False),
-    ]
-)
 
 
 class OcrSnapshotRepository(Protocol):
@@ -139,7 +124,6 @@ def build_industry_ocr_snapshot(
         "ocr_failed_count": summary.ocr_failed_count,
         "ocr_running_count": summary.ocr_running_count,
         "ocr_success_result_row_count": summary.ocr_success_result_row_count,
-        "snapshot_schema_version": SNAPSHOT_SCHEMA_VERSION,
         "s3_keys_sample": dg.MetadataValue.json(
             [record.ocr_result_s3_key for record in records[:20]]
         ),

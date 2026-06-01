@@ -16,8 +16,8 @@
 
 | # | 外源字段 | 外源类型 | Parquet 类型 | ClickHouse raw 字段 | ClickHouse 类型 | 中文描述 |
 |---|----------|----------|--------------|---------------------|-----------------|----------|
-| 1 | `code` | `string` | `string` | `code` | `LowCardinality(String)` | BaoStock 基础信息接口返回的证券代码。 |
-| 2 | `code_name` | `string` | `string` | `code_name` | `LowCardinality(String)` | BaoStock 基础信息接口返回的证券简称。 |
+| 1 | `code` | `string` | `string` | `code` | `String` | BaoStock 基础信息接口返回的证券代码。 |
+| 2 | `code_name` | `string` | `string` | `code_name` | `String` | BaoStock 基础信息接口返回的证券简称。 |
 | 3 | `ipoDate` | `string` | `date32[day]` | `ipoDate` | `Date` | 证券上市日期。 |
 | 4 | `outDate` | `string` | `date32[day]` | `outDate` | `Date` | 证券退市日期；未退市时通常为空。 |
 | 5 | `type` | `string` | `int8` | `type` | `Int8` | 证券类型代码。 |

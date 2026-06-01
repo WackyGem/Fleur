@@ -332,8 +332,8 @@ ClickHouse raw 已经独立在 `pipeline/scheduler/src/scheduler/defs/clickhouse
 - 删除 `pipeline/scheduler/scripts/generate_eastmoney_schemas.py`。
 - 删除 `pipeline/scheduler/src/scheduler/defs/sources/eastmoney/generated/schemas.py`。
 - 删除 EastMoney 专用 schema generation 测试。
-- `pipeline/scheduler/src/scheduler/defs/sources/eastmoney/schema.py` 改为从统一生成模块的 schema map 读取 schema。
-- 保留 `eastmoney_typed_schema(endpoint)`、`eastmoney_schema(endpoint)` 和 `EASTMONEY_SCHEMAS` 等对外接口形态时，只作为统一生成模块的 thin wrapper，不再有 EastMoney 独立 schema 源。
+- `pipeline/scheduler/src/scheduler/defs/sources/eastmoney/schema.py` 改为从 `scheduler.defs.contract_schemas` 的 schema map 读取 schema。
+- 保留 `eastmoney_typed_schema(endpoint)`、`eastmoney_schema(endpoint)` 和 `EASTMONEY_SCHEMAS` 等对外接口形态时，只作为 scheduler contract boundary 的 thin wrapper，不再有 EastMoney 独立 schema 源。
 
 #### Common schema conversion
 
@@ -351,30 +351,31 @@ ClickHouse raw 已经独立在 `pipeline/scheduler/src/scheduler/defs/clickhouse
 
 ## 设计决策
 
-### 决策 1：只保留一个 Parquet schema 生成入口
+### 决策 1：只保留一个 scheduler Parquet contract boundary
 
 新增：
 
 - `pipeline/contract_tools/src/fleur_contracts/adapters/parquet.py`
-- `pipeline/scheduler/scripts/generate_parquet_schemas.py`
-- `pipeline/scheduler/src/scheduler/defs/generated/parquet_schemas.py`
+- `pipeline/scheduler/src/scheduler/defs/contract_schemas.py`
 
 删除：
 
 - `pipeline/scheduler/scripts/generate_eastmoney_schemas.py`
 - `pipeline/scheduler/src/scheduler/defs/sources/eastmoney/generated/schemas.py`
+- scheduler Parquet schema checked-in generator script。
+- scheduler checked-in generated Parquet schema module。
 
-不新增 runtime bridge。scheduler source modules 不在 definitions 加载时解析 YAML，只 import checked-in generated Python module。
+不新增 checked-in scheduler schema module。`scheduler.defs.contract_schemas` 是 scheduler Parquet schema 的唯一 runtime boundary，直接通过 `fleur_contracts.loader.load_registry()` 和 `fleur_contracts.adapters.parquet` 派生 schema/maps；scheduler source modules 只 import 该 boundary 暴露的 schema constants/maps。
 
 理由：
 
-- 当前 source business code 已有测试禁止 import `fleur_contracts`。
-- generated module 可以 review diff，避免 Dagster definitions 加载时每次重新解析所有 YAML。
-- EastMoney 现有生成路径证明 checked-in generated schema 在本项目可接受；本次改造把它推广为全局唯一生成路径。
+- 当前 ClickHouse raw specs 已经通过 `scheduler.defs.clickhouse.specs` 直接消费 `fleur_contracts`，Parquet schema 使用同样的 boundary pattern。
+- direct boundary 避免 checked-in generated Python 文件漂移和 currentness 生成器维护成本。
+- source business code 仍由架构测试禁止直接 import `fleur_contracts`；允许范围只包括 `scheduler.defs.contract_schemas` 和 `scheduler.defs.clickhouse.specs`。
 
-### 决策 2：统一生成模块覆盖所有 18 个 dataset
+### 决策 2：scheduler contract boundary 覆盖所有 18 个 dataset
 
-`pipeline/scheduler/src/scheduler/defs/generated/parquet_schemas.py` 必须覆盖全部 dataset：
+`pipeline/scheduler/src/scheduler/defs/contract_schemas.py` 必须覆盖全部 dataset：
 
 - `baostock__query_history_k_data_plus_daily`
 - `baostock__query_stock_basic`
@@ -395,13 +396,17 @@ ClickHouse raw 已经独立在 `pipeline/scheduler/src/scheduler/defs/clickhouse
 - `ths__limit_up_pool`
 - `ths__limit_up_pool_compacted`
 
-统一生成模块必须提供：
+scheduler contract boundary 必须提供：
 
 - 每个 dataset 的 schema constant。
 - `PARQUET_SCHEMAS: dict[str, pa.Schema]`。
 - `PARQUET_SCHEMA_HASHES: dict[str, str]`。
 - `CONTRACT_SCHEMA_HASHES: dict[str, str]`。
+- `SOURCE_SCHEMA_HASHES: dict[str, str]`。
 - `CONTRACT_VERSIONS: dict[str, int]`。
+- `SOURCE_ASSET_KEYS: dict[str, tuple[str, ...]]`。
+- `STORAGE_MODES: dict[str, str]`。
+- `PARTITION_KEY_NAMES: dict[str, str | None]`。
 
 命名规则：
 
@@ -427,7 +432,7 @@ ClickHouse raw 已经独立在 `pipeline/scheduler/src/scheduler/defs/clickhouse
 改造 `pipeline/scheduler/src/scheduler/defs/io_managers/s3_io_manager.py`：
 
 - 根据 Dagster asset key 推导 dataset 名。
-- 从 generated module 获取 expected schema。
+- 从 `scheduler.defs.contract_schemas` 获取 expected schema。
 - latest snapshot 写入前校验 `table.schema == expected_schema`。
 - partitioned 写入前逐 partition 校验 `table.schema == expected_schema`。
 - mismatch 直接失败，不自动 cast。
@@ -440,9 +445,9 @@ ClickHouse raw 已经独立在 `pipeline/scheduler/src/scheduler/defs/clickhouse
 
 需要注意：
 
-- `jiuyan__industry_images` 不是 Parquet table source，不应要求 generated schema。
+- `jiuyan__industry_images` 不是 Parquet table source，不应要求 contract boundary schema。
 - state/work-queue 类资产如果不走 `s3_io_manager`，不进入该校验。
-- 对所有使用 `s3_io_manager` 的 source/compacted assets，必须能从 generated module 找到 dataset schema。
+- 对所有使用 `s3_io_manager` 的 source/compacted assets，必须能从 `scheduler.defs.contract_schemas` 找到 dataset schema。
 
 ### 决策 5：测试最后补，但必须一次性补齐
 
@@ -451,8 +456,8 @@ ClickHouse raw 已经独立在 `pipeline/scheduler/src/scheduler/defs/clickhouse
 最终必须补齐的测试包括：
 
 - contract_tools Parquet adapter tests。
-- generated schema current tests。
-- scheduler exposed schema 与 generated schema map 的使用测试。
+- scheduler contract boundary coverage tests。
+- scheduler exposed schema 与 `contract_schemas.PARQUET_SCHEMAS` 的使用测试。
 - S3IOManager schema mismatch fail-fast tests。
 - source conversion output schema tests。
 - architecture boundary tests 保持 source business code 不直接 import `fleur_contracts`。
@@ -566,32 +571,20 @@ class ParquetSchemaContract:
 - adapter 不访问 S3、ClickHouse 或远端 API。
 - unsupported type 必须抛出带 dataset/field/type 上下文的错误。
 
-### Step 2：新增全局 scheduler generated schema
+### Step 2：新增 scheduler direct contract schema boundary
 
 新增：
 
-- `pipeline/scheduler/scripts/generate_parquet_schemas.py`
-- `pipeline/scheduler/src/scheduler/defs/generated/__init__.py`
-- `pipeline/scheduler/src/scheduler/defs/generated/parquet_schemas.py`
+- `pipeline/scheduler/src/scheduler/defs/contract_schemas.py`
 
-生成器必须：
+boundary module 必须：
 
 - 使用 `fleur_contracts.loader.load_registry()` 加载 registry。
 - 使用 `fleur_contracts.adapters.parquet` 解析 type 和 schema。
-- 输出全部 18 个 dataset schema。
-- 输出 schema/hash/version maps。
-- 支持 `--check`。
-
-生成文件必须：
-
-- 不读取 YAML。
-- 不 import `fleur_contracts`。
-- 只 import `pyarrow as pa`。
+- 覆盖全部 18 个 dataset schema。
+- 输出 schema/hash/version/source asset/storage/partition maps。
 - 提供常量和 maps 给 scheduler runtime 使用。
-
-如新增 generated 目录导致 lint 噪声，更新：
-
-- `pipeline/pyproject.toml` 的 `tool.ruff.extend-exclude`。
+- 作为唯一允许直接 import `fleur_contracts.adapters.parquet` 的 scheduler Parquet boundary。
 
 ### Step 3：删除 EastMoney 专用 schema 生成链路
 
@@ -632,8 +625,8 @@ class ParquetSchemaContract:
 要求：
 
 - 删除 dataset-level 手写 `pa.schema(...)`。
-- 从 `scheduler.defs.generated.parquet_schemas` 导入 schema constants 或 map。
-- 所有 source conversion 函数返回的 table schema 必须等于 generated schema。
+- 从 `scheduler.defs.contract_schemas` 导入 schema constants 或 map。
+- 所有 source conversion 函数返回的 table schema 必须等于 contract boundary schema。
 - Compact 输出必须校验为 compacted dataset schema。
 
 允许保留：
@@ -646,7 +639,7 @@ class ParquetSchemaContract:
 必须删除或改造：
 
 - 与 schema names 完全重复、没有 API/flatten 语义的 column list。
-- EastMoney schema-specific wrapper 对旧 generated module 的依赖。
+- EastMoney schema-specific wrapper 对旧 schema module 的依赖。
 - `SNAPSHOT_SCHEMA_VERSION`。
 
 ### Step 5：S3IOManager 加入强制 schema 校验
@@ -665,8 +658,8 @@ class ParquetSchemaContract:
 实现细节：
 
 - 从 `context.asset_key` 推导 dataset name：asset key path 最后一段即 dataset。
-- 使用 generated module 的 `PARQUET_SCHEMAS` 查 expected schema。
-- 如果 asset 使用 `s3_io_manager` 但没有 generated schema，直接失败。
+- 使用 `scheduler.defs.contract_schemas.PARQUET_SCHEMAS` 查 expected schema。
+- 如果 asset 使用 `s3_io_manager` 但没有 contract boundary schema，直接失败。
 
 ### Step 6：metadata 写入 contract/schema hash
 
@@ -705,34 +698,34 @@ class ParquetSchemaContract:
   - unsupported type 报错清晰。
   - `parquet_schema_hash()` 对字段名、类型、nullable 变化敏感。
 
-#### scheduler generated schema
+#### scheduler contract schema boundary
 
 - 新增或修改 scheduler 测试：
-  - `generate_parquet_schemas.py --check` current。
-  - generated module 覆盖全部 18 个 dataset。
-  - generated maps 包含 hash/version。
+  - `scheduler.defs.contract_schemas` 覆盖全部 18 个 dataset。
+  - `contract_schemas` maps 包含 parquet/source/contract hash、version、source asset key、storage mode 和 partition key。
+  - `contract_schemas` 与 `fleur_contracts.adapters.parquet` 输出一致。
 
 #### source conversion
 
-- BaoStock tests：`stock_basic_response_to_table()`、`k_history_daily_response_to_table()` 输出 schema 等于 generated schema。
-- HTTP schema tests：JiuYan action_field、industry_list、THS limit_up_pool 输出 schema 等于 generated schema。
-- Sina tests：`trade_calendar_dates_to_table()` 输出 schema 等于 generated schema。
-- OCR tests：OCR result 和 OCR snapshot 输出 schema 等于 generated schema。
-- EastMoney tests：`eastmoney_schema(endpoint)` 输出 schema 等于 generated schema map。
-- Compact tests：compacted output schema 等于 compacted dataset generated schema。
+- BaoStock tests：`stock_basic_response_to_table()`、`k_history_daily_response_to_table()` 输出 schema 等于 contract boundary schema。
+- HTTP schema tests：JiuYan action_field、industry_list、THS limit_up_pool 输出 schema 等于 contract boundary schema。
+- Sina tests：`trade_calendar_dates_to_table()` 输出 schema 等于 contract boundary schema。
+- OCR tests：OCR result 和 OCR snapshot 输出 schema 等于 contract boundary schema。
+- EastMoney tests：`eastmoney_schema(endpoint)` 输出 schema 等于 `contract_schemas.PARQUET_SCHEMAS`。
+- Compact tests：compacted output schema 等于 compacted dataset contract boundary schema。
 
 #### S3IOManager
 
 - latest snapshot schema mismatch fail-fast。
 - partitioned schema mismatch fail-fast，错误信息包含 partition key。
-- missing generated schema fail-fast。
+- missing contract boundary schema fail-fast。
 - correct schema writes normally。
 
 #### architecture boundary
 
 - 保留 `test_source_business_code_does_not_parse_contract_registry`。
-- 新增检查：`scheduler.defs.generated.parquet_schemas` 不 import `fleur_contracts`。
-- 允许 generator script import `fleur_contracts`。
+- 新增检查：source business code 和 `S3IOManager` 不直接 import `fleur_contracts`。
+- 只允许 `scheduler.defs.contract_schemas` 和 `scheduler.defs.clickhouse.specs` 直接 import `fleur_contracts`。
 
 ## 禁止模式
 
@@ -758,7 +751,6 @@ git diff --check
 
 ```bash
 cd pipeline
-uv run python scheduler/scripts/generate_parquet_schemas.py --check
 uv run fleur-contracts validate
 uv run fleur-contracts generate --check
 uv run ruff check scheduler/src scheduler/tests contract_tools/src contract_tools/tests
@@ -783,24 +775,24 @@ uv run fleur-contracts validate-clickhouse --all-available
 
 - `rg -n "pa\\.schema\\(" pipeline/scheduler/src/scheduler/defs -g '*.py'` 不再命中 dataset-level schema 定义。允许测试、helper 或非 dataset 临时构造场景继续使用。
 - `rg -n "generate_eastmoney_schemas|EASTMONEY_.*_SCHEMA|sources/eastmoney/generated/schemas" pipeline/scheduler` 无实现引用。
-- `pipeline/scheduler/src/scheduler/defs/generated/parquet_schemas.py` 覆盖全部 18 个 dataset。
+- `pipeline/scheduler/src/scheduler/defs/contract_schemas.py` 覆盖全部 18 个 dataset。
 - `S3IOManager` 对所有 `s3_io_manager` 写入强制 schema equality。
 - source business code 仍不直接 import `fleur_contracts`。
 
 数据治理层面：
 
 - 修改任意 raw ingestion 字段或类型时，只需要改 `pipeline/contracts/datasets/*.yml`。
-- 重新生成后，scheduler Parquet schema、ClickHouse raw specs、dbt `sources.yml` 和 data_dict 都来自同一份 contract。
+- scheduler Parquet schema、ClickHouse raw specs、dbt `sources.yml` 和 data_dict 都来自同一份 contract。
 - dbt staging 不被重新纳入 contracts。
 
 ## 当前不确定项
 
 以下不是事实结论，实施前需要用代码或运行命令确认：
 
-- 所有使用 `s3_io_manager` 的 asset 是否都能通过 asset key path 最后一段匹配 dataset 名。若有例外，应在 generated schema lookup 层显式维护映射，不能回退到 source 模块手写。
+- 所有使用 `s3_io_manager` 的 asset 是否都能通过 asset key path 最后一段匹配 dataset 名。若有例外，应在 contract boundary schema lookup 层显式维护映射，不能回退到 source 模块手写。
 - `validate_parquet.py` 对 partitioned dataset 固定检查 `year=2026` 是否足够。这个行为是当前事实，不在本文中直接更改。
 - `typed_schema()` 是否还有非测试生产使用。当前检索没有发现 dataset schema 事实源使用，实施时可删除或保留为通用 helper。
 
 ## 结论
 
-本 RFC 采用破坏性一刀切方案：新增唯一 Parquet adapter 和全局 generated schema，删除所有 scheduler 手写 dataset schema 和 EastMoney 专用 schema 生成链路，S3IOManager 在写入边界强制 schema equality。改造完成后，`pipeline/contracts/datasets/*.yml` 将成为 `source -> S3 Parquet -> ClickHouse raw` 的唯一字段和类型事实源。
+本 RFC 采用破坏性一刀切方案：新增唯一 Parquet adapter 和 scheduler direct contract schema boundary，删除所有 scheduler 手写 dataset schema 和 EastMoney 专用 schema 生成链路，S3IOManager 在写入边界强制 schema equality。改造完成后，`pipeline/contracts/datasets/*.yml` 将成为 `source -> S3 Parquet -> ClickHouse raw` 的唯一字段和类型事实源。
