@@ -22,7 +22,7 @@ source:
     required: true
     external_description_zh: OCR 识别出的股票或证券名称。
   - name: theme_path
-    type: array
+    type: string
     required: true
     external_description_zh: OCR 识别出的题材或主题层级路径。
   - name: relation
@@ -55,3 +55,5 @@ parquet:
 dataset_note_zh: 韭研行业图片 OCR 结果 source 分区；该 source-only asset 不直接同步 ClickHouse raw。
 validation_notes:
 - Source-only contract added by Plan 0020 Phase 3 from Dagster JIUYAN_INDUSTRY_OCR_SCHEMA.
+- Current OCR request JSON schema requires theme_path as string; legacy array-like
+  model output is normalized to comma-delimited string before Parquet publishing.

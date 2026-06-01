@@ -16,10 +16,10 @@
 
 | # | 外源字段 | 外源类型 | Parquet 类型 | ClickHouse raw 字段 | ClickHouse 类型 | 中文描述 |
 |---|----------|----------|--------------|---------------------|-----------------|----------|
-| 1 | `action_field_id` | `string` | `string` | `action_field_id` | `LowCardinality(String)` | 韭研题材异动记录唯一标识。 |
-| 2 | `name` | `string` | `string` | `name` | `LowCardinality(String)` | 韭研题材异动名称。 |
+| 1 | `action_field_id` | `string` | `string` | `action_field_id` | `String` | 韭研题材异动记录唯一标识。 |
+| 2 | `name` | `string` | `string` | `name` | `String` | 韭研题材异动名称。 |
 | 3 | `date` | `string` | `date32[day]` | `date` | `Date` | 韭研题材异动对应的交易日期。 |
-| 4 | `reason` | `string` | `string` | `reason` | `LowCardinality(String)` | 韭研题材异动形成或归类原因。 |
+| 4 | `reason` | `string` | `string` | `reason` | `String` | 韭研题材异动形成或归类原因。 |
 | 5 | `sort_no` | `integer` | `int64` | `sort_no` | `Int64` | 韭研题材异动展示排序号。 |
 | 6 | `is_delete` | `boolean` | `bool` | `is_delete` | `Bool` | 韭研题材异动记录是否被标记为删除。 |
 | 7 | `delete_time` | `string` | `timestamp[ns]` | `delete_time` | `DateTime64(3)` | 韭研题材异动记录删除时间。 |
@@ -43,4 +43,4 @@
 
 - Initial contract migrated from docs/references/data_dict and current raw sync specs.
 - Downstream compacted contract consumes source-only asset source/jiuyan__action_field.
-- LowCardinality review on S3 parquet source/jiuyan__action_field_compacted: rows=5881; action_field_id nonnull=5881 uniq=740 unique_rate=0.125829, name nonnull=5881 uniq=2106 unique_rate=0.358102, reason nonnull=5881 uniq=336 unique_rate=0.057133, expound nonnull=5881 uniq=4257 unique_rate=0.723856. action_field_id, name and reason remain LowCardinality(String); expound is descriptive high-uniqueness text and uses ClickHouse String. Parquet schema remains string.
+- String type decision on S3 parquet source/jiuyan__action_field_compacted: rows=5881; action_field_id nonnull=5881 uniq=740 unique_rate=0.125829, name nonnull=5881 uniq=2106 unique_rate=0.358102, reason nonnull=5881 uniq=336 unique_rate=0.057133, expound nonnull=5881 uniq=4257 unique_rate=0.723856. action_field_id, name and reason use ClickHouse String by explicit schema decision for this raw table; expound is descriptive high-uniqueness text and also uses ClickHouse String. Parquet schema remains string.

@@ -16,7 +16,7 @@
 |---|----------|----------|--------------|----------|
 | 1 | `industry_id` | `string` | `string` | OCR 来源行业图片所属的行业研究记录标识。 |
 | 2 | `stock_name` | `string` | `string` | OCR 识别出的股票或证券名称。 |
-| 3 | `theme_path` | `array` | `string` | OCR 识别出的题材或主题层级路径。 |
+| 3 | `theme_path` | `string` | `string` | OCR 识别出的题材或主题层级路径。 |
 | 4 | `relation` | `string` | `string` | OCR 识别出的股票与题材关系说明。 |
 | 5 | `source` | `string` | `string` | OCR 结果对应的来源文件或来源渠道。 |
 
@@ -27,3 +27,4 @@
 ## 校验记录
 
 - Source-only contract added by Plan 0020 Phase 3 from Dagster JIUYAN_INDUSTRY_OCR_SCHEMA.
+- Current OCR request JSON schema requires theme_path as string; legacy array-like model output is normalized to comma-delimited string before Parquet publishing.

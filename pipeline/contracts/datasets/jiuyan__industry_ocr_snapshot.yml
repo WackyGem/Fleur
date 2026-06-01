@@ -38,7 +38,7 @@ source:
     required: true
     external_description_zh: OCR 识别出的股票名称。
   - name: theme_path
-    type: array
+    type: string
     required: true
     external_description_zh: OCR 识别出的题材或主题路径。
   - name: relation
@@ -90,10 +90,9 @@ clickhouse_raw:
   sync_enabled: true
   fields:
   - name: industry_id
-    type: LowCardinality(String)
+    type: String
     from: industry_id
     nullable: false
-    reason: expected_low_cardinality_dimension
   - name: image_filename
     type: String
     from: image_filename
@@ -112,10 +111,9 @@ clickhouse_raw:
     nullable: false
     reason: expected_low_cardinality_dimension
   - name: theme_path
-    type: LowCardinality(String)
+    type: String
     from: theme_path
     nullable: false
-    reason: expected_low_cardinality_dimension
   - name: relation
     type: String
     from: relation
@@ -129,10 +127,11 @@ dataset_note_zh: 韭研 OCR 成功结果快照
 validation_notes:
 - Initial contract migrated from docs/references/data_dict and current raw sync specs.
 - Downstream snapshot contract consumes source-only asset source/jiuyan__industry_ocr.
-- 'LowCardinality review on S3 parquet
+- 'String type decision on S3 parquet
   source/jiuyan__industry_ocr_snapshot/000000_0.parquet: rows=1228;
   industry_id nonnull=1228 uniq=63 unique_rate=0.051303, theme_path
   nonnull=1228 uniq=267 unique_rate=0.217427, relation nonnull=1228
-  uniq=866 unique_rate=0.705212. industry_id and theme_path remain
-  LowCardinality(String); relation is high-uniqueness relationship text and
-  uses ClickHouse String. Parquet schema remains string.'
+  uniq=866 unique_rate=0.705212. industry_id and theme_path use ClickHouse
+  String by explicit schema decision for this raw table; relation is
+  high-uniqueness relationship text and also uses ClickHouse String. Parquet
+  schema remains string.'
