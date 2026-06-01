@@ -9,10 +9,11 @@ def render_data_dict_markdown(
 ) -> str:
     table = registry.glossary_tables.get(contract.dataset)
     title = table.description_zh if table is not None else contract.external.source_description_zh
-    raw_by_from = {field.from_: field for field in contract.clickhouse_raw.fields}
-    stg_by_from = {}
-    if contract.dbt_staging is not None and contract.dbt_staging.status == "active":
-        stg_by_from = {field.from_: field for field in contract.dbt_staging.fields}
+    raw_by_from = (
+        {field.from_: field for field in contract.clickhouse_raw.fields}
+        if contract.clickhouse_raw is not None
+        else {}
+    )
 
     lines = [
         f"# {contract.dataset} 数据字典",
@@ -24,39 +25,29 @@ def render_data_dict_markdown(
         f"- 说明：{title}",
         f"- 粒度：{contract.grain}",
         f"- Source asset：`{'/'.join(contract.source_asset_key)}`",
-        f"- Raw asset：`{'/'.join(contract.raw_asset_key)}`",
-        f"- ClickHouse raw：`{contract.clickhouse_raw.database}.{contract.clickhouse_raw.table}`",
-        f"- 分区策略：`{contract.clickhouse_raw.partition_strategy}`",
-        f"- ORDER BY：`({', '.join(contract.clickhouse_raw.order_by)})`",
+        *_raw_metadata_lines(contract),
         "",
         "## 字段链路",
         "",
-        (
-            "| # | 外源字段 | 外源类型 | Parquet 类型 | ClickHouse raw 字段 | "
-            "ClickHouse 类型 | stg 字段 | 中文描述 |"
-        ),
-        "|---|----------|----------|--------------|---------------------|-----------------|----------|----------|",
+        _field_lineage_header(contract),
+        _field_lineage_separator(contract),
     ]
 
     parquet_by_name = {field.name: field for field in contract.parquet.fields}
     for index, source_field in enumerate(contract.source.fields, start=1):
         parquet_field = parquet_by_name.get(source_field.name)
         raw_field = raw_by_from.get(source_field.name)
-        stg_field = stg_by_from.get(raw_field.name) if raw_field is not None else None
-        glossary_description = ""
-        if stg_field is not None and stg_field.glossary_key is not None:
-            glossary_description = registry.glossary_fields[stg_field.glossary_key].description_zh
-        description = glossary_description or source_field.external_description_zh
         lines.append(
-            "| "
-            f"{index} | "
-            f"`{source_field.name}` | "
-            f"`{source_field.type}` | "
-            f"`{parquet_field.type if parquet_field is not None else '-'}` | "
-            f"`{raw_field.name if raw_field is not None else '-'}` | "
-            f"`{raw_field.type if raw_field is not None else '-'}` | "
-            f"`{stg_field.name if stg_field is not None else '-'}` | "
-            f"{description} |"
+            _field_lineage_row(
+                contract=contract,
+                index=index,
+                source_field_name=source_field.name,
+                source_field_type=source_field.type,
+                parquet_field_type=parquet_field.type if parquet_field is not None else "-",
+                raw_field_name=raw_field.name if raw_field is not None else "-",
+                raw_field_type=raw_field.type if raw_field is not None else "-",
+                description=source_field.external_description_zh,
+            )
         )
 
     if contract.dataset_note_zh:
@@ -66,3 +57,67 @@ def render_data_dict_markdown(
         lines.extend(f"- {note}" for note in contract.validation_notes)
     lines.append("")
     return "\n".join(lines)
+
+
+def _raw_metadata_lines(contract: DatasetContract) -> list[str]:
+    if contract.clickhouse_raw is None:
+        return [
+            "- Raw asset：不适用",
+            "- ClickHouse raw：不适用",
+        ]
+    if contract.raw_asset_key is None:
+        msg = f"{contract.dataset} defines clickhouse_raw without raw_asset_key"
+        raise ValueError(msg)
+    return [
+        f"- Raw asset：`{'/'.join(contract.raw_asset_key)}`",
+        f"- ClickHouse raw：`{contract.clickhouse_raw.database}.{contract.clickhouse_raw.table}`",
+        f"- 分区策略：`{contract.clickhouse_raw.partition_strategy}`",
+        f"- ORDER BY：`({', '.join(contract.clickhouse_raw.order_by)})`",
+    ]
+
+
+def _field_lineage_header(contract: DatasetContract) -> str:
+    if contract.clickhouse_raw is None:
+        return "| # | 外源字段 | 外源类型 | Parquet 类型 | 中文描述 |"
+    return (
+        "| # | 外源字段 | 外源类型 | Parquet 类型 | ClickHouse raw 字段 | "
+        "ClickHouse 类型 | 中文描述 |"
+    )
+
+
+def _field_lineage_separator(contract: DatasetContract) -> str:
+    if contract.clickhouse_raw is None:
+        return "|---|----------|----------|--------------|----------|"
+    return "|---|----------|----------|--------------|---------------------|-----------------|----------|"
+
+
+def _field_lineage_row(
+    *,
+    contract: DatasetContract,
+    index: int,
+    source_field_name: str,
+    source_field_type: str,
+    parquet_field_type: str,
+    raw_field_name: str,
+    raw_field_type: str,
+    description: str,
+) -> str:
+    if contract.clickhouse_raw is None:
+        return (
+            "| "
+            f"{index} | "
+            f"`{source_field_name}` | "
+            f"`{source_field_type}` | "
+            f"`{parquet_field_type}` | "
+            f"{description} |"
+        )
+    return (
+        "| "
+        f"{index} | "
+        f"`{source_field_name}` | "
+        f"`{source_field_type}` | "
+        f"`{parquet_field_type}` | "
+        f"`{raw_field_name}` | "
+        f"`{raw_field_type}` | "
+        f"{description} |"
+    )

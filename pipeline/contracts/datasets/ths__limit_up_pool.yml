@@ -1,28 +1,24 @@
-dataset: ths__limit_up_pool_compacted
+dataset: ths__limit_up_pool
 version: 1
 owner: data
-grain: one row per stock code per trade date
+grain: one row per stock code per source trade date
 source_asset_key:
 - source
-- ths__limit_up_pool_compacted
-raw_asset_key:
-- clickhouse
-- raw
-- ths__limit_up_pool_compacted
+- ths__limit_up_pool
 external:
   provider: ths
-  source_table_name: ths__limit_up_pool_compacted
-  source_description_zh: 同花顺涨停池每日数据年度合并 raw 分区
+  source_table_name: ths__limit_up_pool
+  source_description_zh: 同花顺涨停池每日 source 分区
 source:
-  protocol: generated
-  payload_format: tabular
+  protocol: http
+  payload_format: json
   fields:
   - name: date
     type: string
     required: true
     external_description_zh: 同花顺涨停池对应的交易日期。
   - name: open_num
-    type: integer
+    type: number
     required: true
     external_description_zh: 股票当日涨停后开板次数。
   - name: first_limit_up_time
@@ -40,13 +36,13 @@ source:
   - name: limit_up_type
     type: string
     required: true
-    external_description_zh: 涨停类型分类。
+    external_description_zh: 同花顺涨停类型分类。
   - name: order_volume
     type: number
     required: true
     external_description_zh: 涨停封单量。
   - name: is_new
-    type: boolean
+    type: number
     required: true
     external_description_zh: 是否为当日新进入涨停池的股票。
   - name: limit_up_suc_rate
@@ -58,11 +54,11 @@ source:
     required: true
     external_description_zh: 股票流通市值。
   - name: market_id
-    type: integer
+    type: number
     required: true
     external_description_zh: 同花顺市场标识。
   - name: is_again_limit
-    type: boolean
+    type: number
     required: true
     external_description_zh: 是否再次涨停。
   - name: change_rate
@@ -90,7 +86,7 @@ source:
     required: true
     external_description_zh: 股票名称。
   - name: high_days_value
-    type: integer
+    type: number
     required: true
     external_description_zh: 连板或高度天数数值。
   - name: change_tag
@@ -107,7 +103,7 @@ source:
     external_description_zh: 最新成交价格。
 parquet:
   storage_mode: partitioned
-  partition_key_name: year
+  partition_key_name: trade_date
   fields:
   - name: date
     type: date32[day]
@@ -175,117 +171,6 @@ parquet:
   - name: latest
     type: double
     nullable: false
-clickhouse_raw:
-  database: raw
-  table: ths__limit_up_pool_compacted
-  partition_strategy: year
-  engine: MergeTree
-  partition_by: '`year`'
-  order_by:
-  - date
-  - code
-  allow_empty: false
-  sync_enabled: true
-  fields:
-  - name: date
-    type: Date
-    from: date
-    nullable: false
-  - name: open_num
-    type: Int64
-    from: open_num
-    nullable: false
-  - name: first_limit_up_time
-    type: DateTime64(3, 'UTC')
-    from: first_limit_up_time
-    nullable: false
-  - name: last_limit_up_time
-    type: DateTime64(3, 'UTC')
-    from: last_limit_up_time
-    nullable: false
-  - name: code
-    type: LowCardinality(String)
-    from: code
-    nullable: false
-    reason: expected_low_cardinality_dimension
-  - name: limit_up_type
-    type: LowCardinality(String)
-    from: limit_up_type
-    nullable: false
-    reason: expected_low_cardinality_dimension
-  - name: order_volume
-    type: Float64
-    from: order_volume
-    nullable: false
-  - name: is_new
-    type: Bool
-    from: is_new
-    nullable: false
-  - name: limit_up_suc_rate
-    type: Float64
-    from: limit_up_suc_rate
-    nullable: false
-  - name: currency_value
-    type: Float64
-    from: currency_value
-    nullable: false
-  - name: market_id
-    type: Int64
-    from: market_id
-    nullable: false
-  - name: is_again_limit
-    type: Bool
-    from: is_again_limit
-    nullable: false
-  - name: change_rate
-    type: Float64
-    from: change_rate
-    nullable: false
-  - name: turnover_rate
-    type: Float64
-    from: turnover_rate
-    nullable: false
-  - name: reason_type
-    type: String
-    from: reason_type
-    nullable: false
-  - name: order_amount
-    type: Float64
-    from: order_amount
-    nullable: false
-  - name: high_days
-    type: LowCardinality(String)
-    from: high_days
-    nullable: false
-    reason: expected_low_cardinality_dimension
-  - name: name
-    type: LowCardinality(String)
-    from: name
-    nullable: false
-    reason: expected_low_cardinality_dimension
-  - name: high_days_value
-    type: Int64
-    from: high_days_value
-    nullable: false
-  - name: change_tag
-    type: LowCardinality(String)
-    from: change_tag
-    nullable: false
-    reason: expected_low_cardinality_dimension
-  - name: market_type
-    type: LowCardinality(String)
-    from: market_type
-    nullable: false
-    reason: expected_low_cardinality_dimension
-  - name: latest
-    type: Float64
-    from: latest
-    nullable: false
-dataset_note_zh: 同花顺涨停池每日数据年度合并 raw 分区
+dataset_note_zh: 同花顺涨停池每日 source 分区；该 source-only asset 不直接同步 ClickHouse raw。
 validation_notes:
-- Initial contract migrated from docs/references/data_dict and current raw sync specs.
-- Downstream compacted contract consumes source-only asset source/ths__limit_up_pool.
-- 'LowCardinality review on S3 parquet source/ths__limit_up_pool_compacted:
-  rows=16014; reason_type nonnull=16014 uniq=11573 unique_rate=0.722680.
-  reason_type exceeds the 10000 unique-value threshold and uses ClickHouse
-  String. Parquet schema remains string.'
+- Source-only contract added by Plan 0020 Phase 3 from Dagster THS_LIMIT_UP_POOL_SCHEMA.

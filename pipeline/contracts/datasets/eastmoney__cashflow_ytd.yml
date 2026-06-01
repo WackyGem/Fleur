@@ -1010,12 +1010,12 @@ source:
     required: true
     external_description_zh: 现金及现金等价物净增加额（附注）同比增长率（%）
   - name: OPINION_TYPE
-    type: number
-    required: true
+    type: string
+    required: false
     external_description_zh: 审计意见类型
   - name: OSOPINION_TYPE
-    type: number
-    required: true
+    type: string
+    required: false
     external_description_zh: 内控审计意见类型
   - name: MINORITY_INTEREST
     type: number
@@ -1783,10 +1783,10 @@ parquet:
     nullable: false
   - name: OPINION_TYPE
     type: string
-    nullable: false
+    nullable: true
   - name: OSOPINION_TYPE
     type: string
-    nullable: false
+    nullable: true
   - name: MINORITY_INTEREST
     type: double
     nullable: false
@@ -2815,12 +2815,12 @@ clickhouse_raw:
   - name: OPINION_TYPE
     type: LowCardinality(String)
     from: OPINION_TYPE
-    nullable: false
+    nullable: true
     reason: expected_low_cardinality_dimension
   - name: OSOPINION_TYPE
     type: LowCardinality(String)
     from: OSOPINION_TYPE
-    nullable: false
+    nullable: true
     reason: expected_low_cardinality_dimension
   - name: MINORITY_INTEREST
     type: Float64
@@ -2838,8 +2838,6 @@ clickhouse_raw:
     type: Float64
     from: USERIGHT_ASSET_AMORTIZE_YOY
     nullable: false
-dbt_staging:
-  status: not_started
 dataset_note_zh: 东方财富年初至今现金流量表 F10 年度 raw 分区
 validation_notes:
 - Initial contract migrated from docs/references/data_dict and current raw sync specs.

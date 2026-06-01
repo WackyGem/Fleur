@@ -959,11 +959,11 @@ paths:
                               nullable: true
                               description: 少数股东损益环比增长率(%)
                             OPINION_TYPE:
-                              type: number
+                              type: string
                               nullable: true
                               description: 审计意见类型
                             OSOPINION_TYPE:
-                              type: number
+                              type: string
                               nullable: true
                               description: 内控审计意见类型
                             LISTING_STATE:

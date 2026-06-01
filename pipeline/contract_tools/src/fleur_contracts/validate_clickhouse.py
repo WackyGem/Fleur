@@ -18,6 +18,8 @@ def validate_available_clickhouse(contract_root: Path = DEFAULT_CONTRACT_ROOT) -
         checked = 0
         skipped = 0
         for dataset in registry.datasets:
+            if dataset.clickhouse_raw is None:
+                continue
             rows = client.query(
                 """
                 SELECT name, type

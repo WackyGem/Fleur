@@ -38,6 +38,17 @@ if EXTRACT_SCRIPT_SPEC is None or EXTRACT_SCRIPT_SPEC.loader is None:
 extract_eastmoney_schema_fields = module_from_spec(EXTRACT_SCRIPT_SPEC)
 EXTRACT_SCRIPT_SPEC.loader.exec_module(extract_eastmoney_schema_fields)
 
+GENERATE_SCHEMA_SCRIPT_PATH = REPO_ROOT / "pipeline/scheduler/scripts/generate_eastmoney_schemas.py"
+GENERATE_SCHEMA_SCRIPT_SPEC = spec_from_file_location(
+    "generate_eastmoney_schemas",
+    GENERATE_SCHEMA_SCRIPT_PATH,
+)
+if GENERATE_SCHEMA_SCRIPT_SPEC is None or GENERATE_SCHEMA_SCRIPT_SPEC.loader is None:
+    msg = f"Could not load {GENERATE_SCHEMA_SCRIPT_PATH}"
+    raise RuntimeError(msg)
+generate_eastmoney_schemas = module_from_spec(GENERATE_SCHEMA_SCRIPT_SPEC)
+GENERATE_SCHEMA_SCRIPT_SPEC.loader.exec_module(generate_eastmoney_schemas)
+
 EXPECTED_OPENAPI_FIELD_COUNTS = {
     "eastmoney__balance": 319,
     "eastmoney__cashflow_sq": 372,
@@ -47,6 +58,42 @@ EXPECTED_OPENAPI_FIELD_COUNTS = {
     "eastmoney__equity_history": 69,
     "eastmoney__income_sq": 299,
     "eastmoney__income_ytd": 203,
+}
+
+EXPECTED_PHASE_4_SCHEMA_FIELDS = {
+    "eastmoney__dividend_allotment": {
+        "EX_DIVIDEND_DATEE": (pa.date32(), False),
+    },
+    "eastmoney__dividend_main": {
+        "EQUITY_RECORD_DATE": (pa.date32(), True),
+        "EX_DIVIDEND_DATE": (pa.date32(), True),
+        "PAY_CASH_DATE": (pa.date32(), True),
+        "ASSIGN_OBJECT": (pa.string(), True),
+        "GMDECISION_NOTICE_DATE": (pa.date32(), True),
+        "INFO_CODE": (pa.string(), True),
+        "DAT_YAGGR": (pa.date32(), True),
+        "REPORT_TIME": (pa.string(), True),
+        "LAST_TRADE_DATE": (pa.date32(), True),
+    },
+    "eastmoney__balance": {
+        "OPINION_TYPE": (pa.string(), True),
+        "OSOPINION_TYPE": (pa.string(), True),
+    },
+    "eastmoney__cashflow_sq": {
+        "OPINION_TYPE": (pa.string(), True),
+        "OSOPINION_TYPE": (pa.string(), True),
+    },
+    "eastmoney__cashflow_ytd": {
+        "OPINION_TYPE": (pa.string(), True),
+        "OSOPINION_TYPE": (pa.string(), True),
+    },
+    "eastmoney__income_sq": {
+        "OPINION_TYPE": (pa.string(), True),
+        "OSOPINION_TYPE": (pa.string(), True),
+    },
+    "eastmoney__income_ytd": {
+        "OPINION_TYPE": (pa.string(), True),
+    },
 }
 
 
@@ -95,6 +142,26 @@ class EastmoneySchemaTest(unittest.TestCase):
         self.assertEqual(
             set(generated_schemas.EASTMONEY_SCHEMAS), set(EXPECTED_OPENAPI_FIELD_COUNTS)
         )
+
+    def test_generated_schemas_match_contract_generation(self) -> None:
+        schema_module_path = (
+            REPO_ROOT
+            / "pipeline/scheduler/src/scheduler/defs/sources/eastmoney/generated/schemas.py"
+        )
+
+        self.assertEqual(
+            schema_module_path.read_text(encoding="utf-8"),
+            generate_eastmoney_schemas.render_schemas_module(),
+        )
+
+    def test_phase_4_field_types_and_nullable_facts(self) -> None:
+        for asset_name, expected_fields in EXPECTED_PHASE_4_SCHEMA_FIELDS.items():
+            schema = eastmoney_schema(endpoint_by_asset_name(asset_name))
+            with self.subTest(asset=asset_name):
+                for field_name, (expected_type, expected_nullable) in expected_fields.items():
+                    field = schema.field(field_name)
+                    self.assertEqual(field.type, expected_type)
+                    self.assertEqual(field.nullable, expected_nullable)
 
     def test_rows_to_table_preserves_missing_fields_as_null_and_counts_unknowns(self) -> None:
         endpoint = endpoint_by_asset_name("eastmoney__dividend_main")

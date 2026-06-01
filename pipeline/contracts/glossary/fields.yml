@@ -110,6 +110,14 @@ relation:
   name: relation
   description_zh: 记录之间或主题之间的关联说明。
   description: Relation.
+security_code:
+  name: security_code
+  description_zh: 证券在市场中的标准代码或来源系统证券代码。
+  description: Security code.
+security_name:
+  name: security_name
+  description_zh: 证券在市场或来源系统中的显示名称。
+  description: Security name.
 sort_no:
   name: sort_no
   description_zh: 来源系统用于展示或处理的排序序号。
@@ -128,7 +136,7 @@ stock_name:
   description: Stock name.
 stock_status:
   name: stock_status
-  description_zh: 证券上市、退市或暂停交易等状态。
+  description_zh: 证券上市状态的语义化取值，例如上市或退市。
   description: Stock status.
 stock_type:
   name: stock_type
@@ -154,6 +162,10 @@ trade_date:
   name: trade_date
   description_zh: A 股市场交易日日期。
   description: Trade date.
+trading_status:
+  name: trading_status
+  description_zh: 证券在交易日内交易状态的语义化取值，例如正常交易或停牌。
+  description: Trading status.
 tradestatus:
   name: tradestatus
   description_zh: 证券在交易日内的交易状态。

@@ -14,25 +14,25 @@
 
 ## 字段链路
 
-| # | 外源字段 | 外源类型 | Parquet 类型 | ClickHouse raw 字段 | ClickHouse 类型 | stg 字段 | 中文描述 |
-|---|----------|----------|--------------|---------------------|-----------------|----------|----------|
-| 1 | `industry_id` | `string` | `string` | `industry_id` | `LowCardinality(String)` | `industry_id` | 行业研究记录在来源系统中的唯一标识。 |
-| 2 | `title_red` | `integer` | `bool` | `title_red` | `Bool` | `title_red` | 标题是否在来源系统中红色高亮展示。 |
-| 3 | `title_bold` | `integer` | `bool` | `title_bold` | `Bool` | `title_bold` | 标题是否在来源系统中加粗展示。 |
-| 4 | `title` | `string` | `string` | `title` | `String` | `title` | 内容标题。 |
-| 5 | `author` | `string` | `string` | `author` | `LowCardinality(String)` | `author` | 内容发布或维护人员名称。 |
-| 6 | `imgs` | `string` | `string` | `imgs` | `String` | `imgs` | 内容关联的图片列表或图片地址集合。 |
-| 7 | `keyword` | `string` | `string` | `keyword` | `String` | `keyword` | 内容或主题关联的关键词。 |
-| 8 | `content` | `string` | `string` | `content` | `String` | `content` | 正文内容或说明文本。 |
-| 9 | `is_top` | `integer` | `bool` | `is_top` | `Bool` | `is_top` | 内容是否被来源系统置顶展示。 |
-| 10 | `status` | `integer` | `int64` | `status` | `Int64` | `status` | 记录或业务对象在来源系统中的状态。 |
-| 11 | `sort_no` | `integer` | `int64` | `sort_no` | `Int64` | `sort_no` | 来源系统用于展示或处理的排序序号。 |
-| 12 | `forward_count` | `integer` | `int64` | `forward_count` | `Int64` | `forward_count` | 内容被转发或分享的次数。 |
-| 13 | `browsers_count` | `integer` | `int64` | `browsers_count` | `Int64` | `browsers_count` | 内容被浏览或阅读的次数。 |
-| 14 | `is_delete` | `string` | `bool` | `is_delete` | `Bool` | `is_delete` | 记录是否已被来源系统标记为删除。 |
-| 15 | `delete_time` | `string` | `timestamp[ns]` | `delete_time` | `DateTime64(3)` | `delete_time` | 记录在来源系统中的删除时间；未删除时通常为空。 |
-| 16 | `create_time` | `string` | `timestamp[ns]` | `create_time` | `DateTime64(3)` | `create_time` | 记录在来源系统中的创建时间。 |
-| 17 | `update_time` | `string` | `timestamp[ns]` | `update_time` | `DateTime64(3)` | `update_time` | 记录在来源系统中的最后更新时间。 |
+| # | 外源字段 | 外源类型 | Parquet 类型 | ClickHouse raw 字段 | ClickHouse 类型 | 中文描述 |
+|---|----------|----------|--------------|---------------------|-----------------|----------|
+| 1 | `industry_id` | `string` | `string` | `industry_id` | `String` | 韭研行业研究记录唯一标识。 |
+| 2 | `title_red` | `integer` | `bool` | `title_red` | `Bool` | 行业研究标题是否红色高亮展示。 |
+| 3 | `title_bold` | `integer` | `bool` | `title_bold` | `Bool` | 行业研究标题是否加粗展示。 |
+| 4 | `title` | `string` | `string` | `title` | `String` | 行业研究标题。 |
+| 5 | `author` | `string` | `string` | `author` | `LowCardinality(String)` | 行业研究内容作者。 |
+| 6 | `imgs` | `string` | `string` | `imgs` | `String` | 行业研究内容关联图片列表。 |
+| 7 | `keyword` | `string` | `string` | `keyword` | `String` | 行业研究内容关键词。 |
+| 8 | `content` | `string` | `string` | `content` | `String` | 行业研究正文内容。 |
+| 9 | `is_top` | `integer` | `bool` | `is_top` | `Bool` | 行业研究内容是否置顶。 |
+| 10 | `status` | `integer` | `int64` | `status` | `Int64` | 行业研究内容发布状态。 |
+| 11 | `sort_no` | `integer` | `int64` | `sort_no` | `Int64` | 行业研究内容展示排序号。 |
+| 12 | `forward_count` | `integer` | `int64` | `forward_count` | `Int64` | 行业研究内容转发次数。 |
+| 13 | `browsers_count` | `integer` | `int64` | `browsers_count` | `Int64` | 行业研究内容浏览次数。 |
+| 14 | `is_delete` | `string` | `bool` | `is_delete` | `Bool` | 行业研究内容是否被标记为删除。 |
+| 15 | `delete_time` | `string` | `timestamp[ns]` | `delete_time` | `DateTime64(3)` | 行业研究内容删除时间。 |
+| 16 | `create_time` | `string` | `timestamp[ns]` | `create_time` | `DateTime64(3)` | 行业研究内容创建时间。 |
+| 17 | `update_time` | `string` | `timestamp[ns]` | `update_time` | `DateTime64(3)` | 行业研究内容更新时间。 |
 
 ## 数据集备注
 
@@ -41,3 +41,4 @@
 ## 校验记录
 
 - Initial contract migrated from docs/references/data_dict and current raw sync specs.
+- LowCardinality review on S3 parquet source/jiuyan__industry_list/000000_0.parquet: rows=956; industry_id nonnull=956 uniq=956 unique_rate=1.000000. industry_id is a source record identifier and uses ClickHouse String. Parquet schema remains string.

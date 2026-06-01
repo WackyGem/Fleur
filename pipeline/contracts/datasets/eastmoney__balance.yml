@@ -1282,12 +1282,12 @@ source:
     required: true
     external_description_zh: 使用权资产同比增长率（%）
   - name: OPINION_TYPE
-    type: number
-    required: true
+    type: string
+    required: false
     external_description_zh: 审计意见类型
   - name: OSOPINION_TYPE
-    type: number
-    required: true
+    type: string
+    required: false
     external_description_zh: 内控审计意见类型
   - name: LISTING_STATE
     type: string
@@ -2247,10 +2247,10 @@ parquet:
     nullable: false
   - name: OPINION_TYPE
     type: string
-    nullable: false
+    nullable: true
   - name: OSOPINION_TYPE
     type: string
-    nullable: false
+    nullable: true
   - name: LISTING_STATE
     type: string
     nullable: false
@@ -3542,20 +3542,18 @@ clickhouse_raw:
   - name: OPINION_TYPE
     type: LowCardinality(String)
     from: OPINION_TYPE
-    nullable: false
+    nullable: true
     reason: expected_low_cardinality_dimension
   - name: OSOPINION_TYPE
     type: LowCardinality(String)
     from: OSOPINION_TYPE
-    nullable: false
+    nullable: true
     reason: expected_low_cardinality_dimension
   - name: LISTING_STATE
     type: LowCardinality(String)
     from: LISTING_STATE
     nullable: false
     reason: expected_low_cardinality_dimension
-dbt_staging:
-  status: not_started
 dataset_note_zh: 东方财富资产负债表 F10 年度 raw 分区
 validation_notes:
 - Initial contract migrated from docs/references/data_dict and current raw sync specs.

@@ -72,46 +72,17 @@ class ClickHouseRawSpec(ContractModel):
     fields: list[ClickHouseRawField]
 
 
-class DbtStagingField(ContractModel):
-    name: str
-    from_: str = Field(alias="from")
-    glossary_key: str | None = None
-    type: str
-    tests: list[str] = Field(default_factory=list)
-    canonical_exempt: bool = False
-    exempt_reason: str | None = None
-
-
-class DbtStagingSpec(ContractModel):
-    model: str | None = None
-    materialized: Literal["view", "table", "incremental"] = "view"
-    status: Literal["active", "not_started"] = "active"
-    primary_key: list[str] = Field(default_factory=list)
-    fields: list[DbtStagingField] = Field(default_factory=list)
-
-    @model_validator(mode="after")
-    def validate_status_payload(self) -> DbtStagingSpec:
-        if self.status == "active" and self.model is None:
-            msg = "active dbt_staging requires model"
-            raise ValueError(msg)
-        if self.status == "not_started" and self.fields:
-            msg = "not_started dbt_staging must not define fields"
-            raise ValueError(msg)
-        return self
-
-
 class DatasetContract(ContractModel):
     dataset: str
     version: int
     owner: str
     grain: str
     source_asset_key: AssetKeyPath
-    raw_asset_key: AssetKeyPath
+    raw_asset_key: AssetKeyPath | None = None
     external: ExternalSpec
     source: SourceSpec
     parquet: ParquetSpec
-    clickhouse_raw: ClickHouseRawSpec
-    dbt_staging: DbtStagingSpec | None = None
+    clickhouse_raw: ClickHouseRawSpec | None = None
     dataset_note_zh: str | None = None
     validation_notes: list[str] = Field(default_factory=list)
 
@@ -125,7 +96,9 @@ class DatasetContract(ContractModel):
 
     @field_validator("source_asset_key", "raw_asset_key")
     @classmethod
-    def validate_asset_key(cls, value: AssetKeyPath) -> AssetKeyPath:
+    def validate_asset_key(cls, value: AssetKeyPath | None) -> AssetKeyPath | None:
+        if value is None:
+            return None
         if not value or any(not part for part in value):
             msg = "asset keys must be non-empty string path lists"
             raise ValueError(msg)
@@ -134,8 +107,28 @@ class DatasetContract(ContractModel):
     @model_validator(mode="after")
     def validate_references(self) -> DatasetContract:
         parquet_fields = {field.name for field in self.parquet.fields}
+
+        if self.parquet.storage_mode == "partitioned" and not self.parquet.partition_key_name:
+            msg = "partitioned parquet storage requires partition_key_name"
+            raise ValueError(msg)
+        if self.parquet.storage_mode == "latest_snapshot" and self.parquet.partition_key_name:
+            msg = "latest_snapshot parquet storage must not define partition_key_name"
+            raise ValueError(msg)
+        if self.parquet.partition_key_name == "":
+            msg = "parquet.partition_key_name must be non-empty when provided"
+            raise ValueError(msg)
+
+        if self.clickhouse_raw is None:
+            if self.raw_asset_key is not None:
+                msg = "source-only dataset must not define raw_asset_key without clickhouse_raw"
+                raise ValueError(msg)
+            return self
+
         raw_fields = {field.name for field in self.clickhouse_raw.fields}
 
+        if self.raw_asset_key is None:
+            msg = "clickhouse_raw dataset requires raw_asset_key"
+            raise ValueError(msg)
         if self.clickhouse_raw.table != self.dataset:
             msg = "clickhouse_raw.table must match dataset"
             raise ValueError(msg)
@@ -156,14 +149,6 @@ class DatasetContract(ContractModel):
             msg = "snapshot partition strategy requires latest_snapshot parquet storage"
             raise ValueError(msg)
 
-        if (
-            self.parquet.partition_key_name is not None
-            and self.parquet.partition_key_name != "year"
-            and self.parquet.partition_key_name not in parquet_fields
-        ):
-            msg = "parquet.partition_key_name must exist in parquet.fields or be 'year'"
-            raise ValueError(msg)
-
         for field in self.clickhouse_raw.fields:
             if field.from_ not in parquet_fields:
                 msg = f"ClickHouse field {field.name!r} references missing parquet field {field.from_!r}"
@@ -177,23 +162,6 @@ class DatasetContract(ContractModel):
                 msg = f"ORDER BY column {order_by_column!r} is not a ClickHouse raw field"
                 raise ValueError(msg)
 
-        if self.dbt_staging is not None and self.dbt_staging.status == "active":
-            for field in self.dbt_staging.fields:
-                if field.from_ not in raw_fields:
-                    msg = f"dbt staging field {field.name!r} references missing raw field {field.from_!r}"
-                    raise ValueError(msg)
-                if not CANONICAL_RE.fullmatch(field.name):
-                    msg = f"dbt staging field {field.name!r} must use canonical lower snake case"
-                    raise ValueError(msg)
-                if field.glossary_key is None and not field.canonical_exempt:
-                    msg = (
-                        f"dbt staging field {field.name!r} needs glossary_key or "
-                        "canonical_exempt=true"
-                    )
-                    raise ValueError(msg)
-                if field.canonical_exempt and not field.exempt_reason:
-                    msg = f"canonical exempt field {field.name!r} must include exempt_reason"
-                    raise ValueError(msg)
         return self
 
 
@@ -231,34 +199,20 @@ class ContractRegistry(ContractModel):
                 raise ValueError(msg)
             seen_datasets.add(dataset.dataset)
 
-            table = dataset.clickhouse_raw.table
-            if table in seen_tables:
-                msg = f"duplicate ClickHouse raw table: {table}"
-                raise ValueError(msg)
-            seen_tables.add(table)
-
-            raw_asset_key = tuple(dataset.raw_asset_key)
-            if raw_asset_key in seen_raw_assets:
-                msg = f"duplicate raw asset key: {'/'.join(raw_asset_key)}"
-                raise ValueError(msg)
-            seen_raw_assets.add(raw_asset_key)
-
-            if dataset.dbt_staging is None or dataset.dbt_staging.status != "active":
-                continue
-            for field in dataset.dbt_staging.fields:
-                if field.glossary_key is None:
-                    continue
-                glossary = self.glossary_fields.get(field.glossary_key)
-                if glossary is None:
-                    msg = (
-                        f"{dataset.dataset}.{field.name} references missing glossary field "
-                        f"{field.glossary_key!r}"
-                    )
+            if dataset.clickhouse_raw is not None:
+                table = dataset.clickhouse_raw.table
+                if table in seen_tables:
+                    msg = f"duplicate ClickHouse raw table: {table}"
                     raise ValueError(msg)
-                if glossary.name != field.name:
-                    msg = (
-                        f"{dataset.dataset}.{field.name} glossary key {field.glossary_key!r} "
-                        f"has canonical name {glossary.name!r}"
-                    )
+                seen_tables.add(table)
+
+                if dataset.raw_asset_key is None:
+                    msg = f"{dataset.dataset} clickhouse_raw dataset requires raw_asset_key"
                     raise ValueError(msg)
+                raw_asset_key = tuple(dataset.raw_asset_key)
+                if raw_asset_key in seen_raw_assets:
+                    msg = f"duplicate raw asset key: {'/'.join(raw_asset_key)}"
+                    raise ValueError(msg)
+                seen_raw_assets.add(raw_asset_key)
+
         return self

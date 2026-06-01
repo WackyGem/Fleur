@@ -1,72 +1,42 @@
-# jiuyan__action_field 字段校对
+# jiuyan__action_field 数据字典
 
-> 生成时间: 2026-05-30 10:31:25 UTC
-> OpenAPI 文档: jiuyan__action_field.yaml
+本文件由 `pipeline/contracts/datasets/jiuyan__action_field.yml` 生成。字段事实以 contract 为准。
 
-## 字段对比
+- 数据集：`jiuyan__action_field`
+- 版本：`1`
+- 说明：韭研题材异动每日 source 分区
+- 粒度：one row per stock code per source trade date/action field row
+- Source asset：`source/jiuyan__action_field`
+- Raw asset：不适用
+- ClickHouse raw：不适用
 
-| # | 字段名 | OpenAPI 类型 | 资产使用 | PyArrow 类型 | ClickHouse 类型 |
-|---|--------|-------------|---------|-------------|----------------|
-| 1 | action_field_id | string | ✅ | string | LowCardinality(String) |
-| 2 | name | string | ✅ | string | LowCardinality(String) |
-| 3 | date | string | ✅ | date32[day] | Date |
-| 4 | reason | string | ✅ | string | LowCardinality(String) |
-| 5 | status | integer | ❌ | - | - |
-| 6 | sort_no | integer | ✅ | int64 | Int64 |
-| 7 | is_delete | string | ✅ | bool | Bool |
-| 8 | delete_time | string | ✅ | timestamp[ns] | DateTime64(3) |
-| 9 | create_time | string | ✅ | timestamp[ns] | DateTime64(3) |
-| 10 | update_time | string | ✅ | timestamp[ns] | DateTime64(3) |
-| 11 | count | integer | ✅ | int64 | Int64 |
-| 12 | list | array | ❌ | - | - |
-| 13 | list.code | string | ✅ | string | LowCardinality(String) |
-| 14 | list.name | string | ✅ | string | LowCardinality(String) |
-| 15 | list.article | object | ❌ | - | - |
-| 16 | list.article.article_id | string | ❌ | - | - |
-| 17 | list.article.comment_count | integer | ❌ | - | - |
-| 18 | list.article.like_count | integer | ❌ | - | - |
-| 19 | list.article.create_time | string | ✅ | timestamp[ns] | DateTime64(3) |
-| 20 | list.article.user_id | string | ❌ | - | - |
-| 21 | list.article.is_like | integer | ❌ | - | - |
-| 22 | list.article.action_info | object | ❌ | - | - |
-| 23 | list.article.action_info.article_id | string | ❌ | - | - |
-| 24 | list.article.action_info.action_info_id | string | ❌ | - | - |
-| 25 | list.article.action_info.stock_id | string | ❌ | - | - |
-| 26 | list.article.action_info.action_field_id | string | ✅ | string | LowCardinality(String) |
-| 27 | list.article.action_info.time | string | ✅ | time32[ms] | String |
-| 28 | list.article.action_info.num | string | ✅ | string | LowCardinality(String) |
-| 29 | list.article.action_info.price | integer | ✅ | int64 | Int64 |
-| 30 | list.article.action_info.day | integer | ✅ | int64 | Int64 |
-| 31 | list.article.action_info.edition | integer | ✅ | int64 | Int64 |
-| 32 | list.article.action_info.shares_range | number | ✅ | float64 | Float64 |
-| 33 | list.article.action_info.reason | string | ✅ | string | LowCardinality(String) |
-| 34 | list.article.action_info.expound | string | ✅ | string | LowCardinality(String) |
-| 35 | list.article.action_info.is_crawl | integer | ❌ | - | - |
-| 36 | list.article.action_info.is_recommend | integer | ❌ | - | - |
-| 37 | list.article.action_info.is_delete | string | ✅ | bool | Bool |
-| 38 | list.article.action_info.delete_time | string | ✅ | timestamp[ns] | DateTime64(3) |
-| 39 | list.article.action_info.create_time | string | ✅ | timestamp[ns] | DateTime64(3) |
-| 40 | list.article.action_info.update_time | string | ✅ | timestamp[ns] | DateTime64(3) |
-| 41 | list.article.action_info.sort_no | integer | ✅ | int64 | Int64 |
-| 42 | list.article.forward_count | integer | ❌ | - | - |
-| 43 | list.article.step_count | integer | ❌ | - | - |
-| 44 | list.article.title | string | ❌ | - | - |
-| 45 | list.article.is_step | integer | ❌ | - | - |
-| 46 | list.article.user | object | ❌ | - | - |
-| 47 | list.article.user.user_id | string | ❌ | - | - |
-| 48 | list.article.user.avatar | string | ❌ | - | - |
-| 49 | list.article.user.nickname | string | ❌ | - | - |
-| 50 | code | string | ✅ | string | LowCardinality(String) |
-| 51 | time | string | ✅ | time32[ms] | String |
-| 52 | num | string | ✅ | string | LowCardinality(String) |
-| 53 | price | integer | ✅ | int64 | Int64 |
-| 54 | day | integer | ✅ | int64 | Int64 |
-| 55 | edition | integer | ✅ | int64 | Int64 |
-| 56 | shares_range | number | ✅ | float64 | Float64 |
-| 57 | expound | string | ✅ | string | String |
+## 字段链路
 
-## 统计
+| # | 外源字段 | 外源类型 | Parquet 类型 | 中文描述 |
+|---|----------|----------|--------------|----------|
+| 1 | `action_field_id` | `string` | `string` | 韭研题材异动记录唯一标识。 |
+| 2 | `name` | `string` | `string` | 韭研题材异动名称。 |
+| 3 | `date` | `string` | `date32[day]` | 韭研题材异动对应的交易日期。 |
+| 4 | `reason` | `string` | `string` | 韭研题材异动形成或归类原因。 |
+| 5 | `sort_no` | `integer` | `int64` | 韭研题材异动展示排序号。 |
+| 6 | `is_delete` | `string` | `bool` | 韭研题材异动记录是否被标记为删除。 |
+| 7 | `delete_time` | `string` | `timestamp[ns]` | 韭研题材异动记录删除时间。 |
+| 8 | `create_time` | `string` | `timestamp[ns]` | 韭研题材异动记录创建时间。 |
+| 9 | `update_time` | `string` | `timestamp[ns]` | 韭研题材异动记录更新时间。 |
+| 10 | `count` | `integer` | `int64` | 韭研题材异动关联对象数量。 |
+| 11 | `code` | `string` | `string` | 题材异动关联的证券代码。 |
+| 12 | `time` | `string` | `time32[ms]` | 题材异动关联证券的事件时间。 |
+| 13 | `num` | `string` | `string` | 题材异动关联证券的连板数量描述。 |
+| 14 | `price` | `integer` | `int64` | 题材异动关联证券的价格数值。 |
+| 15 | `day` | `integer` | `int64` | 题材异动关联证券的连板天数。 |
+| 16 | `edition` | `integer` | `int64` | 题材异动关联证券的连板板数。 |
+| 17 | `shares_range` | `number` | `double` | 题材异动关联证券的股份区间数值。 |
+| 18 | `expound` | `string` | `string` | 题材异动关联证券的补充说明。 |
 
-- OpenAPI 字段总数: 49
-- 资产使用字段数: 35
-- 未使用字段数: 22
+## 数据集备注
+
+韭研题材异动每日 source 分区；该 source-only asset 不直接同步 ClickHouse raw。
+
+## 校验记录
+
+- Source-only contract added by Plan 0020 Phase 3 from Dagster JIUYAN_ACTION_FIELD_SCHEMA.

@@ -151,10 +151,9 @@ clickhouse_raw:
   sync_enabled: true
   fields:
   - name: industry_id
-    type: LowCardinality(String)
+    type: String
     from: industry_id
     nullable: false
-    reason: expected_low_cardinality_dimension
   - name: title_red
     type: Bool
     from: title_red
@@ -220,99 +219,10 @@ clickhouse_raw:
     type: DateTime64(3)
     from: update_time
     nullable: false
-dbt_staging:
-  model: stg_jiuyan__industry_list
-  materialized: view
-  status: active
-  primary_key:
-  - industry_id
-  fields:
-  - name: industry_id
-    from: industry_id
-    type: String
-    glossary_key: industry_id
-    tests:
-    - not_null
-  - name: title_red
-    from: title_red
-    type: Bool
-    glossary_key: title_red
-    tests: []
-  - name: title_bold
-    from: title_bold
-    type: Bool
-    glossary_key: title_bold
-    tests: []
-  - name: title
-    from: title
-    type: String
-    glossary_key: title
-    tests: []
-  - name: author
-    from: author
-    type: String
-    glossary_key: author
-    tests: []
-  - name: imgs
-    from: imgs
-    type: String
-    glossary_key: imgs
-    tests: []
-  - name: keyword
-    from: keyword
-    type: String
-    glossary_key: keyword
-    tests: []
-  - name: content
-    from: content
-    type: String
-    glossary_key: content
-    tests: []
-  - name: is_top
-    from: is_top
-    type: Bool
-    glossary_key: is_top
-    tests: []
-  - name: status
-    from: status
-    type: Int64
-    glossary_key: status
-    tests: []
-  - name: sort_no
-    from: sort_no
-    type: Int64
-    glossary_key: sort_no
-    tests: []
-  - name: forward_count
-    from: forward_count
-    type: Int64
-    glossary_key: forward_count
-    tests: []
-  - name: browsers_count
-    from: browsers_count
-    type: Int64
-    glossary_key: browsers_count
-    tests: []
-  - name: is_delete
-    from: is_delete
-    type: Bool
-    glossary_key: is_delete
-    tests: []
-  - name: delete_time
-    from: delete_time
-    type: DateTime64(3)
-    glossary_key: delete_time
-    tests: []
-  - name: create_time
-    from: create_time
-    type: DateTime64(3)
-    glossary_key: create_time
-    tests: []
-  - name: update_time
-    from: update_time
-    type: DateTime64(3)
-    glossary_key: update_time
-    tests: []
 dataset_note_zh: 韭研行业研究列表快照
 validation_notes:
 - Initial contract migrated from docs/references/data_dict and current raw sync specs.
+- 'LowCardinality review on S3 parquet
+  source/jiuyan__industry_list/000000_0.parquet: rows=956; industry_id
+  nonnull=956 uniq=956 unique_rate=1.000000. industry_id is a source record
+  identifier and uses ClickHouse String. Parquet schema remains string.'

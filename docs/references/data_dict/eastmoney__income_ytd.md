@@ -14,211 +14,211 @@
 
 ## 字段链路
 
-| # | 外源字段 | 外源类型 | Parquet 类型 | ClickHouse raw 字段 | ClickHouse 类型 | stg 字段 | 中文描述 |
-|---|----------|----------|--------------|---------------------|-----------------|----------|----------|
-| 1 | `SECUCODE` | `string` | `string` | `SECUCODE` | `LowCardinality(String)` | `-` | 证券代码（含市场后缀） |
-| 2 | `SECURITY_CODE` | `string` | `string` | `SECURITY_CODE` | `LowCardinality(String)` | `-` | 证券代码（纯数字） |
-| 3 | `SECURITY_NAME_ABBR` | `string` | `string` | `SECURITY_NAME_ABBR` | `LowCardinality(String)` | `-` | 证券简称 |
-| 4 | `ORG_CODE` | `string` | `string` | `ORG_CODE` | `LowCardinality(String)` | `-` | 机构代码 |
-| 5 | `ORG_TYPE` | `string` | `string` | `ORG_TYPE` | `LowCardinality(String)` | `-` | 机构类型 |
-| 6 | `REPORT_DATE` | `string` | `date32[day]` | `REPORT_DATE` | `Date` | `-` | 报告期 |
-| 7 | `REPORT_TYPE` | `string` | `string` | `REPORT_TYPE` | `LowCardinality(String)` | `-` | 报告类型 |
-| 8 | `REPORT_DATE_NAME` | `string` | `string` | `REPORT_DATE_NAME` | `LowCardinality(String)` | `-` | 报告期名称 |
-| 9 | `SECURITY_TYPE_CODE` | `string` | `string` | `SECURITY_TYPE_CODE` | `LowCardinality(String)` | `-` | 证券类型代码 |
-| 10 | `NOTICE_DATE` | `string` | `date32[day]` | `NOTICE_DATE` | `Date` | `-` | 公告日期 |
-| 11 | `UPDATE_DATE` | `string` | `date32[day]` | `UPDATE_DATE` | `Date` | `-` | 更新日期 |
-| 12 | `CURRENCY` | `string` | `string` | `CURRENCY` | `LowCardinality(String)` | `-` | 利润表年初至报告期末金额使用的币种。 |
-| 13 | `TOTAL_OPERATE_INCOME` | `number` | `double` | `TOTAL_OPERATE_INCOME` | `Float64` | `-` | 营业总收入 |
-| 14 | `TOTAL_OPERATE_INCOME_YOY` | `number` | `double` | `TOTAL_OPERATE_INCOME_YOY` | `Float64` | `-` | 营业总收入同比增长率（%） |
-| 15 | `OPERATE_INCOME` | `number` | `double` | `OPERATE_INCOME` | `Float64` | `-` | 营业收入 |
-| 16 | `OPERATE_INCOME_YOY` | `number` | `double` | `OPERATE_INCOME_YOY` | `Float64` | `-` | 营业收入同比增长率（%） |
-| 17 | `INTEREST_INCOME` | `number` | `double` | `INTEREST_INCOME` | `Float64` | `-` | 利息收入 |
-| 18 | `INTEREST_INCOME_YOY` | `number` | `double` | `INTEREST_INCOME_YOY` | `Float64` | `-` | 利息收入同比增长率（%） |
-| 19 | `EARNED_PREMIUM` | `number` | `double` | `EARNED_PREMIUM` | `Float64` | `-` | 已赚保费 |
-| 20 | `EARNED_PREMIUM_YOY` | `number` | `double` | `EARNED_PREMIUM_YOY` | `Float64` | `-` | 已赚保费同比增长率（%） |
-| 21 | `FEE_COMMISSION_INCOME` | `number` | `double` | `FEE_COMMISSION_INCOME` | `Float64` | `-` | 手续费及佣金收入 |
-| 22 | `FEE_COMMISSION_INCOME_YOY` | `number` | `double` | `FEE_COMMISSION_INCOME_YOY` | `Float64` | `-` | 手续费及佣金收入同比增长率（%） |
-| 23 | `OTHER_BUSINESS_INCOME` | `number` | `double` | `OTHER_BUSINESS_INCOME` | `Float64` | `-` | 其他业务收入 |
-| 24 | `OTHER_BUSINESS_INCOME_YOY` | `number` | `double` | `OTHER_BUSINESS_INCOME_YOY` | `Float64` | `-` | 其他业务收入同比增长率（%） |
-| 25 | `TOI_OTHER` | `number` | `double` | `TOI_OTHER` | `Float64` | `-` | 营业总收入其他 |
-| 26 | `TOI_OTHER_YOY` | `number` | `double` | `TOI_OTHER_YOY` | `Float64` | `-` | 营业总收入其他同比增长率（%） |
-| 27 | `TOTAL_OPERATE_COST` | `number` | `double` | `TOTAL_OPERATE_COST` | `Float64` | `-` | 营业总成本 |
-| 28 | `TOTAL_OPERATE_COST_YOY` | `number` | `double` | `TOTAL_OPERATE_COST_YOY` | `Float64` | `-` | 营业总成本同比增长率（%） |
-| 29 | `OPERATE_COST` | `number` | `double` | `OPERATE_COST` | `Float64` | `-` | 营业成本 |
-| 30 | `OPERATE_COST_YOY` | `number` | `double` | `OPERATE_COST_YOY` | `Float64` | `-` | 营业成本同比增长率（%） |
-| 31 | `INTEREST_EXPENSE` | `number` | `double` | `INTEREST_EXPENSE` | `Float64` | `-` | 利息支出 |
-| 32 | `INTEREST_EXPENSE_YOY` | `number` | `double` | `INTEREST_EXPENSE_YOY` | `Float64` | `-` | 利息支出同比增长率（%） |
-| 33 | `FEE_COMMISSION_EXPENSE` | `number` | `double` | `FEE_COMMISSION_EXPENSE` | `Float64` | `-` | 手续费及佣金支出 |
-| 34 | `FEE_COMMISSION_EXPENSE_YOY` | `number` | `double` | `FEE_COMMISSION_EXPENSE_YOY` | `Float64` | `-` | 手续费及佣金支出同比增长率（%） |
-| 35 | `RESEARCH_EXPENSE` | `number` | `double` | `RESEARCH_EXPENSE` | `Float64` | `-` | 研发费用 |
-| 36 | `RESEARCH_EXPENSE_YOY` | `number` | `double` | `RESEARCH_EXPENSE_YOY` | `Float64` | `-` | 研发费用同比增长率（%） |
-| 37 | `SURRENDER_VALUE` | `number` | `double` | `SURRENDER_VALUE` | `Float64` | `-` | 退保金 |
-| 38 | `SURRENDER_VALUE_YOY` | `number` | `double` | `SURRENDER_VALUE_YOY` | `Float64` | `-` | 退保金同比增长率（%） |
-| 39 | `NET_COMPENSATE_EXPENSE` | `number` | `double` | `NET_COMPENSATE_EXPENSE` | `Float64` | `-` | 分保费用 |
-| 40 | `NET_COMPENSATE_EXPENSE_YOY` | `number` | `double` | `NET_COMPENSATE_EXPENSE_YOY` | `Float64` | `-` | 分保费用同比增长率（%） |
-| 41 | `NET_CONTRACT_RESERVE` | `number` | `double` | `NET_CONTRACT_RESERVE` | `Float64` | `-` | 提取保险合同准备金 |
-| 42 | `NET_CONTRACT_RESERVE_YOY` | `number` | `double` | `NET_CONTRACT_RESERVE_YOY` | `Float64` | `-` | 提取保险合同准备金同比增长率（%） |
-| 43 | `POLICY_BONUS_EXPENSE` | `number` | `double` | `POLICY_BONUS_EXPENSE` | `Float64` | `-` | 保单红利支出 |
-| 44 | `POLICY_BONUS_EXPENSE_YOY` | `number` | `double` | `POLICY_BONUS_EXPENSE_YOY` | `Float64` | `-` | 保单红利支出同比增长率（%） |
-| 45 | `REINSURE_EXPENSE` | `number` | `double` | `REINSURE_EXPENSE` | `Float64` | `-` | 分保费用支出 |
-| 46 | `REINSURE_EXPENSE_YOY` | `number` | `double` | `REINSURE_EXPENSE_YOY` | `Float64` | `-` | 分保费用支出同比增长率（%） |
-| 47 | `OTHER_BUSINESS_COST` | `number` | `double` | `OTHER_BUSINESS_COST` | `Float64` | `-` | 其他业务成本 |
-| 48 | `OTHER_BUSINESS_COST_YOY` | `number` | `double` | `OTHER_BUSINESS_COST_YOY` | `Float64` | `-` | 其他业务成本同比增长率（%） |
-| 49 | `OPERATE_TAX_ADD` | `number` | `double` | `OPERATE_TAX_ADD` | `Float64` | `-` | 营业税金及附加 |
-| 50 | `OPERATE_TAX_ADD_YOY` | `number` | `double` | `OPERATE_TAX_ADD_YOY` | `Float64` | `-` | 营业税金及附加同比增长率（%） |
-| 51 | `SALE_EXPENSE` | `number` | `double` | `SALE_EXPENSE` | `Float64` | `-` | 销售费用 |
-| 52 | `SALE_EXPENSE_YOY` | `number` | `double` | `SALE_EXPENSE_YOY` | `Float64` | `-` | 销售费用同比增长率（%） |
-| 53 | `MANAGE_EXPENSE` | `number` | `double` | `MANAGE_EXPENSE` | `Float64` | `-` | 管理费用 |
-| 54 | `MANAGE_EXPENSE_YOY` | `number` | `double` | `MANAGE_EXPENSE_YOY` | `Float64` | `-` | 管理费用同比增长率（%） |
-| 55 | `ME_RESEARCH_EXPENSE` | `number` | `double` | `ME_RESEARCH_EXPENSE` | `Float64` | `-` | 管理费用中的研发费用 |
-| 56 | `ME_RESEARCH_EXPENSE_YOY` | `number` | `double` | `ME_RESEARCH_EXPENSE_YOY` | `Float64` | `-` | 管理费用中的研发费用同比增长率（%） |
-| 57 | `FINANCE_EXPENSE` | `number` | `double` | `FINANCE_EXPENSE` | `Float64` | `-` | 财务费用 |
-| 58 | `FINANCE_EXPENSE_YOY` | `number` | `double` | `FINANCE_EXPENSE_YOY` | `Float64` | `-` | 财务费用同比增长率（%） |
-| 59 | `FE_INTEREST_EXPENSE` | `number` | `double` | `FE_INTEREST_EXPENSE` | `Float64` | `-` | 财务费用之利息费用 |
-| 60 | `FE_INTEREST_EXPENSE_YOY` | `number` | `double` | `FE_INTEREST_EXPENSE_YOY` | `Float64` | `-` | 财务费用之利息费用同比增长率（%） |
-| 61 | `FE_INTEREST_INCOME` | `number` | `double` | `FE_INTEREST_INCOME` | `Float64` | `-` | 财务费用之利息收入 |
-| 62 | `FE_INTEREST_INCOME_YOY` | `number` | `double` | `FE_INTEREST_INCOME_YOY` | `Float64` | `-` | 财务费用之利息收入同比增长率（%） |
-| 63 | `ASSET_IMPAIRMENT_LOSS` | `number` | `double` | `ASSET_IMPAIRMENT_LOSS` | `Float64` | `-` | 资产减值损失 |
-| 64 | `ASSET_IMPAIRMENT_LOSS_YOY` | `number` | `double` | `ASSET_IMPAIRMENT_LOSS_YOY` | `Float64` | `-` | 资产减值损失同比增长率（%） |
-| 65 | `CREDIT_IMPAIRMENT_LOSS` | `number` | `double` | `CREDIT_IMPAIRMENT_LOSS` | `Float64` | `-` | 信用减值损失 |
-| 66 | `CREDIT_IMPAIRMENT_LOSS_YOY` | `number` | `double` | `CREDIT_IMPAIRMENT_LOSS_YOY` | `Float64` | `-` | 信用减值损失同比增长率（%） |
-| 67 | `TOC_OTHER` | `number` | `double` | `TOC_OTHER` | `Float64` | `-` | 营业总成本其他 |
-| 68 | `TOC_OTHER_YOY` | `number` | `double` | `TOC_OTHER_YOY` | `Float64` | `-` | 营业总成本其他同比增长率（%） |
-| 69 | `FAIRVALUE_CHANGE_INCOME` | `number` | `double` | `FAIRVALUE_CHANGE_INCOME` | `Float64` | `-` | 公允价值变动收益 |
-| 70 | `FAIRVALUE_CHANGE_INCOME_YOY` | `number` | `double` | `FAIRVALUE_CHANGE_INCOME_YOY` | `Float64` | `-` | 公允价值变动收益同比增长率（%） |
-| 71 | `INVEST_INCOME` | `number` | `double` | `INVEST_INCOME` | `Float64` | `-` | 投资收益 |
-| 72 | `INVEST_INCOME_YOY` | `number` | `double` | `INVEST_INCOME_YOY` | `Float64` | `-` | 投资收益同比增长率（%） |
-| 73 | `INVEST_JOINT_INCOME` | `number` | `double` | `INVEST_JOINT_INCOME` | `Float64` | `-` | 对联营企业和合营企业的投资收益 |
-| 74 | `INVEST_JOINT_INCOME_YOY` | `number` | `double` | `INVEST_JOINT_INCOME_YOY` | `Float64` | `-` | 对联营企业和合营企业的投资收益同比增长率（%） |
-| 75 | `NET_EXPOSURE_INCOME` | `number` | `double` | `NET_EXPOSURE_INCOME` | `Float64` | `-` | 净敞口收益 |
-| 76 | `NET_EXPOSURE_INCOME_YOY` | `number` | `double` | `NET_EXPOSURE_INCOME_YOY` | `Float64` | `-` | 净敞口收益同比增长率（%） |
-| 77 | `EXCHANGE_INCOME` | `number` | `double` | `EXCHANGE_INCOME` | `Float64` | `-` | 汇兑收益 |
-| 78 | `EXCHANGE_INCOME_YOY` | `number` | `double` | `EXCHANGE_INCOME_YOY` | `Float64` | `-` | 汇兑收益同比增长率（%） |
-| 79 | `ASSET_DISPOSAL_INCOME` | `number` | `double` | `ASSET_DISPOSAL_INCOME` | `Float64` | `-` | 资产处置收益 |
-| 80 | `ASSET_DISPOSAL_INCOME_YOY` | `number` | `double` | `ASSET_DISPOSAL_INCOME_YOY` | `Float64` | `-` | 资产处置收益同比增长率（%） |
-| 81 | `ASSET_IMPAIRMENT_INCOME` | `number` | `double` | `ASSET_IMPAIRMENT_INCOME` | `Float64` | `-` | 资产减值收益 |
-| 82 | `ASSET_IMPAIRMENT_INCOME_YOY` | `number` | `double` | `ASSET_IMPAIRMENT_INCOME_YOY` | `Float64` | `-` | 资产减值收益同比增长率（%） |
-| 83 | `CREDIT_IMPAIRMENT_INCOME` | `number` | `double` | `CREDIT_IMPAIRMENT_INCOME` | `Float64` | `-` | 信用减值收益 |
-| 84 | `CREDIT_IMPAIRMENT_INCOME_YOY` | `number` | `double` | `CREDIT_IMPAIRMENT_INCOME_YOY` | `Float64` | `-` | 信用减值收益同比增长率（%） |
-| 85 | `OTHER_INCOME` | `number` | `double` | `OTHER_INCOME` | `Float64` | `-` | 其他收益 |
-| 86 | `OTHER_INCOME_YOY` | `number` | `double` | `OTHER_INCOME_YOY` | `Float64` | `-` | 其他收益同比增长率（%） |
-| 87 | `OPERATE_PROFIT_OTHER` | `number` | `double` | `OPERATE_PROFIT_OTHER` | `Float64` | `-` | 营业利润其他 |
-| 88 | `OPERATE_PROFIT_OTHER_YOY` | `number` | `double` | `OPERATE_PROFIT_OTHER_YOY` | `Float64` | `-` | 营业利润其他同比增长率（%） |
-| 89 | `OPERATE_PROFIT_BALANCE` | `number` | `double` | `OPERATE_PROFIT_BALANCE` | `Float64` | `-` | 营业利润平衡项 |
-| 90 | `OPERATE_PROFIT_BALANCE_YOY` | `number` | `double` | `OPERATE_PROFIT_BALANCE_YOY` | `Float64` | `-` | 营业利润平衡项同比增长率（%） |
-| 91 | `OPERATE_PROFIT` | `number` | `double` | `OPERATE_PROFIT` | `Float64` | `-` | 营业利润 |
-| 92 | `OPERATE_PROFIT_YOY` | `number` | `double` | `OPERATE_PROFIT_YOY` | `Float64` | `-` | 营业利润同比增长率（%） |
-| 93 | `NONBUSINESS_INCOME` | `number` | `double` | `NONBUSINESS_INCOME` | `Float64` | `-` | 营业外收入 |
-| 94 | `NONBUSINESS_INCOME_YOY` | `number` | `double` | `NONBUSINESS_INCOME_YOY` | `Float64` | `-` | 营业外收入同比增长率（%） |
-| 95 | `NONCURRENT_DISPOSAL_INCOME` | `number` | `double` | `NONCURRENT_DISPOSAL_INCOME` | `Float64` | `-` | 非流动资产处置净收益 |
-| 96 | `NONCURRENT_DISPOSAL_INCOME_YOY` | `number` | `double` | `NONCURRENT_DISPOSAL_INCOME_YOY` | `Float64` | `-` | 非流动资产处置净收益同比增长率（%） |
-| 97 | `NONBUSINESS_EXPENSE` | `number` | `double` | `NONBUSINESS_EXPENSE` | `Float64` | `-` | 营业外支出 |
-| 98 | `NONBUSINESS_EXPENSE_YOY` | `number` | `double` | `NONBUSINESS_EXPENSE_YOY` | `Float64` | `-` | 营业外支出同比增长率（%） |
-| 99 | `NONCURRENT_DISPOSAL_LOSS` | `number` | `double` | `NONCURRENT_DISPOSAL_LOSS` | `Float64` | `-` | 非流动资产处置净损失 |
-| 100 | `NONCURRENT_DISPOSAL_LOSS_YOY` | `number` | `double` | `NONCURRENT_DISPOSAL_LOSS_YOY` | `Float64` | `-` | 非流动资产处置净损失同比增长率（%） |
-| 101 | `EFFECT_TP_OTHER` | `number` | `double` | `EFFECT_TP_OTHER` | `Float64` | `-` | 影响利润总额其他 |
-| 102 | `EFFECT_TP_OTHER_YOY` | `number` | `double` | `EFFECT_TP_OTHER_YOY` | `Float64` | `-` | 影响利润总额其他同比增长率（%） |
-| 103 | `TOTAL_PROFIT_BALANCE` | `number` | `double` | `TOTAL_PROFIT_BALANCE` | `Float64` | `-` | 利润总额平衡项 |
-| 104 | `TOTAL_PROFIT_BALANCE_YOY` | `number` | `double` | `TOTAL_PROFIT_BALANCE_YOY` | `Float64` | `-` | 利润总额平衡项同比增长率（%） |
-| 105 | `TOTAL_PROFIT` | `number` | `double` | `TOTAL_PROFIT` | `Float64` | `-` | 利润总额 |
-| 106 | `TOTAL_PROFIT_YOY` | `number` | `double` | `TOTAL_PROFIT_YOY` | `Float64` | `-` | 利润总额同比增长率（%） |
-| 107 | `INCOME_TAX` | `number` | `double` | `INCOME_TAX` | `Float64` | `-` | 所得税费用 |
-| 108 | `INCOME_TAX_YOY` | `number` | `double` | `INCOME_TAX_YOY` | `Float64` | `-` | 所得税费用同比增长率（%） |
-| 109 | `EFFECT_NETPROFIT_OTHER` | `number` | `double` | `EFFECT_NETPROFIT_OTHER` | `Float64` | `-` | 影响净利润其他 |
-| 110 | `EFFECT_NETPROFIT_OTHER_YOY` | `number` | `double` | `EFFECT_NETPROFIT_OTHER_YOY` | `Float64` | `-` | 影响净利润其他同比增长率（%） |
-| 111 | `EFFECT_NETPROFIT_BALANCE` | `number` | `double` | `EFFECT_NETPROFIT_BALANCE` | `Float64` | `-` | 净利润平衡项 |
-| 112 | `EFFECT_NETPROFIT_BALANCE_YOY` | `number` | `double` | `EFFECT_NETPROFIT_BALANCE_YOY` | `Float64` | `-` | 净利润平衡项同比增长率（%） |
-| 113 | `UNCONFIRM_INVEST_LOSS` | `number` | `double` | `UNCONFIRM_INVEST_LOSS` | `Float64` | `-` | 未确认投资损失 |
-| 114 | `UNCONFIRM_INVEST_LOSS_YOY` | `number` | `double` | `UNCONFIRM_INVEST_LOSS_YOY` | `Float64` | `-` | 未确认投资损失同比增长率（%） |
-| 115 | `NETPROFIT` | `number` | `double` | `NETPROFIT` | `Float64` | `-` | 净利润 |
-| 116 | `NETPROFIT_YOY` | `number` | `double` | `NETPROFIT_YOY` | `Float64` | `-` | 净利润同比增长率（%） |
-| 117 | `PRECOMBINE_PROFIT` | `number` | `double` | `PRECOMBINE_PROFIT` | `Float64` | `-` | 合并前净损益 |
-| 118 | `PRECOMBINE_PROFIT_YOY` | `number` | `double` | `PRECOMBINE_PROFIT_YOY` | `Float64` | `-` | 合并前净损益同比增长率（%） |
-| 119 | `CONTINUED_NETPROFIT` | `number` | `double` | `CONTINUED_NETPROFIT` | `Float64` | `-` | 持续经营净利润 |
-| 120 | `CONTINUED_NETPROFIT_YOY` | `number` | `double` | `CONTINUED_NETPROFIT_YOY` | `Float64` | `-` | 持续经营净利润同比增长率（%） |
-| 121 | `DISCONTINUED_NETPROFIT` | `number` | `double` | `DISCONTINUED_NETPROFIT` | `Float64` | `-` | 终止经营净利润 |
-| 122 | `DISCONTINUED_NETPROFIT_YOY` | `number` | `double` | `DISCONTINUED_NETPROFIT_YOY` | `Float64` | `-` | 终止经营净利润同比增长率（%） |
-| 123 | `PARENT_NETPROFIT` | `number` | `double` | `PARENT_NETPROFIT` | `Float64` | `-` | 归属于母公司股东的净利润 |
-| 124 | `PARENT_NETPROFIT_YOY` | `number` | `double` | `PARENT_NETPROFIT_YOY` | `Float64` | `-` | 归属于母公司股东的净利润同比增长率（%） |
-| 125 | `MINORITY_INTEREST` | `number` | `double` | `MINORITY_INTEREST` | `Float64` | `-` | 少数股东损益 |
-| 126 | `MINORITY_INTEREST_YOY` | `number` | `double` | `MINORITY_INTEREST_YOY` | `Float64` | `-` | 少数股东损益同比增长率（%） |
-| 127 | `DEDUCT_PARENT_NETPROFIT` | `number` | `double` | `DEDUCT_PARENT_NETPROFIT` | `Float64` | `-` | 扣除非经常性损益后归属于母公司股东的净利润 |
-| 128 | `DEDUCT_PARENT_NETPROFIT_YOY` | `number` | `double` | `DEDUCT_PARENT_NETPROFIT_YOY` | `Float64` | `-` | 扣非归母净利润同比增长率（%） |
-| 129 | `NETPROFIT_OTHER` | `number` | `double` | `NETPROFIT_OTHER` | `Float64` | `-` | 净利润其他 |
-| 130 | `NETPROFIT_OTHER_YOY` | `number` | `double` | `NETPROFIT_OTHER_YOY` | `Float64` | `-` | 净利润其他同比增长率（%） |
-| 131 | `NETPROFIT_BALANCE` | `number` | `double` | `NETPROFIT_BALANCE` | `Float64` | `-` | 净利润平衡项 |
-| 132 | `NETPROFIT_BALANCE_YOY` | `number` | `double` | `NETPROFIT_BALANCE_YOY` | `Float64` | `-` | 净利润平衡项同比增长率（%） |
-| 133 | `BASIC_EPS` | `number` | `double` | `BASIC_EPS` | `Float64` | `-` | 基本每股收益（元/股） |
-| 134 | `BASIC_EPS_YOY` | `number` | `double` | `BASIC_EPS_YOY` | `Float64` | `-` | 基本每股收益（元/股）同比增长率（%） |
-| 135 | `DILUTED_EPS` | `number` | `double` | `DILUTED_EPS` | `Float64` | `-` | 稀释每股收益（元/股） |
-| 136 | `DILUTED_EPS_YOY` | `number` | `double` | `DILUTED_EPS_YOY` | `Float64` | `-` | 稀释每股收益（元/股）同比增长率（%） |
-| 137 | `OTHER_COMPRE_INCOME` | `number` | `double` | `OTHER_COMPRE_INCOME` | `Float64` | `-` | 其他综合收益总额 |
-| 138 | `OTHER_COMPRE_INCOME_YOY` | `number` | `double` | `OTHER_COMPRE_INCOME_YOY` | `Float64` | `-` | 其他综合收益总额同比增长率（%） |
-| 139 | `PARENT_OCI` | `number` | `double` | `PARENT_OCI` | `Float64` | `-` | 归属于母公司股东的其他综合收益 |
-| 140 | `PARENT_OCI_YOY` | `number` | `double` | `PARENT_OCI_YOY` | `Float64` | `-` | 归母其他综合收益同比增长率（%） |
-| 141 | `MINORITY_OCI` | `number` | `double` | `MINORITY_OCI` | `Float64` | `-` | 归属于少数股东的其他综合收益 |
-| 142 | `MINORITY_OCI_YOY` | `number` | `double` | `MINORITY_OCI_YOY` | `Float64` | `-` | 少数股东其他综合收益同比增长率（%） |
-| 143 | `PARENT_OCI_OTHER` | `number` | `double` | `PARENT_OCI_OTHER` | `Float64` | `-` | 归母其他综合收益其他 |
-| 144 | `PARENT_OCI_OTHER_YOY` | `number` | `double` | `PARENT_OCI_OTHER_YOY` | `Float64` | `-` | 归母其他综合收益其他同比增长率（%） |
-| 145 | `PARENT_OCI_BALANCE` | `number` | `double` | `PARENT_OCI_BALANCE` | `Float64` | `-` | 归母其他综合收益平衡项 |
-| 146 | `PARENT_OCI_BALANCE_YOY` | `number` | `double` | `PARENT_OCI_BALANCE_YOY` | `Float64` | `-` | 归母其他综合收益平衡项同比增长率（%） |
-| 147 | `UNABLE_OCI` | `number` | `double` | `UNABLE_OCI` | `Float64` | `-` | 以后将重分类进损益的其他综合收益 |
-| 148 | `UNABLE_OCI_YOY` | `number` | `double` | `UNABLE_OCI_YOY` | `Float64` | `-` | 以后将重分类进损益的其他综合收益同比增长率（%） |
-| 149 | `CREDITRISK_FAIRVALUE_CHANGE` | `number` | `double` | `CREDITRISK_FAIRVALUE_CHANGE` | `Float64` | `-` | 信用风险引起的公允价值变动 |
-| 150 | `CREDITRISK_FAIRVALUE_CHANGE_YOY` | `number` | `double` | `CREDITRISK_FAIRVALUE_CHANGE_YOY` | `Float64` | `-` | 信用风险引起的公允价值变动同比增长率（%） |
-| 151 | `OTHERRIGHT_FAIRVALUE_CHANGE` | `number` | `double` | `OTHERRIGHT_FAIRVALUE_CHANGE` | `Float64` | `-` | 其他权益工具公允价值变动 |
-| 152 | `OTHERRIGHT_FAIRVALUE_CHANGE_YOY` | `number` | `double` | `OTHERRIGHT_FAIRVALUE_CHANGE_YOY` | `Float64` | `-` | 其他权益工具公允价值变动同比增长率（%） |
-| 153 | `SETUP_PROFIT_CHANGE` | `number` | `double` | `SETUP_PROFIT_CHANGE` | `Float64` | `-` | 重分类调整变动 |
-| 154 | `SETUP_PROFIT_CHANGE_YOY` | `number` | `double` | `SETUP_PROFIT_CHANGE_YOY` | `Float64` | `-` | 重分类调整变动同比增长率（%） |
-| 155 | `RIGHTLAW_UNABLE_OCI` | `number` | `double` | `RIGHTLAW_UNABLE_OCI` | `Float64` | `-` | 权益法下不能重分类的其他综合收益 |
-| 156 | `RIGHTLAW_UNABLE_OCI_YOY` | `number` | `double` | `RIGHTLAW_UNABLE_OCI_YOY` | `Float64` | `-` | 权益法下不能重分类的其他综合收益同比增长率（%） |
-| 157 | `UNABLE_OCI_OTHER` | `number` | `double` | `UNABLE_OCI_OTHER` | `Float64` | `-` | 不能重分类其他综合收益其他 |
-| 158 | `UNABLE_OCI_OTHER_YOY` | `number` | `double` | `UNABLE_OCI_OTHER_YOY` | `Float64` | `-` | 不能重分类其他综合收益其他同比增长率（%） |
-| 159 | `UNABLE_OCI_BALANCE` | `number` | `double` | `UNABLE_OCI_BALANCE` | `Float64` | `-` | 不能重分类其他综合收益平衡项 |
-| 160 | `UNABLE_OCI_BALANCE_YOY` | `number` | `double` | `UNABLE_OCI_BALANCE_YOY` | `Float64` | `-` | 不能重分类其他综合收益平衡项同比增长率（%） |
-| 161 | `ABLE_OCI` | `number` | `double` | `ABLE_OCI` | `Float64` | `-` | 以后将重分类进损益的其他综合收益（可重分类） |
-| 162 | `ABLE_OCI_YOY` | `number` | `double` | `ABLE_OCI_YOY` | `Float64` | `-` | 以后将重分类进损益的其他综合收益（可重分类）同比增长率（%） |
-| 163 | `RIGHTLAW_ABLE_OCI` | `number` | `double` | `RIGHTLAW_ABLE_OCI` | `Float64` | `-` | 权益法下可重分类的其他综合收益 |
-| 164 | `RIGHTLAW_ABLE_OCI_YOY` | `number` | `double` | `RIGHTLAW_ABLE_OCI_YOY` | `Float64` | `-` | 权益法下可重分类的其他综合收益同比增长率（%） |
-| 165 | `AFA_FAIRVALUE_CHANGE` | `number` | `double` | `AFA_FAIRVALUE_CHANGE` | `Float64` | `-` | 可供出售金融资产公允价值变动 |
-| 166 | `AFA_FAIRVALUE_CHANGE_YOY` | `number` | `double` | `AFA_FAIRVALUE_CHANGE_YOY` | `Float64` | `-` | 可供出售金融资产公允价值变动同比增长率（%） |
-| 167 | `HMI_AFA` | `number` | `double` | `HMI_AFA` | `Float64` | `-` | 持有有待售资产公允价值变动 |
-| 168 | `HMI_AFA_YOY` | `number` | `double` | `HMI_AFA_YOY` | `Float64` | `-` | 持有有待售资产公允价值变动同比增长率（%） |
-| 169 | `CASHFLOW_HEDGE_VALID` | `number` | `double` | `CASHFLOW_HEDGE_VALID` | `Float64` | `-` | 现金流量套期有效部分 |
-| 170 | `CASHFLOW_HEDGE_VALID_YOY` | `number` | `double` | `CASHFLOW_HEDGE_VALID_YOY` | `Float64` | `-` | 现金流量套期有效部分同比增长率（%） |
-| 171 | `CREDITOR_FAIRVALUE_CHANGE` | `number` | `double` | `CREDITOR_FAIRVALUE_CHANGE` | `Float64` | `-` | 债权投资公允价值变动 |
-| 172 | `CREDITOR_FAIRVALUE_CHANGE_YOY` | `number` | `double` | `CREDITOR_FAIRVALUE_CHANGE_YOY` | `Float64` | `-` | 债权投资公允价值变动同比增长率（%） |
-| 173 | `CREDITOR_IMPAIRMENT_RESERVE` | `number` | `double` | `CREDITOR_IMPAIRMENT_RESERVE` | `Float64` | `-` | 债权投资减值准备 |
-| 174 | `CREDITOR_IMPAIRMENT_RESERVE_YOY` | `number` | `double` | `CREDITOR_IMPAIRMENT_RESERVE_YOY` | `Float64` | `-` | 债权投资减值准备同比增长率（%） |
-| 175 | `FINANCE_OCI_AMT` | `number` | `double` | `FINANCE_OCI_AMT` | `Float64` | `-` | 金融资产重分类金额 |
-| 176 | `FINANCE_OCI_AMT_YOY` | `number` | `double` | `FINANCE_OCI_AMT_YOY` | `Float64` | `-` | 金融资产重分类金额同比增长率（%） |
-| 177 | `CONVERT_DIFF` | `number` | `double` | `CONVERT_DIFF` | `Float64` | `-` | 外币报表折算差额 |
-| 178 | `CONVERT_DIFF_YOY` | `number` | `double` | `CONVERT_DIFF_YOY` | `Float64` | `-` | 外币报表折算差额同比增长率（%） |
-| 179 | `ABLE_OCI_OTHER` | `number` | `double` | `ABLE_OCI_OTHER` | `Float64` | `-` | 可重分类其他综合收益其他 |
-| 180 | `ABLE_OCI_OTHER_YOY` | `number` | `double` | `ABLE_OCI_OTHER_YOY` | `Float64` | `-` | 可重分类其他综合收益其他同比增长率（%） |
-| 181 | `ABLE_OCI_BALANCE` | `number` | `double` | `ABLE_OCI_BALANCE` | `Float64` | `-` | 可重分类其他综合收益平衡项 |
-| 182 | `ABLE_OCI_BALANCE_YOY` | `number` | `double` | `ABLE_OCI_BALANCE_YOY` | `Float64` | `-` | 可重分类其他综合收益平衡项同比增长率（%） |
-| 183 | `OCI_OTHER` | `number` | `double` | `OCI_OTHER` | `Float64` | `-` | 其他综合收益其他 |
-| 184 | `OCI_OTHER_YOY` | `number` | `double` | `OCI_OTHER_YOY` | `Float64` | `-` | 其他综合收益其他同比增长率（%） |
-| 185 | `OCI_BALANCE` | `number` | `double` | `OCI_BALANCE` | `Float64` | `-` | 其他综合收益平衡项 |
-| 186 | `OCI_BALANCE_YOY` | `number` | `double` | `OCI_BALANCE_YOY` | `Float64` | `-` | 其他综合收益平衡项同比增长率（%） |
-| 187 | `TOTAL_COMPRE_INCOME` | `number` | `double` | `TOTAL_COMPRE_INCOME` | `Float64` | `-` | 综合收益总额 |
-| 188 | `TOTAL_COMPRE_INCOME_YOY` | `number` | `double` | `TOTAL_COMPRE_INCOME_YOY` | `Float64` | `-` | 综合收益总额同比增长率（%） |
-| 189 | `PARENT_TCI` | `number` | `double` | `PARENT_TCI` | `Float64` | `-` | 归属于母公司股东的综合收益总额 |
-| 190 | `PARENT_TCI_YOY` | `number` | `double` | `PARENT_TCI_YOY` | `Float64` | `-` | 归母综合收益总额同比增长率（%） |
-| 191 | `MINORITY_TCI` | `number` | `double` | `MINORITY_TCI` | `Float64` | `-` | 归属于少数股东的综合收益总额 |
-| 192 | `MINORITY_TCI_YOY` | `number` | `double` | `MINORITY_TCI_YOY` | `Float64` | `-` | 少数股东综合收益总额同比增长率（%） |
-| 193 | `PRECOMBINE_TCI` | `number` | `double` | `PRECOMBINE_TCI` | `Float64` | `-` | 合并前综合收益总额 |
-| 194 | `PRECOMBINE_TCI_YOY` | `number` | `double` | `PRECOMBINE_TCI_YOY` | `Float64` | `-` | 合并前综合收益总额同比增长率（%） |
-| 195 | `EFFECT_TCI_BALANCE` | `number` | `double` | `EFFECT_TCI_BALANCE` | `Float64` | `-` | 综合收益总额平衡项 |
-| 196 | `EFFECT_TCI_BALANCE_YOY` | `number` | `double` | `EFFECT_TCI_BALANCE_YOY` | `Float64` | `-` | 综合收益总额平衡项同比增长率（%） |
-| 197 | `TCI_OTHER` | `number` | `double` | `TCI_OTHER` | `Float64` | `-` | 综合收益总额其他 |
-| 198 | `TCI_OTHER_YOY` | `number` | `double` | `TCI_OTHER_YOY` | `Float64` | `-` | 综合收益总额其他同比增长率（%） |
-| 199 | `TCI_BALANCE` | `number` | `double` | `TCI_BALANCE` | `Float64` | `-` | 综合收益总额平衡项 |
-| 200 | `TCI_BALANCE_YOY` | `number` | `double` | `TCI_BALANCE_YOY` | `Float64` | `-` | 综合收益总额平衡项同比增长率（%） |
-| 201 | `ACF_END_INCOME` | `number` | `double` | `ACF_END_INCOME` | `Float64` | `-` | 持续经营终止经营净损益 |
-| 202 | `ACF_END_INCOME_YOY` | `number` | `double` | `ACF_END_INCOME_YOY` | `Float64` | `-` | 持续经营终止经营净损益同比增长率（%） |
-| 203 | `OPINION_TYPE` | `number` | `string` | `OPINION_TYPE` | `LowCardinality(String)` | `-` | 审计意见类型 |
+| # | 外源字段 | 外源类型 | Parquet 类型 | ClickHouse raw 字段 | ClickHouse 类型 | 中文描述 |
+|---|----------|----------|--------------|---------------------|-----------------|----------|
+| 1 | `SECUCODE` | `string` | `string` | `SECUCODE` | `LowCardinality(String)` | 证券代码（含市场后缀） |
+| 2 | `SECURITY_CODE` | `string` | `string` | `SECURITY_CODE` | `LowCardinality(String)` | 证券代码（纯数字） |
+| 3 | `SECURITY_NAME_ABBR` | `string` | `string` | `SECURITY_NAME_ABBR` | `LowCardinality(String)` | 证券简称 |
+| 4 | `ORG_CODE` | `string` | `string` | `ORG_CODE` | `LowCardinality(String)` | 机构代码 |
+| 5 | `ORG_TYPE` | `string` | `string` | `ORG_TYPE` | `LowCardinality(String)` | 机构类型 |
+| 6 | `REPORT_DATE` | `string` | `date32[day]` | `REPORT_DATE` | `Date` | 报告期 |
+| 7 | `REPORT_TYPE` | `string` | `string` | `REPORT_TYPE` | `LowCardinality(String)` | 报告类型 |
+| 8 | `REPORT_DATE_NAME` | `string` | `string` | `REPORT_DATE_NAME` | `LowCardinality(String)` | 报告期名称 |
+| 9 | `SECURITY_TYPE_CODE` | `string` | `string` | `SECURITY_TYPE_CODE` | `LowCardinality(String)` | 证券类型代码 |
+| 10 | `NOTICE_DATE` | `string` | `date32[day]` | `NOTICE_DATE` | `Date` | 公告日期 |
+| 11 | `UPDATE_DATE` | `string` | `date32[day]` | `UPDATE_DATE` | `Date` | 更新日期 |
+| 12 | `CURRENCY` | `string` | `string` | `CURRENCY` | `LowCardinality(String)` | 利润表年初至报告期末金额使用的币种。 |
+| 13 | `TOTAL_OPERATE_INCOME` | `number` | `double` | `TOTAL_OPERATE_INCOME` | `Float64` | 营业总收入 |
+| 14 | `TOTAL_OPERATE_INCOME_YOY` | `number` | `double` | `TOTAL_OPERATE_INCOME_YOY` | `Float64` | 营业总收入同比增长率（%） |
+| 15 | `OPERATE_INCOME` | `number` | `double` | `OPERATE_INCOME` | `Float64` | 营业收入 |
+| 16 | `OPERATE_INCOME_YOY` | `number` | `double` | `OPERATE_INCOME_YOY` | `Float64` | 营业收入同比增长率（%） |
+| 17 | `INTEREST_INCOME` | `number` | `double` | `INTEREST_INCOME` | `Float64` | 利息收入 |
+| 18 | `INTEREST_INCOME_YOY` | `number` | `double` | `INTEREST_INCOME_YOY` | `Float64` | 利息收入同比增长率（%） |
+| 19 | `EARNED_PREMIUM` | `number` | `double` | `EARNED_PREMIUM` | `Float64` | 已赚保费 |
+| 20 | `EARNED_PREMIUM_YOY` | `number` | `double` | `EARNED_PREMIUM_YOY` | `Float64` | 已赚保费同比增长率（%） |
+| 21 | `FEE_COMMISSION_INCOME` | `number` | `double` | `FEE_COMMISSION_INCOME` | `Float64` | 手续费及佣金收入 |
+| 22 | `FEE_COMMISSION_INCOME_YOY` | `number` | `double` | `FEE_COMMISSION_INCOME_YOY` | `Float64` | 手续费及佣金收入同比增长率（%） |
+| 23 | `OTHER_BUSINESS_INCOME` | `number` | `double` | `OTHER_BUSINESS_INCOME` | `Float64` | 其他业务收入 |
+| 24 | `OTHER_BUSINESS_INCOME_YOY` | `number` | `double` | `OTHER_BUSINESS_INCOME_YOY` | `Float64` | 其他业务收入同比增长率（%） |
+| 25 | `TOI_OTHER` | `number` | `double` | `TOI_OTHER` | `Float64` | 营业总收入其他 |
+| 26 | `TOI_OTHER_YOY` | `number` | `double` | `TOI_OTHER_YOY` | `Float64` | 营业总收入其他同比增长率（%） |
+| 27 | `TOTAL_OPERATE_COST` | `number` | `double` | `TOTAL_OPERATE_COST` | `Float64` | 营业总成本 |
+| 28 | `TOTAL_OPERATE_COST_YOY` | `number` | `double` | `TOTAL_OPERATE_COST_YOY` | `Float64` | 营业总成本同比增长率（%） |
+| 29 | `OPERATE_COST` | `number` | `double` | `OPERATE_COST` | `Float64` | 营业成本 |
+| 30 | `OPERATE_COST_YOY` | `number` | `double` | `OPERATE_COST_YOY` | `Float64` | 营业成本同比增长率（%） |
+| 31 | `INTEREST_EXPENSE` | `number` | `double` | `INTEREST_EXPENSE` | `Float64` | 利息支出 |
+| 32 | `INTEREST_EXPENSE_YOY` | `number` | `double` | `INTEREST_EXPENSE_YOY` | `Float64` | 利息支出同比增长率（%） |
+| 33 | `FEE_COMMISSION_EXPENSE` | `number` | `double` | `FEE_COMMISSION_EXPENSE` | `Float64` | 手续费及佣金支出 |
+| 34 | `FEE_COMMISSION_EXPENSE_YOY` | `number` | `double` | `FEE_COMMISSION_EXPENSE_YOY` | `Float64` | 手续费及佣金支出同比增长率（%） |
+| 35 | `RESEARCH_EXPENSE` | `number` | `double` | `RESEARCH_EXPENSE` | `Float64` | 研发费用 |
+| 36 | `RESEARCH_EXPENSE_YOY` | `number` | `double` | `RESEARCH_EXPENSE_YOY` | `Float64` | 研发费用同比增长率（%） |
+| 37 | `SURRENDER_VALUE` | `number` | `double` | `SURRENDER_VALUE` | `Float64` | 退保金 |
+| 38 | `SURRENDER_VALUE_YOY` | `number` | `double` | `SURRENDER_VALUE_YOY` | `Float64` | 退保金同比增长率（%） |
+| 39 | `NET_COMPENSATE_EXPENSE` | `number` | `double` | `NET_COMPENSATE_EXPENSE` | `Float64` | 分保费用 |
+| 40 | `NET_COMPENSATE_EXPENSE_YOY` | `number` | `double` | `NET_COMPENSATE_EXPENSE_YOY` | `Float64` | 分保费用同比增长率（%） |
+| 41 | `NET_CONTRACT_RESERVE` | `number` | `double` | `NET_CONTRACT_RESERVE` | `Float64` | 提取保险合同准备金 |
+| 42 | `NET_CONTRACT_RESERVE_YOY` | `number` | `double` | `NET_CONTRACT_RESERVE_YOY` | `Float64` | 提取保险合同准备金同比增长率（%） |
+| 43 | `POLICY_BONUS_EXPENSE` | `number` | `double` | `POLICY_BONUS_EXPENSE` | `Float64` | 保单红利支出 |
+| 44 | `POLICY_BONUS_EXPENSE_YOY` | `number` | `double` | `POLICY_BONUS_EXPENSE_YOY` | `Float64` | 保单红利支出同比增长率（%） |
+| 45 | `REINSURE_EXPENSE` | `number` | `double` | `REINSURE_EXPENSE` | `Float64` | 分保费用支出 |
+| 46 | `REINSURE_EXPENSE_YOY` | `number` | `double` | `REINSURE_EXPENSE_YOY` | `Float64` | 分保费用支出同比增长率（%） |
+| 47 | `OTHER_BUSINESS_COST` | `number` | `double` | `OTHER_BUSINESS_COST` | `Float64` | 其他业务成本 |
+| 48 | `OTHER_BUSINESS_COST_YOY` | `number` | `double` | `OTHER_BUSINESS_COST_YOY` | `Float64` | 其他业务成本同比增长率（%） |
+| 49 | `OPERATE_TAX_ADD` | `number` | `double` | `OPERATE_TAX_ADD` | `Float64` | 营业税金及附加 |
+| 50 | `OPERATE_TAX_ADD_YOY` | `number` | `double` | `OPERATE_TAX_ADD_YOY` | `Float64` | 营业税金及附加同比增长率（%） |
+| 51 | `SALE_EXPENSE` | `number` | `double` | `SALE_EXPENSE` | `Float64` | 销售费用 |
+| 52 | `SALE_EXPENSE_YOY` | `number` | `double` | `SALE_EXPENSE_YOY` | `Float64` | 销售费用同比增长率（%） |
+| 53 | `MANAGE_EXPENSE` | `number` | `double` | `MANAGE_EXPENSE` | `Float64` | 管理费用 |
+| 54 | `MANAGE_EXPENSE_YOY` | `number` | `double` | `MANAGE_EXPENSE_YOY` | `Float64` | 管理费用同比增长率（%） |
+| 55 | `ME_RESEARCH_EXPENSE` | `number` | `double` | `ME_RESEARCH_EXPENSE` | `Float64` | 管理费用中的研发费用 |
+| 56 | `ME_RESEARCH_EXPENSE_YOY` | `number` | `double` | `ME_RESEARCH_EXPENSE_YOY` | `Float64` | 管理费用中的研发费用同比增长率（%） |
+| 57 | `FINANCE_EXPENSE` | `number` | `double` | `FINANCE_EXPENSE` | `Float64` | 财务费用 |
+| 58 | `FINANCE_EXPENSE_YOY` | `number` | `double` | `FINANCE_EXPENSE_YOY` | `Float64` | 财务费用同比增长率（%） |
+| 59 | `FE_INTEREST_EXPENSE` | `number` | `double` | `FE_INTEREST_EXPENSE` | `Float64` | 财务费用之利息费用 |
+| 60 | `FE_INTEREST_EXPENSE_YOY` | `number` | `double` | `FE_INTEREST_EXPENSE_YOY` | `Float64` | 财务费用之利息费用同比增长率（%） |
+| 61 | `FE_INTEREST_INCOME` | `number` | `double` | `FE_INTEREST_INCOME` | `Float64` | 财务费用之利息收入 |
+| 62 | `FE_INTEREST_INCOME_YOY` | `number` | `double` | `FE_INTEREST_INCOME_YOY` | `Float64` | 财务费用之利息收入同比增长率（%） |
+| 63 | `ASSET_IMPAIRMENT_LOSS` | `number` | `double` | `ASSET_IMPAIRMENT_LOSS` | `Float64` | 资产减值损失 |
+| 64 | `ASSET_IMPAIRMENT_LOSS_YOY` | `number` | `double` | `ASSET_IMPAIRMENT_LOSS_YOY` | `Float64` | 资产减值损失同比增长率（%） |
+| 65 | `CREDIT_IMPAIRMENT_LOSS` | `number` | `double` | `CREDIT_IMPAIRMENT_LOSS` | `Float64` | 信用减值损失 |
+| 66 | `CREDIT_IMPAIRMENT_LOSS_YOY` | `number` | `double` | `CREDIT_IMPAIRMENT_LOSS_YOY` | `Float64` | 信用减值损失同比增长率（%） |
+| 67 | `TOC_OTHER` | `number` | `double` | `TOC_OTHER` | `Float64` | 营业总成本其他 |
+| 68 | `TOC_OTHER_YOY` | `number` | `double` | `TOC_OTHER_YOY` | `Float64` | 营业总成本其他同比增长率（%） |
+| 69 | `FAIRVALUE_CHANGE_INCOME` | `number` | `double` | `FAIRVALUE_CHANGE_INCOME` | `Float64` | 公允价值变动收益 |
+| 70 | `FAIRVALUE_CHANGE_INCOME_YOY` | `number` | `double` | `FAIRVALUE_CHANGE_INCOME_YOY` | `Float64` | 公允价值变动收益同比增长率（%） |
+| 71 | `INVEST_INCOME` | `number` | `double` | `INVEST_INCOME` | `Float64` | 投资收益 |
+| 72 | `INVEST_INCOME_YOY` | `number` | `double` | `INVEST_INCOME_YOY` | `Float64` | 投资收益同比增长率（%） |
+| 73 | `INVEST_JOINT_INCOME` | `number` | `double` | `INVEST_JOINT_INCOME` | `Float64` | 对联营企业和合营企业的投资收益 |
+| 74 | `INVEST_JOINT_INCOME_YOY` | `number` | `double` | `INVEST_JOINT_INCOME_YOY` | `Float64` | 对联营企业和合营企业的投资收益同比增长率（%） |
+| 75 | `NET_EXPOSURE_INCOME` | `number` | `double` | `NET_EXPOSURE_INCOME` | `Float64` | 净敞口收益 |
+| 76 | `NET_EXPOSURE_INCOME_YOY` | `number` | `double` | `NET_EXPOSURE_INCOME_YOY` | `Float64` | 净敞口收益同比增长率（%） |
+| 77 | `EXCHANGE_INCOME` | `number` | `double` | `EXCHANGE_INCOME` | `Float64` | 汇兑收益 |
+| 78 | `EXCHANGE_INCOME_YOY` | `number` | `double` | `EXCHANGE_INCOME_YOY` | `Float64` | 汇兑收益同比增长率（%） |
+| 79 | `ASSET_DISPOSAL_INCOME` | `number` | `double` | `ASSET_DISPOSAL_INCOME` | `Float64` | 资产处置收益 |
+| 80 | `ASSET_DISPOSAL_INCOME_YOY` | `number` | `double` | `ASSET_DISPOSAL_INCOME_YOY` | `Float64` | 资产处置收益同比增长率（%） |
+| 81 | `ASSET_IMPAIRMENT_INCOME` | `number` | `double` | `ASSET_IMPAIRMENT_INCOME` | `Float64` | 资产减值收益 |
+| 82 | `ASSET_IMPAIRMENT_INCOME_YOY` | `number` | `double` | `ASSET_IMPAIRMENT_INCOME_YOY` | `Float64` | 资产减值收益同比增长率（%） |
+| 83 | `CREDIT_IMPAIRMENT_INCOME` | `number` | `double` | `CREDIT_IMPAIRMENT_INCOME` | `Float64` | 信用减值收益 |
+| 84 | `CREDIT_IMPAIRMENT_INCOME_YOY` | `number` | `double` | `CREDIT_IMPAIRMENT_INCOME_YOY` | `Float64` | 信用减值收益同比增长率（%） |
+| 85 | `OTHER_INCOME` | `number` | `double` | `OTHER_INCOME` | `Float64` | 其他收益 |
+| 86 | `OTHER_INCOME_YOY` | `number` | `double` | `OTHER_INCOME_YOY` | `Float64` | 其他收益同比增长率（%） |
+| 87 | `OPERATE_PROFIT_OTHER` | `number` | `double` | `OPERATE_PROFIT_OTHER` | `Float64` | 营业利润其他 |
+| 88 | `OPERATE_PROFIT_OTHER_YOY` | `number` | `double` | `OPERATE_PROFIT_OTHER_YOY` | `Float64` | 营业利润其他同比增长率（%） |
+| 89 | `OPERATE_PROFIT_BALANCE` | `number` | `double` | `OPERATE_PROFIT_BALANCE` | `Float64` | 营业利润平衡项 |
+| 90 | `OPERATE_PROFIT_BALANCE_YOY` | `number` | `double` | `OPERATE_PROFIT_BALANCE_YOY` | `Float64` | 营业利润平衡项同比增长率（%） |
+| 91 | `OPERATE_PROFIT` | `number` | `double` | `OPERATE_PROFIT` | `Float64` | 营业利润 |
+| 92 | `OPERATE_PROFIT_YOY` | `number` | `double` | `OPERATE_PROFIT_YOY` | `Float64` | 营业利润同比增长率（%） |
+| 93 | `NONBUSINESS_INCOME` | `number` | `double` | `NONBUSINESS_INCOME` | `Float64` | 营业外收入 |
+| 94 | `NONBUSINESS_INCOME_YOY` | `number` | `double` | `NONBUSINESS_INCOME_YOY` | `Float64` | 营业外收入同比增长率（%） |
+| 95 | `NONCURRENT_DISPOSAL_INCOME` | `number` | `double` | `NONCURRENT_DISPOSAL_INCOME` | `Float64` | 非流动资产处置净收益 |
+| 96 | `NONCURRENT_DISPOSAL_INCOME_YOY` | `number` | `double` | `NONCURRENT_DISPOSAL_INCOME_YOY` | `Float64` | 非流动资产处置净收益同比增长率（%） |
+| 97 | `NONBUSINESS_EXPENSE` | `number` | `double` | `NONBUSINESS_EXPENSE` | `Float64` | 营业外支出 |
+| 98 | `NONBUSINESS_EXPENSE_YOY` | `number` | `double` | `NONBUSINESS_EXPENSE_YOY` | `Float64` | 营业外支出同比增长率（%） |
+| 99 | `NONCURRENT_DISPOSAL_LOSS` | `number` | `double` | `NONCURRENT_DISPOSAL_LOSS` | `Float64` | 非流动资产处置净损失 |
+| 100 | `NONCURRENT_DISPOSAL_LOSS_YOY` | `number` | `double` | `NONCURRENT_DISPOSAL_LOSS_YOY` | `Float64` | 非流动资产处置净损失同比增长率（%） |
+| 101 | `EFFECT_TP_OTHER` | `number` | `double` | `EFFECT_TP_OTHER` | `Float64` | 影响利润总额其他 |
+| 102 | `EFFECT_TP_OTHER_YOY` | `number` | `double` | `EFFECT_TP_OTHER_YOY` | `Float64` | 影响利润总额其他同比增长率（%） |
+| 103 | `TOTAL_PROFIT_BALANCE` | `number` | `double` | `TOTAL_PROFIT_BALANCE` | `Float64` | 利润总额平衡项 |
+| 104 | `TOTAL_PROFIT_BALANCE_YOY` | `number` | `double` | `TOTAL_PROFIT_BALANCE_YOY` | `Float64` | 利润总额平衡项同比增长率（%） |
+| 105 | `TOTAL_PROFIT` | `number` | `double` | `TOTAL_PROFIT` | `Float64` | 利润总额 |
+| 106 | `TOTAL_PROFIT_YOY` | `number` | `double` | `TOTAL_PROFIT_YOY` | `Float64` | 利润总额同比增长率（%） |
+| 107 | `INCOME_TAX` | `number` | `double` | `INCOME_TAX` | `Float64` | 所得税费用 |
+| 108 | `INCOME_TAX_YOY` | `number` | `double` | `INCOME_TAX_YOY` | `Float64` | 所得税费用同比增长率（%） |
+| 109 | `EFFECT_NETPROFIT_OTHER` | `number` | `double` | `EFFECT_NETPROFIT_OTHER` | `Float64` | 影响净利润其他 |
+| 110 | `EFFECT_NETPROFIT_OTHER_YOY` | `number` | `double` | `EFFECT_NETPROFIT_OTHER_YOY` | `Float64` | 影响净利润其他同比增长率（%） |
+| 111 | `EFFECT_NETPROFIT_BALANCE` | `number` | `double` | `EFFECT_NETPROFIT_BALANCE` | `Float64` | 净利润平衡项 |
+| 112 | `EFFECT_NETPROFIT_BALANCE_YOY` | `number` | `double` | `EFFECT_NETPROFIT_BALANCE_YOY` | `Float64` | 净利润平衡项同比增长率（%） |
+| 113 | `UNCONFIRM_INVEST_LOSS` | `number` | `double` | `UNCONFIRM_INVEST_LOSS` | `Float64` | 未确认投资损失 |
+| 114 | `UNCONFIRM_INVEST_LOSS_YOY` | `number` | `double` | `UNCONFIRM_INVEST_LOSS_YOY` | `Float64` | 未确认投资损失同比增长率（%） |
+| 115 | `NETPROFIT` | `number` | `double` | `NETPROFIT` | `Float64` | 净利润 |
+| 116 | `NETPROFIT_YOY` | `number` | `double` | `NETPROFIT_YOY` | `Float64` | 净利润同比增长率（%） |
+| 117 | `PRECOMBINE_PROFIT` | `number` | `double` | `PRECOMBINE_PROFIT` | `Float64` | 合并前净损益 |
+| 118 | `PRECOMBINE_PROFIT_YOY` | `number` | `double` | `PRECOMBINE_PROFIT_YOY` | `Float64` | 合并前净损益同比增长率（%） |
+| 119 | `CONTINUED_NETPROFIT` | `number` | `double` | `CONTINUED_NETPROFIT` | `Float64` | 持续经营净利润 |
+| 120 | `CONTINUED_NETPROFIT_YOY` | `number` | `double` | `CONTINUED_NETPROFIT_YOY` | `Float64` | 持续经营净利润同比增长率（%） |
+| 121 | `DISCONTINUED_NETPROFIT` | `number` | `double` | `DISCONTINUED_NETPROFIT` | `Float64` | 终止经营净利润 |
+| 122 | `DISCONTINUED_NETPROFIT_YOY` | `number` | `double` | `DISCONTINUED_NETPROFIT_YOY` | `Float64` | 终止经营净利润同比增长率（%） |
+| 123 | `PARENT_NETPROFIT` | `number` | `double` | `PARENT_NETPROFIT` | `Float64` | 归属于母公司股东的净利润 |
+| 124 | `PARENT_NETPROFIT_YOY` | `number` | `double` | `PARENT_NETPROFIT_YOY` | `Float64` | 归属于母公司股东的净利润同比增长率（%） |
+| 125 | `MINORITY_INTEREST` | `number` | `double` | `MINORITY_INTEREST` | `Float64` | 少数股东损益 |
+| 126 | `MINORITY_INTEREST_YOY` | `number` | `double` | `MINORITY_INTEREST_YOY` | `Float64` | 少数股东损益同比增长率（%） |
+| 127 | `DEDUCT_PARENT_NETPROFIT` | `number` | `double` | `DEDUCT_PARENT_NETPROFIT` | `Float64` | 扣除非经常性损益后归属于母公司股东的净利润 |
+| 128 | `DEDUCT_PARENT_NETPROFIT_YOY` | `number` | `double` | `DEDUCT_PARENT_NETPROFIT_YOY` | `Float64` | 扣非归母净利润同比增长率（%） |
+| 129 | `NETPROFIT_OTHER` | `number` | `double` | `NETPROFIT_OTHER` | `Float64` | 净利润其他 |
+| 130 | `NETPROFIT_OTHER_YOY` | `number` | `double` | `NETPROFIT_OTHER_YOY` | `Float64` | 净利润其他同比增长率（%） |
+| 131 | `NETPROFIT_BALANCE` | `number` | `double` | `NETPROFIT_BALANCE` | `Float64` | 净利润平衡项 |
+| 132 | `NETPROFIT_BALANCE_YOY` | `number` | `double` | `NETPROFIT_BALANCE_YOY` | `Float64` | 净利润平衡项同比增长率（%） |
+| 133 | `BASIC_EPS` | `number` | `double` | `BASIC_EPS` | `Float64` | 基本每股收益（元/股） |
+| 134 | `BASIC_EPS_YOY` | `number` | `double` | `BASIC_EPS_YOY` | `Float64` | 基本每股收益（元/股）同比增长率（%） |
+| 135 | `DILUTED_EPS` | `number` | `double` | `DILUTED_EPS` | `Float64` | 稀释每股收益（元/股） |
+| 136 | `DILUTED_EPS_YOY` | `number` | `double` | `DILUTED_EPS_YOY` | `Float64` | 稀释每股收益（元/股）同比增长率（%） |
+| 137 | `OTHER_COMPRE_INCOME` | `number` | `double` | `OTHER_COMPRE_INCOME` | `Float64` | 其他综合收益总额 |
+| 138 | `OTHER_COMPRE_INCOME_YOY` | `number` | `double` | `OTHER_COMPRE_INCOME_YOY` | `Float64` | 其他综合收益总额同比增长率（%） |
+| 139 | `PARENT_OCI` | `number` | `double` | `PARENT_OCI` | `Float64` | 归属于母公司股东的其他综合收益 |
+| 140 | `PARENT_OCI_YOY` | `number` | `double` | `PARENT_OCI_YOY` | `Float64` | 归母其他综合收益同比增长率（%） |
+| 141 | `MINORITY_OCI` | `number` | `double` | `MINORITY_OCI` | `Float64` | 归属于少数股东的其他综合收益 |
+| 142 | `MINORITY_OCI_YOY` | `number` | `double` | `MINORITY_OCI_YOY` | `Float64` | 少数股东其他综合收益同比增长率（%） |
+| 143 | `PARENT_OCI_OTHER` | `number` | `double` | `PARENT_OCI_OTHER` | `Float64` | 归母其他综合收益其他 |
+| 144 | `PARENT_OCI_OTHER_YOY` | `number` | `double` | `PARENT_OCI_OTHER_YOY` | `Float64` | 归母其他综合收益其他同比增长率（%） |
+| 145 | `PARENT_OCI_BALANCE` | `number` | `double` | `PARENT_OCI_BALANCE` | `Float64` | 归母其他综合收益平衡项 |
+| 146 | `PARENT_OCI_BALANCE_YOY` | `number` | `double` | `PARENT_OCI_BALANCE_YOY` | `Float64` | 归母其他综合收益平衡项同比增长率（%） |
+| 147 | `UNABLE_OCI` | `number` | `double` | `UNABLE_OCI` | `Float64` | 以后将重分类进损益的其他综合收益 |
+| 148 | `UNABLE_OCI_YOY` | `number` | `double` | `UNABLE_OCI_YOY` | `Float64` | 以后将重分类进损益的其他综合收益同比增长率（%） |
+| 149 | `CREDITRISK_FAIRVALUE_CHANGE` | `number` | `double` | `CREDITRISK_FAIRVALUE_CHANGE` | `Float64` | 信用风险引起的公允价值变动 |
+| 150 | `CREDITRISK_FAIRVALUE_CHANGE_YOY` | `number` | `double` | `CREDITRISK_FAIRVALUE_CHANGE_YOY` | `Float64` | 信用风险引起的公允价值变动同比增长率（%） |
+| 151 | `OTHERRIGHT_FAIRVALUE_CHANGE` | `number` | `double` | `OTHERRIGHT_FAIRVALUE_CHANGE` | `Float64` | 其他权益工具公允价值变动 |
+| 152 | `OTHERRIGHT_FAIRVALUE_CHANGE_YOY` | `number` | `double` | `OTHERRIGHT_FAIRVALUE_CHANGE_YOY` | `Float64` | 其他权益工具公允价值变动同比增长率（%） |
+| 153 | `SETUP_PROFIT_CHANGE` | `number` | `double` | `SETUP_PROFIT_CHANGE` | `Float64` | 重分类调整变动 |
+| 154 | `SETUP_PROFIT_CHANGE_YOY` | `number` | `double` | `SETUP_PROFIT_CHANGE_YOY` | `Float64` | 重分类调整变动同比增长率（%） |
+| 155 | `RIGHTLAW_UNABLE_OCI` | `number` | `double` | `RIGHTLAW_UNABLE_OCI` | `Float64` | 权益法下不能重分类的其他综合收益 |
+| 156 | `RIGHTLAW_UNABLE_OCI_YOY` | `number` | `double` | `RIGHTLAW_UNABLE_OCI_YOY` | `Float64` | 权益法下不能重分类的其他综合收益同比增长率（%） |
+| 157 | `UNABLE_OCI_OTHER` | `number` | `double` | `UNABLE_OCI_OTHER` | `Float64` | 不能重分类其他综合收益其他 |
+| 158 | `UNABLE_OCI_OTHER_YOY` | `number` | `double` | `UNABLE_OCI_OTHER_YOY` | `Float64` | 不能重分类其他综合收益其他同比增长率（%） |
+| 159 | `UNABLE_OCI_BALANCE` | `number` | `double` | `UNABLE_OCI_BALANCE` | `Float64` | 不能重分类其他综合收益平衡项 |
+| 160 | `UNABLE_OCI_BALANCE_YOY` | `number` | `double` | `UNABLE_OCI_BALANCE_YOY` | `Float64` | 不能重分类其他综合收益平衡项同比增长率（%） |
+| 161 | `ABLE_OCI` | `number` | `double` | `ABLE_OCI` | `Float64` | 以后将重分类进损益的其他综合收益（可重分类） |
+| 162 | `ABLE_OCI_YOY` | `number` | `double` | `ABLE_OCI_YOY` | `Float64` | 以后将重分类进损益的其他综合收益（可重分类）同比增长率（%） |
+| 163 | `RIGHTLAW_ABLE_OCI` | `number` | `double` | `RIGHTLAW_ABLE_OCI` | `Float64` | 权益法下可重分类的其他综合收益 |
+| 164 | `RIGHTLAW_ABLE_OCI_YOY` | `number` | `double` | `RIGHTLAW_ABLE_OCI_YOY` | `Float64` | 权益法下可重分类的其他综合收益同比增长率（%） |
+| 165 | `AFA_FAIRVALUE_CHANGE` | `number` | `double` | `AFA_FAIRVALUE_CHANGE` | `Float64` | 可供出售金融资产公允价值变动 |
+| 166 | `AFA_FAIRVALUE_CHANGE_YOY` | `number` | `double` | `AFA_FAIRVALUE_CHANGE_YOY` | `Float64` | 可供出售金融资产公允价值变动同比增长率（%） |
+| 167 | `HMI_AFA` | `number` | `double` | `HMI_AFA` | `Float64` | 持有有待售资产公允价值变动 |
+| 168 | `HMI_AFA_YOY` | `number` | `double` | `HMI_AFA_YOY` | `Float64` | 持有有待售资产公允价值变动同比增长率（%） |
+| 169 | `CASHFLOW_HEDGE_VALID` | `number` | `double` | `CASHFLOW_HEDGE_VALID` | `Float64` | 现金流量套期有效部分 |
+| 170 | `CASHFLOW_HEDGE_VALID_YOY` | `number` | `double` | `CASHFLOW_HEDGE_VALID_YOY` | `Float64` | 现金流量套期有效部分同比增长率（%） |
+| 171 | `CREDITOR_FAIRVALUE_CHANGE` | `number` | `double` | `CREDITOR_FAIRVALUE_CHANGE` | `Float64` | 债权投资公允价值变动 |
+| 172 | `CREDITOR_FAIRVALUE_CHANGE_YOY` | `number` | `double` | `CREDITOR_FAIRVALUE_CHANGE_YOY` | `Float64` | 债权投资公允价值变动同比增长率（%） |
+| 173 | `CREDITOR_IMPAIRMENT_RESERVE` | `number` | `double` | `CREDITOR_IMPAIRMENT_RESERVE` | `Float64` | 债权投资减值准备 |
+| 174 | `CREDITOR_IMPAIRMENT_RESERVE_YOY` | `number` | `double` | `CREDITOR_IMPAIRMENT_RESERVE_YOY` | `Float64` | 债权投资减值准备同比增长率（%） |
+| 175 | `FINANCE_OCI_AMT` | `number` | `double` | `FINANCE_OCI_AMT` | `Float64` | 金融资产重分类金额 |
+| 176 | `FINANCE_OCI_AMT_YOY` | `number` | `double` | `FINANCE_OCI_AMT_YOY` | `Float64` | 金融资产重分类金额同比增长率（%） |
+| 177 | `CONVERT_DIFF` | `number` | `double` | `CONVERT_DIFF` | `Float64` | 外币报表折算差额 |
+| 178 | `CONVERT_DIFF_YOY` | `number` | `double` | `CONVERT_DIFF_YOY` | `Float64` | 外币报表折算差额同比增长率（%） |
+| 179 | `ABLE_OCI_OTHER` | `number` | `double` | `ABLE_OCI_OTHER` | `Float64` | 可重分类其他综合收益其他 |
+| 180 | `ABLE_OCI_OTHER_YOY` | `number` | `double` | `ABLE_OCI_OTHER_YOY` | `Float64` | 可重分类其他综合收益其他同比增长率（%） |
+| 181 | `ABLE_OCI_BALANCE` | `number` | `double` | `ABLE_OCI_BALANCE` | `Float64` | 可重分类其他综合收益平衡项 |
+| 182 | `ABLE_OCI_BALANCE_YOY` | `number` | `double` | `ABLE_OCI_BALANCE_YOY` | `Float64` | 可重分类其他综合收益平衡项同比增长率（%） |
+| 183 | `OCI_OTHER` | `number` | `double` | `OCI_OTHER` | `Float64` | 其他综合收益其他 |
+| 184 | `OCI_OTHER_YOY` | `number` | `double` | `OCI_OTHER_YOY` | `Float64` | 其他综合收益其他同比增长率（%） |
+| 185 | `OCI_BALANCE` | `number` | `double` | `OCI_BALANCE` | `Float64` | 其他综合收益平衡项 |
+| 186 | `OCI_BALANCE_YOY` | `number` | `double` | `OCI_BALANCE_YOY` | `Float64` | 其他综合收益平衡项同比增长率（%） |
+| 187 | `TOTAL_COMPRE_INCOME` | `number` | `double` | `TOTAL_COMPRE_INCOME` | `Float64` | 综合收益总额 |
+| 188 | `TOTAL_COMPRE_INCOME_YOY` | `number` | `double` | `TOTAL_COMPRE_INCOME_YOY` | `Float64` | 综合收益总额同比增长率（%） |
+| 189 | `PARENT_TCI` | `number` | `double` | `PARENT_TCI` | `Float64` | 归属于母公司股东的综合收益总额 |
+| 190 | `PARENT_TCI_YOY` | `number` | `double` | `PARENT_TCI_YOY` | `Float64` | 归母综合收益总额同比增长率（%） |
+| 191 | `MINORITY_TCI` | `number` | `double` | `MINORITY_TCI` | `Float64` | 归属于少数股东的综合收益总额 |
+| 192 | `MINORITY_TCI_YOY` | `number` | `double` | `MINORITY_TCI_YOY` | `Float64` | 少数股东综合收益总额同比增长率（%） |
+| 193 | `PRECOMBINE_TCI` | `number` | `double` | `PRECOMBINE_TCI` | `Float64` | 合并前综合收益总额 |
+| 194 | `PRECOMBINE_TCI_YOY` | `number` | `double` | `PRECOMBINE_TCI_YOY` | `Float64` | 合并前综合收益总额同比增长率（%） |
+| 195 | `EFFECT_TCI_BALANCE` | `number` | `double` | `EFFECT_TCI_BALANCE` | `Float64` | 综合收益总额平衡项 |
+| 196 | `EFFECT_TCI_BALANCE_YOY` | `number` | `double` | `EFFECT_TCI_BALANCE_YOY` | `Float64` | 综合收益总额平衡项同比增长率（%） |
+| 197 | `TCI_OTHER` | `number` | `double` | `TCI_OTHER` | `Float64` | 综合收益总额其他 |
+| 198 | `TCI_OTHER_YOY` | `number` | `double` | `TCI_OTHER_YOY` | `Float64` | 综合收益总额其他同比增长率（%） |
+| 199 | `TCI_BALANCE` | `number` | `double` | `TCI_BALANCE` | `Float64` | 综合收益总额平衡项 |
+| 200 | `TCI_BALANCE_YOY` | `number` | `double` | `TCI_BALANCE_YOY` | `Float64` | 综合收益总额平衡项同比增长率（%） |
+| 201 | `ACF_END_INCOME` | `number` | `double` | `ACF_END_INCOME` | `Float64` | 持续经营终止经营净损益 |
+| 202 | `ACF_END_INCOME_YOY` | `number` | `double` | `ACF_END_INCOME_YOY` | `Float64` | 持续经营终止经营净损益同比增长率（%） |
+| 203 | `OPINION_TYPE` | `string` | `string` | `OPINION_TYPE` | `LowCardinality(String)` | 审计意见类型 |
 
 ## 数据集备注
 

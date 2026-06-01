@@ -759,7 +759,7 @@ paths:
                               nullable: true
                               description: ACF_END_INCOME 同比增长率(%)
                             OPINION_TYPE:
-                              type: number
+                              type: string
                               nullable: true
                               description: 审计意见类型
                         description: 返回数据

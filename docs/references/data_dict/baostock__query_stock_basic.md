@@ -14,14 +14,14 @@
 
 ## 字段链路
 
-| # | 外源字段 | 外源类型 | Parquet 类型 | ClickHouse raw 字段 | ClickHouse 类型 | stg 字段 | 中文描述 |
-|---|----------|----------|--------------|---------------------|-----------------|----------|----------|
-| 1 | `code` | `string` | `string` | `code` | `LowCardinality(String)` | `code` | 证券、行业或业务对象在来源系统中的编码。 |
-| 2 | `code_name` | `string` | `string` | `code_name` | `LowCardinality(String)` | `code_name` | 证券、行业或业务对象的显示名称。 |
-| 3 | `ipoDate` | `string` | `date32[day]` | `ipoDate` | `Date` | `ipo_date` | 证券首次上市交易日期。 |
-| 4 | `outDate` | `string` | `date32[day]` | `outDate` | `Date` | `out_date` | 证券退市或终止上市日期。 |
-| 5 | `type` | `string` | `int8` | `type` | `Int8` | `stock_type` | 证券品种类型，例如股票、指数或其他市场品种。 |
-| 6 | `status` | `string` | `int8` | `status` | `Int8` | `stock_status` | 证券上市、退市或暂停交易等状态。 |
+| # | 外源字段 | 外源类型 | Parquet 类型 | ClickHouse raw 字段 | ClickHouse 类型 | 中文描述 |
+|---|----------|----------|--------------|---------------------|-----------------|----------|
+| 1 | `code` | `string` | `string` | `code` | `LowCardinality(String)` | BaoStock 基础信息接口返回的证券代码。 |
+| 2 | `code_name` | `string` | `string` | `code_name` | `LowCardinality(String)` | BaoStock 基础信息接口返回的证券简称。 |
+| 3 | `ipoDate` | `string` | `date32[day]` | `ipoDate` | `Date` | 证券上市日期。 |
+| 4 | `outDate` | `string` | `date32[day]` | `outDate` | `Date` | 证券退市日期；未退市时通常为空。 |
+| 5 | `type` | `string` | `int8` | `type` | `Int8` | 证券类型代码。 |
+| 6 | `status` | `string` | `int8` | `status` | `Int8` | 证券上市状态。 |
 
 ## 数据集备注
 

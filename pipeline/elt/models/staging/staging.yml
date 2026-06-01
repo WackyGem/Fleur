@@ -13,8 +13,8 @@ models:
     description: Trade date.
     tests:
     - not_null
-  - name: code
-    description: Code.
+  - name: security_code
+    description: Security code.
     tests:
     - not_null
   - name: open
@@ -35,8 +35,8 @@ models:
     description: Adjustflag.
   - name: turn
     description: Turn.
-  - name: tradestatus
-    description: Tradestatus.
+  - name: trading_status
+    description: Trading status.
   - name: pct_chg
     description: Pct chg.
   - name: is_st
@@ -50,12 +50,12 @@ models:
     contract_version: 1
     upstream_raw_asset: clickhouse/raw/baostock__query_stock_basic
   columns:
-  - name: code
-    description: Code.
+  - name: security_code
+    description: Security code.
     tests:
     - not_null
-  - name: code_name
-    description: Code name.
+  - name: security_name
+    description: Security name.
   - name: ipo_date
     description: Ipo date.
   - name: out_date

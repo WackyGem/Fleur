@@ -948,11 +948,11 @@ paths:
                               nullable: true
                               description: CCE_ADDNOTE 同比增长率(%)
                             OPINION_TYPE:
-                              type: number
+                              type: string
                               nullable: true
                               description: 审计意见类型
                             OSOPINION_TYPE:
-                              type: number
+                              type: string
                               nullable: true
                               description: 内控审计意见类型
                             MINORITY_INTEREST:

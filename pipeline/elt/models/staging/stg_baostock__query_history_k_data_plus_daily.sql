@@ -7,7 +7,7 @@ with source as (
 
 select
     date as trade_date,
-    code,
+    code as security_code,
     open,
     high,
     low,
@@ -17,7 +17,11 @@ select
     amount,
     adjustflag,
     turn,
-    tradestatus,
+    case
+        when tradestatus = 1 then 'trading'
+        when tradestatus = 0 then 'suspended'
+        else 'unknown'
+    end as trading_status,
     pctChg as pct_chg,
     isST as is_st,
     year

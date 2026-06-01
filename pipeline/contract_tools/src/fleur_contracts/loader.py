@@ -55,6 +55,8 @@ def dataset_schema_hash(contract: DatasetContract) -> str:
 
 
 def clickhouse_schema_hash(contract: DatasetContract) -> str:
+    if contract.clickhouse_raw is None:
+        return ""
     schema_text = "\n".join(
         f"{field.name}:{field.type}" for field in contract.clickhouse_raw.fields
     )

@@ -86,7 +86,7 @@ parquet:
     type: date32[day]
     nullable: false
   - name: EX_DIVIDEND_DATEE
-    type: string
+    type: date32[day]
     nullable: false
   - name: EVENT_EXPLAIN
     type: string
@@ -139,17 +139,14 @@ clickhouse_raw:
     from: EQUITY_RECORD_DATE
     nullable: false
   - name: EX_DIVIDEND_DATEE
-    type: LowCardinality(String)
+    type: Date
     from: EX_DIVIDEND_DATEE
     nullable: false
-    reason: expected_low_cardinality_dimension
   - name: EVENT_EXPLAIN
     type: LowCardinality(String)
     from: EVENT_EXPLAIN
     nullable: false
     reason: expected_low_cardinality_dimension
-dbt_staging:
-  status: not_started
 dataset_note_zh: 东方财富分红配股 F10 年度 raw 分区
 validation_notes:
 - Initial contract migrated from docs/references/data_dict and current raw sync specs.

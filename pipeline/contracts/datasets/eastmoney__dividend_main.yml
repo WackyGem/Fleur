@@ -42,16 +42,16 @@ source:
     required: true
     external_description_zh: 分配进度
   - name: EQUITY_RECORD_DATE
-    type: number
-    required: true
+    type: string
+    required: false
     external_description_zh: 股权登记日
   - name: EX_DIVIDEND_DATE
-    type: number
-    required: true
+    type: string
+    required: false
     external_description_zh: 除权除息日
   - name: PAY_CASH_DATE
-    type: number
-    required: true
+    type: string
+    required: false
     external_description_zh: 派息日
   - name: IS_UNASSIGN
     type: string
@@ -63,7 +63,7 @@ source:
     external_description_zh: 报告期
   - name: ASSIGN_OBJECT
     type: string
-    required: true
+    required: false
     external_description_zh: 分配对象
   - name: IMPL_PLAN_NEWPROFILE
     type: string
@@ -74,16 +74,16 @@ source:
     required: true
     external_description_zh: 分红方案（含税）
   - name: GMDECISION_NOTICE_DATE
-    type: number
-    required: true
+    type: string
+    required: false
     external_description_zh: 股东大会决议公告日
   - name: INFO_CODE
     type: string
-    required: true
+    required: false
     external_description_zh: 公告编号
   - name: DAT_YAGGR
     type: string
-    required: true
+    required: false
     external_description_zh: 年度股东大会日期
   - name: TOTAL_DIVIDEND
     type: number
@@ -95,7 +95,7 @@ source:
     external_description_zh: A股分红总额（元）
   - name: REPORT_TIME
     type: string
-    required: true
+    required: false
     external_description_zh: 报告期截止日
   - name: DAT_YAGGR_TODAY
     type: string
@@ -134,8 +134,8 @@ source:
     required: true
     external_description_zh: 是否近期股权登记
   - name: LAST_TRADE_DATE
-    type: number
-    required: true
+    type: string
+    required: false
     external_description_zh: 最后交易日
 parquet:
   storage_mode: partitioned
@@ -161,13 +161,13 @@ parquet:
     nullable: false
   - name: EQUITY_RECORD_DATE
     type: date32[day]
-    nullable: false
+    nullable: true
   - name: EX_DIVIDEND_DATE
     type: date32[day]
-    nullable: false
+    nullable: true
   - name: PAY_CASH_DATE
     type: date32[day]
-    nullable: false
+    nullable: true
   - name: IS_UNASSIGN
     type: bool
     nullable: false
@@ -176,7 +176,7 @@ parquet:
     nullable: false
   - name: ASSIGN_OBJECT
     type: string
-    nullable: false
+    nullable: true
   - name: IMPL_PLAN_NEWPROFILE
     type: string
     nullable: false
@@ -185,13 +185,13 @@ parquet:
     nullable: false
   - name: GMDECISION_NOTICE_DATE
     type: date32[day]
-    nullable: false
+    nullable: true
   - name: INFO_CODE
     type: string
-    nullable: false
+    nullable: true
   - name: DAT_YAGGR
     type: date32[day]
-    nullable: false
+    nullable: true
   - name: TOTAL_DIVIDEND
     type: double
     nullable: false
@@ -200,7 +200,7 @@ parquet:
     nullable: false
   - name: REPORT_TIME
     type: string
-    nullable: false
+    nullable: true
   - name: DAT_YAGGR_TODAY
     type: bool
     nullable: false
@@ -230,7 +230,7 @@ parquet:
     nullable: false
   - name: LAST_TRADE_DATE
     type: date32[day]
-    nullable: false
+    nullable: true
 clickhouse_raw:
   database: raw
   table: eastmoney__dividend_main
@@ -275,15 +275,15 @@ clickhouse_raw:
   - name: EQUITY_RECORD_DATE
     type: Date
     from: EQUITY_RECORD_DATE
-    nullable: false
+    nullable: true
   - name: EX_DIVIDEND_DATE
     type: Date
     from: EX_DIVIDEND_DATE
-    nullable: false
+    nullable: true
   - name: PAY_CASH_DATE
     type: Date
     from: PAY_CASH_DATE
-    nullable: false
+    nullable: true
   - name: IS_UNASSIGN
     type: Bool
     from: IS_UNASSIGN
@@ -296,7 +296,7 @@ clickhouse_raw:
   - name: ASSIGN_OBJECT
     type: LowCardinality(String)
     from: ASSIGN_OBJECT
-    nullable: false
+    nullable: true
     reason: expected_low_cardinality_dimension
   - name: IMPL_PLAN_NEWPROFILE
     type: LowCardinality(String)
@@ -311,16 +311,15 @@ clickhouse_raw:
   - name: GMDECISION_NOTICE_DATE
     type: Date
     from: GMDECISION_NOTICE_DATE
-    nullable: false
+    nullable: true
   - name: INFO_CODE
-    type: LowCardinality(String)
+    type: String
     from: INFO_CODE
-    nullable: false
-    reason: expected_low_cardinality_dimension
+    nullable: true
   - name: DAT_YAGGR
     type: Date
     from: DAT_YAGGR
-    nullable: false
+    nullable: true
   - name: TOTAL_DIVIDEND
     type: Float64
     from: TOTAL_DIVIDEND
@@ -332,7 +331,7 @@ clickhouse_raw:
   - name: REPORT_TIME
     type: String
     from: REPORT_TIME
-    nullable: false
+    nullable: true
   - name: DAT_YAGGR_TODAY
     type: Bool
     from: DAT_YAGGR_TODAY
@@ -372,9 +371,13 @@ clickhouse_raw:
   - name: LAST_TRADE_DATE
     type: Date
     from: LAST_TRADE_DATE
-    nullable: false
-dbt_staging:
-  status: not_started
+    nullable: true
 dataset_note_zh: 东方财富分红主表 F10 年度 raw 分区
 validation_notes:
 - Initial contract migrated from docs/references/data_dict and current raw sync specs.
+- REPORT_TIME intentionally remains string because historical responses can contain labels such
+  as 1991年报 rather than ISO date strings.
+- 'LowCardinality review from EastMoney dividend_main 2025 notice-date first
+  page sample: INFO_CODE nonnull=500 uniq=497 unique_rate=0.994000.
+  INFO_CODE is a high-cardinality announcement identifier and uses ClickHouse
+  String. Parquet schema remains string.'

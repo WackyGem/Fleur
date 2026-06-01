@@ -2,6 +2,34 @@
 
 日期：2026-06-01
 
+## 执行状态
+
+状态更新：2026-06-01。Plan 0020 的 contract、scheduler schema、dbt staging 和生成物修复已落地；已发布的历史 S3 Parquet 对象和 ClickHouse raw 表状态单独记录在 `docs/jobs/reports/2026-06-01-field-type-normalization-migration-report.md`。
+
+| # | 债务 | 状态 | 证据 |
+|---|------|------|------|
+| 1 | `baostock__query_history_k_data_plus_daily.isST` 从 Parquet 起收敛为布尔 | 代码和 contract 已关闭；历史存储待回填 | `K_HISTORY_DAILY_SCHEMA` 使用 `pa.bool_()`，contract Parquet 为 `bool`、raw 为 `Bool`、stg 为 `is_st Bool`；当前 S3/ClickHouse 仍有旧 `int8`/`Int8`，见迁移报告。 |
+| 2 | `baostock__query_history_k_data_plus_daily.tradestatus` 在 stg 表达交易状态 | 已关闭 | stg 输出 `trading_status`，SQL 映射 `1 -> trading`、`0 -> suspended`，Parquet/raw 保留供应商 `int8`/`Int8`。 |
+| 3 | `baostock__query_stock_basic.status` 在 stg 表达上市状态 | 已关闭 | stg 输出 `stock_status`，SQL 映射 `1 -> listed`、`0 -> delisted`，Parquet/raw 保留供应商 `int8`/`Int8`。 |
+| 4 | BaoStock stg 证券标识字段 canonical 命名 | 已关闭 | stg 和 contract 使用 `security_code`、`security_name`，dbt YAML 由 contract 生成。 |
+| 5 | source-only asset 纳入 contract registry | 已关闭 | 新增 `jiuyan__action_field.yml`、`jiuyan__industry_ocr.yml`、`ths__limit_up_pool.yml`；data_dict 显示 ClickHouse raw 不适用，dbt sources 不生成 source-only raw entry。 |
+| 6 | `eastmoney__dividend_allotment.EX_DIVIDEND_DATEE` 日期类型收敛 | 代码和 contract 已关闭；历史存储待回填 | contract Parquet 为 `date32[day]`、raw 为 `Date`，EastMoney generated schema 由 contract 生成；当前 sampled S3 object 仍为 `string`，raw table 缺失，见迁移报告。 |
+| 7 | `eastmoney__dividend_main` 日期字段外源类型和 nullable 事实 | 已关闭 | 日期字段 source 改为 `string` 且可空字段 `required: false`，Parquet/raw nullable 同步；`REPORT_TIME` 保持 nullable `string` 并记录历史 `1991年报` 例外。 |
+| 8 | `jiuyan__action_field_compacted` LowCardinality 和中文口径 | 已关闭 | S3 parquet 统计写入 validation notes；`expound` 改为 raw `String`，其余低基数字段保留；字段中文口径统一为“题材异动”。 |
+| 9 | `jiuyan__industry_ocr_snapshot` 标识、路径和关系字段 LowCardinality | 已关闭 | S3 parquet 统计写入 validation notes；`relation` 改为 raw `String`，`industry_id` 和 `theme_path` 依据样本低基数保留 `LowCardinality(String)`。 |
+| 10 | `ths__limit_up_pool_compacted.reason_type` LowCardinality | 已关闭 | S3 parquet 统计 `uniq=11573`，超过 10000 阈值，raw 改为 `String`。 |
+| 11 | `jiuyan__industry_list.industry_id` LowCardinality | 已关闭 | S3 snapshot 统计唯一率 1.0，raw 改为 `String`。 |
+| 12 | `eastmoney__dividend_main.INFO_CODE` LowCardinality | 已关闭 | 2025 公告样本 `nonnull=500 uniq=497`，raw 改为 `String`，Parquet 保持 nullable `string`。 |
+| 13 | EastMoney 审计意见字段外源类型 | 已关闭 | `OPINION_TYPE` / `OSOPINION_TYPE` source 类型修正为 `string`，Parquet 保持 nullable `string`，raw 保留 `LowCardinality(String)`。 |
+
+剩余工作只限已发布存储对象和 raw 表迁移窗口，不再作为字段事实源债务继续展开。下一次回填后需要重新运行：
+
+```bash
+cd pipeline
+uv run fleur-contracts validate-parquet --all-available
+uv run fleur-contracts validate-clickhouse --all-available
+```
+
 ## 背景
 
 BaoStock 数据进入 stg 层后，应从外源字段命名和编码值逐步收敛为 mono-fleur 的 canonical 字段语义。当前仍有两类债务：

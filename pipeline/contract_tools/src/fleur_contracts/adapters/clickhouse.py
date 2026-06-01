@@ -37,6 +37,9 @@ class ClickHouseRawTableContract:
 
 
 def raw_table_contract_from_dataset(contract: DatasetContract) -> ClickHouseRawTableContract:
+    if contract.clickhouse_raw is None or contract.raw_asset_key is None:
+        msg = f"{contract.dataset} does not define a ClickHouse raw table"
+        raise ValueError(msg)
     parquet_fields = {field.name: field for field in contract.parquet.fields}
     columns = tuple(
         ClickHouseColumnContract(
@@ -70,7 +73,11 @@ def raw_table_contract_from_dataset(contract: DatasetContract) -> ClickHouseRawT
 def raw_table_contracts(
     contracts: Sequence[DatasetContract],
 ) -> tuple[ClickHouseRawTableContract, ...]:
-    return tuple(raw_table_contract_from_dataset(contract) for contract in contracts)
+    return tuple(
+        raw_table_contract_from_dataset(contract)
+        for contract in contracts
+        if contract.clickhouse_raw is not None
+    )
 
 
 def build_scheduler_specs(

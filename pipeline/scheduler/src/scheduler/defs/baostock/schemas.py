@@ -59,7 +59,7 @@ K_HISTORY_DAILY_SCHEMA = pa.schema(
         pa.field("turn", pa.float64()),
         pa.field("tradestatus", pa.int8()),
         pa.field("pctChg", pa.float64()),
-        pa.field("isST", pa.int8()),
+        pa.field("isST", pa.bool_()),
     ]
 )
 

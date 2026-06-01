@@ -75,9 +75,10 @@ uv sync --all-packages --all-groups
 
 ## 数据契约（contracts）
 
-- 字段事实源：`pipeline/contracts/datasets/*.yml`
+- 字段事实源：`pipeline/contracts/datasets/*.yml`，范围到 ClickHouse raw 层为止
 - 生成/校验工具：`pipeline/contract_tools/`
-- dbt `sources.yml`、`staging.yml` 和 `docs/references/data_dict/*.md` 由 contract 生成或校验
+- dbt `sources.yml` 和 `docs/references/data_dict/*.md` 由 contract 生成或校验
+- dbt `staging.yml`、`stg_*.sql`、stg 字段描述和 tests 由 `pipeline/elt` 项目维护，不写入数据契约
 - 修改字段事实后运行：
 
 ```bash

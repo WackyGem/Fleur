@@ -800,8 +800,6 @@ clickhouse_raw:
     from: SECURITY_NAME_ABBR
     nullable: false
     reason: expected_low_cardinality_dimension
-dbt_staging:
-  status: not_started
 dataset_note_zh: 东方财富股本变动历史 F10 年度 raw 分区
 validation_notes:
 - Initial contract migrated from docs/references/data_dict and current raw sync specs.

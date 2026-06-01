@@ -67,15 +67,15 @@ paths:
                               type: string
                               description: 分配进度
                             EQUITY_RECORD_DATE:
-                              type: number
+                              type: string
                               nullable: true
                               description: 股权登记日
                             EX_DIVIDEND_DATE:
-                              type: number
+                              type: string
                               nullable: true
                               description: 除权除息日
                             PAY_CASH_DATE:
-                              type: number
+                              type: string
                               nullable: true
                               description: 派息日
                             IS_UNASSIGN:
@@ -86,6 +86,7 @@ paths:
                               description: 报告期
                             ASSIGN_OBJECT:
                               type: string
+                              nullable: true
                               description: 分配对象
                             IMPL_PLAN_NEWPROFILE:
                               type: string
@@ -94,14 +95,16 @@ paths:
                               type: string
                               description: 分红方案（含税）
                             GMDECISION_NOTICE_DATE:
-                              type: number
+                              type: string
                               nullable: true
                               description: 股东大会决议公告日
                             INFO_CODE:
                               type: string
+                              nullable: true
                               description: 公告编号
                             DAT_YAGGR:
                               type: string
+                              nullable: true
                               description: 年度股东大会日期
                             TOTAL_DIVIDEND:
                               type: number
@@ -111,6 +114,7 @@ paths:
                               description: A股分红总额（元）
                             REPORT_TIME:
                               type: string
+                              nullable: true
                               description: 报告期截止日
                             DAT_YAGGR_TODAY:
                               type: string
@@ -140,7 +144,7 @@ paths:
                               type: string
                               description: 是否近期股权登记
                             LAST_TRADE_DATE:
-                              type: number
+                              type: string
                               nullable: true
                               description: 最后交易日
                         description: 返回数据

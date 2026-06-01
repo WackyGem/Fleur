@@ -117,7 +117,7 @@ parquet:
     type: double
     nullable: false
   - name: isST
-    type: int8
+    type: bool
     nullable: false
 clickhouse_raw:
   database: raw
@@ -185,89 +185,9 @@ clickhouse_raw:
     from: pctChg
     nullable: false
   - name: isST
-    type: Int8
+    type: Bool
     from: isST
     nullable: false
-dbt_staging:
-  model: stg_baostock__query_history_k_data_plus_daily
-  materialized: view
-  status: active
-  primary_key:
-  - code
-  - trade_date
-  fields:
-  - name: trade_date
-    from: date
-    type: Date
-    glossary_key: trade_date
-    tests:
-    - not_null
-  - name: code
-    from: code
-    type: String
-    glossary_key: code
-    tests:
-    - not_null
-  - name: open
-    from: open
-    type: Float64
-    glossary_key: open
-    tests: []
-  - name: high
-    from: high
-    type: Float64
-    glossary_key: high
-    tests: []
-  - name: low
-    from: low
-    type: Float64
-    glossary_key: low
-    tests: []
-  - name: close
-    from: close
-    type: Float64
-    glossary_key: close
-    tests: []
-  - name: preclose
-    from: preclose
-    type: Float64
-    glossary_key: preclose
-    tests: []
-  - name: volume
-    from: volume
-    type: Int64
-    glossary_key: volume
-    tests: []
-  - name: amount
-    from: amount
-    type: Float64
-    glossary_key: amount
-    tests: []
-  - name: adjustflag
-    from: adjustflag
-    type: Int8
-    glossary_key: adjustflag
-    tests: []
-  - name: turn
-    from: turn
-    type: Float64
-    glossary_key: turn
-    tests: []
-  - name: tradestatus
-    from: tradestatus
-    type: Int8
-    glossary_key: tradestatus
-    tests: []
-  - name: pct_chg
-    from: pctChg
-    type: Float64
-    glossary_key: pct_chg
-    tests: []
-  - name: is_st
-    from: isST
-    type: Int8
-    glossary_key: is_st
-    tests: []
 dataset_note_zh: BaoStock 日频行情数据
 validation_notes:
 - Initial contract migrated from docs/references/data_dict and current raw sync specs.

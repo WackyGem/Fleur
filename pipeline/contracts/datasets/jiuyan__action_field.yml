@@ -1,21 +1,17 @@
-dataset: jiuyan__action_field_compacted
+dataset: jiuyan__action_field
 version: 1
 owner: data
-grain: one row per stock code per source date/action field row
+grain: one row per stock code per source trade date/action field row
 source_asset_key:
 - source
-- jiuyan__action_field_compacted
-raw_asset_key:
-- clickhouse
-- raw
-- jiuyan__action_field_compacted
+- jiuyan__action_field
 external:
   provider: jiuyan
-  source_table_name: jiuyan__action_field_compacted
-  source_description_zh: 韭研题材异动每日数据年度合并 raw 分区
+  source_table_name: jiuyan__action_field
+  source_description_zh: 韭研题材异动每日 source 分区
 source:
-  protocol: generated
-  payload_format: tabular
+  protocol: http
+  payload_format: json
   fields:
   - name: action_field_id
     type: string
@@ -38,7 +34,7 @@ source:
     required: true
     external_description_zh: 韭研题材异动展示排序号。
   - name: is_delete
-    type: boolean
+    type: string
     required: true
     external_description_zh: 韭研题材异动记录是否被标记为删除。
   - name: delete_time
@@ -91,7 +87,7 @@ source:
     external_description_zh: 题材异动关联证券的补充说明。
 parquet:
   storage_mode: partitioned
-  partition_key_name: year
+  partition_key_name: trade_date
   fields:
   - name: action_field_id
     type: string
@@ -147,103 +143,6 @@ parquet:
   - name: expound
     type: string
     nullable: false
-clickhouse_raw:
-  database: raw
-  table: jiuyan__action_field_compacted
-  partition_strategy: year
-  engine: MergeTree
-  partition_by: '`year`'
-  order_by:
-  - date
-  - code
-  allow_empty: false
-  sync_enabled: true
-  fields:
-  - name: action_field_id
-    type: LowCardinality(String)
-    from: action_field_id
-    nullable: false
-    reason: expected_low_cardinality_dimension
-  - name: name
-    type: LowCardinality(String)
-    from: name
-    nullable: false
-    reason: expected_low_cardinality_dimension
-  - name: date
-    type: Date
-    from: date
-    nullable: false
-  - name: reason
-    type: LowCardinality(String)
-    from: reason
-    nullable: false
-    reason: expected_low_cardinality_dimension
-  - name: sort_no
-    type: Int64
-    from: sort_no
-    nullable: false
-  - name: is_delete
-    type: Bool
-    from: is_delete
-    nullable: false
-  - name: delete_time
-    type: DateTime64(3)
-    from: delete_time
-    nullable: false
-  - name: create_time
-    type: DateTime64(3)
-    from: create_time
-    nullable: false
-  - name: update_time
-    type: DateTime64(3)
-    from: update_time
-    nullable: false
-  - name: count
-    type: Int64
-    from: count
-    nullable: false
-  - name: code
-    type: LowCardinality(String)
-    from: code
-    nullable: false
-    reason: expected_low_cardinality_dimension
-  - name: time
-    type: String
-    from: time
-    nullable: false
-  - name: num
-    type: LowCardinality(String)
-    from: num
-    nullable: false
-    reason: expected_low_cardinality_dimension
-  - name: price
-    type: Int64
-    from: price
-    nullable: false
-  - name: day
-    type: Int64
-    from: day
-    nullable: false
-  - name: edition
-    type: Int64
-    from: edition
-    nullable: false
-  - name: shares_range
-    type: Float64
-    from: shares_range
-    nullable: false
-  - name: expound
-    type: String
-    from: expound
-    nullable: false
-dataset_note_zh: 韭研题材异动每日数据年度合并 raw 分区
+dataset_note_zh: 韭研题材异动每日 source 分区；该 source-only asset 不直接同步 ClickHouse raw。
 validation_notes:
-- Initial contract migrated from docs/references/data_dict and current raw sync specs.
-- Downstream compacted contract consumes source-only asset source/jiuyan__action_field.
-- 'LowCardinality review on S3 parquet source/jiuyan__action_field_compacted:
-  rows=5881; action_field_id nonnull=5881 uniq=740 unique_rate=0.125829,
-  name nonnull=5881 uniq=2106 unique_rate=0.358102, reason nonnull=5881
-  uniq=336 unique_rate=0.057133, expound nonnull=5881 uniq=4257
-  unique_rate=0.723856. action_field_id, name and reason remain
-  LowCardinality(String); expound is descriptive high-uniqueness text and uses
-  ClickHouse String. Parquet schema remains string.'
+- Source-only contract added by Plan 0020 Phase 3 from Dagster JIUYAN_ACTION_FIELD_SCHEMA.

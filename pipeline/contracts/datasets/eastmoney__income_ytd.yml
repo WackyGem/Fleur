@@ -826,8 +826,8 @@ source:
     required: true
     external_description_zh: 持续经营终止经营净损益同比增长率（%）
   - name: OPINION_TYPE
-    type: number
-    required: true
+    type: string
+    required: false
     external_description_zh: 审计意见类型
 parquet:
   storage_mode: partitioned
@@ -1441,7 +1441,7 @@ parquet:
     nullable: false
   - name: OPINION_TYPE
     type: string
-    nullable: false
+    nullable: true
 clickhouse_raw:
   database: raw
   table: eastmoney__income_ytd
@@ -2274,10 +2274,8 @@ clickhouse_raw:
   - name: OPINION_TYPE
     type: LowCardinality(String)
     from: OPINION_TYPE
-    nullable: false
+    nullable: true
     reason: expected_low_cardinality_dimension
-dbt_staging:
-  status: not_started
 dataset_note_zh: 东方财富年初至今利润表 F10 年度 raw 分区
 validation_notes:
 - Initial contract migrated from docs/references/data_dict and current raw sync specs.

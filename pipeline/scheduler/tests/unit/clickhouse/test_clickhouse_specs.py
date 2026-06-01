@@ -43,6 +43,7 @@ def test_enabled_spec_columns_match_baostock_contract() -> None:
     )
     parquet_fields = {field.name: field for field in contract.parquet.fields}
 
+    assert contract.clickhouse_raw is not None
     assert {
         column.name: (column.pyarrow_type, column.clickhouse_type)
         for column in BAOSTOCK_DAILY_K_SPEC.columns

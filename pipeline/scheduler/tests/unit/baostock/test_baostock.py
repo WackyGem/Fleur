@@ -93,6 +93,54 @@ def test_decode_stock_basic_response_and_convert_to_table() -> None:
     assert table["code"].to_pylist() == ["sh.600000"]
 
 
+def test_k_history_daily_converts_is_st_to_bool() -> None:
+    import pyarrow as pa
+
+    response = baostock_response(
+        api_name="query_history_k_data_plus",
+        records=[
+            [
+                "2026-05-25",
+                "sh.600000",
+                "10.0",
+                "11.0",
+                "9.5",
+                "10.5",
+                "10.1",
+                "1000",
+                "10500.0",
+                "3",
+                "1.23",
+                "1",
+                "3.96",
+                "1",
+            ],
+            [
+                "2026-05-26",
+                "sh.600000",
+                "10.5",
+                "10.8",
+                "10.2",
+                "10.3",
+                "10.5",
+                "900",
+                "9270.0",
+                "3",
+                "1.10",
+                "1",
+                "-1.90",
+                "0",
+            ],
+        ],
+        field_names=K_HISTORY_DAILY_FIELDS,
+    )
+
+    table = k_history_daily_response_to_table(response)
+
+    assert table.schema.field("isST").type == pa.bool_()
+    assert table["isST"].to_pylist() == [True, False]
+
+
 def test_decode_compressed_login_response() -> None:
     response = decode_response(
         response_message(

@@ -17,6 +17,7 @@ def render_sources_yaml(registry: ContractRegistry) -> str:
             },
         }
         for dataset in registry.datasets
+        if dataset.clickhouse_raw is not None and dataset.raw_asset_key is not None
     ]
     payload: dict[str, Any] = {
         "version": 2,
@@ -32,44 +33,6 @@ def render_sources_yaml(registry: ContractRegistry) -> str:
         ],
     }
     return _dump_yaml(payload)
-
-
-def render_staging_yaml(registry: ContractRegistry) -> str:
-    models: list[dict[str, Any]] = []
-    for dataset in registry.datasets:
-        staging = dataset.dbt_staging
-        if staging is None or staging.status != "active":
-            continue
-        columns = []
-        for field in staging.fields:
-            glossary = None
-            if field.glossary_key is not None:
-                glossary = registry.glossary_fields[field.glossary_key]
-            column: dict[str, Any] = {
-                "name": field.name,
-                "description": glossary.description
-                if glossary is not None
-                else field.exempt_reason,
-            }
-            if field.tests:
-                column["tests"] = field.tests
-            columns.append(column)
-        models.append(
-            {
-                "name": staging.model,
-                "description": _table_description(registry, dataset),
-                "config": {
-                    "materialized": staging.materialized,
-                },
-                "meta": {
-                    "contract_dataset": dataset.dataset,
-                    "contract_version": dataset.version,
-                    "upstream_raw_asset": "/".join(dataset.raw_asset_key),
-                },
-                "columns": columns,
-            }
-        )
-    return _dump_yaml({"version": 2, "models": models})
 
 
 def _table_description(registry: ContractRegistry, dataset: DatasetContract) -> str:

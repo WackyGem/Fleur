@@ -99,44 +99,6 @@ clickhouse_raw:
     type: Int8
     from: status
     nullable: false
-dbt_staging:
-  model: stg_baostock__query_stock_basic
-  materialized: view
-  status: active
-  primary_key:
-  - code
-  fields:
-  - name: code
-    from: code
-    type: String
-    glossary_key: code
-    tests:
-    - not_null
-  - name: code_name
-    from: code_name
-    type: String
-    glossary_key: code_name
-    tests: []
-  - name: ipo_date
-    from: ipoDate
-    type: Date
-    glossary_key: ipo_date
-    tests: []
-  - name: out_date
-    from: outDate
-    type: Date
-    glossary_key: out_date
-    tests: []
-  - name: stock_type
-    from: type
-    type: Int8
-    glossary_key: stock_type
-    tests: []
-  - name: stock_status
-    from: status
-    type: Int8
-    glossary_key: stock_status
-    tests: []
 dataset_note_zh: BaoStock 证券基础信息快照
 validation_notes:
 - Initial contract migrated from docs/references/data_dict and current raw sync specs.

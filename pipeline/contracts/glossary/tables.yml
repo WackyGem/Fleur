@@ -42,6 +42,14 @@ jiuyan__action_field_compacted:
   name: jiuyan__action_field_compacted
   description_zh: 韭研题材异动每日数据年度合并 raw 分区
   description: JiuYan action-field daily rows compacted into yearly raw partitions.
+jiuyan__action_field:
+  name: jiuyan__action_field
+  description_zh: 韭研题材异动每日 source 分区
+  description: JiuYan action-field daily source partitions.
+jiuyan__industry_ocr:
+  name: jiuyan__industry_ocr
+  description_zh: 韭研行业图片 OCR 结果 source 分区
+  description: JiuYan industry image OCR result source partitions.
 jiuyan__industry_list:
   name: jiuyan__industry_list
   description_zh: 韭研行业研究列表快照
@@ -58,3 +66,7 @@ ths__limit_up_pool_compacted:
   name: ths__limit_up_pool_compacted
   description_zh: 同花顺涨停池每日数据年度合并 raw 分区
   description: TongHuaShun limit-up pool daily rows compacted into yearly raw partitions.
+ths__limit_up_pool:
+  name: ths__limit_up_pool
+  description_zh: 同花顺涨停池每日 source 分区
+  description: TongHuaShun limit-up pool daily source partitions.

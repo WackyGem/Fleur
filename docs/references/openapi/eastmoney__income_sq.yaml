@@ -85,11 +85,11 @@ paths:
                               type: string
                               description: 币种
                             OPINION_TYPE:
-                              type: number
+                              type: string
                               nullable: true
                               description: 审计意见类型
                             OSOPINION_TYPE:
-                              type: number
+                              type: string
                               nullable: true
                               description: 内控审计意见类型
                             TOTAL_OPERATE_INCOME:

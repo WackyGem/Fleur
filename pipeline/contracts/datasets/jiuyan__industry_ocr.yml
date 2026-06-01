@@ -1,0 +1,57 @@
+dataset: jiuyan__industry_ocr
+version: 1
+owner: data
+grain: one row per OCR result row per industry image
+source_asset_key:
+- source
+- jiuyan__industry_ocr
+external:
+  provider: jiuyan
+  source_table_name: jiuyan__industry_ocr
+  source_description_zh: 韭研行业图片 OCR 结果 source 分区
+source:
+  protocol: generated
+  payload_format: tabular
+  fields:
+  - name: industry_id
+    type: string
+    required: true
+    external_description_zh: OCR 来源行业图片所属的行业研究记录标识。
+  - name: stock_name
+    type: string
+    required: true
+    external_description_zh: OCR 识别出的股票或证券名称。
+  - name: theme_path
+    type: array
+    required: true
+    external_description_zh: OCR 识别出的题材或主题层级路径。
+  - name: relation
+    type: string
+    required: true
+    external_description_zh: OCR 识别出的股票与题材关系说明。
+  - name: source
+    type: string
+    required: true
+    external_description_zh: OCR 结果对应的来源文件或来源渠道。
+parquet:
+  storage_mode: partitioned
+  partition_key_name: image_filename
+  fields:
+  - name: industry_id
+    type: string
+    nullable: false
+  - name: stock_name
+    type: string
+    nullable: false
+  - name: theme_path
+    type: string
+    nullable: false
+  - name: relation
+    type: string
+    nullable: false
+  - name: source
+    type: string
+    nullable: false
+dataset_note_zh: 韭研行业图片 OCR 结果 source 分区；该 source-only asset 不直接同步 ClickHouse raw。
+validation_notes:
+- Source-only contract added by Plan 0020 Phase 3 from Dagster JIUYAN_INDUSTRY_OCR_SCHEMA.

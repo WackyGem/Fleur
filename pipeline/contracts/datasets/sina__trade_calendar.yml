@@ -42,19 +42,6 @@ clickhouse_raw:
     type: Date
     from: trade_date
     nullable: false
-dbt_staging:
-  model: stg_sina__trade_calendar
-  materialized: view
-  status: active
-  primary_key:
-  - trade_date
-  fields:
-  - name: trade_date
-    from: trade_date
-    type: Date
-    glossary_key: trade_date
-    tests:
-    - not_null
 dataset_note_zh: 新浪 A 股交易日历快照
 validation_notes:
 - Initial contract migrated from docs/references/data_dict and current raw sync specs.

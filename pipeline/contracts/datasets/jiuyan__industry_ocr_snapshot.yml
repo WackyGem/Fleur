@@ -117,67 +117,22 @@ clickhouse_raw:
     nullable: false
     reason: expected_low_cardinality_dimension
   - name: relation
-    type: LowCardinality(String)
+    type: String
     from: relation
     nullable: false
-    reason: expected_low_cardinality_dimension
   - name: source
     type: LowCardinality(String)
     from: source
     nullable: false
     reason: expected_low_cardinality_dimension
-dbt_staging:
-  model: stg_jiuyan__industry_ocr_snapshot
-  materialized: view
-  status: active
-  primary_key:
-  - industry_id
-  - image_filename
-  - ocr_row_index
-  fields:
-  - name: industry_id
-    from: industry_id
-    type: String
-    glossary_key: industry_id
-    tests:
-    - not_null
-  - name: image_filename
-    from: image_filename
-    type: String
-    glossary_key: image_filename
-    tests:
-    - not_null
-  - name: image_index
-    from: image_index
-    type: Int64
-    glossary_key: image_index
-    tests: []
-  - name: ocr_row_index
-    from: ocr_row_index
-    type: Int64
-    glossary_key: ocr_row_index
-    tests:
-    - not_null
-  - name: stock_name
-    from: stock_name
-    type: String
-    glossary_key: stock_name
-    tests: []
-  - name: theme_path
-    from: theme_path
-    type: String
-    glossary_key: theme_path
-    tests: []
-  - name: relation
-    from: relation
-    type: String
-    glossary_key: relation
-    tests: []
-  - name: source
-    from: source
-    type: String
-    glossary_key: source
-    tests: []
 dataset_note_zh: 韭研 OCR 成功结果快照
 validation_notes:
 - Initial contract migrated from docs/references/data_dict and current raw sync specs.
+- Downstream snapshot contract consumes source-only asset source/jiuyan__industry_ocr.
+- 'LowCardinality review on S3 parquet
+  source/jiuyan__industry_ocr_snapshot/000000_0.parquet: rows=1228;
+  industry_id nonnull=1228 uniq=63 unique_rate=0.051303, theme_path
+  nonnull=1228 uniq=267 unique_rate=0.217427, relation nonnull=1228
+  uniq=866 unique_rate=0.705212. industry_id and theme_path remain
+  LowCardinality(String); relation is high-uniqueness relationship text and
+  uses ClickHouse String. Parquet schema remains string.'

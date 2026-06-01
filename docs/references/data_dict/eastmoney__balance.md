@@ -14,327 +14,327 @@
 
 ## 字段链路
 
-| # | 外源字段 | 外源类型 | Parquet 类型 | ClickHouse raw 字段 | ClickHouse 类型 | stg 字段 | 中文描述 |
-|---|----------|----------|--------------|---------------------|-----------------|----------|----------|
-| 1 | `SECUCODE` | `string` | `string` | `SECUCODE` | `LowCardinality(String)` | `-` | 证券代码（含市场后缀） |
-| 2 | `SECURITY_CODE` | `string` | `string` | `SECURITY_CODE` | `LowCardinality(String)` | `-` | 证券代码（纯数字） |
-| 3 | `SECURITY_NAME_ABBR` | `string` | `string` | `SECURITY_NAME_ABBR` | `LowCardinality(String)` | `-` | 证券简称 |
-| 4 | `ORG_CODE` | `string` | `string` | `ORG_CODE` | `LowCardinality(String)` | `-` | 机构代码 |
-| 5 | `ORG_TYPE` | `string` | `string` | `ORG_TYPE` | `LowCardinality(String)` | `-` | 机构类型 |
-| 6 | `REPORT_DATE` | `string` | `date32[day]` | `REPORT_DATE` | `Date` | `-` | 报告期 |
-| 7 | `REPORT_TYPE` | `string` | `string` | `REPORT_TYPE` | `LowCardinality(String)` | `-` | 报告类型 |
-| 8 | `REPORT_DATE_NAME` | `string` | `string` | `REPORT_DATE_NAME` | `LowCardinality(String)` | `-` | 报告期名称 |
-| 9 | `SECURITY_TYPE_CODE` | `string` | `string` | `SECURITY_TYPE_CODE` | `LowCardinality(String)` | `-` | 证券类型代码 |
-| 10 | `NOTICE_DATE` | `string` | `date32[day]` | `NOTICE_DATE` | `Date` | `-` | 公告日期 |
-| 11 | `UPDATE_DATE` | `string` | `date32[day]` | `UPDATE_DATE` | `Date` | `-` | 更新日期 |
-| 12 | `CURRENCY` | `string` | `string` | `CURRENCY` | `LowCardinality(String)` | `-` | 资产负债表披露金额使用的币种。 |
-| 13 | `ACCEPT_DEPOSIT_INTERBANK` | `number` | `double` | `ACCEPT_DEPOSIT_INTERBANK` | `Float64` | `-` | 同业存放 |
-| 14 | `ACCOUNTS_PAYABLE` | `number` | `double` | `ACCOUNTS_PAYABLE` | `Float64` | `-` | 应付账款 |
-| 15 | `ACCOUNTS_RECE` | `number` | `double` | `ACCOUNTS_RECE` | `Float64` | `-` | 应收账款 |
-| 16 | `ACCRUED_EXPENSE` | `number` | `double` | `ACCRUED_EXPENSE` | `Float64` | `-` | 预提费用 |
-| 17 | `ADVANCE_RECEIVABLES` | `number` | `double` | `ADVANCE_RECEIVABLES` | `Float64` | `-` | 预收款项 |
-| 18 | `AGENT_TRADE_SECURITY` | `number` | `double` | `AGENT_TRADE_SECURITY` | `Float64` | `-` | 代理买卖证券款 |
-| 19 | `AGENT_UNDERWRITE_SECURITY` | `number` | `double` | `AGENT_UNDERWRITE_SECURITY` | `Float64` | `-` | 代理承销证券款 |
-| 20 | `AMORTIZE_COST_FINASSET` | `number` | `double` | `AMORTIZE_COST_FINASSET` | `Float64` | `-` | 以摊余成本计量的金融资产 |
-| 21 | `AMORTIZE_COST_FINLIAB` | `number` | `double` | `AMORTIZE_COST_FINLIAB` | `Float64` | `-` | 以摊余成本计量的金融负债 |
-| 22 | `AMORTIZE_COST_NCFINASSET` | `number` | `double` | `AMORTIZE_COST_NCFINASSET` | `Float64` | `-` | 非流动金融资产（摊余成本） |
-| 23 | `AMORTIZE_COST_NCFINLIAB` | `number` | `double` | `AMORTIZE_COST_NCFINLIAB` | `Float64` | `-` | 非流动金融负债（摊余成本） |
-| 24 | `APPOINT_FVTPL_FINASSET` | `number` | `double` | `APPOINT_FVTPL_FINASSET` | `Float64` | `-` | 指定为FVTPL的金融资产 |
-| 25 | `APPOINT_FVTPL_FINLIAB` | `number` | `double` | `APPOINT_FVTPL_FINLIAB` | `Float64` | `-` | 指定为FVTPL的金融负债 |
-| 26 | `ASSET_BALANCE` | `number` | `double` | `ASSET_BALANCE` | `Float64` | `-` | 资产平衡项 |
-| 27 | `ASSET_OTHER` | `number` | `double` | `ASSET_OTHER` | `Float64` | `-` | 资产其他项 |
-| 28 | `ASSIGN_CASH_DIVIDEND` | `number` | `double` | `ASSIGN_CASH_DIVIDEND` | `Float64` | `-` | 应付现金股利 |
-| 29 | `AVAILABLE_SALE_FINASSET` | `number` | `double` | `AVAILABLE_SALE_FINASSET` | `Float64` | `-` | 可供出售金融资产 |
-| 30 | `BOND_PAYABLE` | `number` | `double` | `BOND_PAYABLE` | `Float64` | `-` | 应付债券 |
-| 31 | `BORROW_FUND` | `number` | `double` | `BORROW_FUND` | `Float64` | `-` | 拆入资金 |
-| 32 | `BUY_RESALE_FINASSET` | `number` | `double` | `BUY_RESALE_FINASSET` | `Float64` | `-` | 买入返售金融资产 |
-| 33 | `CAPITAL_RESERVE` | `number` | `double` | `CAPITAL_RESERVE` | `Float64` | `-` | 资本公积 |
-| 34 | `CIP` | `number` | `double` | `CIP` | `Float64` | `-` | 在建工程 |
-| 35 | `CONSUMPTIVE_BIOLOGICAL_ASSET` | `number` | `double` | `CONSUMPTIVE_BIOLOGICAL_ASSET` | `Float64` | `-` | 消耗性生物资产 |
-| 36 | `CONTRACT_ASSET` | `number` | `double` | `CONTRACT_ASSET` | `Float64` | `-` | 合同资产 |
-| 37 | `CONTRACT_LIAB` | `number` | `double` | `CONTRACT_LIAB` | `Float64` | `-` | 合同负债 |
-| 38 | `CONVERT_DIFF` | `number` | `double` | `CONVERT_DIFF` | `Float64` | `-` | 外币报表折算差额 |
-| 39 | `CREDITOR_INVEST` | `number` | `double` | `CREDITOR_INVEST` | `Float64` | `-` | 债权投资 |
-| 40 | `CURRENT_ASSET_BALANCE` | `number` | `double` | `CURRENT_ASSET_BALANCE` | `Float64` | `-` | 流动资产平衡项 |
-| 41 | `CURRENT_ASSET_OTHER` | `number` | `double` | `CURRENT_ASSET_OTHER` | `Float64` | `-` | 流动资产其他项 |
-| 42 | `CURRENT_LIAB_BALANCE` | `number` | `double` | `CURRENT_LIAB_BALANCE` | `Float64` | `-` | 流动负债平衡项 |
-| 43 | `CURRENT_LIAB_OTHER` | `number` | `double` | `CURRENT_LIAB_OTHER` | `Float64` | `-` | 流动负债其他项 |
-| 44 | `DEFER_INCOME` | `number` | `double` | `DEFER_INCOME` | `Float64` | `-` | 递延收益 |
-| 45 | `DEFER_INCOME_1YEAR` | `number` | `double` | `DEFER_INCOME_1YEAR` | `Float64` | `-` | 一年内到期递延收益 |
-| 46 | `DEFER_TAX_ASSET` | `number` | `double` | `DEFER_TAX_ASSET` | `Float64` | `-` | 递延所得税资产 |
-| 47 | `DEFER_TAX_LIAB` | `number` | `double` | `DEFER_TAX_LIAB` | `Float64` | `-` | 递延所得税负债 |
-| 48 | `DERIVE_FINASSET` | `number` | `double` | `DERIVE_FINASSET` | `Float64` | `-` | 衍生金融资产 |
-| 49 | `DERIVE_FINLIAB` | `number` | `double` | `DERIVE_FINLIAB` | `Float64` | `-` | 衍生金融负债 |
-| 50 | `DEVELOP_EXPENSE` | `number` | `double` | `DEVELOP_EXPENSE` | `Float64` | `-` | 开发支出 |
-| 51 | `DIV_HOLDSALE_ASSET` | `number` | `double` | `DIV_HOLDSALE_ASSET` | `Float64` | `-` | 持有待售资产（除） |
-| 52 | `DIV_HOLDSALE_LIAB` | `number` | `double` | `DIV_HOLDSALE_LIAB` | `Float64` | `-` | 持有待售负债（除） |
-| 53 | `DIVIDEND_PAYABLE` | `number` | `double` | `DIVIDEND_PAYABLE` | `Float64` | `-` | 应付股利 |
-| 54 | `DIVIDEND_RECE` | `number` | `double` | `DIVIDEND_RECE` | `Float64` | `-` | 应收股利 |
-| 55 | `EQUITY_BALANCE` | `number` | `double` | `EQUITY_BALANCE` | `Float64` | `-` | 所有者权益平衡项 |
-| 56 | `EQUITY_OTHER` | `number` | `double` | `EQUITY_OTHER` | `Float64` | `-` | 所有者权益其他项 |
-| 57 | `EXPORT_REFUND_RECE` | `number` | `double` | `EXPORT_REFUND_RECE` | `Float64` | `-` | 应收出口退税 |
-| 58 | `FEE_COMMISSION_PAYABLE` | `number` | `double` | `FEE_COMMISSION_PAYABLE` | `Float64` | `-` | 应付手续费及佣金 |
-| 59 | `FIN_FUND` | `number` | `double` | `FIN_FUND` | `Float64` | `-` | 金融往来资金 |
-| 60 | `FINANCE_RECE` | `number` | `double` | `FINANCE_RECE` | `Float64` | `-` | 金融应收款 |
-| 61 | `FIXED_ASSET` | `number` | `double` | `FIXED_ASSET` | `Float64` | `-` | 固定资产 |
-| 62 | `FIXED_ASSET_DISPOSAL` | `number` | `double` | `FIXED_ASSET_DISPOSAL` | `Float64` | `-` | 固定资产清理 |
-| 63 | `FVTOCI_FINASSET` | `number` | `double` | `FVTOCI_FINASSET` | `Float64` | `-` | 以公允价值计量且其变动计入其他综合收益的金融资产 |
-| 64 | `FVTOCI_NCFINASSET` | `number` | `double` | `FVTOCI_NCFINASSET` | `Float64` | `-` | 其他非流动金融资产（FVTOCI） |
-| 65 | `FVTPL_FINASSET` | `number` | `double` | `FVTPL_FINASSET` | `Float64` | `-` | 以公允价值计量且其变动计入当期损益的金融资产 |
-| 66 | `FVTPL_FINLIAB` | `number` | `double` | `FVTPL_FINLIAB` | `Float64` | `-` | 以公允价值计量且其变动计入当期损益的金融负债 |
-| 67 | `GENERAL_RISK_RESERVE` | `number` | `double` | `GENERAL_RISK_RESERVE` | `Float64` | `-` | 一般风险准备 |
-| 68 | `GOODWILL` | `number` | `double` | `GOODWILL` | `Float64` | `-` | 资产负债表披露的商誉金额。 |
-| 69 | `HOLD_MATURITY_INVEST` | `number` | `double` | `HOLD_MATURITY_INVEST` | `Float64` | `-` | 持有至到期投资 |
-| 70 | `HOLDSALE_ASSET` | `number` | `double` | `HOLDSALE_ASSET` | `Float64` | `-` | 持有待售资产 |
-| 71 | `HOLDSALE_LIAB` | `number` | `double` | `HOLDSALE_LIAB` | `Float64` | `-` | 持有待售负债 |
-| 72 | `INSURANCE_CONTRACT_RESERVE` | `number` | `double` | `INSURANCE_CONTRACT_RESERVE` | `Float64` | `-` | 保险合同准备金 |
-| 73 | `INTANGIBLE_ASSET` | `number` | `double` | `INTANGIBLE_ASSET` | `Float64` | `-` | 无形资产 |
-| 74 | `INTEREST_PAYABLE` | `number` | `double` | `INTEREST_PAYABLE` | `Float64` | `-` | 应付利息 |
-| 75 | `INTEREST_RECE` | `number` | `double` | `INTEREST_RECE` | `Float64` | `-` | 应收利息 |
-| 76 | `INTERNAL_PAYABLE` | `number` | `double` | `INTERNAL_PAYABLE` | `Float64` | `-` | 内部应付款 |
-| 77 | `INTERNAL_RECE` | `number` | `double` | `INTERNAL_RECE` | `Float64` | `-` | 内部应收款 |
-| 78 | `INVENTORY` | `number` | `double` | `INVENTORY` | `Float64` | `-` | 资产负债表披露的存货金额。 |
-| 79 | `INVEST_REALESTATE` | `number` | `double` | `INVEST_REALESTATE` | `Float64` | `-` | 投资性房地产 |
-| 80 | `LEASE_LIAB` | `number` | `double` | `LEASE_LIAB` | `Float64` | `-` | 租赁负债 |
-| 81 | `LEND_FUND` | `number` | `double` | `LEND_FUND` | `Float64` | `-` | 拆出资金 |
-| 82 | `LIAB_BALANCE` | `number` | `double` | `LIAB_BALANCE` | `Float64` | `-` | 负债平衡项 |
-| 83 | `LIAB_EQUITY_BALANCE` | `number` | `double` | `LIAB_EQUITY_BALANCE` | `Float64` | `-` | 负债和所有者权益平衡项 |
-| 84 | `LIAB_EQUITY_OTHER` | `number` | `double` | `LIAB_EQUITY_OTHER` | `Float64` | `-` | 负债和所有者权益其他项 |
-| 85 | `LIAB_OTHER` | `number` | `double` | `LIAB_OTHER` | `Float64` | `-` | 负债其他项 |
-| 86 | `LOAN_ADVANCE` | `number` | `double` | `LOAN_ADVANCE` | `Float64` | `-` | 发放贷款及垫款 |
-| 87 | `LOAN_PBC` | `number` | `double` | `LOAN_PBC` | `Float64` | `-` | 向央行借款 |
-| 88 | `LONG_EQUITY_INVEST` | `number` | `double` | `LONG_EQUITY_INVEST` | `Float64` | `-` | 长期股权投资 |
-| 89 | `LONG_LOAN` | `number` | `double` | `LONG_LOAN` | `Float64` | `-` | 长期借款 |
-| 90 | `LONG_PAYABLE` | `number` | `double` | `LONG_PAYABLE` | `Float64` | `-` | 长期应付款 |
-| 91 | `LONG_PREPAID_EXPENSE` | `number` | `double` | `LONG_PREPAID_EXPENSE` | `Float64` | `-` | 长期待摊费用 |
-| 92 | `LONG_RECE` | `number` | `double` | `LONG_RECE` | `Float64` | `-` | 长期应收款 |
-| 93 | `LONG_STAFFSALARY_PAYABLE` | `number` | `double` | `LONG_STAFFSALARY_PAYABLE` | `Float64` | `-` | 长期应付职工薪酬 |
-| 94 | `MINORITY_EQUITY` | `number` | `double` | `MINORITY_EQUITY` | `Float64` | `-` | 少数股东权益 |
-| 95 | `MONETARYFUNDS` | `number` | `double` | `MONETARYFUNDS` | `Float64` | `-` | 货币资金 |
-| 96 | `NONCURRENT_ASSET_1YEAR` | `number` | `double` | `NONCURRENT_ASSET_1YEAR` | `Float64` | `-` | 一年内到期的非流动资产 |
-| 97 | `NONCURRENT_ASSET_BALANCE` | `number` | `double` | `NONCURRENT_ASSET_BALANCE` | `Float64` | `-` | 非流动资产平衡项 |
-| 98 | `NONCURRENT_ASSET_OTHER` | `number` | `double` | `NONCURRENT_ASSET_OTHER` | `Float64` | `-` | 非流动资产其他项 |
-| 99 | `NONCURRENT_LIAB_1YEAR` | `number` | `double` | `NONCURRENT_LIAB_1YEAR` | `Float64` | `-` | 一年内到期的非流动负债 |
-| 100 | `NONCURRENT_LIAB_BALANCE` | `number` | `double` | `NONCURRENT_LIAB_BALANCE` | `Float64` | `-` | 非流动负债平衡项 |
-| 101 | `NONCURRENT_LIAB_OTHER` | `number` | `double` | `NONCURRENT_LIAB_OTHER` | `Float64` | `-` | 非流动负债其他项 |
-| 102 | `NOTE_ACCOUNTS_PAYABLE` | `number` | `double` | `NOTE_ACCOUNTS_PAYABLE` | `Float64` | `-` | 应付票据及应付账款 |
-| 103 | `NOTE_ACCOUNTS_RECE` | `number` | `double` | `NOTE_ACCOUNTS_RECE` | `Float64` | `-` | 应收票据及应收账款 |
-| 104 | `NOTE_PAYABLE` | `number` | `double` | `NOTE_PAYABLE` | `Float64` | `-` | 应付票据 |
-| 105 | `NOTE_RECE` | `number` | `double` | `NOTE_RECE` | `Float64` | `-` | 应收票据 |
-| 106 | `OIL_GAS_ASSET` | `number` | `double` | `OIL_GAS_ASSET` | `Float64` | `-` | 油气资产 |
-| 107 | `OTHER_COMPRE_INCOME` | `number` | `double` | `OTHER_COMPRE_INCOME` | `Float64` | `-` | 其他综合收益 |
-| 108 | `OTHER_CREDITOR_INVEST` | `number` | `double` | `OTHER_CREDITOR_INVEST` | `Float64` | `-` | 其他债权投资 |
-| 109 | `OTHER_CURRENT_ASSET` | `number` | `double` | `OTHER_CURRENT_ASSET` | `Float64` | `-` | 其他流动资产 |
-| 110 | `OTHER_CURRENT_LIAB` | `number` | `double` | `OTHER_CURRENT_LIAB` | `Float64` | `-` | 其他流动负债 |
-| 111 | `OTHER_EQUITY_INVEST` | `number` | `double` | `OTHER_EQUITY_INVEST` | `Float64` | `-` | 其他权益工具投资 |
-| 112 | `OTHER_EQUITY_OTHER` | `number` | `double` | `OTHER_EQUITY_OTHER` | `Float64` | `-` | 其他权益其他项 |
-| 113 | `OTHER_EQUITY_TOOL` | `number` | `double` | `OTHER_EQUITY_TOOL` | `Float64` | `-` | 其他权益工具 |
-| 114 | `OTHER_NONCURRENT_ASSET` | `number` | `double` | `OTHER_NONCURRENT_ASSET` | `Float64` | `-` | 其他非流动资产 |
-| 115 | `OTHER_NONCURRENT_FINASSET` | `number` | `double` | `OTHER_NONCURRENT_FINASSET` | `Float64` | `-` | 其他非流动金融资产 |
-| 116 | `OTHER_NONCURRENT_LIAB` | `number` | `double` | `OTHER_NONCURRENT_LIAB` | `Float64` | `-` | 其他非流动负债 |
-| 117 | `OTHER_PAYABLE` | `number` | `double` | `OTHER_PAYABLE` | `Float64` | `-` | 其他应付款 |
-| 118 | `OTHER_RECE` | `number` | `double` | `OTHER_RECE` | `Float64` | `-` | 其他应收款 |
-| 119 | `PARENT_EQUITY_BALANCE` | `number` | `double` | `PARENT_EQUITY_BALANCE` | `Float64` | `-` | 归母权益平衡项 |
-| 120 | `PARENT_EQUITY_OTHER` | `number` | `double` | `PARENT_EQUITY_OTHER` | `Float64` | `-` | 归母权益其他项 |
-| 121 | `PERPETUAL_BOND` | `number` | `double` | `PERPETUAL_BOND` | `Float64` | `-` | 永续债 |
-| 122 | `PERPETUAL_BOND_PAYBALE` | `number` | `double` | `PERPETUAL_BOND_PAYBALE` | `Float64` | `-` | 永续债（负债端） |
-| 123 | `PREDICT_CURRENT_LIAB` | `number` | `double` | `PREDICT_CURRENT_LIAB` | `Float64` | `-` | 预计流动负债 |
-| 124 | `PREDICT_LIAB` | `number` | `double` | `PREDICT_LIAB` | `Float64` | `-` | 预计负债 |
-| 125 | `PREFERRED_SHARES` | `number` | `double` | `PREFERRED_SHARES` | `Float64` | `-` | 优先股 |
-| 126 | `PREFERRED_SHARES_PAYBALE` | `number` | `double` | `PREFERRED_SHARES_PAYBALE` | `Float64` | `-` | 应付优先股 |
-| 127 | `PREMIUM_RECE` | `number` | `double` | `PREMIUM_RECE` | `Float64` | `-` | 预收保费 |
-| 128 | `PREPAYMENT` | `number` | `double` | `PREPAYMENT` | `Float64` | `-` | 预付款项 |
-| 129 | `PRODUCTIVE_BIOLOGY_ASSET` | `number` | `double` | `PRODUCTIVE_BIOLOGY_ASSET` | `Float64` | `-` | 生产性生物资产 |
-| 130 | `PROJECT_MATERIAL` | `number` | `double` | `PROJECT_MATERIAL` | `Float64` | `-` | 工程物资 |
-| 131 | `RC_RESERVE_RECE` | `number` | `double` | `RC_RESERVE_RECE` | `Float64` | `-` | 再保合同应收准备金 |
-| 132 | `REINSURE_PAYABLE` | `number` | `double` | `REINSURE_PAYABLE` | `Float64` | `-` | 应付再保款 |
-| 133 | `REINSURE_RECE` | `number` | `double` | `REINSURE_RECE` | `Float64` | `-` | 应收再保款 |
-| 134 | `SELL_REPO_FINASSET` | `number` | `double` | `SELL_REPO_FINASSET` | `Float64` | `-` | 卖出回购金融资产款 |
-| 135 | `SETTLE_EXCESS_RESERVE` | `number` | `double` | `SETTLE_EXCESS_RESERVE` | `Float64` | `-` | 清算备付金 |
-| 136 | `SHARE_CAPITAL` | `number` | `double` | `SHARE_CAPITAL` | `Float64` | `-` | 实收资本（股本） |
-| 137 | `SHORT_BOND_PAYABLE` | `number` | `double` | `SHORT_BOND_PAYABLE` | `Float64` | `-` | 短期应付债券 |
-| 138 | `SHORT_FIN_PAYABLE` | `number` | `double` | `SHORT_FIN_PAYABLE` | `Float64` | `-` | 短期金融负债 |
-| 139 | `SHORT_LOAN` | `number` | `double` | `SHORT_LOAN` | `Float64` | `-` | 短期借款 |
-| 140 | `SPECIAL_PAYABLE` | `number` | `double` | `SPECIAL_PAYABLE` | `Float64` | `-` | 专项应付款 |
-| 141 | `SPECIAL_RESERVE` | `number` | `double` | `SPECIAL_RESERVE` | `Float64` | `-` | 专项储备 |
-| 142 | `STAFF_SALARY_PAYABLE` | `number` | `double` | `STAFF_SALARY_PAYABLE` | `Float64` | `-` | 应付职工薪酬 |
-| 143 | `SUBSIDY_RECE` | `number` | `double` | `SUBSIDY_RECE` | `Float64` | `-` | 应收补贴 |
-| 144 | `SURPLUS_RESERVE` | `number` | `double` | `SURPLUS_RESERVE` | `Float64` | `-` | 盈余公积 |
-| 145 | `TAX_PAYABLE` | `number` | `double` | `TAX_PAYABLE` | `Float64` | `-` | 应交税费 |
-| 146 | `TOTAL_ASSETS` | `number` | `double` | `TOTAL_ASSETS` | `Float64` | `-` | 资产总计 |
-| 147 | `TOTAL_CURRENT_ASSETS` | `number` | `double` | `TOTAL_CURRENT_ASSETS` | `Float64` | `-` | 流动资产合计 |
-| 148 | `TOTAL_CURRENT_LIAB` | `number` | `double` | `TOTAL_CURRENT_LIAB` | `Float64` | `-` | 流动负债合计 |
-| 149 | `TOTAL_EQUITY` | `number` | `double` | `TOTAL_EQUITY` | `Float64` | `-` | 所有者权益合计 |
-| 150 | `TOTAL_LIAB_EQUITY` | `number` | `double` | `TOTAL_LIAB_EQUITY` | `Float64` | `-` | 负债和所有者权益总计 |
-| 151 | `TOTAL_LIABILITIES` | `number` | `double` | `TOTAL_LIABILITIES` | `Float64` | `-` | 负债合计 |
-| 152 | `TOTAL_NONCURRENT_ASSETS` | `number` | `double` | `TOTAL_NONCURRENT_ASSETS` | `Float64` | `-` | 非流动资产合计 |
-| 153 | `TOTAL_NONCURRENT_LIAB` | `number` | `double` | `TOTAL_NONCURRENT_LIAB` | `Float64` | `-` | 非流动负债合计 |
-| 154 | `TOTAL_OTHER_PAYABLE` | `number` | `double` | `TOTAL_OTHER_PAYABLE` | `Float64` | `-` | 其他应付款合计 |
-| 155 | `TOTAL_OTHER_RECE` | `number` | `double` | `TOTAL_OTHER_RECE` | `Float64` | `-` | 其他应收款合计 |
-| 156 | `TOTAL_PARENT_EQUITY` | `number` | `double` | `TOTAL_PARENT_EQUITY` | `Float64` | `-` | 归属于母公司股东权益合计 |
-| 157 | `TRADE_FINASSET` | `number` | `double` | `TRADE_FINASSET` | `Float64` | `-` | 交易性金融资产 |
-| 158 | `TRADE_FINASSET_NOTFVTPL` | `number` | `double` | `TRADE_FINASSET_NOTFVTPL` | `Float64` | `-` | 非FVTPL交易性金融资产 |
-| 159 | `TRADE_FINLIAB` | `number` | `double` | `TRADE_FINLIAB` | `Float64` | `-` | 交易性金融负债 |
-| 160 | `TRADE_FINLIAB_NOTFVTPL` | `number` | `double` | `TRADE_FINLIAB_NOTFVTPL` | `Float64` | `-` | 非FVTPL交易性金融负债 |
-| 161 | `TREASURY_SHARES` | `number` | `double` | `TREASURY_SHARES` | `Float64` | `-` | 库存股 |
-| 162 | `UNASSIGN_RPOFIT` | `number` | `double` | `UNASSIGN_RPOFIT` | `Float64` | `-` | 未分配利润 |
-| 163 | `UNCONFIRM_INVEST_LOSS` | `number` | `double` | `UNCONFIRM_INVEST_LOSS` | `Float64` | `-` | 未确认投资损失 |
-| 164 | `USERIGHT_ASSET` | `number` | `double` | `USERIGHT_ASSET` | `Float64` | `-` | 使用权资产 |
-| 165 | `ACCEPT_DEPOSIT_INTERBANK_YOY` | `number` | `double` | `ACCEPT_DEPOSIT_INTERBANK_YOY` | `Float64` | `-` | 同业存放同比增长率（%） |
-| 166 | `ACCOUNTS_PAYABLE_YOY` | `number` | `double` | `ACCOUNTS_PAYABLE_YOY` | `Float64` | `-` | 应付账款同比增长率（%） |
-| 167 | `ACCOUNTS_RECE_YOY` | `number` | `double` | `ACCOUNTS_RECE_YOY` | `Float64` | `-` | 应收账款同比增长率（%） |
-| 168 | `ACCRUED_EXPENSE_YOY` | `number` | `double` | `ACCRUED_EXPENSE_YOY` | `Float64` | `-` | 预提费用同比增长率（%） |
-| 169 | `ADVANCE_RECEIVABLES_YOY` | `number` | `double` | `ADVANCE_RECEIVABLES_YOY` | `Float64` | `-` | 预收款项同比增长率（%） |
-| 170 | `AGENT_TRADE_SECURITY_YOY` | `number` | `double` | `AGENT_TRADE_SECURITY_YOY` | `Float64` | `-` | 代理买卖证券款同比增长率（%） |
-| 171 | `AGENT_UNDERWRITE_SECURITY_YOY` | `number` | `double` | `AGENT_UNDERWRITE_SECURITY_YOY` | `Float64` | `-` | 代理承销证券款同比增长率（%） |
-| 172 | `AMORTIZE_COST_FINASSET_YOY` | `number` | `double` | `AMORTIZE_COST_FINASSET_YOY` | `Float64` | `-` | 以摊余成本计量的金融资产同比增长率（%） |
-| 173 | `AMORTIZE_COST_FINLIAB_YOY` | `number` | `double` | `AMORTIZE_COST_FINLIAB_YOY` | `Float64` | `-` | 以摊余成本计量的金融负债同比增长率（%） |
-| 174 | `AMORTIZE_COST_NCFINASSET_YOY` | `number` | `double` | `AMORTIZE_COST_NCFINASSET_YOY` | `Float64` | `-` | 非流动金融资产（摊余成本）同比增长率（%） |
-| 175 | `AMORTIZE_COST_NCFINLIAB_YOY` | `number` | `double` | `AMORTIZE_COST_NCFINLIAB_YOY` | `Float64` | `-` | 非流动金融负债（摊余成本）同比增长率（%） |
-| 176 | `APPOINT_FVTPL_FINASSET_YOY` | `number` | `double` | `APPOINT_FVTPL_FINASSET_YOY` | `Float64` | `-` | 指定为FVTPL的金融资产同比增长率（%） |
-| 177 | `APPOINT_FVTPL_FINLIAB_YOY` | `number` | `double` | `APPOINT_FVTPL_FINLIAB_YOY` | `Float64` | `-` | 指定为FVTPL的金融负债同比增长率（%） |
-| 178 | `ASSET_BALANCE_YOY` | `number` | `double` | `ASSET_BALANCE_YOY` | `Float64` | `-` | 资产平衡项同比增长率（%） |
-| 179 | `ASSET_OTHER_YOY` | `number` | `double` | `ASSET_OTHER_YOY` | `Float64` | `-` | 资产其他项同比增长率（%） |
-| 180 | `ASSIGN_CASH_DIVIDEND_YOY` | `number` | `double` | `ASSIGN_CASH_DIVIDEND_YOY` | `Float64` | `-` | 应付现金股利同比增长率（%） |
-| 181 | `AVAILABLE_SALE_FINASSET_YOY` | `number` | `double` | `AVAILABLE_SALE_FINASSET_YOY` | `Float64` | `-` | 可供出售金融资产同比增长率（%） |
-| 182 | `BOND_PAYABLE_YOY` | `number` | `double` | `BOND_PAYABLE_YOY` | `Float64` | `-` | 应付债券同比增长率（%） |
-| 183 | `BORROW_FUND_YOY` | `number` | `double` | `BORROW_FUND_YOY` | `Float64` | `-` | 拆入资金同比增长率（%） |
-| 184 | `BUY_RESALE_FINASSET_YOY` | `number` | `double` | `BUY_RESALE_FINASSET_YOY` | `Float64` | `-` | 买入返售金融资产同比增长率（%） |
-| 185 | `CAPITAL_RESERVE_YOY` | `number` | `double` | `CAPITAL_RESERVE_YOY` | `Float64` | `-` | 资本公积同比增长率（%） |
-| 186 | `CIP_YOY` | `number` | `double` | `CIP_YOY` | `Float64` | `-` | 在建工程同比增长率（%） |
-| 187 | `CONSUMPTIVE_BIOLOGICAL_ASSET_YOY` | `number` | `double` | `CONSUMPTIVE_BIOLOGICAL_ASSET_YOY` | `Float64` | `-` | 消耗性生物资产同比增长率（%） |
-| 188 | `CONTRACT_ASSET_YOY` | `number` | `double` | `CONTRACT_ASSET_YOY` | `Float64` | `-` | 合同资产同比增长率（%） |
-| 189 | `CONTRACT_LIAB_YOY` | `number` | `double` | `CONTRACT_LIAB_YOY` | `Float64` | `-` | 合同负债同比增长率（%） |
-| 190 | `CONVERT_DIFF_YOY` | `number` | `double` | `CONVERT_DIFF_YOY` | `Float64` | `-` | 外币报表折算差额同比增长率（%） |
-| 191 | `CREDITOR_INVEST_YOY` | `number` | `double` | `CREDITOR_INVEST_YOY` | `Float64` | `-` | 债权投资同比增长率（%） |
-| 192 | `CURRENT_ASSET_BALANCE_YOY` | `number` | `double` | `CURRENT_ASSET_BALANCE_YOY` | `Float64` | `-` | 流动资产平衡项同比增长率（%） |
-| 193 | `CURRENT_ASSET_OTHER_YOY` | `number` | `double` | `CURRENT_ASSET_OTHER_YOY` | `Float64` | `-` | 流动资产其他项同比增长率（%） |
-| 194 | `CURRENT_LIAB_BALANCE_YOY` | `number` | `double` | `CURRENT_LIAB_BALANCE_YOY` | `Float64` | `-` | 流动负债平衡项同比增长率（%） |
-| 195 | `CURRENT_LIAB_OTHER_YOY` | `number` | `double` | `CURRENT_LIAB_OTHER_YOY` | `Float64` | `-` | 流动负债其他项同比增长率（%） |
-| 196 | `DEFER_INCOME_1YEAR_YOY` | `number` | `double` | `DEFER_INCOME_1YEAR_YOY` | `Float64` | `-` | 一年内到期递延收益同比增长率（%） |
-| 197 | `DEFER_INCOME_YOY` | `number` | `double` | `DEFER_INCOME_YOY` | `Float64` | `-` | 递延收益同比增长率（%） |
-| 198 | `DEFER_TAX_ASSET_YOY` | `number` | `double` | `DEFER_TAX_ASSET_YOY` | `Float64` | `-` | 递延所得税资产同比增长率（%） |
-| 199 | `DEFER_TAX_LIAB_YOY` | `number` | `double` | `DEFER_TAX_LIAB_YOY` | `Float64` | `-` | 递延所得税负债同比增长率（%） |
-| 200 | `DERIVE_FINASSET_YOY` | `number` | `double` | `DERIVE_FINASSET_YOY` | `Float64` | `-` | 衍生金融资产同比增长率（%） |
-| 201 | `DERIVE_FINLIAB_YOY` | `number` | `double` | `DERIVE_FINLIAB_YOY` | `Float64` | `-` | 衍生金融负债同比增长率（%） |
-| 202 | `DEVELOP_EXPENSE_YOY` | `number` | `double` | `DEVELOP_EXPENSE_YOY` | `Float64` | `-` | 开发支出同比增长率（%） |
-| 203 | `DIV_HOLDSALE_ASSET_YOY` | `number` | `double` | `DIV_HOLDSALE_ASSET_YOY` | `Float64` | `-` | 持有待售资产（除）同比增长率（%） |
-| 204 | `DIV_HOLDSALE_LIAB_YOY` | `number` | `double` | `DIV_HOLDSALE_LIAB_YOY` | `Float64` | `-` | 持有待售负债（除）同比增长率（%） |
-| 205 | `DIVIDEND_PAYABLE_YOY` | `number` | `double` | `DIVIDEND_PAYABLE_YOY` | `Float64` | `-` | 应付股利同比增长率（%） |
-| 206 | `DIVIDEND_RECE_YOY` | `number` | `double` | `DIVIDEND_RECE_YOY` | `Float64` | `-` | 应收股利同比增长率（%） |
-| 207 | `EQUITY_BALANCE_YOY` | `number` | `double` | `EQUITY_BALANCE_YOY` | `Float64` | `-` | 所有者权益平衡项同比增长率（%） |
-| 208 | `EQUITY_OTHER_YOY` | `number` | `double` | `EQUITY_OTHER_YOY` | `Float64` | `-` | 所有者权益其他项同比增长率（%） |
-| 209 | `EXPORT_REFUND_RECE_YOY` | `number` | `double` | `EXPORT_REFUND_RECE_YOY` | `Float64` | `-` | 应收出口退税同比增长率（%） |
-| 210 | `FEE_COMMISSION_PAYABLE_YOY` | `number` | `double` | `FEE_COMMISSION_PAYABLE_YOY` | `Float64` | `-` | 应付手续费及佣金同比增长率（%） |
-| 211 | `FIN_FUND_YOY` | `number` | `double` | `FIN_FUND_YOY` | `Float64` | `-` | 金融往来资金同比增长率（%） |
-| 212 | `FINANCE_RECE_YOY` | `number` | `double` | `FINANCE_RECE_YOY` | `Float64` | `-` | 金融应收款同比增长率（%） |
-| 213 | `FIXED_ASSET_DISPOSAL_YOY` | `number` | `double` | `FIXED_ASSET_DISPOSAL_YOY` | `Float64` | `-` | 固定资产清理同比增长率（%） |
-| 214 | `FIXED_ASSET_YOY` | `number` | `double` | `FIXED_ASSET_YOY` | `Float64` | `-` | 固定资产同比增长率（%） |
-| 215 | `FVTOCI_FINASSET_YOY` | `number` | `double` | `FVTOCI_FINASSET_YOY` | `Float64` | `-` | 以公允价值计量且其变动计入其他综合收益的金融资产同比增长率（%） |
-| 216 | `FVTOCI_NCFINASSET_YOY` | `number` | `double` | `FVTOCI_NCFINASSET_YOY` | `Float64` | `-` | 其他非流动金融资产（FVTOCI）同比增长率（%） |
-| 217 | `FVTPL_FINASSET_YOY` | `number` | `double` | `FVTPL_FINASSET_YOY` | `Float64` | `-` | 以公允价值计量且其变动计入当期损益的金融资产同比增长率（%） |
-| 218 | `FVTPL_FINLIAB_YOY` | `number` | `double` | `FVTPL_FINLIAB_YOY` | `Float64` | `-` | 以公允价值计量且其变动计入当期损益的金融负债同比增长率（%） |
-| 219 | `GENERAL_RISK_RESERVE_YOY` | `number` | `double` | `GENERAL_RISK_RESERVE_YOY` | `Float64` | `-` | 一般风险准备同比增长率（%） |
-| 220 | `GOODWILL_YOY` | `number` | `double` | `GOODWILL_YOY` | `Float64` | `-` | 商誉同比增长率（%） |
-| 221 | `HOLD_MATURITY_INVEST_YOY` | `number` | `double` | `HOLD_MATURITY_INVEST_YOY` | `Float64` | `-` | 持有至到期投资同比增长率（%） |
-| 222 | `HOLDSALE_ASSET_YOY` | `number` | `double` | `HOLDSALE_ASSET_YOY` | `Float64` | `-` | 持有待售资产同比增长率（%） |
-| 223 | `HOLDSALE_LIAB_YOY` | `number` | `double` | `HOLDSALE_LIAB_YOY` | `Float64` | `-` | 持有待售负债同比增长率（%） |
-| 224 | `INSURANCE_CONTRACT_RESERVE_YOY` | `number` | `double` | `INSURANCE_CONTRACT_RESERVE_YOY` | `Float64` | `-` | 保险合同准备金同比增长率（%） |
-| 225 | `INTANGIBLE_ASSET_YOY` | `number` | `double` | `INTANGIBLE_ASSET_YOY` | `Float64` | `-` | 无形资产同比增长率（%） |
-| 226 | `INTEREST_PAYABLE_YOY` | `number` | `double` | `INTEREST_PAYABLE_YOY` | `Float64` | `-` | 应付利息同比增长率（%） |
-| 227 | `INTEREST_RECE_YOY` | `number` | `double` | `INTEREST_RECE_YOY` | `Float64` | `-` | 应收利息同比增长率（%） |
-| 228 | `INTERNAL_PAYABLE_YOY` | `number` | `double` | `INTERNAL_PAYABLE_YOY` | `Float64` | `-` | 内部应付款同比增长率（%） |
-| 229 | `INTERNAL_RECE_YOY` | `number` | `double` | `INTERNAL_RECE_YOY` | `Float64` | `-` | 内部应收款同比增长率（%） |
-| 230 | `INVENTORY_YOY` | `number` | `double` | `INVENTORY_YOY` | `Float64` | `-` | 存货同比增长率（%） |
-| 231 | `INVEST_REALESTATE_YOY` | `number` | `double` | `INVEST_REALESTATE_YOY` | `Float64` | `-` | 投资性房地产同比增长率（%） |
-| 232 | `LEASE_LIAB_YOY` | `number` | `double` | `LEASE_LIAB_YOY` | `Float64` | `-` | 租赁负债同比增长率（%） |
-| 233 | `LEND_FUND_YOY` | `number` | `double` | `LEND_FUND_YOY` | `Float64` | `-` | 拆出资金同比增长率（%） |
-| 234 | `LIAB_BALANCE_YOY` | `number` | `double` | `LIAB_BALANCE_YOY` | `Float64` | `-` | 负债平衡项同比增长率（%） |
-| 235 | `LIAB_EQUITY_BALANCE_YOY` | `number` | `double` | `LIAB_EQUITY_BALANCE_YOY` | `Float64` | `-` | 负债和所有者权益平衡项同比增长率（%） |
-| 236 | `LIAB_EQUITY_OTHER_YOY` | `number` | `double` | `LIAB_EQUITY_OTHER_YOY` | `Float64` | `-` | 负债和所有者权益其他项同比增长率（%） |
-| 237 | `LIAB_OTHER_YOY` | `number` | `double` | `LIAB_OTHER_YOY` | `Float64` | `-` | 负债其他项同比增长率（%） |
-| 238 | `LOAN_ADVANCE_YOY` | `number` | `double` | `LOAN_ADVANCE_YOY` | `Float64` | `-` | 发放贷款及垫款同比增长率（%） |
-| 239 | `LOAN_PBC_YOY` | `number` | `double` | `LOAN_PBC_YOY` | `Float64` | `-` | 向央行借款同比增长率（%） |
-| 240 | `LONG_EQUITY_INVEST_YOY` | `number` | `double` | `LONG_EQUITY_INVEST_YOY` | `Float64` | `-` | 长期股权投资同比增长率（%） |
-| 241 | `LONG_LOAN_YOY` | `number` | `double` | `LONG_LOAN_YOY` | `Float64` | `-` | 长期借款同比增长率（%） |
-| 242 | `LONG_PAYABLE_YOY` | `number` | `double` | `LONG_PAYABLE_YOY` | `Float64` | `-` | 长期应付款同比增长率（%） |
-| 243 | `LONG_PREPAID_EXPENSE_YOY` | `number` | `double` | `LONG_PREPAID_EXPENSE_YOY` | `Float64` | `-` | 长期待摊费用同比增长率（%） |
-| 244 | `LONG_RECE_YOY` | `number` | `double` | `LONG_RECE_YOY` | `Float64` | `-` | 长期应收款同比增长率（%） |
-| 245 | `LONG_STAFFSALARY_PAYABLE_YOY` | `number` | `double` | `LONG_STAFFSALARY_PAYABLE_YOY` | `Float64` | `-` | 长期应付职工薪酬同比增长率（%） |
-| 246 | `MINORITY_EQUITY_YOY` | `number` | `double` | `MINORITY_EQUITY_YOY` | `Float64` | `-` | 少数股东权益同比增长率（%） |
-| 247 | `MONETARYFUNDS_YOY` | `number` | `double` | `MONETARYFUNDS_YOY` | `Float64` | `-` | 货币资金同比增长率（%） |
-| 248 | `NONCURRENT_ASSET_1YEAR_YOY` | `number` | `double` | `NONCURRENT_ASSET_1YEAR_YOY` | `Float64` | `-` | 一年内到期的非流动资产同比增长率（%） |
-| 249 | `NONCURRENT_ASSET_BALANCE_YOY` | `number` | `double` | `NONCURRENT_ASSET_BALANCE_YOY` | `Float64` | `-` | 非流动资产平衡项同比增长率（%） |
-| 250 | `NONCURRENT_ASSET_OTHER_YOY` | `number` | `double` | `NONCURRENT_ASSET_OTHER_YOY` | `Float64` | `-` | 非流动资产其他项同比增长率（%） |
-| 251 | `NONCURRENT_LIAB_1YEAR_YOY` | `number` | `double` | `NONCURRENT_LIAB_1YEAR_YOY` | `Float64` | `-` | 一年内到期的非流动负债同比增长率（%） |
-| 252 | `NONCURRENT_LIAB_BALANCE_YOY` | `number` | `double` | `NONCURRENT_LIAB_BALANCE_YOY` | `Float64` | `-` | 非流动负债平衡项同比增长率（%） |
-| 253 | `NONCURRENT_LIAB_OTHER_YOY` | `number` | `double` | `NONCURRENT_LIAB_OTHER_YOY` | `Float64` | `-` | 非流动负债其他项同比增长率（%） |
-| 254 | `NOTE_ACCOUNTS_PAYABLE_YOY` | `number` | `double` | `NOTE_ACCOUNTS_PAYABLE_YOY` | `Float64` | `-` | 应付票据及应付账款同比增长率（%） |
-| 255 | `NOTE_ACCOUNTS_RECE_YOY` | `number` | `double` | `NOTE_ACCOUNTS_RECE_YOY` | `Float64` | `-` | 应收票据及应收账款同比增长率（%） |
-| 256 | `NOTE_PAYABLE_YOY` | `number` | `double` | `NOTE_PAYABLE_YOY` | `Float64` | `-` | 应付票据同比增长率（%） |
-| 257 | `NOTE_RECE_YOY` | `number` | `double` | `NOTE_RECE_YOY` | `Float64` | `-` | 应收票据同比增长率（%） |
-| 258 | `OIL_GAS_ASSET_YOY` | `number` | `double` | `OIL_GAS_ASSET_YOY` | `Float64` | `-` | 油气资产同比增长率（%） |
-| 259 | `OTHER_COMPRE_INCOME_YOY` | `number` | `double` | `OTHER_COMPRE_INCOME_YOY` | `Float64` | `-` | 其他综合收益总额同比增长率（%） |
-| 260 | `OTHER_CREDITOR_INVEST_YOY` | `number` | `double` | `OTHER_CREDITOR_INVEST_YOY` | `Float64` | `-` | 其他债权投资同比增长率（%） |
-| 261 | `OTHER_CURRENT_ASSET_YOY` | `number` | `double` | `OTHER_CURRENT_ASSET_YOY` | `Float64` | `-` | 其他流动资产同比增长率（%） |
-| 262 | `OTHER_CURRENT_LIAB_YOY` | `number` | `double` | `OTHER_CURRENT_LIAB_YOY` | `Float64` | `-` | 其他流动负债同比增长率（%） |
-| 263 | `OTHER_EQUITY_INVEST_YOY` | `number` | `double` | `OTHER_EQUITY_INVEST_YOY` | `Float64` | `-` | 其他权益工具投资同比增长率（%） |
-| 264 | `OTHER_EQUITY_OTHER_YOY` | `number` | `double` | `OTHER_EQUITY_OTHER_YOY` | `Float64` | `-` | 其他权益其他项同比增长率（%） |
-| 265 | `OTHER_EQUITY_TOOL_YOY` | `number` | `double` | `OTHER_EQUITY_TOOL_YOY` | `Float64` | `-` | 其他权益工具同比增长率（%） |
-| 266 | `OTHER_NONCURRENT_ASSET_YOY` | `number` | `double` | `OTHER_NONCURRENT_ASSET_YOY` | `Float64` | `-` | 其他非流动资产同比增长率（%） |
-| 267 | `OTHER_NONCURRENT_FINASSET_YOY` | `number` | `double` | `OTHER_NONCURRENT_FINASSET_YOY` | `Float64` | `-` | 其他非流动金融资产同比增长率（%） |
-| 268 | `OTHER_NONCURRENT_LIAB_YOY` | `number` | `double` | `OTHER_NONCURRENT_LIAB_YOY` | `Float64` | `-` | 其他非流动负债同比增长率（%） |
-| 269 | `OTHER_PAYABLE_YOY` | `number` | `double` | `OTHER_PAYABLE_YOY` | `Float64` | `-` | 其他应付款同比增长率（%） |
-| 270 | `OTHER_RECE_YOY` | `number` | `double` | `OTHER_RECE_YOY` | `Float64` | `-` | 其他应收款同比增长率（%） |
-| 271 | `PARENT_EQUITY_BALANCE_YOY` | `number` | `double` | `PARENT_EQUITY_BALANCE_YOY` | `Float64` | `-` | 归母权益平衡项同比增长率（%） |
-| 272 | `PARENT_EQUITY_OTHER_YOY` | `number` | `double` | `PARENT_EQUITY_OTHER_YOY` | `Float64` | `-` | 归母权益其他项同比增长率（%） |
-| 273 | `PERPETUAL_BOND_PAYBALE_YOY` | `number` | `double` | `PERPETUAL_BOND_PAYBALE_YOY` | `Float64` | `-` | 永续债（负债端）同比增长率（%） |
-| 274 | `PERPETUAL_BOND_YOY` | `number` | `double` | `PERPETUAL_BOND_YOY` | `Float64` | `-` | 永续债同比增长率（%） |
-| 275 | `PREDICT_CURRENT_LIAB_YOY` | `number` | `double` | `PREDICT_CURRENT_LIAB_YOY` | `Float64` | `-` | 预计流动负债同比增长率（%） |
-| 276 | `PREDICT_LIAB_YOY` | `number` | `double` | `PREDICT_LIAB_YOY` | `Float64` | `-` | 预计负债同比增长率（%） |
-| 277 | `PREFERRED_SHARES_PAYBALE_YOY` | `number` | `double` | `PREFERRED_SHARES_PAYBALE_YOY` | `Float64` | `-` | 应付优先股同比增长率（%） |
-| 278 | `PREFERRED_SHARES_YOY` | `number` | `double` | `PREFERRED_SHARES_YOY` | `Float64` | `-` | 优先股同比增长率（%） |
-| 279 | `PREMIUM_RECE_YOY` | `number` | `double` | `PREMIUM_RECE_YOY` | `Float64` | `-` | 预收保费同比增长率（%） |
-| 280 | `PREPAYMENT_YOY` | `number` | `double` | `PREPAYMENT_YOY` | `Float64` | `-` | 预付款项同比增长率（%） |
-| 281 | `PRODUCTIVE_BIOLOGY_ASSET_YOY` | `number` | `double` | `PRODUCTIVE_BIOLOGY_ASSET_YOY` | `Float64` | `-` | 生产性生物资产同比增长率（%） |
-| 282 | `PROJECT_MATERIAL_YOY` | `number` | `double` | `PROJECT_MATERIAL_YOY` | `Float64` | `-` | 工程物资同比增长率（%） |
-| 283 | `RC_RESERVE_RECE_YOY` | `number` | `double` | `RC_RESERVE_RECE_YOY` | `Float64` | `-` | 再保合同应收准备金同比增长率（%） |
-| 284 | `REINSURE_PAYABLE_YOY` | `number` | `double` | `REINSURE_PAYABLE_YOY` | `Float64` | `-` | 应付再保款同比增长率（%） |
-| 285 | `REINSURE_RECE_YOY` | `number` | `double` | `REINSURE_RECE_YOY` | `Float64` | `-` | 应收再保款同比增长率（%） |
-| 286 | `SELL_REPO_FINASSET_YOY` | `number` | `double` | `SELL_REPO_FINASSET_YOY` | `Float64` | `-` | 卖出回购金融资产款同比增长率（%） |
-| 287 | `SETTLE_EXCESS_RESERVE_YOY` | `number` | `double` | `SETTLE_EXCESS_RESERVE_YOY` | `Float64` | `-` | 清算备付金同比增长率（%） |
-| 288 | `SHARE_CAPITAL_YOY` | `number` | `double` | `SHARE_CAPITAL_YOY` | `Float64` | `-` | 实收资本（股本）同比增长率（%） |
-| 289 | `SHORT_BOND_PAYABLE_YOY` | `number` | `double` | `SHORT_BOND_PAYABLE_YOY` | `Float64` | `-` | 短期应付债券同比增长率（%） |
-| 290 | `SHORT_FIN_PAYABLE_YOY` | `number` | `double` | `SHORT_FIN_PAYABLE_YOY` | `Float64` | `-` | 短期金融负债同比增长率（%） |
-| 291 | `SHORT_LOAN_YOY` | `number` | `double` | `SHORT_LOAN_YOY` | `Float64` | `-` | 短期借款同比增长率（%） |
-| 292 | `SPECIAL_PAYABLE_YOY` | `number` | `double` | `SPECIAL_PAYABLE_YOY` | `Float64` | `-` | 专项应付款同比增长率（%） |
-| 293 | `SPECIAL_RESERVE_YOY` | `number` | `double` | `SPECIAL_RESERVE_YOY` | `Float64` | `-` | 专项储备同比增长率（%） |
-| 294 | `STAFF_SALARY_PAYABLE_YOY` | `number` | `double` | `STAFF_SALARY_PAYABLE_YOY` | `Float64` | `-` | 应付职工薪酬同比增长率（%） |
-| 295 | `SUBSIDY_RECE_YOY` | `number` | `double` | `SUBSIDY_RECE_YOY` | `Float64` | `-` | 应收补贴同比增长率（%） |
-| 296 | `SURPLUS_RESERVE_YOY` | `number` | `double` | `SURPLUS_RESERVE_YOY` | `Float64` | `-` | 盈余公积同比增长率（%） |
-| 297 | `TAX_PAYABLE_YOY` | `number` | `double` | `TAX_PAYABLE_YOY` | `Float64` | `-` | 应交税费同比增长率（%） |
-| 298 | `TOTAL_ASSETS_YOY` | `number` | `double` | `TOTAL_ASSETS_YOY` | `Float64` | `-` | 资产总计同比增长率（%） |
-| 299 | `TOTAL_CURRENT_ASSETS_YOY` | `number` | `double` | `TOTAL_CURRENT_ASSETS_YOY` | `Float64` | `-` | 流动资产合计同比增长率（%） |
-| 300 | `TOTAL_CURRENT_LIAB_YOY` | `number` | `double` | `TOTAL_CURRENT_LIAB_YOY` | `Float64` | `-` | 流动负债合计同比增长率（%） |
-| 301 | `TOTAL_EQUITY_YOY` | `number` | `double` | `TOTAL_EQUITY_YOY` | `Float64` | `-` | 所有者权益合计同比增长率（%） |
-| 302 | `TOTAL_LIAB_EQUITY_YOY` | `number` | `double` | `TOTAL_LIAB_EQUITY_YOY` | `Float64` | `-` | 负债和所有者权益总计同比增长率（%） |
-| 303 | `TOTAL_LIABILITIES_YOY` | `number` | `double` | `TOTAL_LIABILITIES_YOY` | `Float64` | `-` | 负债合计同比增长率（%） |
-| 304 | `TOTAL_NONCURRENT_ASSETS_YOY` | `number` | `double` | `TOTAL_NONCURRENT_ASSETS_YOY` | `Float64` | `-` | 非流动资产合计同比增长率（%） |
-| 305 | `TOTAL_NONCURRENT_LIAB_YOY` | `number` | `double` | `TOTAL_NONCURRENT_LIAB_YOY` | `Float64` | `-` | 非流动负债合计同比增长率（%） |
-| 306 | `TOTAL_OTHER_PAYABLE_YOY` | `number` | `double` | `TOTAL_OTHER_PAYABLE_YOY` | `Float64` | `-` | 其他应付款合计同比增长率（%） |
-| 307 | `TOTAL_OTHER_RECE_YOY` | `number` | `double` | `TOTAL_OTHER_RECE_YOY` | `Float64` | `-` | 其他应收款合计同比增长率（%） |
-| 308 | `TOTAL_PARENT_EQUITY_YOY` | `number` | `double` | `TOTAL_PARENT_EQUITY_YOY` | `Float64` | `-` | 归属于母公司股东权益合计同比增长率（%） |
-| 309 | `TRADE_FINASSET_NOTFVTPL_YOY` | `number` | `double` | `TRADE_FINASSET_NOTFVTPL_YOY` | `Float64` | `-` | 非FVTPL交易性金融资产同比增长率（%） |
-| 310 | `TRADE_FINASSET_YOY` | `number` | `double` | `TRADE_FINASSET_YOY` | `Float64` | `-` | 交易性金融资产同比增长率（%） |
-| 311 | `TRADE_FINLIAB_NOTFVTPL_YOY` | `number` | `double` | `TRADE_FINLIAB_NOTFVTPL_YOY` | `Float64` | `-` | 非FVTPL交易性金融负债同比增长率（%） |
-| 312 | `TRADE_FINLIAB_YOY` | `number` | `double` | `TRADE_FINLIAB_YOY` | `Float64` | `-` | 交易性金融负债同比增长率（%） |
-| 313 | `TREASURY_SHARES_YOY` | `number` | `double` | `TREASURY_SHARES_YOY` | `Float64` | `-` | 库存股同比增长率（%） |
-| 314 | `UNASSIGN_RPOFIT_YOY` | `number` | `double` | `UNASSIGN_RPOFIT_YOY` | `Float64` | `-` | 未分配利润同比增长率（%） |
-| 315 | `UNCONFIRM_INVEST_LOSS_YOY` | `number` | `double` | `UNCONFIRM_INVEST_LOSS_YOY` | `Float64` | `-` | 未确认投资损失同比增长率（%） |
-| 316 | `USERIGHT_ASSET_YOY` | `number` | `double` | `USERIGHT_ASSET_YOY` | `Float64` | `-` | 使用权资产同比增长率（%） |
-| 317 | `OPINION_TYPE` | `number` | `string` | `OPINION_TYPE` | `LowCardinality(String)` | `-` | 审计意见类型 |
-| 318 | `OSOPINION_TYPE` | `number` | `string` | `OSOPINION_TYPE` | `LowCardinality(String)` | `-` | 内控审计意见类型 |
-| 319 | `LISTING_STATE` | `string` | `string` | `LISTING_STATE` | `LowCardinality(String)` | `-` | 上市状态 |
+| # | 外源字段 | 外源类型 | Parquet 类型 | ClickHouse raw 字段 | ClickHouse 类型 | 中文描述 |
+|---|----------|----------|--------------|---------------------|-----------------|----------|
+| 1 | `SECUCODE` | `string` | `string` | `SECUCODE` | `LowCardinality(String)` | 证券代码（含市场后缀） |
+| 2 | `SECURITY_CODE` | `string` | `string` | `SECURITY_CODE` | `LowCardinality(String)` | 证券代码（纯数字） |
+| 3 | `SECURITY_NAME_ABBR` | `string` | `string` | `SECURITY_NAME_ABBR` | `LowCardinality(String)` | 证券简称 |
+| 4 | `ORG_CODE` | `string` | `string` | `ORG_CODE` | `LowCardinality(String)` | 机构代码 |
+| 5 | `ORG_TYPE` | `string` | `string` | `ORG_TYPE` | `LowCardinality(String)` | 机构类型 |
+| 6 | `REPORT_DATE` | `string` | `date32[day]` | `REPORT_DATE` | `Date` | 报告期 |
+| 7 | `REPORT_TYPE` | `string` | `string` | `REPORT_TYPE` | `LowCardinality(String)` | 报告类型 |
+| 8 | `REPORT_DATE_NAME` | `string` | `string` | `REPORT_DATE_NAME` | `LowCardinality(String)` | 报告期名称 |
+| 9 | `SECURITY_TYPE_CODE` | `string` | `string` | `SECURITY_TYPE_CODE` | `LowCardinality(String)` | 证券类型代码 |
+| 10 | `NOTICE_DATE` | `string` | `date32[day]` | `NOTICE_DATE` | `Date` | 公告日期 |
+| 11 | `UPDATE_DATE` | `string` | `date32[day]` | `UPDATE_DATE` | `Date` | 更新日期 |
+| 12 | `CURRENCY` | `string` | `string` | `CURRENCY` | `LowCardinality(String)` | 资产负债表披露金额使用的币种。 |
+| 13 | `ACCEPT_DEPOSIT_INTERBANK` | `number` | `double` | `ACCEPT_DEPOSIT_INTERBANK` | `Float64` | 同业存放 |
+| 14 | `ACCOUNTS_PAYABLE` | `number` | `double` | `ACCOUNTS_PAYABLE` | `Float64` | 应付账款 |
+| 15 | `ACCOUNTS_RECE` | `number` | `double` | `ACCOUNTS_RECE` | `Float64` | 应收账款 |
+| 16 | `ACCRUED_EXPENSE` | `number` | `double` | `ACCRUED_EXPENSE` | `Float64` | 预提费用 |
+| 17 | `ADVANCE_RECEIVABLES` | `number` | `double` | `ADVANCE_RECEIVABLES` | `Float64` | 预收款项 |
+| 18 | `AGENT_TRADE_SECURITY` | `number` | `double` | `AGENT_TRADE_SECURITY` | `Float64` | 代理买卖证券款 |
+| 19 | `AGENT_UNDERWRITE_SECURITY` | `number` | `double` | `AGENT_UNDERWRITE_SECURITY` | `Float64` | 代理承销证券款 |
+| 20 | `AMORTIZE_COST_FINASSET` | `number` | `double` | `AMORTIZE_COST_FINASSET` | `Float64` | 以摊余成本计量的金融资产 |
+| 21 | `AMORTIZE_COST_FINLIAB` | `number` | `double` | `AMORTIZE_COST_FINLIAB` | `Float64` | 以摊余成本计量的金融负债 |
+| 22 | `AMORTIZE_COST_NCFINASSET` | `number` | `double` | `AMORTIZE_COST_NCFINASSET` | `Float64` | 非流动金融资产（摊余成本） |
+| 23 | `AMORTIZE_COST_NCFINLIAB` | `number` | `double` | `AMORTIZE_COST_NCFINLIAB` | `Float64` | 非流动金融负债（摊余成本） |
+| 24 | `APPOINT_FVTPL_FINASSET` | `number` | `double` | `APPOINT_FVTPL_FINASSET` | `Float64` | 指定为FVTPL的金融资产 |
+| 25 | `APPOINT_FVTPL_FINLIAB` | `number` | `double` | `APPOINT_FVTPL_FINLIAB` | `Float64` | 指定为FVTPL的金融负债 |
+| 26 | `ASSET_BALANCE` | `number` | `double` | `ASSET_BALANCE` | `Float64` | 资产平衡项 |
+| 27 | `ASSET_OTHER` | `number` | `double` | `ASSET_OTHER` | `Float64` | 资产其他项 |
+| 28 | `ASSIGN_CASH_DIVIDEND` | `number` | `double` | `ASSIGN_CASH_DIVIDEND` | `Float64` | 应付现金股利 |
+| 29 | `AVAILABLE_SALE_FINASSET` | `number` | `double` | `AVAILABLE_SALE_FINASSET` | `Float64` | 可供出售金融资产 |
+| 30 | `BOND_PAYABLE` | `number` | `double` | `BOND_PAYABLE` | `Float64` | 应付债券 |
+| 31 | `BORROW_FUND` | `number` | `double` | `BORROW_FUND` | `Float64` | 拆入资金 |
+| 32 | `BUY_RESALE_FINASSET` | `number` | `double` | `BUY_RESALE_FINASSET` | `Float64` | 买入返售金融资产 |
+| 33 | `CAPITAL_RESERVE` | `number` | `double` | `CAPITAL_RESERVE` | `Float64` | 资本公积 |
+| 34 | `CIP` | `number` | `double` | `CIP` | `Float64` | 在建工程 |
+| 35 | `CONSUMPTIVE_BIOLOGICAL_ASSET` | `number` | `double` | `CONSUMPTIVE_BIOLOGICAL_ASSET` | `Float64` | 消耗性生物资产 |
+| 36 | `CONTRACT_ASSET` | `number` | `double` | `CONTRACT_ASSET` | `Float64` | 合同资产 |
+| 37 | `CONTRACT_LIAB` | `number` | `double` | `CONTRACT_LIAB` | `Float64` | 合同负债 |
+| 38 | `CONVERT_DIFF` | `number` | `double` | `CONVERT_DIFF` | `Float64` | 外币报表折算差额 |
+| 39 | `CREDITOR_INVEST` | `number` | `double` | `CREDITOR_INVEST` | `Float64` | 债权投资 |
+| 40 | `CURRENT_ASSET_BALANCE` | `number` | `double` | `CURRENT_ASSET_BALANCE` | `Float64` | 流动资产平衡项 |
+| 41 | `CURRENT_ASSET_OTHER` | `number` | `double` | `CURRENT_ASSET_OTHER` | `Float64` | 流动资产其他项 |
+| 42 | `CURRENT_LIAB_BALANCE` | `number` | `double` | `CURRENT_LIAB_BALANCE` | `Float64` | 流动负债平衡项 |
+| 43 | `CURRENT_LIAB_OTHER` | `number` | `double` | `CURRENT_LIAB_OTHER` | `Float64` | 流动负债其他项 |
+| 44 | `DEFER_INCOME` | `number` | `double` | `DEFER_INCOME` | `Float64` | 递延收益 |
+| 45 | `DEFER_INCOME_1YEAR` | `number` | `double` | `DEFER_INCOME_1YEAR` | `Float64` | 一年内到期递延收益 |
+| 46 | `DEFER_TAX_ASSET` | `number` | `double` | `DEFER_TAX_ASSET` | `Float64` | 递延所得税资产 |
+| 47 | `DEFER_TAX_LIAB` | `number` | `double` | `DEFER_TAX_LIAB` | `Float64` | 递延所得税负债 |
+| 48 | `DERIVE_FINASSET` | `number` | `double` | `DERIVE_FINASSET` | `Float64` | 衍生金融资产 |
+| 49 | `DERIVE_FINLIAB` | `number` | `double` | `DERIVE_FINLIAB` | `Float64` | 衍生金融负债 |
+| 50 | `DEVELOP_EXPENSE` | `number` | `double` | `DEVELOP_EXPENSE` | `Float64` | 开发支出 |
+| 51 | `DIV_HOLDSALE_ASSET` | `number` | `double` | `DIV_HOLDSALE_ASSET` | `Float64` | 持有待售资产（除） |
+| 52 | `DIV_HOLDSALE_LIAB` | `number` | `double` | `DIV_HOLDSALE_LIAB` | `Float64` | 持有待售负债（除） |
+| 53 | `DIVIDEND_PAYABLE` | `number` | `double` | `DIVIDEND_PAYABLE` | `Float64` | 应付股利 |
+| 54 | `DIVIDEND_RECE` | `number` | `double` | `DIVIDEND_RECE` | `Float64` | 应收股利 |
+| 55 | `EQUITY_BALANCE` | `number` | `double` | `EQUITY_BALANCE` | `Float64` | 所有者权益平衡项 |
+| 56 | `EQUITY_OTHER` | `number` | `double` | `EQUITY_OTHER` | `Float64` | 所有者权益其他项 |
+| 57 | `EXPORT_REFUND_RECE` | `number` | `double` | `EXPORT_REFUND_RECE` | `Float64` | 应收出口退税 |
+| 58 | `FEE_COMMISSION_PAYABLE` | `number` | `double` | `FEE_COMMISSION_PAYABLE` | `Float64` | 应付手续费及佣金 |
+| 59 | `FIN_FUND` | `number` | `double` | `FIN_FUND` | `Float64` | 金融往来资金 |
+| 60 | `FINANCE_RECE` | `number` | `double` | `FINANCE_RECE` | `Float64` | 金融应收款 |
+| 61 | `FIXED_ASSET` | `number` | `double` | `FIXED_ASSET` | `Float64` | 固定资产 |
+| 62 | `FIXED_ASSET_DISPOSAL` | `number` | `double` | `FIXED_ASSET_DISPOSAL` | `Float64` | 固定资产清理 |
+| 63 | `FVTOCI_FINASSET` | `number` | `double` | `FVTOCI_FINASSET` | `Float64` | 以公允价值计量且其变动计入其他综合收益的金融资产 |
+| 64 | `FVTOCI_NCFINASSET` | `number` | `double` | `FVTOCI_NCFINASSET` | `Float64` | 其他非流动金融资产（FVTOCI） |
+| 65 | `FVTPL_FINASSET` | `number` | `double` | `FVTPL_FINASSET` | `Float64` | 以公允价值计量且其变动计入当期损益的金融资产 |
+| 66 | `FVTPL_FINLIAB` | `number` | `double` | `FVTPL_FINLIAB` | `Float64` | 以公允价值计量且其变动计入当期损益的金融负债 |
+| 67 | `GENERAL_RISK_RESERVE` | `number` | `double` | `GENERAL_RISK_RESERVE` | `Float64` | 一般风险准备 |
+| 68 | `GOODWILL` | `number` | `double` | `GOODWILL` | `Float64` | 资产负债表披露的商誉金额。 |
+| 69 | `HOLD_MATURITY_INVEST` | `number` | `double` | `HOLD_MATURITY_INVEST` | `Float64` | 持有至到期投资 |
+| 70 | `HOLDSALE_ASSET` | `number` | `double` | `HOLDSALE_ASSET` | `Float64` | 持有待售资产 |
+| 71 | `HOLDSALE_LIAB` | `number` | `double` | `HOLDSALE_LIAB` | `Float64` | 持有待售负债 |
+| 72 | `INSURANCE_CONTRACT_RESERVE` | `number` | `double` | `INSURANCE_CONTRACT_RESERVE` | `Float64` | 保险合同准备金 |
+| 73 | `INTANGIBLE_ASSET` | `number` | `double` | `INTANGIBLE_ASSET` | `Float64` | 无形资产 |
+| 74 | `INTEREST_PAYABLE` | `number` | `double` | `INTEREST_PAYABLE` | `Float64` | 应付利息 |
+| 75 | `INTEREST_RECE` | `number` | `double` | `INTEREST_RECE` | `Float64` | 应收利息 |
+| 76 | `INTERNAL_PAYABLE` | `number` | `double` | `INTERNAL_PAYABLE` | `Float64` | 内部应付款 |
+| 77 | `INTERNAL_RECE` | `number` | `double` | `INTERNAL_RECE` | `Float64` | 内部应收款 |
+| 78 | `INVENTORY` | `number` | `double` | `INVENTORY` | `Float64` | 资产负债表披露的存货金额。 |
+| 79 | `INVEST_REALESTATE` | `number` | `double` | `INVEST_REALESTATE` | `Float64` | 投资性房地产 |
+| 80 | `LEASE_LIAB` | `number` | `double` | `LEASE_LIAB` | `Float64` | 租赁负债 |
+| 81 | `LEND_FUND` | `number` | `double` | `LEND_FUND` | `Float64` | 拆出资金 |
+| 82 | `LIAB_BALANCE` | `number` | `double` | `LIAB_BALANCE` | `Float64` | 负债平衡项 |
+| 83 | `LIAB_EQUITY_BALANCE` | `number` | `double` | `LIAB_EQUITY_BALANCE` | `Float64` | 负债和所有者权益平衡项 |
+| 84 | `LIAB_EQUITY_OTHER` | `number` | `double` | `LIAB_EQUITY_OTHER` | `Float64` | 负债和所有者权益其他项 |
+| 85 | `LIAB_OTHER` | `number` | `double` | `LIAB_OTHER` | `Float64` | 负债其他项 |
+| 86 | `LOAN_ADVANCE` | `number` | `double` | `LOAN_ADVANCE` | `Float64` | 发放贷款及垫款 |
+| 87 | `LOAN_PBC` | `number` | `double` | `LOAN_PBC` | `Float64` | 向央行借款 |
+| 88 | `LONG_EQUITY_INVEST` | `number` | `double` | `LONG_EQUITY_INVEST` | `Float64` | 长期股权投资 |
+| 89 | `LONG_LOAN` | `number` | `double` | `LONG_LOAN` | `Float64` | 长期借款 |
+| 90 | `LONG_PAYABLE` | `number` | `double` | `LONG_PAYABLE` | `Float64` | 长期应付款 |
+| 91 | `LONG_PREPAID_EXPENSE` | `number` | `double` | `LONG_PREPAID_EXPENSE` | `Float64` | 长期待摊费用 |
+| 92 | `LONG_RECE` | `number` | `double` | `LONG_RECE` | `Float64` | 长期应收款 |
+| 93 | `LONG_STAFFSALARY_PAYABLE` | `number` | `double` | `LONG_STAFFSALARY_PAYABLE` | `Float64` | 长期应付职工薪酬 |
+| 94 | `MINORITY_EQUITY` | `number` | `double` | `MINORITY_EQUITY` | `Float64` | 少数股东权益 |
+| 95 | `MONETARYFUNDS` | `number` | `double` | `MONETARYFUNDS` | `Float64` | 货币资金 |
+| 96 | `NONCURRENT_ASSET_1YEAR` | `number` | `double` | `NONCURRENT_ASSET_1YEAR` | `Float64` | 一年内到期的非流动资产 |
+| 97 | `NONCURRENT_ASSET_BALANCE` | `number` | `double` | `NONCURRENT_ASSET_BALANCE` | `Float64` | 非流动资产平衡项 |
+| 98 | `NONCURRENT_ASSET_OTHER` | `number` | `double` | `NONCURRENT_ASSET_OTHER` | `Float64` | 非流动资产其他项 |
+| 99 | `NONCURRENT_LIAB_1YEAR` | `number` | `double` | `NONCURRENT_LIAB_1YEAR` | `Float64` | 一年内到期的非流动负债 |
+| 100 | `NONCURRENT_LIAB_BALANCE` | `number` | `double` | `NONCURRENT_LIAB_BALANCE` | `Float64` | 非流动负债平衡项 |
+| 101 | `NONCURRENT_LIAB_OTHER` | `number` | `double` | `NONCURRENT_LIAB_OTHER` | `Float64` | 非流动负债其他项 |
+| 102 | `NOTE_ACCOUNTS_PAYABLE` | `number` | `double` | `NOTE_ACCOUNTS_PAYABLE` | `Float64` | 应付票据及应付账款 |
+| 103 | `NOTE_ACCOUNTS_RECE` | `number` | `double` | `NOTE_ACCOUNTS_RECE` | `Float64` | 应收票据及应收账款 |
+| 104 | `NOTE_PAYABLE` | `number` | `double` | `NOTE_PAYABLE` | `Float64` | 应付票据 |
+| 105 | `NOTE_RECE` | `number` | `double` | `NOTE_RECE` | `Float64` | 应收票据 |
+| 106 | `OIL_GAS_ASSET` | `number` | `double` | `OIL_GAS_ASSET` | `Float64` | 油气资产 |
+| 107 | `OTHER_COMPRE_INCOME` | `number` | `double` | `OTHER_COMPRE_INCOME` | `Float64` | 其他综合收益 |
+| 108 | `OTHER_CREDITOR_INVEST` | `number` | `double` | `OTHER_CREDITOR_INVEST` | `Float64` | 其他债权投资 |
+| 109 | `OTHER_CURRENT_ASSET` | `number` | `double` | `OTHER_CURRENT_ASSET` | `Float64` | 其他流动资产 |
+| 110 | `OTHER_CURRENT_LIAB` | `number` | `double` | `OTHER_CURRENT_LIAB` | `Float64` | 其他流动负债 |
+| 111 | `OTHER_EQUITY_INVEST` | `number` | `double` | `OTHER_EQUITY_INVEST` | `Float64` | 其他权益工具投资 |
+| 112 | `OTHER_EQUITY_OTHER` | `number` | `double` | `OTHER_EQUITY_OTHER` | `Float64` | 其他权益其他项 |
+| 113 | `OTHER_EQUITY_TOOL` | `number` | `double` | `OTHER_EQUITY_TOOL` | `Float64` | 其他权益工具 |
+| 114 | `OTHER_NONCURRENT_ASSET` | `number` | `double` | `OTHER_NONCURRENT_ASSET` | `Float64` | 其他非流动资产 |
+| 115 | `OTHER_NONCURRENT_FINASSET` | `number` | `double` | `OTHER_NONCURRENT_FINASSET` | `Float64` | 其他非流动金融资产 |
+| 116 | `OTHER_NONCURRENT_LIAB` | `number` | `double` | `OTHER_NONCURRENT_LIAB` | `Float64` | 其他非流动负债 |
+| 117 | `OTHER_PAYABLE` | `number` | `double` | `OTHER_PAYABLE` | `Float64` | 其他应付款 |
+| 118 | `OTHER_RECE` | `number` | `double` | `OTHER_RECE` | `Float64` | 其他应收款 |
+| 119 | `PARENT_EQUITY_BALANCE` | `number` | `double` | `PARENT_EQUITY_BALANCE` | `Float64` | 归母权益平衡项 |
+| 120 | `PARENT_EQUITY_OTHER` | `number` | `double` | `PARENT_EQUITY_OTHER` | `Float64` | 归母权益其他项 |
+| 121 | `PERPETUAL_BOND` | `number` | `double` | `PERPETUAL_BOND` | `Float64` | 永续债 |
+| 122 | `PERPETUAL_BOND_PAYBALE` | `number` | `double` | `PERPETUAL_BOND_PAYBALE` | `Float64` | 永续债（负债端） |
+| 123 | `PREDICT_CURRENT_LIAB` | `number` | `double` | `PREDICT_CURRENT_LIAB` | `Float64` | 预计流动负债 |
+| 124 | `PREDICT_LIAB` | `number` | `double` | `PREDICT_LIAB` | `Float64` | 预计负债 |
+| 125 | `PREFERRED_SHARES` | `number` | `double` | `PREFERRED_SHARES` | `Float64` | 优先股 |
+| 126 | `PREFERRED_SHARES_PAYBALE` | `number` | `double` | `PREFERRED_SHARES_PAYBALE` | `Float64` | 应付优先股 |
+| 127 | `PREMIUM_RECE` | `number` | `double` | `PREMIUM_RECE` | `Float64` | 预收保费 |
+| 128 | `PREPAYMENT` | `number` | `double` | `PREPAYMENT` | `Float64` | 预付款项 |
+| 129 | `PRODUCTIVE_BIOLOGY_ASSET` | `number` | `double` | `PRODUCTIVE_BIOLOGY_ASSET` | `Float64` | 生产性生物资产 |
+| 130 | `PROJECT_MATERIAL` | `number` | `double` | `PROJECT_MATERIAL` | `Float64` | 工程物资 |
+| 131 | `RC_RESERVE_RECE` | `number` | `double` | `RC_RESERVE_RECE` | `Float64` | 再保合同应收准备金 |
+| 132 | `REINSURE_PAYABLE` | `number` | `double` | `REINSURE_PAYABLE` | `Float64` | 应付再保款 |
+| 133 | `REINSURE_RECE` | `number` | `double` | `REINSURE_RECE` | `Float64` | 应收再保款 |
+| 134 | `SELL_REPO_FINASSET` | `number` | `double` | `SELL_REPO_FINASSET` | `Float64` | 卖出回购金融资产款 |
+| 135 | `SETTLE_EXCESS_RESERVE` | `number` | `double` | `SETTLE_EXCESS_RESERVE` | `Float64` | 清算备付金 |
+| 136 | `SHARE_CAPITAL` | `number` | `double` | `SHARE_CAPITAL` | `Float64` | 实收资本（股本） |
+| 137 | `SHORT_BOND_PAYABLE` | `number` | `double` | `SHORT_BOND_PAYABLE` | `Float64` | 短期应付债券 |
+| 138 | `SHORT_FIN_PAYABLE` | `number` | `double` | `SHORT_FIN_PAYABLE` | `Float64` | 短期金融负债 |
+| 139 | `SHORT_LOAN` | `number` | `double` | `SHORT_LOAN` | `Float64` | 短期借款 |
+| 140 | `SPECIAL_PAYABLE` | `number` | `double` | `SPECIAL_PAYABLE` | `Float64` | 专项应付款 |
+| 141 | `SPECIAL_RESERVE` | `number` | `double` | `SPECIAL_RESERVE` | `Float64` | 专项储备 |
+| 142 | `STAFF_SALARY_PAYABLE` | `number` | `double` | `STAFF_SALARY_PAYABLE` | `Float64` | 应付职工薪酬 |
+| 143 | `SUBSIDY_RECE` | `number` | `double` | `SUBSIDY_RECE` | `Float64` | 应收补贴 |
+| 144 | `SURPLUS_RESERVE` | `number` | `double` | `SURPLUS_RESERVE` | `Float64` | 盈余公积 |
+| 145 | `TAX_PAYABLE` | `number` | `double` | `TAX_PAYABLE` | `Float64` | 应交税费 |
+| 146 | `TOTAL_ASSETS` | `number` | `double` | `TOTAL_ASSETS` | `Float64` | 资产总计 |
+| 147 | `TOTAL_CURRENT_ASSETS` | `number` | `double` | `TOTAL_CURRENT_ASSETS` | `Float64` | 流动资产合计 |
+| 148 | `TOTAL_CURRENT_LIAB` | `number` | `double` | `TOTAL_CURRENT_LIAB` | `Float64` | 流动负债合计 |
+| 149 | `TOTAL_EQUITY` | `number` | `double` | `TOTAL_EQUITY` | `Float64` | 所有者权益合计 |
+| 150 | `TOTAL_LIAB_EQUITY` | `number` | `double` | `TOTAL_LIAB_EQUITY` | `Float64` | 负债和所有者权益总计 |
+| 151 | `TOTAL_LIABILITIES` | `number` | `double` | `TOTAL_LIABILITIES` | `Float64` | 负债合计 |
+| 152 | `TOTAL_NONCURRENT_ASSETS` | `number` | `double` | `TOTAL_NONCURRENT_ASSETS` | `Float64` | 非流动资产合计 |
+| 153 | `TOTAL_NONCURRENT_LIAB` | `number` | `double` | `TOTAL_NONCURRENT_LIAB` | `Float64` | 非流动负债合计 |
+| 154 | `TOTAL_OTHER_PAYABLE` | `number` | `double` | `TOTAL_OTHER_PAYABLE` | `Float64` | 其他应付款合计 |
+| 155 | `TOTAL_OTHER_RECE` | `number` | `double` | `TOTAL_OTHER_RECE` | `Float64` | 其他应收款合计 |
+| 156 | `TOTAL_PARENT_EQUITY` | `number` | `double` | `TOTAL_PARENT_EQUITY` | `Float64` | 归属于母公司股东权益合计 |
+| 157 | `TRADE_FINASSET` | `number` | `double` | `TRADE_FINASSET` | `Float64` | 交易性金融资产 |
+| 158 | `TRADE_FINASSET_NOTFVTPL` | `number` | `double` | `TRADE_FINASSET_NOTFVTPL` | `Float64` | 非FVTPL交易性金融资产 |
+| 159 | `TRADE_FINLIAB` | `number` | `double` | `TRADE_FINLIAB` | `Float64` | 交易性金融负债 |
+| 160 | `TRADE_FINLIAB_NOTFVTPL` | `number` | `double` | `TRADE_FINLIAB_NOTFVTPL` | `Float64` | 非FVTPL交易性金融负债 |
+| 161 | `TREASURY_SHARES` | `number` | `double` | `TREASURY_SHARES` | `Float64` | 库存股 |
+| 162 | `UNASSIGN_RPOFIT` | `number` | `double` | `UNASSIGN_RPOFIT` | `Float64` | 未分配利润 |
+| 163 | `UNCONFIRM_INVEST_LOSS` | `number` | `double` | `UNCONFIRM_INVEST_LOSS` | `Float64` | 未确认投资损失 |
+| 164 | `USERIGHT_ASSET` | `number` | `double` | `USERIGHT_ASSET` | `Float64` | 使用权资产 |
+| 165 | `ACCEPT_DEPOSIT_INTERBANK_YOY` | `number` | `double` | `ACCEPT_DEPOSIT_INTERBANK_YOY` | `Float64` | 同业存放同比增长率（%） |
+| 166 | `ACCOUNTS_PAYABLE_YOY` | `number` | `double` | `ACCOUNTS_PAYABLE_YOY` | `Float64` | 应付账款同比增长率（%） |
+| 167 | `ACCOUNTS_RECE_YOY` | `number` | `double` | `ACCOUNTS_RECE_YOY` | `Float64` | 应收账款同比增长率（%） |
+| 168 | `ACCRUED_EXPENSE_YOY` | `number` | `double` | `ACCRUED_EXPENSE_YOY` | `Float64` | 预提费用同比增长率（%） |
+| 169 | `ADVANCE_RECEIVABLES_YOY` | `number` | `double` | `ADVANCE_RECEIVABLES_YOY` | `Float64` | 预收款项同比增长率（%） |
+| 170 | `AGENT_TRADE_SECURITY_YOY` | `number` | `double` | `AGENT_TRADE_SECURITY_YOY` | `Float64` | 代理买卖证券款同比增长率（%） |
+| 171 | `AGENT_UNDERWRITE_SECURITY_YOY` | `number` | `double` | `AGENT_UNDERWRITE_SECURITY_YOY` | `Float64` | 代理承销证券款同比增长率（%） |
+| 172 | `AMORTIZE_COST_FINASSET_YOY` | `number` | `double` | `AMORTIZE_COST_FINASSET_YOY` | `Float64` | 以摊余成本计量的金融资产同比增长率（%） |
+| 173 | `AMORTIZE_COST_FINLIAB_YOY` | `number` | `double` | `AMORTIZE_COST_FINLIAB_YOY` | `Float64` | 以摊余成本计量的金融负债同比增长率（%） |
+| 174 | `AMORTIZE_COST_NCFINASSET_YOY` | `number` | `double` | `AMORTIZE_COST_NCFINASSET_YOY` | `Float64` | 非流动金融资产（摊余成本）同比增长率（%） |
+| 175 | `AMORTIZE_COST_NCFINLIAB_YOY` | `number` | `double` | `AMORTIZE_COST_NCFINLIAB_YOY` | `Float64` | 非流动金融负债（摊余成本）同比增长率（%） |
+| 176 | `APPOINT_FVTPL_FINASSET_YOY` | `number` | `double` | `APPOINT_FVTPL_FINASSET_YOY` | `Float64` | 指定为FVTPL的金融资产同比增长率（%） |
+| 177 | `APPOINT_FVTPL_FINLIAB_YOY` | `number` | `double` | `APPOINT_FVTPL_FINLIAB_YOY` | `Float64` | 指定为FVTPL的金融负债同比增长率（%） |
+| 178 | `ASSET_BALANCE_YOY` | `number` | `double` | `ASSET_BALANCE_YOY` | `Float64` | 资产平衡项同比增长率（%） |
+| 179 | `ASSET_OTHER_YOY` | `number` | `double` | `ASSET_OTHER_YOY` | `Float64` | 资产其他项同比增长率（%） |
+| 180 | `ASSIGN_CASH_DIVIDEND_YOY` | `number` | `double` | `ASSIGN_CASH_DIVIDEND_YOY` | `Float64` | 应付现金股利同比增长率（%） |
+| 181 | `AVAILABLE_SALE_FINASSET_YOY` | `number` | `double` | `AVAILABLE_SALE_FINASSET_YOY` | `Float64` | 可供出售金融资产同比增长率（%） |
+| 182 | `BOND_PAYABLE_YOY` | `number` | `double` | `BOND_PAYABLE_YOY` | `Float64` | 应付债券同比增长率（%） |
+| 183 | `BORROW_FUND_YOY` | `number` | `double` | `BORROW_FUND_YOY` | `Float64` | 拆入资金同比增长率（%） |
+| 184 | `BUY_RESALE_FINASSET_YOY` | `number` | `double` | `BUY_RESALE_FINASSET_YOY` | `Float64` | 买入返售金融资产同比增长率（%） |
+| 185 | `CAPITAL_RESERVE_YOY` | `number` | `double` | `CAPITAL_RESERVE_YOY` | `Float64` | 资本公积同比增长率（%） |
+| 186 | `CIP_YOY` | `number` | `double` | `CIP_YOY` | `Float64` | 在建工程同比增长率（%） |
+| 187 | `CONSUMPTIVE_BIOLOGICAL_ASSET_YOY` | `number` | `double` | `CONSUMPTIVE_BIOLOGICAL_ASSET_YOY` | `Float64` | 消耗性生物资产同比增长率（%） |
+| 188 | `CONTRACT_ASSET_YOY` | `number` | `double` | `CONTRACT_ASSET_YOY` | `Float64` | 合同资产同比增长率（%） |
+| 189 | `CONTRACT_LIAB_YOY` | `number` | `double` | `CONTRACT_LIAB_YOY` | `Float64` | 合同负债同比增长率（%） |
+| 190 | `CONVERT_DIFF_YOY` | `number` | `double` | `CONVERT_DIFF_YOY` | `Float64` | 外币报表折算差额同比增长率（%） |
+| 191 | `CREDITOR_INVEST_YOY` | `number` | `double` | `CREDITOR_INVEST_YOY` | `Float64` | 债权投资同比增长率（%） |
+| 192 | `CURRENT_ASSET_BALANCE_YOY` | `number` | `double` | `CURRENT_ASSET_BALANCE_YOY` | `Float64` | 流动资产平衡项同比增长率（%） |
+| 193 | `CURRENT_ASSET_OTHER_YOY` | `number` | `double` | `CURRENT_ASSET_OTHER_YOY` | `Float64` | 流动资产其他项同比增长率（%） |
+| 194 | `CURRENT_LIAB_BALANCE_YOY` | `number` | `double` | `CURRENT_LIAB_BALANCE_YOY` | `Float64` | 流动负债平衡项同比增长率（%） |
+| 195 | `CURRENT_LIAB_OTHER_YOY` | `number` | `double` | `CURRENT_LIAB_OTHER_YOY` | `Float64` | 流动负债其他项同比增长率（%） |
+| 196 | `DEFER_INCOME_1YEAR_YOY` | `number` | `double` | `DEFER_INCOME_1YEAR_YOY` | `Float64` | 一年内到期递延收益同比增长率（%） |
+| 197 | `DEFER_INCOME_YOY` | `number` | `double` | `DEFER_INCOME_YOY` | `Float64` | 递延收益同比增长率（%） |
+| 198 | `DEFER_TAX_ASSET_YOY` | `number` | `double` | `DEFER_TAX_ASSET_YOY` | `Float64` | 递延所得税资产同比增长率（%） |
+| 199 | `DEFER_TAX_LIAB_YOY` | `number` | `double` | `DEFER_TAX_LIAB_YOY` | `Float64` | 递延所得税负债同比增长率（%） |
+| 200 | `DERIVE_FINASSET_YOY` | `number` | `double` | `DERIVE_FINASSET_YOY` | `Float64` | 衍生金融资产同比增长率（%） |
+| 201 | `DERIVE_FINLIAB_YOY` | `number` | `double` | `DERIVE_FINLIAB_YOY` | `Float64` | 衍生金融负债同比增长率（%） |
+| 202 | `DEVELOP_EXPENSE_YOY` | `number` | `double` | `DEVELOP_EXPENSE_YOY` | `Float64` | 开发支出同比增长率（%） |
+| 203 | `DIV_HOLDSALE_ASSET_YOY` | `number` | `double` | `DIV_HOLDSALE_ASSET_YOY` | `Float64` | 持有待售资产（除）同比增长率（%） |
+| 204 | `DIV_HOLDSALE_LIAB_YOY` | `number` | `double` | `DIV_HOLDSALE_LIAB_YOY` | `Float64` | 持有待售负债（除）同比增长率（%） |
+| 205 | `DIVIDEND_PAYABLE_YOY` | `number` | `double` | `DIVIDEND_PAYABLE_YOY` | `Float64` | 应付股利同比增长率（%） |
+| 206 | `DIVIDEND_RECE_YOY` | `number` | `double` | `DIVIDEND_RECE_YOY` | `Float64` | 应收股利同比增长率（%） |
+| 207 | `EQUITY_BALANCE_YOY` | `number` | `double` | `EQUITY_BALANCE_YOY` | `Float64` | 所有者权益平衡项同比增长率（%） |
+| 208 | `EQUITY_OTHER_YOY` | `number` | `double` | `EQUITY_OTHER_YOY` | `Float64` | 所有者权益其他项同比增长率（%） |
+| 209 | `EXPORT_REFUND_RECE_YOY` | `number` | `double` | `EXPORT_REFUND_RECE_YOY` | `Float64` | 应收出口退税同比增长率（%） |
+| 210 | `FEE_COMMISSION_PAYABLE_YOY` | `number` | `double` | `FEE_COMMISSION_PAYABLE_YOY` | `Float64` | 应付手续费及佣金同比增长率（%） |
+| 211 | `FIN_FUND_YOY` | `number` | `double` | `FIN_FUND_YOY` | `Float64` | 金融往来资金同比增长率（%） |
+| 212 | `FINANCE_RECE_YOY` | `number` | `double` | `FINANCE_RECE_YOY` | `Float64` | 金融应收款同比增长率（%） |
+| 213 | `FIXED_ASSET_DISPOSAL_YOY` | `number` | `double` | `FIXED_ASSET_DISPOSAL_YOY` | `Float64` | 固定资产清理同比增长率（%） |
+| 214 | `FIXED_ASSET_YOY` | `number` | `double` | `FIXED_ASSET_YOY` | `Float64` | 固定资产同比增长率（%） |
+| 215 | `FVTOCI_FINASSET_YOY` | `number` | `double` | `FVTOCI_FINASSET_YOY` | `Float64` | 以公允价值计量且其变动计入其他综合收益的金融资产同比增长率（%） |
+| 216 | `FVTOCI_NCFINASSET_YOY` | `number` | `double` | `FVTOCI_NCFINASSET_YOY` | `Float64` | 其他非流动金融资产（FVTOCI）同比增长率（%） |
+| 217 | `FVTPL_FINASSET_YOY` | `number` | `double` | `FVTPL_FINASSET_YOY` | `Float64` | 以公允价值计量且其变动计入当期损益的金融资产同比增长率（%） |
+| 218 | `FVTPL_FINLIAB_YOY` | `number` | `double` | `FVTPL_FINLIAB_YOY` | `Float64` | 以公允价值计量且其变动计入当期损益的金融负债同比增长率（%） |
+| 219 | `GENERAL_RISK_RESERVE_YOY` | `number` | `double` | `GENERAL_RISK_RESERVE_YOY` | `Float64` | 一般风险准备同比增长率（%） |
+| 220 | `GOODWILL_YOY` | `number` | `double` | `GOODWILL_YOY` | `Float64` | 商誉同比增长率（%） |
+| 221 | `HOLD_MATURITY_INVEST_YOY` | `number` | `double` | `HOLD_MATURITY_INVEST_YOY` | `Float64` | 持有至到期投资同比增长率（%） |
+| 222 | `HOLDSALE_ASSET_YOY` | `number` | `double` | `HOLDSALE_ASSET_YOY` | `Float64` | 持有待售资产同比增长率（%） |
+| 223 | `HOLDSALE_LIAB_YOY` | `number` | `double` | `HOLDSALE_LIAB_YOY` | `Float64` | 持有待售负债同比增长率（%） |
+| 224 | `INSURANCE_CONTRACT_RESERVE_YOY` | `number` | `double` | `INSURANCE_CONTRACT_RESERVE_YOY` | `Float64` | 保险合同准备金同比增长率（%） |
+| 225 | `INTANGIBLE_ASSET_YOY` | `number` | `double` | `INTANGIBLE_ASSET_YOY` | `Float64` | 无形资产同比增长率（%） |
+| 226 | `INTEREST_PAYABLE_YOY` | `number` | `double` | `INTEREST_PAYABLE_YOY` | `Float64` | 应付利息同比增长率（%） |
+| 227 | `INTEREST_RECE_YOY` | `number` | `double` | `INTEREST_RECE_YOY` | `Float64` | 应收利息同比增长率（%） |
+| 228 | `INTERNAL_PAYABLE_YOY` | `number` | `double` | `INTERNAL_PAYABLE_YOY` | `Float64` | 内部应付款同比增长率（%） |
+| 229 | `INTERNAL_RECE_YOY` | `number` | `double` | `INTERNAL_RECE_YOY` | `Float64` | 内部应收款同比增长率（%） |
+| 230 | `INVENTORY_YOY` | `number` | `double` | `INVENTORY_YOY` | `Float64` | 存货同比增长率（%） |
+| 231 | `INVEST_REALESTATE_YOY` | `number` | `double` | `INVEST_REALESTATE_YOY` | `Float64` | 投资性房地产同比增长率（%） |
+| 232 | `LEASE_LIAB_YOY` | `number` | `double` | `LEASE_LIAB_YOY` | `Float64` | 租赁负债同比增长率（%） |
+| 233 | `LEND_FUND_YOY` | `number` | `double` | `LEND_FUND_YOY` | `Float64` | 拆出资金同比增长率（%） |
+| 234 | `LIAB_BALANCE_YOY` | `number` | `double` | `LIAB_BALANCE_YOY` | `Float64` | 负债平衡项同比增长率（%） |
+| 235 | `LIAB_EQUITY_BALANCE_YOY` | `number` | `double` | `LIAB_EQUITY_BALANCE_YOY` | `Float64` | 负债和所有者权益平衡项同比增长率（%） |
+| 236 | `LIAB_EQUITY_OTHER_YOY` | `number` | `double` | `LIAB_EQUITY_OTHER_YOY` | `Float64` | 负债和所有者权益其他项同比增长率（%） |
+| 237 | `LIAB_OTHER_YOY` | `number` | `double` | `LIAB_OTHER_YOY` | `Float64` | 负债其他项同比增长率（%） |
+| 238 | `LOAN_ADVANCE_YOY` | `number` | `double` | `LOAN_ADVANCE_YOY` | `Float64` | 发放贷款及垫款同比增长率（%） |
+| 239 | `LOAN_PBC_YOY` | `number` | `double` | `LOAN_PBC_YOY` | `Float64` | 向央行借款同比增长率（%） |
+| 240 | `LONG_EQUITY_INVEST_YOY` | `number` | `double` | `LONG_EQUITY_INVEST_YOY` | `Float64` | 长期股权投资同比增长率（%） |
+| 241 | `LONG_LOAN_YOY` | `number` | `double` | `LONG_LOAN_YOY` | `Float64` | 长期借款同比增长率（%） |
+| 242 | `LONG_PAYABLE_YOY` | `number` | `double` | `LONG_PAYABLE_YOY` | `Float64` | 长期应付款同比增长率（%） |
+| 243 | `LONG_PREPAID_EXPENSE_YOY` | `number` | `double` | `LONG_PREPAID_EXPENSE_YOY` | `Float64` | 长期待摊费用同比增长率（%） |
+| 244 | `LONG_RECE_YOY` | `number` | `double` | `LONG_RECE_YOY` | `Float64` | 长期应收款同比增长率（%） |
+| 245 | `LONG_STAFFSALARY_PAYABLE_YOY` | `number` | `double` | `LONG_STAFFSALARY_PAYABLE_YOY` | `Float64` | 长期应付职工薪酬同比增长率（%） |
+| 246 | `MINORITY_EQUITY_YOY` | `number` | `double` | `MINORITY_EQUITY_YOY` | `Float64` | 少数股东权益同比增长率（%） |
+| 247 | `MONETARYFUNDS_YOY` | `number` | `double` | `MONETARYFUNDS_YOY` | `Float64` | 货币资金同比增长率（%） |
+| 248 | `NONCURRENT_ASSET_1YEAR_YOY` | `number` | `double` | `NONCURRENT_ASSET_1YEAR_YOY` | `Float64` | 一年内到期的非流动资产同比增长率（%） |
+| 249 | `NONCURRENT_ASSET_BALANCE_YOY` | `number` | `double` | `NONCURRENT_ASSET_BALANCE_YOY` | `Float64` | 非流动资产平衡项同比增长率（%） |
+| 250 | `NONCURRENT_ASSET_OTHER_YOY` | `number` | `double` | `NONCURRENT_ASSET_OTHER_YOY` | `Float64` | 非流动资产其他项同比增长率（%） |
+| 251 | `NONCURRENT_LIAB_1YEAR_YOY` | `number` | `double` | `NONCURRENT_LIAB_1YEAR_YOY` | `Float64` | 一年内到期的非流动负债同比增长率（%） |
+| 252 | `NONCURRENT_LIAB_BALANCE_YOY` | `number` | `double` | `NONCURRENT_LIAB_BALANCE_YOY` | `Float64` | 非流动负债平衡项同比增长率（%） |
+| 253 | `NONCURRENT_LIAB_OTHER_YOY` | `number` | `double` | `NONCURRENT_LIAB_OTHER_YOY` | `Float64` | 非流动负债其他项同比增长率（%） |
+| 254 | `NOTE_ACCOUNTS_PAYABLE_YOY` | `number` | `double` | `NOTE_ACCOUNTS_PAYABLE_YOY` | `Float64` | 应付票据及应付账款同比增长率（%） |
+| 255 | `NOTE_ACCOUNTS_RECE_YOY` | `number` | `double` | `NOTE_ACCOUNTS_RECE_YOY` | `Float64` | 应收票据及应收账款同比增长率（%） |
+| 256 | `NOTE_PAYABLE_YOY` | `number` | `double` | `NOTE_PAYABLE_YOY` | `Float64` | 应付票据同比增长率（%） |
+| 257 | `NOTE_RECE_YOY` | `number` | `double` | `NOTE_RECE_YOY` | `Float64` | 应收票据同比增长率（%） |
+| 258 | `OIL_GAS_ASSET_YOY` | `number` | `double` | `OIL_GAS_ASSET_YOY` | `Float64` | 油气资产同比增长率（%） |
+| 259 | `OTHER_COMPRE_INCOME_YOY` | `number` | `double` | `OTHER_COMPRE_INCOME_YOY` | `Float64` | 其他综合收益总额同比增长率（%） |
+| 260 | `OTHER_CREDITOR_INVEST_YOY` | `number` | `double` | `OTHER_CREDITOR_INVEST_YOY` | `Float64` | 其他债权投资同比增长率（%） |
+| 261 | `OTHER_CURRENT_ASSET_YOY` | `number` | `double` | `OTHER_CURRENT_ASSET_YOY` | `Float64` | 其他流动资产同比增长率（%） |
+| 262 | `OTHER_CURRENT_LIAB_YOY` | `number` | `double` | `OTHER_CURRENT_LIAB_YOY` | `Float64` | 其他流动负债同比增长率（%） |
+| 263 | `OTHER_EQUITY_INVEST_YOY` | `number` | `double` | `OTHER_EQUITY_INVEST_YOY` | `Float64` | 其他权益工具投资同比增长率（%） |
+| 264 | `OTHER_EQUITY_OTHER_YOY` | `number` | `double` | `OTHER_EQUITY_OTHER_YOY` | `Float64` | 其他权益其他项同比增长率（%） |
+| 265 | `OTHER_EQUITY_TOOL_YOY` | `number` | `double` | `OTHER_EQUITY_TOOL_YOY` | `Float64` | 其他权益工具同比增长率（%） |
+| 266 | `OTHER_NONCURRENT_ASSET_YOY` | `number` | `double` | `OTHER_NONCURRENT_ASSET_YOY` | `Float64` | 其他非流动资产同比增长率（%） |
+| 267 | `OTHER_NONCURRENT_FINASSET_YOY` | `number` | `double` | `OTHER_NONCURRENT_FINASSET_YOY` | `Float64` | 其他非流动金融资产同比增长率（%） |
+| 268 | `OTHER_NONCURRENT_LIAB_YOY` | `number` | `double` | `OTHER_NONCURRENT_LIAB_YOY` | `Float64` | 其他非流动负债同比增长率（%） |
+| 269 | `OTHER_PAYABLE_YOY` | `number` | `double` | `OTHER_PAYABLE_YOY` | `Float64` | 其他应付款同比增长率（%） |
+| 270 | `OTHER_RECE_YOY` | `number` | `double` | `OTHER_RECE_YOY` | `Float64` | 其他应收款同比增长率（%） |
+| 271 | `PARENT_EQUITY_BALANCE_YOY` | `number` | `double` | `PARENT_EQUITY_BALANCE_YOY` | `Float64` | 归母权益平衡项同比增长率（%） |
+| 272 | `PARENT_EQUITY_OTHER_YOY` | `number` | `double` | `PARENT_EQUITY_OTHER_YOY` | `Float64` | 归母权益其他项同比增长率（%） |
+| 273 | `PERPETUAL_BOND_PAYBALE_YOY` | `number` | `double` | `PERPETUAL_BOND_PAYBALE_YOY` | `Float64` | 永续债（负债端）同比增长率（%） |
+| 274 | `PERPETUAL_BOND_YOY` | `number` | `double` | `PERPETUAL_BOND_YOY` | `Float64` | 永续债同比增长率（%） |
+| 275 | `PREDICT_CURRENT_LIAB_YOY` | `number` | `double` | `PREDICT_CURRENT_LIAB_YOY` | `Float64` | 预计流动负债同比增长率（%） |
+| 276 | `PREDICT_LIAB_YOY` | `number` | `double` | `PREDICT_LIAB_YOY` | `Float64` | 预计负债同比增长率（%） |
+| 277 | `PREFERRED_SHARES_PAYBALE_YOY` | `number` | `double` | `PREFERRED_SHARES_PAYBALE_YOY` | `Float64` | 应付优先股同比增长率（%） |
+| 278 | `PREFERRED_SHARES_YOY` | `number` | `double` | `PREFERRED_SHARES_YOY` | `Float64` | 优先股同比增长率（%） |
+| 279 | `PREMIUM_RECE_YOY` | `number` | `double` | `PREMIUM_RECE_YOY` | `Float64` | 预收保费同比增长率（%） |
+| 280 | `PREPAYMENT_YOY` | `number` | `double` | `PREPAYMENT_YOY` | `Float64` | 预付款项同比增长率（%） |
+| 281 | `PRODUCTIVE_BIOLOGY_ASSET_YOY` | `number` | `double` | `PRODUCTIVE_BIOLOGY_ASSET_YOY` | `Float64` | 生产性生物资产同比增长率（%） |
+| 282 | `PROJECT_MATERIAL_YOY` | `number` | `double` | `PROJECT_MATERIAL_YOY` | `Float64` | 工程物资同比增长率（%） |
+| 283 | `RC_RESERVE_RECE_YOY` | `number` | `double` | `RC_RESERVE_RECE_YOY` | `Float64` | 再保合同应收准备金同比增长率（%） |
+| 284 | `REINSURE_PAYABLE_YOY` | `number` | `double` | `REINSURE_PAYABLE_YOY` | `Float64` | 应付再保款同比增长率（%） |
+| 285 | `REINSURE_RECE_YOY` | `number` | `double` | `REINSURE_RECE_YOY` | `Float64` | 应收再保款同比增长率（%） |
+| 286 | `SELL_REPO_FINASSET_YOY` | `number` | `double` | `SELL_REPO_FINASSET_YOY` | `Float64` | 卖出回购金融资产款同比增长率（%） |
+| 287 | `SETTLE_EXCESS_RESERVE_YOY` | `number` | `double` | `SETTLE_EXCESS_RESERVE_YOY` | `Float64` | 清算备付金同比增长率（%） |
+| 288 | `SHARE_CAPITAL_YOY` | `number` | `double` | `SHARE_CAPITAL_YOY` | `Float64` | 实收资本（股本）同比增长率（%） |
+| 289 | `SHORT_BOND_PAYABLE_YOY` | `number` | `double` | `SHORT_BOND_PAYABLE_YOY` | `Float64` | 短期应付债券同比增长率（%） |
+| 290 | `SHORT_FIN_PAYABLE_YOY` | `number` | `double` | `SHORT_FIN_PAYABLE_YOY` | `Float64` | 短期金融负债同比增长率（%） |
+| 291 | `SHORT_LOAN_YOY` | `number` | `double` | `SHORT_LOAN_YOY` | `Float64` | 短期借款同比增长率（%） |
+| 292 | `SPECIAL_PAYABLE_YOY` | `number` | `double` | `SPECIAL_PAYABLE_YOY` | `Float64` | 专项应付款同比增长率（%） |
+| 293 | `SPECIAL_RESERVE_YOY` | `number` | `double` | `SPECIAL_RESERVE_YOY` | `Float64` | 专项储备同比增长率（%） |
+| 294 | `STAFF_SALARY_PAYABLE_YOY` | `number` | `double` | `STAFF_SALARY_PAYABLE_YOY` | `Float64` | 应付职工薪酬同比增长率（%） |
+| 295 | `SUBSIDY_RECE_YOY` | `number` | `double` | `SUBSIDY_RECE_YOY` | `Float64` | 应收补贴同比增长率（%） |
+| 296 | `SURPLUS_RESERVE_YOY` | `number` | `double` | `SURPLUS_RESERVE_YOY` | `Float64` | 盈余公积同比增长率（%） |
+| 297 | `TAX_PAYABLE_YOY` | `number` | `double` | `TAX_PAYABLE_YOY` | `Float64` | 应交税费同比增长率（%） |
+| 298 | `TOTAL_ASSETS_YOY` | `number` | `double` | `TOTAL_ASSETS_YOY` | `Float64` | 资产总计同比增长率（%） |
+| 299 | `TOTAL_CURRENT_ASSETS_YOY` | `number` | `double` | `TOTAL_CURRENT_ASSETS_YOY` | `Float64` | 流动资产合计同比增长率（%） |
+| 300 | `TOTAL_CURRENT_LIAB_YOY` | `number` | `double` | `TOTAL_CURRENT_LIAB_YOY` | `Float64` | 流动负债合计同比增长率（%） |
+| 301 | `TOTAL_EQUITY_YOY` | `number` | `double` | `TOTAL_EQUITY_YOY` | `Float64` | 所有者权益合计同比增长率（%） |
+| 302 | `TOTAL_LIAB_EQUITY_YOY` | `number` | `double` | `TOTAL_LIAB_EQUITY_YOY` | `Float64` | 负债和所有者权益总计同比增长率（%） |
+| 303 | `TOTAL_LIABILITIES_YOY` | `number` | `double` | `TOTAL_LIABILITIES_YOY` | `Float64` | 负债合计同比增长率（%） |
+| 304 | `TOTAL_NONCURRENT_ASSETS_YOY` | `number` | `double` | `TOTAL_NONCURRENT_ASSETS_YOY` | `Float64` | 非流动资产合计同比增长率（%） |
+| 305 | `TOTAL_NONCURRENT_LIAB_YOY` | `number` | `double` | `TOTAL_NONCURRENT_LIAB_YOY` | `Float64` | 非流动负债合计同比增长率（%） |
+| 306 | `TOTAL_OTHER_PAYABLE_YOY` | `number` | `double` | `TOTAL_OTHER_PAYABLE_YOY` | `Float64` | 其他应付款合计同比增长率（%） |
+| 307 | `TOTAL_OTHER_RECE_YOY` | `number` | `double` | `TOTAL_OTHER_RECE_YOY` | `Float64` | 其他应收款合计同比增长率（%） |
+| 308 | `TOTAL_PARENT_EQUITY_YOY` | `number` | `double` | `TOTAL_PARENT_EQUITY_YOY` | `Float64` | 归属于母公司股东权益合计同比增长率（%） |
+| 309 | `TRADE_FINASSET_NOTFVTPL_YOY` | `number` | `double` | `TRADE_FINASSET_NOTFVTPL_YOY` | `Float64` | 非FVTPL交易性金融资产同比增长率（%） |
+| 310 | `TRADE_FINASSET_YOY` | `number` | `double` | `TRADE_FINASSET_YOY` | `Float64` | 交易性金融资产同比增长率（%） |
+| 311 | `TRADE_FINLIAB_NOTFVTPL_YOY` | `number` | `double` | `TRADE_FINLIAB_NOTFVTPL_YOY` | `Float64` | 非FVTPL交易性金融负债同比增长率（%） |
+| 312 | `TRADE_FINLIAB_YOY` | `number` | `double` | `TRADE_FINLIAB_YOY` | `Float64` | 交易性金融负债同比增长率（%） |
+| 313 | `TREASURY_SHARES_YOY` | `number` | `double` | `TREASURY_SHARES_YOY` | `Float64` | 库存股同比增长率（%） |
+| 314 | `UNASSIGN_RPOFIT_YOY` | `number` | `double` | `UNASSIGN_RPOFIT_YOY` | `Float64` | 未分配利润同比增长率（%） |
+| 315 | `UNCONFIRM_INVEST_LOSS_YOY` | `number` | `double` | `UNCONFIRM_INVEST_LOSS_YOY` | `Float64` | 未确认投资损失同比增长率（%） |
+| 316 | `USERIGHT_ASSET_YOY` | `number` | `double` | `USERIGHT_ASSET_YOY` | `Float64` | 使用权资产同比增长率（%） |
+| 317 | `OPINION_TYPE` | `string` | `string` | `OPINION_TYPE` | `LowCardinality(String)` | 审计意见类型 |
+| 318 | `OSOPINION_TYPE` | `string` | `string` | `OSOPINION_TYPE` | `LowCardinality(String)` | 内控审计意见类型 |
+| 319 | `LISTING_STATE` | `string` | `string` | `LISTING_STATE` | `LowCardinality(String)` | 上市状态 |
 
 ## 数据集备注
 

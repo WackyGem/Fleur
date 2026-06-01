@@ -14,18 +14,18 @@
 
 ## 字段链路
 
-| # | 外源字段 | 外源类型 | Parquet 类型 | ClickHouse raw 字段 | ClickHouse 类型 | stg 字段 | 中文描述 |
-|---|----------|----------|--------------|---------------------|-----------------|----------|----------|
-| 1 | `SECUCODE` | `string` | `string` | `SECUCODE` | `LowCardinality(String)` | `-` | 证券代码（含市场后缀） |
-| 2 | `SECURITY_CODE` | `string` | `string` | `SECURITY_CODE` | `LowCardinality(String)` | `-` | 证券代码（纯数字） |
-| 3 | `SECURITY_NAME_ABBR` | `string` | `string` | `SECURITY_NAME_ABBR` | `LowCardinality(String)` | `-` | 证券简称 |
-| 4 | `NOTICE_DATE` | `string` | `date32[day]` | `NOTICE_DATE` | `Date` | `-` | 公告日期 |
-| 5 | `ISSUE_NUM` | `number` | `double` | `ISSUE_NUM` | `Float64` | `-` | 配股数量 |
-| 6 | `TOTAL_RAISE_FUNDS` | `number` | `double` | `TOTAL_RAISE_FUNDS` | `Float64` | `-` | 配股募集资金总额 |
-| 7 | `ISSUE_PRICE` | `number` | `double` | `ISSUE_PRICE` | `Float64` | `-` | 配股价格 |
-| 8 | `EQUITY_RECORD_DATE` | `string` | `date32[day]` | `EQUITY_RECORD_DATE` | `Date` | `-` | 股权登记日 |
-| 9 | `EX_DIVIDEND_DATEE` | `string` | `string` | `EX_DIVIDEND_DATEE` | `LowCardinality(String)` | `-` | 除权除息日 |
-| 10 | `EVENT_EXPLAIN` | `string` | `string` | `EVENT_EXPLAIN` | `LowCardinality(String)` | `-` | 配股方案说明（如 "每10股配3股"） |
+| # | 外源字段 | 外源类型 | Parquet 类型 | ClickHouse raw 字段 | ClickHouse 类型 | 中文描述 |
+|---|----------|----------|--------------|---------------------|-----------------|----------|
+| 1 | `SECUCODE` | `string` | `string` | `SECUCODE` | `LowCardinality(String)` | 证券代码（含市场后缀） |
+| 2 | `SECURITY_CODE` | `string` | `string` | `SECURITY_CODE` | `LowCardinality(String)` | 证券代码（纯数字） |
+| 3 | `SECURITY_NAME_ABBR` | `string` | `string` | `SECURITY_NAME_ABBR` | `LowCardinality(String)` | 证券简称 |
+| 4 | `NOTICE_DATE` | `string` | `date32[day]` | `NOTICE_DATE` | `Date` | 公告日期 |
+| 5 | `ISSUE_NUM` | `number` | `double` | `ISSUE_NUM` | `Float64` | 配股数量 |
+| 6 | `TOTAL_RAISE_FUNDS` | `number` | `double` | `TOTAL_RAISE_FUNDS` | `Float64` | 配股募集资金总额 |
+| 7 | `ISSUE_PRICE` | `number` | `double` | `ISSUE_PRICE` | `Float64` | 配股价格 |
+| 8 | `EQUITY_RECORD_DATE` | `string` | `date32[day]` | `EQUITY_RECORD_DATE` | `Date` | 股权登记日 |
+| 9 | `EX_DIVIDEND_DATEE` | `string` | `date32[day]` | `EX_DIVIDEND_DATEE` | `Date` | 除权除息日 |
+| 10 | `EVENT_EXPLAIN` | `string` | `string` | `EVENT_EXPLAIN` | `LowCardinality(String)` | 配股方案说明（如 "每10股配3股"） |
 
 ## 数据集备注
 
