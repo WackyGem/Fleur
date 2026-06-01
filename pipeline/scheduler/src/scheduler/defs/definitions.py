@@ -4,8 +4,10 @@ import dagster as dg
 
 from scheduler.defs.automation.slack_alerts import slack_asset_failure_sensor
 from scheduler.defs.baostock.definitions import baostock_bundle
+from scheduler.defs.clickhouse.definitions import CLICKHOUSE_RAW_ASSETS, CLICKHOUSE_RAW_JOBS
 from scheduler.defs.io_managers.s3_io_manager import S3IOManager
 from scheduler.defs.resources.baostock import BaostockClientFactoryResource
+from scheduler.defs.resources.clickhouse import ClickHouseResource
 from scheduler.defs.resources.database import IndustryImageRepositoryResource
 from scheduler.defs.resources.http import HttpClientFactoryResource
 from scheduler.defs.resources.ocr import JiuyanOcrSettingsResource
@@ -34,8 +36,8 @@ SOURCE_BUNDLES: tuple[SourceBundle, ...] = (
 @dg.definitions
 def defs() -> dg.Definitions:
     return dg.Definitions(
-        assets=bundle_assets(SOURCE_BUNDLES),
-        jobs=bundle_jobs(SOURCE_BUNDLES),
+        assets=[*bundle_assets(SOURCE_BUNDLES), *CLICKHOUSE_RAW_ASSETS],
+        jobs=[*bundle_jobs(SOURCE_BUNDLES), *CLICKHOUSE_RAW_JOBS],
         schedules=bundle_schedules(SOURCE_BUNDLES),
         sensors=[slack_asset_failure_sensor],
         resources={
@@ -46,6 +48,7 @@ def defs() -> dg.Definitions:
             "jiuyan_ocr_settings": JiuyanOcrSettingsResource(),
             "baostock_client_factory": BaostockClientFactoryResource(),
             "http_client_factory": HttpClientFactoryResource(),
+            "clickhouse": ClickHouseResource(),
             "slack": SlackAlertResource(),
         },
     )

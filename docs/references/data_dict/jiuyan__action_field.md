@@ -38,7 +38,7 @@
 | 29 | list.article.action_info.price | integer | ✅ | int64 | Int64 |
 | 30 | list.article.action_info.day | integer | ✅ | int64 | Int64 |
 | 31 | list.article.action_info.edition | integer | ✅ | int64 | Int64 |
-| 32 | list.article.action_info.shares_range | number | ✅ | float64 | - |
+| 32 | list.article.action_info.shares_range | number | ✅ | float64 | Float64 |
 | 33 | list.article.action_info.reason | string | ✅ | string | LowCardinality(String) |
 | 34 | list.article.action_info.expound | string | ✅ | string | LowCardinality(String) |
 | 35 | list.article.action_info.is_crawl | integer | ❌ | - | - |
@@ -62,7 +62,7 @@
 | 53 | price | integer | ✅ | int64 | Int64 |
 | 54 | day | integer | ✅ | int64 | Int64 |
 | 55 | edition | integer | ✅ | int64 | Int64 |
-| 56 | shares_range | number | ✅ | float64 | - |
+| 56 | shares_range | number | ✅ | float64 | Float64 |
 | 57 | expound | string | ✅ | string | String |
 
 ## 统计

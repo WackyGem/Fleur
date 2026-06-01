@@ -4,6 +4,7 @@ version = "0.1.0"
 requires-python = ">=3.12"
 dependencies = [
     "alembic>=1.16.0",
+    "dbt-clickhouse>=1.10.0",
     "dbt-core>=1.11.11",
     "psycopg[binary]>=3.2.10",
 ]

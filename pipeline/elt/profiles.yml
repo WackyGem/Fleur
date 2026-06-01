@@ -1,0 +1,13 @@
+elt:
+  target: dev
+  outputs:
+    dev:
+      type: clickhouse
+      host: "{{ env_var('CLICKHOUSE_HOST') }}"
+      port: "{{ env_var('CLICKHOUSE_PORT') | int }}"
+      user: "{{ env_var('CLICKHOUSE_USER') }}"
+      password: "{{ env_var('CLICKHOUSE_PASSWORD') }}"
+      schema: "{{ env_var('CLICKHOUSE_DBT_SCHEMA', 'analytics') }}"
+      secure: false
+      connect_timeout: "{{ env_var('CLICKHOUSE_CONNECT_TIMEOUT_SECONDS', 10) | int }}"
+      send_receive_timeout: "{{ env_var('CLICKHOUSE_QUERY_TIMEOUT_SECONDS', 300) | int }}"

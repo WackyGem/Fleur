@@ -1,0 +1,44 @@
+version: 2
+
+models:
+  - name: stg_baostock__query_history_k_data_plus_daily
+    description: Staging view for BaoStock daily K-line raw rows with normalized column names.
+    columns:
+      - name: trade_date
+        description: Trading date for the K-line row.
+      - name: code
+        description: BaoStock security code.
+      - name: year
+        description: Raw load partition year.
+
+  - name: stg_sina__trade_calendar
+    description: Staging view for the A-share trading calendar.
+    columns:
+      - name: trade_date
+        description: Trading date.
+
+  - name: stg_baostock__query_stock_basic
+    description: Staging view for BaoStock security basic information.
+    columns:
+      - name: code
+        description: BaoStock security code.
+      - name: ipo_date
+        description: IPO date.
+      - name: out_date
+        description: Delisting date when present.
+
+  - name: stg_jiuyan__industry_list
+    description: Staging view for JiuYan industry research list rows.
+    columns:
+      - name: industry_id
+        description: JiuYan industry research row identifier.
+
+  - name: stg_jiuyan__industry_ocr_snapshot
+    description: Staging view for successful JiuYan OCR result rows.
+    columns:
+      - name: industry_id
+        description: JiuYan industry research row identifier.
+      - name: image_filename
+        description: Source image object filename.
+      - name: ocr_row_index
+        description: Row index within the OCR result for the image.

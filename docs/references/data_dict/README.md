@@ -9,6 +9,7 @@
 | `string` | `LowCardinality(String)` | 默认用于标识、分类、状态、名称等重复值较多的字符串。 |
 | `string` | `String` | 用于标题、正文、图片文件名、JSON/URL 列表、长文本或高基数字符串。 |
 | `bool` | `Bool` | 布尔字段。 |
+| `int8` | `Int8` | 保留 PyArrow 位宽，用于源接口已限定的小整数枚举。 |
 | `int32` | `Int32` | 保留 PyArrow 位宽。 |
 | `int64` | `Int64` | 保留 PyArrow 位宽；后续有明确非负范围时可再收窄为 `UInt*`。 |
 | `double` | `Float64` | 保留 PyArrow 浮点语义。 |

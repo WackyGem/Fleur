@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 from scheduler.defs.config.env import RUSTFS_REGION_NAME, required_env_int, required_env_str
 
@@ -38,6 +38,45 @@ class BaostockClientConfig:
             port=required_env_int("BAOSTOCK_PORT"),
             username=required_env_str("BAOSTOCK_USERNAME"),
             password=required_env_str("BAOSTOCK_PASSWORD"),
+        )
+
+
+def parse_bool_env(value: str, *, field_name: str) -> bool:
+    normalized = value.strip().lower()
+    if normalized in {"1", "true", "t", "yes", "y", "on"}:
+        return True
+    if normalized in {"0", "false", "f", "no", "n", "off"}:
+        return False
+
+    msg = f"Environment variable {field_name} must be a boolean string"
+    raise RuntimeError(msg)
+
+
+@dataclass(frozen=True)
+class ClickHouseConfig:
+    host: str
+    port: int
+    database: str
+    username: str
+    password: str = field(repr=False)
+    secure: bool
+    connect_timeout_seconds: int
+    query_timeout_seconds: int
+
+    @classmethod
+    def from_env(cls) -> ClickHouseConfig:
+        return cls(
+            host=required_env_str("CLICKHOUSE_HOST"),
+            port=required_env_int("CLICKHOUSE_PORT"),
+            database=required_env_str("CLICKHOUSE_DATABASE"),
+            username=required_env_str("CLICKHOUSE_USER"),
+            password=required_env_str("CLICKHOUSE_PASSWORD"),
+            secure=parse_bool_env(
+                required_env_str("CLICKHOUSE_SECURE"),
+                field_name="CLICKHOUSE_SECURE",
+            ),
+            connect_timeout_seconds=required_env_int("CLICKHOUSE_CONNECT_TIMEOUT_SECONDS"),
+            query_timeout_seconds=required_env_int("CLICKHOUSE_QUERY_TIMEOUT_SECONDS"),
         )
 
 

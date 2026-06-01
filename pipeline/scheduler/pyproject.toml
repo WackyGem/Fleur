@@ -4,6 +4,7 @@ requires-python = ">=3.12"
 version = "0.1.0"
 dependencies = [
     "aiohttp>=3.13.5",
+    "clickhouse-connect>=1.1.1",
     "dagster==1.13.6",
     "dagster-slack==0.29.6",
     "psycopg[binary]>=3.2.10",

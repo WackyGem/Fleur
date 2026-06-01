@@ -18,8 +18,8 @@ def test_slack_alert_resource_defaults_come_from_env_module() -> None:
     assert fields["token"].default is env.SLACK_BOT_TOKEN
     assert fields["channel_id"].default is env.SLACK_CHANNEL_ID
     assert fields["http_proxy"].default is env.SLACK_HTTP_PROXY
-    assert fields["webserver_base_url"].default is env.DAGSTER_WEBSERVER_BASE_URL
-    assert fields["code_location_name"].default is env.DAGSTER_CODE_LOCATION_NAME
+    assert fields["webserver_base_url"].default is None
+    assert fields["code_location_name"].default is None
 
 
 def test_get_client_passes_token_and_proxy_to_web_client() -> None:
@@ -65,6 +65,34 @@ def test_slack_resource_helpers_resolve_optional_values() -> None:
     assert resource.channel() == "C123"
     assert resource.proxy_url() is None
     assert resource.run_url("run-1") == "http://dagster.example/runs/run-1"
+    assert resource.code_location() == "-"
+
+
+def test_slack_resource_uses_optional_dagster_metadata_from_environment(monkeypatch) -> None:
+    monkeypatch.setenv("DAGSTER_WEBSERVER_BASE_URL", "http://localhost:3000/")
+    monkeypatch.setenv("DAGSTER_CODE_LOCATION_NAME", "scheduler")
+    resource = SlackAlertResource(
+        token="xoxb-test",
+        channel_id="C123",
+        http_proxy="",
+    )
+
+    assert resource.run_url("run-1") == "http://localhost:3000/runs/run-1"
+    assert resource.code_location() == "scheduler"
+
+
+def test_missing_optional_dagster_metadata_does_not_fail_sensor_resource(
+    monkeypatch,
+) -> None:
+    monkeypatch.delenv("DAGSTER_WEBSERVER_BASE_URL", raising=False)
+    monkeypatch.delenv("DAGSTER_CODE_LOCATION_NAME", raising=False)
+    resource = SlackAlertResource(
+        token="xoxb-test",
+        channel_id="C123",
+        http_proxy="",
+    )
+
+    assert resource.run_url("run-1") is None
     assert resource.code_location() == "-"
 
 

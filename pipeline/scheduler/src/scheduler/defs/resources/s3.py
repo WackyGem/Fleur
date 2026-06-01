@@ -3,6 +3,7 @@ from __future__ import annotations
 import dagster as dg
 
 from scheduler.defs.config.env import (
+    CLICKHOUSE_S3_ENDPOINT,
     RUSTFS_ACCESS_KEY,
     RUSTFS_BUCKET,
     RUSTFS_ENDPOINT,
@@ -19,6 +20,7 @@ class S3SettingsResource(dg.ConfigurableResource):
     access_key: str = RUSTFS_ACCESS_KEY
     secret_key: str = RUSTFS_SECRET_KEY
     region_name: str = RUSTFS_REGION_NAME
+    clickhouse_endpoint: str = CLICKHOUSE_S3_ENDPOINT
 
     def config(self) -> S3Config:
         return S3Config(

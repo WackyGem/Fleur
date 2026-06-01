@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import dagster as dg
+from scheduler.defs.clickhouse.definitions import CLICKHOUSE_RAW_ASSETS, CLICKHOUSE_RAW_JOBS
 from scheduler.defs.definitions import SOURCE_BUNDLES
 from scheduler.defs.definitions import defs as scheduler_defs
 
@@ -30,13 +31,19 @@ def test_registered_definitions_match_source_bundles() -> None:
 
     expected_assets = {asset_key(asset) for bundle in SOURCE_BUNDLES for asset in bundle.assets}
     expected_jobs = {job.name for bundle in SOURCE_BUNDLES for job in bundle.jobs}
+    expected_clickhouse_assets = {asset_key(asset) for asset in CLICKHOUSE_RAW_ASSETS}
+    expected_clickhouse_jobs = {job.name for job in CLICKHOUSE_RAW_JOBS}
     expected_schedules = {
         schedule.name for bundle in SOURCE_BUNDLES for schedule in bundle.schedules
     }
 
     assert top_level_definitions.defs is scheduler_defs
-    assert {asset_key(asset) for asset in loaded_defs.assets or []} == expected_assets
-    assert {job.name for job in loaded_defs.jobs or []} == expected_jobs
+    assert {asset_key(asset) for asset in loaded_defs.assets or []} == (
+        expected_assets | expected_clickhouse_assets
+    )
+    assert {job.name for job in loaded_defs.jobs or []} == (
+        expected_jobs | expected_clickhouse_jobs
+    )
     assert {schedule.name for schedule in loaded_defs.schedules or []} == expected_schedules
     assert {sensor.name for sensor in loaded_defs.sensors or []} == {"slack_asset_failure_sensor"}
     assert set(loaded_defs.resources) >= {
@@ -47,6 +54,7 @@ def test_registered_definitions_match_source_bundles() -> None:
         "jiuyan_ocr_settings",
         "baostock_client_factory",
         "http_client_factory",
+        "clickhouse",
         "slack",
     }
 
