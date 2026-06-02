@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Sequence
+from dataclasses import replace
 
 import pytest
 from scheduler.defs.clickhouse import sql
@@ -23,6 +24,7 @@ class FakeClickHouseClient:
         self.queries: list[str] = []
         self.insert_error: RuntimeError | None = None
         self.partition_validation_row: tuple[int, int, int] = (5, 2026, 2026)
+        self.raw_year_partition_count = 5
         self.unique_count = 5_000
 
     @property
@@ -64,7 +66,7 @@ class FakeClickHouseClient:
         if "uniq(`code`)" in query:
             return FakeQueryResult([(self.unique_count,)])
         if "WHERE `year` = 2026" in query:
-            return FakeQueryResult([(5,)])
+            return FakeQueryResult([(self.raw_year_partition_count,)])
         raise AssertionError(f"Unexpected query: {query}")
 
     def close(self) -> None:
@@ -112,6 +114,19 @@ def test_raw_sync_does_not_replace_when_partition_validation_fails() -> None:
     assert not any("REPLACE PARTITION" in command for command in client.commands)
 
 
+def test_raw_sync_allows_empty_year_partition_when_spec_allows_empty() -> None:
+    client = FakeClickHouseClient()
+    client.partition_validation_row = (0, 0, 0)
+    client.raw_year_partition_count = 0
+    spec = replace(BAOSTOCK_DAILY_K_SPEC, allow_empty=True)
+
+    result = RawSyncService(client).sync(_request(partition_key="2026", spec=spec))
+
+    assert result.loaded_row_count == 0
+    assert result.raw_row_count_after_replace == 0
+    assert any("REPLACE PARTITION 2026" in command for command in client.commands)
+
+
 def test_raw_sync_rejects_high_cardinality_low_cardinality_column() -> None:
     client = FakeClickHouseClient()
     client.unique_count = 10_001
@@ -129,9 +144,13 @@ def test_raw_sync_requires_four_digit_year_partition() -> None:
         RawSyncService(client).sync(_request(partition_key="20260"))
 
 
-def _request(*, partition_key: str) -> RawSyncRequest:
+def _request(
+    *,
+    partition_key: str,
+    spec=BAOSTOCK_DAILY_K_SPEC,
+) -> RawSyncRequest:
     return RawSyncRequest(
-        spec=BAOSTOCK_DAILY_K_SPEC,
+        spec=spec,
         s3_input=sql.ClickHouseS3InputConfig(
             endpoint="http://127.0.0.1:9000",
             bucket="bucket",

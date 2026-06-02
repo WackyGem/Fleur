@@ -113,13 +113,13 @@ parquet:
     nullable: false
   - name: delete_time
     type: timestamp[ns]
-    nullable: false
+    nullable: true
   - name: create_time
     type: timestamp[ns]
     nullable: false
   - name: update_time
     type: timestamp[ns]
-    nullable: false
+    nullable: true
   - name: count
     type: int64
     nullable: false
@@ -128,19 +128,19 @@ parquet:
     nullable: false
   - name: time
     type: time32[ms]
-    nullable: false
+    nullable: true
   - name: num
     type: string
-    nullable: false
+    nullable: true
   - name: price
     type: int64
     nullable: false
   - name: day
     type: int64
-    nullable: false
+    nullable: true
   - name: edition
     type: int64
-    nullable: false
+    nullable: true
   - name: shares_range
     type: double
     nullable: false
@@ -186,7 +186,7 @@ clickhouse_raw:
   - name: delete_time
     type: DateTime64(3)
     from: delete_time
-    nullable: false
+    nullable: true
   - name: create_time
     type: DateTime64(3)
     from: create_time
@@ -194,7 +194,7 @@ clickhouse_raw:
   - name: update_time
     type: DateTime64(3)
     from: update_time
-    nullable: false
+    nullable: true
   - name: count
     type: Int64
     from: count
@@ -207,11 +207,11 @@ clickhouse_raw:
   - name: time
     type: String
     from: time
-    nullable: false
+    nullable: true
   - name: num
     type: LowCardinality(String)
     from: num
-    nullable: false
+    nullable: true
     reason: expected_low_cardinality_dimension
   - name: price
     type: Int64
@@ -220,11 +220,11 @@ clickhouse_raw:
   - name: day
     type: Int64
     from: day
-    nullable: false
+    nullable: true
   - name: edition
     type: Int64
     from: edition
-    nullable: false
+    nullable: true
   - name: shares_range
     type: Float64
     from: shares_range

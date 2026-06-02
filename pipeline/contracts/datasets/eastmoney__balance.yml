@@ -59,11 +59,11 @@ source:
     external_description_zh: 公告日期
   - name: UPDATE_DATE
     type: string
-    required: true
+    required: false
     external_description_zh: 更新日期
   - name: CURRENCY
     type: string
-    required: true
+    required: false
     external_description_zh: 资产负债表披露金额使用的币种。
   - name: ACCEPT_DEPOSIT_INTERBANK
     type: number
@@ -1329,922 +1329,922 @@ parquet:
     nullable: false
   - name: UPDATE_DATE
     type: date32[day]
-    nullable: false
+    nullable: true
   - name: CURRENCY
     type: string
-    nullable: false
+    nullable: true
   - name: ACCEPT_DEPOSIT_INTERBANK
     type: double
-    nullable: false
+    nullable: true
   - name: ACCOUNTS_PAYABLE
     type: double
-    nullable: false
+    nullable: true
   - name: ACCOUNTS_RECE
     type: double
-    nullable: false
+    nullable: true
   - name: ACCRUED_EXPENSE
     type: double
-    nullable: false
+    nullable: true
   - name: ADVANCE_RECEIVABLES
     type: double
-    nullable: false
+    nullable: true
   - name: AGENT_TRADE_SECURITY
     type: double
-    nullable: false
+    nullable: true
   - name: AGENT_UNDERWRITE_SECURITY
     type: double
-    nullable: false
+    nullable: true
   - name: AMORTIZE_COST_FINASSET
     type: double
-    nullable: false
+    nullable: true
   - name: AMORTIZE_COST_FINLIAB
     type: double
-    nullable: false
+    nullable: true
   - name: AMORTIZE_COST_NCFINASSET
     type: double
-    nullable: false
+    nullable: true
   - name: AMORTIZE_COST_NCFINLIAB
     type: double
-    nullable: false
+    nullable: true
   - name: APPOINT_FVTPL_FINASSET
     type: double
-    nullable: false
+    nullable: true
   - name: APPOINT_FVTPL_FINLIAB
     type: double
-    nullable: false
+    nullable: true
   - name: ASSET_BALANCE
     type: double
-    nullable: false
+    nullable: true
   - name: ASSET_OTHER
     type: double
-    nullable: false
+    nullable: true
   - name: ASSIGN_CASH_DIVIDEND
     type: double
-    nullable: false
+    nullable: true
   - name: AVAILABLE_SALE_FINASSET
     type: double
-    nullable: false
+    nullable: true
   - name: BOND_PAYABLE
     type: double
-    nullable: false
+    nullable: true
   - name: BORROW_FUND
     type: double
-    nullable: false
+    nullable: true
   - name: BUY_RESALE_FINASSET
     type: double
-    nullable: false
+    nullable: true
   - name: CAPITAL_RESERVE
     type: double
-    nullable: false
+    nullable: true
   - name: CIP
     type: double
-    nullable: false
+    nullable: true
   - name: CONSUMPTIVE_BIOLOGICAL_ASSET
     type: double
-    nullable: false
+    nullable: true
   - name: CONTRACT_ASSET
     type: double
-    nullable: false
+    nullable: true
   - name: CONTRACT_LIAB
     type: double
-    nullable: false
+    nullable: true
   - name: CONVERT_DIFF
     type: double
-    nullable: false
+    nullable: true
   - name: CREDITOR_INVEST
     type: double
-    nullable: false
+    nullable: true
   - name: CURRENT_ASSET_BALANCE
     type: double
-    nullable: false
+    nullable: true
   - name: CURRENT_ASSET_OTHER
     type: double
-    nullable: false
+    nullable: true
   - name: CURRENT_LIAB_BALANCE
     type: double
-    nullable: false
+    nullable: true
   - name: CURRENT_LIAB_OTHER
     type: double
-    nullable: false
+    nullable: true
   - name: DEFER_INCOME
     type: double
-    nullable: false
+    nullable: true
   - name: DEFER_INCOME_1YEAR
     type: double
-    nullable: false
+    nullable: true
   - name: DEFER_TAX_ASSET
     type: double
-    nullable: false
+    nullable: true
   - name: DEFER_TAX_LIAB
     type: double
-    nullable: false
+    nullable: true
   - name: DERIVE_FINASSET
     type: double
-    nullable: false
+    nullable: true
   - name: DERIVE_FINLIAB
     type: double
-    nullable: false
+    nullable: true
   - name: DEVELOP_EXPENSE
     type: double
-    nullable: false
+    nullable: true
   - name: DIV_HOLDSALE_ASSET
     type: double
-    nullable: false
+    nullable: true
   - name: DIV_HOLDSALE_LIAB
     type: double
-    nullable: false
+    nullable: true
   - name: DIVIDEND_PAYABLE
     type: double
-    nullable: false
+    nullable: true
   - name: DIVIDEND_RECE
     type: double
-    nullable: false
+    nullable: true
   - name: EQUITY_BALANCE
     type: double
-    nullable: false
+    nullable: true
   - name: EQUITY_OTHER
     type: double
-    nullable: false
+    nullable: true
   - name: EXPORT_REFUND_RECE
     type: double
-    nullable: false
+    nullable: true
   - name: FEE_COMMISSION_PAYABLE
     type: double
-    nullable: false
+    nullable: true
   - name: FIN_FUND
     type: double
-    nullable: false
+    nullable: true
   - name: FINANCE_RECE
     type: double
-    nullable: false
+    nullable: true
   - name: FIXED_ASSET
     type: double
-    nullable: false
+    nullable: true
   - name: FIXED_ASSET_DISPOSAL
     type: double
-    nullable: false
+    nullable: true
   - name: FVTOCI_FINASSET
     type: double
-    nullable: false
+    nullable: true
   - name: FVTOCI_NCFINASSET
     type: double
-    nullable: false
+    nullable: true
   - name: FVTPL_FINASSET
     type: double
-    nullable: false
+    nullable: true
   - name: FVTPL_FINLIAB
     type: double
-    nullable: false
+    nullable: true
   - name: GENERAL_RISK_RESERVE
     type: double
-    nullable: false
+    nullable: true
   - name: GOODWILL
     type: double
-    nullable: false
+    nullable: true
   - name: HOLD_MATURITY_INVEST
     type: double
-    nullable: false
+    nullable: true
   - name: HOLDSALE_ASSET
     type: double
-    nullable: false
+    nullable: true
   - name: HOLDSALE_LIAB
     type: double
-    nullable: false
+    nullable: true
   - name: INSURANCE_CONTRACT_RESERVE
     type: double
-    nullable: false
+    nullable: true
   - name: INTANGIBLE_ASSET
     type: double
-    nullable: false
+    nullable: true
   - name: INTEREST_PAYABLE
     type: double
-    nullable: false
+    nullable: true
   - name: INTEREST_RECE
     type: double
-    nullable: false
+    nullable: true
   - name: INTERNAL_PAYABLE
     type: double
-    nullable: false
+    nullable: true
   - name: INTERNAL_RECE
     type: double
-    nullable: false
+    nullable: true
   - name: INVENTORY
     type: double
-    nullable: false
+    nullable: true
   - name: INVEST_REALESTATE
     type: double
-    nullable: false
+    nullable: true
   - name: LEASE_LIAB
     type: double
-    nullable: false
+    nullable: true
   - name: LEND_FUND
     type: double
-    nullable: false
+    nullable: true
   - name: LIAB_BALANCE
     type: double
-    nullable: false
+    nullable: true
   - name: LIAB_EQUITY_BALANCE
     type: double
-    nullable: false
+    nullable: true
   - name: LIAB_EQUITY_OTHER
     type: double
-    nullable: false
+    nullable: true
   - name: LIAB_OTHER
     type: double
-    nullable: false
+    nullable: true
   - name: LOAN_ADVANCE
     type: double
-    nullable: false
+    nullable: true
   - name: LOAN_PBC
     type: double
-    nullable: false
+    nullable: true
   - name: LONG_EQUITY_INVEST
     type: double
-    nullable: false
+    nullable: true
   - name: LONG_LOAN
     type: double
-    nullable: false
+    nullable: true
   - name: LONG_PAYABLE
     type: double
-    nullable: false
+    nullable: true
   - name: LONG_PREPAID_EXPENSE
     type: double
-    nullable: false
+    nullable: true
   - name: LONG_RECE
     type: double
-    nullable: false
+    nullable: true
   - name: LONG_STAFFSALARY_PAYABLE
     type: double
-    nullable: false
+    nullable: true
   - name: MINORITY_EQUITY
     type: double
-    nullable: false
+    nullable: true
   - name: MONETARYFUNDS
     type: double
-    nullable: false
+    nullable: true
   - name: NONCURRENT_ASSET_1YEAR
     type: double
-    nullable: false
+    nullable: true
   - name: NONCURRENT_ASSET_BALANCE
     type: double
-    nullable: false
+    nullable: true
   - name: NONCURRENT_ASSET_OTHER
     type: double
-    nullable: false
+    nullable: true
   - name: NONCURRENT_LIAB_1YEAR
     type: double
-    nullable: false
+    nullable: true
   - name: NONCURRENT_LIAB_BALANCE
     type: double
-    nullable: false
+    nullable: true
   - name: NONCURRENT_LIAB_OTHER
     type: double
-    nullable: false
+    nullable: true
   - name: NOTE_ACCOUNTS_PAYABLE
     type: double
-    nullable: false
+    nullable: true
   - name: NOTE_ACCOUNTS_RECE
     type: double
-    nullable: false
+    nullable: true
   - name: NOTE_PAYABLE
     type: double
-    nullable: false
+    nullable: true
   - name: NOTE_RECE
     type: double
-    nullable: false
+    nullable: true
   - name: OIL_GAS_ASSET
     type: double
-    nullable: false
+    nullable: true
   - name: OTHER_COMPRE_INCOME
     type: double
-    nullable: false
+    nullable: true
   - name: OTHER_CREDITOR_INVEST
     type: double
-    nullable: false
+    nullable: true
   - name: OTHER_CURRENT_ASSET
     type: double
-    nullable: false
+    nullable: true
   - name: OTHER_CURRENT_LIAB
     type: double
-    nullable: false
+    nullable: true
   - name: OTHER_EQUITY_INVEST
     type: double
-    nullable: false
+    nullable: true
   - name: OTHER_EQUITY_OTHER
     type: double
-    nullable: false
+    nullable: true
   - name: OTHER_EQUITY_TOOL
     type: double
-    nullable: false
+    nullable: true
   - name: OTHER_NONCURRENT_ASSET
     type: double
-    nullable: false
+    nullable: true
   - name: OTHER_NONCURRENT_FINASSET
     type: double
-    nullable: false
+    nullable: true
   - name: OTHER_NONCURRENT_LIAB
     type: double
-    nullable: false
+    nullable: true
   - name: OTHER_PAYABLE
     type: double
-    nullable: false
+    nullable: true
   - name: OTHER_RECE
     type: double
-    nullable: false
+    nullable: true
   - name: PARENT_EQUITY_BALANCE
     type: double
-    nullable: false
+    nullable: true
   - name: PARENT_EQUITY_OTHER
     type: double
-    nullable: false
+    nullable: true
   - name: PERPETUAL_BOND
     type: double
-    nullable: false
+    nullable: true
   - name: PERPETUAL_BOND_PAYBALE
     type: double
-    nullable: false
+    nullable: true
   - name: PREDICT_CURRENT_LIAB
     type: double
-    nullable: false
+    nullable: true
   - name: PREDICT_LIAB
     type: double
-    nullable: false
+    nullable: true
   - name: PREFERRED_SHARES
     type: double
-    nullable: false
+    nullable: true
   - name: PREFERRED_SHARES_PAYBALE
     type: double
-    nullable: false
+    nullable: true
   - name: PREMIUM_RECE
     type: double
-    nullable: false
+    nullable: true
   - name: PREPAYMENT
     type: double
-    nullable: false
+    nullable: true
   - name: PRODUCTIVE_BIOLOGY_ASSET
     type: double
-    nullable: false
+    nullable: true
   - name: PROJECT_MATERIAL
     type: double
-    nullable: false
+    nullable: true
   - name: RC_RESERVE_RECE
     type: double
-    nullable: false
+    nullable: true
   - name: REINSURE_PAYABLE
     type: double
-    nullable: false
+    nullable: true
   - name: REINSURE_RECE
     type: double
-    nullable: false
+    nullable: true
   - name: SELL_REPO_FINASSET
     type: double
-    nullable: false
+    nullable: true
   - name: SETTLE_EXCESS_RESERVE
     type: double
-    nullable: false
+    nullable: true
   - name: SHARE_CAPITAL
     type: double
-    nullable: false
+    nullable: true
   - name: SHORT_BOND_PAYABLE
     type: double
-    nullable: false
+    nullable: true
   - name: SHORT_FIN_PAYABLE
     type: double
-    nullable: false
+    nullable: true
   - name: SHORT_LOAN
     type: double
-    nullable: false
+    nullable: true
   - name: SPECIAL_PAYABLE
     type: double
-    nullable: false
+    nullable: true
   - name: SPECIAL_RESERVE
     type: double
-    nullable: false
+    nullable: true
   - name: STAFF_SALARY_PAYABLE
     type: double
-    nullable: false
+    nullable: true
   - name: SUBSIDY_RECE
     type: double
-    nullable: false
+    nullable: true
   - name: SURPLUS_RESERVE
     type: double
-    nullable: false
+    nullable: true
   - name: TAX_PAYABLE
     type: double
-    nullable: false
+    nullable: true
   - name: TOTAL_ASSETS
     type: double
-    nullable: false
+    nullable: true
   - name: TOTAL_CURRENT_ASSETS
     type: double
-    nullable: false
+    nullable: true
   - name: TOTAL_CURRENT_LIAB
     type: double
-    nullable: false
+    nullable: true
   - name: TOTAL_EQUITY
     type: double
-    nullable: false
+    nullable: true
   - name: TOTAL_LIAB_EQUITY
     type: double
-    nullable: false
+    nullable: true
   - name: TOTAL_LIABILITIES
     type: double
-    nullable: false
+    nullable: true
   - name: TOTAL_NONCURRENT_ASSETS
     type: double
-    nullable: false
+    nullable: true
   - name: TOTAL_NONCURRENT_LIAB
     type: double
-    nullable: false
+    nullable: true
   - name: TOTAL_OTHER_PAYABLE
     type: double
-    nullable: false
+    nullable: true
   - name: TOTAL_OTHER_RECE
     type: double
-    nullable: false
+    nullable: true
   - name: TOTAL_PARENT_EQUITY
     type: double
-    nullable: false
+    nullable: true
   - name: TRADE_FINASSET
     type: double
-    nullable: false
+    nullable: true
   - name: TRADE_FINASSET_NOTFVTPL
     type: double
-    nullable: false
+    nullable: true
   - name: TRADE_FINLIAB
     type: double
-    nullable: false
+    nullable: true
   - name: TRADE_FINLIAB_NOTFVTPL
     type: double
-    nullable: false
+    nullable: true
   - name: TREASURY_SHARES
     type: double
-    nullable: false
+    nullable: true
   - name: UNASSIGN_RPOFIT
     type: double
-    nullable: false
+    nullable: true
   - name: UNCONFIRM_INVEST_LOSS
     type: double
-    nullable: false
+    nullable: true
   - name: USERIGHT_ASSET
     type: double
-    nullable: false
+    nullable: true
   - name: ACCEPT_DEPOSIT_INTERBANK_YOY
     type: double
-    nullable: false
+    nullable: true
   - name: ACCOUNTS_PAYABLE_YOY
     type: double
-    nullable: false
+    nullable: true
   - name: ACCOUNTS_RECE_YOY
     type: double
-    nullable: false
+    nullable: true
   - name: ACCRUED_EXPENSE_YOY
     type: double
-    nullable: false
+    nullable: true
   - name: ADVANCE_RECEIVABLES_YOY
     type: double
-    nullable: false
+    nullable: true
   - name: AGENT_TRADE_SECURITY_YOY
     type: double
-    nullable: false
+    nullable: true
   - name: AGENT_UNDERWRITE_SECURITY_YOY
     type: double
-    nullable: false
+    nullable: true
   - name: AMORTIZE_COST_FINASSET_YOY
     type: double
-    nullable: false
+    nullable: true
   - name: AMORTIZE_COST_FINLIAB_YOY
     type: double
-    nullable: false
+    nullable: true
   - name: AMORTIZE_COST_NCFINASSET_YOY
     type: double
-    nullable: false
+    nullable: true
   - name: AMORTIZE_COST_NCFINLIAB_YOY
     type: double
-    nullable: false
+    nullable: true
   - name: APPOINT_FVTPL_FINASSET_YOY
     type: double
-    nullable: false
+    nullable: true
   - name: APPOINT_FVTPL_FINLIAB_YOY
     type: double
-    nullable: false
+    nullable: true
   - name: ASSET_BALANCE_YOY
     type: double
-    nullable: false
+    nullable: true
   - name: ASSET_OTHER_YOY
     type: double
-    nullable: false
+    nullable: true
   - name: ASSIGN_CASH_DIVIDEND_YOY
     type: double
-    nullable: false
+    nullable: true
   - name: AVAILABLE_SALE_FINASSET_YOY
     type: double
-    nullable: false
+    nullable: true
   - name: BOND_PAYABLE_YOY
     type: double
-    nullable: false
+    nullable: true
   - name: BORROW_FUND_YOY
     type: double
-    nullable: false
+    nullable: true
   - name: BUY_RESALE_FINASSET_YOY
     type: double
-    nullable: false
+    nullable: true
   - name: CAPITAL_RESERVE_YOY
     type: double
-    nullable: false
+    nullable: true
   - name: CIP_YOY
     type: double
-    nullable: false
+    nullable: true
   - name: CONSUMPTIVE_BIOLOGICAL_ASSET_YOY
     type: double
-    nullable: false
+    nullable: true
   - name: CONTRACT_ASSET_YOY
     type: double
-    nullable: false
+    nullable: true
   - name: CONTRACT_LIAB_YOY
     type: double
-    nullable: false
+    nullable: true
   - name: CONVERT_DIFF_YOY
     type: double
-    nullable: false
+    nullable: true
   - name: CREDITOR_INVEST_YOY
     type: double
-    nullable: false
+    nullable: true
   - name: CURRENT_ASSET_BALANCE_YOY
     type: double
-    nullable: false
+    nullable: true
   - name: CURRENT_ASSET_OTHER_YOY
     type: double
-    nullable: false
+    nullable: true
   - name: CURRENT_LIAB_BALANCE_YOY
     type: double
-    nullable: false
+    nullable: true
   - name: CURRENT_LIAB_OTHER_YOY
     type: double
-    nullable: false
+    nullable: true
   - name: DEFER_INCOME_1YEAR_YOY
     type: double
-    nullable: false
+    nullable: true
   - name: DEFER_INCOME_YOY
     type: double
-    nullable: false
+    nullable: true
   - name: DEFER_TAX_ASSET_YOY
     type: double
-    nullable: false
+    nullable: true
   - name: DEFER_TAX_LIAB_YOY
     type: double
-    nullable: false
+    nullable: true
   - name: DERIVE_FINASSET_YOY
     type: double
-    nullable: false
+    nullable: true
   - name: DERIVE_FINLIAB_YOY
     type: double
-    nullable: false
+    nullable: true
   - name: DEVELOP_EXPENSE_YOY
     type: double
-    nullable: false
+    nullable: true
   - name: DIV_HOLDSALE_ASSET_YOY
     type: double
-    nullable: false
+    nullable: true
   - name: DIV_HOLDSALE_LIAB_YOY
     type: double
-    nullable: false
+    nullable: true
   - name: DIVIDEND_PAYABLE_YOY
     type: double
-    nullable: false
+    nullable: true
   - name: DIVIDEND_RECE_YOY
     type: double
-    nullable: false
+    nullable: true
   - name: EQUITY_BALANCE_YOY
     type: double
-    nullable: false
+    nullable: true
   - name: EQUITY_OTHER_YOY
     type: double
-    nullable: false
+    nullable: true
   - name: EXPORT_REFUND_RECE_YOY
     type: double
-    nullable: false
+    nullable: true
   - name: FEE_COMMISSION_PAYABLE_YOY
     type: double
-    nullable: false
+    nullable: true
   - name: FIN_FUND_YOY
     type: double
-    nullable: false
+    nullable: true
   - name: FINANCE_RECE_YOY
     type: double
-    nullable: false
+    nullable: true
   - name: FIXED_ASSET_DISPOSAL_YOY
     type: double
-    nullable: false
+    nullable: true
   - name: FIXED_ASSET_YOY
     type: double
-    nullable: false
+    nullable: true
   - name: FVTOCI_FINASSET_YOY
     type: double
-    nullable: false
+    nullable: true
   - name: FVTOCI_NCFINASSET_YOY
     type: double
-    nullable: false
+    nullable: true
   - name: FVTPL_FINASSET_YOY
     type: double
-    nullable: false
+    nullable: true
   - name: FVTPL_FINLIAB_YOY
     type: double
-    nullable: false
+    nullable: true
   - name: GENERAL_RISK_RESERVE_YOY
     type: double
-    nullable: false
+    nullable: true
   - name: GOODWILL_YOY
     type: double
-    nullable: false
+    nullable: true
   - name: HOLD_MATURITY_INVEST_YOY
     type: double
-    nullable: false
+    nullable: true
   - name: HOLDSALE_ASSET_YOY
     type: double
-    nullable: false
+    nullable: true
   - name: HOLDSALE_LIAB_YOY
     type: double
-    nullable: false
+    nullable: true
   - name: INSURANCE_CONTRACT_RESERVE_YOY
     type: double
-    nullable: false
+    nullable: true
   - name: INTANGIBLE_ASSET_YOY
     type: double
-    nullable: false
+    nullable: true
   - name: INTEREST_PAYABLE_YOY
     type: double
-    nullable: false
+    nullable: true
   - name: INTEREST_RECE_YOY
     type: double
-    nullable: false
+    nullable: true
   - name: INTERNAL_PAYABLE_YOY
     type: double
-    nullable: false
+    nullable: true
   - name: INTERNAL_RECE_YOY
     type: double
-    nullable: false
+    nullable: true
   - name: INVENTORY_YOY
     type: double
-    nullable: false
+    nullable: true
   - name: INVEST_REALESTATE_YOY
     type: double
-    nullable: false
+    nullable: true
   - name: LEASE_LIAB_YOY
     type: double
-    nullable: false
+    nullable: true
   - name: LEND_FUND_YOY
     type: double
-    nullable: false
+    nullable: true
   - name: LIAB_BALANCE_YOY
     type: double
-    nullable: false
+    nullable: true
   - name: LIAB_EQUITY_BALANCE_YOY
     type: double
-    nullable: false
+    nullable: true
   - name: LIAB_EQUITY_OTHER_YOY
     type: double
-    nullable: false
+    nullable: true
   - name: LIAB_OTHER_YOY
     type: double
-    nullable: false
+    nullable: true
   - name: LOAN_ADVANCE_YOY
     type: double
-    nullable: false
+    nullable: true
   - name: LOAN_PBC_YOY
     type: double
-    nullable: false
+    nullable: true
   - name: LONG_EQUITY_INVEST_YOY
     type: double
-    nullable: false
+    nullable: true
   - name: LONG_LOAN_YOY
     type: double
-    nullable: false
+    nullable: true
   - name: LONG_PAYABLE_YOY
     type: double
-    nullable: false
+    nullable: true
   - name: LONG_PREPAID_EXPENSE_YOY
     type: double
-    nullable: false
+    nullable: true
   - name: LONG_RECE_YOY
     type: double
-    nullable: false
+    nullable: true
   - name: LONG_STAFFSALARY_PAYABLE_YOY
     type: double
-    nullable: false
+    nullable: true
   - name: MINORITY_EQUITY_YOY
     type: double
-    nullable: false
+    nullable: true
   - name: MONETARYFUNDS_YOY
     type: double
-    nullable: false
+    nullable: true
   - name: NONCURRENT_ASSET_1YEAR_YOY
     type: double
-    nullable: false
+    nullable: true
   - name: NONCURRENT_ASSET_BALANCE_YOY
     type: double
-    nullable: false
+    nullable: true
   - name: NONCURRENT_ASSET_OTHER_YOY
     type: double
-    nullable: false
+    nullable: true
   - name: NONCURRENT_LIAB_1YEAR_YOY
     type: double
-    nullable: false
+    nullable: true
   - name: NONCURRENT_LIAB_BALANCE_YOY
     type: double
-    nullable: false
+    nullable: true
   - name: NONCURRENT_LIAB_OTHER_YOY
     type: double
-    nullable: false
+    nullable: true
   - name: NOTE_ACCOUNTS_PAYABLE_YOY
     type: double
-    nullable: false
+    nullable: true
   - name: NOTE_ACCOUNTS_RECE_YOY
     type: double
-    nullable: false
+    nullable: true
   - name: NOTE_PAYABLE_YOY
     type: double
-    nullable: false
+    nullable: true
   - name: NOTE_RECE_YOY
     type: double
-    nullable: false
+    nullable: true
   - name: OIL_GAS_ASSET_YOY
     type: double
-    nullable: false
+    nullable: true
   - name: OTHER_COMPRE_INCOME_YOY
     type: double
-    nullable: false
+    nullable: true
   - name: OTHER_CREDITOR_INVEST_YOY
     type: double
-    nullable: false
+    nullable: true
   - name: OTHER_CURRENT_ASSET_YOY
     type: double
-    nullable: false
+    nullable: true
   - name: OTHER_CURRENT_LIAB_YOY
     type: double
-    nullable: false
+    nullable: true
   - name: OTHER_EQUITY_INVEST_YOY
     type: double
-    nullable: false
+    nullable: true
   - name: OTHER_EQUITY_OTHER_YOY
     type: double
-    nullable: false
+    nullable: true
   - name: OTHER_EQUITY_TOOL_YOY
     type: double
-    nullable: false
+    nullable: true
   - name: OTHER_NONCURRENT_ASSET_YOY
     type: double
-    nullable: false
+    nullable: true
   - name: OTHER_NONCURRENT_FINASSET_YOY
     type: double
-    nullable: false
+    nullable: true
   - name: OTHER_NONCURRENT_LIAB_YOY
     type: double
-    nullable: false
+    nullable: true
   - name: OTHER_PAYABLE_YOY
     type: double
-    nullable: false
+    nullable: true
   - name: OTHER_RECE_YOY
     type: double
-    nullable: false
+    nullable: true
   - name: PARENT_EQUITY_BALANCE_YOY
     type: double
-    nullable: false
+    nullable: true
   - name: PARENT_EQUITY_OTHER_YOY
     type: double
-    nullable: false
+    nullable: true
   - name: PERPETUAL_BOND_PAYBALE_YOY
     type: double
-    nullable: false
+    nullable: true
   - name: PERPETUAL_BOND_YOY
     type: double
-    nullable: false
+    nullable: true
   - name: PREDICT_CURRENT_LIAB_YOY
     type: double
-    nullable: false
+    nullable: true
   - name: PREDICT_LIAB_YOY
     type: double
-    nullable: false
+    nullable: true
   - name: PREFERRED_SHARES_PAYBALE_YOY
     type: double
-    nullable: false
+    nullable: true
   - name: PREFERRED_SHARES_YOY
     type: double
-    nullable: false
+    nullable: true
   - name: PREMIUM_RECE_YOY
     type: double
-    nullable: false
+    nullable: true
   - name: PREPAYMENT_YOY
     type: double
-    nullable: false
+    nullable: true
   - name: PRODUCTIVE_BIOLOGY_ASSET_YOY
     type: double
-    nullable: false
+    nullable: true
   - name: PROJECT_MATERIAL_YOY
     type: double
-    nullable: false
+    nullable: true
   - name: RC_RESERVE_RECE_YOY
     type: double
-    nullable: false
+    nullable: true
   - name: REINSURE_PAYABLE_YOY
     type: double
-    nullable: false
+    nullable: true
   - name: REINSURE_RECE_YOY
     type: double
-    nullable: false
+    nullable: true
   - name: SELL_REPO_FINASSET_YOY
     type: double
-    nullable: false
+    nullable: true
   - name: SETTLE_EXCESS_RESERVE_YOY
     type: double
-    nullable: false
+    nullable: true
   - name: SHARE_CAPITAL_YOY
     type: double
-    nullable: false
+    nullable: true
   - name: SHORT_BOND_PAYABLE_YOY
     type: double
-    nullable: false
+    nullable: true
   - name: SHORT_FIN_PAYABLE_YOY
     type: double
-    nullable: false
+    nullable: true
   - name: SHORT_LOAN_YOY
     type: double
-    nullable: false
+    nullable: true
   - name: SPECIAL_PAYABLE_YOY
     type: double
-    nullable: false
+    nullable: true
   - name: SPECIAL_RESERVE_YOY
     type: double
-    nullable: false
+    nullable: true
   - name: STAFF_SALARY_PAYABLE_YOY
     type: double
-    nullable: false
+    nullable: true
   - name: SUBSIDY_RECE_YOY
     type: double
-    nullable: false
+    nullable: true
   - name: SURPLUS_RESERVE_YOY
     type: double
-    nullable: false
+    nullable: true
   - name: TAX_PAYABLE_YOY
     type: double
-    nullable: false
+    nullable: true
   - name: TOTAL_ASSETS_YOY
     type: double
-    nullable: false
+    nullable: true
   - name: TOTAL_CURRENT_ASSETS_YOY
     type: double
-    nullable: false
+    nullable: true
   - name: TOTAL_CURRENT_LIAB_YOY
     type: double
-    nullable: false
+    nullable: true
   - name: TOTAL_EQUITY_YOY
     type: double
-    nullable: false
+    nullable: true
   - name: TOTAL_LIAB_EQUITY_YOY
     type: double
-    nullable: false
+    nullable: true
   - name: TOTAL_LIABILITIES_YOY
     type: double
-    nullable: false
+    nullable: true
   - name: TOTAL_NONCURRENT_ASSETS_YOY
     type: double
-    nullable: false
+    nullable: true
   - name: TOTAL_NONCURRENT_LIAB_YOY
     type: double
-    nullable: false
+    nullable: true
   - name: TOTAL_OTHER_PAYABLE_YOY
     type: double
-    nullable: false
+    nullable: true
   - name: TOTAL_OTHER_RECE_YOY
     type: double
-    nullable: false
+    nullable: true
   - name: TOTAL_PARENT_EQUITY_YOY
     type: double
-    nullable: false
+    nullable: true
   - name: TRADE_FINASSET_NOTFVTPL_YOY
     type: double
-    nullable: false
+    nullable: true
   - name: TRADE_FINASSET_YOY
     type: double
-    nullable: false
+    nullable: true
   - name: TRADE_FINLIAB_NOTFVTPL_YOY
     type: double
-    nullable: false
+    nullable: true
   - name: TRADE_FINLIAB_YOY
     type: double
-    nullable: false
+    nullable: true
   - name: TREASURY_SHARES_YOY
     type: double
-    nullable: false
+    nullable: true
   - name: UNASSIGN_RPOFIT_YOY
     type: double
-    nullable: false
+    nullable: true
   - name: UNCONFIRM_INVEST_LOSS_YOY
     type: double
-    nullable: false
+    nullable: true
   - name: USERIGHT_ASSET_YOY
     type: double
-    nullable: false
+    nullable: true
   - name: OPINION_TYPE
     type: string
     nullable: true
@@ -2317,1228 +2317,1228 @@ clickhouse_raw:
   - name: UPDATE_DATE
     type: Date
     from: UPDATE_DATE
-    nullable: false
+    nullable: true
   - name: CURRENCY
     type: LowCardinality(String)
     from: CURRENCY
-    nullable: false
+    nullable: true
     reason: expected_low_cardinality_dimension
   - name: ACCEPT_DEPOSIT_INTERBANK
     type: Float64
     from: ACCEPT_DEPOSIT_INTERBANK
-    nullable: false
+    nullable: true
   - name: ACCOUNTS_PAYABLE
     type: Float64
     from: ACCOUNTS_PAYABLE
-    nullable: false
+    nullable: true
   - name: ACCOUNTS_RECE
     type: Float64
     from: ACCOUNTS_RECE
-    nullable: false
+    nullable: true
   - name: ACCRUED_EXPENSE
     type: Float64
     from: ACCRUED_EXPENSE
-    nullable: false
+    nullable: true
   - name: ADVANCE_RECEIVABLES
     type: Float64
     from: ADVANCE_RECEIVABLES
-    nullable: false
+    nullable: true
   - name: AGENT_TRADE_SECURITY
     type: Float64
     from: AGENT_TRADE_SECURITY
-    nullable: false
+    nullable: true
   - name: AGENT_UNDERWRITE_SECURITY
     type: Float64
     from: AGENT_UNDERWRITE_SECURITY
-    nullable: false
+    nullable: true
   - name: AMORTIZE_COST_FINASSET
     type: Float64
     from: AMORTIZE_COST_FINASSET
-    nullable: false
+    nullable: true
   - name: AMORTIZE_COST_FINLIAB
     type: Float64
     from: AMORTIZE_COST_FINLIAB
-    nullable: false
+    nullable: true
   - name: AMORTIZE_COST_NCFINASSET
     type: Float64
     from: AMORTIZE_COST_NCFINASSET
-    nullable: false
+    nullable: true
   - name: AMORTIZE_COST_NCFINLIAB
     type: Float64
     from: AMORTIZE_COST_NCFINLIAB
-    nullable: false
+    nullable: true
   - name: APPOINT_FVTPL_FINASSET
     type: Float64
     from: APPOINT_FVTPL_FINASSET
-    nullable: false
+    nullable: true
   - name: APPOINT_FVTPL_FINLIAB
     type: Float64
     from: APPOINT_FVTPL_FINLIAB
-    nullable: false
+    nullable: true
   - name: ASSET_BALANCE
     type: Float64
     from: ASSET_BALANCE
-    nullable: false
+    nullable: true
   - name: ASSET_OTHER
     type: Float64
     from: ASSET_OTHER
-    nullable: false
+    nullable: true
   - name: ASSIGN_CASH_DIVIDEND
     type: Float64
     from: ASSIGN_CASH_DIVIDEND
-    nullable: false
+    nullable: true
   - name: AVAILABLE_SALE_FINASSET
     type: Float64
     from: AVAILABLE_SALE_FINASSET
-    nullable: false
+    nullable: true
   - name: BOND_PAYABLE
     type: Float64
     from: BOND_PAYABLE
-    nullable: false
+    nullable: true
   - name: BORROW_FUND
     type: Float64
     from: BORROW_FUND
-    nullable: false
+    nullable: true
   - name: BUY_RESALE_FINASSET
     type: Float64
     from: BUY_RESALE_FINASSET
-    nullable: false
+    nullable: true
   - name: CAPITAL_RESERVE
     type: Float64
     from: CAPITAL_RESERVE
-    nullable: false
+    nullable: true
   - name: CIP
     type: Float64
     from: CIP
-    nullable: false
+    nullable: true
   - name: CONSUMPTIVE_BIOLOGICAL_ASSET
     type: Float64
     from: CONSUMPTIVE_BIOLOGICAL_ASSET
-    nullable: false
+    nullable: true
   - name: CONTRACT_ASSET
     type: Float64
     from: CONTRACT_ASSET
-    nullable: false
+    nullable: true
   - name: CONTRACT_LIAB
     type: Float64
     from: CONTRACT_LIAB
-    nullable: false
+    nullable: true
   - name: CONVERT_DIFF
     type: Float64
     from: CONVERT_DIFF
-    nullable: false
+    nullable: true
   - name: CREDITOR_INVEST
     type: Float64
     from: CREDITOR_INVEST
-    nullable: false
+    nullable: true
   - name: CURRENT_ASSET_BALANCE
     type: Float64
     from: CURRENT_ASSET_BALANCE
-    nullable: false
+    nullable: true
   - name: CURRENT_ASSET_OTHER
     type: Float64
     from: CURRENT_ASSET_OTHER
-    nullable: false
+    nullable: true
   - name: CURRENT_LIAB_BALANCE
     type: Float64
     from: CURRENT_LIAB_BALANCE
-    nullable: false
+    nullable: true
   - name: CURRENT_LIAB_OTHER
     type: Float64
     from: CURRENT_LIAB_OTHER
-    nullable: false
+    nullable: true
   - name: DEFER_INCOME
     type: Float64
     from: DEFER_INCOME
-    nullable: false
+    nullable: true
   - name: DEFER_INCOME_1YEAR
     type: Float64
     from: DEFER_INCOME_1YEAR
-    nullable: false
+    nullable: true
   - name: DEFER_TAX_ASSET
     type: Float64
     from: DEFER_TAX_ASSET
-    nullable: false
+    nullable: true
   - name: DEFER_TAX_LIAB
     type: Float64
     from: DEFER_TAX_LIAB
-    nullable: false
+    nullable: true
   - name: DERIVE_FINASSET
     type: Float64
     from: DERIVE_FINASSET
-    nullable: false
+    nullable: true
   - name: DERIVE_FINLIAB
     type: Float64
     from: DERIVE_FINLIAB
-    nullable: false
+    nullable: true
   - name: DEVELOP_EXPENSE
     type: Float64
     from: DEVELOP_EXPENSE
-    nullable: false
+    nullable: true
   - name: DIV_HOLDSALE_ASSET
     type: Float64
     from: DIV_HOLDSALE_ASSET
-    nullable: false
+    nullable: true
   - name: DIV_HOLDSALE_LIAB
     type: Float64
     from: DIV_HOLDSALE_LIAB
-    nullable: false
+    nullable: true
   - name: DIVIDEND_PAYABLE
     type: Float64
     from: DIVIDEND_PAYABLE
-    nullable: false
+    nullable: true
   - name: DIVIDEND_RECE
     type: Float64
     from: DIVIDEND_RECE
-    nullable: false
+    nullable: true
   - name: EQUITY_BALANCE
     type: Float64
     from: EQUITY_BALANCE
-    nullable: false
+    nullable: true
   - name: EQUITY_OTHER
     type: Float64
     from: EQUITY_OTHER
-    nullable: false
+    nullable: true
   - name: EXPORT_REFUND_RECE
     type: Float64
     from: EXPORT_REFUND_RECE
-    nullable: false
+    nullable: true
   - name: FEE_COMMISSION_PAYABLE
     type: Float64
     from: FEE_COMMISSION_PAYABLE
-    nullable: false
+    nullable: true
   - name: FIN_FUND
     type: Float64
     from: FIN_FUND
-    nullable: false
+    nullable: true
   - name: FINANCE_RECE
     type: Float64
     from: FINANCE_RECE
-    nullable: false
+    nullable: true
   - name: FIXED_ASSET
     type: Float64
     from: FIXED_ASSET
-    nullable: false
+    nullable: true
   - name: FIXED_ASSET_DISPOSAL
     type: Float64
     from: FIXED_ASSET_DISPOSAL
-    nullable: false
+    nullable: true
   - name: FVTOCI_FINASSET
     type: Float64
     from: FVTOCI_FINASSET
-    nullable: false
+    nullable: true
   - name: FVTOCI_NCFINASSET
     type: Float64
     from: FVTOCI_NCFINASSET
-    nullable: false
+    nullable: true
   - name: FVTPL_FINASSET
     type: Float64
     from: FVTPL_FINASSET
-    nullable: false
+    nullable: true
   - name: FVTPL_FINLIAB
     type: Float64
     from: FVTPL_FINLIAB
-    nullable: false
+    nullable: true
   - name: GENERAL_RISK_RESERVE
     type: Float64
     from: GENERAL_RISK_RESERVE
-    nullable: false
+    nullable: true
   - name: GOODWILL
     type: Float64
     from: GOODWILL
-    nullable: false
+    nullable: true
   - name: HOLD_MATURITY_INVEST
     type: Float64
     from: HOLD_MATURITY_INVEST
-    nullable: false
+    nullable: true
   - name: HOLDSALE_ASSET
     type: Float64
     from: HOLDSALE_ASSET
-    nullable: false
+    nullable: true
   - name: HOLDSALE_LIAB
     type: Float64
     from: HOLDSALE_LIAB
-    nullable: false
+    nullable: true
   - name: INSURANCE_CONTRACT_RESERVE
     type: Float64
     from: INSURANCE_CONTRACT_RESERVE
-    nullable: false
+    nullable: true
   - name: INTANGIBLE_ASSET
     type: Float64
     from: INTANGIBLE_ASSET
-    nullable: false
+    nullable: true
   - name: INTEREST_PAYABLE
     type: Float64
     from: INTEREST_PAYABLE
-    nullable: false
+    nullable: true
   - name: INTEREST_RECE
     type: Float64
     from: INTEREST_RECE
-    nullable: false
+    nullable: true
   - name: INTERNAL_PAYABLE
     type: Float64
     from: INTERNAL_PAYABLE
-    nullable: false
+    nullable: true
   - name: INTERNAL_RECE
     type: Float64
     from: INTERNAL_RECE
-    nullable: false
+    nullable: true
   - name: INVENTORY
     type: Float64
     from: INVENTORY
-    nullable: false
+    nullable: true
   - name: INVEST_REALESTATE
     type: Float64
     from: INVEST_REALESTATE
-    nullable: false
+    nullable: true
   - name: LEASE_LIAB
     type: Float64
     from: LEASE_LIAB
-    nullable: false
+    nullable: true
   - name: LEND_FUND
     type: Float64
     from: LEND_FUND
-    nullable: false
+    nullable: true
   - name: LIAB_BALANCE
     type: Float64
     from: LIAB_BALANCE
-    nullable: false
+    nullable: true
   - name: LIAB_EQUITY_BALANCE
     type: Float64
     from: LIAB_EQUITY_BALANCE
-    nullable: false
+    nullable: true
   - name: LIAB_EQUITY_OTHER
     type: Float64
     from: LIAB_EQUITY_OTHER
-    nullable: false
+    nullable: true
   - name: LIAB_OTHER
     type: Float64
     from: LIAB_OTHER
-    nullable: false
+    nullable: true
   - name: LOAN_ADVANCE
     type: Float64
     from: LOAN_ADVANCE
-    nullable: false
+    nullable: true
   - name: LOAN_PBC
     type: Float64
     from: LOAN_PBC
-    nullable: false
+    nullable: true
   - name: LONG_EQUITY_INVEST
     type: Float64
     from: LONG_EQUITY_INVEST
-    nullable: false
+    nullable: true
   - name: LONG_LOAN
     type: Float64
     from: LONG_LOAN
-    nullable: false
+    nullable: true
   - name: LONG_PAYABLE
     type: Float64
     from: LONG_PAYABLE
-    nullable: false
+    nullable: true
   - name: LONG_PREPAID_EXPENSE
     type: Float64
     from: LONG_PREPAID_EXPENSE
-    nullable: false
+    nullable: true
   - name: LONG_RECE
     type: Float64
     from: LONG_RECE
-    nullable: false
+    nullable: true
   - name: LONG_STAFFSALARY_PAYABLE
     type: Float64
     from: LONG_STAFFSALARY_PAYABLE
-    nullable: false
+    nullable: true
   - name: MINORITY_EQUITY
     type: Float64
     from: MINORITY_EQUITY
-    nullable: false
+    nullable: true
   - name: MONETARYFUNDS
     type: Float64
     from: MONETARYFUNDS
-    nullable: false
+    nullable: true
   - name: NONCURRENT_ASSET_1YEAR
     type: Float64
     from: NONCURRENT_ASSET_1YEAR
-    nullable: false
+    nullable: true
   - name: NONCURRENT_ASSET_BALANCE
     type: Float64
     from: NONCURRENT_ASSET_BALANCE
-    nullable: false
+    nullable: true
   - name: NONCURRENT_ASSET_OTHER
     type: Float64
     from: NONCURRENT_ASSET_OTHER
-    nullable: false
+    nullable: true
   - name: NONCURRENT_LIAB_1YEAR
     type: Float64
     from: NONCURRENT_LIAB_1YEAR
-    nullable: false
+    nullable: true
   - name: NONCURRENT_LIAB_BALANCE
     type: Float64
     from: NONCURRENT_LIAB_BALANCE
-    nullable: false
+    nullable: true
   - name: NONCURRENT_LIAB_OTHER
     type: Float64
     from: NONCURRENT_LIAB_OTHER
-    nullable: false
+    nullable: true
   - name: NOTE_ACCOUNTS_PAYABLE
     type: Float64
     from: NOTE_ACCOUNTS_PAYABLE
-    nullable: false
+    nullable: true
   - name: NOTE_ACCOUNTS_RECE
     type: Float64
     from: NOTE_ACCOUNTS_RECE
-    nullable: false
+    nullable: true
   - name: NOTE_PAYABLE
     type: Float64
     from: NOTE_PAYABLE
-    nullable: false
+    nullable: true
   - name: NOTE_RECE
     type: Float64
     from: NOTE_RECE
-    nullable: false
+    nullable: true
   - name: OIL_GAS_ASSET
     type: Float64
     from: OIL_GAS_ASSET
-    nullable: false
+    nullable: true
   - name: OTHER_COMPRE_INCOME
     type: Float64
     from: OTHER_COMPRE_INCOME
-    nullable: false
+    nullable: true
   - name: OTHER_CREDITOR_INVEST
     type: Float64
     from: OTHER_CREDITOR_INVEST
-    nullable: false
+    nullable: true
   - name: OTHER_CURRENT_ASSET
     type: Float64
     from: OTHER_CURRENT_ASSET
-    nullable: false
+    nullable: true
   - name: OTHER_CURRENT_LIAB
     type: Float64
     from: OTHER_CURRENT_LIAB
-    nullable: false
+    nullable: true
   - name: OTHER_EQUITY_INVEST
     type: Float64
     from: OTHER_EQUITY_INVEST
-    nullable: false
+    nullable: true
   - name: OTHER_EQUITY_OTHER
     type: Float64
     from: OTHER_EQUITY_OTHER
-    nullable: false
+    nullable: true
   - name: OTHER_EQUITY_TOOL
     type: Float64
     from: OTHER_EQUITY_TOOL
-    nullable: false
+    nullable: true
   - name: OTHER_NONCURRENT_ASSET
     type: Float64
     from: OTHER_NONCURRENT_ASSET
-    nullable: false
+    nullable: true
   - name: OTHER_NONCURRENT_FINASSET
     type: Float64
     from: OTHER_NONCURRENT_FINASSET
-    nullable: false
+    nullable: true
   - name: OTHER_NONCURRENT_LIAB
     type: Float64
     from: OTHER_NONCURRENT_LIAB
-    nullable: false
+    nullable: true
   - name: OTHER_PAYABLE
     type: Float64
     from: OTHER_PAYABLE
-    nullable: false
+    nullable: true
   - name: OTHER_RECE
     type: Float64
     from: OTHER_RECE
-    nullable: false
+    nullable: true
   - name: PARENT_EQUITY_BALANCE
     type: Float64
     from: PARENT_EQUITY_BALANCE
-    nullable: false
+    nullable: true
   - name: PARENT_EQUITY_OTHER
     type: Float64
     from: PARENT_EQUITY_OTHER
-    nullable: false
+    nullable: true
   - name: PERPETUAL_BOND
     type: Float64
     from: PERPETUAL_BOND
-    nullable: false
+    nullable: true
   - name: PERPETUAL_BOND_PAYBALE
     type: Float64
     from: PERPETUAL_BOND_PAYBALE
-    nullable: false
+    nullable: true
   - name: PREDICT_CURRENT_LIAB
     type: Float64
     from: PREDICT_CURRENT_LIAB
-    nullable: false
+    nullable: true
   - name: PREDICT_LIAB
     type: Float64
     from: PREDICT_LIAB
-    nullable: false
+    nullable: true
   - name: PREFERRED_SHARES
     type: Float64
     from: PREFERRED_SHARES
-    nullable: false
+    nullable: true
   - name: PREFERRED_SHARES_PAYBALE
     type: Float64
     from: PREFERRED_SHARES_PAYBALE
-    nullable: false
+    nullable: true
   - name: PREMIUM_RECE
     type: Float64
     from: PREMIUM_RECE
-    nullable: false
+    nullable: true
   - name: PREPAYMENT
     type: Float64
     from: PREPAYMENT
-    nullable: false
+    nullable: true
   - name: PRODUCTIVE_BIOLOGY_ASSET
     type: Float64
     from: PRODUCTIVE_BIOLOGY_ASSET
-    nullable: false
+    nullable: true
   - name: PROJECT_MATERIAL
     type: Float64
     from: PROJECT_MATERIAL
-    nullable: false
+    nullable: true
   - name: RC_RESERVE_RECE
     type: Float64
     from: RC_RESERVE_RECE
-    nullable: false
+    nullable: true
   - name: REINSURE_PAYABLE
     type: Float64
     from: REINSURE_PAYABLE
-    nullable: false
+    nullable: true
   - name: REINSURE_RECE
     type: Float64
     from: REINSURE_RECE
-    nullable: false
+    nullable: true
   - name: SELL_REPO_FINASSET
     type: Float64
     from: SELL_REPO_FINASSET
-    nullable: false
+    nullable: true
   - name: SETTLE_EXCESS_RESERVE
     type: Float64
     from: SETTLE_EXCESS_RESERVE
-    nullable: false
+    nullable: true
   - name: SHARE_CAPITAL
     type: Float64
     from: SHARE_CAPITAL
-    nullable: false
+    nullable: true
   - name: SHORT_BOND_PAYABLE
     type: Float64
     from: SHORT_BOND_PAYABLE
-    nullable: false
+    nullable: true
   - name: SHORT_FIN_PAYABLE
     type: Float64
     from: SHORT_FIN_PAYABLE
-    nullable: false
+    nullable: true
   - name: SHORT_LOAN
     type: Float64
     from: SHORT_LOAN
-    nullable: false
+    nullable: true
   - name: SPECIAL_PAYABLE
     type: Float64
     from: SPECIAL_PAYABLE
-    nullable: false
+    nullable: true
   - name: SPECIAL_RESERVE
     type: Float64
     from: SPECIAL_RESERVE
-    nullable: false
+    nullable: true
   - name: STAFF_SALARY_PAYABLE
     type: Float64
     from: STAFF_SALARY_PAYABLE
-    nullable: false
+    nullable: true
   - name: SUBSIDY_RECE
     type: Float64
     from: SUBSIDY_RECE
-    nullable: false
+    nullable: true
   - name: SURPLUS_RESERVE
     type: Float64
     from: SURPLUS_RESERVE
-    nullable: false
+    nullable: true
   - name: TAX_PAYABLE
     type: Float64
     from: TAX_PAYABLE
-    nullable: false
+    nullable: true
   - name: TOTAL_ASSETS
     type: Float64
     from: TOTAL_ASSETS
-    nullable: false
+    nullable: true
   - name: TOTAL_CURRENT_ASSETS
     type: Float64
     from: TOTAL_CURRENT_ASSETS
-    nullable: false
+    nullable: true
   - name: TOTAL_CURRENT_LIAB
     type: Float64
     from: TOTAL_CURRENT_LIAB
-    nullable: false
+    nullable: true
   - name: TOTAL_EQUITY
     type: Float64
     from: TOTAL_EQUITY
-    nullable: false
+    nullable: true
   - name: TOTAL_LIAB_EQUITY
     type: Float64
     from: TOTAL_LIAB_EQUITY
-    nullable: false
+    nullable: true
   - name: TOTAL_LIABILITIES
     type: Float64
     from: TOTAL_LIABILITIES
-    nullable: false
+    nullable: true
   - name: TOTAL_NONCURRENT_ASSETS
     type: Float64
     from: TOTAL_NONCURRENT_ASSETS
-    nullable: false
+    nullable: true
   - name: TOTAL_NONCURRENT_LIAB
     type: Float64
     from: TOTAL_NONCURRENT_LIAB
-    nullable: false
+    nullable: true
   - name: TOTAL_OTHER_PAYABLE
     type: Float64
     from: TOTAL_OTHER_PAYABLE
-    nullable: false
+    nullable: true
   - name: TOTAL_OTHER_RECE
     type: Float64
     from: TOTAL_OTHER_RECE
-    nullable: false
+    nullable: true
   - name: TOTAL_PARENT_EQUITY
     type: Float64
     from: TOTAL_PARENT_EQUITY
-    nullable: false
+    nullable: true
   - name: TRADE_FINASSET
     type: Float64
     from: TRADE_FINASSET
-    nullable: false
+    nullable: true
   - name: TRADE_FINASSET_NOTFVTPL
     type: Float64
     from: TRADE_FINASSET_NOTFVTPL
-    nullable: false
+    nullable: true
   - name: TRADE_FINLIAB
     type: Float64
     from: TRADE_FINLIAB
-    nullable: false
+    nullable: true
   - name: TRADE_FINLIAB_NOTFVTPL
     type: Float64
     from: TRADE_FINLIAB_NOTFVTPL
-    nullable: false
+    nullable: true
   - name: TREASURY_SHARES
     type: Float64
     from: TREASURY_SHARES
-    nullable: false
+    nullable: true
   - name: UNASSIGN_RPOFIT
     type: Float64
     from: UNASSIGN_RPOFIT
-    nullable: false
+    nullable: true
   - name: UNCONFIRM_INVEST_LOSS
     type: Float64
     from: UNCONFIRM_INVEST_LOSS
-    nullable: false
+    nullable: true
   - name: USERIGHT_ASSET
     type: Float64
     from: USERIGHT_ASSET
-    nullable: false
+    nullable: true
   - name: ACCEPT_DEPOSIT_INTERBANK_YOY
     type: Float64
     from: ACCEPT_DEPOSIT_INTERBANK_YOY
-    nullable: false
+    nullable: true
   - name: ACCOUNTS_PAYABLE_YOY
     type: Float64
     from: ACCOUNTS_PAYABLE_YOY
-    nullable: false
+    nullable: true
   - name: ACCOUNTS_RECE_YOY
     type: Float64
     from: ACCOUNTS_RECE_YOY
-    nullable: false
+    nullable: true
   - name: ACCRUED_EXPENSE_YOY
     type: Float64
     from: ACCRUED_EXPENSE_YOY
-    nullable: false
+    nullable: true
   - name: ADVANCE_RECEIVABLES_YOY
     type: Float64
     from: ADVANCE_RECEIVABLES_YOY
-    nullable: false
+    nullable: true
   - name: AGENT_TRADE_SECURITY_YOY
     type: Float64
     from: AGENT_TRADE_SECURITY_YOY
-    nullable: false
+    nullable: true
   - name: AGENT_UNDERWRITE_SECURITY_YOY
     type: Float64
     from: AGENT_UNDERWRITE_SECURITY_YOY
-    nullable: false
+    nullable: true
   - name: AMORTIZE_COST_FINASSET_YOY
     type: Float64
     from: AMORTIZE_COST_FINASSET_YOY
-    nullable: false
+    nullable: true
   - name: AMORTIZE_COST_FINLIAB_YOY
     type: Float64
     from: AMORTIZE_COST_FINLIAB_YOY
-    nullable: false
+    nullable: true
   - name: AMORTIZE_COST_NCFINASSET_YOY
     type: Float64
     from: AMORTIZE_COST_NCFINASSET_YOY
-    nullable: false
+    nullable: true
   - name: AMORTIZE_COST_NCFINLIAB_YOY
     type: Float64
     from: AMORTIZE_COST_NCFINLIAB_YOY
-    nullable: false
+    nullable: true
   - name: APPOINT_FVTPL_FINASSET_YOY
     type: Float64
     from: APPOINT_FVTPL_FINASSET_YOY
-    nullable: false
+    nullable: true
   - name: APPOINT_FVTPL_FINLIAB_YOY
     type: Float64
     from: APPOINT_FVTPL_FINLIAB_YOY
-    nullable: false
+    nullable: true
   - name: ASSET_BALANCE_YOY
     type: Float64
     from: ASSET_BALANCE_YOY
-    nullable: false
+    nullable: true
   - name: ASSET_OTHER_YOY
     type: Float64
     from: ASSET_OTHER_YOY
-    nullable: false
+    nullable: true
   - name: ASSIGN_CASH_DIVIDEND_YOY
     type: Float64
     from: ASSIGN_CASH_DIVIDEND_YOY
-    nullable: false
+    nullable: true
   - name: AVAILABLE_SALE_FINASSET_YOY
     type: Float64
     from: AVAILABLE_SALE_FINASSET_YOY
-    nullable: false
+    nullable: true
   - name: BOND_PAYABLE_YOY
     type: Float64
     from: BOND_PAYABLE_YOY
-    nullable: false
+    nullable: true
   - name: BORROW_FUND_YOY
     type: Float64
     from: BORROW_FUND_YOY
-    nullable: false
+    nullable: true
   - name: BUY_RESALE_FINASSET_YOY
     type: Float64
     from: BUY_RESALE_FINASSET_YOY
-    nullable: false
+    nullable: true
   - name: CAPITAL_RESERVE_YOY
     type: Float64
     from: CAPITAL_RESERVE_YOY
-    nullable: false
+    nullable: true
   - name: CIP_YOY
     type: Float64
     from: CIP_YOY
-    nullable: false
+    nullable: true
   - name: CONSUMPTIVE_BIOLOGICAL_ASSET_YOY
     type: Float64
     from: CONSUMPTIVE_BIOLOGICAL_ASSET_YOY
-    nullable: false
+    nullable: true
   - name: CONTRACT_ASSET_YOY
     type: Float64
     from: CONTRACT_ASSET_YOY
-    nullable: false
+    nullable: true
   - name: CONTRACT_LIAB_YOY
     type: Float64
     from: CONTRACT_LIAB_YOY
-    nullable: false
+    nullable: true
   - name: CONVERT_DIFF_YOY
     type: Float64
     from: CONVERT_DIFF_YOY
-    nullable: false
+    nullable: true
   - name: CREDITOR_INVEST_YOY
     type: Float64
     from: CREDITOR_INVEST_YOY
-    nullable: false
+    nullable: true
   - name: CURRENT_ASSET_BALANCE_YOY
     type: Float64
     from: CURRENT_ASSET_BALANCE_YOY
-    nullable: false
+    nullable: true
   - name: CURRENT_ASSET_OTHER_YOY
     type: Float64
     from: CURRENT_ASSET_OTHER_YOY
-    nullable: false
+    nullable: true
   - name: CURRENT_LIAB_BALANCE_YOY
     type: Float64
     from: CURRENT_LIAB_BALANCE_YOY
-    nullable: false
+    nullable: true
   - name: CURRENT_LIAB_OTHER_YOY
     type: Float64
     from: CURRENT_LIAB_OTHER_YOY
-    nullable: false
+    nullable: true
   - name: DEFER_INCOME_1YEAR_YOY
     type: Float64
     from: DEFER_INCOME_1YEAR_YOY
-    nullable: false
+    nullable: true
   - name: DEFER_INCOME_YOY
     type: Float64
     from: DEFER_INCOME_YOY
-    nullable: false
+    nullable: true
   - name: DEFER_TAX_ASSET_YOY
     type: Float64
     from: DEFER_TAX_ASSET_YOY
-    nullable: false
+    nullable: true
   - name: DEFER_TAX_LIAB_YOY
     type: Float64
     from: DEFER_TAX_LIAB_YOY
-    nullable: false
+    nullable: true
   - name: DERIVE_FINASSET_YOY
     type: Float64
     from: DERIVE_FINASSET_YOY
-    nullable: false
+    nullable: true
   - name: DERIVE_FINLIAB_YOY
     type: Float64
     from: DERIVE_FINLIAB_YOY
-    nullable: false
+    nullable: true
   - name: DEVELOP_EXPENSE_YOY
     type: Float64
     from: DEVELOP_EXPENSE_YOY
-    nullable: false
+    nullable: true
   - name: DIV_HOLDSALE_ASSET_YOY
     type: Float64
     from: DIV_HOLDSALE_ASSET_YOY
-    nullable: false
+    nullable: true
   - name: DIV_HOLDSALE_LIAB_YOY
     type: Float64
     from: DIV_HOLDSALE_LIAB_YOY
-    nullable: false
+    nullable: true
   - name: DIVIDEND_PAYABLE_YOY
     type: Float64
     from: DIVIDEND_PAYABLE_YOY
-    nullable: false
+    nullable: true
   - name: DIVIDEND_RECE_YOY
     type: Float64
     from: DIVIDEND_RECE_YOY
-    nullable: false
+    nullable: true
   - name: EQUITY_BALANCE_YOY
     type: Float64
     from: EQUITY_BALANCE_YOY
-    nullable: false
+    nullable: true
   - name: EQUITY_OTHER_YOY
     type: Float64
     from: EQUITY_OTHER_YOY
-    nullable: false
+    nullable: true
   - name: EXPORT_REFUND_RECE_YOY
     type: Float64
     from: EXPORT_REFUND_RECE_YOY
-    nullable: false
+    nullable: true
   - name: FEE_COMMISSION_PAYABLE_YOY
     type: Float64
     from: FEE_COMMISSION_PAYABLE_YOY
-    nullable: false
+    nullable: true
   - name: FIN_FUND_YOY
     type: Float64
     from: FIN_FUND_YOY
-    nullable: false
+    nullable: true
   - name: FINANCE_RECE_YOY
     type: Float64
     from: FINANCE_RECE_YOY
-    nullable: false
+    nullable: true
   - name: FIXED_ASSET_DISPOSAL_YOY
     type: Float64
     from: FIXED_ASSET_DISPOSAL_YOY
-    nullable: false
+    nullable: true
   - name: FIXED_ASSET_YOY
     type: Float64
     from: FIXED_ASSET_YOY
-    nullable: false
+    nullable: true
   - name: FVTOCI_FINASSET_YOY
     type: Float64
     from: FVTOCI_FINASSET_YOY
-    nullable: false
+    nullable: true
   - name: FVTOCI_NCFINASSET_YOY
     type: Float64
     from: FVTOCI_NCFINASSET_YOY
-    nullable: false
+    nullable: true
   - name: FVTPL_FINASSET_YOY
     type: Float64
     from: FVTPL_FINASSET_YOY
-    nullable: false
+    nullable: true
   - name: FVTPL_FINLIAB_YOY
     type: Float64
     from: FVTPL_FINLIAB_YOY
-    nullable: false
+    nullable: true
   - name: GENERAL_RISK_RESERVE_YOY
     type: Float64
     from: GENERAL_RISK_RESERVE_YOY
-    nullable: false
+    nullable: true
   - name: GOODWILL_YOY
     type: Float64
     from: GOODWILL_YOY
-    nullable: false
+    nullable: true
   - name: HOLD_MATURITY_INVEST_YOY
     type: Float64
     from: HOLD_MATURITY_INVEST_YOY
-    nullable: false
+    nullable: true
   - name: HOLDSALE_ASSET_YOY
     type: Float64
     from: HOLDSALE_ASSET_YOY
-    nullable: false
+    nullable: true
   - name: HOLDSALE_LIAB_YOY
     type: Float64
     from: HOLDSALE_LIAB_YOY
-    nullable: false
+    nullable: true
   - name: INSURANCE_CONTRACT_RESERVE_YOY
     type: Float64
     from: INSURANCE_CONTRACT_RESERVE_YOY
-    nullable: false
+    nullable: true
   - name: INTANGIBLE_ASSET_YOY
     type: Float64
     from: INTANGIBLE_ASSET_YOY
-    nullable: false
+    nullable: true
   - name: INTEREST_PAYABLE_YOY
     type: Float64
     from: INTEREST_PAYABLE_YOY
-    nullable: false
+    nullable: true
   - name: INTEREST_RECE_YOY
     type: Float64
     from: INTEREST_RECE_YOY
-    nullable: false
+    nullable: true
   - name: INTERNAL_PAYABLE_YOY
     type: Float64
     from: INTERNAL_PAYABLE_YOY
-    nullable: false
+    nullable: true
   - name: INTERNAL_RECE_YOY
     type: Float64
     from: INTERNAL_RECE_YOY
-    nullable: false
+    nullable: true
   - name: INVENTORY_YOY
     type: Float64
     from: INVENTORY_YOY
-    nullable: false
+    nullable: true
   - name: INVEST_REALESTATE_YOY
     type: Float64
     from: INVEST_REALESTATE_YOY
-    nullable: false
+    nullable: true
   - name: LEASE_LIAB_YOY
     type: Float64
     from: LEASE_LIAB_YOY
-    nullable: false
+    nullable: true
   - name: LEND_FUND_YOY
     type: Float64
     from: LEND_FUND_YOY
-    nullable: false
+    nullable: true
   - name: LIAB_BALANCE_YOY
     type: Float64
     from: LIAB_BALANCE_YOY
-    nullable: false
+    nullable: true
   - name: LIAB_EQUITY_BALANCE_YOY
     type: Float64
     from: LIAB_EQUITY_BALANCE_YOY
-    nullable: false
+    nullable: true
   - name: LIAB_EQUITY_OTHER_YOY
     type: Float64
     from: LIAB_EQUITY_OTHER_YOY
-    nullable: false
+    nullable: true
   - name: LIAB_OTHER_YOY
     type: Float64
     from: LIAB_OTHER_YOY
-    nullable: false
+    nullable: true
   - name: LOAN_ADVANCE_YOY
     type: Float64
     from: LOAN_ADVANCE_YOY
-    nullable: false
+    nullable: true
   - name: LOAN_PBC_YOY
     type: Float64
     from: LOAN_PBC_YOY
-    nullable: false
+    nullable: true
   - name: LONG_EQUITY_INVEST_YOY
     type: Float64
     from: LONG_EQUITY_INVEST_YOY
-    nullable: false
+    nullable: true
   - name: LONG_LOAN_YOY
     type: Float64
     from: LONG_LOAN_YOY
-    nullable: false
+    nullable: true
   - name: LONG_PAYABLE_YOY
     type: Float64
     from: LONG_PAYABLE_YOY
-    nullable: false
+    nullable: true
   - name: LONG_PREPAID_EXPENSE_YOY
     type: Float64
     from: LONG_PREPAID_EXPENSE_YOY
-    nullable: false
+    nullable: true
   - name: LONG_RECE_YOY
     type: Float64
     from: LONG_RECE_YOY
-    nullable: false
+    nullable: true
   - name: LONG_STAFFSALARY_PAYABLE_YOY
     type: Float64
     from: LONG_STAFFSALARY_PAYABLE_YOY
-    nullable: false
+    nullable: true
   - name: MINORITY_EQUITY_YOY
     type: Float64
     from: MINORITY_EQUITY_YOY
-    nullable: false
+    nullable: true
   - name: MONETARYFUNDS_YOY
     type: Float64
     from: MONETARYFUNDS_YOY
-    nullable: false
+    nullable: true
   - name: NONCURRENT_ASSET_1YEAR_YOY
     type: Float64
     from: NONCURRENT_ASSET_1YEAR_YOY
-    nullable: false
+    nullable: true
   - name: NONCURRENT_ASSET_BALANCE_YOY
     type: Float64
     from: NONCURRENT_ASSET_BALANCE_YOY
-    nullable: false
+    nullable: true
   - name: NONCURRENT_ASSET_OTHER_YOY
     type: Float64
     from: NONCURRENT_ASSET_OTHER_YOY
-    nullable: false
+    nullable: true
   - name: NONCURRENT_LIAB_1YEAR_YOY
     type: Float64
     from: NONCURRENT_LIAB_1YEAR_YOY
-    nullable: false
+    nullable: true
   - name: NONCURRENT_LIAB_BALANCE_YOY
     type: Float64
     from: NONCURRENT_LIAB_BALANCE_YOY
-    nullable: false
+    nullable: true
   - name: NONCURRENT_LIAB_OTHER_YOY
     type: Float64
     from: NONCURRENT_LIAB_OTHER_YOY
-    nullable: false
+    nullable: true
   - name: NOTE_ACCOUNTS_PAYABLE_YOY
     type: Float64
     from: NOTE_ACCOUNTS_PAYABLE_YOY
-    nullable: false
+    nullable: true
   - name: NOTE_ACCOUNTS_RECE_YOY
     type: Float64
     from: NOTE_ACCOUNTS_RECE_YOY
-    nullable: false
+    nullable: true
   - name: NOTE_PAYABLE_YOY
     type: Float64
     from: NOTE_PAYABLE_YOY
-    nullable: false
+    nullable: true
   - name: NOTE_RECE_YOY
     type: Float64
     from: NOTE_RECE_YOY
-    nullable: false
+    nullable: true
   - name: OIL_GAS_ASSET_YOY
     type: Float64
     from: OIL_GAS_ASSET_YOY
-    nullable: false
+    nullable: true
   - name: OTHER_COMPRE_INCOME_YOY
     type: Float64
     from: OTHER_COMPRE_INCOME_YOY
-    nullable: false
+    nullable: true
   - name: OTHER_CREDITOR_INVEST_YOY
     type: Float64
     from: OTHER_CREDITOR_INVEST_YOY
-    nullable: false
+    nullable: true
   - name: OTHER_CURRENT_ASSET_YOY
     type: Float64
     from: OTHER_CURRENT_ASSET_YOY
-    nullable: false
+    nullable: true
   - name: OTHER_CURRENT_LIAB_YOY
     type: Float64
     from: OTHER_CURRENT_LIAB_YOY
-    nullable: false
+    nullable: true
   - name: OTHER_EQUITY_INVEST_YOY
     type: Float64
     from: OTHER_EQUITY_INVEST_YOY
-    nullable: false
+    nullable: true
   - name: OTHER_EQUITY_OTHER_YOY
     type: Float64
     from: OTHER_EQUITY_OTHER_YOY
-    nullable: false
+    nullable: true
   - name: OTHER_EQUITY_TOOL_YOY
     type: Float64
     from: OTHER_EQUITY_TOOL_YOY
-    nullable: false
+    nullable: true
   - name: OTHER_NONCURRENT_ASSET_YOY
     type: Float64
     from: OTHER_NONCURRENT_ASSET_YOY
-    nullable: false
+    nullable: true
   - name: OTHER_NONCURRENT_FINASSET_YOY
     type: Float64
     from: OTHER_NONCURRENT_FINASSET_YOY
-    nullable: false
+    nullable: true
   - name: OTHER_NONCURRENT_LIAB_YOY
     type: Float64
     from: OTHER_NONCURRENT_LIAB_YOY
-    nullable: false
+    nullable: true
   - name: OTHER_PAYABLE_YOY
     type: Float64
     from: OTHER_PAYABLE_YOY
-    nullable: false
+    nullable: true
   - name: OTHER_RECE_YOY
     type: Float64
     from: OTHER_RECE_YOY
-    nullable: false
+    nullable: true
   - name: PARENT_EQUITY_BALANCE_YOY
     type: Float64
     from: PARENT_EQUITY_BALANCE_YOY
-    nullable: false
+    nullable: true
   - name: PARENT_EQUITY_OTHER_YOY
     type: Float64
     from: PARENT_EQUITY_OTHER_YOY
-    nullable: false
+    nullable: true
   - name: PERPETUAL_BOND_PAYBALE_YOY
     type: Float64
     from: PERPETUAL_BOND_PAYBALE_YOY
-    nullable: false
+    nullable: true
   - name: PERPETUAL_BOND_YOY
     type: Float64
     from: PERPETUAL_BOND_YOY
-    nullable: false
+    nullable: true
   - name: PREDICT_CURRENT_LIAB_YOY
     type: Float64
     from: PREDICT_CURRENT_LIAB_YOY
-    nullable: false
+    nullable: true
   - name: PREDICT_LIAB_YOY
     type: Float64
     from: PREDICT_LIAB_YOY
-    nullable: false
+    nullable: true
   - name: PREFERRED_SHARES_PAYBALE_YOY
     type: Float64
     from: PREFERRED_SHARES_PAYBALE_YOY
-    nullable: false
+    nullable: true
   - name: PREFERRED_SHARES_YOY
     type: Float64
     from: PREFERRED_SHARES_YOY
-    nullable: false
+    nullable: true
   - name: PREMIUM_RECE_YOY
     type: Float64
     from: PREMIUM_RECE_YOY
-    nullable: false
+    nullable: true
   - name: PREPAYMENT_YOY
     type: Float64
     from: PREPAYMENT_YOY
-    nullable: false
+    nullable: true
   - name: PRODUCTIVE_BIOLOGY_ASSET_YOY
     type: Float64
     from: PRODUCTIVE_BIOLOGY_ASSET_YOY
-    nullable: false
+    nullable: true
   - name: PROJECT_MATERIAL_YOY
     type: Float64
     from: PROJECT_MATERIAL_YOY
-    nullable: false
+    nullable: true
   - name: RC_RESERVE_RECE_YOY
     type: Float64
     from: RC_RESERVE_RECE_YOY
-    nullable: false
+    nullable: true
   - name: REINSURE_PAYABLE_YOY
     type: Float64
     from: REINSURE_PAYABLE_YOY
-    nullable: false
+    nullable: true
   - name: REINSURE_RECE_YOY
     type: Float64
     from: REINSURE_RECE_YOY
-    nullable: false
+    nullable: true
   - name: SELL_REPO_FINASSET_YOY
     type: Float64
     from: SELL_REPO_FINASSET_YOY
-    nullable: false
+    nullable: true
   - name: SETTLE_EXCESS_RESERVE_YOY
     type: Float64
     from: SETTLE_EXCESS_RESERVE_YOY
-    nullable: false
+    nullable: true
   - name: SHARE_CAPITAL_YOY
     type: Float64
     from: SHARE_CAPITAL_YOY
-    nullable: false
+    nullable: true
   - name: SHORT_BOND_PAYABLE_YOY
     type: Float64
     from: SHORT_BOND_PAYABLE_YOY
-    nullable: false
+    nullable: true
   - name: SHORT_FIN_PAYABLE_YOY
     type: Float64
     from: SHORT_FIN_PAYABLE_YOY
-    nullable: false
+    nullable: true
   - name: SHORT_LOAN_YOY
     type: Float64
     from: SHORT_LOAN_YOY
-    nullable: false
+    nullable: true
   - name: SPECIAL_PAYABLE_YOY
     type: Float64
     from: SPECIAL_PAYABLE_YOY
-    nullable: false
+    nullable: true
   - name: SPECIAL_RESERVE_YOY
     type: Float64
     from: SPECIAL_RESERVE_YOY
-    nullable: false
+    nullable: true
   - name: STAFF_SALARY_PAYABLE_YOY
     type: Float64
     from: STAFF_SALARY_PAYABLE_YOY
-    nullable: false
+    nullable: true
   - name: SUBSIDY_RECE_YOY
     type: Float64
     from: SUBSIDY_RECE_YOY
-    nullable: false
+    nullable: true
   - name: SURPLUS_RESERVE_YOY
     type: Float64
     from: SURPLUS_RESERVE_YOY
-    nullable: false
+    nullable: true
   - name: TAX_PAYABLE_YOY
     type: Float64
     from: TAX_PAYABLE_YOY
-    nullable: false
+    nullable: true
   - name: TOTAL_ASSETS_YOY
     type: Float64
     from: TOTAL_ASSETS_YOY
-    nullable: false
+    nullable: true
   - name: TOTAL_CURRENT_ASSETS_YOY
     type: Float64
     from: TOTAL_CURRENT_ASSETS_YOY
-    nullable: false
+    nullable: true
   - name: TOTAL_CURRENT_LIAB_YOY
     type: Float64
     from: TOTAL_CURRENT_LIAB_YOY
-    nullable: false
+    nullable: true
   - name: TOTAL_EQUITY_YOY
     type: Float64
     from: TOTAL_EQUITY_YOY
-    nullable: false
+    nullable: true
   - name: TOTAL_LIAB_EQUITY_YOY
     type: Float64
     from: TOTAL_LIAB_EQUITY_YOY
-    nullable: false
+    nullable: true
   - name: TOTAL_LIABILITIES_YOY
     type: Float64
     from: TOTAL_LIABILITIES_YOY
-    nullable: false
+    nullable: true
   - name: TOTAL_NONCURRENT_ASSETS_YOY
     type: Float64
     from: TOTAL_NONCURRENT_ASSETS_YOY
-    nullable: false
+    nullable: true
   - name: TOTAL_NONCURRENT_LIAB_YOY
     type: Float64
     from: TOTAL_NONCURRENT_LIAB_YOY
-    nullable: false
+    nullable: true
   - name: TOTAL_OTHER_PAYABLE_YOY
     type: Float64
     from: TOTAL_OTHER_PAYABLE_YOY
-    nullable: false
+    nullable: true
   - name: TOTAL_OTHER_RECE_YOY
     type: Float64
     from: TOTAL_OTHER_RECE_YOY
-    nullable: false
+    nullable: true
   - name: TOTAL_PARENT_EQUITY_YOY
     type: Float64
     from: TOTAL_PARENT_EQUITY_YOY
-    nullable: false
+    nullable: true
   - name: TRADE_FINASSET_NOTFVTPL_YOY
     type: Float64
     from: TRADE_FINASSET_NOTFVTPL_YOY
-    nullable: false
+    nullable: true
   - name: TRADE_FINASSET_YOY
     type: Float64
     from: TRADE_FINASSET_YOY
-    nullable: false
+    nullable: true
   - name: TRADE_FINLIAB_NOTFVTPL_YOY
     type: Float64
     from: TRADE_FINLIAB_NOTFVTPL_YOY
-    nullable: false
+    nullable: true
   - name: TRADE_FINLIAB_YOY
     type: Float64
     from: TRADE_FINLIAB_YOY
-    nullable: false
+    nullable: true
   - name: TREASURY_SHARES_YOY
     type: Float64
     from: TREASURY_SHARES_YOY
-    nullable: false
+    nullable: true
   - name: UNASSIGN_RPOFIT_YOY
     type: Float64
     from: UNASSIGN_RPOFIT_YOY
-    nullable: false
+    nullable: true
   - name: UNCONFIRM_INVEST_LOSS_YOY
     type: Float64
     from: UNCONFIRM_INVEST_LOSS_YOY
-    nullable: false
+    nullable: true
   - name: USERIGHT_ASSET_YOY
     type: Float64
     from: USERIGHT_ASSET_YOY
-    nullable: false
+    nullable: true
   - name: OPINION_TYPE
     type: LowCardinality(String)
     from: OPINION_TYPE

@@ -102,7 +102,7 @@ parquet:
     nullable: false
   - name: author
     type: string
-    nullable: false
+    nullable: true
   - name: imgs
     type: string
     nullable: false
@@ -132,7 +132,7 @@ parquet:
     nullable: false
   - name: delete_time
     type: timestamp[ns]
-    nullable: false
+    nullable: true
   - name: create_time
     type: timestamp[ns]
     nullable: false
@@ -169,7 +169,7 @@ clickhouse_raw:
   - name: author
     type: LowCardinality(String)
     from: author
-    nullable: false
+    nullable: true
     reason: expected_low_cardinality_dimension
   - name: imgs
     type: String
@@ -210,7 +210,7 @@ clickhouse_raw:
   - name: delete_time
     type: DateTime64(3)
     from: delete_time
-    nullable: false
+    nullable: true
   - name: create_time
     type: DateTime64(3)
     from: create_time

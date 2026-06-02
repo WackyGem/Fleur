@@ -55,7 +55,7 @@ parquet:
     nullable: false
   - name: outDate
     type: date32[day]
-    nullable: false
+    nullable: true
   - name: type
     type: int8
     nullable: false
@@ -88,7 +88,7 @@ clickhouse_raw:
   - name: outDate
     type: Date
     from: outDate
-    nullable: false
+    nullable: true
   - name: type
     type: Int8
     from: type

@@ -10,7 +10,7 @@ import dagster as dg
 import pyarrow as pa
 
 from scheduler.defs.common.clock import elapsed_seconds
-from scheduler.defs.common.concurrency import BoundedTaskOptions, BoundedTaskRunner
+from scheduler.defs.common.concurrency import BoundedTaskOptions, BoundedTaskRunner, TaskFailure
 from scheduler.defs.common.metadata import PartitionRunMetadataBuilder, RawMetadataValue
 from scheduler.defs.config.models import S3Config
 from scheduler.defs.market.asset_keys import SINA_TRADE_CALENDAR_ASSET_KEY
@@ -134,6 +134,7 @@ async def materialize_partition_range(
     runner_result = await BoundedTaskRunner(
         BoundedTaskOptions(
             max_concurrent_tasks=max_concurrent_partitions,
+            fail_when_all_failed=False,
             preserve_order=True,
         )
     ).run(
@@ -189,7 +190,21 @@ async def materialize_partition_range(
     metadata.update(runner_result.metadata(item_name="partition"))
     if partitions_source_asset is not None:
         metadata["partitions_source_asset"] = partitions_source_asset
+    if runner_result.failure_count == len(processed_partition_keys) and runner_result.failures:
+        _raise_all_partition_failures(runner_result.failures)
     return PartitionRangeMaterializationResult(tables=completed, metadata=metadata)
+
+
+def _raise_all_partition_failures(failures: Sequence[TaskFailure]) -> None:
+    failure_sample = "; ".join(
+        f"{failure.item_key}: {failure.error_type}: {failure.error_message}"
+        for failure in failures[:5]
+    )
+    omitted_count = len(failures) - 5
+    if omitted_count > 0:
+        failure_sample = f"{failure_sample}; ... {omitted_count} more"
+    msg = f"Partition range materialization failed for {len(failures)} partitions: {failure_sample}"
+    raise RuntimeError(msg)
 
 
 async def materialize_trade_date_range(

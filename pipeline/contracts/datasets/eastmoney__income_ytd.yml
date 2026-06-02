@@ -59,11 +59,11 @@ source:
     external_description_zh: 公告日期
   - name: UPDATE_DATE
     type: string
-    required: true
+    required: false
     external_description_zh: 更新日期
   - name: CURRENCY
     type: string
-    required: true
+    required: false
     external_description_zh: 利润表年初至报告期末金额使用的币种。
   - name: TOTAL_OPERATE_INCOME
     type: number
@@ -865,580 +865,580 @@ parquet:
     nullable: false
   - name: UPDATE_DATE
     type: date32[day]
-    nullable: false
+    nullable: true
   - name: CURRENCY
     type: string
-    nullable: false
+    nullable: true
   - name: TOTAL_OPERATE_INCOME
     type: double
-    nullable: false
+    nullable: true
   - name: TOTAL_OPERATE_INCOME_YOY
     type: double
-    nullable: false
+    nullable: true
   - name: OPERATE_INCOME
     type: double
-    nullable: false
+    nullable: true
   - name: OPERATE_INCOME_YOY
     type: double
-    nullable: false
+    nullable: true
   - name: INTEREST_INCOME
     type: double
-    nullable: false
+    nullable: true
   - name: INTEREST_INCOME_YOY
     type: double
-    nullable: false
+    nullable: true
   - name: EARNED_PREMIUM
     type: double
-    nullable: false
+    nullable: true
   - name: EARNED_PREMIUM_YOY
     type: double
-    nullable: false
+    nullable: true
   - name: FEE_COMMISSION_INCOME
     type: double
-    nullable: false
+    nullable: true
   - name: FEE_COMMISSION_INCOME_YOY
     type: double
-    nullable: false
+    nullable: true
   - name: OTHER_BUSINESS_INCOME
     type: double
-    nullable: false
+    nullable: true
   - name: OTHER_BUSINESS_INCOME_YOY
     type: double
-    nullable: false
+    nullable: true
   - name: TOI_OTHER
     type: double
-    nullable: false
+    nullable: true
   - name: TOI_OTHER_YOY
     type: double
-    nullable: false
+    nullable: true
   - name: TOTAL_OPERATE_COST
     type: double
-    nullable: false
+    nullable: true
   - name: TOTAL_OPERATE_COST_YOY
     type: double
-    nullable: false
+    nullable: true
   - name: OPERATE_COST
     type: double
-    nullable: false
+    nullable: true
   - name: OPERATE_COST_YOY
     type: double
-    nullable: false
+    nullable: true
   - name: INTEREST_EXPENSE
     type: double
-    nullable: false
+    nullable: true
   - name: INTEREST_EXPENSE_YOY
     type: double
-    nullable: false
+    nullable: true
   - name: FEE_COMMISSION_EXPENSE
     type: double
-    nullable: false
+    nullable: true
   - name: FEE_COMMISSION_EXPENSE_YOY
     type: double
-    nullable: false
+    nullable: true
   - name: RESEARCH_EXPENSE
     type: double
-    nullable: false
+    nullable: true
   - name: RESEARCH_EXPENSE_YOY
     type: double
-    nullable: false
+    nullable: true
   - name: SURRENDER_VALUE
     type: double
-    nullable: false
+    nullable: true
   - name: SURRENDER_VALUE_YOY
     type: double
-    nullable: false
+    nullable: true
   - name: NET_COMPENSATE_EXPENSE
     type: double
-    nullable: false
+    nullable: true
   - name: NET_COMPENSATE_EXPENSE_YOY
     type: double
-    nullable: false
+    nullable: true
   - name: NET_CONTRACT_RESERVE
     type: double
-    nullable: false
+    nullable: true
   - name: NET_CONTRACT_RESERVE_YOY
     type: double
-    nullable: false
+    nullable: true
   - name: POLICY_BONUS_EXPENSE
     type: double
-    nullable: false
+    nullable: true
   - name: POLICY_BONUS_EXPENSE_YOY
     type: double
-    nullable: false
+    nullable: true
   - name: REINSURE_EXPENSE
     type: double
-    nullable: false
+    nullable: true
   - name: REINSURE_EXPENSE_YOY
     type: double
-    nullable: false
+    nullable: true
   - name: OTHER_BUSINESS_COST
     type: double
-    nullable: false
+    nullable: true
   - name: OTHER_BUSINESS_COST_YOY
     type: double
-    nullable: false
+    nullable: true
   - name: OPERATE_TAX_ADD
     type: double
-    nullable: false
+    nullable: true
   - name: OPERATE_TAX_ADD_YOY
     type: double
-    nullable: false
+    nullable: true
   - name: SALE_EXPENSE
     type: double
-    nullable: false
+    nullable: true
   - name: SALE_EXPENSE_YOY
     type: double
-    nullable: false
+    nullable: true
   - name: MANAGE_EXPENSE
     type: double
-    nullable: false
+    nullable: true
   - name: MANAGE_EXPENSE_YOY
     type: double
-    nullable: false
+    nullable: true
   - name: ME_RESEARCH_EXPENSE
     type: double
-    nullable: false
+    nullable: true
   - name: ME_RESEARCH_EXPENSE_YOY
     type: double
-    nullable: false
+    nullable: true
   - name: FINANCE_EXPENSE
     type: double
-    nullable: false
+    nullable: true
   - name: FINANCE_EXPENSE_YOY
     type: double
-    nullable: false
+    nullable: true
   - name: FE_INTEREST_EXPENSE
     type: double
-    nullable: false
+    nullable: true
   - name: FE_INTEREST_EXPENSE_YOY
     type: double
-    nullable: false
+    nullable: true
   - name: FE_INTEREST_INCOME
     type: double
-    nullable: false
+    nullable: true
   - name: FE_INTEREST_INCOME_YOY
     type: double
-    nullable: false
+    nullable: true
   - name: ASSET_IMPAIRMENT_LOSS
     type: double
-    nullable: false
+    nullable: true
   - name: ASSET_IMPAIRMENT_LOSS_YOY
     type: double
-    nullable: false
+    nullable: true
   - name: CREDIT_IMPAIRMENT_LOSS
     type: double
-    nullable: false
+    nullable: true
   - name: CREDIT_IMPAIRMENT_LOSS_YOY
     type: double
-    nullable: false
+    nullable: true
   - name: TOC_OTHER
     type: double
-    nullable: false
+    nullable: true
   - name: TOC_OTHER_YOY
     type: double
-    nullable: false
+    nullable: true
   - name: FAIRVALUE_CHANGE_INCOME
     type: double
-    nullable: false
+    nullable: true
   - name: FAIRVALUE_CHANGE_INCOME_YOY
     type: double
-    nullable: false
+    nullable: true
   - name: INVEST_INCOME
     type: double
-    nullable: false
+    nullable: true
   - name: INVEST_INCOME_YOY
     type: double
-    nullable: false
+    nullable: true
   - name: INVEST_JOINT_INCOME
     type: double
-    nullable: false
+    nullable: true
   - name: INVEST_JOINT_INCOME_YOY
     type: double
-    nullable: false
+    nullable: true
   - name: NET_EXPOSURE_INCOME
     type: double
-    nullable: false
+    nullable: true
   - name: NET_EXPOSURE_INCOME_YOY
     type: double
-    nullable: false
+    nullable: true
   - name: EXCHANGE_INCOME
     type: double
-    nullable: false
+    nullable: true
   - name: EXCHANGE_INCOME_YOY
     type: double
-    nullable: false
+    nullable: true
   - name: ASSET_DISPOSAL_INCOME
     type: double
-    nullable: false
+    nullable: true
   - name: ASSET_DISPOSAL_INCOME_YOY
     type: double
-    nullable: false
+    nullable: true
   - name: ASSET_IMPAIRMENT_INCOME
     type: double
-    nullable: false
+    nullable: true
   - name: ASSET_IMPAIRMENT_INCOME_YOY
     type: double
-    nullable: false
+    nullable: true
   - name: CREDIT_IMPAIRMENT_INCOME
     type: double
-    nullable: false
+    nullable: true
   - name: CREDIT_IMPAIRMENT_INCOME_YOY
     type: double
-    nullable: false
+    nullable: true
   - name: OTHER_INCOME
     type: double
-    nullable: false
+    nullable: true
   - name: OTHER_INCOME_YOY
     type: double
-    nullable: false
+    nullable: true
   - name: OPERATE_PROFIT_OTHER
     type: double
-    nullable: false
+    nullable: true
   - name: OPERATE_PROFIT_OTHER_YOY
     type: double
-    nullable: false
+    nullable: true
   - name: OPERATE_PROFIT_BALANCE
     type: double
-    nullable: false
+    nullable: true
   - name: OPERATE_PROFIT_BALANCE_YOY
     type: double
-    nullable: false
+    nullable: true
   - name: OPERATE_PROFIT
     type: double
-    nullable: false
+    nullable: true
   - name: OPERATE_PROFIT_YOY
     type: double
-    nullable: false
+    nullable: true
   - name: NONBUSINESS_INCOME
     type: double
-    nullable: false
+    nullable: true
   - name: NONBUSINESS_INCOME_YOY
     type: double
-    nullable: false
+    nullable: true
   - name: NONCURRENT_DISPOSAL_INCOME
     type: double
-    nullable: false
+    nullable: true
   - name: NONCURRENT_DISPOSAL_INCOME_YOY
     type: double
-    nullable: false
+    nullable: true
   - name: NONBUSINESS_EXPENSE
     type: double
-    nullable: false
+    nullable: true
   - name: NONBUSINESS_EXPENSE_YOY
     type: double
-    nullable: false
+    nullable: true
   - name: NONCURRENT_DISPOSAL_LOSS
     type: double
-    nullable: false
+    nullable: true
   - name: NONCURRENT_DISPOSAL_LOSS_YOY
     type: double
-    nullable: false
+    nullable: true
   - name: EFFECT_TP_OTHER
     type: double
-    nullable: false
+    nullable: true
   - name: EFFECT_TP_OTHER_YOY
     type: double
-    nullable: false
+    nullable: true
   - name: TOTAL_PROFIT_BALANCE
     type: double
-    nullable: false
+    nullable: true
   - name: TOTAL_PROFIT_BALANCE_YOY
     type: double
-    nullable: false
+    nullable: true
   - name: TOTAL_PROFIT
     type: double
-    nullable: false
+    nullable: true
   - name: TOTAL_PROFIT_YOY
     type: double
-    nullable: false
+    nullable: true
   - name: INCOME_TAX
     type: double
-    nullable: false
+    nullable: true
   - name: INCOME_TAX_YOY
     type: double
-    nullable: false
+    nullable: true
   - name: EFFECT_NETPROFIT_OTHER
     type: double
-    nullable: false
+    nullable: true
   - name: EFFECT_NETPROFIT_OTHER_YOY
     type: double
-    nullable: false
+    nullable: true
   - name: EFFECT_NETPROFIT_BALANCE
     type: double
-    nullable: false
+    nullable: true
   - name: EFFECT_NETPROFIT_BALANCE_YOY
     type: double
-    nullable: false
+    nullable: true
   - name: UNCONFIRM_INVEST_LOSS
     type: double
-    nullable: false
+    nullable: true
   - name: UNCONFIRM_INVEST_LOSS_YOY
     type: double
-    nullable: false
+    nullable: true
   - name: NETPROFIT
     type: double
-    nullable: false
+    nullable: true
   - name: NETPROFIT_YOY
     type: double
-    nullable: false
+    nullable: true
   - name: PRECOMBINE_PROFIT
     type: double
-    nullable: false
+    nullable: true
   - name: PRECOMBINE_PROFIT_YOY
     type: double
-    nullable: false
+    nullable: true
   - name: CONTINUED_NETPROFIT
     type: double
-    nullable: false
+    nullable: true
   - name: CONTINUED_NETPROFIT_YOY
     type: double
-    nullable: false
+    nullable: true
   - name: DISCONTINUED_NETPROFIT
     type: double
-    nullable: false
+    nullable: true
   - name: DISCONTINUED_NETPROFIT_YOY
     type: double
-    nullable: false
+    nullable: true
   - name: PARENT_NETPROFIT
     type: double
-    nullable: false
+    nullable: true
   - name: PARENT_NETPROFIT_YOY
     type: double
-    nullable: false
+    nullable: true
   - name: MINORITY_INTEREST
     type: double
-    nullable: false
+    nullable: true
   - name: MINORITY_INTEREST_YOY
     type: double
-    nullable: false
+    nullable: true
   - name: DEDUCT_PARENT_NETPROFIT
     type: double
-    nullable: false
+    nullable: true
   - name: DEDUCT_PARENT_NETPROFIT_YOY
     type: double
-    nullable: false
+    nullable: true
   - name: NETPROFIT_OTHER
     type: double
-    nullable: false
+    nullable: true
   - name: NETPROFIT_OTHER_YOY
     type: double
-    nullable: false
+    nullable: true
   - name: NETPROFIT_BALANCE
     type: double
-    nullable: false
+    nullable: true
   - name: NETPROFIT_BALANCE_YOY
     type: double
-    nullable: false
+    nullable: true
   - name: BASIC_EPS
     type: double
-    nullable: false
+    nullable: true
   - name: BASIC_EPS_YOY
     type: double
-    nullable: false
+    nullable: true
   - name: DILUTED_EPS
     type: double
-    nullable: false
+    nullable: true
   - name: DILUTED_EPS_YOY
     type: double
-    nullable: false
+    nullable: true
   - name: OTHER_COMPRE_INCOME
     type: double
-    nullable: false
+    nullable: true
   - name: OTHER_COMPRE_INCOME_YOY
     type: double
-    nullable: false
+    nullable: true
   - name: PARENT_OCI
     type: double
-    nullable: false
+    nullable: true
   - name: PARENT_OCI_YOY
     type: double
-    nullable: false
+    nullable: true
   - name: MINORITY_OCI
     type: double
-    nullable: false
+    nullable: true
   - name: MINORITY_OCI_YOY
     type: double
-    nullable: false
+    nullable: true
   - name: PARENT_OCI_OTHER
     type: double
-    nullable: false
+    nullable: true
   - name: PARENT_OCI_OTHER_YOY
     type: double
-    nullable: false
+    nullable: true
   - name: PARENT_OCI_BALANCE
     type: double
-    nullable: false
+    nullable: true
   - name: PARENT_OCI_BALANCE_YOY
     type: double
-    nullable: false
+    nullable: true
   - name: UNABLE_OCI
     type: double
-    nullable: false
+    nullable: true
   - name: UNABLE_OCI_YOY
     type: double
-    nullable: false
+    nullable: true
   - name: CREDITRISK_FAIRVALUE_CHANGE
     type: double
-    nullable: false
+    nullable: true
   - name: CREDITRISK_FAIRVALUE_CHANGE_YOY
     type: double
-    nullable: false
+    nullable: true
   - name: OTHERRIGHT_FAIRVALUE_CHANGE
     type: double
-    nullable: false
+    nullable: true
   - name: OTHERRIGHT_FAIRVALUE_CHANGE_YOY
     type: double
-    nullable: false
+    nullable: true
   - name: SETUP_PROFIT_CHANGE
     type: double
-    nullable: false
+    nullable: true
   - name: SETUP_PROFIT_CHANGE_YOY
     type: double
-    nullable: false
+    nullable: true
   - name: RIGHTLAW_UNABLE_OCI
     type: double
-    nullable: false
+    nullable: true
   - name: RIGHTLAW_UNABLE_OCI_YOY
     type: double
-    nullable: false
+    nullable: true
   - name: UNABLE_OCI_OTHER
     type: double
-    nullable: false
+    nullable: true
   - name: UNABLE_OCI_OTHER_YOY
     type: double
-    nullable: false
+    nullable: true
   - name: UNABLE_OCI_BALANCE
     type: double
-    nullable: false
+    nullable: true
   - name: UNABLE_OCI_BALANCE_YOY
     type: double
-    nullable: false
+    nullable: true
   - name: ABLE_OCI
     type: double
-    nullable: false
+    nullable: true
   - name: ABLE_OCI_YOY
     type: double
-    nullable: false
+    nullable: true
   - name: RIGHTLAW_ABLE_OCI
     type: double
-    nullable: false
+    nullable: true
   - name: RIGHTLAW_ABLE_OCI_YOY
     type: double
-    nullable: false
+    nullable: true
   - name: AFA_FAIRVALUE_CHANGE
     type: double
-    nullable: false
+    nullable: true
   - name: AFA_FAIRVALUE_CHANGE_YOY
     type: double
-    nullable: false
+    nullable: true
   - name: HMI_AFA
     type: double
-    nullable: false
+    nullable: true
   - name: HMI_AFA_YOY
     type: double
-    nullable: false
+    nullable: true
   - name: CASHFLOW_HEDGE_VALID
     type: double
-    nullable: false
+    nullable: true
   - name: CASHFLOW_HEDGE_VALID_YOY
     type: double
-    nullable: false
+    nullable: true
   - name: CREDITOR_FAIRVALUE_CHANGE
     type: double
-    nullable: false
+    nullable: true
   - name: CREDITOR_FAIRVALUE_CHANGE_YOY
     type: double
-    nullable: false
+    nullable: true
   - name: CREDITOR_IMPAIRMENT_RESERVE
     type: double
-    nullable: false
+    nullable: true
   - name: CREDITOR_IMPAIRMENT_RESERVE_YOY
     type: double
-    nullable: false
+    nullable: true
   - name: FINANCE_OCI_AMT
     type: double
-    nullable: false
+    nullable: true
   - name: FINANCE_OCI_AMT_YOY
     type: double
-    nullable: false
+    nullable: true
   - name: CONVERT_DIFF
     type: double
-    nullable: false
+    nullable: true
   - name: CONVERT_DIFF_YOY
     type: double
-    nullable: false
+    nullable: true
   - name: ABLE_OCI_OTHER
     type: double
-    nullable: false
+    nullable: true
   - name: ABLE_OCI_OTHER_YOY
     type: double
-    nullable: false
+    nullable: true
   - name: ABLE_OCI_BALANCE
     type: double
-    nullable: false
+    nullable: true
   - name: ABLE_OCI_BALANCE_YOY
     type: double
-    nullable: false
+    nullable: true
   - name: OCI_OTHER
     type: double
-    nullable: false
+    nullable: true
   - name: OCI_OTHER_YOY
     type: double
-    nullable: false
+    nullable: true
   - name: OCI_BALANCE
     type: double
-    nullable: false
+    nullable: true
   - name: OCI_BALANCE_YOY
     type: double
-    nullable: false
+    nullable: true
   - name: TOTAL_COMPRE_INCOME
     type: double
-    nullable: false
+    nullable: true
   - name: TOTAL_COMPRE_INCOME_YOY
     type: double
-    nullable: false
+    nullable: true
   - name: PARENT_TCI
     type: double
-    nullable: false
+    nullable: true
   - name: PARENT_TCI_YOY
     type: double
-    nullable: false
+    nullable: true
   - name: MINORITY_TCI
     type: double
-    nullable: false
+    nullable: true
   - name: MINORITY_TCI_YOY
     type: double
-    nullable: false
+    nullable: true
   - name: PRECOMBINE_TCI
     type: double
-    nullable: false
+    nullable: true
   - name: PRECOMBINE_TCI_YOY
     type: double
-    nullable: false
+    nullable: true
   - name: EFFECT_TCI_BALANCE
     type: double
-    nullable: false
+    nullable: true
   - name: EFFECT_TCI_BALANCE_YOY
     type: double
-    nullable: false
+    nullable: true
   - name: TCI_OTHER
     type: double
-    nullable: false
+    nullable: true
   - name: TCI_OTHER_YOY
     type: double
-    nullable: false
+    nullable: true
   - name: TCI_BALANCE
     type: double
-    nullable: false
+    nullable: true
   - name: TCI_BALANCE_YOY
     type: double
-    nullable: false
+    nullable: true
   - name: ACF_END_INCOME
     type: double
-    nullable: false
+    nullable: true
   - name: ACF_END_INCOME_YOY
     type: double
-    nullable: false
+    nullable: true
   - name: OPINION_TYPE
     type: string
     nullable: true
@@ -1505,772 +1505,772 @@ clickhouse_raw:
   - name: UPDATE_DATE
     type: Date
     from: UPDATE_DATE
-    nullable: false
+    nullable: true
   - name: CURRENCY
     type: LowCardinality(String)
     from: CURRENCY
-    nullable: false
+    nullable: true
     reason: expected_low_cardinality_dimension
   - name: TOTAL_OPERATE_INCOME
     type: Float64
     from: TOTAL_OPERATE_INCOME
-    nullable: false
+    nullable: true
   - name: TOTAL_OPERATE_INCOME_YOY
     type: Float64
     from: TOTAL_OPERATE_INCOME_YOY
-    nullable: false
+    nullable: true
   - name: OPERATE_INCOME
     type: Float64
     from: OPERATE_INCOME
-    nullable: false
+    nullable: true
   - name: OPERATE_INCOME_YOY
     type: Float64
     from: OPERATE_INCOME_YOY
-    nullable: false
+    nullable: true
   - name: INTEREST_INCOME
     type: Float64
     from: INTEREST_INCOME
-    nullable: false
+    nullable: true
   - name: INTEREST_INCOME_YOY
     type: Float64
     from: INTEREST_INCOME_YOY
-    nullable: false
+    nullable: true
   - name: EARNED_PREMIUM
     type: Float64
     from: EARNED_PREMIUM
-    nullable: false
+    nullable: true
   - name: EARNED_PREMIUM_YOY
     type: Float64
     from: EARNED_PREMIUM_YOY
-    nullable: false
+    nullable: true
   - name: FEE_COMMISSION_INCOME
     type: Float64
     from: FEE_COMMISSION_INCOME
-    nullable: false
+    nullable: true
   - name: FEE_COMMISSION_INCOME_YOY
     type: Float64
     from: FEE_COMMISSION_INCOME_YOY
-    nullable: false
+    nullable: true
   - name: OTHER_BUSINESS_INCOME
     type: Float64
     from: OTHER_BUSINESS_INCOME
-    nullable: false
+    nullable: true
   - name: OTHER_BUSINESS_INCOME_YOY
     type: Float64
     from: OTHER_BUSINESS_INCOME_YOY
-    nullable: false
+    nullable: true
   - name: TOI_OTHER
     type: Float64
     from: TOI_OTHER
-    nullable: false
+    nullable: true
   - name: TOI_OTHER_YOY
     type: Float64
     from: TOI_OTHER_YOY
-    nullable: false
+    nullable: true
   - name: TOTAL_OPERATE_COST
     type: Float64
     from: TOTAL_OPERATE_COST
-    nullable: false
+    nullable: true
   - name: TOTAL_OPERATE_COST_YOY
     type: Float64
     from: TOTAL_OPERATE_COST_YOY
-    nullable: false
+    nullable: true
   - name: OPERATE_COST
     type: Float64
     from: OPERATE_COST
-    nullable: false
+    nullable: true
   - name: OPERATE_COST_YOY
     type: Float64
     from: OPERATE_COST_YOY
-    nullable: false
+    nullable: true
   - name: INTEREST_EXPENSE
     type: Float64
     from: INTEREST_EXPENSE
-    nullable: false
+    nullable: true
   - name: INTEREST_EXPENSE_YOY
     type: Float64
     from: INTEREST_EXPENSE_YOY
-    nullable: false
+    nullable: true
   - name: FEE_COMMISSION_EXPENSE
     type: Float64
     from: FEE_COMMISSION_EXPENSE
-    nullable: false
+    nullable: true
   - name: FEE_COMMISSION_EXPENSE_YOY
     type: Float64
     from: FEE_COMMISSION_EXPENSE_YOY
-    nullable: false
+    nullable: true
   - name: RESEARCH_EXPENSE
     type: Float64
     from: RESEARCH_EXPENSE
-    nullable: false
+    nullable: true
   - name: RESEARCH_EXPENSE_YOY
     type: Float64
     from: RESEARCH_EXPENSE_YOY
-    nullable: false
+    nullable: true
   - name: SURRENDER_VALUE
     type: Float64
     from: SURRENDER_VALUE
-    nullable: false
+    nullable: true
   - name: SURRENDER_VALUE_YOY
     type: Float64
     from: SURRENDER_VALUE_YOY
-    nullable: false
+    nullable: true
   - name: NET_COMPENSATE_EXPENSE
     type: Float64
     from: NET_COMPENSATE_EXPENSE
-    nullable: false
+    nullable: true
   - name: NET_COMPENSATE_EXPENSE_YOY
     type: Float64
     from: NET_COMPENSATE_EXPENSE_YOY
-    nullable: false
+    nullable: true
   - name: NET_CONTRACT_RESERVE
     type: Float64
     from: NET_CONTRACT_RESERVE
-    nullable: false
+    nullable: true
   - name: NET_CONTRACT_RESERVE_YOY
     type: Float64
     from: NET_CONTRACT_RESERVE_YOY
-    nullable: false
+    nullable: true
   - name: POLICY_BONUS_EXPENSE
     type: Float64
     from: POLICY_BONUS_EXPENSE
-    nullable: false
+    nullable: true
   - name: POLICY_BONUS_EXPENSE_YOY
     type: Float64
     from: POLICY_BONUS_EXPENSE_YOY
-    nullable: false
+    nullable: true
   - name: REINSURE_EXPENSE
     type: Float64
     from: REINSURE_EXPENSE
-    nullable: false
+    nullable: true
   - name: REINSURE_EXPENSE_YOY
     type: Float64
     from: REINSURE_EXPENSE_YOY
-    nullable: false
+    nullable: true
   - name: OTHER_BUSINESS_COST
     type: Float64
     from: OTHER_BUSINESS_COST
-    nullable: false
+    nullable: true
   - name: OTHER_BUSINESS_COST_YOY
     type: Float64
     from: OTHER_BUSINESS_COST_YOY
-    nullable: false
+    nullable: true
   - name: OPERATE_TAX_ADD
     type: Float64
     from: OPERATE_TAX_ADD
-    nullable: false
+    nullable: true
   - name: OPERATE_TAX_ADD_YOY
     type: Float64
     from: OPERATE_TAX_ADD_YOY
-    nullable: false
+    nullable: true
   - name: SALE_EXPENSE
     type: Float64
     from: SALE_EXPENSE
-    nullable: false
+    nullable: true
   - name: SALE_EXPENSE_YOY
     type: Float64
     from: SALE_EXPENSE_YOY
-    nullable: false
+    nullable: true
   - name: MANAGE_EXPENSE
     type: Float64
     from: MANAGE_EXPENSE
-    nullable: false
+    nullable: true
   - name: MANAGE_EXPENSE_YOY
     type: Float64
     from: MANAGE_EXPENSE_YOY
-    nullable: false
+    nullable: true
   - name: ME_RESEARCH_EXPENSE
     type: Float64
     from: ME_RESEARCH_EXPENSE
-    nullable: false
+    nullable: true
   - name: ME_RESEARCH_EXPENSE_YOY
     type: Float64
     from: ME_RESEARCH_EXPENSE_YOY
-    nullable: false
+    nullable: true
   - name: FINANCE_EXPENSE
     type: Float64
     from: FINANCE_EXPENSE
-    nullable: false
+    nullable: true
   - name: FINANCE_EXPENSE_YOY
     type: Float64
     from: FINANCE_EXPENSE_YOY
-    nullable: false
+    nullable: true
   - name: FE_INTEREST_EXPENSE
     type: Float64
     from: FE_INTEREST_EXPENSE
-    nullable: false
+    nullable: true
   - name: FE_INTEREST_EXPENSE_YOY
     type: Float64
     from: FE_INTEREST_EXPENSE_YOY
-    nullable: false
+    nullable: true
   - name: FE_INTEREST_INCOME
     type: Float64
     from: FE_INTEREST_INCOME
-    nullable: false
+    nullable: true
   - name: FE_INTEREST_INCOME_YOY
     type: Float64
     from: FE_INTEREST_INCOME_YOY
-    nullable: false
+    nullable: true
   - name: ASSET_IMPAIRMENT_LOSS
     type: Float64
     from: ASSET_IMPAIRMENT_LOSS
-    nullable: false
+    nullable: true
   - name: ASSET_IMPAIRMENT_LOSS_YOY
     type: Float64
     from: ASSET_IMPAIRMENT_LOSS_YOY
-    nullable: false
+    nullable: true
   - name: CREDIT_IMPAIRMENT_LOSS
     type: Float64
     from: CREDIT_IMPAIRMENT_LOSS
-    nullable: false
+    nullable: true
   - name: CREDIT_IMPAIRMENT_LOSS_YOY
     type: Float64
     from: CREDIT_IMPAIRMENT_LOSS_YOY
-    nullable: false
+    nullable: true
   - name: TOC_OTHER
     type: Float64
     from: TOC_OTHER
-    nullable: false
+    nullable: true
   - name: TOC_OTHER_YOY
     type: Float64
     from: TOC_OTHER_YOY
-    nullable: false
+    nullable: true
   - name: FAIRVALUE_CHANGE_INCOME
     type: Float64
     from: FAIRVALUE_CHANGE_INCOME
-    nullable: false
+    nullable: true
   - name: FAIRVALUE_CHANGE_INCOME_YOY
     type: Float64
     from: FAIRVALUE_CHANGE_INCOME_YOY
-    nullable: false
+    nullable: true
   - name: INVEST_INCOME
     type: Float64
     from: INVEST_INCOME
-    nullable: false
+    nullable: true
   - name: INVEST_INCOME_YOY
     type: Float64
     from: INVEST_INCOME_YOY
-    nullable: false
+    nullable: true
   - name: INVEST_JOINT_INCOME
     type: Float64
     from: INVEST_JOINT_INCOME
-    nullable: false
+    nullable: true
   - name: INVEST_JOINT_INCOME_YOY
     type: Float64
     from: INVEST_JOINT_INCOME_YOY
-    nullable: false
+    nullable: true
   - name: NET_EXPOSURE_INCOME
     type: Float64
     from: NET_EXPOSURE_INCOME
-    nullable: false
+    nullable: true
   - name: NET_EXPOSURE_INCOME_YOY
     type: Float64
     from: NET_EXPOSURE_INCOME_YOY
-    nullable: false
+    nullable: true
   - name: EXCHANGE_INCOME
     type: Float64
     from: EXCHANGE_INCOME
-    nullable: false
+    nullable: true
   - name: EXCHANGE_INCOME_YOY
     type: Float64
     from: EXCHANGE_INCOME_YOY
-    nullable: false
+    nullable: true
   - name: ASSET_DISPOSAL_INCOME
     type: Float64
     from: ASSET_DISPOSAL_INCOME
-    nullable: false
+    nullable: true
   - name: ASSET_DISPOSAL_INCOME_YOY
     type: Float64
     from: ASSET_DISPOSAL_INCOME_YOY
-    nullable: false
+    nullable: true
   - name: ASSET_IMPAIRMENT_INCOME
     type: Float64
     from: ASSET_IMPAIRMENT_INCOME
-    nullable: false
+    nullable: true
   - name: ASSET_IMPAIRMENT_INCOME_YOY
     type: Float64
     from: ASSET_IMPAIRMENT_INCOME_YOY
-    nullable: false
+    nullable: true
   - name: CREDIT_IMPAIRMENT_INCOME
     type: Float64
     from: CREDIT_IMPAIRMENT_INCOME
-    nullable: false
+    nullable: true
   - name: CREDIT_IMPAIRMENT_INCOME_YOY
     type: Float64
     from: CREDIT_IMPAIRMENT_INCOME_YOY
-    nullable: false
+    nullable: true
   - name: OTHER_INCOME
     type: Float64
     from: OTHER_INCOME
-    nullable: false
+    nullable: true
   - name: OTHER_INCOME_YOY
     type: Float64
     from: OTHER_INCOME_YOY
-    nullable: false
+    nullable: true
   - name: OPERATE_PROFIT_OTHER
     type: Float64
     from: OPERATE_PROFIT_OTHER
-    nullable: false
+    nullable: true
   - name: OPERATE_PROFIT_OTHER_YOY
     type: Float64
     from: OPERATE_PROFIT_OTHER_YOY
-    nullable: false
+    nullable: true
   - name: OPERATE_PROFIT_BALANCE
     type: Float64
     from: OPERATE_PROFIT_BALANCE
-    nullable: false
+    nullable: true
   - name: OPERATE_PROFIT_BALANCE_YOY
     type: Float64
     from: OPERATE_PROFIT_BALANCE_YOY
-    nullable: false
+    nullable: true
   - name: OPERATE_PROFIT
     type: Float64
     from: OPERATE_PROFIT
-    nullable: false
+    nullable: true
   - name: OPERATE_PROFIT_YOY
     type: Float64
     from: OPERATE_PROFIT_YOY
-    nullable: false
+    nullable: true
   - name: NONBUSINESS_INCOME
     type: Float64
     from: NONBUSINESS_INCOME
-    nullable: false
+    nullable: true
   - name: NONBUSINESS_INCOME_YOY
     type: Float64
     from: NONBUSINESS_INCOME_YOY
-    nullable: false
+    nullable: true
   - name: NONCURRENT_DISPOSAL_INCOME
     type: Float64
     from: NONCURRENT_DISPOSAL_INCOME
-    nullable: false
+    nullable: true
   - name: NONCURRENT_DISPOSAL_INCOME_YOY
     type: Float64
     from: NONCURRENT_DISPOSAL_INCOME_YOY
-    nullable: false
+    nullable: true
   - name: NONBUSINESS_EXPENSE
     type: Float64
     from: NONBUSINESS_EXPENSE
-    nullable: false
+    nullable: true
   - name: NONBUSINESS_EXPENSE_YOY
     type: Float64
     from: NONBUSINESS_EXPENSE_YOY
-    nullable: false
+    nullable: true
   - name: NONCURRENT_DISPOSAL_LOSS
     type: Float64
     from: NONCURRENT_DISPOSAL_LOSS
-    nullable: false
+    nullable: true
   - name: NONCURRENT_DISPOSAL_LOSS_YOY
     type: Float64
     from: NONCURRENT_DISPOSAL_LOSS_YOY
-    nullable: false
+    nullable: true
   - name: EFFECT_TP_OTHER
     type: Float64
     from: EFFECT_TP_OTHER
-    nullable: false
+    nullable: true
   - name: EFFECT_TP_OTHER_YOY
     type: Float64
     from: EFFECT_TP_OTHER_YOY
-    nullable: false
+    nullable: true
   - name: TOTAL_PROFIT_BALANCE
     type: Float64
     from: TOTAL_PROFIT_BALANCE
-    nullable: false
+    nullable: true
   - name: TOTAL_PROFIT_BALANCE_YOY
     type: Float64
     from: TOTAL_PROFIT_BALANCE_YOY
-    nullable: false
+    nullable: true
   - name: TOTAL_PROFIT
     type: Float64
     from: TOTAL_PROFIT
-    nullable: false
+    nullable: true
   - name: TOTAL_PROFIT_YOY
     type: Float64
     from: TOTAL_PROFIT_YOY
-    nullable: false
+    nullable: true
   - name: INCOME_TAX
     type: Float64
     from: INCOME_TAX
-    nullable: false
+    nullable: true
   - name: INCOME_TAX_YOY
     type: Float64
     from: INCOME_TAX_YOY
-    nullable: false
+    nullable: true
   - name: EFFECT_NETPROFIT_OTHER
     type: Float64
     from: EFFECT_NETPROFIT_OTHER
-    nullable: false
+    nullable: true
   - name: EFFECT_NETPROFIT_OTHER_YOY
     type: Float64
     from: EFFECT_NETPROFIT_OTHER_YOY
-    nullable: false
+    nullable: true
   - name: EFFECT_NETPROFIT_BALANCE
     type: Float64
     from: EFFECT_NETPROFIT_BALANCE
-    nullable: false
+    nullable: true
   - name: EFFECT_NETPROFIT_BALANCE_YOY
     type: Float64
     from: EFFECT_NETPROFIT_BALANCE_YOY
-    nullable: false
+    nullable: true
   - name: UNCONFIRM_INVEST_LOSS
     type: Float64
     from: UNCONFIRM_INVEST_LOSS
-    nullable: false
+    nullable: true
   - name: UNCONFIRM_INVEST_LOSS_YOY
     type: Float64
     from: UNCONFIRM_INVEST_LOSS_YOY
-    nullable: false
+    nullable: true
   - name: NETPROFIT
     type: Float64
     from: NETPROFIT
-    nullable: false
+    nullable: true
   - name: NETPROFIT_YOY
     type: Float64
     from: NETPROFIT_YOY
-    nullable: false
+    nullable: true
   - name: PRECOMBINE_PROFIT
     type: Float64
     from: PRECOMBINE_PROFIT
-    nullable: false
+    nullable: true
   - name: PRECOMBINE_PROFIT_YOY
     type: Float64
     from: PRECOMBINE_PROFIT_YOY
-    nullable: false
+    nullable: true
   - name: CONTINUED_NETPROFIT
     type: Float64
     from: CONTINUED_NETPROFIT
-    nullable: false
+    nullable: true
   - name: CONTINUED_NETPROFIT_YOY
     type: Float64
     from: CONTINUED_NETPROFIT_YOY
-    nullable: false
+    nullable: true
   - name: DISCONTINUED_NETPROFIT
     type: Float64
     from: DISCONTINUED_NETPROFIT
-    nullable: false
+    nullable: true
   - name: DISCONTINUED_NETPROFIT_YOY
     type: Float64
     from: DISCONTINUED_NETPROFIT_YOY
-    nullable: false
+    nullable: true
   - name: PARENT_NETPROFIT
     type: Float64
     from: PARENT_NETPROFIT
-    nullable: false
+    nullable: true
   - name: PARENT_NETPROFIT_YOY
     type: Float64
     from: PARENT_NETPROFIT_YOY
-    nullable: false
+    nullable: true
   - name: MINORITY_INTEREST
     type: Float64
     from: MINORITY_INTEREST
-    nullable: false
+    nullable: true
   - name: MINORITY_INTEREST_YOY
     type: Float64
     from: MINORITY_INTEREST_YOY
-    nullable: false
+    nullable: true
   - name: DEDUCT_PARENT_NETPROFIT
     type: Float64
     from: DEDUCT_PARENT_NETPROFIT
-    nullable: false
+    nullable: true
   - name: DEDUCT_PARENT_NETPROFIT_YOY
     type: Float64
     from: DEDUCT_PARENT_NETPROFIT_YOY
-    nullable: false
+    nullable: true
   - name: NETPROFIT_OTHER
     type: Float64
     from: NETPROFIT_OTHER
-    nullable: false
+    nullable: true
   - name: NETPROFIT_OTHER_YOY
     type: Float64
     from: NETPROFIT_OTHER_YOY
-    nullable: false
+    nullable: true
   - name: NETPROFIT_BALANCE
     type: Float64
     from: NETPROFIT_BALANCE
-    nullable: false
+    nullable: true
   - name: NETPROFIT_BALANCE_YOY
     type: Float64
     from: NETPROFIT_BALANCE_YOY
-    nullable: false
+    nullable: true
   - name: BASIC_EPS
     type: Float64
     from: BASIC_EPS
-    nullable: false
+    nullable: true
   - name: BASIC_EPS_YOY
     type: Float64
     from: BASIC_EPS_YOY
-    nullable: false
+    nullable: true
   - name: DILUTED_EPS
     type: Float64
     from: DILUTED_EPS
-    nullable: false
+    nullable: true
   - name: DILUTED_EPS_YOY
     type: Float64
     from: DILUTED_EPS_YOY
-    nullable: false
+    nullable: true
   - name: OTHER_COMPRE_INCOME
     type: Float64
     from: OTHER_COMPRE_INCOME
-    nullable: false
+    nullable: true
   - name: OTHER_COMPRE_INCOME_YOY
     type: Float64
     from: OTHER_COMPRE_INCOME_YOY
-    nullable: false
+    nullable: true
   - name: PARENT_OCI
     type: Float64
     from: PARENT_OCI
-    nullable: false
+    nullable: true
   - name: PARENT_OCI_YOY
     type: Float64
     from: PARENT_OCI_YOY
-    nullable: false
+    nullable: true
   - name: MINORITY_OCI
     type: Float64
     from: MINORITY_OCI
-    nullable: false
+    nullable: true
   - name: MINORITY_OCI_YOY
     type: Float64
     from: MINORITY_OCI_YOY
-    nullable: false
+    nullable: true
   - name: PARENT_OCI_OTHER
     type: Float64
     from: PARENT_OCI_OTHER
-    nullable: false
+    nullable: true
   - name: PARENT_OCI_OTHER_YOY
     type: Float64
     from: PARENT_OCI_OTHER_YOY
-    nullable: false
+    nullable: true
   - name: PARENT_OCI_BALANCE
     type: Float64
     from: PARENT_OCI_BALANCE
-    nullable: false
+    nullable: true
   - name: PARENT_OCI_BALANCE_YOY
     type: Float64
     from: PARENT_OCI_BALANCE_YOY
-    nullable: false
+    nullable: true
   - name: UNABLE_OCI
     type: Float64
     from: UNABLE_OCI
-    nullable: false
+    nullable: true
   - name: UNABLE_OCI_YOY
     type: Float64
     from: UNABLE_OCI_YOY
-    nullable: false
+    nullable: true
   - name: CREDITRISK_FAIRVALUE_CHANGE
     type: Float64
     from: CREDITRISK_FAIRVALUE_CHANGE
-    nullable: false
+    nullable: true
   - name: CREDITRISK_FAIRVALUE_CHANGE_YOY
     type: Float64
     from: CREDITRISK_FAIRVALUE_CHANGE_YOY
-    nullable: false
+    nullable: true
   - name: OTHERRIGHT_FAIRVALUE_CHANGE
     type: Float64
     from: OTHERRIGHT_FAIRVALUE_CHANGE
-    nullable: false
+    nullable: true
   - name: OTHERRIGHT_FAIRVALUE_CHANGE_YOY
     type: Float64
     from: OTHERRIGHT_FAIRVALUE_CHANGE_YOY
-    nullable: false
+    nullable: true
   - name: SETUP_PROFIT_CHANGE
     type: Float64
     from: SETUP_PROFIT_CHANGE
-    nullable: false
+    nullable: true
   - name: SETUP_PROFIT_CHANGE_YOY
     type: Float64
     from: SETUP_PROFIT_CHANGE_YOY
-    nullable: false
+    nullable: true
   - name: RIGHTLAW_UNABLE_OCI
     type: Float64
     from: RIGHTLAW_UNABLE_OCI
-    nullable: false
+    nullable: true
   - name: RIGHTLAW_UNABLE_OCI_YOY
     type: Float64
     from: RIGHTLAW_UNABLE_OCI_YOY
-    nullable: false
+    nullable: true
   - name: UNABLE_OCI_OTHER
     type: Float64
     from: UNABLE_OCI_OTHER
-    nullable: false
+    nullable: true
   - name: UNABLE_OCI_OTHER_YOY
     type: Float64
     from: UNABLE_OCI_OTHER_YOY
-    nullable: false
+    nullable: true
   - name: UNABLE_OCI_BALANCE
     type: Float64
     from: UNABLE_OCI_BALANCE
-    nullable: false
+    nullable: true
   - name: UNABLE_OCI_BALANCE_YOY
     type: Float64
     from: UNABLE_OCI_BALANCE_YOY
-    nullable: false
+    nullable: true
   - name: ABLE_OCI
     type: Float64
     from: ABLE_OCI
-    nullable: false
+    nullable: true
   - name: ABLE_OCI_YOY
     type: Float64
     from: ABLE_OCI_YOY
-    nullable: false
+    nullable: true
   - name: RIGHTLAW_ABLE_OCI
     type: Float64
     from: RIGHTLAW_ABLE_OCI
-    nullable: false
+    nullable: true
   - name: RIGHTLAW_ABLE_OCI_YOY
     type: Float64
     from: RIGHTLAW_ABLE_OCI_YOY
-    nullable: false
+    nullable: true
   - name: AFA_FAIRVALUE_CHANGE
     type: Float64
     from: AFA_FAIRVALUE_CHANGE
-    nullable: false
+    nullable: true
   - name: AFA_FAIRVALUE_CHANGE_YOY
     type: Float64
     from: AFA_FAIRVALUE_CHANGE_YOY
-    nullable: false
+    nullable: true
   - name: HMI_AFA
     type: Float64
     from: HMI_AFA
-    nullable: false
+    nullable: true
   - name: HMI_AFA_YOY
     type: Float64
     from: HMI_AFA_YOY
-    nullable: false
+    nullable: true
   - name: CASHFLOW_HEDGE_VALID
     type: Float64
     from: CASHFLOW_HEDGE_VALID
-    nullable: false
+    nullable: true
   - name: CASHFLOW_HEDGE_VALID_YOY
     type: Float64
     from: CASHFLOW_HEDGE_VALID_YOY
-    nullable: false
+    nullable: true
   - name: CREDITOR_FAIRVALUE_CHANGE
     type: Float64
     from: CREDITOR_FAIRVALUE_CHANGE
-    nullable: false
+    nullable: true
   - name: CREDITOR_FAIRVALUE_CHANGE_YOY
     type: Float64
     from: CREDITOR_FAIRVALUE_CHANGE_YOY
-    nullable: false
+    nullable: true
   - name: CREDITOR_IMPAIRMENT_RESERVE
     type: Float64
     from: CREDITOR_IMPAIRMENT_RESERVE
-    nullable: false
+    nullable: true
   - name: CREDITOR_IMPAIRMENT_RESERVE_YOY
     type: Float64
     from: CREDITOR_IMPAIRMENT_RESERVE_YOY
-    nullable: false
+    nullable: true
   - name: FINANCE_OCI_AMT
     type: Float64
     from: FINANCE_OCI_AMT
-    nullable: false
+    nullable: true
   - name: FINANCE_OCI_AMT_YOY
     type: Float64
     from: FINANCE_OCI_AMT_YOY
-    nullable: false
+    nullable: true
   - name: CONVERT_DIFF
     type: Float64
     from: CONVERT_DIFF
-    nullable: false
+    nullable: true
   - name: CONVERT_DIFF_YOY
     type: Float64
     from: CONVERT_DIFF_YOY
-    nullable: false
+    nullable: true
   - name: ABLE_OCI_OTHER
     type: Float64
     from: ABLE_OCI_OTHER
-    nullable: false
+    nullable: true
   - name: ABLE_OCI_OTHER_YOY
     type: Float64
     from: ABLE_OCI_OTHER_YOY
-    nullable: false
+    nullable: true
   - name: ABLE_OCI_BALANCE
     type: Float64
     from: ABLE_OCI_BALANCE
-    nullable: false
+    nullable: true
   - name: ABLE_OCI_BALANCE_YOY
     type: Float64
     from: ABLE_OCI_BALANCE_YOY
-    nullable: false
+    nullable: true
   - name: OCI_OTHER
     type: Float64
     from: OCI_OTHER
-    nullable: false
+    nullable: true
   - name: OCI_OTHER_YOY
     type: Float64
     from: OCI_OTHER_YOY
-    nullable: false
+    nullable: true
   - name: OCI_BALANCE
     type: Float64
     from: OCI_BALANCE
-    nullable: false
+    nullable: true
   - name: OCI_BALANCE_YOY
     type: Float64
     from: OCI_BALANCE_YOY
-    nullable: false
+    nullable: true
   - name: TOTAL_COMPRE_INCOME
     type: Float64
     from: TOTAL_COMPRE_INCOME
-    nullable: false
+    nullable: true
   - name: TOTAL_COMPRE_INCOME_YOY
     type: Float64
     from: TOTAL_COMPRE_INCOME_YOY
-    nullable: false
+    nullable: true
   - name: PARENT_TCI
     type: Float64
     from: PARENT_TCI
-    nullable: false
+    nullable: true
   - name: PARENT_TCI_YOY
     type: Float64
     from: PARENT_TCI_YOY
-    nullable: false
+    nullable: true
   - name: MINORITY_TCI
     type: Float64
     from: MINORITY_TCI
-    nullable: false
+    nullable: true
   - name: MINORITY_TCI_YOY
     type: Float64
     from: MINORITY_TCI_YOY
-    nullable: false
+    nullable: true
   - name: PRECOMBINE_TCI
     type: Float64
     from: PRECOMBINE_TCI
-    nullable: false
+    nullable: true
   - name: PRECOMBINE_TCI_YOY
     type: Float64
     from: PRECOMBINE_TCI_YOY
-    nullable: false
+    nullable: true
   - name: EFFECT_TCI_BALANCE
     type: Float64
     from: EFFECT_TCI_BALANCE
-    nullable: false
+    nullable: true
   - name: EFFECT_TCI_BALANCE_YOY
     type: Float64
     from: EFFECT_TCI_BALANCE_YOY
-    nullable: false
+    nullable: true
   - name: TCI_OTHER
     type: Float64
     from: TCI_OTHER
-    nullable: false
+    nullable: true
   - name: TCI_OTHER_YOY
     type: Float64
     from: TCI_OTHER_YOY
-    nullable: false
+    nullable: true
   - name: TCI_BALANCE
     type: Float64
     from: TCI_BALANCE
-    nullable: false
+    nullable: true
   - name: TCI_BALANCE_YOY
     type: Float64
     from: TCI_BALANCE_YOY
-    nullable: false
+    nullable: true
   - name: ACF_END_INCOME
     type: Float64
     from: ACF_END_INCOME
-    nullable: false
+    nullable: true
   - name: ACF_END_INCOME_YOY
     type: Float64
     from: ACF_END_INCOME_YOY
-    nullable: false
+    nullable: true
   - name: OPINION_TYPE
     type: LowCardinality(String)
     from: OPINION_TYPE

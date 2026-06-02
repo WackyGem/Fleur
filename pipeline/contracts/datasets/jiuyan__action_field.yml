@@ -109,13 +109,13 @@ parquet:
     nullable: false
   - name: delete_time
     type: timestamp[ns]
-    nullable: false
+    nullable: true
   - name: create_time
     type: timestamp[ns]
     nullable: false
   - name: update_time
     type: timestamp[ns]
-    nullable: false
+    nullable: true
   - name: count
     type: int64
     nullable: false
@@ -124,19 +124,19 @@ parquet:
     nullable: false
   - name: time
     type: time32[ms]
-    nullable: false
+    nullable: true
   - name: num
     type: string
-    nullable: false
+    nullable: true
   - name: price
     type: int64
     nullable: false
   - name: day
     type: int64
-    nullable: false
+    nullable: true
   - name: edition
     type: int64
-    nullable: false
+    nullable: true
   - name: shares_range
     type: double
     nullable: false

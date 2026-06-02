@@ -114,7 +114,7 @@ parquet:
     nullable: false
   - name: open_num
     type: int64
-    nullable: false
+    nullable: true
   - name: first_limit_up_time
     type: timestamp[ns, tz=UTC]
     nullable: false
@@ -135,7 +135,7 @@ parquet:
     nullable: false
   - name: limit_up_suc_rate
     type: double
-    nullable: false
+    nullable: true
   - name: currency_value
     type: double
     nullable: false
@@ -194,7 +194,7 @@ clickhouse_raw:
   - name: open_num
     type: Int64
     from: open_num
-    nullable: false
+    nullable: true
   - name: first_limit_up_time
     type: DateTime64(3, 'UTC')
     from: first_limit_up_time
@@ -224,7 +224,7 @@ clickhouse_raw:
   - name: limit_up_suc_rate
     type: Float64
     from: limit_up_suc_rate
-    nullable: false
+    nullable: true
   - name: currency_value
     type: Float64
     from: currency_value

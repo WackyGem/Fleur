@@ -314,118 +314,118 @@ parquet:
     nullable: false
   - name: LIMITED_SHARES
     type: double
-    nullable: false
+    nullable: true
   - name: UNLIMITED_SHARES
     type: double
-    nullable: false
+    nullable: true
   - name: TOTAL_SHARES
     type: double
-    nullable: false
+    nullable: true
   - name: LIMITED_SHARES_RATIO
     type: double
-    nullable: false
+    nullable: true
   - name: LISTED_SHARES_RATIO
     type: double
-    nullable: false
+    nullable: true
   - name: TOTAL_SHARES_RATIO
     type: double
     nullable: false
   - name: LISTED_A_SHARES
     type: double
-    nullable: false
+    nullable: true
   - name: LIMITED_A_SHARES
     type: double
-    nullable: false
+    nullable: true
   - name: LISTED_A_SHARES_RATIO
     type: double
-    nullable: false
+    nullable: true
   - name: LIMITED_A_SHARES_RATIO
     type: double
-    nullable: false
+    nullable: true
   - name: B_FREE_SHARE
     type: double
-    nullable: false
+    nullable: true
   - name: H_FREE_SHARE
     type: double
-    nullable: false
+    nullable: true
   - name: B_FREE_SHARE_RATIO
     type: double
-    nullable: false
+    nullable: true
   - name: H_FREE_SHARE_RATIO
     type: double
-    nullable: false
+    nullable: true
   - name: SECURITY_TYPE_CODE
     type: string
     nullable: false
   - name: NON_FREE_SHARES
     type: double
-    nullable: false
+    nullable: true
   - name: NON_FREESHARES_RATIO
     type: double
-    nullable: false
+    nullable: true
   - name: LIMITED_B_SHARES
     type: double
-    nullable: false
+    nullable: true
   - name: LIMITED_BSHARES_RATIO
     type: double
-    nullable: false
+    nullable: true
   - name: OTHER_FREE_SHARES
     type: double
-    nullable: false
+    nullable: true
   - name: OTHER_FREESHARES_RATIO
     type: double
-    nullable: false
+    nullable: true
   - name: LIMITED_STATE_SHARES
     type: double
-    nullable: false
+    nullable: true
   - name: LIMITED_STATE_LEGAL
     type: double
-    nullable: false
+    nullable: true
   - name: LIMITED_OTHARS
     type: double
-    nullable: false
+    nullable: true
   - name: LIMITED_DOMESTIC_NOSTATE
     type: double
-    nullable: false
+    nullable: true
   - name: LIMITED_DOMESTIC_NATURAL
     type: double
-    nullable: false
+    nullable: true
   - name: LOCK_SHARES
     type: double
-    nullable: false
+    nullable: true
   - name: LIMITED_FOREIGN_SHARES
     type: double
-    nullable: false
+    nullable: true
   - name: LIMITED_OVERSEAS_NOSTATE
     type: double
-    nullable: false
+    nullable: true
   - name: LIMITED_OVERSEAS_NATURAL
     type: double
-    nullable: false
+    nullable: true
   - name: LIMITED_H_SHARES
     type: double
-    nullable: false
+    nullable: true
   - name: SPONSOR_SHARES
     type: double
-    nullable: false
+    nullable: true
   - name: STATE_SPONSOR_SHARES
     type: double
-    nullable: false
+    nullable: true
   - name: SPONSOR_SOCIAL_SHARES
     type: double
-    nullable: false
+    nullable: true
   - name: RAISE_SHARES
     type: double
-    nullable: false
+    nullable: true
   - name: RAISE_STATE_SHARES
     type: double
-    nullable: false
+    nullable: true
   - name: RAISE_DOMESTIC_SHARES
     type: double
-    nullable: false
+    nullable: true
   - name: RAISE_OVERSEAS_SHARES
     type: double
-    nullable: false
+    nullable: true
   - name: NOTICE_DATE
     type: date32[day]
     nullable: false
@@ -434,46 +434,46 @@ parquet:
     nullable: false
   - name: LIMITED_SHARES_CHANGE
     type: double
-    nullable: false
+    nullable: true
   - name: UNLIMITED_SHARES_CHANGE
     type: double
-    nullable: false
+    nullable: true
   - name: TOTAL_SHARES_CHANGE
     type: double
-    nullable: false
+    nullable: true
   - name: LISTED_ASHARES_CHANGE
     type: double
-    nullable: false
+    nullable: true
   - name: LIMITED_ASHARES_CHANGE
     type: double
-    nullable: false
+    nullable: true
   - name: B_FREESHARE_CHANGE
     type: double
-    nullable: false
+    nullable: true
   - name: H_FREESHARE_CHANGE
     type: double
-    nullable: false
+    nullable: true
   - name: LIMITED_BSHARES_CHANGE
     type: double
-    nullable: false
+    nullable: true
   - name: NONFREE_SHARES_CHANGE
     type: double
-    nullable: false
+    nullable: true
   - name: OTHERFREE_SHARES_CHANGE
     type: double
-    nullable: false
+    nullable: true
   - name: FREE_SHARES
     type: double
-    nullable: false
+    nullable: true
   - name: CHANGE_REASON_EXPLAIN
     type: string
     nullable: false
   - name: LIMITED_H_SHARES_RATIO
     type: double
-    nullable: false
+    nullable: true
   - name: LIMITED_H_SHARES_CHANGE
     type: double
-    nullable: false
+    nullable: true
   - name: IS_FREE_WINDOW
     type: bool
     nullable: false
@@ -482,19 +482,19 @@ parquet:
     nullable: false
   - name: LISTED_A_RATIOPC
     type: double
-    nullable: false
+    nullable: true
   - name: LISTED_B_RATIOPC
     type: double
-    nullable: false
+    nullable: true
   - name: LISTED_H_RATIOPC
     type: double
-    nullable: false
+    nullable: true
   - name: LISTED_OTHER_RATIOPC
     type: double
-    nullable: false
+    nullable: true
   - name: LISTED_SUM_RATIOPC
     type: double
-    nullable: false
+    nullable: true
   - name: MARKET_CODE
     type: string
     nullable: false
@@ -543,23 +543,23 @@ clickhouse_raw:
   - name: LIMITED_SHARES
     type: Float64
     from: LIMITED_SHARES
-    nullable: false
+    nullable: true
   - name: UNLIMITED_SHARES
     type: Float64
     from: UNLIMITED_SHARES
-    nullable: false
+    nullable: true
   - name: TOTAL_SHARES
     type: Float64
     from: TOTAL_SHARES
-    nullable: false
+    nullable: true
   - name: LIMITED_SHARES_RATIO
     type: Float64
     from: LIMITED_SHARES_RATIO
-    nullable: false
+    nullable: true
   - name: LISTED_SHARES_RATIO
     type: Float64
     from: LISTED_SHARES_RATIO
-    nullable: false
+    nullable: true
   - name: TOTAL_SHARES_RATIO
     type: Float64
     from: TOTAL_SHARES_RATIO
@@ -567,35 +567,35 @@ clickhouse_raw:
   - name: LISTED_A_SHARES
     type: Float64
     from: LISTED_A_SHARES
-    nullable: false
+    nullable: true
   - name: LIMITED_A_SHARES
     type: Float64
     from: LIMITED_A_SHARES
-    nullable: false
+    nullable: true
   - name: LISTED_A_SHARES_RATIO
     type: Float64
     from: LISTED_A_SHARES_RATIO
-    nullable: false
+    nullable: true
   - name: LIMITED_A_SHARES_RATIO
     type: Float64
     from: LIMITED_A_SHARES_RATIO
-    nullable: false
+    nullable: true
   - name: B_FREE_SHARE
     type: Float64
     from: B_FREE_SHARE
-    nullable: false
+    nullable: true
   - name: H_FREE_SHARE
     type: Float64
     from: H_FREE_SHARE
-    nullable: false
+    nullable: true
   - name: B_FREE_SHARE_RATIO
     type: Float64
     from: B_FREE_SHARE_RATIO
-    nullable: false
+    nullable: true
   - name: H_FREE_SHARE_RATIO
     type: Float64
     from: H_FREE_SHARE_RATIO
-    nullable: false
+    nullable: true
   - name: SECURITY_TYPE_CODE
     type: LowCardinality(String)
     from: SECURITY_TYPE_CODE
@@ -604,95 +604,95 @@ clickhouse_raw:
   - name: NON_FREE_SHARES
     type: Float64
     from: NON_FREE_SHARES
-    nullable: false
+    nullable: true
   - name: NON_FREESHARES_RATIO
     type: Float64
     from: NON_FREESHARES_RATIO
-    nullable: false
+    nullable: true
   - name: LIMITED_B_SHARES
     type: Float64
     from: LIMITED_B_SHARES
-    nullable: false
+    nullable: true
   - name: LIMITED_BSHARES_RATIO
     type: Float64
     from: LIMITED_BSHARES_RATIO
-    nullable: false
+    nullable: true
   - name: OTHER_FREE_SHARES
     type: Float64
     from: OTHER_FREE_SHARES
-    nullable: false
+    nullable: true
   - name: OTHER_FREESHARES_RATIO
     type: Float64
     from: OTHER_FREESHARES_RATIO
-    nullable: false
+    nullable: true
   - name: LIMITED_STATE_SHARES
     type: Float64
     from: LIMITED_STATE_SHARES
-    nullable: false
+    nullable: true
   - name: LIMITED_STATE_LEGAL
     type: Float64
     from: LIMITED_STATE_LEGAL
-    nullable: false
+    nullable: true
   - name: LIMITED_OTHARS
     type: Float64
     from: LIMITED_OTHARS
-    nullable: false
+    nullable: true
   - name: LIMITED_DOMESTIC_NOSTATE
     type: Float64
     from: LIMITED_DOMESTIC_NOSTATE
-    nullable: false
+    nullable: true
   - name: LIMITED_DOMESTIC_NATURAL
     type: Float64
     from: LIMITED_DOMESTIC_NATURAL
-    nullable: false
+    nullable: true
   - name: LOCK_SHARES
     type: Float64
     from: LOCK_SHARES
-    nullable: false
+    nullable: true
   - name: LIMITED_FOREIGN_SHARES
     type: Float64
     from: LIMITED_FOREIGN_SHARES
-    nullable: false
+    nullable: true
   - name: LIMITED_OVERSEAS_NOSTATE
     type: Float64
     from: LIMITED_OVERSEAS_NOSTATE
-    nullable: false
+    nullable: true
   - name: LIMITED_OVERSEAS_NATURAL
     type: Float64
     from: LIMITED_OVERSEAS_NATURAL
-    nullable: false
+    nullable: true
   - name: LIMITED_H_SHARES
     type: Float64
     from: LIMITED_H_SHARES
-    nullable: false
+    nullable: true
   - name: SPONSOR_SHARES
     type: Float64
     from: SPONSOR_SHARES
-    nullable: false
+    nullable: true
   - name: STATE_SPONSOR_SHARES
     type: Float64
     from: STATE_SPONSOR_SHARES
-    nullable: false
+    nullable: true
   - name: SPONSOR_SOCIAL_SHARES
     type: Float64
     from: SPONSOR_SOCIAL_SHARES
-    nullable: false
+    nullable: true
   - name: RAISE_SHARES
     type: Float64
     from: RAISE_SHARES
-    nullable: false
+    nullable: true
   - name: RAISE_STATE_SHARES
     type: Float64
     from: RAISE_STATE_SHARES
-    nullable: false
+    nullable: true
   - name: RAISE_DOMESTIC_SHARES
     type: Float64
     from: RAISE_DOMESTIC_SHARES
-    nullable: false
+    nullable: true
   - name: RAISE_OVERSEAS_SHARES
     type: Float64
     from: RAISE_OVERSEAS_SHARES
-    nullable: false
+    nullable: true
   - name: NOTICE_DATE
     type: Date
     from: NOTICE_DATE
@@ -704,47 +704,47 @@ clickhouse_raw:
   - name: LIMITED_SHARES_CHANGE
     type: Float64
     from: LIMITED_SHARES_CHANGE
-    nullable: false
+    nullable: true
   - name: UNLIMITED_SHARES_CHANGE
     type: Float64
     from: UNLIMITED_SHARES_CHANGE
-    nullable: false
+    nullable: true
   - name: TOTAL_SHARES_CHANGE
     type: Float64
     from: TOTAL_SHARES_CHANGE
-    nullable: false
+    nullable: true
   - name: LISTED_ASHARES_CHANGE
     type: Float64
     from: LISTED_ASHARES_CHANGE
-    nullable: false
+    nullable: true
   - name: LIMITED_ASHARES_CHANGE
     type: Float64
     from: LIMITED_ASHARES_CHANGE
-    nullable: false
+    nullable: true
   - name: B_FREESHARE_CHANGE
     type: Float64
     from: B_FREESHARE_CHANGE
-    nullable: false
+    nullable: true
   - name: H_FREESHARE_CHANGE
     type: Float64
     from: H_FREESHARE_CHANGE
-    nullable: false
+    nullable: true
   - name: LIMITED_BSHARES_CHANGE
     type: Float64
     from: LIMITED_BSHARES_CHANGE
-    nullable: false
+    nullable: true
   - name: NONFREE_SHARES_CHANGE
     type: Float64
     from: NONFREE_SHARES_CHANGE
-    nullable: false
+    nullable: true
   - name: OTHERFREE_SHARES_CHANGE
     type: Float64
     from: OTHERFREE_SHARES_CHANGE
-    nullable: false
+    nullable: true
   - name: FREE_SHARES
     type: Float64
     from: FREE_SHARES
-    nullable: false
+    nullable: true
   - name: CHANGE_REASON_EXPLAIN
     type: LowCardinality(String)
     from: CHANGE_REASON_EXPLAIN
@@ -753,11 +753,11 @@ clickhouse_raw:
   - name: LIMITED_H_SHARES_RATIO
     type: Float64
     from: LIMITED_H_SHARES_RATIO
-    nullable: false
+    nullable: true
   - name: LIMITED_H_SHARES_CHANGE
     type: Float64
     from: LIMITED_H_SHARES_CHANGE
-    nullable: false
+    nullable: true
   - name: IS_FREE_WINDOW
     type: Bool
     from: IS_FREE_WINDOW
@@ -769,23 +769,23 @@ clickhouse_raw:
   - name: LISTED_A_RATIOPC
     type: Float64
     from: LISTED_A_RATIOPC
-    nullable: false
+    nullable: true
   - name: LISTED_B_RATIOPC
     type: Float64
     from: LISTED_B_RATIOPC
-    nullable: false
+    nullable: true
   - name: LISTED_H_RATIOPC
     type: Float64
     from: LISTED_H_RATIOPC
-    nullable: false
+    nullable: true
   - name: LISTED_OTHER_RATIOPC
     type: Float64
     from: LISTED_OTHER_RATIOPC
-    nullable: false
+    nullable: true
   - name: LISTED_SUM_RATIOPC
     type: Float64
     from: LISTED_SUM_RATIOPC
-    nullable: false
+    nullable: true
   - name: MARKET_CODE
     type: LowCardinality(String)
     from: MARKET_CODE

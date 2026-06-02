@@ -531,7 +531,11 @@ class BackfillWindowLimitTest(unittest.IsolatedAsyncioTestCase):
                     s3_config=s3_config,
                 )
 
-        self.assertIn("All 1 bounded tasks failed", str(ctx.exception))
+        self.assertIn(
+            "Trade-date range materialization failed for 1 partitions",
+            str(ctx.exception),
+        )
+        self.assertIn("2026-05-08: RuntimeError: boom for 2026-05-08", str(ctx.exception))
 
     async def test_partial_partition_failures_include_runner_error_metadata(self) -> None:
         async def fetch_table_for_trade_date(

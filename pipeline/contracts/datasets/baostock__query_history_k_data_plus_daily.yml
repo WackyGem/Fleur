@@ -71,7 +71,7 @@ source:
     external_description_zh: 交易日涨跌幅。
   - name: isST
     type: string
-    required: true
+    required: false
     external_description_zh: 证券是否为 ST 或风险警示状态。
 parquet:
   storage_mode: partitioned
@@ -85,40 +85,40 @@ parquet:
     nullable: false
   - name: open
     type: double
-    nullable: false
+    nullable: true
   - name: high
     type: double
-    nullable: false
+    nullable: true
   - name: low
     type: double
-    nullable: false
+    nullable: true
   - name: close
     type: double
-    nullable: false
+    nullable: true
   - name: preclose
     type: double
-    nullable: false
+    nullable: true
   - name: volume
     type: int64
-    nullable: false
+    nullable: true
   - name: amount
     type: double
-    nullable: false
+    nullable: true
   - name: adjustflag
     type: int8
     nullable: false
   - name: turn
     type: double
-    nullable: false
+    nullable: true
   - name: tradestatus
     type: int8
     nullable: false
   - name: pctChg
     type: double
-    nullable: false
+    nullable: true
   - name: isST
     type: bool
-    nullable: false
+    nullable: true
 clickhouse_raw:
   database: raw
   table: baostock__query_history_k_data_plus_daily
@@ -143,31 +143,31 @@ clickhouse_raw:
   - name: open
     type: Float64
     from: open
-    nullable: false
+    nullable: true
   - name: high
     type: Float64
     from: high
-    nullable: false
+    nullable: true
   - name: low
     type: Float64
     from: low
-    nullable: false
+    nullable: true
   - name: close
     type: Float64
     from: close
-    nullable: false
+    nullable: true
   - name: preclose
     type: Float64
     from: preclose
-    nullable: false
+    nullable: true
   - name: volume
     type: Int64
     from: volume
-    nullable: false
+    nullable: true
   - name: amount
     type: Float64
     from: amount
-    nullable: false
+    nullable: true
   - name: adjustflag
     type: Int8
     from: adjustflag
@@ -175,7 +175,7 @@ clickhouse_raw:
   - name: turn
     type: Float64
     from: turn
-    nullable: false
+    nullable: true
   - name: tradestatus
     type: Int8
     from: tradestatus
@@ -183,11 +183,11 @@ clickhouse_raw:
   - name: pctChg
     type: Float64
     from: pctChg
-    nullable: false
+    nullable: true
   - name: isST
     type: Bool
     from: isST
-    nullable: false
+    nullable: true
 dataset_note_zh: BaoStock 日频行情数据
 validation_notes:
 - Initial contract migrated from docs/references/data_dict and current raw sync specs.

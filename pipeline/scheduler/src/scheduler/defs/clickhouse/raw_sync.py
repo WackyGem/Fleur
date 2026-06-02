@@ -194,6 +194,8 @@ class RawSyncService:
         if row_count <= 0 and not spec.allow_empty:
             msg = f"Staging table {spec.staging_table} is empty"
             raise RuntimeError(msg)
+        if row_count == 0:
+            return row_count
         if min_year != expected_year or max_year != expected_year:
             msg = (
                 f"Staging table {spec.staging_table} contains partition range "

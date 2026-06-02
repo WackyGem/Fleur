@@ -110,7 +110,7 @@ parquet:
     nullable: false
   - name: open_num
     type: int64
-    nullable: false
+    nullable: true
   - name: first_limit_up_time
     type: timestamp[ns, tz=UTC]
     nullable: false
@@ -131,7 +131,7 @@ parquet:
     nullable: false
   - name: limit_up_suc_rate
     type: double
-    nullable: false
+    nullable: true
   - name: currency_value
     type: double
     nullable: false
