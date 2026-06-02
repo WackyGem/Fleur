@@ -20,3 +20,4 @@
 | [0006](0006-clickhouse-python-client-selection.md) | Accepted | ClickHouse raw sync 使用官方 Python HTTP client |
 | [0007](0007-dbt-staging-cleaning-boundary.md) | Accepted | dbt staging 清洗边界 |
 | [0008](0008-raw-source-profiling-before-dbt-staging.md) | Accepted | dbt staging 前置 raw source profiling |
+| [0009](0009-clickhouse-layered-databases.md) | Accepted | ClickHouse 按 dbt 建模层分库 |
