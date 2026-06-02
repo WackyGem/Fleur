@@ -8,7 +8,7 @@
 - 粒度：one row per security code per report date
 - Source asset：`source/eastmoney__income_ytd`
 - Raw asset：`clickhouse/raw/eastmoney__income_ytd`
-- ClickHouse raw：`raw.eastmoney__income_ytd`
+- ClickHouse raw：`fleur_raw.eastmoney__income_ytd`
 - 分区策略：`year`
 - ORDER BY：`(SECUCODE, REPORT_DATE)`
 

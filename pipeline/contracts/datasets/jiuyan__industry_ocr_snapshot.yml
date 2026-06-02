@@ -77,7 +77,7 @@ parquet:
     type: string
     nullable: false
 clickhouse_raw:
-  database: raw
+  database: fleur_raw
   table: jiuyan__industry_ocr_snapshot
   partition_strategy: snapshot
   engine: MergeTree

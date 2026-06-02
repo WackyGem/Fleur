@@ -8,7 +8,7 @@
 - 粒度：one row per stock code per source date/action field row
 - Source asset：`source/jiuyan__action_field_compacted`
 - Raw asset：`clickhouse/raw/jiuyan__action_field_compacted`
-- ClickHouse raw：`raw.jiuyan__action_field_compacted`
+- ClickHouse raw：`fleur_raw.jiuyan__action_field_compacted`
 - 分区策略：`year`
 - ORDER BY：`(date, code)`
 

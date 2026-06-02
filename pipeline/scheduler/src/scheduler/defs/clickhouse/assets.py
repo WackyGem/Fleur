@@ -12,16 +12,11 @@ from scheduler.defs.clickhouse.specs import (
     CLICKHOUSE_RAW_GROUP,
     ENABLED_CLICKHOUSE_RAW_TABLE_SPECS,
     ClickHouseRawTableSpec,
+    clickhouse_raw_pool_name,
 )
 from scheduler.defs.common.metadata import RawMetadataValue
 from scheduler.defs.resources.clickhouse import ClickHouseResource
 from scheduler.defs.resources.s3 import S3SettingsResource
-from scheduler.defs.sources.jiuyan.action_field_compact import (
-    jiuyan_action_field_compacted_year_partitions,
-)
-from scheduler.defs.sources.ths.limit_up_pool_compact import (
-    ths_limit_up_pool_compacted_year_partitions,
-)
 
 
 def build_clickhouse_raw_asset(spec: ClickHouseRawTableSpec) -> dg.AssetsDefinition:
@@ -53,9 +48,11 @@ def build_clickhouse_raw_asset(spec: ClickHouseRawTableSpec) -> dg.AssetsDefinit
         group_name=CLICKHOUSE_RAW_GROUP,
         deps=[spec.source_asset_key],
         partitions_def=_partitions_def_for_spec(spec),
+        backfill_policy=_backfill_policy_for_spec(spec),
         metadata=_metadata_for_spec(spec),
         owners=[DEFAULT_OWNER],
         kinds={"clickhouse", "raw"},
+        pool=clickhouse_raw_pool_name(spec.raw_asset_table_name),
         tags=_tags_for_spec(spec),
         automation_condition=dg.AutomationCondition.eager(),
     )(materialize_clickhouse_raw_asset)
@@ -70,13 +67,13 @@ def _partitions_def_for_spec(
 ) -> dg.PartitionsDefinition | None:
     if spec.partition_strategy != "year":
         return None
-    if spec.raw_asset_table_name == "jiuyan__action_field_compacted":
-        return jiuyan_action_field_compacted_year_partitions
-    if spec.raw_asset_table_name == "ths__limit_up_pool_compacted":
-        return ths_limit_up_pool_compacted_year_partitions
-    if spec.partition_strategy == "year":
-        return year_partitions
-    return None
+    return year_partitions
+
+
+def _backfill_policy_for_spec(spec: ClickHouseRawTableSpec) -> dg.BackfillPolicy | None:
+    if spec.partition_strategy != "year":
+        return None
+    return dg.BackfillPolicy.multi_run(max_partitions_per_run=1)
 
 
 def _metadata_for_spec(spec: ClickHouseRawTableSpec) -> Mapping[str, RawMetadataValue]:

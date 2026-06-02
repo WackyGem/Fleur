@@ -8,7 +8,7 @@
 - 粒度：one row per trade date
 - Source asset：`source/sina__trade_calendar`
 - Raw asset：`clickhouse/raw/sina__trade_calendar`
-- ClickHouse raw：`raw.sina__trade_calendar`
+- ClickHouse raw：`fleur_raw.sina__trade_calendar`
 - 分区策略：`snapshot`
 - ORDER BY：`(trade_date)`
 

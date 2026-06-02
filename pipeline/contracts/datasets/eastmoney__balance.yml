@@ -2255,7 +2255,7 @@ parquet:
     type: string
     nullable: false
 clickhouse_raw:
-  database: raw
+  database: fleur_raw
   table: eastmoney__balance
   partition_strategy: year
   engine: MergeTree

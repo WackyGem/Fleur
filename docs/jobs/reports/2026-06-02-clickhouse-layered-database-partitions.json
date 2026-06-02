@@ -1,0 +1,2849 @@
+{
+  "datasets": [
+    {
+      "dataset": "baostock__query_history_k_data_plus_daily",
+      "expected_years": [
+        "1990",
+        "1991",
+        "1992",
+        "1993",
+        "1994",
+        "1995",
+        "1996",
+        "1997",
+        "1998",
+        "1999",
+        "2000",
+        "2001",
+        "2002",
+        "2003",
+        "2004",
+        "2005",
+        "2006",
+        "2007",
+        "2008",
+        "2009",
+        "2010",
+        "2011",
+        "2012",
+        "2013",
+        "2014",
+        "2015",
+        "2016",
+        "2017",
+        "2018",
+        "2019",
+        "2020",
+        "2021",
+        "2022",
+        "2023",
+        "2024",
+        "2025",
+        "2026"
+      ],
+      "missing_objects": [],
+      "objects": [
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:29:41+00:00",
+          "object_key": "source/baostock__query_history_k_data_plus_daily/year=1990/000000_0.parquet",
+          "row_count": 72,
+          "size": 24541
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:30:08+00:00",
+          "object_key": "source/baostock__query_history_k_data_plus_daily/year=1991/000000_0.parquet",
+          "row_count": 2977,
+          "size": 175492
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:34:11+00:00",
+          "object_key": "source/baostock__query_history_k_data_plus_daily/year=1992/000000_0.parquet",
+          "row_count": 7878,
+          "size": 561042
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:34:39+00:00",
+          "object_key": "source/baostock__query_history_k_data_plus_daily/year=1993/000000_0.parquet",
+          "row_count": 26404,
+          "size": 1942391
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T20:05:00+00:00",
+          "object_key": "source/baostock__query_history_k_data_plus_daily/year=1994/000000_0.parquet",
+          "row_count": 66282,
+          "size": 4514216
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T20:05:20+00:00",
+          "object_key": "source/baostock__query_history_k_data_plus_daily/year=1995/000000_0.parquet",
+          "row_count": 75156,
+          "size": 4748626
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T20:05:45+00:00",
+          "object_key": "source/baostock__query_history_k_data_plus_daily/year=1996/000000_0.parquet",
+          "row_count": 95794,
+          "size": 6826462
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T20:06:14+00:00",
+          "object_key": "source/baostock__query_history_k_data_plus_daily/year=1997/000000_0.parquet",
+          "row_count": 155054,
+          "size": 10986280
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T20:06:38+00:00",
+          "object_key": "source/baostock__query_history_k_data_plus_daily/year=1998/000000_0.parquet",
+          "row_count": 191753,
+          "size": 13198754
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T20:07:08+00:00",
+          "object_key": "source/baostock__query_history_k_data_plus_daily/year=1999/000000_0.parquet",
+          "row_count": 209625,
+          "size": 14511018
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T20:07:37+00:00",
+          "object_key": "source/baostock__query_history_k_data_plus_daily/year=2000/000000_0.parquet",
+          "row_count": 234492,
+          "size": 16538229
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T20:08:02+00:00",
+          "object_key": "source/baostock__query_history_k_data_plus_daily/year=2001/000000_0.parquet",
+          "row_count": 266683,
+          "size": 18533034
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T20:08:32+00:00",
+          "object_key": "source/baostock__query_history_k_data_plus_daily/year=2002/000000_0.parquet",
+          "row_count": 277146,
+          "size": 18532408
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T20:09:02+00:00",
+          "object_key": "source/baostock__query_history_k_data_plus_daily/year=2003/000000_0.parquet",
+          "row_count": 297217,
+          "size": 18819842
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T20:09:30+00:00",
+          "object_key": "source/baostock__query_history_k_data_plus_daily/year=2004/000000_0.parquet",
+          "row_count": 320846,
+          "size": 20302750
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T20:09:59+00:00",
+          "object_key": "source/baostock__query_history_k_data_plus_daily/year=2005/000000_0.parquet",
+          "row_count": 329542,
+          "size": 20319114
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T20:10:33+00:00",
+          "object_key": "source/baostock__query_history_k_data_plus_daily/year=2006/000000_0.parquet",
+          "row_count": 346887,
+          "size": 21613052
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T20:11:03+00:00",
+          "object_key": "source/baostock__query_history_k_data_plus_daily/year=2007/000000_0.parquet",
+          "row_count": 377146,
+          "size": 26568619
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T20:11:39+00:00",
+          "object_key": "source/baostock__query_history_k_data_plus_daily/year=2008/000000_0.parquet",
+          "row_count": 415760,
+          "size": 29338549
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T20:12:16+00:00",
+          "object_key": "source/baostock__query_history_k_data_plus_daily/year=2009/000000_0.parquet",
+          "row_count": 434231,
+          "size": 30863927
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T20:12:55+00:00",
+          "object_key": "source/baostock__query_history_k_data_plus_daily/year=2010/000000_0.parquet",
+          "row_count": 513561,
+          "size": 37348590
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T20:13:35+00:00",
+          "object_key": "source/baostock__query_history_k_data_plus_daily/year=2011/000000_0.parquet",
+          "row_count": 614219,
+          "size": 44546365
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T20:14:23+00:00",
+          "object_key": "source/baostock__query_history_k_data_plus_daily/year=2012/000000_0.parquet",
+          "row_count": 688240,
+          "size": 48818585
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T20:15:03+00:00",
+          "object_key": "source/baostock__query_history_k_data_plus_daily/year=2013/000000_0.parquet",
+          "row_count": 701192,
+          "size": 49229078
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T20:15:48+00:00",
+          "object_key": "source/baostock__query_history_k_data_plus_daily/year=2014/000000_0.parquet",
+          "row_count": 744937,
+          "size": 51596573
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T20:20:03+00:00",
+          "object_key": "source/baostock__query_history_k_data_plus_daily/year=2015/000000_0.parquet",
+          "row_count": 802478,
+          "size": 56524206
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T20:21:18+00:00",
+          "object_key": "source/baostock__query_history_k_data_plus_daily/year=2016/000000_0.parquet",
+          "row_count": 844934,
+          "size": 59047908
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T20:23:10+00:00",
+          "object_key": "source/baostock__query_history_k_data_plus_daily/year=2017/000000_0.parquet",
+          "row_count": 939565,
+          "size": 66117993
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T20:24:38+00:00",
+          "object_key": "source/baostock__query_history_k_data_plus_daily/year=2018/000000_0.parquet",
+          "row_count": 995754,
+          "size": 70439263
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T20:26:07+00:00",
+          "object_key": "source/baostock__query_history_k_data_plus_daily/year=2019/000000_0.parquet",
+          "row_count": 1024115,
+          "size": 72989570
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T20:27:43+00:00",
+          "object_key": "source/baostock__query_history_k_data_plus_daily/year=2020/000000_0.parquet",
+          "row_count": 1084680,
+          "size": 78741017
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T20:29:16+00:00",
+          "object_key": "source/baostock__query_history_k_data_plus_daily/year=2021/000000_0.parquet",
+          "row_count": 1194894,
+          "size": 87021896
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T20:30:58+00:00",
+          "object_key": "source/baostock__query_history_k_data_plus_daily/year=2022/000000_0.parquet",
+          "row_count": 1280813,
+          "size": 93626368
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T20:32:47+00:00",
+          "object_key": "source/baostock__query_history_k_data_plus_daily/year=2023/000000_0.parquet",
+          "row_count": 1343433,
+          "size": 96505503
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T20:34:34+00:00",
+          "object_key": "source/baostock__query_history_k_data_plus_daily/year=2024/000000_0.parquet",
+          "row_count": 1367325,
+          "size": 99670300
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T20:36:21+00:00",
+          "object_key": "source/baostock__query_history_k_data_plus_daily/year=2025/000000_0.parquet",
+          "row_count": 1377046,
+          "size": 100286264
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T20:37:52+00:00",
+          "object_key": "source/baostock__query_history_k_data_plus_daily/year=2026/000000_0.parquet",
+          "row_count": 687112,
+          "size": 65429970
+        }
+      ],
+      "partition_strategy": "year"
+    },
+    {
+      "dataset": "baostock__query_stock_basic",
+      "missing_objects": [],
+      "objects": [
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:25:22+00:00",
+          "object_key": "source/baostock__query_stock_basic/000000_0.parquet",
+          "row_count": 8769,
+          "size": 189324
+        }
+      ],
+      "partition_strategy": "snapshot"
+    },
+    {
+      "dataset": "eastmoney__balance",
+      "expected_years": [
+        "1990",
+        "1991",
+        "1992",
+        "1993",
+        "1994",
+        "1995",
+        "1996",
+        "1997",
+        "1998",
+        "1999",
+        "2000",
+        "2001",
+        "2002",
+        "2003",
+        "2004",
+        "2005",
+        "2006",
+        "2007",
+        "2008",
+        "2009",
+        "2010",
+        "2011",
+        "2012",
+        "2013",
+        "2014",
+        "2015",
+        "2016",
+        "2017",
+        "2018",
+        "2019",
+        "2020",
+        "2021",
+        "2022",
+        "2023",
+        "2024",
+        "2025",
+        "2026"
+      ],
+      "missing_objects": [],
+      "objects": [
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:29:53+00:00",
+          "object_key": "source/eastmoney__balance/year=1990/000000_0.parquet",
+          "row_count": 0,
+          "size": 59773
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:33:25+00:00",
+          "object_key": "source/eastmoney__balance/year=1991/000000_0.parquet",
+          "row_count": 18,
+          "size": 84647
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:34:23+00:00",
+          "object_key": "source/eastmoney__balance/year=1992/000000_0.parquet",
+          "row_count": 29,
+          "size": 92395
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:40:26+00:00",
+          "object_key": "source/eastmoney__balance/year=1993/000000_0.parquet",
+          "row_count": 144,
+          "size": 143722
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:43:03+00:00",
+          "object_key": "source/eastmoney__balance/year=1994/000000_0.parquet",
+          "row_count": 525,
+          "size": 281011
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:43:17+00:00",
+          "object_key": "source/eastmoney__balance/year=1995/000000_0.parquet",
+          "row_count": 589,
+          "size": 335447
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:43:31+00:00",
+          "object_key": "source/eastmoney__balance/year=1996/000000_0.parquet",
+          "row_count": 726,
+          "size": 398938
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:43:47+00:00",
+          "object_key": "source/eastmoney__balance/year=1997/000000_0.parquet",
+          "row_count": 1246,
+          "size": 627075
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:44:04+00:00",
+          "object_key": "source/eastmoney__balance/year=1998/000000_0.parquet",
+          "row_count": 1513,
+          "size": 897194
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:44:21+00:00",
+          "object_key": "source/eastmoney__balance/year=1999/000000_0.parquet",
+          "row_count": 918,
+          "size": 658823
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:44:38+00:00",
+          "object_key": "source/eastmoney__balance/year=2000/000000_0.parquet",
+          "row_count": 1906,
+          "size": 1290930
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:44:57+00:00",
+          "object_key": "source/eastmoney__balance/year=2001/000000_0.parquet",
+          "row_count": 2323,
+          "size": 1546338
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:45:16+00:00",
+          "object_key": "source/eastmoney__balance/year=2002/000000_0.parquet",
+          "row_count": 4599,
+          "size": 2456325
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:45:36+00:00",
+          "object_key": "source/eastmoney__balance/year=2003/000000_0.parquet",
+          "row_count": 4879,
+          "size": 3370503
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:45:57+00:00",
+          "object_key": "source/eastmoney__balance/year=2004/000000_0.parquet",
+          "row_count": 5180,
+          "size": 3608751
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:46:18+00:00",
+          "object_key": "source/eastmoney__balance/year=2005/000000_0.parquet",
+          "row_count": 5383,
+          "size": 3819442
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:46:39+00:00",
+          "object_key": "source/eastmoney__balance/year=2006/000000_0.parquet",
+          "row_count": 5357,
+          "size": 3837453
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:47:00+00:00",
+          "object_key": "source/eastmoney__balance/year=2007/000000_0.parquet",
+          "row_count": 5687,
+          "size": 4016858
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:47:23+00:00",
+          "object_key": "source/eastmoney__balance/year=2008/000000_0.parquet",
+          "row_count": 6157,
+          "size": 4407667
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:47:45+00:00",
+          "object_key": "source/eastmoney__balance/year=2009/000000_0.parquet",
+          "row_count": 6291,
+          "size": 4636719
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:48:11+00:00",
+          "object_key": "source/eastmoney__balance/year=2010/000000_0.parquet",
+          "row_count": 7267,
+          "size": 5177076
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:48:38+00:00",
+          "object_key": "source/eastmoney__balance/year=2011/000000_0.parquet",
+          "row_count": 10521,
+          "size": 7525079
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:49:06+00:00",
+          "object_key": "source/eastmoney__balance/year=2012/000000_0.parquet",
+          "row_count": 9575,
+          "size": 7017315
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:49:34+00:00",
+          "object_key": "source/eastmoney__balance/year=2013/000000_0.parquet",
+          "row_count": 9863,
+          "size": 7528509
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:50:03+00:00",
+          "object_key": "source/eastmoney__balance/year=2014/000000_0.parquet",
+          "row_count": 9869,
+          "size": 7697662
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:50:33+00:00",
+          "object_key": "source/eastmoney__balance/year=2015/000000_0.parquet",
+          "row_count": 10721,
+          "size": 8347942
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:51:05+00:00",
+          "object_key": "source/eastmoney__balance/year=2016/000000_0.parquet",
+          "row_count": 11268,
+          "size": 9078058
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:51:39+00:00",
+          "object_key": "source/eastmoney__balance/year=2017/000000_0.parquet",
+          "row_count": 12891,
+          "size": 10301937
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:52:15+00:00",
+          "object_key": "source/eastmoney__balance/year=2018/000000_0.parquet",
+          "row_count": 13833,
+          "size": 11110364
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:52:52+00:00",
+          "object_key": "source/eastmoney__balance/year=2019/000000_0.parquet",
+          "row_count": 14227,
+          "size": 11087640
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:53:30+00:00",
+          "object_key": "source/eastmoney__balance/year=2020/000000_0.parquet",
+          "row_count": 15241,
+          "size": 11981070
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:54:13+00:00",
+          "object_key": "source/eastmoney__balance/year=2021/000000_0.parquet",
+          "row_count": 17029,
+          "size": 13950674
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:54:57+00:00",
+          "object_key": "source/eastmoney__balance/year=2022/000000_0.parquet",
+          "row_count": 18547,
+          "size": 15899464
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:55:42+00:00",
+          "object_key": "source/eastmoney__balance/year=2023/000000_0.parquet",
+          "row_count": 19583,
+          "size": 17186239
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:56:29+00:00",
+          "object_key": "source/eastmoney__balance/year=2024/000000_0.parquet",
+          "row_count": 20004,
+          "size": 17862448
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:57:16+00:00",
+          "object_key": "source/eastmoney__balance/year=2025/000000_0.parquet",
+          "row_count": 20172,
+          "size": 18138549
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T20:01:11+00:00",
+          "object_key": "source/eastmoney__balance/year=2026/000000_0.parquet",
+          "row_count": 10184,
+          "size": 9330099
+        }
+      ],
+      "partition_strategy": "year"
+    },
+    {
+      "dataset": "eastmoney__cashflow_sq",
+      "expected_years": [
+        "1990",
+        "1991",
+        "1992",
+        "1993",
+        "1994",
+        "1995",
+        "1996",
+        "1997",
+        "1998",
+        "1999",
+        "2000",
+        "2001",
+        "2002",
+        "2003",
+        "2004",
+        "2005",
+        "2006",
+        "2007",
+        "2008",
+        "2009",
+        "2010",
+        "2011",
+        "2012",
+        "2013",
+        "2014",
+        "2015",
+        "2016",
+        "2017",
+        "2018",
+        "2019",
+        "2020",
+        "2021",
+        "2022",
+        "2023",
+        "2024",
+        "2025",
+        "2026"
+      ],
+      "missing_objects": [],
+      "objects": [
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:29:53+00:00",
+          "object_key": "source/eastmoney__cashflow_sq/year=1990/000000_0.parquet",
+          "row_count": 0,
+          "size": 71785
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:33:25+00:00",
+          "object_key": "source/eastmoney__cashflow_sq/year=1991/000000_0.parquet",
+          "row_count": 0,
+          "size": 71785
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:34:23+00:00",
+          "object_key": "source/eastmoney__cashflow_sq/year=1992/000000_0.parquet",
+          "row_count": 0,
+          "size": 71785
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:40:26+00:00",
+          "object_key": "source/eastmoney__cashflow_sq/year=1993/000000_0.parquet",
+          "row_count": 0,
+          "size": 71785
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:43:03+00:00",
+          "object_key": "source/eastmoney__cashflow_sq/year=1994/000000_0.parquet",
+          "row_count": 0,
+          "size": 71785
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:43:16+00:00",
+          "object_key": "source/eastmoney__cashflow_sq/year=1995/000000_0.parquet",
+          "row_count": 0,
+          "size": 71785
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:43:30+00:00",
+          "object_key": "source/eastmoney__cashflow_sq/year=1996/000000_0.parquet",
+          "row_count": 0,
+          "size": 71785
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:43:46+00:00",
+          "object_key": "source/eastmoney__cashflow_sq/year=1997/000000_0.parquet",
+          "row_count": 0,
+          "size": 71785
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:44:02+00:00",
+          "object_key": "source/eastmoney__cashflow_sq/year=1998/000000_0.parquet",
+          "row_count": 0,
+          "size": 71785
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:44:19+00:00",
+          "object_key": "source/eastmoney__cashflow_sq/year=1999/000000_0.parquet",
+          "row_count": 0,
+          "size": 71785
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:44:36+00:00",
+          "object_key": "source/eastmoney__cashflow_sq/year=2000/000000_0.parquet",
+          "row_count": 0,
+          "size": 71785
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:44:54+00:00",
+          "object_key": "source/eastmoney__cashflow_sq/year=2001/000000_0.parquet",
+          "row_count": 10,
+          "size": 93821
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:45:13+00:00",
+          "object_key": "source/eastmoney__cashflow_sq/year=2002/000000_0.parquet",
+          "row_count": 40,
+          "size": 107222
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:45:34+00:00",
+          "object_key": "source/eastmoney__cashflow_sq/year=2003/000000_0.parquet",
+          "row_count": 3513,
+          "size": 1231122
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:45:55+00:00",
+          "object_key": "source/eastmoney__cashflow_sq/year=2004/000000_0.parquet",
+          "row_count": 5142,
+          "size": 2781990
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:46:16+00:00",
+          "object_key": "source/eastmoney__cashflow_sq/year=2005/000000_0.parquet",
+          "row_count": 5353,
+          "size": 3200299
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:46:35+00:00",
+          "object_key": "source/eastmoney__cashflow_sq/year=2006/000000_0.parquet",
+          "row_count": 1596,
+          "size": 1093500
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:46:58+00:00",
+          "object_key": "source/eastmoney__cashflow_sq/year=2007/000000_0.parquet",
+          "row_count": 4279,
+          "size": 2656844
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:47:20+00:00",
+          "object_key": "source/eastmoney__cashflow_sq/year=2008/000000_0.parquet",
+          "row_count": 6079,
+          "size": 3950737
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:47:43+00:00",
+          "object_key": "source/eastmoney__cashflow_sq/year=2009/000000_0.parquet",
+          "row_count": 6262,
+          "size": 4244802
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:48:11+00:00",
+          "object_key": "source/eastmoney__cashflow_sq/year=2010/000000_0.parquet",
+          "row_count": 12505,
+          "size": 8115224
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:48:36+00:00",
+          "object_key": "source/eastmoney__cashflow_sq/year=2011/000000_0.parquet",
+          "row_count": 11387,
+          "size": 7377008
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:49:03+00:00",
+          "object_key": "source/eastmoney__cashflow_sq/year=2012/000000_0.parquet",
+          "row_count": 10118,
+          "size": 6674762
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:49:32+00:00",
+          "object_key": "source/eastmoney__cashflow_sq/year=2013/000000_0.parquet",
+          "row_count": 9979,
+          "size": 6827830
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:50:00+00:00",
+          "object_key": "source/eastmoney__cashflow_sq/year=2014/000000_0.parquet",
+          "row_count": 10010,
+          "size": 7035675
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:50:30+00:00",
+          "object_key": "source/eastmoney__cashflow_sq/year=2015/000000_0.parquet",
+          "row_count": 11038,
+          "size": 7811050
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:51:02+00:00",
+          "object_key": "source/eastmoney__cashflow_sq/year=2016/000000_0.parquet",
+          "row_count": 11651,
+          "size": 8387256
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:51:35+00:00",
+          "object_key": "source/eastmoney__cashflow_sq/year=2017/000000_0.parquet",
+          "row_count": 13590,
+          "size": 9681995
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:52:11+00:00",
+          "object_key": "source/eastmoney__cashflow_sq/year=2018/000000_0.parquet",
+          "row_count": 14109,
+          "size": 10359177
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:52:48+00:00",
+          "object_key": "source/eastmoney__cashflow_sq/year=2019/000000_0.parquet",
+          "row_count": 14409,
+          "size": 10710168
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:53:26+00:00",
+          "object_key": "source/eastmoney__cashflow_sq/year=2020/000000_0.parquet",
+          "row_count": 15651,
+          "size": 11536055
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:54:08+00:00",
+          "object_key": "source/eastmoney__cashflow_sq/year=2021/000000_0.parquet",
+          "row_count": 17665,
+          "size": 13142228
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:54:52+00:00",
+          "object_key": "source/eastmoney__cashflow_sq/year=2022/000000_0.parquet",
+          "row_count": 19013,
+          "size": 14344193
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:55:38+00:00",
+          "object_key": "source/eastmoney__cashflow_sq/year=2023/000000_0.parquet",
+          "row_count": 19988,
+          "size": 15211972
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:56:24+00:00",
+          "object_key": "source/eastmoney__cashflow_sq/year=2024/000000_0.parquet",
+          "row_count": 20129,
+          "size": 15494305
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:57:10+00:00",
+          "object_key": "source/eastmoney__cashflow_sq/year=2025/000000_0.parquet",
+          "row_count": 20270,
+          "size": 15757975
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T20:01:02+00:00",
+          "object_key": "source/eastmoney__cashflow_sq/year=2026/000000_0.parquet",
+          "row_count": 10230,
+          "size": 8112870
+        }
+      ],
+      "partition_strategy": "year"
+    },
+    {
+      "dataset": "eastmoney__cashflow_ytd",
+      "expected_years": [
+        "1990",
+        "1991",
+        "1992",
+        "1993",
+        "1994",
+        "1995",
+        "1996",
+        "1997",
+        "1998",
+        "1999",
+        "2000",
+        "2001",
+        "2002",
+        "2003",
+        "2004",
+        "2005",
+        "2006",
+        "2007",
+        "2008",
+        "2009",
+        "2010",
+        "2011",
+        "2012",
+        "2013",
+        "2014",
+        "2015",
+        "2016",
+        "2017",
+        "2018",
+        "2019",
+        "2020",
+        "2021",
+        "2022",
+        "2023",
+        "2024",
+        "2025",
+        "2026"
+      ],
+      "missing_objects": [],
+      "objects": [
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:29:53+00:00",
+          "object_key": "source/eastmoney__cashflow_ytd/year=1990/000000_0.parquet",
+          "row_count": 0,
+          "size": 48484
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:33:25+00:00",
+          "object_key": "source/eastmoney__cashflow_ytd/year=1991/000000_0.parquet",
+          "row_count": 0,
+          "size": 48484
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:34:23+00:00",
+          "object_key": "source/eastmoney__cashflow_ytd/year=1992/000000_0.parquet",
+          "row_count": 0,
+          "size": 48484
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:40:26+00:00",
+          "object_key": "source/eastmoney__cashflow_ytd/year=1993/000000_0.parquet",
+          "row_count": 0,
+          "size": 48484
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:43:03+00:00",
+          "object_key": "source/eastmoney__cashflow_ytd/year=1994/000000_0.parquet",
+          "row_count": 0,
+          "size": 48484
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:43:16+00:00",
+          "object_key": "source/eastmoney__cashflow_ytd/year=1995/000000_0.parquet",
+          "row_count": 0,
+          "size": 48484
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:43:30+00:00",
+          "object_key": "source/eastmoney__cashflow_ytd/year=1996/000000_0.parquet",
+          "row_count": 0,
+          "size": 48484
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:43:45+00:00",
+          "object_key": "source/eastmoney__cashflow_ytd/year=1997/000000_0.parquet",
+          "row_count": 0,
+          "size": 48484
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:44:02+00:00",
+          "object_key": "source/eastmoney__cashflow_ytd/year=1998/000000_0.parquet",
+          "row_count": 262,
+          "size": 165973
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:44:20+00:00",
+          "object_key": "source/eastmoney__cashflow_ytd/year=1999/000000_0.parquet",
+          "row_count": 1096,
+          "size": 544400
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:44:37+00:00",
+          "object_key": "source/eastmoney__cashflow_ytd/year=2000/000000_0.parquet",
+          "row_count": 1894,
+          "size": 1218811
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:44:55+00:00",
+          "object_key": "source/eastmoney__cashflow_ytd/year=2001/000000_0.parquet",
+          "row_count": 2080,
+          "size": 1596137
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:45:15+00:00",
+          "object_key": "source/eastmoney__cashflow_ytd/year=2002/000000_0.parquet",
+          "row_count": 2290,
+          "size": 1770625
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:45:35+00:00",
+          "object_key": "source/eastmoney__cashflow_ytd/year=2003/000000_0.parquet",
+          "row_count": 4810,
+          "size": 2756379
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:45:56+00:00",
+          "object_key": "source/eastmoney__cashflow_ytd/year=2004/000000_0.parquet",
+          "row_count": 5293,
+          "size": 3834695
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:46:17+00:00",
+          "object_key": "source/eastmoney__cashflow_ytd/year=2005/000000_0.parquet",
+          "row_count": 5372,
+          "size": 3982107
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:46:36+00:00",
+          "object_key": "source/eastmoney__cashflow_ytd/year=2006/000000_0.parquet",
+          "row_count": 1602,
+          "size": 1331202
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:46:58+00:00",
+          "object_key": "source/eastmoney__cashflow_ytd/year=2007/000000_0.parquet",
+          "row_count": 4333,
+          "size": 2396354
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:47:21+00:00",
+          "object_key": "source/eastmoney__cashflow_ytd/year=2008/000000_0.parquet",
+          "row_count": 6141,
+          "size": 3858261
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:47:44+00:00",
+          "object_key": "source/eastmoney__cashflow_ytd/year=2009/000000_0.parquet",
+          "row_count": 6284,
+          "size": 4125300
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:48:10+00:00",
+          "object_key": "source/eastmoney__cashflow_ytd/year=2010/000000_0.parquet",
+          "row_count": 12588,
+          "size": 7735976
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:48:36+00:00",
+          "object_key": "source/eastmoney__cashflow_ytd/year=2011/000000_0.parquet",
+          "row_count": 11472,
+          "size": 7713540
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:49:04+00:00",
+          "object_key": "source/eastmoney__cashflow_ytd/year=2012/000000_0.parquet",
+          "row_count": 10159,
+          "size": 6656987
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:49:32+00:00",
+          "object_key": "source/eastmoney__cashflow_ytd/year=2013/000000_0.parquet",
+          "row_count": 9979,
+          "size": 6524207
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:50:01+00:00",
+          "object_key": "source/eastmoney__cashflow_ytd/year=2014/000000_0.parquet",
+          "row_count": 10031,
+          "size": 6609782
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:50:31+00:00",
+          "object_key": "source/eastmoney__cashflow_ytd/year=2015/000000_0.parquet",
+          "row_count": 11080,
+          "size": 7325401
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:51:02+00:00",
+          "object_key": "source/eastmoney__cashflow_ytd/year=2016/000000_0.parquet",
+          "row_count": 11680,
+          "size": 7887765
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:51:37+00:00",
+          "object_key": "source/eastmoney__cashflow_ytd/year=2017/000000_0.parquet",
+          "row_count": 13671,
+          "size": 9127433
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:52:12+00:00",
+          "object_key": "source/eastmoney__cashflow_ytd/year=2018/000000_0.parquet",
+          "row_count": 14117,
+          "size": 9708482
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:52:49+00:00",
+          "object_key": "source/eastmoney__cashflow_ytd/year=2019/000000_0.parquet",
+          "row_count": 14425,
+          "size": 10072262
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:53:27+00:00",
+          "object_key": "source/eastmoney__cashflow_ytd/year=2020/000000_0.parquet",
+          "row_count": 15657,
+          "size": 10827060
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:54:09+00:00",
+          "object_key": "source/eastmoney__cashflow_ytd/year=2021/000000_0.parquet",
+          "row_count": 17667,
+          "size": 12329854
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:54:53+00:00",
+          "object_key": "source/eastmoney__cashflow_ytd/year=2022/000000_0.parquet",
+          "row_count": 19013,
+          "size": 13560044
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:55:39+00:00",
+          "object_key": "source/eastmoney__cashflow_ytd/year=2023/000000_0.parquet",
+          "row_count": 19988,
+          "size": 14454716
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:56:25+00:00",
+          "object_key": "source/eastmoney__cashflow_ytd/year=2024/000000_0.parquet",
+          "row_count": 20129,
+          "size": 14767332
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:57:11+00:00",
+          "object_key": "source/eastmoney__cashflow_ytd/year=2025/000000_0.parquet",
+          "row_count": 20270,
+          "size": 14965976
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T20:01:07+00:00",
+          "object_key": "source/eastmoney__cashflow_ytd/year=2026/000000_0.parquet",
+          "row_count": 10230,
+          "size": 7736505
+        }
+      ],
+      "partition_strategy": "year"
+    },
+    {
+      "dataset": "eastmoney__dividend_allotment",
+      "expected_years": [
+        "1990",
+        "1991",
+        "1992",
+        "1993",
+        "1994",
+        "1995",
+        "1996",
+        "1997",
+        "1998",
+        "1999",
+        "2000",
+        "2001",
+        "2002",
+        "2003",
+        "2004",
+        "2005",
+        "2006",
+        "2007",
+        "2008",
+        "2009",
+        "2010",
+        "2011",
+        "2012",
+        "2013",
+        "2014",
+        "2015",
+        "2016",
+        "2017",
+        "2018",
+        "2019",
+        "2020",
+        "2021",
+        "2022",
+        "2023",
+        "2024",
+        "2025",
+        "2026"
+      ],
+      "missing_objects": [],
+      "objects": [
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:29:53+00:00",
+          "object_key": "source/eastmoney__dividend_allotment/year=1990/000000_0.parquet",
+          "row_count": 0,
+          "size": 1946
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:33:25+00:00",
+          "object_key": "source/eastmoney__dividend_allotment/year=1991/000000_0.parquet",
+          "row_count": 0,
+          "size": 1946
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:34:23+00:00",
+          "object_key": "source/eastmoney__dividend_allotment/year=1992/000000_0.parquet",
+          "row_count": 2,
+          "size": 3121
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:40:26+00:00",
+          "object_key": "source/eastmoney__dividend_allotment/year=1993/000000_0.parquet",
+          "row_count": 72,
+          "size": 6782
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:43:03+00:00",
+          "object_key": "source/eastmoney__dividend_allotment/year=1994/000000_0.parquet",
+          "row_count": 61,
+          "size": 6376
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:43:16+00:00",
+          "object_key": "source/eastmoney__dividend_allotment/year=1995/000000_0.parquet",
+          "row_count": 68,
+          "size": 6846
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:43:30+00:00",
+          "object_key": "source/eastmoney__dividend_allotment/year=1996/000000_0.parquet",
+          "row_count": 48,
+          "size": 5787
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:43:46+00:00",
+          "object_key": "source/eastmoney__dividend_allotment/year=1997/000000_0.parquet",
+          "row_count": 117,
+          "size": 9377
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:44:02+00:00",
+          "object_key": "source/eastmoney__dividend_allotment/year=1998/000000_0.parquet",
+          "row_count": 153,
+          "size": 11238
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:44:19+00:00",
+          "object_key": "source/eastmoney__dividend_allotment/year=1999/000000_0.parquet",
+          "row_count": 122,
+          "size": 9656
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:44:36+00:00",
+          "object_key": "source/eastmoney__dividend_allotment/year=2000/000000_0.parquet",
+          "row_count": 180,
+          "size": 12452
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:44:54+00:00",
+          "object_key": "source/eastmoney__dividend_allotment/year=2001/000000_0.parquet",
+          "row_count": 84,
+          "size": 7634
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:45:13+00:00",
+          "object_key": "source/eastmoney__dividend_allotment/year=2002/000000_0.parquet",
+          "row_count": 20,
+          "size": 4294
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:45:33+00:00",
+          "object_key": "source/eastmoney__dividend_allotment/year=2003/000000_0.parquet",
+          "row_count": 25,
+          "size": 4648
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:45:53+00:00",
+          "object_key": "source/eastmoney__dividend_allotment/year=2004/000000_0.parquet",
+          "row_count": 23,
+          "size": 4479
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:46:13+00:00",
+          "object_key": "source/eastmoney__dividend_allotment/year=2005/000000_0.parquet",
+          "row_count": 0,
+          "size": 1946
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:46:34+00:00",
+          "object_key": "source/eastmoney__dividend_allotment/year=2006/000000_0.parquet",
+          "row_count": 3,
+          "size": 3181
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:46:56+00:00",
+          "object_key": "source/eastmoney__dividend_allotment/year=2007/000000_0.parquet",
+          "row_count": 7,
+          "size": 3464
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:47:17+00:00",
+          "object_key": "source/eastmoney__dividend_allotment/year=2008/000000_0.parquet",
+          "row_count": 8,
+          "size": 3520
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:47:40+00:00",
+          "object_key": "source/eastmoney__dividend_allotment/year=2009/000000_0.parquet",
+          "row_count": 10,
+          "size": 3661
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:48:04+00:00",
+          "object_key": "source/eastmoney__dividend_allotment/year=2010/000000_0.parquet",
+          "row_count": 21,
+          "size": 4414
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:48:30+00:00",
+          "object_key": "source/eastmoney__dividend_allotment/year=2011/000000_0.parquet",
+          "row_count": 12,
+          "size": 3811
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:48:58+00:00",
+          "object_key": "source/eastmoney__dividend_allotment/year=2012/000000_0.parquet",
+          "row_count": 8,
+          "size": 3525
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:49:26+00:00",
+          "object_key": "source/eastmoney__dividend_allotment/year=2013/000000_0.parquet",
+          "row_count": 13,
+          "size": 3881
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:49:55+00:00",
+          "object_key": "source/eastmoney__dividend_allotment/year=2014/000000_0.parquet",
+          "row_count": 14,
+          "size": 3953
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:50:24+00:00",
+          "object_key": "source/eastmoney__dividend_allotment/year=2015/000000_0.parquet",
+          "row_count": 5,
+          "size": 3332
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:50:55+00:00",
+          "object_key": "source/eastmoney__dividend_allotment/year=2016/000000_0.parquet",
+          "row_count": 10,
+          "size": 3710
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:51:28+00:00",
+          "object_key": "source/eastmoney__dividend_allotment/year=2017/000000_0.parquet",
+          "row_count": 10,
+          "size": 3754
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:52:04+00:00",
+          "object_key": "source/eastmoney__dividend_allotment/year=2018/000000_0.parquet",
+          "row_count": 12,
+          "size": 3807
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:52:40+00:00",
+          "object_key": "source/eastmoney__dividend_allotment/year=2019/000000_0.parquet",
+          "row_count": 13,
+          "size": 3852
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:53:17+00:00",
+          "object_key": "source/eastmoney__dividend_allotment/year=2020/000000_0.parquet",
+          "row_count": 15,
+          "size": 4001
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:53:58+00:00",
+          "object_key": "source/eastmoney__dividend_allotment/year=2021/000000_0.parquet",
+          "row_count": 7,
+          "size": 3447
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:54:42+00:00",
+          "object_key": "source/eastmoney__dividend_allotment/year=2022/000000_0.parquet",
+          "row_count": 9,
+          "size": 3642
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:55:27+00:00",
+          "object_key": "source/eastmoney__dividend_allotment/year=2023/000000_0.parquet",
+          "row_count": 4,
+          "size": 3263
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:56:12+00:00",
+          "object_key": "source/eastmoney__dividend_allotment/year=2024/000000_0.parquet",
+          "row_count": 0,
+          "size": 1946
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:56:59+00:00",
+          "object_key": "source/eastmoney__dividend_allotment/year=2025/000000_0.parquet",
+          "row_count": 0,
+          "size": 1946
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T20:00:57+00:00",
+          "object_key": "source/eastmoney__dividend_allotment/year=2026/000000_0.parquet",
+          "row_count": 0,
+          "size": 1946
+        }
+      ],
+      "partition_strategy": "year"
+    },
+    {
+      "dataset": "eastmoney__dividend_main",
+      "expected_years": [
+        "1990",
+        "1991",
+        "1992",
+        "1993",
+        "1994",
+        "1995",
+        "1996",
+        "1997",
+        "1998",
+        "1999",
+        "2000",
+        "2001",
+        "2002",
+        "2003",
+        "2004",
+        "2005",
+        "2006",
+        "2007",
+        "2008",
+        "2009",
+        "2010",
+        "2011",
+        "2012",
+        "2013",
+        "2014",
+        "2015",
+        "2016",
+        "2017",
+        "2018",
+        "2019",
+        "2020",
+        "2021",
+        "2022",
+        "2023",
+        "2024",
+        "2025",
+        "2026"
+      ],
+      "missing_objects": [],
+      "objects": [
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:29:53+00:00",
+          "object_key": "source/eastmoney__dividend_main/year=1990/000000_0.parquet",
+          "row_count": 0,
+          "size": 5089
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:33:25+00:00",
+          "object_key": "source/eastmoney__dividend_main/year=1991/000000_0.parquet",
+          "row_count": 6,
+          "size": 8169
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:34:23+00:00",
+          "object_key": "source/eastmoney__dividend_main/year=1992/000000_0.parquet",
+          "row_count": 21,
+          "size": 9057
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:40:26+00:00",
+          "object_key": "source/eastmoney__dividend_main/year=1993/000000_0.parquet",
+          "row_count": 149,
+          "size": 14308
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:43:03+00:00",
+          "object_key": "source/eastmoney__dividend_main/year=1994/000000_0.parquet",
+          "row_count": 420,
+          "size": 26072
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:43:16+00:00",
+          "object_key": "source/eastmoney__dividend_main/year=1995/000000_0.parquet",
+          "row_count": 508,
+          "size": 29377
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:43:30+00:00",
+          "object_key": "source/eastmoney__dividend_main/year=1996/000000_0.parquet",
+          "row_count": 635,
+          "size": 32855
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:43:46+00:00",
+          "object_key": "source/eastmoney__dividend_main/year=1997/000000_0.parquet",
+          "row_count": 1176,
+          "size": 46011
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:44:02+00:00",
+          "object_key": "source/eastmoney__dividend_main/year=1998/000000_0.parquet",
+          "row_count": 1498,
+          "size": 52956
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:44:19+00:00",
+          "object_key": "source/eastmoney__dividend_main/year=1999/000000_0.parquet",
+          "row_count": 1735,
+          "size": 57455
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:44:36+00:00",
+          "object_key": "source/eastmoney__dividend_main/year=2000/000000_0.parquet",
+          "row_count": 1928,
+          "size": 65876
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:44:54+00:00",
+          "object_key": "source/eastmoney__dividend_main/year=2001/000000_0.parquet",
+          "row_count": 2201,
+          "size": 81373
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:45:13+00:00",
+          "object_key": "source/eastmoney__dividend_main/year=2002/000000_0.parquet",
+          "row_count": 2301,
+          "size": 79310
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:45:33+00:00",
+          "object_key": "source/eastmoney__dividend_main/year=2003/000000_0.parquet",
+          "row_count": 2445,
+          "size": 80338
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:45:53+00:00",
+          "object_key": "source/eastmoney__dividend_main/year=2004/000000_0.parquet",
+          "row_count": 2613,
+          "size": 87342
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:46:14+00:00",
+          "object_key": "source/eastmoney__dividend_main/year=2005/000000_0.parquet",
+          "row_count": 2961,
+          "size": 95086
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:46:35+00:00",
+          "object_key": "source/eastmoney__dividend_main/year=2006/000000_0.parquet",
+          "row_count": 3649,
+          "size": 116471
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:46:57+00:00",
+          "object_key": "source/eastmoney__dividend_main/year=2007/000000_0.parquet",
+          "row_count": 3032,
+          "size": 103844
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:47:18+00:00",
+          "object_key": "source/eastmoney__dividend_main/year=2008/000000_0.parquet",
+          "row_count": 3190,
+          "size": 111056
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:47:40+00:00",
+          "object_key": "source/eastmoney__dividend_main/year=2009/000000_0.parquet",
+          "row_count": 3242,
+          "size": 108727
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:48:05+00:00",
+          "object_key": "source/eastmoney__dividend_main/year=2010/000000_0.parquet",
+          "row_count": 3687,
+          "size": 124571
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:48:31+00:00",
+          "object_key": "source/eastmoney__dividend_main/year=2011/000000_0.parquet",
+          "row_count": 4373,
+          "size": 149730
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:48:58+00:00",
+          "object_key": "source/eastmoney__dividend_main/year=2012/000000_0.parquet",
+          "row_count": 4814,
+          "size": 166356
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:49:27+00:00",
+          "object_key": "source/eastmoney__dividend_main/year=2013/000000_0.parquet",
+          "row_count": 4954,
+          "size": 175756
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:49:55+00:00",
+          "object_key": "source/eastmoney__dividend_main/year=2014/000000_0.parquet",
+          "row_count": 5059,
+          "size": 183854
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:50:25+00:00",
+          "object_key": "source/eastmoney__dividend_main/year=2015/000000_0.parquet",
+          "row_count": 5463,
+          "size": 202275
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:50:56+00:00",
+          "object_key": "source/eastmoney__dividend_main/year=2016/000000_0.parquet",
+          "row_count": 5741,
+          "size": 212150
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:51:29+00:00",
+          "object_key": "source/eastmoney__dividend_main/year=2017/000000_0.parquet",
+          "row_count": 6496,
+          "size": 285177
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:52:05+00:00",
+          "object_key": "source/eastmoney__dividend_main/year=2018/000000_0.parquet",
+          "row_count": 7064,
+          "size": 340779
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:52:41+00:00",
+          "object_key": "source/eastmoney__dividend_main/year=2019/000000_0.parquet",
+          "row_count": 7269,
+          "size": 341356
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:53:18+00:00",
+          "object_key": "source/eastmoney__dividend_main/year=2020/000000_0.parquet",
+          "row_count": 7782,
+          "size": 363686
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:53:59+00:00",
+          "object_key": "source/eastmoney__dividend_main/year=2021/000000_0.parquet",
+          "row_count": 8763,
+          "size": 411399
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:54:43+00:00",
+          "object_key": "source/eastmoney__dividend_main/year=2022/000000_0.parquet",
+          "row_count": 9495,
+          "size": 440736
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:55:27+00:00",
+          "object_key": "source/eastmoney__dividend_main/year=2023/000000_0.parquet",
+          "row_count": 10080,
+          "size": 469076
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:56:13+00:00",
+          "object_key": "source/eastmoney__dividend_main/year=2024/000000_0.parquet",
+          "row_count": 10428,
+          "size": 494595
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:57:00+00:00",
+          "object_key": "source/eastmoney__dividend_main/year=2025/000000_0.parquet",
+          "row_count": 10677,
+          "size": 486957
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T20:00:57+00:00",
+          "object_key": "source/eastmoney__dividend_main/year=2026/000000_0.parquet",
+          "row_count": 5751,
+          "size": 318457
+        }
+      ],
+      "partition_strategy": "year"
+    },
+    {
+      "dataset": "eastmoney__equity_history",
+      "expected_years": [
+        "1990",
+        "1991",
+        "1992",
+        "1993",
+        "1994",
+        "1995",
+        "1996",
+        "1997",
+        "1998",
+        "1999",
+        "2000",
+        "2001",
+        "2002",
+        "2003",
+        "2004",
+        "2005",
+        "2006",
+        "2007",
+        "2008",
+        "2009",
+        "2010",
+        "2011",
+        "2012",
+        "2013",
+        "2014",
+        "2015",
+        "2016",
+        "2017",
+        "2018",
+        "2019",
+        "2020",
+        "2021",
+        "2022",
+        "2023",
+        "2024",
+        "2025",
+        "2026"
+      ],
+      "missing_objects": [],
+      "objects": [
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:29:53+00:00",
+          "object_key": "source/eastmoney__equity_history/year=1990/000000_0.parquet",
+          "row_count": 3,
+          "size": 20696
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:33:25+00:00",
+          "object_key": "source/eastmoney__equity_history/year=1991/000000_0.parquet",
+          "row_count": 12,
+          "size": 23542
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:34:23+00:00",
+          "object_key": "source/eastmoney__equity_history/year=1992/000000_0.parquet",
+          "row_count": 46,
+          "size": 28704
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:40:26+00:00",
+          "object_key": "source/eastmoney__equity_history/year=1993/000000_0.parquet",
+          "row_count": 169,
+          "size": 47705
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:43:03+00:00",
+          "object_key": "source/eastmoney__equity_history/year=1994/000000_0.parquet",
+          "row_count": 466,
+          "size": 83923
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:43:16+00:00",
+          "object_key": "source/eastmoney__equity_history/year=1995/000000_0.parquet",
+          "row_count": 284,
+          "size": 63474
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:43:30+00:00",
+          "object_key": "source/eastmoney__equity_history/year=1996/000000_0.parquet",
+          "row_count": 312,
+          "size": 69700
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:43:46+00:00",
+          "object_key": "source/eastmoney__equity_history/year=1997/000000_0.parquet",
+          "row_count": 599,
+          "size": 105731
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:44:02+00:00",
+          "object_key": "source/eastmoney__equity_history/year=1998/000000_0.parquet",
+          "row_count": 589,
+          "size": 106927
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:44:19+00:00",
+          "object_key": "source/eastmoney__equity_history/year=1999/000000_0.parquet",
+          "row_count": 660,
+          "size": 115136
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:44:36+00:00",
+          "object_key": "source/eastmoney__equity_history/year=2000/000000_0.parquet",
+          "row_count": 746,
+          "size": 131563
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:44:54+00:00",
+          "object_key": "source/eastmoney__equity_history/year=2001/000000_0.parquet",
+          "row_count": 650,
+          "size": 117193
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:45:13+00:00",
+          "object_key": "source/eastmoney__equity_history/year=2002/000000_0.parquet",
+          "row_count": 437,
+          "size": 86515
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:45:33+00:00",
+          "object_key": "source/eastmoney__equity_history/year=2003/000000_0.parquet",
+          "row_count": 451,
+          "size": 88405
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:45:53+00:00",
+          "object_key": "source/eastmoney__equity_history/year=2004/000000_0.parquet",
+          "row_count": 505,
+          "size": 93854
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:46:14+00:00",
+          "object_key": "source/eastmoney__equity_history/year=2005/000000_0.parquet",
+          "row_count": 705,
+          "size": 129153
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:46:35+00:00",
+          "object_key": "source/eastmoney__equity_history/year=2006/000000_0.parquet",
+          "row_count": 1768,
+          "size": 317763
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:46:57+00:00",
+          "object_key": "source/eastmoney__equity_history/year=2007/000000_0.parquet",
+          "row_count": 2189,
+          "size": 368069
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:47:18+00:00",
+          "object_key": "source/eastmoney__equity_history/year=2008/000000_0.parquet",
+          "row_count": 2310,
+          "size": 381873
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:47:41+00:00",
+          "object_key": "source/eastmoney__equity_history/year=2009/000000_0.parquet",
+          "row_count": 2608,
+          "size": 388645
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:48:06+00:00",
+          "object_key": "source/eastmoney__equity_history/year=2010/000000_0.parquet",
+          "row_count": 2818,
+          "size": 399469
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:48:31+00:00",
+          "object_key": "source/eastmoney__equity_history/year=2011/000000_0.parquet",
+          "row_count": 3293,
+          "size": 463535
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:48:59+00:00",
+          "object_key": "source/eastmoney__equity_history/year=2012/000000_0.parquet",
+          "row_count": 3264,
+          "size": 490537
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:49:28+00:00",
+          "object_key": "source/eastmoney__equity_history/year=2013/000000_0.parquet",
+          "row_count": 3583,
+          "size": 548055
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:49:56+00:00",
+          "object_key": "source/eastmoney__equity_history/year=2014/000000_0.parquet",
+          "row_count": 4129,
+          "size": 624752
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:50:25+00:00",
+          "object_key": "source/eastmoney__equity_history/year=2015/000000_0.parquet",
+          "row_count": 5599,
+          "size": 836803
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:50:57+00:00",
+          "object_key": "source/eastmoney__equity_history/year=2016/000000_0.parquet",
+          "row_count": 8394,
+          "size": 1141038
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:51:30+00:00",
+          "object_key": "source/eastmoney__equity_history/year=2017/000000_0.parquet",
+          "row_count": 9041,
+          "size": 1224252
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:52:06+00:00",
+          "object_key": "source/eastmoney__equity_history/year=2018/000000_0.parquet",
+          "row_count": 9836,
+          "size": 1350616
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:52:42+00:00",
+          "object_key": "source/eastmoney__equity_history/year=2019/000000_0.parquet",
+          "row_count": 7888,
+          "size": 1141828
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:53:20+00:00",
+          "object_key": "source/eastmoney__equity_history/year=2020/000000_0.parquet",
+          "row_count": 8998,
+          "size": 1273081
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:54:00+00:00",
+          "object_key": "source/eastmoney__equity_history/year=2021/000000_0.parquet",
+          "row_count": 10541,
+          "size": 1483786
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:54:44+00:00",
+          "object_key": "source/eastmoney__equity_history/year=2022/000000_0.parquet",
+          "row_count": 12201,
+          "size": 1683378
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:55:29+00:00",
+          "object_key": "source/eastmoney__equity_history/year=2023/000000_0.parquet",
+          "row_count": 12796,
+          "size": 1732322
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:56:15+00:00",
+          "object_key": "source/eastmoney__equity_history/year=2024/000000_0.parquet",
+          "row_count": 12192,
+          "size": 1602525
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:57:01+00:00",
+          "object_key": "source/eastmoney__equity_history/year=2025/000000_0.parquet",
+          "row_count": 11431,
+          "size": 1458542
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T20:00:59+00:00",
+          "object_key": "source/eastmoney__equity_history/year=2026/000000_0.parquet",
+          "row_count": 4852,
+          "size": 685818
+        }
+      ],
+      "partition_strategy": "year"
+    },
+    {
+      "dataset": "eastmoney__income_sq",
+      "expected_years": [
+        "1990",
+        "1991",
+        "1992",
+        "1993",
+        "1994",
+        "1995",
+        "1996",
+        "1997",
+        "1998",
+        "1999",
+        "2000",
+        "2001",
+        "2002",
+        "2003",
+        "2004",
+        "2005",
+        "2006",
+        "2007",
+        "2008",
+        "2009",
+        "2010",
+        "2011",
+        "2012",
+        "2013",
+        "2014",
+        "2015",
+        "2016",
+        "2017",
+        "2018",
+        "2019",
+        "2020",
+        "2021",
+        "2022",
+        "2023",
+        "2024",
+        "2025",
+        "2026"
+      ],
+      "missing_objects": [],
+      "objects": [
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:29:53+00:00",
+          "object_key": "source/eastmoney__income_sq/year=1990/000000_0.parquet",
+          "row_count": 0,
+          "size": 56941
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:33:25+00:00",
+          "object_key": "source/eastmoney__income_sq/year=1991/000000_0.parquet",
+          "row_count": 0,
+          "size": 56941
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:34:23+00:00",
+          "object_key": "source/eastmoney__income_sq/year=1992/000000_0.parquet",
+          "row_count": 0,
+          "size": 56941
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:40:26+00:00",
+          "object_key": "source/eastmoney__income_sq/year=1993/000000_0.parquet",
+          "row_count": 2,
+          "size": 74076
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:43:03+00:00",
+          "object_key": "source/eastmoney__income_sq/year=1994/000000_0.parquet",
+          "row_count": 2,
+          "size": 72658
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:43:16+00:00",
+          "object_key": "source/eastmoney__income_sq/year=1995/000000_0.parquet",
+          "row_count": 1,
+          "size": 71423
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:43:30+00:00",
+          "object_key": "source/eastmoney__income_sq/year=1996/000000_0.parquet",
+          "row_count": 10,
+          "size": 74539
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:43:46+00:00",
+          "object_key": "source/eastmoney__income_sq/year=1997/000000_0.parquet",
+          "row_count": 12,
+          "size": 76003
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:44:02+00:00",
+          "object_key": "source/eastmoney__income_sq/year=1998/000000_0.parquet",
+          "row_count": 3,
+          "size": 75005
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:44:19+00:00",
+          "object_key": "source/eastmoney__income_sq/year=1999/000000_0.parquet",
+          "row_count": 0,
+          "size": 56941
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:44:36+00:00",
+          "object_key": "source/eastmoney__income_sq/year=2000/000000_0.parquet",
+          "row_count": 6,
+          "size": 75557
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:44:54+00:00",
+          "object_key": "source/eastmoney__income_sq/year=2001/000000_0.parquet",
+          "row_count": 103,
+          "size": 96353
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:45:13+00:00",
+          "object_key": "source/eastmoney__income_sq/year=2002/000000_0.parquet",
+          "row_count": 1561,
+          "size": 401848
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:45:34+00:00",
+          "object_key": "source/eastmoney__income_sq/year=2003/000000_0.parquet",
+          "row_count": 2817,
+          "size": 986304
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:45:55+00:00",
+          "object_key": "source/eastmoney__income_sq/year=2004/000000_0.parquet",
+          "row_count": 4956,
+          "size": 2232607
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:46:15+00:00",
+          "object_key": "source/eastmoney__income_sq/year=2005/000000_0.parquet",
+          "row_count": 5337,
+          "size": 2636936
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:46:36+00:00",
+          "object_key": "source/eastmoney__income_sq/year=2006/000000_0.parquet",
+          "row_count": 5353,
+          "size": 2715181
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:46:58+00:00",
+          "object_key": "source/eastmoney__income_sq/year=2007/000000_0.parquet",
+          "row_count": 5655,
+          "size": 2869425
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:47:20+00:00",
+          "object_key": "source/eastmoney__income_sq/year=2008/000000_0.parquet",
+          "row_count": 6102,
+          "size": 3258689
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:47:43+00:00",
+          "object_key": "source/eastmoney__income_sq/year=2009/000000_0.parquet",
+          "row_count": 6255,
+          "size": 3514454
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:48:09+00:00",
+          "object_key": "source/eastmoney__income_sq/year=2010/000000_0.parquet",
+          "row_count": 12493,
+          "size": 7462863
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:48:35+00:00",
+          "object_key": "source/eastmoney__income_sq/year=2011/000000_0.parquet",
+          "row_count": 11382,
+          "size": 6990217
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:49:02+00:00",
+          "object_key": "source/eastmoney__income_sq/year=2012/000000_0.parquet",
+          "row_count": 10107,
+          "size": 6394332
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:49:30+00:00",
+          "object_key": "source/eastmoney__income_sq/year=2013/000000_0.parquet",
+          "row_count": 10026,
+          "size": 6614502
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:49:59+00:00",
+          "object_key": "source/eastmoney__income_sq/year=2014/000000_0.parquet",
+          "row_count": 9966,
+          "size": 6881679
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:50:29+00:00",
+          "object_key": "source/eastmoney__income_sq/year=2015/000000_0.parquet",
+          "row_count": 11037,
+          "size": 7870814
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:51:00+00:00",
+          "object_key": "source/eastmoney__income_sq/year=2016/000000_0.parquet",
+          "row_count": 11656,
+          "size": 8585809
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:51:34+00:00",
+          "object_key": "source/eastmoney__income_sq/year=2017/000000_0.parquet",
+          "row_count": 13627,
+          "size": 10188730
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:52:10+00:00",
+          "object_key": "source/eastmoney__income_sq/year=2018/000000_0.parquet",
+          "row_count": 14114,
+          "size": 11595901
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:52:46+00:00",
+          "object_key": "source/eastmoney__income_sq/year=2019/000000_0.parquet",
+          "row_count": 14423,
+          "size": 12725585
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:53:24+00:00",
+          "object_key": "source/eastmoney__income_sq/year=2020/000000_0.parquet",
+          "row_count": 15652,
+          "size": 13906384
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:54:06+00:00",
+          "object_key": "source/eastmoney__income_sq/year=2021/000000_0.parquet",
+          "row_count": 17661,
+          "size": 15964696
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:54:50+00:00",
+          "object_key": "source/eastmoney__income_sq/year=2022/000000_0.parquet",
+          "row_count": 19013,
+          "size": 17444487
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:55:36+00:00",
+          "object_key": "source/eastmoney__income_sq/year=2023/000000_0.parquet",
+          "row_count": 19987,
+          "size": 18530782
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:56:22+00:00",
+          "object_key": "source/eastmoney__income_sq/year=2024/000000_0.parquet",
+          "row_count": 20128,
+          "size": 18938050
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:57:07+00:00",
+          "object_key": "source/eastmoney__income_sq/year=2025/000000_0.parquet",
+          "row_count": 20257,
+          "size": 19248491
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T20:01:01+00:00",
+          "object_key": "source/eastmoney__income_sq/year=2026/000000_0.parquet",
+          "row_count": 10214,
+          "size": 9856950
+        }
+      ],
+      "partition_strategy": "year"
+    },
+    {
+      "dataset": "eastmoney__income_ytd",
+      "expected_years": [
+        "1990",
+        "1991",
+        "1992",
+        "1993",
+        "1994",
+        "1995",
+        "1996",
+        "1997",
+        "1998",
+        "1999",
+        "2000",
+        "2001",
+        "2002",
+        "2003",
+        "2004",
+        "2005",
+        "2006",
+        "2007",
+        "2008",
+        "2009",
+        "2010",
+        "2011",
+        "2012",
+        "2013",
+        "2014",
+        "2015",
+        "2016",
+        "2017",
+        "2018",
+        "2019",
+        "2020",
+        "2021",
+        "2022",
+        "2023",
+        "2024",
+        "2025",
+        "2026"
+      ],
+      "missing_objects": [],
+      "objects": [
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:29:53+00:00",
+          "object_key": "source/eastmoney__income_ytd/year=1990/000000_0.parquet",
+          "row_count": 0,
+          "size": 38231
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:33:25+00:00",
+          "object_key": "source/eastmoney__income_ytd/year=1991/000000_0.parquet",
+          "row_count": 22,
+          "size": 54183
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:34:23+00:00",
+          "object_key": "source/eastmoney__income_ytd/year=1992/000000_0.parquet",
+          "row_count": 28,
+          "size": 57543
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:40:27+00:00",
+          "object_key": "source/eastmoney__income_ytd/year=1993/000000_0.parquet",
+          "row_count": 130,
+          "size": 80465
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:43:03+00:00",
+          "object_key": "source/eastmoney__income_ytd/year=1994/000000_0.parquet",
+          "row_count": 531,
+          "size": 158739
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:43:16+00:00",
+          "object_key": "source/eastmoney__income_ytd/year=1995/000000_0.parquet",
+          "row_count": 594,
+          "size": 180375
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:43:30+00:00",
+          "object_key": "source/eastmoney__income_ytd/year=1996/000000_0.parquet",
+          "row_count": 739,
+          "size": 225598
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:43:46+00:00",
+          "object_key": "source/eastmoney__income_ytd/year=1997/000000_0.parquet",
+          "row_count": 1267,
+          "size": 361553
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:44:03+00:00",
+          "object_key": "source/eastmoney__income_ytd/year=1998/000000_0.parquet",
+          "row_count": 1539,
+          "size": 500985
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:44:19+00:00",
+          "object_key": "source/eastmoney__income_ytd/year=1999/000000_0.parquet",
+          "row_count": 73,
+          "size": 74156
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:44:37+00:00",
+          "object_key": "source/eastmoney__income_ytd/year=2000/000000_0.parquet",
+          "row_count": 1938,
+          "size": 665329
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:44:55+00:00",
+          "object_key": "source/eastmoney__income_ytd/year=2001/000000_0.parquet",
+          "row_count": 2320,
+          "size": 813812
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:45:14+00:00",
+          "object_key": "source/eastmoney__income_ytd/year=2002/000000_0.parquet",
+          "row_count": 3803,
+          "size": 1108618
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:45:34+00:00",
+          "object_key": "source/eastmoney__income_ytd/year=2003/000000_0.parquet",
+          "row_count": 3840,
+          "size": 1248206
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:45:55+00:00",
+          "object_key": "source/eastmoney__income_ytd/year=2004/000000_0.parquet",
+          "row_count": 5153,
+          "size": 1798590
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:46:16+00:00",
+          "object_key": "source/eastmoney__income_ytd/year=2005/000000_0.parquet",
+          "row_count": 5458,
+          "size": 1978332
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:46:36+00:00",
+          "object_key": "source/eastmoney__income_ytd/year=2006/000000_0.parquet",
+          "row_count": 5462,
+          "size": 2019058
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:46:58+00:00",
+          "object_key": "source/eastmoney__income_ytd/year=2007/000000_0.parquet",
+          "row_count": 5793,
+          "size": 2071006
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:47:20+00:00",
+          "object_key": "source/eastmoney__income_ytd/year=2008/000000_0.parquet",
+          "row_count": 6278,
+          "size": 2322448
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:47:43+00:00",
+          "object_key": "source/eastmoney__income_ytd/year=2009/000000_0.parquet",
+          "row_count": 6410,
+          "size": 2519121
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:48:09+00:00",
+          "object_key": "source/eastmoney__income_ytd/year=2010/000000_0.parquet",
+          "row_count": 12828,
+          "size": 5276460
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:48:35+00:00",
+          "object_key": "source/eastmoney__income_ytd/year=2011/000000_0.parquet",
+          "row_count": 11665,
+          "size": 5018311
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:49:03+00:00",
+          "object_key": "source/eastmoney__income_ytd/year=2012/000000_0.parquet",
+          "row_count": 10334,
+          "size": 4526289
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:49:31+00:00",
+          "object_key": "source/eastmoney__income_ytd/year=2013/000000_0.parquet",
+          "row_count": 10212,
+          "size": 4639658
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:49:59+00:00",
+          "object_key": "source/eastmoney__income_ytd/year=2014/000000_0.parquet",
+          "row_count": 10177,
+          "size": 4852795
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:50:30+00:00",
+          "object_key": "source/eastmoney__income_ytd/year=2015/000000_0.parquet",
+          "row_count": 11281,
+          "size": 5573776
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:51:01+00:00",
+          "object_key": "source/eastmoney__income_ytd/year=2016/000000_0.parquet",
+          "row_count": 11900,
+          "size": 6027775
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:51:34+00:00",
+          "object_key": "source/eastmoney__income_ytd/year=2017/000000_0.parquet",
+          "row_count": 13977,
+          "size": 7042260
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:52:11+00:00",
+          "object_key": "source/eastmoney__income_ytd/year=2018/000000_0.parquet",
+          "row_count": 14408,
+          "size": 8049729
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:52:47+00:00",
+          "object_key": "source/eastmoney__income_ytd/year=2019/000000_0.parquet",
+          "row_count": 14767,
+          "size": 8787707
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:53:26+00:00",
+          "object_key": "source/eastmoney__income_ytd/year=2020/000000_0.parquet",
+          "row_count": 16018,
+          "size": 9745229
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:54:07+00:00",
+          "object_key": "source/eastmoney__income_ytd/year=2021/000000_0.parquet",
+          "row_count": 18048,
+          "size": 11178541
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:54:51+00:00",
+          "object_key": "source/eastmoney__income_ytd/year=2022/000000_0.parquet",
+          "row_count": 19411,
+          "size": 12177961
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:55:36+00:00",
+          "object_key": "source/eastmoney__income_ytd/year=2023/000000_0.parquet",
+          "row_count": 20395,
+          "size": 12920134
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:56:22+00:00",
+          "object_key": "source/eastmoney__income_ytd/year=2024/000000_0.parquet",
+          "row_count": 20532,
+          "size": 13174286
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:57:09+00:00",
+          "object_key": "source/eastmoney__income_ytd/year=2025/000000_0.parquet",
+          "row_count": 20653,
+          "size": 13366854
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T20:01:05+00:00",
+          "object_key": "source/eastmoney__income_ytd/year=2026/000000_0.parquet",
+          "row_count": 10412,
+          "size": 6862360
+        }
+      ],
+      "partition_strategy": "year"
+    },
+    {
+      "dataset": "jiuyan__action_field_compacted",
+      "expected_years": [
+        "2026"
+      ],
+      "missing_objects": [],
+      "objects": [
+        {
+          "exists": true,
+          "mtime": "2026-06-01T20:52:17+00:00",
+          "object_key": "source/jiuyan__action_field_compacted/year=2026/000000_0.parquet",
+          "row_count": 5853,
+          "size": 4734197
+        }
+      ],
+      "partition_strategy": "year"
+    },
+    {
+      "dataset": "jiuyan__industry_list",
+      "missing_objects": [],
+      "objects": [
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:25:33+00:00",
+          "object_key": "source/jiuyan__industry_list/000000_0.parquet",
+          "row_count": 956,
+          "size": 725373
+        }
+      ],
+      "partition_strategy": "snapshot"
+    },
+    {
+      "dataset": "jiuyan__industry_ocr_snapshot",
+      "missing_objects": [],
+      "objects": [
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:28:46+00:00",
+          "object_key": "source/jiuyan__industry_ocr_snapshot/000000_0.parquet",
+          "row_count": 1069,
+          "size": 124325
+        }
+      ],
+      "partition_strategy": "snapshot"
+    },
+    {
+      "dataset": "sina__trade_calendar",
+      "missing_objects": [],
+      "objects": [
+        {
+          "exists": true,
+          "mtime": "2026-06-01T19:25:01+00:00",
+          "object_key": "source/sina__trade_calendar/000000_0.parquet",
+          "row_count": 8797,
+          "size": 51101
+        }
+      ],
+      "partition_strategy": "snapshot"
+    },
+    {
+      "dataset": "ths__limit_up_pool_compacted",
+      "expected_years": [
+        "2025",
+        "2026"
+      ],
+      "missing_objects": [],
+      "objects": [
+        {
+          "exists": true,
+          "mtime": "2026-06-01T20:52:40+00:00",
+          "object_key": "source/ths__limit_up_pool_compacted/year=2025/000000_0.parquet",
+          "row_count": 9191,
+          "size": 1795060
+        },
+        {
+          "exists": true,
+          "mtime": "2026-06-01T20:53:05+00:00",
+          "object_key": "source/ths__limit_up_pool_compacted/year=2026/000000_0.parquet",
+          "row_count": 6473,
+          "size": 1178898
+        }
+      ],
+      "partition_strategy": "year"
+    }
+  ],
+  "generated_at": "2026-06-02T16:52:33.797258+00:00",
+  "raw_database": "fleur_raw"
+}

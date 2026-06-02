@@ -90,7 +90,9 @@ def test_dbt_sources_include_raw_column_catalog() -> None:
 
     sources_yaml = render_sources_yaml(registry)
 
-    assert "clickhouse_raw_table: raw.demo__raw_table" in sources_yaml
+    assert "name: raw" in sources_yaml
+    assert "schema: fleur_raw" in sources_yaml
+    assert "clickhouse_raw_table: fleur_raw.demo__raw_table" in sources_yaml
     assert "source_schema_hash:" in sources_yaml
     assert "parquet_schema_hash:" in sources_yaml
     assert "clickhouse_schema_hash:" in sources_yaml
@@ -204,7 +206,7 @@ def _raw_contract() -> DatasetContract:
                 ],
             },
             "clickhouse_raw": {
-                "database": "raw",
+                "database": "fleur_raw",
                 "table": "demo__raw_table",
                 "partition_strategy": "snapshot",
                 "partition_by": "tuple()",

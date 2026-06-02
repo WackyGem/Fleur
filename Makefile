@@ -65,6 +65,9 @@ dagster-home:
 	fi
 	cd $(PIPELINE_DIR) && uv run dagster instance concurrency set $(BAOSTOCK_RUN_POOL) 1
 	cd $(PIPELINE_DIR) && uv run dagster instance concurrency set $(EASTMONEY_RUN_POOL) 3
+	@for pool_name in $$(cd $(PIPELINE_DIR) && uv run python -m scheduler.defs.clickhouse.pools); do \
+		(cd $(PIPELINE_DIR) && uv run dagster instance concurrency set "$$pool_name" 1); \
+	done
 
 check-defs:
 	cd $(PIPELINE_DIR) && uv run dg check defs --target-path $(SCHEDULER_TARGET)

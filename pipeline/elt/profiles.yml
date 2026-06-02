@@ -7,7 +7,7 @@ elt:
       port: "{{ env_var('CLICKHOUSE_PORT', 34052) | int }}"
       user: "{{ env_var('CLICKHOUSE_USER', 'mono_fleur') }}"
       password: "{{ env_var('CLICKHOUSE_PASSWORD', 'change-me-clickhouse-password') }}"
-      schema: "{{ env_var('CLICKHOUSE_DBT_SCHEMA', 'analytics') }}"
+      schema: "{{ env_var('CLICKHOUSE_DBT_SCHEMA', 'fleur_dbt_scratch') }}"
       secure: false
       connect_timeout: "{{ env_var('CLICKHOUSE_CONNECT_TIMEOUT_SECONDS', 10) | int }}"
       send_receive_timeout: "{{ env_var('CLICKHOUSE_QUERY_TIMEOUT_SECONDS', 300) | int }}"

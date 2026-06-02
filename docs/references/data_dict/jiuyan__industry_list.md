@@ -8,7 +8,7 @@
 - 粒度：one row per industry article
 - Source asset：`source/jiuyan__industry_list`
 - Raw asset：`clickhouse/raw/jiuyan__industry_list`
-- ClickHouse raw：`raw.jiuyan__industry_list`
+- ClickHouse raw：`fleur_raw.jiuyan__industry_list`
 - 分区策略：`snapshot`
 - ORDER BY：`(industry_id)`
 

@@ -108,6 +108,7 @@ class RawSyncService:
                 )
             )
         )
+        self._drop_staging(spec)
         replace_seconds = elapsed_seconds(replace_started_at)
 
         return RawSyncResult(
@@ -154,6 +155,7 @@ class RawSyncService:
         replace_started_at = time.perf_counter()
         self._client.command(sql.render_snapshot_exchange_sql(spec))
         raw_row_count = _first_int(self._client.query(sql.render_snapshot_count_query(spec)))
+        self._drop_staging(spec)
         replace_seconds = elapsed_seconds(replace_started_at)
 
         return RawSyncResult(
@@ -174,6 +176,9 @@ class RawSyncService:
         self._client.command(sql.render_create_raw_table_sql(spec))
         self._client.command(sql.render_drop_staging_table_sql(spec))
         self._client.command(sql.render_create_staging_table_sql(spec))
+
+    def _drop_staging(self, spec: ClickHouseRawTableSpec) -> None:
+        self._client.command(sql.render_drop_staging_table_sql(spec))
 
     def _validate_schema_and_year_partition(
         self,

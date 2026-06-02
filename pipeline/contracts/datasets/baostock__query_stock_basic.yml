@@ -63,7 +63,7 @@ parquet:
     type: int8
     nullable: false
 clickhouse_raw:
-  database: raw
+  database: fleur_raw
   table: baostock__query_stock_basic
   partition_strategy: snapshot
   engine: MergeTree

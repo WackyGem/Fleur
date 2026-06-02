@@ -3,6 +3,7 @@ from __future__ import annotations
 from fleur_contracts.loader import load_registry
 from scheduler.defs.clickhouse.specs import (
     BAOSTOCK_DAILY_K_SPEC,
+    ENABLED_CLICKHOUSE_RAW_POOL_NAMES,
     ENABLED_CLICKHOUSE_RAW_TABLE_SPECS,
 )
 
@@ -68,3 +69,13 @@ def test_sparse_daily_assets_are_not_enabled_for_raw_sync() -> None:
     assert "source/jiuyan__action_field" not in enabled_source_assets
     assert "source/ths__limit_up_pool" not in enabled_source_assets
     assert "source/jiuyan__industry_ocr" not in enabled_source_assets
+
+
+def test_enabled_raw_sync_pool_names_are_dataset_level() -> None:
+    assert len(ENABLED_CLICKHOUSE_RAW_POOL_NAMES) == len(ENABLED_CLICKHOUSE_RAW_TABLE_SPECS)
+    assert len(set(ENABLED_CLICKHOUSE_RAW_POOL_NAMES)) == len(ENABLED_CLICKHOUSE_RAW_POOL_NAMES)
+    assert (
+        "clickhouse_raw_baostock__query_history_k_data_plus_daily_pool"
+        in ENABLED_CLICKHOUSE_RAW_POOL_NAMES
+    )
+    assert "clickhouse_raw_eastmoney__balance_pool" in ENABLED_CLICKHOUSE_RAW_POOL_NAMES

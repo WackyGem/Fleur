@@ -83,8 +83,10 @@ def test_raw_sync_success_path_replaces_partition_after_validation() -> None:
     assert result.s3_object_key == (
         "source/baostock__query_history_k_data_plus_daily/year=2026/000000_0.parquet"
     )
+    assert result.metadata()["clickhouse_database"] == "fleur_raw"
     assert any(
-        command.startswith("CREATE DATABASE IF NOT EXISTS `raw`") for command in client.commands
+        command.startswith("CREATE DATABASE IF NOT EXISTS `fleur_raw`")
+        for command in client.commands
     )
     assert any("REPLACE PARTITION 2026" in command for command in client.commands)
     assert client.commands.index(

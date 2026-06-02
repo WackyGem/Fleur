@@ -2,7 +2,18 @@
 
 日期：2026-06-02
 
-状态：Draft
+状态：Completed
+
+完成日期：2026-06-02
+
+完成报告：
+
+- `docs/jobs/reports/2026-06-02-clickhouse-layered-database-baseline.md`
+- `docs/jobs/reports/2026-06-02-clickhouse-layered-database-partitions.json`
+- `docs/jobs/reports/2026-06-02-clickhouse-layered-database-reset.md`
+- `docs/jobs/reports/2026-06-02-clickhouse-layered-database-migration-report.md`
+- `docs/jobs/reports/2026-06-02-clickhouse-layered-database-resume-runs.tsv`
+- `docs/jobs/reports/2026-06-02-clickhouse-layered-database-cleanup-runs.tsv`
 
 关联文档：
 

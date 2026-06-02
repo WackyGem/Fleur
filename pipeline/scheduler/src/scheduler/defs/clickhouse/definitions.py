@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import dagster as dg
 
+from scheduler.defs.baostock.assets import year_partitions
 from scheduler.defs.clickhouse.assets import CLICKHOUSE_RAW_ASSETS
 from scheduler.defs.clickhouse.specs import (
     ENABLED_CLICKHOUSE_RAW_TABLE_SPECS,
@@ -43,6 +44,13 @@ def _assets_matching_strategy(
 
 
 CLICKHOUSE_RAW_JOBS: tuple[dg.UnresolvedAssetJobDefinition, ...] = (
+    dg.define_asset_job(
+        name="clickhouse__raw_sync_all_job",
+        selection=[
+            _asset_for_spec(spec.raw_asset_key) for spec in ENABLED_CLICKHOUSE_RAW_TABLE_SPECS
+        ],
+        partitions_def=year_partitions,
+    ),
     dg.define_asset_job(
         name="clickhouse__raw_sync_snapshot_job",
         selection=_assets_matching_strategy(

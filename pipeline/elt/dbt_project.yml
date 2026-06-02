@@ -22,8 +22,19 @@ clean-targets:         # directories to be removed by `dbt clean`
   - "target"
   - "dbt_packages"
 
+on-run-start:
+  - "CREATE DATABASE IF NOT EXISTS fleur_staging"
+  - "CREATE DATABASE IF NOT EXISTS fleur_intermediate"
+  - "CREATE DATABASE IF NOT EXISTS fleur_marts"
 
 models:
   elt:
     staging:
       +materialized: view
+      +schema: fleur_staging
+    intermediate:
+      +materialized: view
+      +schema: fleur_intermediate
+    marts:
+      +materialized: table
+      +schema: fleur_marts

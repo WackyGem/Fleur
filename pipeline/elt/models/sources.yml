@@ -1,7 +1,7 @@
 version: 2
 sources:
 - name: raw
-  schema: raw
+  schema: fleur_raw
   description: ClickHouse raw tables synchronized from Dagster-published S3 Parquet
     assets.
   tables:
@@ -12,7 +12,7 @@ sources:
         contract_dataset: baostock__query_history_k_data_plus_daily
         contract_version: 1
         upstream_raw_asset: clickhouse/raw/baostock__query_history_k_data_plus_daily
-        clickhouse_raw_table: raw.baostock__query_history_k_data_plus_daily
+        clickhouse_raw_table: fleur_raw.baostock__query_history_k_data_plus_daily
         source_schema_hash: e101ba5d2f5331e42f943d3ea5b26b86cea11e484b128595184f45adaf855b2a
         parquet_schema_hash: 336bcdfd8e1c3f9e6971b90f2aa61df27c99d320b0fae20319573a35f34fd215
         clickhouse_schema_hash: 71717fba7ad34e9049d669f01968cc8c868774e954a7ec4101e2c83bb4363cf9
@@ -153,7 +153,7 @@ sources:
         contract_dataset: baostock__query_stock_basic
         contract_version: 1
         upstream_raw_asset: clickhouse/raw/baostock__query_stock_basic
-        clickhouse_raw_table: raw.baostock__query_stock_basic
+        clickhouse_raw_table: fleur_raw.baostock__query_stock_basic
         source_schema_hash: d0048f43e39a58c7c762ec2d3d826b6f8921f887c3f1744cdd20a2033926469e
         parquet_schema_hash: 99b802907fe6d7e7e499abc56fbe4f8d8d31b300aa8a9076e03291d0ba9e8292
         clickhouse_schema_hash: 0edb1e612a76505f2d257d94b1d3011c3e53432902a0ad056eb506218fc4eb5a
@@ -221,7 +221,7 @@ sources:
         contract_dataset: eastmoney__balance
         contract_version: 1
         upstream_raw_asset: clickhouse/raw/eastmoney__balance
-        clickhouse_raw_table: raw.eastmoney__balance
+        clickhouse_raw_table: fleur_raw.eastmoney__balance
         source_schema_hash: 400ea4a81c89dc7dee8e6e56d1b4c0bd8699f30e94f8588bc42b93e1c76edcd3
         parquet_schema_hash: 4a3b3a0dcc0ced51cc4785ce99c750f68bb81b40c7caf0c2dabe500f4c74c059
         clickhouse_schema_hash: 9639c8d086b0da03df3018094d4126c1e061a18468136198dbb3d5eafb21c0bf
@@ -3278,7 +3278,7 @@ sources:
         contract_dataset: eastmoney__cashflow_sq
         contract_version: 1
         upstream_raw_asset: clickhouse/raw/eastmoney__cashflow_sq
-        clickhouse_raw_table: raw.eastmoney__cashflow_sq
+        clickhouse_raw_table: fleur_raw.eastmoney__cashflow_sq
         source_schema_hash: 786b0b00ab0f4ab824d7cc0b1957890eacc64f4fdb24b519076eb88cbe379d0c
         parquet_schema_hash: 0924bc4dbd00413325dc67bc2b0e3ffb370641fd06df68e1bde8380f6208fa22
         clickhouse_schema_hash: 36e78f0dc0dce2ab4e4bc0113b95290615e009d07458c948aa2f2d32c81d3e57
@@ -6898,7 +6898,7 @@ sources:
         contract_dataset: eastmoney__cashflow_ytd
         contract_version: 1
         upstream_raw_asset: clickhouse/raw/eastmoney__cashflow_ytd
-        clickhouse_raw_table: raw.eastmoney__cashflow_ytd
+        clickhouse_raw_table: fleur_raw.eastmoney__cashflow_ytd
         source_schema_hash: 83a594f0e81ca99db584795f91d2e241eeac43147be7dda6f3ce4d923ced9674
         parquet_schema_hash: 18d1afe926c34203353844a7e5e558ec9da697d4aacc20dac733e8edadcbd7bb
         clickhouse_schema_hash: d4665c5ada56a1452591dcfe51b751e3304a9a0ce8d41f2984b33feb632147f7
@@ -9363,7 +9363,7 @@ sources:
         contract_dataset: eastmoney__dividend_allotment
         contract_version: 1
         upstream_raw_asset: clickhouse/raw/eastmoney__dividend_allotment
-        clickhouse_raw_table: raw.eastmoney__dividend_allotment
+        clickhouse_raw_table: fleur_raw.eastmoney__dividend_allotment
         source_schema_hash: 34ba600b58b68d4036203eced9ba992791390f1b3896bf0b5637bf7a2f75b9fa
         parquet_schema_hash: d35828c6a0b1dd659cf2b930b5187b5d645d560a06240a6018ea78a89c57705c
         clickhouse_schema_hash: a8c6a0bf07061e61fed8d63beec805b501d92d8a5a5cd950f372ca273a82fedd
@@ -9468,7 +9468,7 @@ sources:
         contract_dataset: eastmoney__dividend_main
         contract_version: 1
         upstream_raw_asset: clickhouse/raw/eastmoney__dividend_main
-        clickhouse_raw_table: raw.eastmoney__dividend_main
+        clickhouse_raw_table: fleur_raw.eastmoney__dividend_main
         source_schema_hash: 100985986a47c5e2c7c8395c252068edf2938594fe52bf2c976e634358469841
         parquet_schema_hash: 4a6e3f40e867314bcae8f9d9d3cb2590c8d17f674fbcbc47600c9c0362afdd10
         clickhouse_schema_hash: 4d0ef4f19425dbb60d1b900abca64efb71d60d4bae778534362b79c81a5af2b9
@@ -9756,7 +9756,7 @@ sources:
         contract_dataset: eastmoney__equity_history
         contract_version: 1
         upstream_raw_asset: clickhouse/raw/eastmoney__equity_history
-        clickhouse_raw_table: raw.eastmoney__equity_history
+        clickhouse_raw_table: fleur_raw.eastmoney__equity_history
         source_schema_hash: 1180e2b3aed52bc6eb09120bdc1c0c5d21862e7591957f85f2798d169529df7e
         parquet_schema_hash: 2f39161cf87b31563f6d0833141315b8002acf64497377fe0bf720d1d94189ac
         clickhouse_schema_hash: ea3739aafe6278d3a7dd51e24725ea26e5789964ca18ce38e0fa570ae3ba8f07
@@ -10437,7 +10437,7 @@ sources:
         contract_dataset: eastmoney__income_sq
         contract_version: 1
         upstream_raw_asset: clickhouse/raw/eastmoney__income_sq
-        clickhouse_raw_table: raw.eastmoney__income_sq
+        clickhouse_raw_table: fleur_raw.eastmoney__income_sq
         source_schema_hash: 670f67a9f08ef0ea80dce1cad39cddc81c3747316d462645cbe0c2ac821b6cc5
         parquet_schema_hash: d57e7fd85bdf0ff0bbb72dbfbe406f792f638f84c5b48f2d93585a66bf5bf6d3
         clickhouse_schema_hash: 1a5d2ab8611ad4bb37f4f17d02c607da51875cbe6944c89c22bdffb4eaf98675
@@ -13332,7 +13332,7 @@ sources:
         contract_dataset: eastmoney__income_ytd
         contract_version: 1
         upstream_raw_asset: clickhouse/raw/eastmoney__income_ytd
-        clickhouse_raw_table: raw.eastmoney__income_ytd
+        clickhouse_raw_table: fleur_raw.eastmoney__income_ytd
         source_schema_hash: cbbb69b410e57101863e684419dd3eb618dd41db46d109ec9af9be472cef9819
         parquet_schema_hash: 8880b8e9babcd0a2481a4802b6966d8da503a524b194ddbc6f81811ec100a9a8
         clickhouse_schema_hash: 2c62d542c521a9ccca0fab405b3c751b58d937adf2e9fe91a5d1b2b7f05924ce
@@ -15291,7 +15291,7 @@ sources:
         contract_dataset: jiuyan__action_field_compacted
         contract_version: 1
         upstream_raw_asset: clickhouse/raw/jiuyan__action_field_compacted
-        clickhouse_raw_table: raw.jiuyan__action_field_compacted
+        clickhouse_raw_table: fleur_raw.jiuyan__action_field_compacted
         source_schema_hash: 420040dc985b45d05b853c26f2189d5d121ae14b3fca77bac7add4479b28a649
         parquet_schema_hash: 605806689eaeccff75cfb5fc13ef7ae2509398b0da5c2d198feec71394269120
         clickhouse_schema_hash: 4727f364fa8898d31e5e9701f6e34bd08bc0d9a0efabac8d517eedcd9833f1c5
@@ -15465,7 +15465,7 @@ sources:
         contract_dataset: jiuyan__industry_list
         contract_version: 1
         upstream_raw_asset: clickhouse/raw/jiuyan__industry_list
-        clickhouse_raw_table: raw.jiuyan__industry_list
+        clickhouse_raw_table: fleur_raw.jiuyan__industry_list
         source_schema_hash: 0ffb9d0169c30bb477a8371b4651c77b06c7719f95b1716adcc2ec5fbee4f659
         parquet_schema_hash: 10320774ba67d5ae6a53c52395097b927476d542894a67a361e73106847d06ee
         clickhouse_schema_hash: 3f3cbb395c18f5d172e37d0ee42b606b71b3c29dbd9a1b02ce2fd9afa0e41b17
@@ -15630,7 +15630,7 @@ sources:
         contract_dataset: jiuyan__industry_ocr_snapshot
         contract_version: 1
         upstream_raw_asset: clickhouse/raw/jiuyan__industry_ocr_snapshot
-        clickhouse_raw_table: raw.jiuyan__industry_ocr_snapshot
+        clickhouse_raw_table: fleur_raw.jiuyan__industry_ocr_snapshot
         source_schema_hash: 98d517320e6e757a9733cc3c06ca519902af0a840ad62e8fb8f5237ad7d7d18a
         parquet_schema_hash: 9de73976a8e0b76f863fe4212a438845a16fd79e4049d2e9fb1dd022d1f93911
         clickhouse_schema_hash: bd3404708e995c854327df0c5a025b20e62c164ed8f78c7b3c21f68e0b5ac835
@@ -15719,7 +15719,7 @@ sources:
         contract_dataset: sina__trade_calendar
         contract_version: 1
         upstream_raw_asset: clickhouse/raw/sina__trade_calendar
-        clickhouse_raw_table: raw.sina__trade_calendar
+        clickhouse_raw_table: fleur_raw.sina__trade_calendar
         source_schema_hash: a5d7a0088c4aae66ac50c7e1d601dd4da264bae7e001b0fc23e64fd6cbfa9a71
         parquet_schema_hash: 779207656e6e43c4d6045b47f44b7f50589c8b818c79d4bfcbbe0a0cf94be086
         clickhouse_schema_hash: 4668ed72498a2ee3fcb851ca3d599a0c3028396b795a7c9295fa723bcfc9c47c
@@ -15741,7 +15741,7 @@ sources:
         contract_dataset: ths__limit_up_pool_compacted
         contract_version: 1
         upstream_raw_asset: clickhouse/raw/ths__limit_up_pool_compacted
-        clickhouse_raw_table: raw.ths__limit_up_pool_compacted
+        clickhouse_raw_table: fleur_raw.ths__limit_up_pool_compacted
         source_schema_hash: 7e75e676f5c3c3c1b48a81bd4c7415eb474c3a4cfbdcf3158387ab35e1df8892
         parquet_schema_hash: 3128018545675afe5501577abfce210675374ff88a7486dd3641f776e219445f
         clickhouse_schema_hash: a3ed53afb1cc924bf687b37a5b0654c0d3cd04590b347537c022f2d5fc32ed62

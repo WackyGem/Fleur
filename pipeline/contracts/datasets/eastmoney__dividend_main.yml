@@ -232,7 +232,7 @@ parquet:
     type: date32[day]
     nullable: true
 clickhouse_raw:
-  database: raw
+  database: fleur_raw
   table: eastmoney__dividend_main
   partition_strategy: year
   engine: MergeTree

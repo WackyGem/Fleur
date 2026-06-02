@@ -176,7 +176,7 @@ parquet:
     type: double
     nullable: false
 clickhouse_raw:
-  database: raw
+  database: fleur_raw
   table: ths__limit_up_pool_compacted
   partition_strategy: year
   engine: MergeTree

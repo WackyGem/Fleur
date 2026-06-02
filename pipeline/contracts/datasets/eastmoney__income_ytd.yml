@@ -1443,7 +1443,7 @@ parquet:
     type: string
     nullable: true
 clickhouse_raw:
-  database: raw
+  database: fleur_raw
   table: eastmoney__income_ytd
   partition_strategy: year
   engine: MergeTree

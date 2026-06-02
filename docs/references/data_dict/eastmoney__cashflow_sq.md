@@ -8,7 +8,7 @@
 - 粒度：one row per security code per report date
 - Source asset：`source/eastmoney__cashflow_sq`
 - Raw asset：`clickhouse/raw/eastmoney__cashflow_sq`
-- ClickHouse raw：`raw.eastmoney__cashflow_sq`
+- ClickHouse raw：`fleur_raw.eastmoney__cashflow_sq`
 - 分区策略：`year`
 - ORDER BY：`(SECUCODE, REPORT_DATE)`
 

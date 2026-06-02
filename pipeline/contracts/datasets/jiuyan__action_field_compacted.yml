@@ -148,7 +148,7 @@ parquet:
     type: string
     nullable: false
 clickhouse_raw:
-  database: raw
+  database: fleur_raw
   table: jiuyan__action_field_compacted
   partition_strategy: year
   engine: MergeTree

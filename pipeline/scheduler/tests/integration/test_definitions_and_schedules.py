@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import dagster as dg
 from scheduler.defs.clickhouse.definitions import CLICKHOUSE_RAW_ASSETS, CLICKHOUSE_RAW_JOBS
+from scheduler.defs.clickhouse.specs import ENABLED_CLICKHOUSE_RAW_TABLE_SPECS
 from scheduler.defs.definitions import SOURCE_BUNDLES
 from scheduler.defs.definitions import defs as scheduler_defs
 
@@ -57,6 +58,19 @@ def test_registered_definitions_match_source_bundles() -> None:
         "clickhouse",
         "slack",
     }
+
+
+def test_clickhouse_raw_sync_all_job_is_registered_and_covers_enabled_assets() -> None:
+    loaded_defs = scheduler_defs.load_fn()
+    job_names = {job.name for job in loaded_defs.jobs or []}
+    enabled_asset_keys = {
+        spec.raw_asset_key.to_user_string() for spec in ENABLED_CLICKHOUSE_RAW_TABLE_SPECS
+    }
+    registered_asset_keys = {asset_key(asset) for asset in CLICKHOUSE_RAW_ASSETS}
+
+    assert "clickhouse__raw_sync_all_job" in job_names
+    assert len(enabled_asset_keys) == 15
+    assert enabled_asset_keys == registered_asset_keys
 
 
 def test_source_bundle_contracts_are_stable() -> None:

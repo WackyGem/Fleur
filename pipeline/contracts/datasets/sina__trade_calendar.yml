@@ -28,7 +28,7 @@ parquet:
     type: date32[day]
     nullable: false
 clickhouse_raw:
-  database: raw
+  database: fleur_raw
   table: sina__trade_calendar
   partition_strategy: snapshot
   engine: MergeTree

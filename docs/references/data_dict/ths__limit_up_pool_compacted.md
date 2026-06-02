@@ -8,7 +8,7 @@
 - 粒度：one row per stock code per trade date
 - Source asset：`source/ths__limit_up_pool_compacted`
 - Raw asset：`clickhouse/raw/ths__limit_up_pool_compacted`
-- ClickHouse raw：`raw.ths__limit_up_pool_compacted`
+- ClickHouse raw：`fleur_raw.ths__limit_up_pool_compacted`
 - 分区策略：`year`
 - ORDER BY：`(date, code)`
 

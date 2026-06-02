@@ -8,7 +8,7 @@
 - 粒度：one row per security code per report date
 - Source asset：`source/eastmoney__dividend_allotment`
 - Raw asset：`clickhouse/raw/eastmoney__dividend_allotment`
-- ClickHouse raw：`raw.eastmoney__dividend_allotment`
+- ClickHouse raw：`fleur_raw.eastmoney__dividend_allotment`
 - 分区策略：`year`
 - ORDER BY：`(SECUCODE, NOTICE_DATE)`
 

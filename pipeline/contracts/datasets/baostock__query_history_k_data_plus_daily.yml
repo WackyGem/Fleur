@@ -120,7 +120,7 @@ parquet:
     type: bool
     nullable: true
 clickhouse_raw:
-  database: raw
+  database: fleur_raw
   table: baostock__query_history_k_data_plus_daily
   partition_strategy: year
   engine: MergeTree

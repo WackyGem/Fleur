@@ -8,7 +8,7 @@
 - 粒度：one row per OCR result row per industry image
 - Source asset：`source/jiuyan__industry_ocr_snapshot`
 - Raw asset：`clickhouse/raw/jiuyan__industry_ocr_snapshot`
-- ClickHouse raw：`raw.jiuyan__industry_ocr_snapshot`
+- ClickHouse raw：`fleur_raw.jiuyan__industry_ocr_snapshot`
 - 分区策略：`snapshot`
 - ORDER BY：`(industry_id, image_filename, ocr_row_index)`
 

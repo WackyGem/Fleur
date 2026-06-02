@@ -8,7 +8,9 @@ from scheduler.defs.config.models import S3Config
 def test_raw_table_ddl_uses_merge_tree_year_partition_and_order_by() -> None:
     ddl = sql.render_create_raw_table_sql(BAOSTOCK_DAILY_K_SPEC)
 
-    assert "CREATE TABLE IF NOT EXISTS `raw`.`baostock__query_history_k_data_plus_daily`" in ddl
+    assert (
+        "CREATE TABLE IF NOT EXISTS `fleur_raw`.`baostock__query_history_k_data_plus_daily`"
+    ) in ddl
     assert "`year` UInt16" in ddl
     assert "ENGINE = MergeTree" in ddl
     assert "PARTITION BY `year`" in ddl
@@ -28,7 +30,9 @@ def test_staging_insert_reads_s3_parquet_and_injects_year_partition() -> None:
         partition_key="2026",
     )
 
-    assert "INSERT INTO `raw`.`baostock__query_history_k_data_plus_daily__stage`" in insert_sql
+    assert (
+        "INSERT INTO `fleur_raw`.`baostock__query_history_k_data_plus_daily__stage`"
+    ) in insert_sql
     assert "FROM s3(" in insert_sql
     assert "'http://127.0.0.1:9000/bucket/source/baostock__query_history_k_data_plus_daily" in (
         insert_sql
@@ -44,9 +48,9 @@ def test_replace_partition_sql_does_not_drop_or_mutate_rows() -> None:
     )
 
     assert replace_sql == (
-        "ALTER TABLE `raw`.`baostock__query_history_k_data_plus_daily` "
+        "ALTER TABLE `fleur_raw`.`baostock__query_history_k_data_plus_daily` "
         "REPLACE PARTITION 2026 "
-        "FROM `raw`.`baostock__query_history_k_data_plus_daily__stage`"
+        "FROM `fleur_raw`.`baostock__query_history_k_data_plus_daily__stage`"
     )
     assert "DROP PARTITION" not in replace_sql
     assert " DELETE " not in replace_sql

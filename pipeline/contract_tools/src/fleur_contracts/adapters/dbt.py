@@ -8,34 +8,47 @@ from fleur_contracts.schema import ContractRegistry, DatasetContract
 
 
 def render_sources_yaml(registry: ContractRegistry) -> str:
-    tables = [
-        {
-            "name": dataset.dataset,
-            "description": _table_description(registry, dataset),
-            "config": {
-                "meta": {
-                    "contract_dataset": dataset.dataset,
-                    "contract_version": dataset.version,
-                    "upstream_raw_asset": "/".join(dataset.raw_asset_key),
-                    "clickhouse_raw_table": (
-                        f"{dataset.clickhouse_raw.database}.{dataset.clickhouse_raw.table}"
-                    ),
-                    "source_schema_hash": source_schema_hash(dataset),
-                    "parquet_schema_hash": parquet_schema_hash(dataset),
-                    "clickhouse_schema_hash": clickhouse_schema_hash(dataset),
+    raw_datasets = _raw_datasets_for_sources(registry)
+    raw_databases = {
+        dataset.clickhouse_raw.database
+        for dataset in raw_datasets
+        if dataset.clickhouse_raw is not None
+    }
+    if len(raw_databases) != 1:
+        msg = f"dbt raw source requires exactly one physical database, got {sorted(raw_databases)}"
+        raise ValueError(msg)
+    raw_database = next(iter(raw_databases))
+
+    tables = []
+    for dataset in raw_datasets:
+        raw = dataset.clickhouse_raw
+        raw_asset_key = dataset.raw_asset_key
+        if raw is None or raw_asset_key is None:
+            continue
+        tables.append(
+            {
+                "name": dataset.dataset,
+                "description": _table_description(registry, dataset),
+                "config": {
+                    "meta": {
+                        "contract_dataset": dataset.dataset,
+                        "contract_version": dataset.version,
+                        "upstream_raw_asset": "/".join(raw_asset_key),
+                        "clickhouse_raw_table": f"{raw.database}.{raw.table}",
+                        "source_schema_hash": source_schema_hash(dataset),
+                        "parquet_schema_hash": parquet_schema_hash(dataset),
+                        "clickhouse_schema_hash": clickhouse_schema_hash(dataset),
+                    },
                 },
-            },
-            "columns": _source_columns(dataset),
-        }
-        for dataset in registry.datasets
-        if dataset.clickhouse_raw is not None and dataset.raw_asset_key is not None
-    ]
+                "columns": _source_columns(dataset),
+            }
+        )
     payload: dict[str, Any] = {
         "version": 2,
         "sources": [
             {
                 "name": "raw",
-                "schema": "raw",
+                "schema": raw_database,
                 "description": (
                     "ClickHouse raw tables synchronized from Dagster-published S3 Parquet assets."
                 ),
@@ -44,6 +57,15 @@ def render_sources_yaml(registry: ContractRegistry) -> str:
         ],
     }
     return _dump_yaml(payload)
+
+
+def _raw_datasets_for_sources(registry: ContractRegistry) -> list[DatasetContract]:
+    datasets: list[DatasetContract] = []
+    for dataset in registry.datasets:
+        if dataset.clickhouse_raw is None or dataset.raw_asset_key is None:
+            continue
+        datasets.append(dataset)
+    return datasets
 
 
 def _table_description(registry: ContractRegistry, dataset: DatasetContract) -> str:

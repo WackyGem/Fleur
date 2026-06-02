@@ -1800,7 +1800,7 @@ parquet:
     type: double
     nullable: true
 clickhouse_raw:
-  database: raw
+  database: fleur_raw
   table: eastmoney__cashflow_ytd
   partition_strategy: year
   engine: MergeTree

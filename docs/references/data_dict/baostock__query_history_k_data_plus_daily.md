@@ -8,7 +8,7 @@
 - 粒度：one row per stock code per trade date
 - Source asset：`source/baostock__query_history_k_data_plus_daily`
 - Raw asset：`clickhouse/raw/baostock__query_history_k_data_plus_daily`
-- ClickHouse raw：`raw.baostock__query_history_k_data_plus_daily`
+- ClickHouse raw：`fleur_raw.baostock__query_history_k_data_plus_daily`
 - 分区策略：`year`
 - ORDER BY：`(code, date)`
 

@@ -140,7 +140,7 @@ parquet:
     type: timestamp[ns]
     nullable: false
 clickhouse_raw:
-  database: raw
+  database: fleur_raw
   table: jiuyan__industry_list
   partition_strategy: snapshot
   engine: MergeTree

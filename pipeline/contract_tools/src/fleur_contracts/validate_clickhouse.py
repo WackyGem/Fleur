@@ -62,11 +62,20 @@ def validate_available_clickhouse(contract_root: Path = DEFAULT_CONTRACT_ROOT) -
 
 
 def _build_client_from_env() -> Any:
+    return build_client_from_env()
+
+
+def build_client_from_env(*, database: str | None = None) -> Any:
     host = _required_env("CLICKHOUSE_HOST")
     port = int(_required_env("CLICKHOUSE_PORT"))
     username = _required_env("CLICKHOUSE_USER")
     password = _required_env("CLICKHOUSE_PASSWORD")
-    database = os.environ.get("CLICKHOUSE_DATABASE") or os.environ.get("CLICKHOUSE_DB") or "default"
+    database_name = (
+        database
+        or os.environ.get("CLICKHOUSE_DATABASE")
+        or os.environ.get("CLICKHOUSE_DB")
+        or "default"
+    )
     secure = os.environ.get("CLICKHOUSE_SECURE", "").lower() in {"1", "true", "yes"}
     connect_timeout = int(os.environ.get("CLICKHOUSE_CONNECT_TIMEOUT_SECONDS", "10"))
     send_receive_timeout = int(os.environ.get("CLICKHOUSE_QUERY_TIMEOUT_SECONDS", "300"))
@@ -75,7 +84,7 @@ def _build_client_from_env() -> Any:
         port=port,
         username=username,
         password=password,
-        database=database,
+        database=database_name,
         secure=secure,
         connect_timeout=connect_timeout,
         send_receive_timeout=send_receive_timeout,

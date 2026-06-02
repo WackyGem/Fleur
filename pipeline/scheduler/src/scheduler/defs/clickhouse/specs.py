@@ -14,6 +14,7 @@ PartitionStrategy = Literal["snapshot", "year"]
 
 CLICKHOUSE_RAW_ASSET_PREFIX = ("clickhouse", "raw")
 CLICKHOUSE_RAW_GROUP = "clickhouse_raw"
+CLICKHOUSE_RAW_POOL_PREFIX = "clickhouse_raw"
 LOW_CARDINALITY_UNIQUE_LIMIT = 10_000
 
 
@@ -127,6 +128,11 @@ def raw_asset_key(table_name: str) -> dg.AssetKey:
     return dg.AssetKey([*CLICKHOUSE_RAW_ASSET_PREFIX, table_name])
 
 
+def clickhouse_raw_pool_name(table_name: str) -> str:
+    validate_identifier(table_name, field_name="raw pool table name")
+    return f"{CLICKHOUSE_RAW_POOL_PREFIX}_{table_name}_pool"
+
+
 def enabled_specs(specs: Sequence[ClickHouseRawTableSpec]) -> tuple[ClickHouseRawTableSpec, ...]:
     return tuple(spec for spec in specs if spec.sync_enabled)
 
@@ -143,3 +149,7 @@ BAOSTOCK_DAILY_K_SPEC = next(
     if spec.clickhouse_table == "baostock__query_history_k_data_plus_daily"
 )
 ENABLED_CLICKHOUSE_RAW_TABLE_SPECS = enabled_specs(CLICKHOUSE_RAW_TABLE_SPECS)
+ENABLED_CLICKHOUSE_RAW_POOL_NAMES = tuple(
+    clickhouse_raw_pool_name(spec.raw_asset_table_name)
+    for spec in ENABLED_CLICKHOUSE_RAW_TABLE_SPECS
+)

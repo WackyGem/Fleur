@@ -8,7 +8,7 @@
 - 粒度：one row per security code
 - Source asset：`source/baostock__query_stock_basic`
 - Raw asset：`clickhouse/raw/baostock__query_stock_basic`
-- ClickHouse raw：`raw.baostock__query_stock_basic`
+- ClickHouse raw：`fleur_raw.baostock__query_stock_basic`
 - 分区策略：`snapshot`
 - ORDER BY：`(code)`
 

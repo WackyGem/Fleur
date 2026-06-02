@@ -60,3 +60,43 @@ uv run dg launch --target-path scheduler --assets "key:clickhouse/raw/jiuyan__in
 - 进度记录
 - 可恢复执行
 - 多 asset 批量提交
+
+## ClickHouse layered migration resume
+
+Plan 0026 的 ClickHouse 四层 database 迁移使用 `fleur-contracts clickhouse-layer`
+作为受控入口。迁移报告和可恢复运行记录位于：
+
+- `docs/jobs/reports/2026-06-02-clickhouse-layered-database-migration-report.md`
+- `docs/jobs/reports/2026-06-02-clickhouse-layered-database-partitions.json`
+- `docs/jobs/reports/2026-06-02-clickhouse-layered-database-resume-runs.tsv`
+- `docs/jobs/reports/2026-06-02-clickhouse-layered-database-cleanup-runs.tsv`
+
+恢复中断的 raw sync 时，继续使用明确 asset selection 和单年分区：
+
+```bash
+cd pipeline
+uv run dg launch --target-path scheduler \
+  --assets "key:clickhouse/raw/<dataset>" \
+  --partition YYYY
+```
+
+snapshot raw sync 不传 partition：
+
+```bash
+cd pipeline
+uv run dg launch --target-path scheduler \
+  --assets "key:clickhouse/raw/<snapshot-dataset>"
+```
+
+最终验收命令：
+
+```bash
+cd pipeline
+uv run fleur-contracts clickhouse-layer validate-raw \
+  --manifest ../docs/jobs/reports/2026-06-02-clickhouse-layered-database-partitions.json
+uv run fleur-contracts clickhouse-layer validate-dbt
+```
+
+不要用 `clickhouse__raw_sync_all_job` 作为历史分区已全部迁移的证明；它只证明
+asset selection 覆盖所有 raw sync assets。历史迁移范围以 partition manifest 和
+逐分区 run log 为准。

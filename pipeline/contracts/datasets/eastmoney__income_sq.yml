@@ -2115,7 +2115,7 @@ parquet:
     type: double
     nullable: true
 clickhouse_raw:
-  database: raw
+  database: fleur_raw
   table: eastmoney__income_sq
   partition_strategy: year
   engine: MergeTree
