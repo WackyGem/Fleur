@@ -2,7 +2,9 @@
 
 日期：2026-06-02
 
-状态：Draft
+状态：Completed
+
+完成日期：2026-06-02
 
 关联文档：
 
@@ -500,36 +502,36 @@ uv run dbt build --project-dir elt --profiles-dir elt --select staging --quiet -
 
 ### Documentation
 
-- [ ] `docs/references/raw_profile/README.md` 已创建。
-- [ ] `docs/references/raw_profile/_template.md` 已创建。
-- [ ] `docs/skills/stg-model-readiness/SKILL.md` 已创建。
-- [ ] `pipeline/elt/README.md` 包含 readiness 检查命令。
-- [ ] `AGENTS.md` 指向 ADR 0008 / RFC 0013 / staging readiness workflow。
+- [x] `docs/references/raw_profile/README.md` 已创建。
+- [x] `docs/references/raw_profile/_template.md` 已创建。
+- [x] `docs/skills/stg-model-readiness/SKILL.md` 已创建。
+- [x] `pipeline/elt/README.md` 包含 readiness 检查命令。
+- [x] `AGENTS.md` 指向 ADR 0008 / RFC 0013 / staging readiness workflow。
 
 ### Scripts
 
-- [ ] `profile_raw_source.py` 能生成 report 草稿。
-- [ ] `profile_raw_source.py` 能校验 source/table 存在。
-- [ ] `profile_raw_source.py` 输出标准 profiling SQL。
-- [ ] `validate_staging_readiness.py` 能读取 manifest。
-- [ ] `validate_staging_readiness.py` 能检查 staging source_columns 对应 raw profile。
-- [ ] readiness lint 和 field glossary lint 职责清晰分离。
+- [x] `profile_raw_source.py` 能生成 report 草稿。
+- [x] `profile_raw_source.py` 能校验 source/table 存在。
+- [x] `profile_raw_source.py` 输出标准 profiling SQL。
+- [x] `validate_staging_readiness.py` 能读取 manifest。
+- [x] `validate_staging_readiness.py` 能检查 staging source_columns 对应 raw profile。
+- [x] readiness lint 和 field glossary lint 职责清晰分离。
 
 ### First profiles
 
-- [ ] `sina__trade_calendar` 有 raw profile report。
-- [ ] `baostock__query_history_k_data_plus_daily` 有 raw profile report。
-- [ ] `eastmoney__equity_history` 有 raw profile report。
-- [ ] 每份 report 都列出 recommended staging transformations。
-- [ ] 每份 report 都列出 deferred items 或明确无 deferred items。
+- [x] `sina__trade_calendar` 有 raw profile report。
+- [x] `baostock__query_history_k_data_plus_daily` 有 raw profile report。
+- [x] `eastmoney__equity_history` 有 raw profile report。
+- [x] 每份 report 都列出 recommended staging transformations。
+- [x] 每份 report 都列出 deferred items 或明确无 deferred items。
 
 ### Validation
 
-- [ ] `git diff --check` 通过。
-- [ ] `uv run dbt parse --project-dir elt --profiles-dir elt` 通过。
-- [ ] `uv run python elt/scripts/validate_staging_readiness.py` 通过，或只剩明确记录的 Draft warnings。
-- [ ] `uv run python elt/scripts/validate_field_glossary.py` 通过。
-- [ ] `uv run dbt build --project-dir elt --profiles-dir elt --select staging --quiet --warn-error-options '{"error": ["NoNodesForSelectionCriteria"]}'` 通过，或记录无法运行原因。
+- [x] `git diff --check` 通过。
+- [x] `uv run dbt parse --project-dir elt --profiles-dir elt` 通过。
+- [x] `uv run python elt/scripts/validate_staging_readiness.py` 通过。
+- [x] `uv run python elt/scripts/validate_field_glossary.py` 通过。
+- [x] `uv run dbt build --project-dir elt --profiles-dir elt --select staging --quiet --warn-error-options '{"error": ["NoNodesForSelectionCriteria"]}'` 通过。
 
 ## 8. 禁止模式
 

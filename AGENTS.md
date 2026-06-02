@@ -74,8 +74,9 @@ uv sync --all-packages --all-groups
 - 初始 `models/example` 内容已移除，保留空目录结构
 - dbt canonical 字段治理入口：`pipeline/elt/metadata/field_glossary.yml`
 - dbt staging 清洗边界：`docs/ADR/0007-dbt-staging-cleaning-boundary.md`
-- dbt staging 前置 raw profiling：`docs/ADR/0008-raw-source-profiling-before-dbt-staging.md`
-- 修改 staging model 后运行：`uv run dbt parse --project-dir elt --profiles-dir elt` 和 `uv run python elt/scripts/validate_field_glossary.py`
+- dbt staging 前置 raw profiling：`docs/ADR/0008-raw-source-profiling-before-dbt-staging.md`、`docs/RFC/0013-raw-source-profiling-before-dbt-staging.md`、`docs/plans/0025-raw-source-profiling-before-dbt-staging-implementation-plan.md`
+- 新增或重写 staging model 前先使用 `docs/skills/stg-model-readiness/SKILL.md`，并维护 `docs/references/raw_profile/<dataset>.md`
+- 修改 staging model 后运行：`uv run dbt parse --project-dir elt --profiles-dir elt`、`uv run python elt/scripts/validate_staging_readiness.py` 和 `uv run python elt/scripts/validate_field_glossary.py`
 
 ## 数据契约（contracts）
 
@@ -149,6 +150,7 @@ uv run dg check defs
 | `dignified-python` | Python 代码质量、类型提示、现代 Python 风格、pathlib、异常处理、接口、CLI 模式或 Python 审查/重构 |
 | `using-dbt-for-analytics-engineering` | 构建或修改 dbt 模型、源、测试、SQL 转换、dbt 项目调试、数据探索或影响分析 |
 | `running-dbt-commands` | 格式化或执行 dbt CLI 命令、选择 dbt 可执行文件、选择资源、编译、构建、测试或显示查询输出 |
+| `stg-model-readiness` | 新增或重写 dbt staging model 前使用，完成 raw source profiling、报告、staging 清洗建议和 readiness 校验 |
 | `adding-dbt-unit-test` | 添加 dbt 单元测试或对 dbt 模型逻辑实践 TDD |
 | `answering-natural-language-questions-with-dbt` | 从仓库数据、指标、KPI、语义层或临时 SQL 回答业务/分析问题。不用于 dbt 模型开发 |
 | `fetching-dbt-docs` | 查找 dbt Core、dbt Cloud/平台或 dbt 语义层的 dbt 文档 |
