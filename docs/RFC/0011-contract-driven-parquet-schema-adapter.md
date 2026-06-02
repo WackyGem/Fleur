@@ -599,15 +599,11 @@ boundary module 必须：
 - `pipeline/scheduler/src/scheduler/defs/sources/eastmoney/schema.py`
 - `pipeline/scheduler/tests/unit/sources/eastmoney/test_eastmoney.py`
 
-保留：
+后续修订：
 
-- `pipeline/scheduler/src/scheduler/defs/sources/eastmoney/generated/fields.py`
-- `pipeline/scheduler/scripts/extract_eastmoney_schema_fields.py`
-
-原因：
-
-- `fields.py` 当前服务于 OpenAPI 字段顺序/unknown field 计数，不等同于 Parquet schema。
-- `schemas.py` 和 `generate_eastmoney_schemas.py` 是重复 schema 生成路径，必须删除。
+- `pipeline/scheduler/src/scheduler/defs/sources/eastmoney/generated/fields.py` 和 `pipeline/scheduler/scripts/extract_eastmoney_schema_fields.py` 已删除。
+- EastMoney 字段顺序/unknown field 计数所需字段集合由 contract `source.fields` 经 `scheduler.defs.contract_schemas.SOURCE_FIELD_NAMES` 提供。
+- `schemas.py`、`fields.py` 和对应生成脚本都不再作为 scheduler 字段事实路径。
 
 ### Step 4：替换所有 source schema 常量
 

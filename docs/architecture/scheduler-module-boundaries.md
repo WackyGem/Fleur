@@ -34,7 +34,7 @@
 
 - Do not recreate `scheduler.defs.http.schedules` or other source definition aggregation under `defs/http`.
 - Do not make `http/` aggregate source jobs/schedules or import `scheduler.defs.sources`.
-- Do not add compatibility re-export modules for generated EastMoney constants; use `scheduler.defs.sources.eastmoney.generated.fields` and `scheduler.defs.sources.eastmoney.generated.schemas`.
+- Do not add generated EastMoney constants packages; EastMoney schema and source field names come from `scheduler.defs.contract_schemas`.
 - Do not inject asset symbols into module globals with `globals()`.
 - Do not read S3 environment settings from business assets or source services; pass `S3SettingsResource`, `S3Config`, or an explicit reader/service.
 - Do not directly import `storage.parquet_readers` from data-source business code.

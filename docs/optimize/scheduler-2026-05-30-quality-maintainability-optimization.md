@@ -269,9 +269,9 @@ def build_eastmoney_assets() -> list[dg.AssetsDefinition]:
 
 2. 如确实需要按名称索引，保留 `EASTMONEY_ASSETS_BY_NAME`，但不写入 `globals()`。
 3. 将 ordering dependency 命名为策略，例如 `SequentialEndpointExecutionPolicy`，并在 metadata 注明原因：外部接口限流，不是业务数据依赖。
-4. 制定 generated 兼容模块退出计划：
-   - 新代码统一从 `generated.fields`、`generated.schemas` 或 `schema.py` 获取。
-   - 测试不再验证 compat re-export，改为验证生成脚本稳定性。
+4. 退出 generated 兼容模块：
+   - EastMoney 新代码统一从 `schema.py` 或 `scheduler.defs.contract_schemas` 获取 schema/field facts。
+   - 测试不再验证 compat re-export，改为验证 contract boundary 稳定性。
 
 验收标准：
 

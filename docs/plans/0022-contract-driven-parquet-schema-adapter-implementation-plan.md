@@ -8,7 +8,7 @@ Superseded note（2026-06-01）：
 
 - 本计划 Phase 2 中的 scheduler checked-in generated Parquet schema module 方案已被 `docs/plans/0022.2-direct-contract-parquet-schema-boundary-plan.md` 替代。
 - 应保留的成果包括 `fleur_contracts.adapters.parquet`、source schema replacement、`S3IOManager` schema guard、materialization metadata 和 EastMoney 专用 Parquet schema 删除。
-- 当前 scheduler Parquet schema boundary 是 `pipeline/scheduler/src/scheduler/defs/contract_schemas.py`，不再运行 `pipeline/scheduler/scripts/generate_parquet_schemas.py`。
+- 当前 scheduler schema/source-field boundary 是 `pipeline/scheduler/src/scheduler/defs/contract_schemas.py`，不再运行 `pipeline/scheduler/scripts/generate_parquet_schemas.py` 或 `pipeline/scheduler/scripts/extract_eastmoney_schema_fields.py`。
 
 关联文档：
 
@@ -35,7 +35,7 @@ RFC 0011 已决定一刀切收敛 Dagster source assets 写 S3 Parquet 时使用
 1. `pipeline/contracts/datasets/*.yml` 的 `parquet.fields` 是 `source -> S3 Parquet -> ClickHouse raw` 中 Parquet schema 的唯一事实源。
 2. `pipeline/contract_tools/src/fleur_contracts/adapters/parquet.py` 提供唯一 PyArrow type parser、schema contract 和 schema hash。
 3. `pipeline/scheduler/src/scheduler/defs/generated/parquet_schemas.py` 覆盖全部 18 个 dataset，scheduler runtime 只 import 该 checked-in generated module。
-4. 删除 EastMoney 专用 Parquet schema generator 和 generated schema module，只保留 EastMoney OpenAPI 字段顺序/unknown field 计数相关 generated fields。
+4. 删除 EastMoney 专用 Parquet schema generator、generated schema module 和 OpenAPI 字段顺序 generated fields；EastMoney 字段名由 contract `source.fields` 经 `scheduler.defs.contract_schemas.SOURCE_FIELD_NAMES` 提供。
 5. 删除 scheduler source modules 中 dataset-level 手写 `pa.schema(...)`。
 6. `S3IOManager` 在写入 S3 前对 latest snapshot 和 partitioned tables 做 schema equality 校验，mismatch fail fast。
 7. source asset materialization metadata 自动包含 contract/schema hash 信息。
@@ -66,8 +66,8 @@ RFC 0011 已决定一刀切收敛 Dagster source assets 写 S3 Parquet 时使用
 - `pipeline/scheduler/src/scheduler/defs/http/schemas.py` 仍定义 `THS_LIMIT_UP_POOL_SCHEMA`、`JIUYAN_ACTION_FIELD_SCHEMA`、`JIUYAN_INDUSTRY_LIST_SCHEMA`。
 - `pipeline/scheduler/src/scheduler/defs/sources/jiuyan/ocr_schema.py` 仍定义 `JIUYAN_INDUSTRY_OCR_SCHEMA`。
 - `pipeline/scheduler/src/scheduler/defs/sources/jiuyan/industry_ocr_snapshot.py` 仍定义 `JIUYAN_INDUSTRY_OCR_SNAPSHOT_SCHEMA` 和 `SNAPSHOT_SCHEMA_VERSION`。
-- `pipeline/scheduler/scripts/generate_eastmoney_schemas.py` 仍直接读取 YAML 并维护 EastMoney 专用 schema 生成链路。
-- `pipeline/scheduler/src/scheduler/defs/sources/eastmoney/schema.py` 仍从 `scheduler.defs.sources.eastmoney.generated.schemas` 读取 `EASTMONEY_SCHEMAS`。
+- `pipeline/scheduler/scripts/generate_eastmoney_schemas.py` 和 EastMoney generated schema/fields 链路已被删除。
+- `pipeline/scheduler/src/scheduler/defs/sources/eastmoney/schema.py` 现在从 `scheduler.defs.contract_schemas` 读取 schema 和 source field names。
 - `pipeline/scheduler/src/scheduler/defs/io_managers/s3_io_manager.py` 当前只校验对象类型、空表和 partition key，不校验 table schema。
 
 ## 5. 目标架构
@@ -218,18 +218,18 @@ Phase 7 测试记录：
 
 - `eastmoney_typed_schema(endpoint)` 改为从 `scheduler.defs.generated.parquet_schemas.PARQUET_SCHEMAS` 读取 schema。
 - 保留 `eastmoney_schema(endpoint)` 对外接口。
-- 保留 `pipeline/scheduler/src/scheduler/defs/sources/eastmoney/generated/fields.py` 和 `extract_eastmoney_schema_fields.py`，因为它们服务于 OpenAPI 字段顺序和 unknown field 计数。
-- 删除 `test_generated_schemas_match_contract_generation()` 中对 EastMoney 专用 generator 的断言，改为断言 EastMoney endpoint schema 来自全局 generated map。
+- 删除 `pipeline/scheduler/src/scheduler/defs/sources/eastmoney/generated/fields.py` 和 `pipeline/scheduler/scripts/extract_eastmoney_schema_fields.py`；contract `source.fields` 已覆盖字段顺序和 unknown field 计数所需的允许字段集合。
+- 删除 `test_generated_schemas_match_contract_generation()` 中对 EastMoney 专用 generator 的断言，改为断言 EastMoney endpoint schema 和 field names 来自 `scheduler.defs.contract_schemas`。
 
 完成标准：
 
-- `rg -n "generate_eastmoney_schemas|sources/eastmoney/generated/schemas" pipeline/scheduler` 无实现引用。
+- `rg -n "generate_eastmoney_schemas|extract_eastmoney_schema_fields|sources/eastmoney/generated" pipeline/scheduler` 无实现引用。
 - EastMoney rows conversion、unknown field count 和 endpoint configs 语义不变。
 
 Phase 7 测试记录：
 
-- EastMoney 8 个 endpoint 的 `eastmoney_schema(endpoint)` 等于全局 generated schema map。
-- EastMoney generated fields current 测试继续保留。
+- EastMoney 8 个 endpoint 的 `eastmoney_schema(endpoint)` 等于 `contract_schemas.PARQUET_SCHEMAS`。
+- EastMoney field-name 测试验证 `eastmoney_business_field_names()` 来自 `contract_schemas.SOURCE_FIELD_NAMES`。
 
 ### Phase 4: 替换 scheduler source schema 常量
 
@@ -410,9 +410,9 @@ uv run fleur-contracts validate-clickhouse --all-available
 代码层面：
 
 - `pipeline/contract_tools/src/fleur_contracts/adapters/parquet.py` 是唯一 Parquet adapter。
-- `pipeline/scheduler/src/scheduler/defs/generated/parquet_schemas.py` 覆盖全部 18 个 dataset。
+- `pipeline/scheduler/src/scheduler/defs/contract_schemas.py` 覆盖全部 contract dataset。
 - `rg -n "pa\\.schema\\(" pipeline/scheduler/src/scheduler/defs -g '*.py'` 不再命中 dataset-level schema 定义；允许 helper、测试或非 dataset 临时构造场景。
-- `rg -n "generate_eastmoney_schemas|sources/eastmoney/generated/schemas" pipeline/scheduler` 无实现引用。
+- `rg -n "generate_eastmoney_schemas|extract_eastmoney_schema_fields|sources/eastmoney/generated" pipeline/scheduler` 无实现引用。
 - `S3IOManager` 对所有 `s3_io_manager` 写入强制 schema equality。
 - source business code 不直接 import `fleur_contracts`。
 

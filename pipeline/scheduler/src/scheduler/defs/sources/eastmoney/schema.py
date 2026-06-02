@@ -8,9 +8,8 @@ from typing import Any, Literal
 import pyarrow as pa
 
 from scheduler.defs.common.schema import typed_table
-from scheduler.defs.contract_schemas import PARQUET_SCHEMAS
+from scheduler.defs.contract_schemas import PARQUET_SCHEMAS, SOURCE_FIELD_NAMES
 from scheduler.defs.http.schemas import unknown_field_count_for_mapping
-from scheduler.defs.sources.eastmoney.generated.fields import EASTMONEY_FIELD_NAMES
 
 ApiFamily = Literal["data_get", "data_v1_get"]
 
@@ -159,10 +158,10 @@ def endpoint_by_asset_name(asset_name: str) -> EastmoneyEndpointConfig:
 
 
 def eastmoney_business_field_names(asset_name: str) -> tuple[str, ...]:
-    if asset_name not in EASTMONEY_FIELD_NAMES:
+    if asset_name not in SOURCE_FIELD_NAMES:
         msg = f"EastMoney schema fields are not configured for asset: {asset_name}"
         raise KeyError(msg)
-    field_names = EASTMONEY_FIELD_NAMES[asset_name]
+    field_names = SOURCE_FIELD_NAMES[asset_name]
     if not field_names:
         msg = f"EastMoney schema fields are empty for asset: {asset_name}"
         raise ValueError(msg)
@@ -173,7 +172,7 @@ def eastmoney_business_field_names(asset_name: str) -> tuple[str, ...]:
 
 
 def eastmoney_typed_schema(endpoint: EastmoneyEndpointConfig) -> pa.Schema:
-    """为 EastMoney 端点返回全局 contract generated schema。"""
+    """为 EastMoney 端点返回 contract schema。"""
     schema = EASTMONEY_SCHEMAS.get(endpoint.asset_name)
     if schema is None:
         msg = f"No explicit schema defined for EastMoney asset: {endpoint.asset_name}"

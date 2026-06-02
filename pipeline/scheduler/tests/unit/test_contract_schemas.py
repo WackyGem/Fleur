@@ -15,6 +15,7 @@ def test_contract_schemas_cover_contract_datasets_exactly() -> None:
     assert set(contract_schemas.PARQUET_SCHEMA_HASHES) == contract_datasets
     assert set(contract_schemas.CONTRACT_SCHEMA_HASHES) == contract_datasets
     assert set(contract_schemas.SOURCE_SCHEMA_HASHES) == contract_datasets
+    assert set(contract_schemas.SOURCE_FIELD_NAMES) == contract_datasets
     assert set(contract_schemas.CONTRACT_VERSIONS) == contract_datasets
     assert set(contract_schemas.SOURCE_ASSET_KEYS) == contract_datasets
     assert set(contract_schemas.STORAGE_MODES) == contract_datasets
@@ -34,6 +35,12 @@ def test_contract_schemas_match_parquet_adapter_outputs() -> None:
         assert contract_schemas.CONTRACT_SCHEMA_HASHES[contract.dataset] == contract.schema_hash
         assert (
             contract_schemas.SOURCE_SCHEMA_HASHES[contract.dataset] == contract.source_schema_hash
+        )
+        dataset_contract = next(
+            dataset for dataset in load_registry().datasets if dataset.dataset == contract.dataset
+        )
+        assert contract_schemas.SOURCE_FIELD_NAMES[contract.dataset] == tuple(
+            field.name for field in dataset_contract.source.fields
         )
         assert contract_schemas.CONTRACT_VERSIONS[contract.dataset] == contract.version
         assert contract_schemas.SOURCE_ASSET_KEYS[contract.dataset] == contract.source_asset_key

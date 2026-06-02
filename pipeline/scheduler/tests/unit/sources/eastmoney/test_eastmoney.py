@@ -2,11 +2,10 @@ from __future__ import annotations
 
 import unittest
 from datetime import date
-from importlib.util import module_from_spec, spec_from_file_location
 from pathlib import Path
 
 import pyarrow as pa
-from scheduler.defs.contract_schemas import PARQUET_SCHEMAS
+from scheduler.defs.contract_schemas import PARQUET_SCHEMAS, SOURCE_FIELD_NAMES
 from scheduler.defs.sources.eastmoney.assets import baostock_code_to_eastmoney_code
 from scheduler.defs.sources.eastmoney.client import (
     EastmoneyAioHttpClient,
@@ -14,7 +13,6 @@ from scheduler.defs.sources.eastmoney.client import (
     build_request_params,
     parse_eastmoney_page,
 )
-from scheduler.defs.sources.eastmoney.generated import fields as generated_fields
 from scheduler.defs.sources.eastmoney.schema import (
     EASTMONEY_SCHEMAS,
     ENDPOINT_CONFIGS,
@@ -28,22 +26,11 @@ from tests.fakes.http import FakeEastmoneyHttpClient
 from tests.helpers.paths import find_repo_root
 
 REPO_ROOT = find_repo_root(Path(__file__).resolve())
-EXTRACT_SCRIPT_PATH = REPO_ROOT / "pipeline/scheduler/scripts/extract_eastmoney_schema_fields.py"
-EXTRACT_SCRIPT_SPEC = spec_from_file_location(
-    "extract_eastmoney_schema_fields",
-    EXTRACT_SCRIPT_PATH,
-)
-if EXTRACT_SCRIPT_SPEC is None or EXTRACT_SCRIPT_SPEC.loader is None:
-    msg = f"Could not load {EXTRACT_SCRIPT_PATH}"
-    raise RuntimeError(msg)
-extract_eastmoney_schema_fields = module_from_spec(EXTRACT_SCRIPT_SPEC)
-EXTRACT_SCRIPT_SPEC.loader.exec_module(extract_eastmoney_schema_fields)
-
 GENERATE_SCHEMA_SCRIPT_PATH = (
     REPO_ROOT / "pipeline/scheduler/scripts" / ("generate_" + "eastmoney_schemas.py")
 )
 
-EXPECTED_OPENAPI_FIELD_COUNTS = {
+EXPECTED_EASTMONEY_FIELD_COUNTS = {
     "eastmoney__balance": 319,
     "eastmoney__cashflow_sq": 372,
     "eastmoney__cashflow_ytd": 254,
@@ -92,8 +79,8 @@ EXPECTED_PHASE_4_SCHEMA_FIELDS = {
 
 
 class EastmoneySchemaTest(unittest.TestCase):
-    def test_all_endpoint_schemas_include_complete_openapi_fields_with_correct_types(self) -> None:
-        """验证所有端点 schema 包含完整的 OpenAPI 字段，并使用正确的类型。"""
+    def test_all_endpoint_schemas_include_complete_contract_fields_with_correct_types(self) -> None:
+        """验证所有端点 schema 包含完整的 contract 字段，并使用正确的类型。"""
         self.assertEqual(len(ENDPOINT_CONFIGS), 8)
 
         for endpoint in ENDPOINT_CONFIGS:
@@ -103,7 +90,7 @@ class EastmoneySchemaTest(unittest.TestCase):
 
                 self.assertEqual(
                     len(field_names),
-                    EXPECTED_OPENAPI_FIELD_COUNTS[endpoint.asset_name],
+                    EXPECTED_EASTMONEY_FIELD_COUNTS[endpoint.asset_name],
                 )
                 self.assertEqual(
                     schema.names,
@@ -117,25 +104,19 @@ class EastmoneySchemaTest(unittest.TestCase):
                 has_date = any(pa.types.is_date(field.type) for field in schema)
                 self.assertTrue(has_date, "Schema should have date fields")
 
-    def test_static_fields_match_openapi_yaml_extraction(self) -> None:
-        extracted = extract_eastmoney_schema_fields.extract_all_field_names(
-            REPO_ROOT / "docs/references/openapi"
-        )
-
+    def test_business_fields_come_from_contract_source_fields(self) -> None:
         for endpoint in ENDPOINT_CONFIGS:
             with self.subTest(endpoint=endpoint.asset_name):
                 self.assertEqual(
                     eastmoney_business_field_names(endpoint.asset_name),
-                    extracted[endpoint.asset_name],
+                    SOURCE_FIELD_NAMES[endpoint.asset_name],
                 )
 
-    def test_generated_modules_are_the_schema_source_of_truth(self) -> None:
-        self.assertEqual(
-            set(generated_fields.EASTMONEY_FIELD_NAMES), set(EXPECTED_OPENAPI_FIELD_COUNTS)
-        )
-        self.assertEqual(set(EASTMONEY_SCHEMAS), set(EXPECTED_OPENAPI_FIELD_COUNTS))
+    def test_contract_boundary_maps_are_the_schema_source_of_truth(self) -> None:
+        self.assertEqual(set(SOURCE_FIELD_NAMES), set(PARQUET_SCHEMAS))
+        self.assertEqual(set(EASTMONEY_SCHEMAS), set(EXPECTED_EASTMONEY_FIELD_COUNTS))
 
-    def test_endpoint_schemas_come_from_global_generated_map(self) -> None:
+    def test_endpoint_schemas_come_from_contract_schema_map(self) -> None:
         self.assertFalse(GENERATE_SCHEMA_SCRIPT_PATH.exists())
         for endpoint in ENDPOINT_CONFIGS:
             with self.subTest(endpoint=endpoint.asset_name):

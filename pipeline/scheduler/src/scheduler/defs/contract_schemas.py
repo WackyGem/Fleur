@@ -7,7 +7,8 @@ from fleur_contracts.adapters.parquet import (
 )
 from fleur_contracts.loader import load_registry
 
-_PARQUET_SCHEMA_CONTRACTS = parquet_schema_contracts(load_registry().datasets)
+_DATASET_CONTRACTS = tuple(load_registry().datasets)
+_PARQUET_SCHEMA_CONTRACTS = parquet_schema_contracts(_DATASET_CONTRACTS)
 
 PARQUET_SCHEMAS: dict[str, pa.Schema] = {
     contract.dataset: pyarrow_schema_from_contract(contract)
@@ -24,6 +25,11 @@ CONTRACT_SCHEMA_HASHES: dict[str, str] = {
 
 SOURCE_SCHEMA_HASHES: dict[str, str] = {
     contract.dataset: contract.source_schema_hash for contract in _PARQUET_SCHEMA_CONTRACTS
+}
+
+SOURCE_FIELD_NAMES: dict[str, tuple[str, ...]] = {
+    contract.dataset: tuple(field.name for field in contract.source.fields)
+    for contract in _DATASET_CONTRACTS
 }
 
 CONTRACT_VERSIONS: dict[str, int] = {
