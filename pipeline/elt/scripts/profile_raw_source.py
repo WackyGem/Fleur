@@ -426,7 +426,7 @@ def _render_report(
 - 生成的 source catalog：`pipeline/elt/models/sources.yml`
 - 计划中的 staging model：待补充
 
-## 1. 范围
+## 1. 范围与执行信息
 
 - source 名称：`{table.source_name}`
 - raw 表：`{table.table_name}`
@@ -438,20 +438,53 @@ def _render_report(
 - ClickHouse raw 表：`{table.meta.get("clickhouse_raw_table", "待补充")}`
 - 表说明：{table.description or "待补充"}
 
-## 2. 粒度与键
+## 2. 数据分析发现
+
+基于当前 raw 表的现状分析：
+
+- 数据量与覆盖
+  - 总记录数：待补充
+  - 覆盖主体数：待补充
+  - 日期 / 分区范围：待补充
+- 粒度与候选键
+  - 观察到的粒度：待补充
+  - 候选自然键去重结果：{_format_list(selected["keys"])}
+  - 旧候选键或备选键对比：待补充
+- 缺失与占位
+  - 关键字段 NULL / 空字符串分布：待补充
+  - 占位值：待补充
+  - 预期缺失：待补充
+- 格式与参照完整性
+  - 证券代码 / 报告期 / 高价值字符串格式：待补充
+  - 直接 raw input 参照命中情况：待补充
+- 分布与相关性
+  - 枚举 top values：待补充
+  - 少量值 / 长尾文本：待补充
+  - 字段间强相关：待补充
+- 时间字段合理性
+  - 日期范围：待补充
+  - 日期先后关系异常：待补充
+  - 批次时间范围：待补充
+- 数值字段合理性
+  - 负数 / 零值 / 极端值：待补充
+  - 单位判断：待补充
+- 其他观察
+  - 对 staging 设计有影响、但不应在 staging 静默修正的事实：待补充
+
+## 3. 粒度与键
 
 - 观察到的粒度：待补充
 - 候选自然键：{_format_list(selected["keys"])}
 - 重复检查：待补充
 - 粒度注意事项：待补充
 
-## 3. 字段画像
+## 4. 字段画像
 
 | 字段 | 类型 | NULL 数 | 空值/占位值 | 去重/样例 | 备注 |
 |------|------|---------|-------------|-----------|------|
 {column_rows}
 
-## 4. 关键字段发现
+## 5. 关键字段发现
 
 ### 证券代码字段
 
@@ -482,13 +515,13 @@ def _render_report(
 - 单位假设：待补充
 - 建议 staging 处理：待补充
 
-## 5. 数据质量问题
+## 6. 数据质量问题
 
 | 问题 | 严重程度 | 证据 | staging 处理 | 延后处理 |
 |------|----------|------|--------------|----------|
 | 待补充 | 待补充 | 待补充 | 待补充 | 待补充 |
 
-## 6. 建议的 Staging 转换
+## 7. Staging 设计决策
 
 - 重命名：待补充
 - 类型转换：待补充
@@ -497,7 +530,7 @@ def _render_report(
 - 测试：待补充
 - YAML 元数据：待补充
 
-## 7. 延后到 Intermediate/Mart
+## 8. 延后到 Intermediate/Mart
 
 - 跨源 join：待补充
 - 需要优先级判断的去重：待补充
@@ -505,9 +538,18 @@ def _render_report(
 - 粒度变化：待补充
 - 业务指标逻辑：待补充
 
-## 8. 待确认问题
+## 待确认问题
 
 - [ ] 确认画像发现，并在依赖该报告开展新 staging 工作前更新报告状态。
+
+## 关键 SQL 证据摘要
+
+- 行数：待补充
+- 日期 / 分区范围：待补充
+- 候选键重复：待补充
+- 关键 NULL / 占位值：待补充
+- 枚举 / 文本分布：待补充
+- 数值范围：待补充
 
 ## 9. 验收清单
 
@@ -547,7 +589,9 @@ def _quote_identifier(name: str) -> str:
 
 
 def _safe_alias(name: str) -> str:
-    return "".join(character.lower() if character.isalnum() else "_" for character in name).strip("_")
+    return "".join(character.lower() if character.isalnum() else "_" for character in name).strip(
+        "_"
+    )
 
 
 def _format_list(values: list[str]) -> str:
