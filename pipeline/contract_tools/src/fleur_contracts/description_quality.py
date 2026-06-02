@@ -37,15 +37,6 @@ def validate_description_quality(registry: ContractRegistry) -> list[Description
                 )
             )
 
-    for key, field in registry.glossary_fields.items():
-        issues.extend(
-            _check_description(
-                path=f"glossary/fields.yml fields[{key}].description_zh",
-                field_name=field.name,
-                value=field.description_zh,
-            )
-        )
-
     return issues
 
 

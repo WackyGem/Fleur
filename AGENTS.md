@@ -72,6 +72,10 @@ uv sync --all-packages --all-groups
 - 优先使用定向命令，除非明确要求，不要运行整个 dbt 项目
 - 开发时优先使用 `dbt build --select ...` 而非 `dbt run`
 - 初始 `models/example` 内容已移除，保留空目录结构
+- dbt canonical 字段治理入口：`pipeline/elt/metadata/field_glossary.yml`
+- dbt staging 清洗边界：`docs/ADR/0007-dbt-staging-cleaning-boundary.md`
+- dbt staging 前置 raw profiling：`docs/ADR/0008-raw-source-profiling-before-dbt-staging.md`
+- 修改 staging model 后运行：`uv run dbt parse --project-dir elt --profiles-dir elt` 和 `uv run python elt/scripts/validate_field_glossary.py`
 
 ## 数据契约（contracts）
 

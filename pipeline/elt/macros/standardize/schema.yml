@@ -1,0 +1,42 @@
+version: 2
+
+macros:
+  - name: normalize_cn_security_code
+    description: Normalize A-share security code values to `<6 digits>.<exchange>`.
+    arguments:
+      - name: column_name
+        type: string
+        description: SQL expression containing the source security code.
+      - name: input_format
+        type: string
+        description: Supported values are `eastmoney_suffix` (`601088.SH`) and `baostock_prefix` (`sh.601088`).
+
+  - name: cn_security_local_code
+    description: Extract the six-digit local A-share security code.
+    arguments:
+      - name: column_name
+        type: string
+        description: SQL expression containing the source security code.
+      - name: input_format
+        type: string
+        description: Supported values are `eastmoney_suffix` and `baostock_prefix`.
+
+  - name: cn_exchange_code
+    description: Extract the uppercase A-share exchange code.
+    arguments:
+      - name: column_name
+        type: string
+        description: SQL expression containing the source security code.
+      - name: input_format
+        type: string
+        description: Supported values are `eastmoney_suffix` and `baostock_prefix`.
+
+  - name: test_cn_security_code_format
+    description: Validate canonical A-share security code format.
+    arguments:
+      - name: model
+        type: string
+        description: dbt relation under test.
+      - name: column_name
+        type: string
+        description: Column that should match `<6 digits>.<SH|SZ|BJ>`.

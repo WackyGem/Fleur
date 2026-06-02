@@ -2,7 +2,9 @@
 
 日期：2026-06-02
 
-状态：Draft
+状态：Completed
+
+完成日期：2026-06-02
 
 关联文档：
 
@@ -547,69 +549,69 @@ uv run dbt build --project-dir elt --profiles-dir elt --select staging
 
 ### Contract cleanup
 
-- [ ] `pipeline/contracts/glossary/fields.yml` 已删除。
-- [ ] `pipeline/contracts/naming_rules.yml` 已删除。
-- [ ] `GlossaryField`、`NamingRules`、`ContractRegistry.glossary_fields` 已删除。
-- [ ] `ClickHouseRawField.glossary_key` 已删除。
-- [ ] loader 不再读取 field glossary 或 naming rules。
-- [ ] description quality 仍校验 source external descriptions，但不校验 contract field glossary。
-- [ ] `uv run fleur-contracts validate` 通过。
-- [ ] `uv run pytest contract_tools/tests -q` 通过。
+- [x] `pipeline/contracts/glossary/fields.yml` 已删除。
+- [x] `pipeline/contracts/naming_rules.yml` 已删除。
+- [x] `GlossaryField`、`NamingRules`、`ContractRegistry.glossary_fields` 已删除。
+- [x] `ClickHouseRawField.glossary_key` 已删除。
+- [x] loader 不再读取 field glossary 或 naming rules。
+- [x] description quality 仍校验 source external descriptions，但不校验 contract field glossary。
+- [x] `uv run fleur-contracts validate` 通过。
+- [x] `uv run pytest contract_tools/tests -q` 通过。
 
 ### Raw source catalog
 
-- [ ] `pipeline/elt/models/sources.yml` 生成 raw source columns。
-- [ ] raw source column `description` 来自 raw/source 语境。
-- [ ] raw source column `data_type` 来自 ClickHouse raw type。
-- [ ] raw source column `config.meta` 包含 source/parquet/clickhouse raw 字段链路。
-- [ ] raw table `meta` 包含 contract version、raw asset、ClickHouse table 和 schema hash。
-- [ ] `uv run fleur-contracts generate --check` 通过。
-- [ ] `uv run dbt parse --project-dir elt --profiles-dir elt` 通过。
+- [x] `pipeline/elt/models/sources.yml` 生成 raw source columns。
+- [x] raw source column `description` 来自 raw/source 语境。
+- [x] raw source column `data_type` 来自 ClickHouse raw type。
+- [x] raw source column `config.meta` 包含 source/parquet/clickhouse raw 字段链路。
+- [x] raw table `meta` 包含 contract version、raw asset、ClickHouse table 和 schema hash。
+- [x] `uv run fleur-contracts generate --check` 通过。
+- [x] `uv run dbt parse --project-dir elt --profiles-dir elt` 通过。
 
 ### dbt field glossary
 
-- [ ] `pipeline/elt/metadata/field_glossary.yml` 已新增。
-- [ ] `pipeline/elt/models/_docs/fields.md` 已新增。
-- [ ] `security_code`、`security_local_code`、`exchange_code`、`trade_date`、`report_date` 已有第一版定义。
-- [ ] `security_code` regex 为 `^[0-9]{6}\\.(SH|SZ|BJ)$`。
-- [ ] 公共字段 descriptions 可通过 `{{ doc('field_<glossary_key>') }}` 复用。
-- [ ] 旧 contract field glossary 的可信条目已迁移或明确放弃。
+- [x] `pipeline/elt/metadata/field_glossary.yml` 已新增。
+- [x] `pipeline/elt/models/_docs/fields.md` 已新增。
+- [x] `security_code`、`security_local_code`、`exchange_code`、`trade_date`、`report_date` 已有第一版定义。
+- [x] `security_code` regex 为 `^[0-9]{6}\\.(SH|SZ|BJ)$`。
+- [x] 公共字段 descriptions 可通过 `{{ doc('field_<glossary_key>') }}` 复用。
+- [x] 旧 contract field glossary 的可信条目已迁移或明确放弃。
 
 ### dbt standardization
 
-- [ ] `normalize_cn_security_code()` 已实现。
-- [ ] `cn_security_local_code()` 已实现。
-- [ ] `cn_exchange_code()` 已实现。
-- [ ] `eastmoney_suffix` 和 `baostock_prefix` 已支持。
-- [ ] `cn_security_code_format` generic test 已实现。
-- [ ] macro 文档说明参数、输入格式和输出格式。
+- [x] `normalize_cn_security_code()` 已实现。
+- [x] `cn_security_local_code()` 已实现。
+- [x] `cn_exchange_code()` 已实现。
+- [x] `eastmoney_suffix` 和 `baostock_prefix` 已支持。
+- [x] `cn_security_code_format` generic test 已实现。
+- [x] macro 文档说明参数、输入格式和输出格式。
 
 ### Manifest lint
 
-- [ ] `pipeline/elt/scripts/validate_field_glossary.py` 已新增。
-- [ ] lint 能读取 manifest、field glossary 和 raw source catalog。
-- [ ] lint 强约束 staging columns 的 description、data_type、glossary_key/local 例外。
-- [ ] lint 校验 `source_columns` 指向 generated raw source catalog 中存在的 raw columns。
-- [ ] lint 校验 normalization macro 和 data test 要求。
-- [ ] lint 失败输出包含 model、column、规则编号和修复提示。
-- [ ] `uv run python elt/scripts/validate_field_glossary.py` 通过。
+- [x] `pipeline/elt/scripts/validate_field_glossary.py` 已新增。
+- [x] lint 能读取 manifest、field glossary 和 raw source catalog。
+- [x] lint 强约束 staging columns 的 description、data_type、glossary_key/local 例外。
+- [x] lint 校验 `source_columns` 指向 generated raw source catalog 中存在的 raw columns。
+- [x] lint 校验 normalization macro 和 data test 要求。
+- [x] lint 失败输出包含 model、column、规则编号和修复提示。
+- [x] `uv run python elt/scripts/validate_field_glossary.py` 通过。
 
 ### First staging governance
 
-- [ ] 首批 staging models 已按 source 分目录维护。
-- [ ] stg SQL 显式 alias raw 字段到 canonical 字段。
-- [ ] 含证券代码的 stg SQL 使用标准化 macro。
-- [ ] stg YAML columns 包含 description、data_type、data_tests 和 config.meta。
-- [ ] local/derived 字段有显式例外说明。
-- [ ] `uv run dbt build --project-dir elt --profiles-dir elt --select staging` 通过，或记录无法运行原因。
+- [x] 首批 staging models 已按 source 分目录维护。
+- [x] stg SQL 显式 alias raw 字段到 canonical 字段。
+- [x] 含证券代码的 stg SQL 使用标准化 macro。
+- [x] stg YAML columns 包含 description、data_type、data_tests 和 config.meta。
+- [x] local/derived 字段有显式例外说明；首批 staging 未引入 local/derived 字段。
+- [x] `uv run dbt build --project-dir elt --profiles-dir elt --select staging` 通过，或记录无法运行原因。
 
 ### Documentation
 
-- [ ] `docs/skills/fleur-contract-data-dictionary/SKILL.md` 已改为 raw-only。
-- [ ] `pipeline/contracts/README.md` 不再提 contract field glossary。
-- [ ] `pipeline/elt/README.md` 说明 dbt canonical 字段治理入口。
-- [ ] `AGENTS.md` 如有必要已加入 manifest lint 门禁指针。
-- [ ] `git diff --check` 通过。
+- [x] `docs/skills/fleur-contract-data-dictionary/SKILL.md` 已改为 raw-only。
+- [x] `pipeline/contracts/README.md` 不再提 contract field glossary。
+- [x] `pipeline/elt/README.md` 说明 dbt canonical 字段治理入口。
+- [x] `AGENTS.md` 如有必要已加入 manifest lint 门禁指针。
+- [x] `git diff --check` 通过。
 
 ## 9. 风险和缓解
 
@@ -636,7 +638,7 @@ uv run dbt build --project-dir elt --profiles-dir elt --select staging
 
 ## 11. 完成状态
 
-计划完成后，最终边界应稳定为：
+已完成。最终边界稳定为：
 
 ```text
 contracts:
@@ -654,3 +656,21 @@ dbt:
 ```
 
 `pipeline/contracts` 不再知道 stg 字段名。`pipeline/elt` 不再从 contract field glossary 继承 canonical 命名。两者只在 dbt `source('raw', ...)` 和 stg YAML `source_columns` 中显式相遇。
+
+旧 `pipeline/contracts/glossary/fields.yml` 中仅迁移首批可信公共字段：`security_code`、`security_local_code`、`exchange_code`、`trade_date`、`report_date`。其余旧条目不作为 dbt canonical 字段事实保留，后续按实际 staging/mart 治理需求重新进入 `pipeline/elt/metadata/field_glossary.yml`。
+
+完成验证命令：
+
+```bash
+cd pipeline
+uv run fleur-contracts validate
+uv run fleur-contracts generate --check
+uv run ruff check contract_tools/src contract_tools/tests elt/scripts
+uv run ruff format --check contract_tools/src contract_tools/tests elt/scripts
+uv run pyright contract_tools/src/fleur_contracts contract_tools/tests
+uv run pytest contract_tools/tests -q
+uv run dbt parse --project-dir elt --profiles-dir elt --no-partial-parse
+uv run python elt/scripts/validate_field_glossary.py
+uv run dbt build --project-dir elt --profiles-dir elt --select staging --quiet --warn-error-options '{"error": ["NoNodesForSelectionCriteria"]}'
+git diff --check
+```

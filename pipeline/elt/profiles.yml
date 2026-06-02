@@ -3,10 +3,10 @@ elt:
   outputs:
     dev:
       type: clickhouse
-      host: "{{ env_var('CLICKHOUSE_HOST') }}"
-      port: "{{ env_var('CLICKHOUSE_PORT') | int }}"
-      user: "{{ env_var('CLICKHOUSE_USER') }}"
-      password: "{{ env_var('CLICKHOUSE_PASSWORD') }}"
+      host: "{{ env_var('CLICKHOUSE_HOST', '127.0.0.1') }}"
+      port: "{{ env_var('CLICKHOUSE_PORT', 34052) | int }}"
+      user: "{{ env_var('CLICKHOUSE_USER', 'mono_fleur') }}"
+      password: "{{ env_var('CLICKHOUSE_PASSWORD', 'change-me-clickhouse-password') }}"
       schema: "{{ env_var('CLICKHOUSE_DBT_SCHEMA', 'analytics') }}"
       secure: false
       connect_timeout: "{{ env_var('CLICKHOUSE_CONNECT_TIMEOUT_SECONDS', 10) | int }}"

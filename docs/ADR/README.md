@@ -18,3 +18,5 @@
 | [0004](0004-baostock-tcp-client-and-daily-kline-ranges.md) | Accepted | BaoStock TCP 客户端、分页聚合和日 K 范围过滤 |
 | [0005](0005-dagster-owns-clickhouse-raw-sync-dbt-owns-modeling.md) | Accepted | Dagster 负责 ClickHouse raw 同步，dbt 负责建模 |
 | [0006](0006-clickhouse-python-client-selection.md) | Accepted | ClickHouse raw sync 使用官方 Python HTTP client |
+| [0007](0007-dbt-staging-cleaning-boundary.md) | Accepted | dbt staging 清洗边界 |
+| [0008](0008-raw-source-profiling-before-dbt-staging.md) | Accepted | dbt staging 前置 raw source profiling |

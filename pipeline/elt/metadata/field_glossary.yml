@@ -1,0 +1,62 @@
+version: 1
+
+rules:
+  canonical_field_pattern: "^[a-z][a-z0-9_]*$"
+  required_column_meta:
+    - glossary_key
+    - source_columns
+  required_normalization_meta:
+    - macro
+    - input_format
+
+fields:
+  security_code:
+    description_zh: A 股证券标准连接代码，由 6 位证券代码和交易所代码组成。
+    description: A-share canonical security join key.
+    value_format: "<6位证券代码>.<交易所代码>"
+    regex: "^[0-9]{6}\\.(SH|SZ|BJ)$"
+    exchange_codes:
+      - SH
+      - SZ
+      - BJ
+    deprecated_names:
+      - code
+      - SECUCODE
+      - SECURITY_CODE
+    deprecated_formats:
+      - sh.601088
+      - 601088
+    normalization_macro: normalize_cn_security_code
+    required_data_tests:
+      - cn_security_code_format
+
+  security_local_code:
+    description_zh: 证券在交易所内使用的 6 位本地代码，不包含交易所代码。
+    description: Six-digit local security code without exchange suffix.
+    value_format: "<6位证券代码>"
+    deprecated_names:
+      - SECURITY_CODE
+    normalization_macro: cn_security_local_code
+
+  exchange_code:
+    description_zh: A 股交易所代码，当前支持上海、深圳和北京证券交易所。
+    description: A-share exchange code.
+    value_domain:
+      - SH
+      - SZ
+      - BJ
+    normalization_macro: cn_exchange_code
+
+  trade_date:
+    description_zh: A 股市场交易日期。
+    description: A-share trading date.
+    value_format: "YYYY-MM-DD"
+    deprecated_names:
+      - date
+
+  report_date:
+    description_zh: 财务、股本或公告类记录对应的报告日期或截止日期。
+    description: Report, statement, or record end date.
+    value_format: "YYYY-MM-DD"
+    deprecated_names:
+      - END_DATE

@@ -12,8 +12,6 @@ from fleur_contracts.loader import load_registry
 from fleur_contracts.schema import (
     ContractRegistry,
     DatasetContract,
-    GlossaryField,
-    NamingRules,
 )
 
 PIPELINE_ROOT = Path(__file__).resolve().parents[2]
@@ -59,18 +57,6 @@ def test_source_external_descriptions_are_quality_checked() -> None:
     assert issues == []
 
 
-def test_glossary_descriptions_are_quality_checked() -> None:
-    registry = load_registry()
-
-    issues = [
-        issue
-        for issue in validate_description_quality(registry)
-        if "glossary/fields.yml" in issue.path
-    ]
-
-    assert issues == []
-
-
 def test_source_only_dataset_contract_does_not_require_clickhouse_raw() -> None:
     contract = _source_only_contract()
 
@@ -97,6 +83,24 @@ def test_source_only_dataset_is_excluded_from_dbt_sources_and_clickhouse_specs()
     assert "demo__source_only" not in sources_yaml
     assert "demo__raw_table" in sources_yaml
     assert [contract.dataset for contract in raw_contracts] == ["demo__raw_table"]
+
+
+def test_dbt_sources_include_raw_column_catalog() -> None:
+    registry = _registry_with(_raw_contract())
+
+    sources_yaml = render_sources_yaml(registry)
+
+    assert "clickhouse_raw_table: raw.demo__raw_table" in sources_yaml
+    assert "source_schema_hash:" in sources_yaml
+    assert "parquet_schema_hash:" in sources_yaml
+    assert "clickhouse_schema_hash:" in sources_yaml
+    assert "columns:" in sources_yaml
+    assert "name: demo_id" in sources_yaml
+    assert "data_type: String" in sources_yaml
+    assert "source_field: demo_id" in sources_yaml
+    assert "parquet_field: demo_id" in sources_yaml
+    assert "clickhouse_raw_field: demo_id" in sources_yaml
+    assert "external_description_zh: 演示记录唯一标识" in sources_yaml
 
 
 def test_source_only_data_dict_omits_clickhouse_columns() -> None:
@@ -221,13 +225,5 @@ def _raw_contract() -> DatasetContract:
 def _registry_with(*datasets: DatasetContract) -> ContractRegistry:
     return ContractRegistry(
         datasets=list(datasets),
-        glossary_fields={
-            "demo_id": GlossaryField(
-                name="demo_id",
-                description_zh="演示记录唯一标识",
-                description="Demo record identifier.",
-            )
-        },
         glossary_tables={},
-        naming_rules=NamingRules(),
     )

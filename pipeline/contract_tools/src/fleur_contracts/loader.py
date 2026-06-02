@@ -10,9 +10,7 @@ import yaml
 from fleur_contracts.schema import (
     ContractRegistry,
     DatasetContract,
-    GlossaryField,
     GlossaryTable,
-    NamingRules,
 )
 
 PIPELINE_ROOT = Path(__file__).resolve().parents[3]
@@ -23,20 +21,13 @@ def load_registry(contract_root: Path = DEFAULT_CONTRACT_ROOT) -> ContractRegist
     datasets = [
         load_dataset_contract(path) for path in sorted((contract_root / "datasets").glob("*.yml"))
     ]
-    glossary_fields = _load_mapping(
-        contract_root / "glossary" / "fields.yml",
-        model=GlossaryField,
-    )
     glossary_tables = _load_mapping(
         contract_root / "glossary" / "tables.yml",
         model=GlossaryTable,
     )
-    naming_rules = NamingRules.model_validate(_load_yaml(contract_root / "naming_rules.yml"))
     return ContractRegistry(
         datasets=datasets,
-        glossary_fields=glossary_fields,
         glossary_tables=glossary_tables,
-        naming_rules=naming_rules,
     )
 
 

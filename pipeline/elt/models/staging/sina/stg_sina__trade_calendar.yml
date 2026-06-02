@@ -1,0 +1,18 @@
+version: 2
+
+models:
+  - name: stg_sina__trade_calendar
+    description: Sina A-share trade calendar with canonical trade-date field.
+    columns:
+      - name: trade_date
+        description: "{{ doc('field_trade_date') }}"
+        data_type: Date
+        data_tests:
+          - not_null
+        config:
+          meta:
+            glossary_key: trade_date
+            source_columns:
+              - source: raw
+                table: sina__trade_calendar
+                column: trade_date

@@ -56,7 +56,6 @@ class ClickHouseRawField(ContractModel):
     from_: str = Field(alias="from")
     nullable: bool = False
     default: str | None = None
-    glossary_key: str | None = None
     reason: str | None = None
 
 
@@ -165,27 +164,15 @@ class DatasetContract(ContractModel):
         return self
 
 
-class GlossaryField(ContractModel):
-    name: str
-    description_zh: str
-    description: str
-
-
 class GlossaryTable(ContractModel):
     name: str
     description_zh: str
     description: str
 
 
-class NamingRules(ContractModel):
-    canonical_field_pattern: str = r"^[a-z][a-z0-9_]*$"
-
-
 class ContractRegistry(ContractModel):
     datasets: list[DatasetContract]
-    glossary_fields: dict[str, GlossaryField]
     glossary_tables: dict[str, GlossaryTable]
-    naming_rules: NamingRules
 
     @model_validator(mode="after")
     def validate_registry(self) -> ContractRegistry:
