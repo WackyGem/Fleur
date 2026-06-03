@@ -1,8 +1,9 @@
 with source as (
-    select *
+    select
+        trade_date
     from {{ source('raw', 'sina__trade_calendar') }}
 )
 
 select
-    trade_date as trade_date
+    trade_date
 from source
