@@ -7,6 +7,7 @@ from typing import Any, Protocol
 
 import yaml
 
+from fleur_contracts.clickhouse_types import effective_clickhouse_type
 from fleur_contracts.schema import (
     ContractRegistry,
     DatasetContract,
@@ -49,7 +50,8 @@ def clickhouse_schema_hash(contract: DatasetContract) -> str:
     if contract.clickhouse_raw is None:
         return ""
     schema_text = "\n".join(
-        f"{field.name}:{field.type}" for field in contract.clickhouse_raw.fields
+        f"{field.name}:{effective_clickhouse_type(field.type, nullable=field.nullable)}"
+        for field in contract.clickhouse_raw.fields
     )
     if contract.clickhouse_raw.partition_strategy == "year":
         schema_text = f"{schema_text}\nyear:UInt16"

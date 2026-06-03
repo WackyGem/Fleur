@@ -49,9 +49,58 @@ def test_enabled_spec_columns_match_baostock_contract() -> None:
         column.name: (column.pyarrow_type, column.clickhouse_type)
         for column in BAOSTOCK_DAILY_K_SPEC.columns
     } == {
-        field.name: (parquet_fields[field.from_].type, field.type)
+        field.name: (
+            parquet_fields[field.from_].type,
+            f"Nullable({field.type})" if field.nullable else field.type,
+        )
         for field in contract.clickhouse_raw.fields
     }
+
+
+def test_affected_nullable_date_fields_generate_nullable_clickhouse_types() -> None:
+    expected = {
+        "baostock__query_stock_basic": {
+            "outDate": "Nullable(Date)",
+        },
+        "eastmoney__balance": {
+            "UPDATE_DATE": "Nullable(Date)",
+        },
+        "eastmoney__cashflow_sq": {
+            "UPDATE_DATE": "Nullable(Date)",
+        },
+        "eastmoney__cashflow_ytd": {
+            "UPDATE_DATE": "Nullable(Date)",
+        },
+        "eastmoney__income_sq": {
+            "UPDATE_DATE": "Nullable(Date)",
+        },
+        "eastmoney__income_ytd": {
+            "UPDATE_DATE": "Nullable(Date)",
+        },
+        "eastmoney__dividend_main": {
+            "EQUITY_RECORD_DATE": "Nullable(Date)",
+            "EX_DIVIDEND_DATE": "Nullable(Date)",
+            "PAY_CASH_DATE": "Nullable(Date)",
+            "GMDECISION_NOTICE_DATE": "Nullable(Date)",
+            "DAT_YAGGR": "Nullable(Date)",
+            "LAST_TRADE_DATE": "Nullable(Date)",
+        },
+        "jiuyan__action_field_compacted": {
+            "delete_time": "Nullable(DateTime64(3))",
+            "update_time": "Nullable(DateTime64(3))",
+        },
+        "jiuyan__industry_list": {
+            "delete_time": "Nullable(DateTime64(3))",
+        },
+    }
+
+    spec_by_dataset = {spec.contract_dataset: spec for spec in ENABLED_CLICKHOUSE_RAW_TABLE_SPECS}
+
+    for dataset, expected_columns in expected.items():
+        column_types = {
+            column.name: column.clickhouse_type for column in spec_by_dataset[dataset].columns
+        }
+        assert {column: column_types[column] for column in expected_columns} == expected_columns
 
 
 def test_all_enabled_spec_columns_have_contract_clickhouse_types() -> None:

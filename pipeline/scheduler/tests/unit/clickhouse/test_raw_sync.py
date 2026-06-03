@@ -26,6 +26,7 @@ class FakeClickHouseClient:
         self.partition_validation_row: tuple[int, int, int] = (5, 2026, 2026)
         self.raw_year_partition_count = 5
         self.unique_count = 5_000
+        self.raw_schema_overrides: dict[str, str] = {}
 
     @property
     def server_version(self) -> str:
@@ -42,6 +43,10 @@ class FakeClickHouseClient:
     ) -> object:
         del settings
         self.commands.append(cmd)
+        if cmd.startswith("ALTER TABLE") and " MODIFY COLUMN " in cmd:
+            parts = cmd.split(" MODIFY COLUMN ", maxsplit=1)[1].split(maxsplit=1)
+            column_name = parts[0].strip("`")
+            self.raw_schema_overrides[column_name] = parts[1]
         if cmd.startswith("INSERT INTO") and self.insert_error is not None:
             raise self.insert_error
         return None
@@ -55,12 +60,14 @@ class FakeClickHouseClient:
         del settings
         self.queries.append(query)
         if "FROM system.columns" in query:
-            return FakeQueryResult(
-                [
-                    (column.name, column.clickhouse_type)
-                    for column in BAOSTOCK_DAILY_K_SPEC.table_columns
-                ]
-            )
+            rows = []
+            for column in BAOSTOCK_DAILY_K_SPEC.table_columns:
+                clickhouse_type = self.raw_schema_overrides.get(
+                    column.name,
+                    column.clickhouse_type,
+                )
+                rows.append((column.name, clickhouse_type))
+            return FakeQueryResult(rows)
         if "min(`year`)" in query:
             return FakeQueryResult([self.partition_validation_row])
         if "uniq(`code`)" in query:
@@ -94,6 +101,25 @@ def test_raw_sync_success_path_replaces_partition_after_validation() -> None:
     ) < client.commands.index(
         next(command for command in client.commands if "REPLACE PARTITION" in command)
     )
+
+
+def test_raw_sync_reconciles_existing_raw_schema_before_creating_staging_table() -> None:
+    client = FakeClickHouseClient()
+    client.raw_schema_overrides["open"] = "Float64"
+
+    RawSyncService(client).sync(_request(partition_key="2026"))
+
+    alter_command = next(
+        command
+        for command in client.commands
+        if " MODIFY COLUMN `open` Nullable(Float64)" in command
+    )
+    create_staging_command = next(
+        command
+        for command in client.commands
+        if command.startswith("CREATE TABLE") and "__stage` AS" in command
+    )
+    assert client.commands.index(alter_command) < client.commands.index(create_staging_command)
 
 
 def test_raw_sync_does_not_replace_when_staging_insert_fails() -> None:

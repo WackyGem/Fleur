@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from fleur_contracts.clickhouse_types import effective_clickhouse_type
 from fleur_contracts.schema import ContractRegistry, DatasetContract
 
 
@@ -45,7 +46,11 @@ def render_data_dict_markdown(
                 source_field_type=source_field.type,
                 parquet_field_type=parquet_field.type if parquet_field is not None else "-",
                 raw_field_name=raw_field.name if raw_field is not None else "-",
-                raw_field_type=raw_field.type if raw_field is not None else "-",
+                raw_field_type=(
+                    effective_clickhouse_type(raw_field.type, nullable=raw_field.nullable)
+                    if raw_field is not None
+                    else "-"
+                ),
                 description=source_field.external_description_zh,
             )
         )

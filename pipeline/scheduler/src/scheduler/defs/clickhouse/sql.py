@@ -144,14 +144,40 @@ def render_s3_structure(spec: ClickHouseRawTableSpec) -> str:
 
 
 def render_schema_validation_query(spec: ClickHouseRawTableSpec) -> str:
+    return render_column_types_query(
+        database=spec.clickhouse_database,
+        table=spec.staging_table,
+    )
+
+
+def render_raw_table_schema_query(spec: ClickHouseRawTableSpec) -> str:
+    return render_column_types_query(
+        database=spec.clickhouse_database,
+        table=spec.clickhouse_table,
+    )
+
+
+def render_column_types_query(*, database: str, table: str) -> str:
     return "\n".join(
         (
             "SELECT name, type",
             "FROM system.columns",
-            f"WHERE database = {quote_string_literal(spec.clickhouse_database)}",
-            f"  AND table = {quote_string_literal(spec.staging_table)}",
+            f"WHERE database = {quote_string_literal(database)}",
+            f"  AND table = {quote_string_literal(table)}",
             "ORDER BY position",
         )
+    )
+
+
+def render_modify_column_sql(
+    spec: ClickHouseRawTableSpec,
+    *,
+    column_name: str,
+    clickhouse_type: str,
+) -> str:
+    return (
+        f"ALTER TABLE {quote_table(spec.clickhouse_database, spec.clickhouse_table)} "
+        f"MODIFY COLUMN {quote_identifier(column_name)} {clickhouse_type}"
     )
 
 

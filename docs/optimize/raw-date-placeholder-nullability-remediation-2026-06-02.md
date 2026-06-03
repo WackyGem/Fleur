@@ -2,7 +2,9 @@
 
 日期：2026-06-02
 
-状态：Proposed
+状态：Completed
+
+完成报告：`docs/jobs/reports/2026-06-02-raw-date-placeholder-nullability-remediation.md`
 
 ## 1. 背景
 

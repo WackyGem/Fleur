@@ -20,22 +20,22 @@
 | 2 | `SECURITY_CODE` | `string` | `string` | `SECURITY_CODE` | `LowCardinality(String)` | 证券代码（纯数字） |
 | 3 | `SECURITY_NAME_ABBR` | `string` | `string` | `SECURITY_NAME_ABBR` | `LowCardinality(String)` | 证券简称 |
 | 4 | `NOTICE_DATE` | `string` | `date32[day]` | `NOTICE_DATE` | `Date` | 公告日期 |
-| 5 | `IMPL_PLAN_PROFILE` | `string` | `string` | `IMPL_PLAN_PROFILE` | `LowCardinality(String)` | 分红方案简述 |
+| 5 | `IMPL_PLAN_PROFILE` | `string` | `string` | `IMPL_PLAN_PROFILE` | `LowCardinality(Nullable(String))` | 分红方案简述 |
 | 6 | `ASSIGN_PROGRESS` | `string` | `string` | `ASSIGN_PROGRESS` | `LowCardinality(String)` | 分配进度 |
-| 7 | `EQUITY_RECORD_DATE` | `string` | `date32[day]` | `EQUITY_RECORD_DATE` | `Date` | 股权登记日 |
-| 8 | `EX_DIVIDEND_DATE` | `string` | `date32[day]` | `EX_DIVIDEND_DATE` | `Date` | 除权除息日 |
-| 9 | `PAY_CASH_DATE` | `string` | `date32[day]` | `PAY_CASH_DATE` | `Date` | 派息日 |
+| 7 | `EQUITY_RECORD_DATE` | `string` | `date32[day]` | `EQUITY_RECORD_DATE` | `Nullable(Date)` | 股权登记日 |
+| 8 | `EX_DIVIDEND_DATE` | `string` | `date32[day]` | `EX_DIVIDEND_DATE` | `Nullable(Date)` | 除权除息日 |
+| 9 | `PAY_CASH_DATE` | `string` | `date32[day]` | `PAY_CASH_DATE` | `Nullable(Date)` | 派息日 |
 | 10 | `IS_UNASSIGN` | `string` | `bool` | `IS_UNASSIGN` | `Bool` | 是否不分配："0" 否，"1" 是 |
 | 11 | `REPORT_DATE` | `string` | `string` | `REPORT_DATE` | `LowCardinality(String)` | 报告期 |
-| 12 | `ASSIGN_OBJECT` | `string` | `string` | `ASSIGN_OBJECT` | `LowCardinality(String)` | 分配对象 |
+| 12 | `ASSIGN_OBJECT` | `string` | `string` | `ASSIGN_OBJECT` | `LowCardinality(Nullable(String))` | 分配对象 |
 | 13 | `IMPL_PLAN_NEWPROFILE` | `string` | `string` | `IMPL_PLAN_NEWPROFILE` | `LowCardinality(String)` | 方案简介 + 进度后缀 |
-| 14 | `NEW_PROFILE` | `string` | `string` | `NEW_PROFILE` | `LowCardinality(String)` | 分红方案（含税） |
-| 15 | `GMDECISION_NOTICE_DATE` | `string` | `date32[day]` | `GMDECISION_NOTICE_DATE` | `Date` | 股东大会决议公告日 |
-| 16 | `INFO_CODE` | `string` | `string` | `INFO_CODE` | `String` | 公告编号 |
-| 17 | `DAT_YAGGR` | `string` | `date32[day]` | `DAT_YAGGR` | `Date` | 年度股东大会日期 |
-| 18 | `TOTAL_DIVIDEND` | `number` | `double` | `TOTAL_DIVIDEND` | `Float64` | 分红总额（元） |
-| 19 | `TOTAL_DIVIDEND_A` | `number` | `double` | `TOTAL_DIVIDEND_A` | `Float64` | A股分红总额（元） |
-| 20 | `REPORT_TIME` | `string` | `string` | `REPORT_TIME` | `String` | 报告期截止日 |
+| 14 | `NEW_PROFILE` | `string` | `string` | `NEW_PROFILE` | `LowCardinality(Nullable(String))` | 分红方案（含税） |
+| 15 | `GMDECISION_NOTICE_DATE` | `string` | `date32[day]` | `GMDECISION_NOTICE_DATE` | `Nullable(Date)` | 股东大会决议公告日 |
+| 16 | `INFO_CODE` | `string` | `string` | `INFO_CODE` | `Nullable(String)` | 公告编号 |
+| 17 | `DAT_YAGGR` | `string` | `date32[day]` | `DAT_YAGGR` | `Nullable(Date)` | 年度股东大会日期 |
+| 18 | `TOTAL_DIVIDEND` | `number` | `double` | `TOTAL_DIVIDEND` | `Nullable(Float64)` | 分红总额（元） |
+| 19 | `TOTAL_DIVIDEND_A` | `number` | `double` | `TOTAL_DIVIDEND_A` | `Nullable(Float64)` | A股分红总额（元） |
+| 20 | `REPORT_TIME` | `string` | `string` | `REPORT_TIME` | `Nullable(String)` | 报告期截止日 |
 | 21 | `DAT_YAGGR_TODAY` | `string` | `bool` | `DAT_YAGGR_TODAY` | `Bool` | 是否今日年度股东大会 |
 | 22 | `NOTICE_TODAY` | `string` | `bool` | `NOTICE_TODAY` | `Bool` | 是否今日公告 |
 | 23 | `GMDECISION_TODAY` | `string` | `bool` | `GMDECISION_TODAY` | `Bool` | 是否今日股东大会决议 |
@@ -45,7 +45,7 @@
 | 27 | `PAYCASH_TODAY` | `string` | `bool` | `PAYCASH_TODAY` | `Bool` | 是否今日派息 |
 | 28 | `IS_PAYCASH` | `string` | `bool` | `IS_PAYCASH` | `Bool` | 是否派息 |
 | 29 | `IS_EQUITY_RECENT` | `string` | `bool` | `IS_EQUITY_RECENT` | `Bool` | 是否近期股权登记 |
-| 30 | `LAST_TRADE_DATE` | `string` | `date32[day]` | `LAST_TRADE_DATE` | `Date` | 最后交易日 |
+| 30 | `LAST_TRADE_DATE` | `string` | `date32[day]` | `LAST_TRADE_DATE` | `Nullable(Date)` | 最后交易日 |
 
 ## 数据集备注
 

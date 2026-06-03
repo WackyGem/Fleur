@@ -6,6 +6,7 @@ import pytest
 from fleur_contracts.adapters.clickhouse import raw_table_contracts
 from fleur_contracts.adapters.data_dict import render_data_dict_markdown
 from fleur_contracts.adapters.dbt import render_sources_yaml
+from fleur_contracts.clickhouse_types import effective_clickhouse_type
 from fleur_contracts.description_quality import validate_description_quality
 from fleur_contracts.generate import generate_outputs
 from fleur_contracts.loader import load_registry
@@ -103,6 +104,46 @@ def test_dbt_sources_include_raw_column_catalog() -> None:
     assert "parquet_field: demo_id" in sources_yaml
     assert "clickhouse_raw_field: demo_id" in sources_yaml
     assert "external_description_zh: 演示记录唯一标识" in sources_yaml
+
+
+def test_nullable_clickhouse_contract_fields_render_physical_nullable_types() -> None:
+    contract = _raw_contract_with_nullable_date()
+    registry = _registry_with(contract)
+
+    raw_contract = raw_table_contracts(registry.datasets)[0]
+    sources_yaml = render_sources_yaml(registry)
+    markdown = render_data_dict_markdown(registry, contract)
+
+    assert {column.name: column.clickhouse_type for column in raw_contract.columns}[
+        "demo_date"
+    ] == "Nullable(Date)"
+    assert "data_type: Nullable(Date)" in sources_yaml
+    assert "`Nullable(Date)`" in markdown
+
+
+def test_effective_clickhouse_type_preserves_low_cardinality_wrapper() -> None:
+    assert (
+        effective_clickhouse_type("LowCardinality(String)", nullable=True)
+        == "LowCardinality(Nullable(String))"
+    )
+
+
+def test_clickhouse_type_nullability_rejects_nullable_type_when_nullable_false() -> None:
+    payload = _raw_contract().model_dump(mode="json", by_alias=True)
+    payload["clickhouse_raw"]["fields"][0]["type"] = "Nullable(String)"
+
+    with pytest.raises(ValueError, match="uses Nullable"):
+        DatasetContract.model_validate(payload)
+
+
+def test_clickhouse_type_nullability_rejects_nullable_low_cardinality_inner_type() -> None:
+    payload = _raw_contract().model_dump(mode="json", by_alias=True)
+    payload["clickhouse_raw"]["fields"][0]["type"] = "LowCardinality(Nullable(String))"
+    payload["clickhouse_raw"]["fields"][0]["nullable"] = True
+    payload["clickhouse_raw"]["fields"][0]["reason"] = "test_low_cardinality"
+
+    with pytest.raises(ValueError, match="non-nullable LowCardinality inner type"):
+        DatasetContract.model_validate(payload)
 
 
 def test_source_only_data_dict_omits_clickhouse_columns() -> None:
@@ -222,6 +263,34 @@ def _raw_contract() -> DatasetContract:
             },
         }
     )
+
+
+def _raw_contract_with_nullable_date() -> DatasetContract:
+    payload = _raw_contract().model_dump(mode="json", by_alias=True)
+    payload["source"]["fields"].append(
+        {
+            "name": "demo_date",
+            "type": "string",
+            "required": False,
+            "external_description_zh": "演示日期，可为空。",
+        }
+    )
+    payload["parquet"]["fields"].append(
+        {
+            "name": "demo_date",
+            "type": "date32[day]",
+            "nullable": True,
+        }
+    )
+    payload["clickhouse_raw"]["fields"].append(
+        {
+            "name": "demo_date",
+            "type": "Date",
+            "from": "demo_date",
+            "nullable": True,
+        }
+    )
+    return DatasetContract.model_validate(payload)
 
 
 def _registry_with(*datasets: DatasetContract) -> ContractRegistry:

@@ -4,6 +4,7 @@ from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 from typing import Any
 
+from fleur_contracts.clickhouse_types import effective_clickhouse_type
 from fleur_contracts.loader import clickhouse_schema_hash, dataset_schema_hash, source_schema_hash
 from fleur_contracts.schema import DatasetContract
 
@@ -45,7 +46,10 @@ def raw_table_contract_from_dataset(contract: DatasetContract) -> ClickHouseRawT
         ClickHouseColumnContract(
             name=field.name,
             pyarrow_type=parquet_fields[field.from_].type,
-            clickhouse_type=field.type,
+            clickhouse_type=effective_clickhouse_type(
+                field.type,
+                nullable=field.nullable,
+            ),
         )
         for field in contract.clickhouse_raw.fields
     )

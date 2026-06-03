@@ -1,7 +1,10 @@
 from __future__ import annotations
 
 from scheduler.defs.clickhouse import sql
-from scheduler.defs.clickhouse.specs import BAOSTOCK_DAILY_K_SPEC
+from scheduler.defs.clickhouse.specs import (
+    BAOSTOCK_DAILY_K_SPEC,
+    ENABLED_CLICKHOUSE_RAW_TABLE_SPECS,
+)
 from scheduler.defs.config.models import S3Config
 
 
@@ -39,6 +42,61 @@ def test_staging_insert_reads_s3_parquet_and_injects_year_partition() -> None:
     )
     assert "toUInt16(2026) AS `year`" in insert_sql
     assert "FORMAT" not in insert_sql
+
+
+def test_s3_structure_preserves_nullable_date_types() -> None:
+    spec = next(
+        spec
+        for spec in ENABLED_CLICKHOUSE_RAW_TABLE_SPECS
+        if spec.contract_dataset == "baostock__query_stock_basic"
+    )
+
+    structure = sql.render_s3_structure(spec)
+
+    assert "outDate Nullable(Date)" in structure
+
+
+def test_modify_column_sql_targets_raw_table_and_expected_type() -> None:
+    spec = next(
+        spec
+        for spec in ENABLED_CLICKHOUSE_RAW_TABLE_SPECS
+        if spec.contract_dataset == "baostock__query_stock_basic"
+    )
+
+    alter_sql = sql.render_modify_column_sql(
+        spec,
+        column_name="outDate",
+        clickhouse_type="Nullable(Date)",
+    )
+
+    assert alter_sql == (
+        "ALTER TABLE `fleur_raw`.`baostock__query_stock_basic` "
+        "MODIFY COLUMN `outDate` Nullable(Date)"
+    )
+
+
+def test_staging_insert_keeps_null_as_default_setting_but_uses_nullable_structure() -> None:
+    spec = next(
+        spec
+        for spec in ENABLED_CLICKHOUSE_RAW_TABLE_SPECS
+        if spec.contract_dataset == "jiuyan__action_field_compacted"
+    )
+
+    insert_sql = sql.render_insert_stage_from_s3_sql(
+        spec,
+        s3_input=sql.ClickHouseS3InputConfig(
+            endpoint="http://127.0.0.1:9000",
+            bucket="bucket",
+            access_key="access",
+            secret_key="secret",
+        ),
+        object_key="source/jiuyan__action_field_compacted/year=2026/000000_0.parquet",
+        partition_key="2026",
+    )
+
+    assert "delete_time Nullable(DateTime64(3))" in insert_sql
+    assert "update_time Nullable(DateTime64(3))" in insert_sql
+    assert "SETTINGS input_format_null_as_default = 1" in insert_sql
 
 
 def test_replace_partition_sql_does_not_drop_or_mutate_rows() -> None:

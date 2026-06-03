@@ -5,6 +5,8 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
+from fleur_contracts.clickhouse_types import validate_clickhouse_type_nullability
+
 AssetKeyPath = list[str]
 PartitionStrategy = Literal["snapshot", "year"]
 StorageMode = Literal["latest_snapshot", "partitioned"]
@@ -152,6 +154,11 @@ class DatasetContract(ContractModel):
             if field.from_ not in parquet_fields:
                 msg = f"ClickHouse field {field.name!r} references missing parquet field {field.from_!r}"
                 raise ValueError(msg)
+            validate_clickhouse_type_nullability(
+                field_name=field.name,
+                clickhouse_type=field.type,
+                nullable=field.nullable,
+            )
             if field.type.startswith("LowCardinality(") and not field.reason:
                 msg = f"LowCardinality field {field.name!r} must include reason"
                 raise ValueError(msg)

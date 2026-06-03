@@ -22,16 +22,16 @@
 | 4 | `reason` | `string` | `string` | `reason` | `String` | 韭研题材异动形成或归类原因。 |
 | 5 | `sort_no` | `integer` | `int64` | `sort_no` | `Int64` | 韭研题材异动展示排序号。 |
 | 6 | `is_delete` | `boolean` | `bool` | `is_delete` | `Bool` | 韭研题材异动记录是否被标记为删除。 |
-| 7 | `delete_time` | `string` | `timestamp[ns]` | `delete_time` | `DateTime64(3)` | 韭研题材异动记录删除时间。 |
+| 7 | `delete_time` | `string` | `timestamp[ns]` | `delete_time` | `Nullable(DateTime64(3))` | 韭研题材异动记录删除时间。 |
 | 8 | `create_time` | `string` | `timestamp[ns]` | `create_time` | `DateTime64(3)` | 韭研题材异动记录创建时间。 |
-| 9 | `update_time` | `string` | `timestamp[ns]` | `update_time` | `DateTime64(3)` | 韭研题材异动记录更新时间。 |
+| 9 | `update_time` | `string` | `timestamp[ns]` | `update_time` | `Nullable(DateTime64(3))` | 韭研题材异动记录更新时间。 |
 | 10 | `count` | `integer` | `int64` | `count` | `Int64` | 韭研题材异动关联对象数量。 |
 | 11 | `code` | `string` | `string` | `code` | `LowCardinality(String)` | 题材异动关联的证券代码。 |
-| 12 | `time` | `string` | `time32[ms]` | `time` | `String` | 题材异动关联证券的事件时间。 |
-| 13 | `num` | `string` | `string` | `num` | `LowCardinality(String)` | 题材异动关联证券的连板数量描述。 |
+| 12 | `time` | `string` | `time32[ms]` | `time` | `Nullable(String)` | 题材异动关联证券的事件时间。 |
+| 13 | `num` | `string` | `string` | `num` | `LowCardinality(Nullable(String))` | 题材异动关联证券的连板数量描述。 |
 | 14 | `price` | `integer` | `int64` | `price` | `Int64` | 题材异动关联证券的价格数值。 |
-| 15 | `day` | `integer` | `int64` | `day` | `Int64` | 题材异动关联证券的连板天数。 |
-| 16 | `edition` | `integer` | `int64` | `edition` | `Int64` | 题材异动关联证券的连板板数。 |
+| 15 | `day` | `integer` | `int64` | `day` | `Nullable(Int64)` | 题材异动关联证券的连板天数。 |
+| 16 | `edition` | `integer` | `int64` | `edition` | `Nullable(Int64)` | 题材异动关联证券的连板板数。 |
 | 17 | `shares_range` | `number` | `double` | `shares_range` | `Float64` | 题材异动关联证券的股份区间数值。 |
 | 18 | `expound` | `string` | `string` | `expound` | `String` | 题材异动关联证券的补充说明。 |
 

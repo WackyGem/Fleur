@@ -174,6 +174,7 @@ class RawSyncService:
     def _prepare_staging(self, spec: ClickHouseRawTableSpec) -> None:
         self._client.command(sql.render_create_database_sql(spec.clickhouse_database))
         self._client.command(sql.render_create_raw_table_sql(spec))
+        self._reconcile_raw_table_schema(spec)
         self._client.command(sql.render_drop_staging_table_sql(spec))
         self._client.command(sql.render_create_staging_table_sql(spec))
 
@@ -221,6 +222,30 @@ class RawSyncService:
                     f"has type {actual_type!r}, expected {expected_type!r}"
                 )
                 raise RuntimeError(msg)
+
+    def _reconcile_raw_table_schema(self, spec: ClickHouseRawTableSpec) -> None:
+        result = self._client.query(sql.render_raw_table_schema_query(spec))
+        actual_types = {str(row[0]): str(row[1]) for row in result.result_rows}
+        if not actual_types:
+            msg = f"Raw table {spec.clickhouse_database}.{spec.clickhouse_table} has no columns"
+            raise RuntimeError(msg)
+
+        for column in spec.table_columns:
+            actual_type = actual_types.get(column.name)
+            if actual_type is None:
+                msg = (
+                    f"Raw table {spec.clickhouse_table} is missing expected column {column.name!r}"
+                )
+                raise RuntimeError(msg)
+            if actual_type == column.clickhouse_type:
+                continue
+            self._client.command(
+                sql.render_modify_column_sql(
+                    spec,
+                    column_name=column.name,
+                    clickhouse_type=column.clickhouse_type,
+                )
+            )
 
     def _validate_low_cardinality_columns(self, spec: ClickHouseRawTableSpec) -> None:
         for column in spec.low_cardinality_columns:

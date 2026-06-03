@@ -17,14 +17,14 @@
 | # | 外源字段 | 外源类型 | Parquet 类型 | ClickHouse raw 字段 | ClickHouse 类型 | 中文描述 |
 |---|----------|----------|--------------|---------------------|-----------------|----------|
 | 1 | `date` | `string` | `date32[day]` | `date` | `Date` | 同花顺涨停池对应的交易日期。 |
-| 2 | `open_num` | `integer` | `int64` | `open_num` | `Int64` | 股票当日涨停后开板次数。 |
+| 2 | `open_num` | `integer` | `int64` | `open_num` | `Nullable(Int64)` | 股票当日涨停后开板次数。 |
 | 3 | `first_limit_up_time` | `string` | `timestamp[ns, tz=UTC]` | `first_limit_up_time` | `DateTime64(3, 'UTC')` | 股票当日首次涨停时间。 |
 | 4 | `last_limit_up_time` | `string` | `timestamp[ns, tz=UTC]` | `last_limit_up_time` | `DateTime64(3, 'UTC')` | 股票当日最后一次涨停时间。 |
 | 5 | `code` | `string` | `string` | `code` | `LowCardinality(String)` | 同花顺涨停池中的证券代码。 |
 | 6 | `limit_up_type` | `string` | `string` | `limit_up_type` | `LowCardinality(String)` | 涨停类型分类。 |
 | 7 | `order_volume` | `number` | `double` | `order_volume` | `Float64` | 涨停封单量。 |
 | 8 | `is_new` | `boolean` | `bool` | `is_new` | `Bool` | 是否为当日新进入涨停池的股票。 |
-| 9 | `limit_up_suc_rate` | `number` | `double` | `limit_up_suc_rate` | `Float64` | 涨停成功率。 |
+| 9 | `limit_up_suc_rate` | `number` | `double` | `limit_up_suc_rate` | `Nullable(Float64)` | 涨停成功率。 |
 | 10 | `currency_value` | `number` | `double` | `currency_value` | `Float64` | 股票流通市值。 |
 | 11 | `market_id` | `integer` | `int64` | `market_id` | `Int64` | 同花顺市场标识。 |
 | 12 | `is_again_limit` | `boolean` | `bool` | `is_again_limit` | `Bool` | 是否再次涨停。 |

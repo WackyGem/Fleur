@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import Any
 
 from fleur_contracts.adapters.parquet import parquet_schema_hash
+from fleur_contracts.clickhouse_types import effective_clickhouse_type
 from fleur_contracts.loader import clickhouse_schema_hash, source_schema_hash
 from fleur_contracts.schema import ContractRegistry, DatasetContract
 
@@ -108,7 +109,10 @@ def _source_columns(dataset: DatasetContract) -> list[dict[str, Any]]:
                     f"`{source_field.name}`. 原始字段说明："
                     f"{source_field.external_description_zh}"
                 ),
-                "data_type": raw_field.type,
+                "data_type": effective_clickhouse_type(
+                    raw_field.type,
+                    nullable=raw_field.nullable,
+                ),
                 "config": {
                     "meta": {
                         "source_field": source_field.name,

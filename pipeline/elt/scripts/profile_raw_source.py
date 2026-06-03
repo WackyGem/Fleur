@@ -48,6 +48,15 @@ class QueryResult:
     output: str
 
 
+@dataclass(frozen=True)
+class DateColumnProfile:
+    column: str
+    min_value: str
+    max_value: str
+    null_count: int
+    placeholder_count: int
+
+
 def main() -> None:
     try:
         _main()
@@ -201,7 +210,7 @@ def _selected_columns(
         selected["date_columns"] = [
             column.name
             for column in table.columns
-            if column.data_type.lower().startswith("date") or "date" in column.name.lower()
+            if _is_date_or_datetime_type(column.data_type) or "date" in column.name.lower()
         ][:4]
     if not selected["format_columns"]:
         selected["format_columns"] = [
@@ -248,14 +257,17 @@ def _build_queries(
 
     if selected["date_columns"]:
         expressions = []
+        column_by_name = {column.name: column for column in table.columns}
         for column in selected["date_columns"]:
             quoted = _quote_identifier(column)
             safe = _safe_alias(column)
+            source_column = column_by_name[column]
             expressions.extend(
                 [
                     f"min({quoted}) as min_{safe}",
                     f"max({quoted}) as max_{safe}",
                     f"countIf(isNull({quoted})) as null_{safe}",
+                    _placeholder_count_expression(source_column),
                 ]
             )
         queries.append(
@@ -366,7 +378,7 @@ def _execute_queries(*, queries: list[QueryBlock], sample_limit: int) -> list[Qu
         output = completed.stdout.strip()
         if completed.stderr.strip():
             output = f"{output}\n{completed.stderr.strip()}".strip()
-        output = _strip_ansi(output)
+        output = _normalize_output(_strip_ansi(output))
         results.append(
             QueryResult(
                 title=query.title,
@@ -394,6 +406,7 @@ def _render_report(
     command = (
         "cd pipeline && uv run python elt/scripts/profile_raw_source.py "
         f"--source {table.source_name} --table {table.table_name} --execute "
+        f"--status {report_status} "
         f"--output ../docs/references/raw_profile/{table.table_name}.md"
     )
     column_rows = "\n".join(
@@ -411,6 +424,13 @@ def _render_report(
         + " |"
         for column in table.columns
     )
+    date_profiles = _date_profiles_from_results(
+        date_columns=selected["date_columns"],
+        results=results,
+    )
+    date_profile_summary = _render_date_profile_summary(date_profiles)
+    placeholder_summary = _render_placeholder_summary(date_profiles)
+    quality_rows = _render_quality_issue_rows(date_profiles)
     query_section = _render_query_section(queries=queries, results=results)
 
     return f"""# Raw 数据画像：{table.table_name}
@@ -452,7 +472,7 @@ def _render_report(
   - 旧候选键或备选键对比：待补充
 - 缺失与占位
   - 关键字段 NULL / 空字符串分布：待补充
-  - 占位值：待补充
+  - 占位值：{placeholder_summary}
   - 预期缺失：待补充
 - 格式与参照完整性
   - 证券代码 / 报告期 / 高价值字符串格式：待补充
@@ -496,8 +516,8 @@ def _render_report(
 ### 日期与时间字段
 
 - 已画像字段：{_format_list(selected["date_columns"])}
-- 范围：待补充
-- 无效值或占位值：待补充
+- 范围：{date_profile_summary}
+- 无效值或占位值：{placeholder_summary}
 - 建议 staging 处理：待补充
 
 ### 枚举字段
@@ -519,7 +539,7 @@ def _render_report(
 
 | 问题 | 严重程度 | 证据 | staging 处理 | 延后处理 |
 |------|----------|------|--------------|----------|
-| 待补充 | 待补充 | 待补充 | 待补充 | 待补充 |
+{quality_rows}
 
 ## 7. Staging 设计决策
 
@@ -545,9 +565,9 @@ def _render_report(
 ## 关键 SQL 证据摘要
 
 - 行数：待补充
-- 日期 / 分区范围：待补充
+- 日期 / 分区范围：{date_profile_summary}
 - 候选键重复：待补充
-- 关键 NULL / 占位值：待补充
+- 关键 NULL / 占位值：{placeholder_summary}
 - 枚举 / 文本分布：待补充
 - 数值范围：待补充
 
@@ -577,6 +597,125 @@ def _render_query_section(*, queries: list[QueryBlock], results: list[QueryResul
             status = "成功" if result.succeeded else "失败"
             blocks.append(f"\n结果（{status}）：\n\n```text\n{result.output}\n```")
     return "\n\n".join(blocks)
+
+
+def _placeholder_count_expression(column: SourceColumn) -> str:
+    quoted = _quote_identifier(column.name)
+    safe = _safe_alias(column.name)
+    lowered_type = column.data_type.lower()
+    if "datetime" in lowered_type:
+        return f"countIf({quoted} = toDateTime64('1970-01-01 00:00:00', 3)) as placeholder_{safe}"
+    if _is_string_type(column.data_type):
+        return f"countIf(toString({quoted}) = '1970-01-01') as placeholder_{safe}"
+    return f"countIf({quoted} = toDate('1970-01-01')) as placeholder_{safe}"
+
+
+def _date_profiles_from_results(
+    *,
+    date_columns: list[str],
+    results: list[QueryResult],
+) -> list[DateColumnProfile]:
+    result = next((item for item in results if item.title == "日期范围" and item.succeeded), None)
+    if result is None:
+        return []
+    parsed = _parse_dbt_show_table(result.output)
+    if not parsed:
+        return []
+    row = parsed[0]
+    profiles: list[DateColumnProfile] = []
+    for column in date_columns:
+        safe = _safe_alias(column)
+        required_keys = {
+            f"min_{safe}",
+            f"max_{safe}",
+            f"null_{safe}",
+            f"placeholder_{safe}",
+        }
+        if not required_keys <= set(row):
+            continue
+        profiles.append(
+            DateColumnProfile(
+                column=column,
+                min_value=row[f"min_{safe}"],
+                max_value=row[f"max_{safe}"],
+                null_count=_parse_int(row[f"null_{safe}"]),
+                placeholder_count=_parse_int(row[f"placeholder_{safe}"]),
+            )
+        )
+    return profiles
+
+
+def _parse_dbt_show_table(output: str) -> list[dict[str, str]]:
+    table_lines = [
+        line.strip()
+        for line in output.splitlines()
+        if line.strip().startswith("|") and line.strip().endswith("|")
+    ]
+    if len(table_lines) < 3:
+        return []
+    header = _split_markdown_table_row(table_lines[0])
+    rows: list[dict[str, str]] = []
+    for line in table_lines[2:]:
+        values = _split_markdown_table_row(line)
+        if len(values) != len(header):
+            continue
+        rows.append(dict(zip(header, values, strict=True)))
+    return rows
+
+
+def _split_markdown_table_row(line: str) -> list[str]:
+    return [cell.strip() for cell in line.strip().strip("|").split("|")]
+
+
+def _render_date_profile_summary(profiles: list[DateColumnProfile]) -> str:
+    if not profiles:
+        return "待补充"
+    return "；".join(
+        (
+            f"`{profile.column}`: {profile.min_value} 至 {profile.max_value}，"
+            f"NULL {profile.null_count} 行，`1970-01-01` 占位 {profile.placeholder_count} 行"
+        )
+        for profile in profiles
+    )
+
+
+def _render_placeholder_summary(profiles: list[DateColumnProfile]) -> str:
+    if not profiles:
+        return "待补充"
+    placeholder_profiles = [profile for profile in profiles if profile.placeholder_count > 0]
+    if not placeholder_profiles:
+        return "本次已画像日期/时间字段未发现 `1970-01-01` 占位值"
+    return "；".join(
+        f"`{profile.column}`: `1970-01-01` 占位 {profile.placeholder_count} 行"
+        for profile in placeholder_profiles
+    )
+
+
+def _render_quality_issue_rows(profiles: list[DateColumnProfile]) -> str:
+    if not profiles:
+        return "| 待补充 | 待补充 | 待补充 | 待补充 | 待补充 |"
+    placeholder_profiles = [profile for profile in profiles if profile.placeholder_count > 0]
+    if not placeholder_profiles:
+        return (
+            "| 未发现需要 staging 静默修正的数据质量问题 | 低 | "
+            "基础 profiling 未发现日期占位值问题 | 仅做确定性重命名、类型保留和格式标准化 | "
+            "业务口径判断延后 |"
+        )
+    return "\n".join(
+        (
+            f"| `{profile.column}` 使用 `1970-01-01` 表示缺失/未发生日期 | 中 | "
+            f"{profile.placeholder_count} 行 | raw 层应保留真实 NULL；不得只在 staging 长期修正 | "
+            "如源端已经提供占位值，回到 source conversion 修复 |"
+        )
+        for profile in placeholder_profiles
+    )
+
+
+def _parse_int(value: str) -> int:
+    normalized = value.replace(",", "").strip()
+    if normalized in {"", "None", "NULL"}:
+        return 0
+    return int(normalized)
 
 
 def _source_relation(table: SourceTable) -> str:
@@ -620,6 +759,10 @@ def _strip_ansi(value: str) -> str:
     return ANSI_ESCAPE_PATTERN.sub("", value)
 
 
+def _normalize_output(value: str) -> str:
+    return "\n".join(line.rstrip() for line in value.splitlines()).strip()
+
+
 def _is_string_type(data_type: str) -> bool:
     lowered = data_type.lower()
     return "string" in lowered or "fixedstring" in lowered
@@ -632,6 +775,11 @@ def _is_low_cardinality_type(data_type: str) -> bool:
 def _is_numeric_type(data_type: str) -> bool:
     lowered = data_type.lower()
     return any(token in lowered for token in ("int", "float", "decimal"))
+
+
+def _is_date_or_datetime_type(data_type: str) -> bool:
+    lowered = data_type.lower()
+    return "date" in lowered
 
 
 if __name__ == "__main__":

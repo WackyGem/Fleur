@@ -6,6 +6,7 @@ from typing import Any
 
 import clickhouse_connect
 
+from fleur_contracts.clickhouse_types import effective_clickhouse_type
 from fleur_contracts.env import load_repo_dotenv_if_present
 from fleur_contracts.loader import DEFAULT_CONTRACT_ROOT, load_registry
 
@@ -42,7 +43,13 @@ def validate_available_clickhouse(contract_root: Path = DEFAULT_CONTRACT_ROOT) -
                 continue
 
             actual = [(str(row[0]), str(row[1])) for row in rows]
-            expected = [(field.name, field.type) for field in dataset.clickhouse_raw.fields]
+            expected = [
+                (
+                    field.name,
+                    effective_clickhouse_type(field.type, nullable=field.nullable),
+                )
+                for field in dataset.clickhouse_raw.fields
+            ]
             if dataset.clickhouse_raw.partition_strategy == "year":
                 expected.append(("year", "UInt16"))
             if actual != expected:
@@ -62,7 +69,7 @@ def validate_available_clickhouse(contract_root: Path = DEFAULT_CONTRACT_ROOT) -
 
 
 def _build_client_from_env() -> Any:
-    return build_client_from_env()
+    return build_client_from_env(database="default")
 
 
 def build_client_from_env(*, database: str | None = None) -> Any:

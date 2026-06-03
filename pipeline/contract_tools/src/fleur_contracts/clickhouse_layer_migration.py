@@ -16,6 +16,7 @@ from urllib.parse import urlparse
 import pyarrow.fs as pafs
 import pyarrow.parquet as pq
 
+from fleur_contracts.clickhouse_types import effective_clickhouse_type
 from fleur_contracts.env import REPO_ROOT, load_repo_dotenv_if_present
 from fleur_contracts.loader import DEFAULT_CONTRACT_ROOT, clickhouse_schema_hash, load_registry
 from fleur_contracts.schema import DatasetContract
@@ -611,7 +612,10 @@ def validate_raw(
                 issues.append(f"missing table: {raw.database}.{raw.table}")
                 continue
             actual = [(str(row[0]), str(row[1])) for row in rows]
-            expected = [(field.name, field.type) for field in raw.fields]
+            expected = [
+                (field.name, effective_clickhouse_type(field.type, nullable=field.nullable))
+                for field in raw.fields
+            ]
             if raw.partition_strategy == "year":
                 expected.append(("year", "UInt16"))
             if actual != expected:
