@@ -1,13 +1,15 @@
 from __future__ import annotations
 
 import json
-from collections.abc import Mapping, Sequence
+from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
+from datetime import date
 from typing import Any, Literal
 
 import pyarrow as pa
 
 from scheduler.defs.common.schema import typed_table
+from scheduler.defs.common.types import SchemaTypeError, to_date32
 from scheduler.defs.contract_schemas import PARQUET_SCHEMAS, SOURCE_FIELD_NAMES
 from scheduler.defs.http.schemas import unknown_field_count_for_mapping
 
@@ -202,7 +204,7 @@ def eastmoney_rows_to_typed_table(
         )
         row_dicts.append(dict(row.data))
 
-    table = typed_table(row_dicts, schema)
+    table = typed_table(row_dicts, schema, converters=_eastmoney_field_converters(endpoint))
     return EastmoneyTableResult(
         table=table,
         unknown_field_count=unknown_field_count,
@@ -220,6 +222,21 @@ def eastmoney_rows_to_table(
 def empty_eastmoney_table(endpoint: EastmoneyEndpointConfig) -> pa.Table:
     schema = eastmoney_typed_schema(endpoint)
     return pa.table({field.name: [] for field in schema}, schema=schema)
+
+
+def _eastmoney_field_converters(
+    endpoint: EastmoneyEndpointConfig,
+) -> dict[str, Callable[[Any], Any]]:
+    if endpoint.asset_name == "eastmoney__dividend_main":
+        return {"REPORT_TIME": _report_time_to_date_or_null}
+    return {}
+
+
+def _report_time_to_date_or_null(value: object) -> date | None:
+    try:
+        return to_date32(value)
+    except SchemaTypeError:
+        return None
 
 
 def eastmoney_string_or_null(value: object) -> str | None:

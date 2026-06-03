@@ -36,8 +36,8 @@
 |------|------|---------|-------------|-----------|------|
 | date | Date | 见关键字段画像 | 见关键字段画像 | 保留 raw 字段；按需在具体 staging 中补充 | 同花顺涨停池对应的交易日期。 |
 | open_num | Int64 | 见关键字段画像 | 未逐列统计 | 保留 raw 字段；按需在具体 staging 中补充 | 股票当日涨停后开板次数。 |
-| first_limit_up_time | DateTime64(3, 'UTC') | 见关键字段画像 | 见关键字段画像 | 保留 raw 字段；按需在具体 staging 中补充 | 股票当日首次涨停时间。 |
-| last_limit_up_time | DateTime64(3, 'UTC') | 见关键字段画像 | 见关键字段画像 | 保留 raw 字段；按需在具体 staging 中补充 | 股票当日最后一次涨停时间。 |
+| first_limit_up_time | DateTime('UTC') | 见关键字段画像 | 见关键字段画像 | 保留 raw 字段；按需在具体 staging 中补充 | 股票当日首次涨停时间。 |
+| last_limit_up_time | DateTime('UTC') | 见关键字段画像 | 见关键字段画像 | 保留 raw 字段；按需在具体 staging 中补充 | 股票当日最后一次涨停时间。 |
 | code | LowCardinality(String) | 未逐列统计 | 见关键字段画像 | 见关键字段画像 | 同花顺涨停池中的证券代码。 |
 | limit_up_type | LowCardinality(String) | 未逐列统计 | 未逐列统计 | 见关键字段画像 | 涨停类型分类。 |
 | order_volume | Float64 | 见关键字段画像 | 未逐列统计 | 保留 raw 字段；按需在具体 staging 中补充 | 涨停封单量。 |

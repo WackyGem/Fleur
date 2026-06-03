@@ -86,6 +86,10 @@ def pyarrow_type_from_contract(type_text: str) -> pa.DataType:
         return pa.int64()
     if type_text in {"float64", "double"}:
         return pa.float64()
+    if type_text == "timestamp[s]":
+        return pa.timestamp("s")
+    if type_text == "timestamp[s, tz=UTC]":
+        return pa.timestamp("s", tz="UTC")
     if type_text == "timestamp[ns]":
         return pa.timestamp("ns")
     if type_text == "timestamp[ns, tz=UTC]":
@@ -113,6 +117,10 @@ def pyarrow_type_expression_from_contract(type_text: str) -> str:
         return "pa.int64()"
     if type_text in {"float64", "double"}:
         return "pa.float64()"
+    if type_text == "timestamp[s]":
+        return 'pa.timestamp("s")'
+    if type_text == "timestamp[s, tz=UTC]":
+        return 'pa.timestamp("s", tz="UTC")'
     if type_text == "timestamp[ns]":
         return 'pa.timestamp("ns")'
     if type_text == "timestamp[ns, tz=UTC]":

@@ -199,7 +199,7 @@ parquet:
     type: double
     nullable: true
   - name: REPORT_TIME
-    type: string
+    type: date32[day]
     nullable: true
   - name: DAT_YAGGR_TODAY
     type: bool
@@ -329,7 +329,7 @@ clickhouse_raw:
     from: TOTAL_DIVIDEND_A
     nullable: true
   - name: REPORT_TIME
-    type: String
+    type: Date
     from: REPORT_TIME
     nullable: true
   - name: DAT_YAGGR_TODAY
@@ -375,8 +375,8 @@ clickhouse_raw:
 dataset_note_zh: 东方财富分红主表 F10 年度 raw 分区
 validation_notes:
 - Initial contract migrated from docs/references/data_dict and current raw sync specs.
-- REPORT_TIME intentionally remains string because historical responses can contain labels such
-  as 1991年报 rather than ISO date strings.
+- REPORT_TIME uses nullable date32/Date in Parquet and ClickHouse raw. Historical non-date
+  labels such as 1991年报 are treated as NULL during source-to-Parquet conversion.
 - 'LowCardinality review from EastMoney dividend_main 2025 notice-date first
   page sample: INFO_CODE nonnull=500 uniq=497 unique_rate=0.994000.
   INFO_CODE is a high-cardinality announcement identifier and uses ClickHouse

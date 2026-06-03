@@ -108,13 +108,13 @@ parquet:
     type: bool
     nullable: false
   - name: delete_time
-    type: timestamp[ns]
+    type: timestamp[s]
     nullable: true
   - name: create_time
-    type: timestamp[ns]
+    type: timestamp[s]
     nullable: false
   - name: update_time
-    type: timestamp[ns]
+    type: timestamp[s]
     nullable: true
   - name: count
     type: int64

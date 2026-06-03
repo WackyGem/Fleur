@@ -89,9 +89,15 @@ def test_supported_parquet_type_parser() -> None:
     assert pyarrow_type_from_contract("int64") == pa.int64()
     assert pyarrow_type_from_contract("float64") == pa.float64()
     assert pyarrow_type_from_contract("double") == pa.float64()
+    assert pyarrow_type_from_contract("timestamp[s]") == pa.timestamp("s")
+    assert pyarrow_type_from_contract("timestamp[s, tz=UTC]") == pa.timestamp("s", tz="UTC")
     assert pyarrow_type_from_contract("timestamp[ns]") == pa.timestamp("ns")
     assert pyarrow_type_from_contract("timestamp[ns, tz=UTC]") == pa.timestamp("ns", tz="UTC")
     assert pyarrow_type_from_contract("time32[ms]") == pa.time32("ms")
+    assert pyarrow_type_expression_from_contract("timestamp[s]") == 'pa.timestamp("s")'
+    assert pyarrow_type_expression_from_contract("timestamp[s, tz=UTC]") == (
+        'pa.timestamp("s", tz="UTC")'
+    )
     assert pyarrow_type_expression_from_contract("timestamp[ns, tz=UTC]") == (
         'pa.timestamp("ns", tz="UTC")'
     )

@@ -30,9 +30,9 @@
 | 12 | `forward_count` | `integer` | `int64` | `forward_count` | `Int64` | 行业研究内容转发次数。 |
 | 13 | `browsers_count` | `integer` | `int64` | `browsers_count` | `Int64` | 行业研究内容浏览次数。 |
 | 14 | `is_delete` | `string` | `bool` | `is_delete` | `Bool` | 行业研究内容是否被标记为删除。 |
-| 15 | `delete_time` | `string` | `timestamp[ns]` | `delete_time` | `Nullable(DateTime64(3))` | 行业研究内容删除时间。 |
-| 16 | `create_time` | `string` | `timestamp[ns]` | `create_time` | `DateTime64(3)` | 行业研究内容创建时间。 |
-| 17 | `update_time` | `string` | `timestamp[ns]` | `update_time` | `DateTime64(3)` | 行业研究内容更新时间。 |
+| 15 | `delete_time` | `string` | `timestamp[s]` | `delete_time` | `Nullable(DateTime)` | 行业研究内容删除时间。 |
+| 16 | `create_time` | `string` | `timestamp[s]` | `create_time` | `DateTime` | 行业研究内容创建时间。 |
+| 17 | `update_time` | `string` | `timestamp[s]` | `update_time` | `Nullable(DateTime)` | 行业研究内容更新时间。 |
 
 ## 数据集备注
 

@@ -23,6 +23,12 @@
 - ClickHouse raw 表：`fleur_raw.eastmoney__dividend_main`
 - 表说明：EastMoney dividend main F10 rows by natural-year raw partition.
 
+### 2026-06-03 类型勘误
+
+- 本报告原始 profiling 基于当时的 ClickHouse raw 表，`REPORT_TIME` 观察类型为 `Nullable(String)`，值形如 `1990-12-31 00:00:00`。
+- 追加核验确认：`REPORT_TIME` 非 NULL 值不可解析数量为 0，原始时间部分非 `00:00:00` 数量为 0。
+- 当前 contract 已将 `REPORT_TIME` 的 S3 Parquet 类型收敛为 `date32[day]`、ClickHouse raw 类型收敛为 `Nullable(Date)`；历史非日期标签在 source-to-Parquet 转换中置为 NULL。
+
 ## 2. 数据分析发现
 
 - 数据量与覆盖
@@ -84,7 +90,7 @@
 | DAT_YAGGR | Nullable(Date) | 100,343 | `1970-01-01` 0 | 2003-03-01 至 2026-06-02; distinct 2,629 | 年度股东大会日期 |
 | TOTAL_DIVIDEND | Nullable(Float64) | 434 | 零值 55,013；负值 0 | min=0, max=110,593,000,000, distinct 38,068 | 分红总额（元） |
 | TOTAL_DIVIDEND_A | Nullable(Float64) | 393 | 零值 55,055；负值 0 | min=0, max=83,661,000,000, distinct 38,073 | A股分红总额（元） |
-| REPORT_TIME | Nullable(String) | 1,621 | 空字符串 0；`1970-01-01` 0 | 1990-12-31 00:00:00 至 2026-09-30 00:00:00; distinct 98 | 报告期截止日 |
+| REPORT_TIME | Nullable(String)；当前 contract 为 Nullable(Date) | 1,621 | 空字符串 0；`1970-01-01` 0 | 1990-12-31 00:00:00 至 2026-09-30 00:00:00; distinct 98 | 报告期截止日；历史 raw 观察为字符串，contract 已收敛为日期。 |
 | DAT_YAGGR_TODAY | Bool | 0 | 零值 151,605 | min=0, max=1, distinct 2 | 是否今日年度股东大会 |
 | NOTICE_TODAY | Bool | 0 | 零值 151,542 | min=0, max=1, distinct 2 | 是否今日公告 |
 | GMDECISION_TODAY | Bool | 0 | 零值 151,594 | min=0, max=1, distinct 2 | 是否今日股东大会决议 |

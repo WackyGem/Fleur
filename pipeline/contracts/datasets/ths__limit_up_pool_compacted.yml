@@ -116,10 +116,10 @@ parquet:
     type: int64
     nullable: true
   - name: first_limit_up_time
-    type: timestamp[ns, tz=UTC]
+    type: timestamp[s, tz=UTC]
     nullable: false
   - name: last_limit_up_time
-    type: timestamp[ns, tz=UTC]
+    type: timestamp[s, tz=UTC]
     nullable: false
   - name: code
     type: string
@@ -196,11 +196,11 @@ clickhouse_raw:
     from: open_num
     nullable: true
   - name: first_limit_up_time
-    type: DateTime64(3, 'UTC')
+    type: DateTime('UTC')
     from: first_limit_up_time
     nullable: false
   - name: last_limit_up_time
-    type: DateTime64(3, 'UTC')
+    type: DateTime('UTC')
     from: last_limit_up_time
     nullable: false
   - name: code

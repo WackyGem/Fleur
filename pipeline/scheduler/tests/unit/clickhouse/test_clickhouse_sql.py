@@ -94,8 +94,9 @@ def test_staging_insert_keeps_null_as_default_setting_but_uses_nullable_structur
         partition_key="2026",
     )
 
-    assert "delete_time Nullable(DateTime64(3))" in insert_sql
-    assert "update_time Nullable(DateTime64(3))" in insert_sql
+    assert "delete_time Nullable(DateTime)" in insert_sql
+    assert "create_time DateTime" in insert_sql
+    assert "update_time Nullable(DateTime)" in insert_sql
     assert "SETTINGS input_format_null_as_default = 1" in insert_sql
 
 

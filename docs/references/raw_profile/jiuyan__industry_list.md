@@ -79,9 +79,9 @@
 | forward_count | Int64 | 0 | 零值 148；负值 0 | min=0, max=568, distinct 101 | 行业研究内容转发次数。 |
 | browsers_count | Int64 | 0 | 零值 0；负值 0 | min=35, max=163,974, distinct 928 | 行业研究内容浏览次数。 |
 | is_delete | Bool | 0 | 零值 956 | min=0, max=0, distinct 1 | 行业研究内容是否被标记为删除。 |
-| delete_time | Nullable(DateTime64(3)) | 956 | `1970-01-01` 0 | NULL 至 NULL; distinct 0 | 行业研究内容删除时间。 |
-| create_time | DateTime64(3) | 0 | `1970-01-01` 0 | 2024-03-16 21:08:41 至 2026-05-29 11:57:31; distinct 956 | 行业研究内容创建时间。 |
-| update_time | DateTime64(3) | 0 | `1970-01-01` 0 | 2026-05-07 18:34:17 至 2026-06-02 03:23:55; distinct 908 | 行业研究内容更新时间。 |
+| delete_time | Nullable(DateTime) | 956 | `1970-01-01` 0 | NULL 至 NULL; distinct 0 | 行业研究内容删除时间。 |
+| create_time | DateTime | 0 | `1970-01-01` 0 | 2024-03-16 21:08:41 至 2026-05-29 11:57:31; distinct 956 | 行业研究内容创建时间。 |
+| update_time | Nullable(DateTime) | 0 | `1970-01-01` 0 | 2026-05-07 18:34:17 至 2026-06-02 03:23:55; distinct 908 | 行业研究内容更新时间。 |
 
 ## 5. 关键字段发现
 

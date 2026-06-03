@@ -35,7 +35,7 @@
 | 17 | `DAT_YAGGR` | `string` | `date32[day]` | `DAT_YAGGR` | `Nullable(Date)` | 年度股东大会日期 |
 | 18 | `TOTAL_DIVIDEND` | `number` | `double` | `TOTAL_DIVIDEND` | `Nullable(Float64)` | 分红总额（元） |
 | 19 | `TOTAL_DIVIDEND_A` | `number` | `double` | `TOTAL_DIVIDEND_A` | `Nullable(Float64)` | A股分红总额（元） |
-| 20 | `REPORT_TIME` | `string` | `string` | `REPORT_TIME` | `Nullable(String)` | 报告期截止日 |
+| 20 | `REPORT_TIME` | `string` | `date32[day]` | `REPORT_TIME` | `Nullable(Date)` | 报告期截止日 |
 | 21 | `DAT_YAGGR_TODAY` | `string` | `bool` | `DAT_YAGGR_TODAY` | `Bool` | 是否今日年度股东大会 |
 | 22 | `NOTICE_TODAY` | `string` | `bool` | `NOTICE_TODAY` | `Bool` | 是否今日公告 |
 | 23 | `GMDECISION_TODAY` | `string` | `bool` | `GMDECISION_TODAY` | `Bool` | 是否今日股东大会决议 |
@@ -54,5 +54,5 @@
 ## 校验记录
 
 - Initial contract migrated from docs/references/data_dict and current raw sync specs.
-- REPORT_TIME intentionally remains string because historical responses can contain labels such as 1991年报 rather than ISO date strings.
+- REPORT_TIME uses nullable date32/Date in Parquet and ClickHouse raw. Historical non-date labels such as 1991年报 are treated as NULL during source-to-Parquet conversion.
 - LowCardinality review from EastMoney dividend_main 2025 notice-date first page sample: INFO_CODE nonnull=500 uniq=497 unique_rate=0.994000. INFO_CODE is a high-cardinality announcement identifier and uses ClickHouse String. Parquet schema remains string.

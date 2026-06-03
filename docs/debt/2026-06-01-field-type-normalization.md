@@ -14,7 +14,7 @@
 | 4 | BaoStock stg 证券标识字段 canonical 命名 | 已关闭 | stg 和 contract 使用 `security_code`、`security_name`，dbt YAML 由 contract 生成。 |
 | 5 | source-only asset 纳入 contract registry | 已关闭 | 新增 `jiuyan__action_field.yml`、`jiuyan__industry_ocr.yml`、`ths__limit_up_pool.yml`；data_dict 显示 ClickHouse raw 不适用，dbt sources 不生成 source-only raw entry。 |
 | 6 | `eastmoney__dividend_allotment.EX_DIVIDEND_DATEE` 日期类型收敛 | 代码和 contract 已关闭；历史存储待回填 | contract Parquet 为 `date32[day]`、raw 为 `Date`，EastMoney generated schema 由 contract 生成；当前 sampled S3 object 仍为 `string`，raw table 缺失，见迁移报告。 |
-| 7 | `eastmoney__dividend_main` 日期字段外源类型和 nullable 事实 | 已关闭 | 日期字段 source 改为 `string` 且可空字段 `required: false`，Parquet/raw nullable 同步；`REPORT_TIME` 保持 nullable `string` 并记录历史 `1991年报` 例外。 |
+| 7 | `eastmoney__dividend_main` 日期字段外源类型和 nullable 事实 | 已关闭 | 日期字段 source 改为 `string` 且可空字段 `required: false`，Parquet/raw nullable 同步；`REPORT_TIME` 已收敛为 Parquet `date32[day]` 和 ClickHouse `Nullable(Date)`，历史非日期标签在 source-to-Parquet 转换中置为 NULL。 |
 | 8 | `jiuyan__action_field_compacted` LowCardinality 和中文口径 | 已关闭 | S3 parquet 统计写入 validation notes；`expound` 改为 raw `String`，其余低基数字段保留；字段中文口径统一为“题材异动”。 |
 | 9 | `jiuyan__industry_ocr_snapshot` 标识、路径和关系字段 LowCardinality | 已关闭 | S3 parquet 统计写入 validation notes；`relation` 改为 raw `String`，`industry_id` 和 `theme_path` 依据样本低基数保留 `LowCardinality(String)`。 |
 | 10 | `ths__limit_up_pool_compacted.reason_type` LowCardinality | 已关闭 | S3 parquet 统计 `uniq=11573`，超过 10000 阈值，raw 改为 `String`。 |

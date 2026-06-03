@@ -83,14 +83,22 @@ def test_affected_nullable_date_fields_generate_nullable_clickhouse_types() -> N
             "PAY_CASH_DATE": "Nullable(Date)",
             "GMDECISION_NOTICE_DATE": "Nullable(Date)",
             "DAT_YAGGR": "Nullable(Date)",
+            "REPORT_TIME": "Nullable(Date)",
             "LAST_TRADE_DATE": "Nullable(Date)",
         },
         "jiuyan__action_field_compacted": {
-            "delete_time": "Nullable(DateTime64(3))",
-            "update_time": "Nullable(DateTime64(3))",
+            "delete_time": "Nullable(DateTime)",
+            "create_time": "DateTime",
+            "update_time": "Nullable(DateTime)",
         },
         "jiuyan__industry_list": {
-            "delete_time": "Nullable(DateTime64(3))",
+            "delete_time": "Nullable(DateTime)",
+            "create_time": "DateTime",
+            "update_time": "Nullable(DateTime)",
+        },
+        "ths__limit_up_pool_compacted": {
+            "first_limit_up_time": "DateTime('UTC')",
+            "last_limit_up_time": "DateTime('UTC')",
         },
     }
 

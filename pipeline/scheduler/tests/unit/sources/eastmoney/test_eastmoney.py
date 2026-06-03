@@ -53,7 +53,7 @@ EXPECTED_PHASE_4_SCHEMA_FIELDS = {
         "GMDECISION_NOTICE_DATE": (pa.date32(), True),
         "INFO_CODE": (pa.string(), True),
         "DAT_YAGGR": (pa.date32(), True),
-        "REPORT_TIME": (pa.string(), True),
+        "REPORT_TIME": (pa.date32(), True),
         "LAST_TRADE_DATE": (pa.date32(), True),
     },
     "eastmoney__balance": {
@@ -159,7 +159,9 @@ class EastmoneySchemaTest(unittest.TestCase):
         self.assertNotIn("source_endpoint", result.table.column_names)
         self.assertNotIn("ingested_at", result.table.column_names)
 
-    def test_dividend_main_report_time_accepts_historical_report_label(self) -> None:
+    def test_dividend_main_report_time_converts_date_string_and_nulls_historical_label(
+        self,
+    ) -> None:
         endpoint = endpoint_by_asset_name("eastmoney__dividend_main")
         result = eastmoney_rows_to_table(
             endpoint,
@@ -169,14 +171,22 @@ class EastmoneySchemaTest(unittest.TestCase):
                         "SECUCODE": "600000.SH",
                         "SECURITY_CODE": "600000",
                         "NOTICE_DATE": "1992-01-01 00:00:00",
+                        "REPORT_TIME": "1991-12-31 00:00:00",
+                    }
+                ),
+                EastmoneyFetchedRow(
+                    data={
+                        "SECUCODE": "600001.SH",
+                        "SECURITY_CODE": "600001",
+                        "NOTICE_DATE": "1992-01-01 00:00:00",
                         "REPORT_TIME": "1991年报",
                     }
-                )
+                ),
             ],
         )
 
-        self.assertEqual(result.table.num_rows, 1)
-        self.assertEqual(result.table["REPORT_TIME"].to_pylist(), ["1991年报"])
+        self.assertEqual(result.table.num_rows, 2)
+        self.assertEqual(result.table["REPORT_TIME"].to_pylist(), [date(1991, 12, 31), None])
 
 
 class EastmoneyClientTest(unittest.TestCase):

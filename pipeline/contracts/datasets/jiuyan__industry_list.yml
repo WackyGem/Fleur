@@ -131,14 +131,14 @@ parquet:
     type: bool
     nullable: false
   - name: delete_time
-    type: timestamp[ns]
+    type: timestamp[s]
     nullable: true
   - name: create_time
-    type: timestamp[ns]
+    type: timestamp[s]
     nullable: false
   - name: update_time
-    type: timestamp[ns]
-    nullable: false
+    type: timestamp[s]
+    nullable: true
 clickhouse_raw:
   database: fleur_raw
   table: jiuyan__industry_list
@@ -208,17 +208,17 @@ clickhouse_raw:
     from: is_delete
     nullable: false
   - name: delete_time
-    type: DateTime64(3)
+    type: DateTime
     from: delete_time
     nullable: true
   - name: create_time
-    type: DateTime64(3)
+    type: DateTime
     from: create_time
     nullable: false
   - name: update_time
-    type: DateTime64(3)
+    type: DateTime
     from: update_time
-    nullable: false
+    nullable: true
 dataset_note_zh: 韭研行业研究列表快照
 validation_notes:
 - Initial contract migrated from docs/references/data_dict and current raw sync specs.

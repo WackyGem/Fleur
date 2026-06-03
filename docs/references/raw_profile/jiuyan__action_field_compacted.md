@@ -71,12 +71,12 @@
 | reason | String | 0 | 空字符串 2,276；`1970-01-01` 0 | distinct 330 | 韭研题材异动形成或归类原因。 |
 | sort_no | Int64 | 0 | 零值 554；负值 0 | min=0, max=17, distinct 18 | 韭研题材异动展示排序号。 |
 | is_delete | Bool | 0 | 零值 5,853 | min=0, max=0, distinct 1 | 韭研题材异动记录是否被标记为删除。 |
-| delete_time | Nullable(DateTime64(3)) | 5,853 | `1970-01-01` 0 | NULL 至 NULL; distinct 0 | 韭研题材异动记录删除时间。 |
-| create_time | DateTime64(3) | 0 | `1970-01-01` 0 | 2026-03-04 16:39:08 至 2026-06-01 15:31:59; distinct 194 | 韭研题材异动记录创建时间。 |
-| update_time | Nullable(DateTime64(3)) | 5,853 | `1970-01-01` 0 | NULL 至 NULL; distinct 0 | 韭研题材异动记录更新时间。 |
+| delete_time | Nullable(DateTime) | 5,853 | `1970-01-01` 0 | NULL 至 NULL; distinct 0 | 韭研题材异动记录删除时间。 |
+| create_time | DateTime | 0 | `1970-01-01` 0 | 2026-03-04 16:39:08 至 2026-06-01 15:31:59; distinct 194 | 韭研题材异动记录创建时间。 |
+| update_time | Nullable(DateTime) | 5,853 | `1970-01-01` 0 | NULL 至 NULL; distinct 0 | 韭研题材异动记录更新时间。 |
 | count | Int64 | 0 | 零值 0；负值 0 | min=1, max=66, distinct 37 | 韭研题材异动关联对象数量。 |
 | code | LowCardinality(String) | 0 | 空字符串 0；`1970-01-01` 0 | distinct 2,091 | 题材异动关联的证券代码。 |
-| time | Nullable(String) | 938 | 空字符串 0；`1970-01-01` 0 | 1970-01-01 09:25:00.000 至 1970-01-01 15:00:01.000; distinct 3,441 | 题材异动关联证券的事件时间。 |
+| time | Nullable(Time) | 938 | 空字符串 0；`1970-01-01` 0 | 1970-01-01 09:25:00.000 至 1970-01-01 15:00:01.000; distinct 3,441 | 题材异动关联证券的事件时间。 |
 | num | LowCardinality(Nullable(String)) | 4,328 | 空字符串 0；`1970-01-01` 0 | distinct 98 | 题材异动关联证券的连板数量描述。 |
 | price | Int64 | 0 | 零值 0；负值 0 | min=78, max=169,996, distinct 3,452 | 题材异动关联证券的价格数值。 |
 | day | Nullable(Int64) | 4,328 | 零值 0；负值 0 | min=2, max=41, distinct 34 | 题材异动关联证券的连板天数。 |

@@ -16,8 +16,8 @@
 |---|----------|----------|--------------|----------|
 | 1 | `date` | `string` | `date32[day]` | 同花顺涨停池对应的交易日期。 |
 | 2 | `open_num` | `number` | `int64` | 股票当日涨停后开板次数。 |
-| 3 | `first_limit_up_time` | `string` | `timestamp[ns, tz=UTC]` | 股票当日首次涨停时间。 |
-| 4 | `last_limit_up_time` | `string` | `timestamp[ns, tz=UTC]` | 股票当日最后一次涨停时间。 |
+| 3 | `first_limit_up_time` | `string` | `timestamp[s, tz=UTC]` | 股票当日首次涨停时间。 |
+| 4 | `last_limit_up_time` | `string` | `timestamp[s, tz=UTC]` | 股票当日最后一次涨停时间。 |
 | 5 | `code` | `string` | `string` | 同花顺涨停池中的证券代码。 |
 | 6 | `limit_up_type` | `string` | `string` | 同花顺涨停类型分类。 |
 | 7 | `order_volume` | `number` | `double` | 涨停封单量。 |

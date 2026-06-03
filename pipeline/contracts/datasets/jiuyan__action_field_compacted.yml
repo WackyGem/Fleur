@@ -112,13 +112,13 @@ parquet:
     type: bool
     nullable: false
   - name: delete_time
-    type: timestamp[ns]
+    type: timestamp[s]
     nullable: true
   - name: create_time
-    type: timestamp[ns]
+    type: timestamp[s]
     nullable: false
   - name: update_time
-    type: timestamp[ns]
+    type: timestamp[s]
     nullable: true
   - name: count
     type: int64
@@ -184,15 +184,15 @@ clickhouse_raw:
     from: is_delete
     nullable: false
   - name: delete_time
-    type: DateTime64(3)
+    type: DateTime
     from: delete_time
     nullable: true
   - name: create_time
-    type: DateTime64(3)
+    type: DateTime
     from: create_time
     nullable: false
   - name: update_time
-    type: DateTime64(3)
+    type: DateTime
     from: update_time
     nullable: true
   - name: count
@@ -205,7 +205,7 @@ clickhouse_raw:
     nullable: false
     reason: expected_low_cardinality_dimension
   - name: time
-    type: String
+    type: Time
     from: time
     nullable: true
   - name: num
