@@ -2,7 +2,7 @@ version: 2
 
 models:
   - name: stg_sina__trade_calendar
-    description: Sina A-share trade calendar with canonical trade-date field.
+    description: 新浪 A 股交易日历 staging 模型。
     columns:
       - name: trade_date
         description: "{{ doc('field_trade_date') }}"

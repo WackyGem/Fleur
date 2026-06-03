@@ -1,0 +1,181 @@
+version: 2
+
+models:
+  - name: stg_baostock__query_stock_basic
+    description: BaoStock 证券基础信息快照 staging 模型。
+    columns:
+      - name: security_code
+        description: "{{ doc('field_security_code') }}"
+        data_type: String
+        data_tests:
+          - not_null
+          - unique
+          - cn_security_code_format
+        config:
+          meta:
+            glossary_key: security_code
+            source_columns:
+              - source: raw
+                table: baostock__query_stock_basic
+                column: code
+            normalization:
+              macro: normalize_cn_security_code
+              input_format: baostock_prefix
+
+      - name: security_local_code
+        description: "{{ doc('field_security_local_code') }}"
+        data_type: String
+        config:
+          meta:
+            glossary_key: security_local_code
+            source_columns:
+              - source: raw
+                table: baostock__query_stock_basic
+                column: code
+            normalization:
+              macro: cn_security_local_code
+              input_format: baostock_prefix
+
+      - name: exchange_code
+        description: "{{ doc('field_exchange_code') }}"
+        data_type: String
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: ["SH", "SZ", "BJ"]
+        config:
+          meta:
+            glossary_key: exchange_code
+            source_columns:
+              - source: raw
+                table: baostock__query_stock_basic
+                column: code
+            normalization:
+              macro: cn_exchange_code
+              input_format: baostock_prefix
+
+      - name: security_name
+        description: BaoStock 证券简称。
+        data_type: String
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: baostock__query_stock_basic
+                column: code_name
+
+      - name: ipo_date
+        description: BaoStock 证券上市日期。
+        data_type: Date
+        data_tests:
+          - not_null
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: baostock__query_stock_basic
+                column: ipoDate
+
+      - name: out_date
+        description: BaoStock 证券退市日期。
+        data_type: Nullable(Date)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: baostock__query_stock_basic
+                column: outDate
+
+      - name: security_type_code
+        description: BaoStock 证券类型编码。
+        data_type: Int8
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: [1, 2, 3, 4, 5]
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: baostock__query_stock_basic
+                column: type
+
+      - name: security_type
+        description: BaoStock 证券类型标签。
+        data_type: Enum8('stock' = 1, 'index' = 2, 'other' = 3, 'convertible_bond' = 4, 'etf' = 5)
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: ["stock", "index", "other", "convertible_bond", "etf"]
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: baostock__query_stock_basic
+                column: type
+            derived_from:
+              - security_type_code
+            derivation_note_zh: 由 BaoStock 原始 type 编码确定性映射为 source-local 证券类型枚举。
+
+      - name: security_board
+        description: A 股证券板块分类。
+        data_type: Nullable(Enum8('sse_main_board' = 1, 'szse_main_board' = 2, 'chinext' = 3, 'star_market' = 4))
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: ["sse_main_board", "szse_main_board", "chinext", "star_market"]
+          - baostock_security_board_consistency
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: baostock__query_stock_basic
+                column: code
+              - source: raw
+                table: baostock__query_stock_basic
+                column: type
+            derived_from:
+              - security_code
+              - security_local_code
+              - exchange_code
+              - security_type_code
+            derivation_note_zh: 由 BaoStock 证券代码前缀、交易所代码和 type 编码确定性派生 source-local 板块分类。
+
+      - name: listing_status_code
+        description: BaoStock 上市状态编码。
+        data_type: Int8
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: [0, 1]
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: baostock__query_stock_basic
+                column: status
+
+      - name: listing_status
+        description: BaoStock 上市状态标签。
+        data_type: Enum8('delisted' = 0, 'listed' = 1)
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: ["listed", "delisted"]
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: baostock__query_stock_basic
+                column: status
+            derived_from:
+              - listing_status_code
+            derivation_note_zh: 由 BaoStock 原始 status 编码确定性映射为 source-local 上市状态枚举。

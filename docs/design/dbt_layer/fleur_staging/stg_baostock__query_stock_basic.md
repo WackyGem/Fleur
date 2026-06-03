@@ -54,10 +54,10 @@ BaoStock 证券基础信息快照的 source-local staging model。staging 只统
 
 | 枚举字段 | 条件 | 枚举值 | 中文说明 |
 |----------|------|--------|----------|
-| `security_board` | `security_code` 解析为 `SSE`，且本地代码以 `688` 开头 | `star_market` | 科创板 |
-| `security_board` | `security_code` 解析为 `SSE`，且本地代码以 `600`、`601`、`603` 或 `605` 开头 | `sse_main_board` | 沪市主板 |
-| `security_board` | `security_code` 解析为 `SZSE`，且本地代码以 `300` 或 `301` 开头 | `chinext` | 创业板 |
-| `security_board` | `security_code` 解析为 `SZSE`，且本地代码以 `000`、`001`、`002` 或 `003` 开头 | `szse_main_board` | 深市主板 |
+| `security_board` | `security_code` 解析为 `SH`，且本地代码以 `68` 开头 | `star_market` | 科创板 |
+| `security_board` | `security_code` 解析为 `SH`，且本地代码以 `600`、`601`、`603` 或 `605` 开头 | `sse_main_board` | 沪市主板 |
+| `security_board` | `security_code` 解析为 `SZ`，且本地代码以 `30` 开头 | `chinext` | 创业板 |
+| `security_board` | `security_code` 解析为 `SZ`，且本地代码以 `000`、`001`、`002` 或 `003` 开头 | `szse_main_board` | 深市主板 |
 | `security_board` | `security_code` 未命中上述股票板块代码段 | `NULL` | 非股票证券或暂未纳入口径的代码段不需要所属板块 |
 
 板块语义边界：

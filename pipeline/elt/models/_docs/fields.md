@@ -13,7 +13,3 @@ A 股交易所代码，当前支持 `SH`、`SZ`、`BJ`。
 {% docs field_trade_date %}
 A 股市场交易日期。
 {% enddocs %}
-
-{% docs field_report_date %}
-财务、股本或公告类记录对应的报告日期或截止日期。
-{% enddocs %}
