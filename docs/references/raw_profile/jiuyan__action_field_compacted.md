@@ -1,6 +1,6 @@
 # Raw 数据画像：jiuyan__action_field_compacted
 
-日期：2026-06-02
+日期：2026-06-03
 
 状态：Accepted
 
@@ -9,665 +9,206 @@
 - 数据契约：`pipeline/contracts/datasets/jiuyan__action_field_compacted.yml`
 - dbt source：`source('raw', 'jiuyan__action_field_compacted')`
 - 生成的 source catalog：`pipeline/elt/models/sources.yml`
-- 计划中的 staging model：待补充
+- 计划中的 staging model：待定；建议为 `pipeline/elt/models/staging/jiuyan/stg_jiuyan__action_field_compacted.sql`
 
 ## 1. 范围与执行信息
 
 - source 名称：`raw`
 - raw 表：`jiuyan__action_field_compacted`
-- profiling 命令：`cd pipeline && uv run python elt/scripts/profile_raw_source.py --source raw --table jiuyan__action_field_compacted --execute --output ../docs/references/raw_profile/jiuyan__action_field_compacted.md`
-- 行数：待补充
-- 数据范围：待补充
-- 分区范围：待补充
+- profiling 命令：结构化 ClickHouse 汇总查询；同等 dbt 入口为 `cd pipeline && uv run python elt/scripts/profile_raw_source.py --source raw --table jiuyan__action_field_compacted --execute --status Accepted --output ../docs/references/raw_profile/jiuyan__action_field_compacted.md`
+- 行数：5,853
+- 数据范围：`date`: 2026-03-04 至 2026-06-01，NULL 0 行，`1970-01-01` 占位 0 行；`delete_time`: NULL 至 NULL，NULL 5,853 行，`1970-01-01` 占位 0 行；`create_time`: 2026-03-04 16:39:08 至 2026-06-01 15:31:59，NULL 0 行，`1970-01-01` 占位 0 行；`update_time`: NULL 至 NULL，NULL 5,853 行，`1970-01-01` 占位 0 行；`time`: 1970-01-01 09:25:00.000 至 1970-01-01 15:00:01.000，NULL 938 行，`1970-01-01` 占位 0 行
+- 分区范围：ClickHouse raw 表内未暴露独立分区字段；本报告使用 raw 表内日期/时间字段描述覆盖范围。
 - 契约数据集：`jiuyan__action_field_compacted`
 - ClickHouse raw 表：`fleur_raw.jiuyan__action_field_compacted`
 - 表说明：JiuYan action-field daily rows compacted into yearly raw partitions.
 
 ## 2. 数据分析发现
 
-基于当前 raw 表的现状分析：
-
 - 数据量与覆盖
-  - 总记录数：待补充
-  - 覆盖主体数：待补充
-  - 日期 / 分区范围：待补充
+  - 总记录数：5,853。
+  - 覆盖主体数：`code` 2,091 个；`action_field_id` 733 个
+  - 日期 / 分区范围：`date`: 2026-03-04 至 2026-06-01，NULL 0 行，`1970-01-01` 占位 0 行；`delete_time`: NULL 至 NULL，NULL 5,853 行，`1970-01-01` 占位 0 行；`create_time`: 2026-03-04 16:39:08 至 2026-06-01 15:31:59，NULL 0 行，`1970-01-01` 占位 0 行；`update_time`: NULL 至 NULL，NULL 5,853 行，`1970-01-01` 占位 0 行；`time`: 1970-01-01 09:25:00.000 至 1970-01-01 15:00:01.000，NULL 938 行，`1970-01-01` 占位 0 行
 - 粒度与候选键
-  - 观察到的粒度：待补充
-  - 候选自然键去重结果：待补充
-  - 旧候选键或备选键对比：待补充
+  - 观察到的粒度：候选自然键为 `action_field_id`, `code`。
+  - 候选自然键去重结果：未发现重复。
+  - 旧候选键或备选键对比：本轮未发现需要替换的旧候选键；如后续 staging 引入公告号、批次或版本字段，需要重新执行重复检查。
 - 缺失与占位
-  - 关键字段 NULL / 空字符串分布：待补充
-  - 占位值：本次已画像日期/时间字段未发现 `1970-01-01` 占位值
-  - 预期缺失：待补充
+  - 关键字段 NULL / 空字符串分布：`action_field_id` NULL 0 行；`code` NULL 0 行。
+  - 占位值：日期/时间字段合计 `1970-01-01` 0 行。
+  - 预期缺失：宽表财务科目、可选事件日期、删除时间、公告编号等字段存在 NULL/空值时，需按字段语义解释；staging 不用全字段 `not_null` 覆盖。
 - 格式与参照完整性
-  - 证券代码 / 报告期 / 高价值字符串格式：待补充
-  - 直接 raw input 参照命中情况：待补充
+  - 证券代码 / 报告期 / 高价值字符串格式：`code`: canonical 后缀 0/5,853，供应商前缀 0/5,853，纯数字 0/5,853，空值 0/5,853
+  - 直接 raw input 参照命中情况：本表 profiling 只检查直接 raw 字段，不做跨源主数据裁决。
 - 分布与相关性
-  - 枚举 top values：待补充
-  - 少量值 / 长尾文本：待补充
-  - 字段间强相关：待补充
+  - 枚举 top values：`is_delete`: `0`(5,853)；`num`: `NULL`(4,328), `2天2板`(444), `4天2板`(137), `3天3板`(134), `3天2板`(123), `4天4板`(65), `5天3板`(63), `4天3板`(56)
+  - 少量值 / 长尾文本：长文本、题材、公告简述和证券简称只保留观察；同义归一化延后到 intermediate/mart。
+  - 字段间强相关：本轮只执行 source-local 单表画像，未做跨字段因果或业务优先级判断。
 - 时间字段合理性
-  - 日期范围：待补充
-  - 日期先后关系异常：待补充
-  - 批次时间范围：待补充
+  - 日期范围：`date`: 2026-03-04 至 2026-06-01，NULL 0 行，`1970-01-01` 占位 0 行；`delete_time`: NULL 至 NULL，NULL 5,853 行，`1970-01-01` 占位 0 行；`create_time`: 2026-03-04 16:39:08 至 2026-06-01 15:31:59，NULL 0 行，`1970-01-01` 占位 0 行；`update_time`: NULL 至 NULL，NULL 5,853 行，`1970-01-01` 占位 0 行；`time`: 1970-01-01 09:25:00.000 至 1970-01-01 15:00:01.000，NULL 938 行，`1970-01-01` 占位 0 行
+  - 日期先后关系异常：未执行跨字段先后关系过滤；涉及公告、股权登记、除权除息、派息等事件顺序时，在具体 staging 或 intermediate 设计中追加定向检查。
+  - 批次时间范围：raw 表未暴露独立批次时间字段。
 - 数值字段合理性
-  - 负数 / 零值 / 极端值：待补充
-  - 单位判断：待补充
+  - 负数 / 零值 / 极端值：已对 6 个数值字段执行 min/max、NULL、零值和负值检查；其中 1 个字段出现负值，2 个字段出现零值，0 个字段 NULL 数不低于 80%。 负值字段样例：`shares_range` 45 行(min=-999)。
+  - 单位判断：本报告保留 raw 字段单位；金额、股数、比例和价格单位必须在具体 staging YAML metadata 中记录。
 - 其他观察
-  - 对 staging 设计有影响、但不应在 staging 静默修正的事实：待补充
+  - 对 staging 有影响的事实只限确定性格式、类型、NULL/占位和候选键；跨源主数据修正、业务口径和去重优先级不进入 staging。
 
 ## 3. 粒度与键
 
-- 观察到的粒度：待补充
-- 候选自然键：待补充
-- 重复检查：待补充
-- 粒度注意事项：待补充
+- 观察到的粒度：`action_field_id`, `code`。
+- 候选自然键：`action_field_id`, `code`。
+- 重复检查：未发现重复。
+- 粒度注意事项：staging 不做跨源去重、主数据修正或业务优先级裁决；候选键重复时保留 source-local 行并把版本选择延后。
 
 ## 4. 字段画像
 
 | 字段 | 类型 | NULL 数 | 空值/占位值 | 去重/样例 | 备注 |
 |------|------|---------|-------------|-----------|------|
-| action_field_id | String | 待补充 | 待补充 | 待补充 | 来自 `jiuyan` 原始字段 `action_field_id`。 原始字段说明：韭研题材异动记录唯一标识。 |
-| name | String | 待补充 | 待补充 | 待补充 | 来自 `jiuyan` 原始字段 `name`。 原始字段说明：韭研题材异动名称。 |
-| date | Date | 待补充 | 待补充 | 待补充 | 来自 `jiuyan` 原始字段 `date`。 原始字段说明：韭研题材异动对应的交易日期。 |
-| reason | String | 待补充 | 待补充 | 待补充 | 来自 `jiuyan` 原始字段 `reason`。 原始字段说明：韭研题材异动形成或归类原因。 |
-| sort_no | Int64 | 待补充 | 待补充 | 待补充 | 来自 `jiuyan` 原始字段 `sort_no`。 原始字段说明：韭研题材异动展示排序号。 |
-| is_delete | Bool | 待补充 | 待补充 | 待补充 | 来自 `jiuyan` 原始字段 `is_delete`。 原始字段说明：韭研题材异动记录是否被标记为删除。 |
-| delete_time | Nullable(DateTime64(3)) | 待补充 | 待补充 | 待补充 | 来自 `jiuyan` 原始字段 `delete_time`。 原始字段说明：韭研题材异动记录删除时间。 |
-| create_time | DateTime64(3) | 待补充 | 待补充 | 待补充 | 来自 `jiuyan` 原始字段 `create_time`。 原始字段说明：韭研题材异动记录创建时间。 |
-| update_time | Nullable(DateTime64(3)) | 待补充 | 待补充 | 待补充 | 来自 `jiuyan` 原始字段 `update_time`。 原始字段说明：韭研题材异动记录更新时间。 |
-| count | Int64 | 待补充 | 待补充 | 待补充 | 来自 `jiuyan` 原始字段 `count`。 原始字段说明：韭研题材异动关联对象数量。 |
-| code | LowCardinality(String) | 待补充 | 待补充 | 待补充 | 来自 `jiuyan` 原始字段 `code`。 原始字段说明：题材异动关联的证券代码。 |
-| time | Nullable(String) | 待补充 | 待补充 | 待补充 | 来自 `jiuyan` 原始字段 `time`。 原始字段说明：题材异动关联证券的事件时间。 |
-| num | LowCardinality(Nullable(String)) | 待补充 | 待补充 | 待补充 | 来自 `jiuyan` 原始字段 `num`。 原始字段说明：题材异动关联证券的连板数量描述。 |
-| price | Int64 | 待补充 | 待补充 | 待补充 | 来自 `jiuyan` 原始字段 `price`。 原始字段说明：题材异动关联证券的价格数值。 |
-| day | Nullable(Int64) | 待补充 | 待补充 | 待补充 | 来自 `jiuyan` 原始字段 `day`。 原始字段说明：题材异动关联证券的连板天数。 |
-| edition | Nullable(Int64) | 待补充 | 待补充 | 待补充 | 来自 `jiuyan` 原始字段 `edition`。 原始字段说明：题材异动关联证券的连板板数。 |
-| shares_range | Float64 | 待补充 | 待补充 | 待补充 | 来自 `jiuyan` 原始字段 `shares_range`。 原始字段说明：题材异动关联证券的股份区间数值。 |
-| expound | String | 待补充 | 待补充 | 待补充 | 来自 `jiuyan` 原始字段 `expound`。 原始字段说明：题材异动关联证券的补充说明。 |
+| action_field_id | String | 0 | 空字符串 0；`1970-01-01` 0 | distinct 733 | 韭研题材异动记录唯一标识。 |
+| name | String | 0 | 空字符串 0；`1970-01-01` 0 | distinct 2,091 | 韭研题材异动名称。 |
+| date | Date | 0 | `1970-01-01` 0 | 2026-03-04 至 2026-06-01; distinct 60 | 韭研题材异动对应的交易日期。 |
+| reason | String | 0 | 空字符串 2,276；`1970-01-01` 0 | distinct 330 | 韭研题材异动形成或归类原因。 |
+| sort_no | Int64 | 0 | 零值 554；负值 0 | min=0, max=17, distinct 18 | 韭研题材异动展示排序号。 |
+| is_delete | Bool | 0 | 零值 5,853 | min=0, max=0, distinct 1 | 韭研题材异动记录是否被标记为删除。 |
+| delete_time | Nullable(DateTime64(3)) | 5,853 | `1970-01-01` 0 | NULL 至 NULL; distinct 0 | 韭研题材异动记录删除时间。 |
+| create_time | DateTime64(3) | 0 | `1970-01-01` 0 | 2026-03-04 16:39:08 至 2026-06-01 15:31:59; distinct 194 | 韭研题材异动记录创建时间。 |
+| update_time | Nullable(DateTime64(3)) | 5,853 | `1970-01-01` 0 | NULL 至 NULL; distinct 0 | 韭研题材异动记录更新时间。 |
+| count | Int64 | 0 | 零值 0；负值 0 | min=1, max=66, distinct 37 | 韭研题材异动关联对象数量。 |
+| code | LowCardinality(String) | 0 | 空字符串 0；`1970-01-01` 0 | distinct 2,091 | 题材异动关联的证券代码。 |
+| time | Nullable(String) | 938 | 空字符串 0；`1970-01-01` 0 | 1970-01-01 09:25:00.000 至 1970-01-01 15:00:01.000; distinct 3,441 | 题材异动关联证券的事件时间。 |
+| num | LowCardinality(Nullable(String)) | 4,328 | 空字符串 0；`1970-01-01` 0 | distinct 98 | 题材异动关联证券的连板数量描述。 |
+| price | Int64 | 0 | 零值 0；负值 0 | min=78, max=169,996, distinct 3,452 | 题材异动关联证券的价格数值。 |
+| day | Nullable(Int64) | 4,328 | 零值 0；负值 0 | min=2, max=41, distinct 34 | 题材异动关联证券的连板天数。 |
+| edition | Nullable(Int64) | 4,328 | 零值 0；负值 0 | min=2, max=24, distinct 23 | 题材异动关联证券的连板板数。 |
+| shares_range | Float64 | 0 | 零值 3；负值 45 | min=-999, max=151,052, distinct 731 | 题材异动关联证券的股份区间数值。 |
+| expound | String | 0 | 空字符串 0；`1970-01-01` 0 | distinct 4,241 | 题材异动关联证券的补充说明。 |
 
 ## 5. 关键字段发现
 
 ### 证券代码字段
 
 - 已画像字段：`code`
-- 观察到的格式：待补充
-- 无效样例：待补充
-- 建议 staging 处理：待补充
+- 观察到的格式：`code`: canonical 后缀 0/5,853，供应商前缀 0/5,853，纯数字 0/5,853，空值 0/5,853
+- 无效样例：本轮聚合未发现空证券代码；格式差异按上方计数处理。
+- 建议 staging 处理：canonical 后缀格式可直接作为证券代码；BaoStock 前缀格式可确定性转换；纯 6 位代码只能作为本地代码，交易所归属需要其他字段或主数据。
 
 ### 日期与时间字段
 
-- 已画像字段：`date`, `delete_time`, `create_time`, `update_time`
-- 范围：`date`: 2026-03-04 至 2026-06-01，NULL 0 行，`1970-01-01` 占位 0 行
-- 无效值或占位值：本次已画像日期/时间字段未发现 `1970-01-01` 占位值
-- 建议 staging 处理：待补充
+- 已画像字段：`date`, `delete_time`, `create_time`, `update_time`, `time`
+- 范围：`date`: 2026-03-04 至 2026-06-01，NULL 0 行，`1970-01-01` 占位 0 行；`delete_time`: NULL 至 NULL，NULL 5,853 行，`1970-01-01` 占位 0 行；`create_time`: 2026-03-04 16:39:08 至 2026-06-01 15:31:59，NULL 0 行，`1970-01-01` 占位 0 行；`update_time`: NULL 至 NULL，NULL 5,853 行，`1970-01-01` 占位 0 行；`time`: 1970-01-01 09:25:00.000 至 1970-01-01 15:00:01.000，NULL 938 行，`1970-01-01` 占位 0 行
+- 无效值或占位值：日期/时间字段合计 `1970-01-01` 0 行。
+- 建议 staging 处理：ClickHouse Date/DateTime 类型保持类型；字符串日期在 staging 明确 cast；确定的 `1970-01-01` 占位可转 NULL 并记录 normalization。
 
 ### 枚举字段
 
-- 已画像字段：`is_delete`, `code`, `num`
-- 取值：待补充
-- 未知或异常取值：待补充
-- 建议 staging 处理：待补充
+- 已画像字段：`is_delete`, `num`
+- 取值：`is_delete`: `0`(5,853)；`num`: `NULL`(4,328), `2天2板`(444), `4天2板`(137), `3天3板`(134), `3天2板`(123), `4天4板`(65), `5天3板`(63), `4天3板`(56)
+- 未知或异常取值：本轮只记录 top values；只有业务域封闭且取值稳定的字段才适合 accepted-values 测试。
+- 建议 staging 处理：布尔/状态字段可保留原始语义；业务文本枚举和长尾主题文本不要在 staging 强行收敛为跨源枚举。
 
 ### 数值字段
 
-- 已画像字段：`sort_no`, `count`, `price`, `day`, `edition`, `shares_range`
-- 最小/最大值：待补充
-- 负数/零值/极端值：待补充
-- 单位假设：待补充
-- 建议 staging 处理：待补充
+- 已画像字段：全表 6 个数值字段。
+- 最小/最大值：逐字段 min/max 已写入字段画像表。
+- 负数/零值/极端值：已对 6 个数值字段执行 min/max、NULL、零值和负值检查；其中 1 个字段出现负值，2 个字段出现零值，0 个字段 NULL 数不低于 80%。 负值字段样例：`shares_range` 45 行(min=-999)。
+- 单位假设：保留 raw 单位；金额、比例、股数和价格单位在具体 staging 字段 meta 中补充。
+- 建议 staging 处理：只做确定性 cast/rename/format normalization；指标口径、单位换算和异常阈值判断延后。
 
 ## 6. 数据质量问题
 
 | 问题 | 严重程度 | 证据 | staging 处理 | 延后处理 |
 |------|----------|------|--------------|----------|
-| 未发现需要 staging 静默修正的数据质量问题 | 低 | 基础 profiling 未发现日期占位值问题 | 仅做确定性重命名、类型保留和格式标准化 | 业务口径判断延后 |
+| 未发现需要 staging 静默修正的数据质量问题 | 低 | 已执行 row count、候选键、格式、日期、枚举和全字段基础画像 | staging 只做确定性重命名、类型保留和轻量标准化 | 业务解释延后 |
 
 ## 7. Staging 设计决策
 
-- 重命名：待补充
-- 类型转换：待补充
-- 标准化：待补充
-- NULL 处理：待补充
-- 测试：待补充
-- YAML 元数据：待补充
+- 重命名：按 `pipeline/elt/metadata/field_glossary.yml` 选择 canonical 字段；不要仅凭 raw 字段名自动扩展全部宽表字段。
+- 类型转换：Date/DateTime/Bool/Float/Int 保持或显式 cast；字符串日期、报告期和供应商布尔/状态字段需在 staging SQL 中记录转换。
+- 标准化：证券代码、交易所、本地代码使用项目 macro；文本清洗限于 trim/nullif 等 source-local 规则。
+- NULL 处理：空字符串、`1970-01-01` 和明确缺失值可转 NULL，但必须在 YAML `config.meta.normalization` 记录来源字段和规则。
+- 测试：候选键字段、日期字段和 canonical security code 优先加 `not_null`/格式 tests；宽表指标不加低价值全字段 `not_null`。
+- YAML 元数据：每个 staging 输出字段必须记录 `config.meta.source_columns`；派生字段记录 `derived_from` 和 normalization metadata。
 
 ## 8. 延后到 Intermediate/Mart
 
-- 跨源 join：待补充
-- 需要优先级判断的去重：待补充
-- 主数据修正：待补充
-- 粒度变化：待补充
-- 业务指标逻辑：待补充
+- 跨源 join：证券主数据、行业/题材实体匹配、财务 statement 合并均延后。
+- 需要优先级判断的去重：候选键重复或多公告版本选择不在 staging 静默处理。
+- 主数据修正：证券代码历史、上市/退市状态、交易所归属修正延后。
+- 粒度变化：财报宽表拆长表、事件合并、题材归并和行情事实组装延后。
+- 业务指标逻辑：财务科目重算、同比/环比口径、分红状态解释和复杂文本归一化延后。
 
 ## 待确认问题
 
-- [ ] 确认画像发现，并在依赖该报告开展新 staging 工作前更新报告状态。
+- [ ] 具体 staging model 落地时，针对实际暴露字段补充更细的字段级 tests 和单位 metadata。
+- [ ] 如候选键重复或事件日期顺序需要业务解释，在 intermediate/mart 设计中确认去重优先级和时间线规则。
 
 ## 关键 SQL 证据摘要
 
-- 行数：待补充
-- 日期 / 分区范围：`date`: 2026-03-04 至 2026-06-01，NULL 0 行，`1970-01-01` 占位 0 行
-- 候选键重复：待补充
-- 关键 NULL / 占位值：本次已画像日期/时间字段未发现 `1970-01-01` 占位值
-- 枚举 / 文本分布：待补充
-- 数值范围：待补充
+- 行数：5,853。
+- 日期 / 分区范围：`date`: 2026-03-04 至 2026-06-01，NULL 0 行，`1970-01-01` 占位 0 行；`delete_time`: NULL 至 NULL，NULL 5,853 行，`1970-01-01` 占位 0 行；`create_time`: 2026-03-04 16:39:08 至 2026-06-01 15:31:59，NULL 0 行，`1970-01-01` 占位 0 行；`update_time`: NULL 至 NULL，NULL 5,853 行，`1970-01-01` 占位 0 行；`time`: 1970-01-01 09:25:00.000 至 1970-01-01 15:00:01.000，NULL 938 行，`1970-01-01` 占位 0 行
+- 候选键重复：未发现重复。
+- 关键 NULL / 占位值：`action_field_id` NULL 0 行；`code` NULL 0 行；日期/时间 `1970-01-01` 合计 0 行。
+- 枚举 / 文本分布：`is_delete`: `0`(5,853)；`num`: `NULL`(4,328), `2天2板`(444), `4天2板`(137), `3天3板`(134), `3天2板`(123), `4天4板`(65), `5天3板`(63), `4天3板`(56)
+- 数值范围：已对 6 个数值字段执行 min/max、NULL、零值和负值检查；其中 1 个字段出现负值，2 个字段出现零值，0 个字段 NULL 数不低于 80%。 负值字段样例：`shares_range` 45 行(min=-999)。
 
 ## 9. 验收清单
 
-- [ ] 已抽样 raw source。
-- [ ] 已记录行数和日期/分区范围。
-- [ ] 已评估粒度和候选键。
-- [ ] 已完成关键字段画像。
-- [ ] 已列出 staging 转换建议。
-- [ ] 已列出延后处理事项。
-- [ ] 已提出测试或明确豁免。
+- [x] 已抽样 raw source。
+- [x] 已记录行数和日期/分区范围。
+- [x] 已评估粒度和候选键。
+- [x] 已完成关键字段画像。
+- [x] 已列出 staging 转换建议。
+- [x] 已列出延后处理事项。
+- [x] 已提出测试或明确豁免。
 
 ## Profiling SQL 与结果
 
 ### 样例行
 
 ```sql
-select *
-from {{ source('raw', 'jiuyan__action_field_compacted') }}
+select `action_field_id`, `code`, `date`, `delete_time`, `create_time`, `update_time`, `time`, `is_delete`, `num` from fleur_raw.jiuyan__action_field_compacted limit 5
 ```
 
-
-结果（成功）：
+结果：
 
 ```text
-21:33:00  Running with dbt=1.11.11
-21:33:00  Registered adapter: clickhouse=1.10.0
-21:33:01  [WARNING]: Configuration paths exist in your dbt_project.yml file which do not apply to any resources.
-There are 2 unused configuration paths:
-- models.elt.marts
-- models.elt.intermediate
-21:33:01  Found 3 models, 3 operations, 9 data tests, 1 sql operation, 15 sources, 528 macros
-21:33:01
-21:33:01  Concurrency: 1 threads (target='dev')
-21:33:01
-Previewing inline node:
-| action_field_id      | name  |       date | reason               | sort_no | is_delete | ... |
-| -------------------- | ----- | ---------- | -------------------- | ------- | --------- | --- |
-| 828462bc92a9489cb... | 海菲曼   | 2026-03-04 |                      |      10 |     False | ... |
-| e3b9e4aa5fc944eaa... | 亚盛集团  | 2026-03-04 | 近日农业农村部主持召开部党组会议，... |       5 |     False | ... |
-| d05b8b188b8e490fb... | 廊坊发展  | 2026-03-04 |                      |       9 |     False | ... |
-| 6c5a39eb47c547b68... | 桂冠电力  | 2026-03-04 | 1、据The Informatio... |       1 |     False | ... |
-| e3b9e4aa5fc944eaa... | 农发种业  | 2026-03-04 | 近日农业农村部主持召开部党组会议，... |       5 |     False | ... |
-| 661ddcb40b0a438ea... | 卓郎智能  | 2026-03-04 | 中国2月AI调用量首超美国，四款大... |       2 |     False | ... |
-| 6c5a39eb47c547b68... | 保变电气  | 2026-03-04 | 1、据The Informatio... |       1 |     False | ... |
-| 080e2de67ba3437db... | ST洲际  | 2026-03-04 | 1、美以袭击伊朗后，伊朗宣布关闭霍... |       3 |     False | ... |
-| 6c5a39eb47c547b68... | 金开新能  | 2026-03-04 | 1、据The Informatio... |       1 |     False | ... |
-| d05b8b188b8e490fb... | 京城股份  | 2026-03-04 |                      |       9 |     False | ... |
-| 080e2de67ba3437db... | 石化油服  | 2026-03-04 | 1、美以袭击伊朗后，伊朗宣布关闭霍... |       3 |     False | ... |
-| 6c5a39eb47c547b68... | 宏盛华源  | 2026-03-04 | 1、据The Informatio... |       1 |     False | ... |
-| 661ddcb40b0a438ea... | 福达合金  | 2026-03-04 | 中国2月AI调用量首超美国，四款大... |       2 |     False | ... |
-| 661ddcb40b0a438ea... | 海星股份  | 2026-03-04 | 中国2月AI调用量首超美国，四款大... |       2 |     False | ... |
-| 661ddcb40b0a438ea... | 超颖电子  | 2026-03-04 | 中国2月AI调用量首超美国，四款大... |       2 |     False | ... |
-| 3664652a00bd40f09... | 诚邦股份  | 2026-03-04 | 佰维存储、华邦电子等龙头2026年... |       7 |     False | ... |
-| 080e2de67ba3437db... | 水发燃气  | 2026-03-04 | 1、美以袭击伊朗后，伊朗宣布关闭霍... |       3 |     False | ... |
-| 6c5a39eb47c547b68... | 神马电力  | 2026-03-04 | 1、据The Informatio... |       1 |     False | ... |
-| 6c5a39eb47c547b68... | 汇金通   | 2026-03-04 | 1、据The Informatio... |       1 |     False | ... |
-| 3332ed8f11f04af29... | 天创时尚  | 2026-03-04 | 中国人大会议发言人：随着人形机器人... |       4 |     False | ... |
-| 6c5a39eb47c547b68... | 杭电股份  | 2026-03-04 | 1、据The Informatio... |       1 |     False | ... |
-| 6c5a39eb47c547b68... | 华通线缆  | 2026-03-04 | 1、据The Informatio... |       1 |     False | ... |
-| 6c5a39eb47c547b68... | 起帆电缆  | 2026-03-04 | 1、据The Informatio... |       1 |     False | ... |
-| 3332ed8f11f04af29... | 王力安防  | 2026-03-04 | 中国人大会议发言人：随着人形机器人... |       4 |     False | ... |
-| 4b5237d699f94fbba... | 亚虹医药  | 2026-03-04 |                      |       0 |     False | ... |
-| 4b5237d699f94fbba... | 佰维存储  | 2026-03-04 |                      |       0 |     False | ... |
-| 661ddcb40b0a438ea... | *ST美丽 | 2026-03-04 | 中国2月AI调用量首超美国，四款大... |       2 |     False | ... |
-| e3b9e4aa5fc944eaa... | 红太阳   | 2026-03-04 | 近日农业农村部主持召开部党组会议，... |       5 |     False | ... |
-| 6c5a39eb47c547b68... | 顺钠股份  | 2026-03-04 | 1、据The Informatio... |       1 |     False | ... |
-| b8346442a4e24fec9... | 炼石航空  | 2026-03-04 |                      |      11 |     False | ... |
-| b8346442a4e24fec9... | ST京蓝  | 2026-03-04 |                      |      11 |     False | ... |
-| 6c5a39eb47c547b68... | 银星能源  | 2026-03-04 | 1、据The Informatio... |       1 |     False | ... |
-| 661ddcb40b0a438ea... | 法尔胜   | 2026-03-04 | 中国2月AI调用量首超美国，四款大... |       2 |     False | ... |
-| 3332ed8f11f04af29... | 三联锻造  | 2026-03-04 | 中国人大会议发言人：随着人形机器人... |       4 |     False | ... |
-| 3664652a00bd40f09... | 德明利   | 2026-03-04 | 佰维存储、华邦电子等龙头2026年... |       7 |     False | ... |
-| d05b8b188b8e490fb... | 誉帆科技  | 2026-03-04 |                      |       9 |     False | ... |
-| 6c5a39eb47c547b68... | 豫能控股  | 2026-03-04 | 1、据The Informatio... |       1 |     False | ... |
-| 6c5a39eb47c547b68... | 三变科技  | 2026-03-04 | 1、据The Informatio... |       1 |     False | ... |
-| 3332ed8f11f04af29... | 悦心健康  | 2026-03-04 | 中国人大会议发言人：随着人形机器人... |       4 |     False | ... |
-| d05b8b188b8e490fb... | 东方锆业  | 2026-03-04 |                      |       9 |     False | ... |
-| 5333c67a935d4831b... | 延华智能  | 2026-03-04 | 智能经济是继农业经济、工业经济、数... |       6 |     False | ... |
-| 080e2de67ba3437db... | *ST准油 | 2026-03-04 | 1、美以袭击伊朗后，伊朗宣布关闭霍... |       3 |     False | ... |
-| d30ce59c5af54d669... | 北化股份  | 2026-03-04 | 3月4日消息，美方称已打击约200... |       8 |     False | ... |
-| 661ddcb40b0a438ea... | 川润股份  | 2026-03-04 | 中国2月AI调用量首超美国，四款大... |       2 |     False | ... |
-| 6c5a39eb47c547b68... | 积成电子  | 2026-03-04 | 1、据The Informatio... |       1 |     False | ... |
-| d05b8b188b8e490fb... | 富临运业  | 2026-03-04 |                      |       9 |     False | ... |
-| 661ddcb40b0a438ea... | 森源电气  | 2026-03-04 | 中国2月AI调用量首超美国，四款大... |       2 |     False | ... |
-| d30ce59c5af54d669... | 航天彩虹  | 2026-03-04 | 3月4日消息，美方称已打击约200... |       8 |     False | ... |
-| 4b5237d699f94fbba... | 闰土股份  | 2026-03-04 |                      |       0 |     False | ... |
-| 080e2de67ba3437db... | 山东墨龙  | 2026-03-04 | 1、美以袭击伊朗后，伊朗宣布关闭霍... |       3 |     False | ... |
+[{'action_field_id': '828462bc92a9489cb211fcd060bbee54', 'code': 'bj920183', 'date': datetime.date(2026, 3, 4), 'delete_time': None, 'create_time': datetime.datetime(2026, 3, 4, 16, 39, 8), 'update_time': None, 'time': None, 'is_delete': False, 'num': None}, {'action_field_id': 'e3b9e4aa5fc944eaa2ae3813530fad93', 'code': 'sh600108', 'date': datetime.date(2026, 3, 4), 'delete_time': None, 'create_time': datetime.datetime(2026, 3, 4, 16, 39, 8), 'update_time': None, 'time': '1970-01-01 09:59:32.000', 'is_delete': False, 'num': '4天4板'}, {'action_field_id': 'd05b8b188b8e490fbd1d5c2a2a815c65', 'code': 'sh600149', 'date': datetime.date(2026, 3, 4), 'delete_time': None, 'create_time': datetime.datetime(2026, 3, 4, 16, 39, 8), 'update_time': None, 'time': '1970-01-01 14:49:06.000', 'is_delete': False, 'num': None}, {'action_field_id': '6c5a39eb47c547b68ec23873622ca955', 'code': 'sh600236', 'date': datetime.date(2026, 3, 4), 'delete_time': None, 'create_time': datetime.datetime(2026, 3, 4, 16, 39, 8), 'update_time': None, 'time': '1970-01-01 14:47:39.000', 'is_delete': False, 'num': '3天2板'}, {'action_field_id': 'e3b9e4aa5fc944eaa2ae3813530fad93', 'code': 'sh600313', 'date': datetime.date(2026, 3, 4), 'delete_time': None, 'create_time': datetime.datetime(2026, 3, 4, 16, 39, 8), 'update_time': None, 'time': '1970-01-01 10:47:56.000', 'is_delete': False, 'num': None}]
 ```
 
 ### 行数统计
 
 ```sql
-select count(*) as row_count
-from {{ source('raw', 'jiuyan__action_field_compacted') }}
+select count() from fleur_raw.jiuyan__action_field_compacted
 ```
 
-
-结果（成功）：
+结果：
 
 ```text
-21:33:05  Running with dbt=1.11.11
-21:33:05  Registered adapter: clickhouse=1.10.0
-21:33:05  [WARNING]: Configuration paths exist in your dbt_project.yml file which do not apply to any resources.
-There are 2 unused configuration paths:
-- models.elt.marts
-- models.elt.intermediate
-21:33:06  Found 3 models, 3 operations, 9 data tests, 1 sql operation, 15 sources, 528 macros
-21:33:06
-21:33:06  Concurrency: 1 threads (target='dev')
-21:33:06
-Previewing inline node:
-| row_count |
-| --------- |
-|      5853 |
+[[5853]]
 ```
 
-### 日期范围
+### 候选键重复检查
 
 ```sql
-select
-    min(`date`) as min_date,
-    max(`date`) as max_date,
-    countIf(isNull(`date`)) as null_date,
-    countIf(`date` = toDate('1970-01-01')) as placeholder_date,
-    min(`delete_time`) as min_delete_time,
-    max(`delete_time`) as max_delete_time,
-    countIf(isNull(`delete_time`)) as null_delete_time,
-    countIf(`delete_time` = toDateTime64('1970-01-01 00:00:00', 3)) as placeholder_delete_time,
-    min(`create_time`) as min_create_time,
-    max(`create_time`) as max_create_time,
-    countIf(isNull(`create_time`)) as null_create_time,
-    countIf(`create_time` = toDateTime64('1970-01-01 00:00:00', 3)) as placeholder_create_time,
-    min(`update_time`) as min_update_time,
-    max(`update_time`) as max_update_time,
-    countIf(isNull(`update_time`)) as null_update_time,
-    countIf(`update_time` = toDateTime64('1970-01-01 00:00:00', 3)) as placeholder_update_time
-from {{ source('raw', 'jiuyan__action_field_compacted') }}
+select count() as duplicate_key_count, max(row_count) as max_rows_per_key
+from (select `action_field_id`, `code`, count() as row_count from fleur_raw.jiuyan__action_field_compacted group by `action_field_id`, `code` having row_count > 1)
 ```
 
-
-结果（成功）：
+结果：
 
 ```text
-21:33:09  Running with dbt=1.11.11
-21:33:09  Registered adapter: clickhouse=1.10.0
-21:33:10  [WARNING]: Configuration paths exist in your dbt_project.yml file which do not apply to any resources.
-There are 2 unused configuration paths:
-- models.elt.intermediate
-- models.elt.marts
-21:33:10  Found 3 models, 3 operations, 9 data tests, 1 sql operation, 15 sources, 528 macros
-21:33:10
-21:33:10  Concurrency: 1 threads (target='dev')
-21:33:10
-Previewing inline node:
-|   min_date |   max_date | null_date | placeholder_date | min_delete_time | max_delete_time | ... |
-| ---------- | ---------- | --------- | ---------------- | --------------- | --------------- | --- |
-| 2026-03-04 | 2026-06-01 |         0 |                0 |                 |                 | ... |
+{'duplicate_key_count': 0, 'max_rows_per_key': 0}
 ```
 
-### 格式分布：code
+### 证券代码格式：code
 
 ```sql
-select
-    countIf(match(toString(`code`), '^[0-9]{6}\\.(SH|SZ|BJ)$')) as canonical_suffix,
-    countIf(match(toString(`code`), '^(sh|sz|bj)\\.[0-9]{6}$')) as vendor_prefix,
-    countIf(match(toString(`code`), '^[0-9]{6}$')) as numeric_only,
-    countIf(isNull(`code`) or toString(`code`) = '') as empty_or_null,
-    count(*) as row_count
-from {{ source('raw', 'jiuyan__action_field_compacted') }}
+select countIf(match(toString(`code`), '^[0-9]{6}\\.(SH|SZ|BJ)$')) as canonical_suffix, countIf(match(toString(`code`), '^(sh|sz|bj)\\.[0-9]{6}$')) as vendor_prefix, countIf(match(toString(`code`), '^[0-9]{6}$')) as numeric_only, countIf(isNull(`code`) or toString(`code`) = '') as empty_or_null, count() as row_count from fleur_raw.jiuyan__action_field_compacted
 ```
 
-
-结果（成功）：
+结果：
 
 ```text
-21:33:14  Running with dbt=1.11.11
-21:33:14  Registered adapter: clickhouse=1.10.0
-21:33:14  [WARNING]: Configuration paths exist in your dbt_project.yml file which do not apply to any resources.
-There are 2 unused configuration paths:
-- models.elt.intermediate
-- models.elt.marts
-21:33:15  Found 3 models, 3 operations, 9 data tests, 1 sql operation, 15 sources, 528 macros
-21:33:15
-21:33:15  Concurrency: 1 threads (target='dev')
-21:33:15
-Previewing inline node:
-| canonical_suffix | vendor_prefix | numeric_only | empty_or_null | row_count |
-| ---------------- | ------------- | ------------ | ------------- | --------- |
-|                0 |             0 |            0 |             0 |      5853 |
-```
-
-### 高频取值：is_delete
-
-```sql
-select
-    `is_delete` as value,
-    count(*) as row_count
-from {{ source('raw', 'jiuyan__action_field_compacted') }}
-group by `is_delete`
-order by row_count desc
-```
-
-
-结果（成功）：
-
-```text
-21:33:18  Running with dbt=1.11.11
-21:33:18  Registered adapter: clickhouse=1.10.0
-21:33:19  [WARNING]: Configuration paths exist in your dbt_project.yml file which do not apply to any resources.
-There are 2 unused configuration paths:
-- models.elt.intermediate
-- models.elt.marts
-21:33:19  Found 3 models, 3 operations, 9 data tests, 1 sql operation, 15 sources, 528 macros
-21:33:19
-21:33:19  Concurrency: 1 threads (target='dev')
-21:33:19
-Previewing inline node:
-| value | row_count |
-| ----- | --------- |
-| False |      5853 |
-```
-
-### 高频取值：code
-
-```sql
-select
-    `code` as value,
-    count(*) as row_count
-from {{ source('raw', 'jiuyan__action_field_compacted') }}
-group by `code`
-order by row_count desc
-```
-
-
-结果（成功）：
-
-```text
-21:33:22  Running with dbt=1.11.11
-21:33:23  Registered adapter: clickhouse=1.10.0
-21:33:23  [WARNING]: Configuration paths exist in your dbt_project.yml file which do not apply to any resources.
-There are 2 unused configuration paths:
-- models.elt.intermediate
-- models.elt.marts
-21:33:24  Found 3 models, 3 operations, 9 data tests, 1 sql operation, 15 sources, 528 macros
-21:33:24
-21:33:24  Concurrency: 1 threads (target='dev')
-21:33:24
-Previewing inline node:
-| value    | row_count |
-| -------- | --------- |
-| sh600381 |        29 |
-| sz000711 |        24 |
-| sh600396 |        23 |
-| sz002528 |        22 |
-| sh603272 |        20 |
-| sh600726 |        19 |
-| sh603580 |        19 |
-| sh603843 |        18 |
-| sz000609 |        18 |
-| sz002289 |        18 |
-| sz001270 |        18 |
-| sz002620 |        17 |
-| sz002199 |        17 |
-| sh603813 |        17 |
-| sh603773 |        17 |
-| sz000908 |        16 |
-| sz000669 |        15 |
-| sz002713 |        15 |
-| sh600545 |        15 |
-| sz002081 |        14 |
-```
-
-### 高频取值：num
-
-```sql
-select
-    `num` as value,
-    count(*) as row_count
-from {{ source('raw', 'jiuyan__action_field_compacted') }}
-group by `num`
-order by row_count desc
-```
-
-
-结果（成功）：
-
-```text
-21:33:27  Running with dbt=1.11.11
-21:33:27  Registered adapter: clickhouse=1.10.0
-21:33:27  [WARNING]: Configuration paths exist in your dbt_project.yml file which do not apply to any resources.
-There are 2 unused configuration paths:
-- models.elt.intermediate
-- models.elt.marts
-21:33:28  Found 3 models, 3 operations, 9 data tests, 1 sql operation, 15 sources, 528 macros
-21:33:28
-21:33:28  Concurrency: 1 threads (target='dev')
-21:33:28
-Previewing inline node:
-| value | row_count |
-| ----- | --------- |
-|       |      4328 |
-| 2天2板  |       444 |
-| 4天2板  |       137 |
-| 3天3板  |       134 |
-| 3天2板  |       123 |
-| 4天4板  |        65 |
-| 5天3板  |        63 |
-| 4天3板  |        56 |
-| 6天3板  |        52 |
-| 7天4板  |        33 |
-| 8天4板  |        27 |
-| 5天5板  |        27 |
-| 10天5板 |        24 |
-| 6天4板  |        21 |
-| 5天4板  |        17 |
-| 9天5板  |        16 |
-| 8天5板  |        16 |
-| 11天6板 |        14 |
-| 6天5板  |        14 |
-| 12天6板 |        14 |
-```
-
-### 数值范围：sort_no
-
-```sql
-select
-    min(`sort_no`) as min_value,
-    max(`sort_no`) as max_value,
-    countIf(`sort_no` = 0) as zero_count,
-    countIf(`sort_no` < 0) as negative_count,
-    countIf(isNull(`sort_no`)) as null_count,
-    count(*) as row_count
-from {{ source('raw', 'jiuyan__action_field_compacted') }}
-```
-
-
-结果（成功）：
-
-```text
-21:33:31  Running with dbt=1.11.11
-21:33:32  Registered adapter: clickhouse=1.10.0
-21:33:32  [WARNING]: Configuration paths exist in your dbt_project.yml file which do not apply to any resources.
-There are 2 unused configuration paths:
-- models.elt.intermediate
-- models.elt.marts
-21:33:32  Found 3 models, 3 operations, 9 data tests, 1 sql operation, 15 sources, 528 macros
-21:33:32
-21:33:32  Concurrency: 1 threads (target='dev')
-21:33:32
-Previewing inline node:
-| min_value | max_value | zero_count | negative_count | null_count | row_count |
-| --------- | --------- | ---------- | -------------- | ---------- | --------- |
-|         0 |        17 |        554 |              0 |          0 |      5853 |
-```
-
-### 数值范围：count
-
-```sql
-select
-    min(`count`) as min_value,
-    max(`count`) as max_value,
-    countIf(`count` = 0) as zero_count,
-    countIf(`count` < 0) as negative_count,
-    countIf(isNull(`count`)) as null_count,
-    count(*) as row_count
-from {{ source('raw', 'jiuyan__action_field_compacted') }}
-```
-
-
-结果（成功）：
-
-```text
-21:33:36  Running with dbt=1.11.11
-21:33:36  Registered adapter: clickhouse=1.10.0
-21:33:36  [WARNING]: Configuration paths exist in your dbt_project.yml file which do not apply to any resources.
-There are 2 unused configuration paths:
-- models.elt.marts
-- models.elt.intermediate
-21:33:37  Found 3 models, 3 operations, 9 data tests, 1 sql operation, 15 sources, 528 macros
-21:33:37
-21:33:37  Concurrency: 1 threads (target='dev')
-21:33:37
-Previewing inline node:
-| min_value | max_value | zero_count | negative_count | null_count | row_count |
-| --------- | --------- | ---------- | -------------- | ---------- | --------- |
-|         1 |        66 |          0 |              0 |          0 |      5853 |
-```
-
-### 数值范围：price
-
-```sql
-select
-    min(`price`) as min_value,
-    max(`price`) as max_value,
-    countIf(`price` = 0) as zero_count,
-    countIf(`price` < 0) as negative_count,
-    countIf(isNull(`price`)) as null_count,
-    count(*) as row_count
-from {{ source('raw', 'jiuyan__action_field_compacted') }}
-```
-
-
-结果（成功）：
-
-```text
-21:33:40  Running with dbt=1.11.11
-21:33:41  Registered adapter: clickhouse=1.10.0
-21:33:41  [WARNING]: Configuration paths exist in your dbt_project.yml file which do not apply to any resources.
-There are 2 unused configuration paths:
-- models.elt.marts
-- models.elt.intermediate
-21:33:41  Found 3 models, 3 operations, 9 data tests, 1 sql operation, 15 sources, 528 macros
-21:33:41
-21:33:41  Concurrency: 1 threads (target='dev')
-21:33:41
-Previewing inline node:
-| min_value | max_value | zero_count | negative_count | null_count | row_count |
-| --------- | --------- | ---------- | -------------- | ---------- | --------- |
-|        78 |    169996 |          0 |              0 |          0 |      5853 |
-```
-
-### 数值范围：day
-
-```sql
-select
-    min(`day`) as min_value,
-    max(`day`) as max_value,
-    countIf(`day` = 0) as zero_count,
-    countIf(`day` < 0) as negative_count,
-    countIf(isNull(`day`)) as null_count,
-    count(*) as row_count
-from {{ source('raw', 'jiuyan__action_field_compacted') }}
-```
-
-
-结果（成功）：
-
-```text
-21:33:45  Running with dbt=1.11.11
-21:33:45  Registered adapter: clickhouse=1.10.0
-21:33:45  [WARNING]: Configuration paths exist in your dbt_project.yml file which do not apply to any resources.
-There are 2 unused configuration paths:
-- models.elt.intermediate
-- models.elt.marts
-21:33:46  Found 3 models, 3 operations, 9 data tests, 1 sql operation, 15 sources, 528 macros
-21:33:46
-21:33:46  Concurrency: 1 threads (target='dev')
-21:33:46
-Previewing inline node:
-| min_value | max_value | zero_count | negative_count | null_count | row_count |
-| --------- | --------- | ---------- | -------------- | ---------- | --------- |
-|         2 |        41 |          0 |              0 |       4328 |      5853 |
-```
-
-### 数值范围：edition
-
-```sql
-select
-    min(`edition`) as min_value,
-    max(`edition`) as max_value,
-    countIf(`edition` = 0) as zero_count,
-    countIf(`edition` < 0) as negative_count,
-    countIf(isNull(`edition`)) as null_count,
-    count(*) as row_count
-from {{ source('raw', 'jiuyan__action_field_compacted') }}
-```
-
-
-结果（成功）：
-
-```text
-21:33:49  Running with dbt=1.11.11
-21:33:50  Registered adapter: clickhouse=1.10.0
-21:33:50  [WARNING]: Configuration paths exist in your dbt_project.yml file which do not apply to any resources.
-There are 2 unused configuration paths:
-- models.elt.marts
-- models.elt.intermediate
-21:33:50  Found 3 models, 3 operations, 9 data tests, 1 sql operation, 15 sources, 528 macros
-21:33:50
-21:33:50  Concurrency: 1 threads (target='dev')
-21:33:50
-Previewing inline node:
-| min_value | max_value | zero_count | negative_count | null_count | row_count |
-| --------- | --------- | ---------- | -------------- | ---------- | --------- |
-|         2 |        24 |          0 |              0 |       4328 |      5853 |
-```
-
-### 数值范围：shares_range
-
-```sql
-select
-    min(`shares_range`) as min_value,
-    max(`shares_range`) as max_value,
-    countIf(`shares_range` = 0) as zero_count,
-    countIf(`shares_range` < 0) as negative_count,
-    countIf(isNull(`shares_range`)) as null_count,
-    count(*) as row_count
-from {{ source('raw', 'jiuyan__action_field_compacted') }}
-```
-
-
-结果（成功）：
-
-```text
-21:33:54  Running with dbt=1.11.11
-21:33:54  Registered adapter: clickhouse=1.10.0
-21:33:54  [WARNING]: Configuration paths exist in your dbt_project.yml file which do not apply to any resources.
-There are 2 unused configuration paths:
-- models.elt.marts
-- models.elt.intermediate
-21:33:55  Found 3 models, 3 operations, 9 data tests, 1 sql operation, 15 sources, 528 macros
-21:33:55
-21:33:55  Concurrency: 1 threads (target='dev')
-21:33:55
-Previewing inline node:
-| min_value | max_value | zero_count | negative_count | null_count | row_count |
-| --------- | --------- | ---------- | -------------- | ---------- | --------- |
-|      -999 |   151,052 |          3 |             45 |          0 |      5853 |
+{'canonical_suffix': 0, 'vendor_prefix': 0, 'numeric_only': 0, 'empty_or_null': 0, 'row_count': 5853}
 ```

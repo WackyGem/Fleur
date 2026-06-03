@@ -1,6 +1,6 @@
 # Raw 数据画像：jiuyan__industry_list
 
-日期：2026-06-02
+日期：2026-06-03
 
 状态：Accepted
 
@@ -9,607 +9,193 @@
 - 数据契约：`pipeline/contracts/datasets/jiuyan__industry_list.yml`
 - dbt source：`source('raw', 'jiuyan__industry_list')`
 - 生成的 source catalog：`pipeline/elt/models/sources.yml`
-- 计划中的 staging model：待补充
+- 计划中的 staging model：待定；建议为 `pipeline/elt/models/staging/jiuyan/stg_jiuyan__industry_list.sql`
 
 ## 1. 范围与执行信息
 
 - source 名称：`raw`
 - raw 表：`jiuyan__industry_list`
-- profiling 命令：`cd pipeline && uv run python elt/scripts/profile_raw_source.py --source raw --table jiuyan__industry_list --execute --output ../docs/references/raw_profile/jiuyan__industry_list.md`
-- 行数：待补充
-- 数据范围：待补充
-- 分区范围：待补充
+- profiling 命令：结构化 ClickHouse 汇总查询；同等 dbt 入口为 `cd pipeline && uv run python elt/scripts/profile_raw_source.py --source raw --table jiuyan__industry_list --execute --status Accepted --output ../docs/references/raw_profile/jiuyan__industry_list.md`
+- 行数：956
+- 数据范围：`delete_time`: NULL 至 NULL，NULL 956 行，`1970-01-01` 占位 0 行；`create_time`: 2024-03-16 21:08:41 至 2026-05-29 11:57:31，NULL 0 行，`1970-01-01` 占位 0 行；`update_time`: 2026-05-07 18:34:17 至 2026-06-02 03:23:55，NULL 0 行，`1970-01-01` 占位 0 行
+- 分区范围：ClickHouse raw 表内未暴露独立分区字段；本报告使用 raw 表内日期/时间字段描述覆盖范围。
 - 契约数据集：`jiuyan__industry_list`
 - ClickHouse raw 表：`fleur_raw.jiuyan__industry_list`
 - 表说明：JiuYan industry research list snapshot.
 
 ## 2. 数据分析发现
 
-基于当前 raw 表的现状分析：
-
 - 数据量与覆盖
-  - 总记录数：待补充
-  - 覆盖主体数：待补充
-  - 日期 / 分区范围：待补充
+  - 总记录数：956。
+  - 覆盖主体数：`industry_id` 956 个
+  - 日期 / 分区范围：`delete_time`: NULL 至 NULL，NULL 956 行，`1970-01-01` 占位 0 行；`create_time`: 2024-03-16 21:08:41 至 2026-05-29 11:57:31，NULL 0 行，`1970-01-01` 占位 0 行；`update_time`: 2026-05-07 18:34:17 至 2026-06-02 03:23:55，NULL 0 行，`1970-01-01` 占位 0 行
 - 粒度与候选键
-  - 观察到的粒度：待补充
-  - 候选自然键去重结果：待补充
-  - 旧候选键或备选键对比：待补充
+  - 观察到的粒度：候选自然键为 `industry_id`。
+  - 候选自然键去重结果：未发现重复。
+  - 旧候选键或备选键对比：本轮未发现需要替换的旧候选键；如后续 staging 引入公告号、批次或版本字段，需要重新执行重复检查。
 - 缺失与占位
-  - 关键字段 NULL / 空字符串分布：待补充
-  - 占位值：待补充
-  - 预期缺失：待补充
+  - 关键字段 NULL / 空字符串分布：`industry_id` NULL 0 行。
+  - 占位值：日期/时间字段合计 `1970-01-01` 0 行。
+  - 预期缺失：宽表财务科目、可选事件日期、删除时间、公告编号等字段存在 NULL/空值时，需按字段语义解释；staging 不用全字段 `not_null` 覆盖。
 - 格式与参照完整性
-  - 证券代码 / 报告期 / 高价值字符串格式：待补充
-  - 直接 raw input 参照命中情况：待补充
+  - 证券代码 / 报告期 / 高价值字符串格式：本表无证券代码格式字段；未执行证券代码格式检查。
+  - 直接 raw input 参照命中情况：本表 profiling 只检查直接 raw 字段，不做跨源主数据裁决。
 - 分布与相关性
-  - 枚举 top values：待补充
-  - 少量值 / 长尾文本：待补充
-  - 字段间强相关：待补充
+  - 枚举 top values：`title_red`: `0`(946), `1`(10)；`title_bold`: `0`(956)；`author`: `NULL`(748), `网络用户`(57), `用户贡献`(18), ``(8), `题材图谱小集`(6), `用户`(6), `糖葫芦趁热吃`(5), `公社用户`(4)；`is_top`: `0`(955), `1`(1)；`is_delete`: `0`(956)
+  - 少量值 / 长尾文本：长文本、题材、公告简述和证券简称只保留观察；同义归一化延后到 intermediate/mart。
+  - 字段间强相关：本轮只执行 source-local 单表画像，未做跨字段因果或业务优先级判断。
 - 时间字段合理性
-  - 日期范围：待补充
-  - 日期先后关系异常：待补充
-  - 批次时间范围：待补充
+  - 日期范围：`delete_time`: NULL 至 NULL，NULL 956 行，`1970-01-01` 占位 0 行；`create_time`: 2024-03-16 21:08:41 至 2026-05-29 11:57:31，NULL 0 行，`1970-01-01` 占位 0 行；`update_time`: 2026-05-07 18:34:17 至 2026-06-02 03:23:55，NULL 0 行，`1970-01-01` 占位 0 行
+  - 日期先后关系异常：未执行跨字段先后关系过滤；涉及公告、股权登记、除权除息、派息等事件顺序时，在具体 staging 或 intermediate 设计中追加定向检查。
+  - 批次时间范围：raw 表未暴露独立批次时间字段。
 - 数值字段合理性
-  - 负数 / 零值 / 极端值：待补充
-  - 单位判断：待补充
+  - 负数 / 零值 / 极端值：已对 4 个数值字段执行 min/max、NULL、零值和负值检查；其中 1 个字段出现负值，3 个字段出现零值，0 个字段 NULL 数不低于 80%。 负值字段样例：`sort_no` 2 行(min=-1)。
+  - 单位判断：本报告保留 raw 字段单位；金额、股数、比例和价格单位必须在具体 staging YAML metadata 中记录。
 - 其他观察
-  - 对 staging 设计有影响、但不应在 staging 静默修正的事实：待补充
+  - 对 staging 有影响的事实只限确定性格式、类型、NULL/占位和候选键；跨源主数据修正、业务口径和去重优先级不进入 staging。
 
 ## 3. 粒度与键
 
-- 观察到的粒度：待补充
-- 候选自然键：待补充
-- 重复检查：待补充
-- 粒度注意事项：待补充
+- 观察到的粒度：`industry_id`。
+- 候选自然键：`industry_id`。
+- 重复检查：未发现重复。
+- 粒度注意事项：staging 不做跨源去重、主数据修正或业务优先级裁决；候选键重复时保留 source-local 行并把版本选择延后。
 
 ## 4. 字段画像
 
 | 字段 | 类型 | NULL 数 | 空值/占位值 | 去重/样例 | 备注 |
 |------|------|---------|-------------|-----------|------|
-| industry_id | String | 待补充 | 待补充 | 待补充 | 来自 `jiuyan` 原始字段 `industry_id`。 原始字段说明：韭研行业研究记录唯一标识。 |
-| title_red | Bool | 待补充 | 待补充 | 待补充 | 来自 `jiuyan` 原始字段 `title_red`。 原始字段说明：行业研究标题是否红色高亮展示。 |
-| title_bold | Bool | 待补充 | 待补充 | 待补充 | 来自 `jiuyan` 原始字段 `title_bold`。 原始字段说明：行业研究标题是否加粗展示。 |
-| title | String | 待补充 | 待补充 | 待补充 | 来自 `jiuyan` 原始字段 `title`。 原始字段说明：行业研究标题。 |
-| author | LowCardinality(Nullable(String)) | 待补充 | 待补充 | 待补充 | 来自 `jiuyan` 原始字段 `author`。 原始字段说明：行业研究内容作者。 |
-| imgs | String | 待补充 | 待补充 | 待补充 | 来自 `jiuyan` 原始字段 `imgs`。 原始字段说明：行业研究内容关联图片列表。 |
-| keyword | String | 待补充 | 待补充 | 待补充 | 来自 `jiuyan` 原始字段 `keyword`。 原始字段说明：行业研究内容关键词。 |
-| content | String | 待补充 | 待补充 | 待补充 | 来自 `jiuyan` 原始字段 `content`。 原始字段说明：行业研究正文内容。 |
-| is_top | Bool | 待补充 | 待补充 | 待补充 | 来自 `jiuyan` 原始字段 `is_top`。 原始字段说明：行业研究内容是否置顶。 |
-| status | Int64 | 待补充 | 待补充 | 待补充 | 来自 `jiuyan` 原始字段 `status`。 原始字段说明：行业研究内容发布状态。 |
-| sort_no | Int64 | 待补充 | 待补充 | 待补充 | 来自 `jiuyan` 原始字段 `sort_no`。 原始字段说明：行业研究内容展示排序号。 |
-| forward_count | Int64 | 待补充 | 待补充 | 待补充 | 来自 `jiuyan` 原始字段 `forward_count`。 原始字段说明：行业研究内容转发次数。 |
-| browsers_count | Int64 | 待补充 | 待补充 | 待补充 | 来自 `jiuyan` 原始字段 `browsers_count`。 原始字段说明：行业研究内容浏览次数。 |
-| is_delete | Bool | 待补充 | 待补充 | 待补充 | 来自 `jiuyan` 原始字段 `is_delete`。 原始字段说明：行业研究内容是否被标记为删除。 |
-| delete_time | Nullable(DateTime64(3)) | 待补充 | 待补充 | 待补充 | 来自 `jiuyan` 原始字段 `delete_time`。 原始字段说明：行业研究内容删除时间。 |
-| create_time | DateTime64(3) | 待补充 | 待补充 | 待补充 | 来自 `jiuyan` 原始字段 `create_time`。 原始字段说明：行业研究内容创建时间。 |
-| update_time | DateTime64(3) | 待补充 | 待补充 | 待补充 | 来自 `jiuyan` 原始字段 `update_time`。 原始字段说明：行业研究内容更新时间。 |
+| industry_id | String | 0 | 空字符串 0；`1970-01-01` 0 | distinct 956 | 韭研行业研究记录唯一标识。 |
+| title_red | Bool | 0 | 零值 946 | min=0, max=1, distinct 2 | 行业研究标题是否红色高亮展示。 |
+| title_bold | Bool | 0 | 零值 956 | min=0, max=0, distinct 1 | 行业研究标题是否加粗展示。 |
+| title | String | 0 | 空字符串 0；`1970-01-01` 0 | distinct 952 | 行业研究标题。 |
+| author | LowCardinality(Nullable(String)) | 748 | 空字符串 8；`1970-01-01` 0 | distinct 86 | 行业研究内容作者。 |
+| imgs | String | 0 | 空字符串 0；`1970-01-01` 0 | distinct 956 | 行业研究内容关联图片列表。 |
+| keyword | String | 0 | 空字符串 0；`1970-01-01` 0 | distinct 956 | 行业研究内容关键词。 |
+| content | String | 0 | 空字符串 17；`1970-01-01` 0 | distinct 929 | 行业研究正文内容。 |
+| is_top | Bool | 0 | 零值 955 | min=0, max=1, distinct 2 | 行业研究内容是否置顶。 |
+| status | Int64 | 0 | 零值 956；负值 0 | min=0, max=0, distinct 1 | 行业研究内容发布状态。 |
+| sort_no | Int64 | 0 | 零值 935；负值 2 | min=-1, max=20, distinct 20 | 行业研究内容展示排序号。 |
+| forward_count | Int64 | 0 | 零值 148；负值 0 | min=0, max=568, distinct 101 | 行业研究内容转发次数。 |
+| browsers_count | Int64 | 0 | 零值 0；负值 0 | min=35, max=163,974, distinct 928 | 行业研究内容浏览次数。 |
+| is_delete | Bool | 0 | 零值 956 | min=0, max=0, distinct 1 | 行业研究内容是否被标记为删除。 |
+| delete_time | Nullable(DateTime64(3)) | 956 | `1970-01-01` 0 | NULL 至 NULL; distinct 0 | 行业研究内容删除时间。 |
+| create_time | DateTime64(3) | 0 | `1970-01-01` 0 | 2024-03-16 21:08:41 至 2026-05-29 11:57:31; distinct 956 | 行业研究内容创建时间。 |
+| update_time | DateTime64(3) | 0 | `1970-01-01` 0 | 2026-05-07 18:34:17 至 2026-06-02 03:23:55; distinct 908 | 行业研究内容更新时间。 |
 
 ## 5. 关键字段发现
 
 ### 证券代码字段
 
-- 已画像字段：待补充
-- 观察到的格式：待补充
-- 无效样例：待补充
-- 建议 staging 处理：待补充
+- 已画像字段：无
+- 观察到的格式：本表无证券代码格式字段；未执行证券代码格式检查。
+- 无效样例：本轮聚合未发现空证券代码；格式差异按上方计数处理。
+- 建议 staging 处理：canonical 后缀格式可直接作为证券代码；BaoStock 前缀格式可确定性转换；纯 6 位代码只能作为本地代码，交易所归属需要其他字段或主数据。
 
 ### 日期与时间字段
 
 - 已画像字段：`delete_time`, `create_time`, `update_time`
-- 范围：待补充
-- 无效值或占位值：待补充
-- 建议 staging 处理：待补充
+- 范围：`delete_time`: NULL 至 NULL，NULL 956 行，`1970-01-01` 占位 0 行；`create_time`: 2024-03-16 21:08:41 至 2026-05-29 11:57:31，NULL 0 行，`1970-01-01` 占位 0 行；`update_time`: 2026-05-07 18:34:17 至 2026-06-02 03:23:55，NULL 0 行，`1970-01-01` 占位 0 行
+- 无效值或占位值：日期/时间字段合计 `1970-01-01` 0 行。
+- 建议 staging 处理：ClickHouse Date/DateTime 类型保持类型；字符串日期在 staging 明确 cast；确定的 `1970-01-01` 占位可转 NULL 并记录 normalization。
 
 ### 枚举字段
 
 - 已画像字段：`title_red`, `title_bold`, `author`, `is_top`, `is_delete`
-- 取值：待补充
-- 未知或异常取值：待补充
-- 建议 staging 处理：待补充
+- 取值：`title_red`: `0`(946), `1`(10)；`title_bold`: `0`(956)；`author`: `NULL`(748), `网络用户`(57), `用户贡献`(18), ``(8), `题材图谱小集`(6), `用户`(6), `糖葫芦趁热吃`(5), `公社用户`(4)；`is_top`: `0`(955), `1`(1)；`is_delete`: `0`(956)
+- 未知或异常取值：本轮只记录 top values；只有业务域封闭且取值稳定的字段才适合 accepted-values 测试。
+- 建议 staging 处理：布尔/状态字段可保留原始语义；业务文本枚举和长尾主题文本不要在 staging 强行收敛为跨源枚举。
 
 ### 数值字段
 
-- 已画像字段：`status`, `sort_no`, `forward_count`, `browsers_count`
-- 最小/最大值：待补充
-- 负数/零值/极端值：待补充
-- 单位假设：待补充
-- 建议 staging 处理：待补充
+- 已画像字段：全表 4 个数值字段。
+- 最小/最大值：逐字段 min/max 已写入字段画像表。
+- 负数/零值/极端值：已对 4 个数值字段执行 min/max、NULL、零值和负值检查；其中 1 个字段出现负值，3 个字段出现零值，0 个字段 NULL 数不低于 80%。 负值字段样例：`sort_no` 2 行(min=-1)。
+- 单位假设：保留 raw 单位；金额、比例、股数和价格单位在具体 staging 字段 meta 中补充。
+- 建议 staging 处理：只做确定性 cast/rename/format normalization；指标口径、单位换算和异常阈值判断延后。
 
 ## 6. 数据质量问题
 
 | 问题 | 严重程度 | 证据 | staging 处理 | 延后处理 |
 |------|----------|------|--------------|----------|
-| 待补充 | 待补充 | 待补充 | 待补充 | 待补充 |
+| 未发现需要 staging 静默修正的数据质量问题 | 低 | 已执行 row count、候选键、格式、日期、枚举和全字段基础画像 | staging 只做确定性重命名、类型保留和轻量标准化 | 业务解释延后 |
 
 ## 7. Staging 设计决策
 
-- 重命名：待补充
-- 类型转换：待补充
-- 标准化：待补充
-- NULL 处理：待补充
-- 测试：待补充
-- YAML 元数据：待补充
+- 重命名：按 `pipeline/elt/metadata/field_glossary.yml` 选择 canonical 字段；不要仅凭 raw 字段名自动扩展全部宽表字段。
+- 类型转换：Date/DateTime/Bool/Float/Int 保持或显式 cast；字符串日期、报告期和供应商布尔/状态字段需在 staging SQL 中记录转换。
+- 标准化：证券代码、交易所、本地代码使用项目 macro；文本清洗限于 trim/nullif 等 source-local 规则。
+- NULL 处理：空字符串、`1970-01-01` 和明确缺失值可转 NULL，但必须在 YAML `config.meta.normalization` 记录来源字段和规则。
+- 测试：候选键字段、日期字段和 canonical security code 优先加 `not_null`/格式 tests；宽表指标不加低价值全字段 `not_null`。
+- YAML 元数据：每个 staging 输出字段必须记录 `config.meta.source_columns`；派生字段记录 `derived_from` 和 normalization metadata。
 
 ## 8. 延后到 Intermediate/Mart
 
-- 跨源 join：待补充
-- 需要优先级判断的去重：待补充
-- 主数据修正：待补充
-- 粒度变化：待补充
-- 业务指标逻辑：待补充
+- 跨源 join：证券主数据、行业/题材实体匹配、财务 statement 合并均延后。
+- 需要优先级判断的去重：候选键重复或多公告版本选择不在 staging 静默处理。
+- 主数据修正：证券代码历史、上市/退市状态、交易所归属修正延后。
+- 粒度变化：财报宽表拆长表、事件合并、题材归并和行情事实组装延后。
+- 业务指标逻辑：财务科目重算、同比/环比口径、分红状态解释和复杂文本归一化延后。
 
 ## 待确认问题
 
-- [ ] 确认画像发现，并在依赖该报告开展新 staging 工作前更新报告状态。
+- [ ] 具体 staging model 落地时，针对实际暴露字段补充更细的字段级 tests 和单位 metadata。
+- [ ] 如候选键重复或事件日期顺序需要业务解释，在 intermediate/mart 设计中确认去重优先级和时间线规则。
 
 ## 关键 SQL 证据摘要
 
-- 行数：待补充
-- 日期 / 分区范围：待补充
-- 候选键重复：待补充
-- 关键 NULL / 占位值：待补充
-- 枚举 / 文本分布：待补充
-- 数值范围：待补充
+- 行数：956。
+- 日期 / 分区范围：`delete_time`: NULL 至 NULL，NULL 956 行，`1970-01-01` 占位 0 行；`create_time`: 2024-03-16 21:08:41 至 2026-05-29 11:57:31，NULL 0 行，`1970-01-01` 占位 0 行；`update_time`: 2026-05-07 18:34:17 至 2026-06-02 03:23:55，NULL 0 行，`1970-01-01` 占位 0 行
+- 候选键重复：未发现重复。
+- 关键 NULL / 占位值：`industry_id` NULL 0 行；日期/时间 `1970-01-01` 合计 0 行。
+- 枚举 / 文本分布：`title_red`: `0`(946), `1`(10)；`title_bold`: `0`(956)；`author`: `NULL`(748), `网络用户`(57), `用户贡献`(18), ``(8), `题材图谱小集`(6), `用户`(6), `糖葫芦趁热吃`(5), `公社用户`(4)；`is_top`: `0`(955), `1`(1)；`is_delete`: `0`(956)
+- 数值范围：已对 4 个数值字段执行 min/max、NULL、零值和负值检查；其中 1 个字段出现负值，3 个字段出现零值，0 个字段 NULL 数不低于 80%。 负值字段样例：`sort_no` 2 行(min=-1)。
 
 ## 9. 验收清单
 
-- [ ] 已抽样 raw source。
-- [ ] 已记录行数和日期/分区范围。
-- [ ] 已评估粒度和候选键。
-- [ ] 已完成关键字段画像。
-- [ ] 已列出 staging 转换建议。
-- [ ] 已列出延后处理事项。
-- [ ] 已提出测试或明确豁免。
+- [x] 已抽样 raw source。
+- [x] 已记录行数和日期/分区范围。
+- [x] 已评估粒度和候选键。
+- [x] 已完成关键字段画像。
+- [x] 已列出 staging 转换建议。
+- [x] 已列出延后处理事项。
+- [x] 已提出测试或明确豁免。
 
 ## Profiling SQL 与结果
 
 ### 样例行
 
 ```sql
-select *
-from {{ source('raw', 'jiuyan__industry_list') }}
+select `industry_id`, `delete_time`, `create_time`, `update_time`, `title_red`, `title_bold`, `author`, `is_top`, `is_delete` from fleur_raw.jiuyan__industry_list limit 5
 ```
 
-
-结果（成功）：
+结果：
 
 ```text
-21:33:59  Running with dbt=1.11.11
-21:34:00  Registered adapter: clickhouse=1.10.0
-21:34:00  [WARNING]: Configuration paths exist in your dbt_project.yml file which do not apply to any resources.
-There are 2 unused configuration paths:
-- models.elt.marts
-- models.elt.intermediate
-21:34:00  Found 3 models, 3 operations, 9 data tests, 1 sql operation, 15 sources, 528 macros
-21:34:00
-21:34:00  Concurrency: 1 threads (target='dev')
-21:34:00
-Previewing inline node:
-| industry_id          | title_red | title_bold | title                | author    | imgs                 | ... |
-| -------------------- | --------- | ---------- | -------------------- | --------- | -------------------- | --- |
-| 00902f027bac4915b... |     False |      False | 珠海国资（240130）         |           | ["https://cdn.jiu... | ... |
-| 0099bee786df4bb7b... |     False |      False | 电子束光刻机“羲之”（250814）   |           | ["https://cdn.jiu... | ... |
-| 00c017f5acac407ca... |     False |      False | 功率半导体（251013)        |           | ["https://cdn.jiu... | ... |
-| 012af97c8c8c4c5ab... |     False |      False | 灵心巧手(260505)         |           | ["https://cdn.jiu... | ... |
-| 01599b8968be42728... |     False |      False | IC载板(260224)         |           | ["https://cdn.jiu... | ... |
-| 0179be73728041359... |     False |      False | 数字货币（250119）         |           | ["https://cdn.jiu... | ... |
-| 01a9455da8684099a... |     False |      False | 英伟达代理(251030)        |           | ["https://cdn.jiu... | ... |
-| 01de69a7f4d64ebbb... |     False |      False | 铜(240401)            |           | ["https://cdn.jiu... | ... |
-| 022afbe8e81a47568... |     False |      False | 深圳AI/机器人（250303）     | 用户贡献      | ["https://cdn.jiu... | ... |
-| 0352a4cc6c4242fd8... |     False |      False | 新饮品(250527)          |           | ["https://cdn.jiu... | ... |
-| 036565d0b7bc4801b... |     False |      False | 国产航母(250730)         |           | ["https://cdn.jiu... | ... |
-| 03e4d00376db4cb1a... |     False |      False | 超威半导体AMD(251007)     |           | ["https://cdn.jiu... | ... |
-| 0465896c63024b5db... |     False |      False | 医保DRG/DIP(240723)    |           | ["https://cdn.jiu... | ... |
-| 0484e87b75af4e47b... |     False |      False | 农药证件厂家(250108)       |           | ["https://cdn.jiu... | ... |
-| 04ac0e0215ab4d2e9... |     False |      False | 小米眼镜(250625)         |           | ["https://cdn.jiu... | ... |
-| 052d4174efdb45fa9... |     False |      False | 白银(250606)           |           | ["https://cdn.jiu... | ... |
-| 05410f454d1f42cd9... |     False |      False | 财税改革                 | 超前一步      | ["https://cdn.jiu... | ... |
-| 0683688c7c5b4d219... |     False |      False | 亿航智能订单量(250330)      |           | ["https://cdn.jiu... | ... |
-| 06b7d785c38d47a58... |     False |      False | MR(240118)           |           | ["https://cdn.jiu... | ... |
-| 06cf90cd83ef49cd9... |     False |      False | 网络安全/内容标注(260212)    |           | ["https://cdn.jiu... | ... |
-| 0702f4cd4e364251a... |     False |      False | AI 医疗（250215更新）      | 网络用户 龙行龘龘 | ["https://cdn.jiu... | ... |
-| 071401556f7b45c6a... |     False |      False | L3级别自动驾驶(251215)     |           | ["https://cdn.jiu... | ... |
-| 079187564e854ce6a... |     False |      False | 面板(240401)           | 东呈金润      | ["https://cdn.jiu... | ... |
-| 07d34db3a8264bfc8... |     False |      False | 智谱(251211)           |           | ["https://cdn.jiu... | ... |
-| 07f91b5cde6e4a45a... |     False |      False | 钠离子电池(251118)        |           | ["https://cdn.jiu... | ... |
-| 081f6a17d2b648519... |     False |      False | 合成生物（240427）         | 用户        | ["https://cdn.jiu... | ... |
-| 0825bf9d457741b7b... |     False |      False | AIPC(240107)         |           | ["https://cdn.jiu... | ... |
-| 084d33fdcecc4723b... |     False |      False | 无人物流（240722）         |           | ["https://cdn.jiu... | ... |
-| 08bb3273081444b1b... |     False |      False | 第十五届全运会(251028)      |           | ["https://cdn.jiu... | ... |
-| 08fee60b0b1141399... |     False |      False | 薄膜铌酸锂(240305)        |           | ["https://cdn.jiu... | ... |
-| 09bca14e82354a85a... |     False |      False | 卫星资源/无线电频谱(260111)   |           | ["https://cdn.jiu... | ... |
-| 09e00a8d219d476a9... |     False |      False | 博通交换机(250605)        |           | ["https://cdn.jiu... | ... |
-| 09f16f17aa044b149... |     False |      False | 2025年政府工作报告利好行业及个... | 用户贡献      | ["https://cdn.jiu... | ... |
-| 0a402feef560449f9... |     False |      False | AGV(240109)          |           | ["https://cdn.jiu... | ... |
-| 0bf8098c6de64f16b... |     False |      False | 宁德时代钠离子电池供应链(260421) |           | ["https://cdn.jiu... | ... |
-| 0bfa56b2229d49acb... |     False |      False | 爱思达航天(260105)        |           | ["https://cdn.jiu... | ... |
-| 0c20c92030b64ba98... |     False |      False | 机器人皮肤/仿生皮肤(251107)   |           | ["https://cdn.jiu... | ... |
-| 0c228808a67a4f909... |     False |      False | 钴金属(250623)          |           | ["https://cdn.jiu... | ... |
-| 0c23df69d0db4e1e9... |     False |      False | 足球-苏超联赛、体彩(250610)   |           | ["https://cdn.jiu... | ... |
-| 0c3f9169ac2e418ab... |     False |      False | AI陪伴(250111)         | 网络用户      | ["https://cdn.jiu... | ... |
-| 0c8d5c53cc72425d8... |     False |      False | 隧洞设备/盾构机(250721)     |           | ["https://cdn.jiu... | ... |
-| 0c9166e5319845298... |     False |      False | 光路交换机OCS(260428)更新   |           | ["https://cdn.jiu... | ... |
-| 0c9fb90280284a2f8... |     False |      False | 国产芯片参股公司(250928)     |           | ["https://cdn.jiu... | ... |
-| 0cb962a408464ddea... |     False |      False | 积木玩具10大(250109)      | 网络用户      | ["https://cdn.jiu... | ... |
-| 0d644e78ce334fa99... |     False |      False | 创新药(250609)          |           | ["https://cdn.jiu... | ... |
-| 0d7bcaeb87c942c38... |     False |      False | 造纸(250728)           |           | ["https://cdn.jiu... | ... |
-| 0da665c45f0542489... |     False |      False | 甲流(250106)           |           | ["https://cdn.jiu... | ... |
-| 0e38cc2976554bf39... |     False |      False | 华为AI存储(251117)更新     |           | ["https://cdn.jiu... | ... |
-| 0e981981569f4cbe8... |     False |      False | 磷化工/磷酸铁锂(260325)     |           | ["https://cdn.jiu... | ... |
-| 0ec85547423144449... |     False |      False | 农业种业(241216)         |           | ["https://cdn.jiu... | ... |
+[{'industry_id': '00902f027bac4915bca4a8528859ad7f', 'delete_time': None, 'create_time': datetime.datetime(2024, 3, 19, 0, 20, 42), 'update_time': datetime.datetime(2026, 5, 28, 21, 25, 13), 'title_red': False, 'title_bold': False, 'author': None, 'is_top': False, 'is_delete': False}, {'industry_id': '0099bee786df4bb7be478d583728158f', 'delete_time': None, 'create_time': datetime.datetime(2025, 8, 14, 23, 10, 59), 'update_time': datetime.datetime(2026, 5, 31, 15, 36, 27), 'title_red': False, 'title_bold': False, 'author': None, 'is_top': False, 'is_delete': False}, {'industry_id': '00c017f5acac407cac3e80ac0e9a8b54', 'delete_time': None, 'create_time': datetime.datetime(2025, 10, 13, 19, 50, 22), 'update_time': datetime.datetime(2026, 6, 1, 23, 16, 52), 'title_red': False, 'title_bold': False, 'author': None, 'is_top': False, 'is_delete': False}, {'industry_id': '012af97c8c8c4c5ab593f17b2af2b563', 'delete_time': None, 'create_time': datetime.datetime(2026, 5, 5, 19, 23, 6), 'update_time': datetime.datetime(2026, 6, 2, 0, 44, 52), 'title_red': False, 'title_bold': False, 'author': None, 'is_top': False, 'is_delete': False}, {'industry_id': '01599b8968be427286bd74d4d24cb1b8', 'delete_time': None, 'create_time': datetime.datetime(2026, 2, 24, 11, 20, 17), 'update_time': datetime.datetime(2026, 6, 1, 19, 21, 52), 'title_red': False, 'title_bold': False, 'author': None, 'is_top': False, 'is_delete': False}]
 ```
 
 ### 行数统计
 
 ```sql
-select count(*) as row_count
-from {{ source('raw', 'jiuyan__industry_list') }}
+select count() from fleur_raw.jiuyan__industry_list
 ```
 
-
-结果（成功）：
+结果：
 
 ```text
-21:34:04  Running with dbt=1.11.11
-21:34:04  Registered adapter: clickhouse=1.10.0
-21:34:04  [WARNING]: Configuration paths exist in your dbt_project.yml file which do not apply to any resources.
-There are 2 unused configuration paths:
-- models.elt.intermediate
-- models.elt.marts
-21:34:05  Found 3 models, 3 operations, 9 data tests, 1 sql operation, 15 sources, 528 macros
-21:34:05
-21:34:05  Concurrency: 1 threads (target='dev')
-21:34:05
-Previewing inline node:
-| row_count |
-| --------- |
-|       956 |
+[[956]]
 ```
 
-### 日期范围
+### 候选键重复检查
 
 ```sql
-select
-    min(`delete_time`) as min_delete_time,
-    max(`delete_time`) as max_delete_time,
-    countIf(isNull(`delete_time`)) as null_delete_time,
-    countIf(`delete_time` = toDateTime64('1970-01-01 00:00:00', 3)) as placeholder_delete_time,
-    min(`create_time`) as min_create_time,
-    max(`create_time`) as max_create_time,
-    countIf(isNull(`create_time`)) as null_create_time,
-    countIf(`create_time` = toDateTime64('1970-01-01 00:00:00', 3)) as placeholder_create_time,
-    min(`update_time`) as min_update_time,
-    max(`update_time`) as max_update_time,
-    countIf(isNull(`update_time`)) as null_update_time,
-    countIf(`update_time` = toDateTime64('1970-01-01 00:00:00', 3)) as placeholder_update_time
-from {{ source('raw', 'jiuyan__industry_list') }}
+select count() as duplicate_key_count, max(row_count) as max_rows_per_key
+from (select `industry_id`, count() as row_count from fleur_raw.jiuyan__industry_list group by `industry_id` having row_count > 1)
 ```
 
-
-结果（成功）：
+结果：
 
 ```text
-21:34:08  Running with dbt=1.11.11
-21:34:09  Registered adapter: clickhouse=1.10.0
-21:34:09  [WARNING]: Configuration paths exist in your dbt_project.yml file which do not apply to any resources.
-There are 2 unused configuration paths:
-- models.elt.marts
-- models.elt.intermediate
-21:34:09  Found 3 models, 3 operations, 9 data tests, 1 sql operation, 15 sources, 528 macros
-21:34:09
-21:34:09  Concurrency: 1 threads (target='dev')
-21:34:09
-Previewing inline node:
-| min_delete_time | max_delete_time | null_delete_time | placeholder_delet... |     min_create_time |     max_create_time | ... |
-| --------------- | --------------- | ---------------- | -------------------- | ------------------- | ------------------- | --- |
-|                 |                 |              956 |                    0 | 2024-03-16 21:08:41 | 2026-05-29 11:57:31 | ... |
-```
-
-### 高频取值：title_red
-
-```sql
-select
-    `title_red` as value,
-    count(*) as row_count
-from {{ source('raw', 'jiuyan__industry_list') }}
-group by `title_red`
-order by row_count desc
-```
-
-
-结果（成功）：
-
-```text
-21:34:13  Running with dbt=1.11.11
-21:34:13  Registered adapter: clickhouse=1.10.0
-21:34:13  [WARNING]: Configuration paths exist in your dbt_project.yml file which do not apply to any resources.
-There are 2 unused configuration paths:
-- models.elt.marts
-- models.elt.intermediate
-21:34:14  Found 3 models, 3 operations, 9 data tests, 1 sql operation, 15 sources, 528 macros
-21:34:14
-21:34:14  Concurrency: 1 threads (target='dev')
-21:34:14
-Previewing inline node:
-| value | row_count |
-| ----- | --------- |
-| False |       946 |
-|  True |        10 |
-```
-
-### 高频取值：title_bold
-
-```sql
-select
-    `title_bold` as value,
-    count(*) as row_count
-from {{ source('raw', 'jiuyan__industry_list') }}
-group by `title_bold`
-order by row_count desc
-```
-
-
-结果（成功）：
-
-```text
-21:34:17  Running with dbt=1.11.11
-21:34:18  Registered adapter: clickhouse=1.10.0
-21:34:18  [WARNING]: Configuration paths exist in your dbt_project.yml file which do not apply to any resources.
-There are 2 unused configuration paths:
-- models.elt.marts
-- models.elt.intermediate
-21:34:18  Found 3 models, 3 operations, 9 data tests, 1 sql operation, 15 sources, 528 macros
-21:34:18
-21:34:18  Concurrency: 1 threads (target='dev')
-21:34:18
-Previewing inline node:
-| value | row_count |
-| ----- | --------- |
-| False |       956 |
-```
-
-### 高频取值：author
-
-```sql
-select
-    `author` as value,
-    count(*) as row_count
-from {{ source('raw', 'jiuyan__industry_list') }}
-group by `author`
-order by row_count desc
-```
-
-
-结果（成功）：
-
-```text
-21:34:22  Running with dbt=1.11.11
-21:34:22  Registered adapter: clickhouse=1.10.0
-21:34:22  [WARNING]: Configuration paths exist in your dbt_project.yml file which do not apply to any resources.
-There are 2 unused configuration paths:
-- models.elt.intermediate
-- models.elt.marts
-21:34:23  Found 3 models, 3 operations, 9 data tests, 1 sql operation, 15 sources, 528 macros
-21:34:23
-21:34:23  Concurrency: 1 threads (target='dev')
-21:34:23
-Previewing inline node:
-| value  | row_count |
-| ------ | --------- |
-|        |       748 |
-| 网络用户   |        57 |
-| 用户贡献   |        18 |
-|        |         8 |
-| 用户     |         6 |
-| 题材图谱小集 |         6 |
-| 糖葫芦趁热吃 |         5 |
-| 公社用户   |         4 |
-| 韭之阿蒋   |         4 |
-| 概念百科   |         4 |
-| 超前挖掘   |         3 |
-| 776    |         3 |
-| 超前一步   |         3 |
-| 逻辑挖掘社  |         3 |
-| 场外期权研究 |         3 |
-| 大侠风清扬  |         2 |
-| 加油奥利给  |         2 |
-| 行研屌丝   |         2 |
-| 韭盈     |         2 |
-| 盘前消息   |         2 |
-```
-
-### 高频取值：is_top
-
-```sql
-select
-    `is_top` as value,
-    count(*) as row_count
-from {{ source('raw', 'jiuyan__industry_list') }}
-group by `is_top`
-order by row_count desc
-```
-
-
-结果（成功）：
-
-```text
-21:34:27  Running with dbt=1.11.11
-21:34:27  Registered adapter: clickhouse=1.10.0
-21:34:27  [WARNING]: Configuration paths exist in your dbt_project.yml file which do not apply to any resources.
-There are 2 unused configuration paths:
-- models.elt.intermediate
-- models.elt.marts
-21:34:28  Found 3 models, 3 operations, 9 data tests, 1 sql operation, 15 sources, 528 macros
-21:34:28
-21:34:28  Concurrency: 1 threads (target='dev')
-21:34:28
-Previewing inline node:
-| value | row_count |
-| ----- | --------- |
-| False |       955 |
-|  True |         1 |
-```
-
-### 高频取值：is_delete
-
-```sql
-select
-    `is_delete` as value,
-    count(*) as row_count
-from {{ source('raw', 'jiuyan__industry_list') }}
-group by `is_delete`
-order by row_count desc
-```
-
-
-结果（成功）：
-
-```text
-21:34:31  Running with dbt=1.11.11
-21:34:31  Registered adapter: clickhouse=1.10.0
-21:34:31  [WARNING]: Configuration paths exist in your dbt_project.yml file which do not apply to any resources.
-There are 2 unused configuration paths:
-- models.elt.intermediate
-- models.elt.marts
-21:34:32  Found 3 models, 3 operations, 9 data tests, 1 sql operation, 15 sources, 528 macros
-21:34:32
-21:34:32  Concurrency: 1 threads (target='dev')
-21:34:32
-Previewing inline node:
-| value | row_count |
-| ----- | --------- |
-| False |       956 |
-```
-
-### 数值范围：status
-
-```sql
-select
-    min(`status`) as min_value,
-    max(`status`) as max_value,
-    countIf(`status` = 0) as zero_count,
-    countIf(`status` < 0) as negative_count,
-    countIf(isNull(`status`)) as null_count,
-    count(*) as row_count
-from {{ source('raw', 'jiuyan__industry_list') }}
-```
-
-
-结果（成功）：
-
-```text
-21:34:35  Running with dbt=1.11.11
-21:34:36  Registered adapter: clickhouse=1.10.0
-21:34:36  [WARNING]: Configuration paths exist in your dbt_project.yml file which do not apply to any resources.
-There are 2 unused configuration paths:
-- models.elt.intermediate
-- models.elt.marts
-21:34:36  Found 3 models, 3 operations, 9 data tests, 1 sql operation, 15 sources, 528 macros
-21:34:36
-21:34:36  Concurrency: 1 threads (target='dev')
-21:34:36
-Previewing inline node:
-| min_value | max_value | zero_count | negative_count | null_count | row_count |
-| --------- | --------- | ---------- | -------------- | ---------- | --------- |
-|         0 |         0 |        956 |              0 |          0 |       956 |
-```
-
-### 数值范围：sort_no
-
-```sql
-select
-    min(`sort_no`) as min_value,
-    max(`sort_no`) as max_value,
-    countIf(`sort_no` = 0) as zero_count,
-    countIf(`sort_no` < 0) as negative_count,
-    countIf(isNull(`sort_no`)) as null_count,
-    count(*) as row_count
-from {{ source('raw', 'jiuyan__industry_list') }}
-```
-
-
-结果（成功）：
-
-```text
-21:34:40  Running with dbt=1.11.11
-21:34:40  Registered adapter: clickhouse=1.10.0
-21:34:40  [WARNING]: Configuration paths exist in your dbt_project.yml file which do not apply to any resources.
-There are 2 unused configuration paths:
-- models.elt.marts
-- models.elt.intermediate
-21:34:41  Found 3 models, 3 operations, 9 data tests, 1 sql operation, 15 sources, 528 macros
-21:34:41
-21:34:41  Concurrency: 1 threads (target='dev')
-21:34:41
-Previewing inline node:
-| min_value | max_value | zero_count | negative_count | null_count | row_count |
-| --------- | --------- | ---------- | -------------- | ---------- | --------- |
-|        -1 |        20 |        935 |              2 |          0 |       956 |
-```
-
-### 数值范围：forward_count
-
-```sql
-select
-    min(`forward_count`) as min_value,
-    max(`forward_count`) as max_value,
-    countIf(`forward_count` = 0) as zero_count,
-    countIf(`forward_count` < 0) as negative_count,
-    countIf(isNull(`forward_count`)) as null_count,
-    count(*) as row_count
-from {{ source('raw', 'jiuyan__industry_list') }}
-```
-
-
-结果（成功）：
-
-```text
-21:34:44  Running with dbt=1.11.11
-21:34:45  Registered adapter: clickhouse=1.10.0
-21:34:45  [WARNING]: Configuration paths exist in your dbt_project.yml file which do not apply to any resources.
-There are 2 unused configuration paths:
-- models.elt.marts
-- models.elt.intermediate
-21:34:45  Found 3 models, 3 operations, 9 data tests, 1 sql operation, 15 sources, 528 macros
-21:34:45
-21:34:45  Concurrency: 1 threads (target='dev')
-21:34:45
-Previewing inline node:
-| min_value | max_value | zero_count | negative_count | null_count | row_count |
-| --------- | --------- | ---------- | -------------- | ---------- | --------- |
-|         0 |       568 |        148 |              0 |          0 |       956 |
-```
-
-### 数值范围：browsers_count
-
-```sql
-select
-    min(`browsers_count`) as min_value,
-    max(`browsers_count`) as max_value,
-    countIf(`browsers_count` = 0) as zero_count,
-    countIf(`browsers_count` < 0) as negative_count,
-    countIf(isNull(`browsers_count`)) as null_count,
-    count(*) as row_count
-from {{ source('raw', 'jiuyan__industry_list') }}
-```
-
-
-结果（成功）：
-
-```text
-21:34:49  Running with dbt=1.11.11
-21:34:49  Registered adapter: clickhouse=1.10.0
-21:34:49  [WARNING]: Configuration paths exist in your dbt_project.yml file which do not apply to any resources.
-There are 2 unused configuration paths:
-- models.elt.marts
-- models.elt.intermediate
-21:34:50  Found 3 models, 3 operations, 9 data tests, 1 sql operation, 15 sources, 528 macros
-21:34:50
-21:34:50  Concurrency: 1 threads (target='dev')
-21:34:50
-Previewing inline node:
-| min_value | max_value | zero_count | negative_count | null_count | row_count |
-| --------- | --------- | ---------- | -------------- | ---------- | --------- |
-|        35 |    163974 |          0 |              0 |          0 |       956 |
+{'duplicate_key_count': 0, 'max_rows_per_key': 0}
 ```

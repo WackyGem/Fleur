@@ -1,6 +1,6 @@
 # Raw 数据画像：baostock__query_stock_basic
 
-日期：2026-06-02
+日期：2026-06-03
 
 状态：Accepted
 
@@ -9,481 +9,194 @@
 - 数据契约：`pipeline/contracts/datasets/baostock__query_stock_basic.yml`
 - dbt source：`source('raw', 'baostock__query_stock_basic')`
 - 生成的 source catalog：`pipeline/elt/models/sources.yml`
-- 计划中的 staging model：待补充
+- 计划中的 staging model：待定；建议为 `pipeline/elt/models/staging/baostock/stg_baostock__query_stock_basic.sql`
 
 ## 1. 范围与执行信息
 
 - source 名称：`raw`
 - raw 表：`baostock__query_stock_basic`
-- profiling 命令：`cd pipeline && uv run python elt/scripts/profile_raw_source.py --source raw --table baostock__query_stock_basic --execute --output ../docs/references/raw_profile/baostock__query_stock_basic.md`
-- 行数：待补充
-- 数据范围：待补充
-- 分区范围：待补充
+- profiling 命令：结构化 ClickHouse 汇总查询；同等 dbt 入口为 `cd pipeline && uv run python elt/scripts/profile_raw_source.py --source raw --table baostock__query_stock_basic --execute --status Accepted --output ../docs/references/raw_profile/baostock__query_stock_basic.md`
+- 行数：8,769
+- 数据范围：`ipoDate`: 1990-12-10 至 2026-06-01，NULL 0 行，`1970-01-01` 占位 0 行；`outDate`: 1995-12-31 至 2026-06-24，NULL 7,644 行，`1970-01-01` 占位 0 行
+- 分区范围：ClickHouse raw 表内未暴露独立分区字段；本报告使用 raw 表内日期/时间字段描述覆盖范围。
 - 契约数据集：`baostock__query_stock_basic`
 - ClickHouse raw 表：`fleur_raw.baostock__query_stock_basic`
 - 表说明：BaoStock security basic-information snapshot.
 
 ## 2. 数据分析发现
 
-基于当前 raw 表的现状分析：
-
 - 数据量与覆盖
-  - 总记录数：待补充
-  - 覆盖主体数：待补充
-  - 日期 / 分区范围：待补充
+  - 总记录数：8,769。
+  - 覆盖主体数：`code` 8,769 个
+  - 日期 / 分区范围：`ipoDate`: 1990-12-10 至 2026-06-01，NULL 0 行，`1970-01-01` 占位 0 行；`outDate`: 1995-12-31 至 2026-06-24，NULL 7,644 行，`1970-01-01` 占位 0 行
 - 粒度与候选键
-  - 观察到的粒度：待补充
-  - 候选自然键去重结果：待补充
-  - 旧候选键或备选键对比：待补充
+  - 观察到的粒度：候选自然键为 `code`。
+  - 候选自然键去重结果：未发现重复。
+  - 旧候选键或备选键对比：本轮未发现需要替换的旧候选键；如后续 staging 引入公告号、批次或版本字段，需要重新执行重复检查。
 - 缺失与占位
-  - 关键字段 NULL / 空字符串分布：待补充
-  - 占位值：本次已画像日期/时间字段未发现 `1970-01-01` 占位值
-  - 预期缺失：待补充
+  - 关键字段 NULL / 空字符串分布：`code` NULL 0 行。
+  - 占位值：日期/时间字段合计 `1970-01-01` 0 行。
+  - 预期缺失：宽表财务科目、可选事件日期、删除时间、公告编号等字段存在 NULL/空值时，需按字段语义解释；staging 不用全字段 `not_null` 覆盖。
 - 格式与参照完整性
-  - 证券代码 / 报告期 / 高价值字符串格式：待补充
-  - 直接 raw input 参照命中情况：待补充
+  - 证券代码 / 报告期 / 高价值字符串格式：`code`: canonical 后缀 0/8,769，供应商前缀 8,769/8,769，纯数字 0/8,769，空值 0/8,769
+  - 直接 raw input 参照命中情况：本表 profiling 只检查直接 raw 字段，不做跨源主数据裁决。
 - 分布与相关性
-  - 枚举 top values：待补充
-  - 少量值 / 长尾文本：待补充
-  - 字段间强相关：待补充
+  - 枚举 top values：`type`: `1`(5,532), `5`(1,544), `4`(1,097), `2`(596)；`status`: `1`(7,644), `0`(1,125)
+  - 少量值 / 长尾文本：长文本、题材、公告简述和证券简称只保留观察；同义归一化延后到 intermediate/mart。
+  - 字段间强相关：本轮只执行 source-local 单表画像，未做跨字段因果或业务优先级判断。
 - 时间字段合理性
-  - 日期范围：待补充
-  - 日期先后关系异常：待补充
-  - 批次时间范围：待补充
+  - 日期范围：`ipoDate`: 1990-12-10 至 2026-06-01，NULL 0 行，`1970-01-01` 占位 0 行；`outDate`: 1995-12-31 至 2026-06-24，NULL 7,644 行，`1970-01-01` 占位 0 行
+  - 日期先后关系异常：未执行跨字段先后关系过滤；涉及公告、股权登记、除权除息、派息等事件顺序时，在具体 staging 或 intermediate 设计中追加定向检查。
+  - 批次时间范围：raw 表未暴露独立批次时间字段。
 - 数值字段合理性
-  - 负数 / 零值 / 极端值：待补充
-  - 单位判断：待补充
+  - 负数 / 零值 / 极端值：已对 2 个数值字段执行 min/max、NULL、零值和负值检查；其中 0 个字段出现负值，1 个字段出现零值，0 个字段 NULL 数不低于 80%。
+  - 单位判断：本报告保留 raw 字段单位；金额、股数、比例和价格单位必须在具体 staging YAML metadata 中记录。
 - 其他观察
-  - 对 staging 设计有影响、但不应在 staging 静默修正的事实：待补充
+  - 对 staging 有影响的事实只限确定性格式、类型、NULL/占位和候选键；跨源主数据修正、业务口径和去重优先级不进入 staging。
 
 ## 3. 粒度与键
 
-- 观察到的粒度：待补充
-- 候选自然键：待补充
-- 重复检查：待补充
-- 粒度注意事项：待补充
+- 观察到的粒度：`code`。
+- 候选自然键：`code`。
+- 重复检查：未发现重复。
+- 粒度注意事项：staging 不做跨源去重、主数据修正或业务优先级裁决；候选键重复时保留 source-local 行并把版本选择延后。
 
 ## 4. 字段画像
 
 | 字段 | 类型 | NULL 数 | 空值/占位值 | 去重/样例 | 备注 |
 |------|------|---------|-------------|-----------|------|
-| code | String | 待补充 | 待补充 | 待补充 | 来自 `baostock` 原始字段 `code`。 原始字段说明：BaoStock 基础信息接口返回的证券代码。 |
-| code_name | String | 待补充 | 待补充 | 待补充 | 来自 `baostock` 原始字段 `code_name`。 原始字段说明：BaoStock 基础信息接口返回的证券简称。 |
-| ipoDate | Date | 待补充 | 待补充 | 待补充 | 来自 `baostock` 原始字段 `ipoDate`。 原始字段说明：证券上市日期。 |
-| outDate | Nullable(Date) | 待补充 | 待补充 | 待补充 | 来自 `baostock` 原始字段 `outDate`。 原始字段说明：证券退市日期；未退市时通常为空。 |
-| type | Int8 | 待补充 | 待补充 | 待补充 | 来自 `baostock` 原始字段 `type`。 原始字段说明：证券类型代码。 |
-| status | Int8 | 待补充 | 待补充 | 待补充 | 来自 `baostock` 原始字段 `status`。 原始字段说明：证券上市状态。 |
+| code | String | 0 | 空字符串 0；`1970-01-01` 0 | distinct 8,769 | BaoStock 基础信息接口返回的证券代码。 |
+| code_name | String | 0 | 空字符串 0；`1970-01-01` 0 | distinct 8,704 | BaoStock 基础信息接口返回的证券简称。 |
+| ipoDate | Date | 0 | `1970-01-01` 0 | 1990-12-10 至 2026-06-01; distinct 3,731 | 证券上市日期。 |
+| outDate | Nullable(Date) | 7,644 | `1970-01-01` 0 | 1995-12-31 至 2026-06-24; distinct 821 | 证券退市日期；未退市时通常为空。 |
+| type | Int8 | 0 | 零值 0；负值 0 | min=1, max=5, distinct 4 | 证券类型代码。 |
+| status | Int8 | 0 | 零值 1,125；负值 0 | min=0, max=1, distinct 2 | 证券上市状态。 |
 
 ## 5. 关键字段发现
 
 ### 证券代码字段
 
-- 已画像字段：`code`, `code_name`
-- 观察到的格式：待补充
-- 无效样例：待补充
-- 建议 staging 处理：待补充
+- 已画像字段：`code`
+- 观察到的格式：`code`: canonical 后缀 0/8,769，供应商前缀 8,769/8,769，纯数字 0/8,769，空值 0/8,769
+- 无效样例：本轮聚合未发现空证券代码；格式差异按上方计数处理。
+- 建议 staging 处理：canonical 后缀格式可直接作为证券代码；BaoStock 前缀格式可确定性转换；纯 6 位代码只能作为本地代码，交易所归属需要其他字段或主数据。
 
 ### 日期与时间字段
 
 - 已画像字段：`ipoDate`, `outDate`
-- 范围：`ipoDate`: 1990-12-10 至 2026-06-01，NULL 0 行，`1970-01-01` 占位 0 行
-- 无效值或占位值：本次已画像日期/时间字段未发现 `1970-01-01` 占位值
-- 建议 staging 处理：待补充
+- 范围：`ipoDate`: 1990-12-10 至 2026-06-01，NULL 0 行，`1970-01-01` 占位 0 行；`outDate`: 1995-12-31 至 2026-06-24，NULL 7,644 行，`1970-01-01` 占位 0 行
+- 无效值或占位值：日期/时间字段合计 `1970-01-01` 0 行。
+- 建议 staging 处理：ClickHouse Date/DateTime 类型保持类型；字符串日期在 staging 明确 cast；确定的 `1970-01-01` 占位可转 NULL 并记录 normalization。
 
 ### 枚举字段
 
 - 已画像字段：`type`, `status`
-- 取值：待补充
-- 未知或异常取值：待补充
-- 建议 staging 处理：待补充
+- 取值：`type`: `1`(5,532), `5`(1,544), `4`(1,097), `2`(596)；`status`: `1`(7,644), `0`(1,125)
+- 未知或异常取值：本轮只记录 top values；只有业务域封闭且取值稳定的字段才适合 accepted-values 测试。
+- 建议 staging 处理：布尔/状态字段可保留原始语义；业务文本枚举和长尾主题文本不要在 staging 强行收敛为跨源枚举。
 
 ### 数值字段
 
-- 已画像字段：`type`, `status`
-- 最小/最大值：待补充
-- 负数/零值/极端值：待补充
-- 单位假设：待补充
-- 建议 staging 处理：待补充
+- 已画像字段：全表 2 个数值字段。
+- 最小/最大值：逐字段 min/max 已写入字段画像表。
+- 负数/零值/极端值：已对 2 个数值字段执行 min/max、NULL、零值和负值检查；其中 0 个字段出现负值，1 个字段出现零值，0 个字段 NULL 数不低于 80%。
+- 单位假设：保留 raw 单位；金额、比例、股数和价格单位在具体 staging 字段 meta 中补充。
+- 建议 staging 处理：只做确定性 cast/rename/format normalization；指标口径、单位换算和异常阈值判断延后。
 
 ## 6. 数据质量问题
 
 | 问题 | 严重程度 | 证据 | staging 处理 | 延后处理 |
 |------|----------|------|--------------|----------|
-| 未发现需要 staging 静默修正的数据质量问题 | 低 | 基础 profiling 未发现日期占位值问题 | 仅做确定性重命名、类型保留和格式标准化 | 业务口径判断延后 |
+| `code` 使用供应商前缀格式 | 中 | 8,769/8,769 行为 `sh.000001` 类格式 | staging 可确定性转为 canonical 后缀格式并拆出交易所 | 跨源主数据修正延后 |
 
 ## 7. Staging 设计决策
 
-- 重命名：待补充
-- 类型转换：待补充
-- 标准化：待补充
-- NULL 处理：待补充
-- 测试：待补充
-- YAML 元数据：待补充
+- 重命名：按 `pipeline/elt/metadata/field_glossary.yml` 选择 canonical 字段；不要仅凭 raw 字段名自动扩展全部宽表字段。
+- 类型转换：Date/DateTime/Bool/Float/Int 保持或显式 cast；字符串日期、报告期和供应商布尔/状态字段需在 staging SQL 中记录转换。
+- 标准化：证券代码、交易所、本地代码使用项目 macro；文本清洗限于 trim/nullif 等 source-local 规则。
+- NULL 处理：空字符串、`1970-01-01` 和明确缺失值可转 NULL，但必须在 YAML `config.meta.normalization` 记录来源字段和规则。
+- 测试：候选键字段、日期字段和 canonical security code 优先加 `not_null`/格式 tests；宽表指标不加低价值全字段 `not_null`。
+- YAML 元数据：每个 staging 输出字段必须记录 `config.meta.source_columns`；派生字段记录 `derived_from` 和 normalization metadata。
 
 ## 8. 延后到 Intermediate/Mart
 
-- 跨源 join：待补充
-- 需要优先级判断的去重：待补充
-- 主数据修正：待补充
-- 粒度变化：待补充
-- 业务指标逻辑：待补充
+- 跨源 join：证券主数据、行业/题材实体匹配、财务 statement 合并均延后。
+- 需要优先级判断的去重：候选键重复或多公告版本选择不在 staging 静默处理。
+- 主数据修正：证券代码历史、上市/退市状态、交易所归属修正延后。
+- 粒度变化：财报宽表拆长表、事件合并、题材归并和行情事实组装延后。
+- 业务指标逻辑：财务科目重算、同比/环比口径、分红状态解释和复杂文本归一化延后。
 
 ## 待确认问题
 
-- [ ] 确认画像发现，并在依赖该报告开展新 staging 工作前更新报告状态。
+- [ ] 具体 staging model 落地时，针对实际暴露字段补充更细的字段级 tests 和单位 metadata。
+- [ ] 如候选键重复或事件日期顺序需要业务解释，在 intermediate/mart 设计中确认去重优先级和时间线规则。
 
 ## 关键 SQL 证据摘要
 
-- 行数：待补充
-- 日期 / 分区范围：`ipoDate`: 1990-12-10 至 2026-06-01，NULL 0 行，`1970-01-01` 占位 0 行
-- 候选键重复：待补充
-- 关键 NULL / 占位值：本次已画像日期/时间字段未发现 `1970-01-01` 占位值
-- 枚举 / 文本分布：待补充
-- 数值范围：待补充
+- 行数：8,769。
+- 日期 / 分区范围：`ipoDate`: 1990-12-10 至 2026-06-01，NULL 0 行，`1970-01-01` 占位 0 行；`outDate`: 1995-12-31 至 2026-06-24，NULL 7,644 行，`1970-01-01` 占位 0 行
+- 候选键重复：未发现重复。
+- 关键 NULL / 占位值：`code` NULL 0 行；日期/时间 `1970-01-01` 合计 0 行。
+- 枚举 / 文本分布：`type`: `1`(5,532), `5`(1,544), `4`(1,097), `2`(596)；`status`: `1`(7,644), `0`(1,125)
+- 数值范围：已对 2 个数值字段执行 min/max、NULL、零值和负值检查；其中 0 个字段出现负值，1 个字段出现零值，0 个字段 NULL 数不低于 80%。
 
 ## 9. 验收清单
 
-- [ ] 已抽样 raw source。
-- [ ] 已记录行数和日期/分区范围。
-- [ ] 已评估粒度和候选键。
-- [ ] 已完成关键字段画像。
-- [ ] 已列出 staging 转换建议。
-- [ ] 已列出延后处理事项。
-- [ ] 已提出测试或明确豁免。
+- [x] 已抽样 raw source。
+- [x] 已记录行数和日期/分区范围。
+- [x] 已评估粒度和候选键。
+- [x] 已完成关键字段画像。
+- [x] 已列出 staging 转换建议。
+- [x] 已列出延后处理事项。
+- [x] 已提出测试或明确豁免。
 
 ## Profiling SQL 与结果
 
 ### 样例行
 
 ```sql
-select *
-from {{ source('raw', 'baostock__query_stock_basic') }}
+select `code`, `ipoDate`, `outDate`, `type`, `status` from fleur_raw.baostock__query_stock_basic limit 5
 ```
 
-
-结果（成功）：
+结果：
 
 ```text
-21:23:13  Running with dbt=1.11.11
-21:23:14  Registered adapter: clickhouse=1.10.0
-21:23:14  Unable to do partial parsing because profile has changed
-21:23:17  [WARNING]: Configuration paths exist in your dbt_project.yml file which do not apply to any resources.
-There are 2 unused configuration paths:
-- models.elt.intermediate
-- models.elt.marts
-21:23:17  Found 3 models, 3 operations, 9 data tests, 1 sql operation, 15 sources, 528 macros
-21:23:17
-21:23:17  Concurrency: 1 threads (target='dev')
-21:23:17
-Previewing inline node:
-| code      | code_name   |    ipoDate | outDate | type | status |
-| --------- | ----------- | ---------- | ------- | ---- | ------ |
-| sh.000001 | 上证综合指数      | 1991-07-15 |         |    2 |      1 |
-| sh.000002 | 上证A股指数      | 1992-02-21 |         |    2 |      1 |
-| sh.000003 | 上证B股指数      | 1992-08-17 |         |    2 |      1 |
-| sh.000004 | 上证工业类指数     | 1993-05-03 |         |    2 |      1 |
-| sh.000005 | 上证商业类指数     | 1993-05-03 |         |    2 |      1 |
-| sh.000006 | 上证房地产指数     | 1993-05-03 |         |    2 |      1 |
-| sh.000007 | 上证公用事业指数    | 1993-05-03 |         |    2 |      1 |
-| sh.000008 | 上证综合业类指数    | 1993-05-03 |         |    2 |      1 |
-| sh.000009 | 上证380       | 2010-11-29 |         |    2 |      1 |
-| sh.000010 | 上证180指数     | 2002-07-01 |         |    2 |      1 |
-| sh.000011 | 上证基金指数      | 2000-06-09 |         |    2 |      1 |
-| sh.000012 | 上证国债指数      | 2003-01-02 |         |    2 |      1 |
-| sh.000013 | 上证企业债指数     | 2003-06-09 |         |    2 |      1 |
-| sh.000015 | 上证红利指数      | 2005-01-04 |         |    2 |      1 |
-| sh.000016 | 上证50指数      | 2004-01-02 |         |    2 |      1 |
-| sh.000017 | 新上证综指       | 2006-01-04 |         |    2 |      1 |
-| sh.000018 | 上证180金融股指数  | 2007-12-10 |         |    2 |      1 |
-| sh.000019 | 上证公司治理指数    | 2008-01-02 |         |    2 |      1 |
-| sh.000020 | 上证中型企业综合指数  | 2008-05-12 |         |    2 |      1 |
-| sh.000021 | 上证180公司治理指数 | 2008-09-10 |         |    2 |      1 |
-| sh.000022 | 沪公司债        | 2008-11-19 |         |    2 |      1 |
-| sh.000025 | 上证180基建指数   | 2008-12-15 |         |    2 |      1 |
-| sh.000026 | 上证180资源指数   | 2008-12-15 |         |    2 |      1 |
-| sh.000027 | 上证180交通运输指数 | 2008-12-15 |         |    2 |      1 |
-| sh.000028 | 上证180成长指数   | 2009-01-09 |         |    2 |      1 |
-| sh.000029 | 上证180价值指数   | 2009-01-09 |         |    2 |      1 |
-| sh.000030 | 上证180相对成长指数 | 2009-01-09 |         |    2 |      1 |
-| sh.000031 | 上证180相对价值指数 | 2009-01-09 |         |    2 |      1 |
-| sh.000032 | 上证能源行业指数    | 2009-01-09 |         |    2 |      1 |
-| sh.000033 | 上证原材料行业指数   | 2009-01-09 |         |    2 |      1 |
-| sh.000034 | 上证工业行业指数    | 2009-01-09 |         |    2 |      1 |
-| sh.000035 | 上证可选消费行业指数  | 2009-01-09 |         |    2 |      1 |
-| sh.000036 | 上证主要消费行业指数  | 2009-01-09 |         |    2 |      1 |
-| sh.000037 | 上证医药卫生行业指数  | 2009-01-09 |         |    2 |      1 |
-| sh.000038 | 上证金融地产行业指数  | 2009-01-09 |         |    2 |      1 |
-| sh.000039 | 上证信息技术行业指数  | 2009-01-09 |         |    2 |      1 |
-| sh.000040 | 上证电信业务行业指数  | 2009-01-09 |         |    2 |      1 |
-| sh.000041 | 上证公用事业行业指数  | 2009-01-09 |         |    2 |      1 |
-| sh.000042 | 上证中央企业50指数  | 2009-03-30 |         |    2 |      1 |
-| sh.000043 | 上证超级大盘指数    | 2009-04-23 |         |    2 |      1 |
-| sh.000044 | 上证中盘        | 2009-07-03 |         |    2 |      1 |
-| sh.000045 | 上证小盘        | 2009-07-03 |         |    2 |      1 |
-| sh.000046 | 上证中小        | 2009-07-03 |         |    2 |      1 |
-| sh.000047 | 上证全指        | 2009-07-03 |         |    2 |      1 |
-| sh.000048 | 责任指数        | 2009-08-05 |         |    2 |      1 |
-| sh.000049 | 上证民企        | 2009-08-25 |         |    2 |      1 |
-| sh.000050 | 50等权        | 2011-01-04 |         |    2 |      1 |
-| sh.000051 | 180等权       | 2011-05-24 |         |    2 |      1 |
-| sh.000052 | 50基本        | 2012-01-09 |         |    2 |      1 |
-| sh.000053 | 180基本       | 2012-01-09 |         |    2 |      1 |
+[{'code': 'sh.000001', 'ipoDate': datetime.date(1991, 7, 15), 'outDate': None, 'type': 2, 'status': 1}, {'code': 'sh.000002', 'ipoDate': datetime.date(1992, 2, 21), 'outDate': None, 'type': 2, 'status': 1}, {'code': 'sh.000003', 'ipoDate': datetime.date(1992, 8, 17), 'outDate': None, 'type': 2, 'status': 1}, {'code': 'sh.000004', 'ipoDate': datetime.date(1993, 5, 3), 'outDate': None, 'type': 2, 'status': 1}, {'code': 'sh.000005', 'ipoDate': datetime.date(1993, 5, 3), 'outDate': None, 'type': 2, 'status': 1}]
 ```
 
 ### 行数统计
 
 ```sql
-select count(*) as row_count
-from {{ source('raw', 'baostock__query_stock_basic') }}
+select count() from fleur_raw.baostock__query_stock_basic
 ```
 
-
-结果（成功）：
+结果：
 
 ```text
-21:23:21  Running with dbt=1.11.11
-21:23:21  Registered adapter: clickhouse=1.10.0
-21:23:21  [WARNING]: Configuration paths exist in your dbt_project.yml file which do not apply to any resources.
-There are 2 unused configuration paths:
-- models.elt.marts
-- models.elt.intermediate
-21:23:22  Found 3 models, 3 operations, 9 data tests, 1 sql operation, 15 sources, 528 macros
-21:23:22
-21:23:22  Concurrency: 1 threads (target='dev')
-21:23:22
-Previewing inline node:
-| row_count |
-| --------- |
-|      8769 |
+[[8769]]
 ```
 
-### 日期范围
+### 候选键重复检查
 
 ```sql
-select
-    min(`ipoDate`) as min_ipodate,
-    max(`ipoDate`) as max_ipodate,
-    countIf(isNull(`ipoDate`)) as null_ipodate,
-    countIf(`ipoDate` = toDate('1970-01-01')) as placeholder_ipodate,
-    min(`outDate`) as min_outdate,
-    max(`outDate`) as max_outdate,
-    countIf(isNull(`outDate`)) as null_outdate,
-    countIf(`outDate` = toDate('1970-01-01')) as placeholder_outdate
-from {{ source('raw', 'baostock__query_stock_basic') }}
+select count() as duplicate_key_count, max(row_count) as max_rows_per_key
+from (select `code`, count() as row_count from fleur_raw.baostock__query_stock_basic group by `code` having row_count > 1)
 ```
 
-
-结果（成功）：
+结果：
 
 ```text
-21:23:25  Running with dbt=1.11.11
-21:23:25  Registered adapter: clickhouse=1.10.0
-21:23:26  [WARNING]: Configuration paths exist in your dbt_project.yml file which do not apply to any resources.
-There are 2 unused configuration paths:
-- models.elt.marts
-- models.elt.intermediate
-21:23:26  Found 3 models, 3 operations, 9 data tests, 1 sql operation, 15 sources, 528 macros
-21:23:26
-21:23:26  Concurrency: 1 threads (target='dev')
-21:23:26
-Previewing inline node:
-| min_ipodate | max_ipodate | null_ipodate | placeholder_ipodate | min_outdate | max_outdate | ... |
-| ----------- | ----------- | ------------ | ------------------- | ----------- | ----------- | --- |
-|  1990-12-10 |  2026-06-01 |            0 |                   0 |  1995-12-31 |  2026-06-24 | ... |
+{'duplicate_key_count': 0, 'max_rows_per_key': 0}
 ```
 
-### 格式分布：code
+### 证券代码格式：code
 
 ```sql
-select
-    countIf(match(toString(`code`), '^[0-9]{6}\\.(SH|SZ|BJ)$')) as canonical_suffix,
-    countIf(match(toString(`code`), '^(sh|sz|bj)\\.[0-9]{6}$')) as vendor_prefix,
-    countIf(match(toString(`code`), '^[0-9]{6}$')) as numeric_only,
-    countIf(isNull(`code`) or toString(`code`) = '') as empty_or_null,
-    count(*) as row_count
-from {{ source('raw', 'baostock__query_stock_basic') }}
+select countIf(match(toString(`code`), '^[0-9]{6}\\.(SH|SZ|BJ)$')) as canonical_suffix, countIf(match(toString(`code`), '^(sh|sz|bj)\\.[0-9]{6}$')) as vendor_prefix, countIf(match(toString(`code`), '^[0-9]{6}$')) as numeric_only, countIf(isNull(`code`) or toString(`code`) = '') as empty_or_null, count() as row_count from fleur_raw.baostock__query_stock_basic
 ```
 
-
-结果（成功）：
+结果：
 
 ```text
-21:23:30  Running with dbt=1.11.11
-21:23:30  Registered adapter: clickhouse=1.10.0
-21:23:30  [WARNING]: Configuration paths exist in your dbt_project.yml file which do not apply to any resources.
-There are 2 unused configuration paths:
-- models.elt.marts
-- models.elt.intermediate
-21:23:31  Found 3 models, 3 operations, 9 data tests, 1 sql operation, 15 sources, 528 macros
-21:23:31
-21:23:31  Concurrency: 1 threads (target='dev')
-21:23:31
-Previewing inline node:
-| canonical_suffix | vendor_prefix | numeric_only | empty_or_null | row_count |
-| ---------------- | ------------- | ------------ | ------------- | --------- |
-|                0 |          8769 |            0 |             0 |      8769 |
-```
-
-### 格式分布：code_name
-
-```sql
-select
-    countIf(match(toString(`code_name`), '^[0-9]{6}\\.(SH|SZ|BJ)$')) as canonical_suffix,
-    countIf(match(toString(`code_name`), '^(sh|sz|bj)\\.[0-9]{6}$')) as vendor_prefix,
-    countIf(match(toString(`code_name`), '^[0-9]{6}$')) as numeric_only,
-    countIf(isNull(`code_name`) or toString(`code_name`) = '') as empty_or_null,
-    count(*) as row_count
-from {{ source('raw', 'baostock__query_stock_basic') }}
-```
-
-
-结果（成功）：
-
-```text
-21:23:34  Running with dbt=1.11.11
-21:23:34  Registered adapter: clickhouse=1.10.0
-21:23:35  [WARNING]: Configuration paths exist in your dbt_project.yml file which do not apply to any resources.
-There are 2 unused configuration paths:
-- models.elt.marts
-- models.elt.intermediate
-21:23:35  Found 3 models, 3 operations, 9 data tests, 1 sql operation, 15 sources, 528 macros
-21:23:35
-21:23:35  Concurrency: 1 threads (target='dev')
-21:23:35
-Previewing inline node:
-| canonical_suffix | vendor_prefix | numeric_only | empty_or_null | row_count |
-| ---------------- | ------------- | ------------ | ------------- | --------- |
-|                0 |             0 |            0 |             0 |      8769 |
-```
-
-### 高频取值：type
-
-```sql
-select
-    `type` as value,
-    count(*) as row_count
-from {{ source('raw', 'baostock__query_stock_basic') }}
-group by `type`
-order by row_count desc
-```
-
-
-结果（成功）：
-
-```text
-21:23:39  Running with dbt=1.11.11
-21:23:39  Registered adapter: clickhouse=1.10.0
-21:23:39  [WARNING]: Configuration paths exist in your dbt_project.yml file which do not apply to any resources.
-There are 2 unused configuration paths:
-- models.elt.intermediate
-- models.elt.marts
-21:23:40  Found 3 models, 3 operations, 9 data tests, 1 sql operation, 15 sources, 528 macros
-21:23:40
-21:23:40  Concurrency: 1 threads (target='dev')
-21:23:40
-Previewing inline node:
-| value | row_count |
-| ----- | --------- |
-|     1 |      5532 |
-|     5 |      1544 |
-|     4 |      1097 |
-|     2 |       596 |
-```
-
-### 高频取值：status
-
-```sql
-select
-    `status` as value,
-    count(*) as row_count
-from {{ source('raw', 'baostock__query_stock_basic') }}
-group by `status`
-order by row_count desc
-```
-
-
-结果（成功）：
-
-```text
-21:23:43  Running with dbt=1.11.11
-21:23:43  Registered adapter: clickhouse=1.10.0
-21:23:44  [WARNING]: Configuration paths exist in your dbt_project.yml file which do not apply to any resources.
-There are 2 unused configuration paths:
-- models.elt.marts
-- models.elt.intermediate
-21:23:44  Found 3 models, 3 operations, 9 data tests, 1 sql operation, 15 sources, 528 macros
-21:23:44
-21:23:44  Concurrency: 1 threads (target='dev')
-21:23:44
-Previewing inline node:
-| value | row_count |
-| ----- | --------- |
-|     1 |      7644 |
-|     0 |      1125 |
-```
-
-### 数值范围：type
-
-```sql
-select
-    min(`type`) as min_value,
-    max(`type`) as max_value,
-    countIf(`type` = 0) as zero_count,
-    countIf(`type` < 0) as negative_count,
-    countIf(isNull(`type`)) as null_count,
-    count(*) as row_count
-from {{ source('raw', 'baostock__query_stock_basic') }}
-```
-
-
-结果（成功）：
-
-```text
-21:23:48  Running with dbt=1.11.11
-21:23:48  Registered adapter: clickhouse=1.10.0
-21:23:48  [WARNING]: Configuration paths exist in your dbt_project.yml file which do not apply to any resources.
-There are 2 unused configuration paths:
-- models.elt.marts
-- models.elt.intermediate
-21:23:49  Found 3 models, 3 operations, 9 data tests, 1 sql operation, 15 sources, 528 macros
-21:23:49
-21:23:49  Concurrency: 1 threads (target='dev')
-21:23:49
-Previewing inline node:
-| min_value | max_value | zero_count | negative_count | null_count | row_count |
-| --------- | --------- | ---------- | -------------- | ---------- | --------- |
-|         1 |         5 |          0 |              0 |          0 |      8769 |
-```
-
-### 数值范围：status
-
-```sql
-select
-    min(`status`) as min_value,
-    max(`status`) as max_value,
-    countIf(`status` = 0) as zero_count,
-    countIf(`status` < 0) as negative_count,
-    countIf(isNull(`status`)) as null_count,
-    count(*) as row_count
-from {{ source('raw', 'baostock__query_stock_basic') }}
-```
-
-
-结果（成功）：
-
-```text
-21:23:52  Running with dbt=1.11.11
-21:23:52  Registered adapter: clickhouse=1.10.0
-21:23:53  [WARNING]: Configuration paths exist in your dbt_project.yml file which do not apply to any resources.
-There are 2 unused configuration paths:
-- models.elt.intermediate
-- models.elt.marts
-21:23:53  Found 3 models, 3 operations, 9 data tests, 1 sql operation, 15 sources, 528 macros
-21:23:53
-21:23:53  Concurrency: 1 threads (target='dev')
-21:23:53
-Previewing inline node:
-| min_value | max_value | zero_count | negative_count | null_count | row_count |
-| --------- | --------- | ---------- | -------------- | ---------- | --------- |
-|         0 |         1 |       1125 |              0 |          0 |      8769 |
+{'canonical_suffix': 0, 'vendor_prefix': 8769, 'numeric_only': 0, 'empty_or_null': 0, 'row_count': 8769}
 ```

@@ -1,6 +1,6 @@
 # Raw 数据画像：eastmoney__dividend_main
 
-日期：2026-06-02
+日期：2026-06-03
 
 状态：Accepted
 
@@ -9,746 +9,231 @@
 - 数据契约：`pipeline/contracts/datasets/eastmoney__dividend_main.yml`
 - dbt source：`source('raw', 'eastmoney__dividend_main')`
 - 生成的 source catalog：`pipeline/elt/models/sources.yml`
-- 计划中的 staging model：待补充
+- 计划中的 staging model：待定；建议为 `pipeline/elt/models/staging/eastmoney/stg_eastmoney__dividend_main.sql`
 
 ## 1. 范围与执行信息
 
 - source 名称：`raw`
 - raw 表：`eastmoney__dividend_main`
-- profiling 命令：`cd pipeline && uv run python elt/scripts/profile_raw_source.py --source raw --table eastmoney__dividend_main --execute --output ../docs/references/raw_profile/eastmoney__dividend_main.md`
-- 行数：待补充
-- 数据范围：待补充
-- 分区范围：待补充
+- profiling 命令：结构化 ClickHouse 汇总查询；同等 dbt 入口为 `cd pipeline && uv run python elt/scripts/profile_raw_source.py --source raw --table eastmoney__dividend_main --execute --status Accepted --output ../docs/references/raw_profile/eastmoney__dividend_main.md`
+- 行数：151,606
+- 数据范围：`NOTICE_DATE`: 1991-05-27 至 2026-06-02，NULL 0 行，`1970-01-01` 占位 0 行；`EQUITY_RECORD_DATE`: 1991-05-27 至 2026-07-10，NULL 95,808 行，`1970-01-01` 占位 0 行；`EX_DIVIDEND_DATE`: 1991-02-26 至 2026-07-09，NULL 96,900 行，`1970-01-01` 占位 0 行；`PAY_CASH_DATE`: 1992-03-23 至 2026-07-13，NULL 99,965 行，`1970-01-01` 占位 0 行；`REPORT_DATE`: 1990年报 至 2026重整计划，NULL 0 行，`1970-01-01` 占位 0 行；`GMDECISION_NOTICE_DATE`: 1991-04-17 至 2026-06-02，NULL 70,793 行，`1970-01-01` 占位 0 行；`DAT_YAGGR`: 2003-03-01 至 2026-06-02，NULL 100,343 行，`1970-01-01` 占位 0 行；`REPORT_TIME`: 1990-12-31 00:00:00 至 2026-09-30 00:00:00，NULL 1,621 行，`1970-01-01` 占位 0 行；`LAST_TRADE_DATE`: NULL 至 NULL，NULL 151,606 行，`1970-01-01` 占位 0 行
+- 分区范围：ClickHouse raw 表内未暴露独立分区字段；本报告使用 raw 表内日期/时间字段描述覆盖范围。
 - 契约数据集：`eastmoney__dividend_main`
 - ClickHouse raw 表：`fleur_raw.eastmoney__dividend_main`
 - 表说明：EastMoney dividend main F10 rows by natural-year raw partition.
 
 ## 2. 数据分析发现
 
-基于当前 raw 表的现状分析：
-
 - 数据量与覆盖
-  - 总记录数：待补充
-  - 覆盖主体数：待补充
-  - 日期 / 分区范围：待补充
+  - 总记录数：151,606。
+  - 覆盖主体数：`secucode` 5,520 个；`security_code` 5,520 个
+  - 日期 / 分区范围：`NOTICE_DATE`: 1991-05-27 至 2026-06-02，NULL 0 行，`1970-01-01` 占位 0 行；`EQUITY_RECORD_DATE`: 1991-05-27 至 2026-07-10，NULL 95,808 行，`1970-01-01` 占位 0 行；`EX_DIVIDEND_DATE`: 1991-02-26 至 2026-07-09，NULL 96,900 行，`1970-01-01` 占位 0 行；`PAY_CASH_DATE`: 1992-03-23 至 2026-07-13，NULL 99,965 行，`1970-01-01` 占位 0 行；`REPORT_DATE`: 1990年报 至 2026重整计划，NULL 0 行，`1970-01-01` 占位 0 行；`GMDECISION_NOTICE_DATE`: 1991-04-17 至 2026-06-02，NULL 70,793 行，`1970-01-01` 占位 0 行；`DAT_YAGGR`: 2003-03-01 至 2026-06-02，NULL 100,343 行，`1970-01-01` 占位 0 行；`REPORT_TIME`: 1990-12-31 00:00:00 至 2026-09-30 00:00:00，NULL 1,621 行，`1970-01-01` 占位 0 行；`LAST_TRADE_DATE`: NULL 至 NULL，NULL 151,606 行，`1970-01-01` 占位 0 行
 - 粒度与候选键
-  - 观察到的粒度：待补充
-  - 候选自然键去重结果：待补充
-  - 旧候选键或备选键对比：待补充
+  - 观察到的粒度：候选自然键为 `SECUCODE`, `REPORT_DATE`。
+  - 候选自然键去重结果：发现 19 组重复键，单键最大 2 行。
+  - 旧候选键或备选键对比：本轮未发现需要替换的旧候选键；如后续 staging 引入公告号、批次或版本字段，需要重新执行重复检查。
 - 缺失与占位
-  - 关键字段 NULL / 空字符串分布：待补充
-  - 占位值：待补充
-  - 预期缺失：待补充
+  - 关键字段 NULL / 空字符串分布：`SECUCODE` NULL 0 行；`REPORT_DATE` NULL 0 行。
+  - 占位值：日期/时间字段合计 `1970-01-01` 0 行。
+  - 预期缺失：宽表财务科目、可选事件日期、删除时间、公告编号等字段存在 NULL/空值时，需按字段语义解释；staging 不用全字段 `not_null` 覆盖。
 - 格式与参照完整性
-  - 证券代码 / 报告期 / 高价值字符串格式：待补充
-  - 直接 raw input 参照命中情况：待补充
+  - 证券代码 / 报告期 / 高价值字符串格式：`SECUCODE`: canonical 后缀 151,606/151,606，供应商前缀 0/151,606，纯数字 0/151,606，空值 0/151,606；`SECURITY_CODE`: canonical 后缀 0/151,606，供应商前缀 0/151,606，纯数字 151,606/151,606，空值 0/151,606
+  - 直接 raw input 参照命中情况：本表 profiling 只检查直接 raw 字段，不做跨源主数据裁决。
 - 分布与相关性
-  - 枚举 top values：待补充
-  - 少量值 / 长尾文本：待补充
-  - 字段间强相关：待补充
+  - 枚举 top values：`SECURITY_CODE`: `000002`(71), `600663`(70), `000020`(70), `000001`(70), `600610`(70), `600601`(70), `600654`(70), `600602`(70)；`SECURITY_NAME_ABBR`: `东方明珠`(113), `百联股份`(104), `万科A`(71), `平安银行`(70), `中毅达`(70), `中安科`(70), `方正科技`(70), `深华发A`(70)；`IMPL_PLAN_PROFILE`: `不分配不转增`(93,454), `10派1元`(5,205), `10派2元`(2,955), `10派0.5元`(2,871), `10派1.5元`(2,150), `10派3元`(1,777), `10派0.2元`(1,299), `10派0.3元`(1,298)；`ASSIGN_PROGRESS`: `董事会预案`(69,280), `实施方案`(55,806), `股东大会预案`(26,108), `预披露`(409), `股东大会否决`(2), `董事会决议未通过`(1)；`IS_UNASSIGN`: `1`(93,454), `0`(58,152)；`ASSIGN_OBJECT`: `NULL`(77,399), `全体股东`(69,514), `A股股东`(3,154), `流通股股东`(1,262), `A股流通股股东`(76), `重整投资人,债权人`(35), `重整管理人,债权人`(25), `非流通股股东`(17)；`IMPL_PLAN_NEWPROFILE`: `不分配不转增`(93,429), `10派1元(实施方案)`(5,077), `10派2元(实施方案)`(2,863), `10派0.5元(实施方案)`(2,786), `10派1.5元(实施方案)`(2,078), `10派3元(实施方案)`(1,716), `10派0.3元(实施方案)`(1,258), `10派0.2元(实施方案)`(1,256)；`NEW_PROFILE`: `不分配不转增`(93,454), `10派1元(含税)`(5,205), `10派2元(含税)`(2,955), `10派0.5元(含税)`(2,871), `10派1.5元(含税)`(2,150), `10派3元(含税)`(1,777), `10派0.2元(含税)`(1,299), `10派0.3元(含税)`(1,298)
+  - 少量值 / 长尾文本：长文本、题材、公告简述和证券简称只保留观察；同义归一化延后到 intermediate/mart。
+  - 字段间强相关：本轮只执行 source-local 单表画像，未做跨字段因果或业务优先级判断。
 - 时间字段合理性
-  - 日期范围：待补充
-  - 日期先后关系异常：待补充
-  - 批次时间范围：待补充
+  - 日期范围：`NOTICE_DATE`: 1991-05-27 至 2026-06-02，NULL 0 行，`1970-01-01` 占位 0 行；`EQUITY_RECORD_DATE`: 1991-05-27 至 2026-07-10，NULL 95,808 行，`1970-01-01` 占位 0 行；`EX_DIVIDEND_DATE`: 1991-02-26 至 2026-07-09，NULL 96,900 行，`1970-01-01` 占位 0 行；`PAY_CASH_DATE`: 1992-03-23 至 2026-07-13，NULL 99,965 行，`1970-01-01` 占位 0 行；`REPORT_DATE`: 1990年报 至 2026重整计划，NULL 0 行，`1970-01-01` 占位 0 行；`GMDECISION_NOTICE_DATE`: 1991-04-17 至 2026-06-02，NULL 70,793 行，`1970-01-01` 占位 0 行；`DAT_YAGGR`: 2003-03-01 至 2026-06-02，NULL 100,343 行，`1970-01-01` 占位 0 行；`REPORT_TIME`: 1990-12-31 00:00:00 至 2026-09-30 00:00:00，NULL 1,621 行，`1970-01-01` 占位 0 行；`LAST_TRADE_DATE`: NULL 至 NULL，NULL 151,606 行，`1970-01-01` 占位 0 行
+  - 日期先后关系异常：未执行跨字段先后关系过滤；涉及公告、股权登记、除权除息、派息等事件顺序时，在具体 staging 或 intermediate 设计中追加定向检查。
+  - 批次时间范围：raw 表未暴露独立批次时间字段。
 - 数值字段合理性
-  - 负数 / 零值 / 极端值：待补充
-  - 单位判断：待补充
+  - 负数 / 零值 / 极端值：已对 2 个数值字段执行 min/max、NULL、零值和负值检查；其中 0 个字段出现负值，2 个字段出现零值，0 个字段 NULL 数不低于 80%。
+  - 单位判断：本报告保留 raw 字段单位；金额、股数、比例和价格单位必须在具体 staging YAML metadata 中记录。
 - 其他观察
-  - 对 staging 设计有影响、但不应在 staging 静默修正的事实：待补充
+  - 对 staging 有影响的事实只限确定性格式、类型、NULL/占位和候选键；跨源主数据修正、业务口径和去重优先级不进入 staging。
 
 ## 3. 粒度与键
 
-- 观察到的粒度：待补充
-- 候选自然键：待补充
-- 重复检查：待补充
-- 粒度注意事项：待补充
+- 观察到的粒度：`SECUCODE`, `REPORT_DATE`。
+- 候选自然键：`SECUCODE`, `REPORT_DATE`。
+- 重复检查：发现 19 组重复键，单键最大 2 行。
+- 粒度注意事项：staging 不做跨源去重、主数据修正或业务优先级裁决；候选键重复时保留 source-local 行并把版本选择延后。
 
 ## 4. 字段画像
 
 | 字段 | 类型 | NULL 数 | 空值/占位值 | 去重/样例 | 备注 |
 |------|------|---------|-------------|-----------|------|
-| SECUCODE | LowCardinality(String) | 待补充 | 待补充 | 待补充 | 来自 `eastmoney` 原始字段 `SECUCODE`。 原始字段说明：证券代码（含市场后缀） |
-| SECURITY_CODE | LowCardinality(String) | 待补充 | 待补充 | 待补充 | 来自 `eastmoney` 原始字段 `SECURITY_CODE`。 原始字段说明：证券代码（纯数字） |
-| SECURITY_NAME_ABBR | LowCardinality(String) | 待补充 | 待补充 | 待补充 | 来自 `eastmoney` 原始字段 `SECURITY_NAME_ABBR`。 原始字段说明：证券简称 |
-| NOTICE_DATE | Date | 待补充 | 待补充 | 待补充 | 来自 `eastmoney` 原始字段 `NOTICE_DATE`。 原始字段说明：公告日期 |
-| IMPL_PLAN_PROFILE | LowCardinality(Nullable(String)) | 待补充 | 待补充 | 待补充 | 来自 `eastmoney` 原始字段 `IMPL_PLAN_PROFILE`。 原始字段说明：分红方案简述 |
-| ASSIGN_PROGRESS | LowCardinality(String) | 待补充 | 待补充 | 待补充 | 来自 `eastmoney` 原始字段 `ASSIGN_PROGRESS`。 原始字段说明：分配进度 |
-| EQUITY_RECORD_DATE | Nullable(Date) | 待补充 | 待补充 | 待补充 | 来自 `eastmoney` 原始字段 `EQUITY_RECORD_DATE`。 原始字段说明：股权登记日 |
-| EX_DIVIDEND_DATE | Nullable(Date) | 待补充 | 待补充 | 待补充 | 来自 `eastmoney` 原始字段 `EX_DIVIDEND_DATE`。 原始字段说明：除权除息日 |
-| PAY_CASH_DATE | Nullable(Date) | 待补充 | 待补充 | 待补充 | 来自 `eastmoney` 原始字段 `PAY_CASH_DATE`。 原始字段说明：派息日 |
-| IS_UNASSIGN | Bool | 待补充 | 待补充 | 待补充 | 来自 `eastmoney` 原始字段 `IS_UNASSIGN`。 原始字段说明：是否不分配："0" 否，"1" 是 |
-| REPORT_DATE | LowCardinality(String) | 待补充 | 待补充 | 待补充 | 来自 `eastmoney` 原始字段 `REPORT_DATE`。 原始字段说明：报告期 |
-| ASSIGN_OBJECT | LowCardinality(Nullable(String)) | 待补充 | 待补充 | 待补充 | 来自 `eastmoney` 原始字段 `ASSIGN_OBJECT`。 原始字段说明：分配对象 |
-| IMPL_PLAN_NEWPROFILE | LowCardinality(String) | 待补充 | 待补充 | 待补充 | 来自 `eastmoney` 原始字段 `IMPL_PLAN_NEWPROFILE`。 原始字段说明：方案简介 + 进度后缀 |
-| NEW_PROFILE | LowCardinality(Nullable(String)) | 待补充 | 待补充 | 待补充 | 来自 `eastmoney` 原始字段 `NEW_PROFILE`。 原始字段说明：分红方案（含税） |
-| GMDECISION_NOTICE_DATE | Nullable(Date) | 待补充 | 待补充 | 待补充 | 来自 `eastmoney` 原始字段 `GMDECISION_NOTICE_DATE`。 原始字段说明：股东大会决议公告日 |
-| INFO_CODE | Nullable(String) | 待补充 | 待补充 | 待补充 | 来自 `eastmoney` 原始字段 `INFO_CODE`。 原始字段说明：公告编号 |
-| DAT_YAGGR | Nullable(Date) | 待补充 | 待补充 | 待补充 | 来自 `eastmoney` 原始字段 `DAT_YAGGR`。 原始字段说明：年度股东大会日期 |
-| TOTAL_DIVIDEND | Nullable(Float64) | 待补充 | 待补充 | 待补充 | 来自 `eastmoney` 原始字段 `TOTAL_DIVIDEND`。 原始字段说明：分红总额（元） |
-| TOTAL_DIVIDEND_A | Nullable(Float64) | 待补充 | 待补充 | 待补充 | 来自 `eastmoney` 原始字段 `TOTAL_DIVIDEND_A`。 原始字段说明：A股分红总额（元） |
-| REPORT_TIME | Nullable(String) | 待补充 | 待补充 | 待补充 | 来自 `eastmoney` 原始字段 `REPORT_TIME`。 原始字段说明：报告期截止日 |
-| DAT_YAGGR_TODAY | Bool | 待补充 | 待补充 | 待补充 | 来自 `eastmoney` 原始字段 `DAT_YAGGR_TODAY`。 原始字段说明：是否今日年度股东大会 |
-| NOTICE_TODAY | Bool | 待补充 | 待补充 | 待补充 | 来自 `eastmoney` 原始字段 `NOTICE_TODAY`。 原始字段说明：是否今日公告 |
-| GMDECISION_TODAY | Bool | 待补充 | 待补充 | 待补充 | 来自 `eastmoney` 原始字段 `GMDECISION_TODAY`。 原始字段说明：是否今日股东大会决议 |
-| DIRECTORSUPERVISOR_TODAY | Bool | 待补充 | 待补充 | 待补充 | 来自 `eastmoney` 原始字段 `DIRECTORSUPERVISOR_TODAY`。 原始字段说明：是否今日监事会决议 |
-| EQUITY_TODAY | Bool | 待补充 | 待补充 | 待补充 | 来自 `eastmoney` 原始字段 `EQUITY_TODAY`。 原始字段说明：是否今日股权登记 |
-| EX_DIVIDEND_TODAY | Bool | 待补充 | 待补充 | 待补充 | 来自 `eastmoney` 原始字段 `EX_DIVIDEND_TODAY`。 原始字段说明：是否今日除权除息 |
-| PAYCASH_TODAY | Bool | 待补充 | 待补充 | 待补充 | 来自 `eastmoney` 原始字段 `PAYCASH_TODAY`。 原始字段说明：是否今日派息 |
-| IS_PAYCASH | Bool | 待补充 | 待补充 | 待补充 | 来自 `eastmoney` 原始字段 `IS_PAYCASH`。 原始字段说明：是否派息 |
-| IS_EQUITY_RECENT | Bool | 待补充 | 待补充 | 待补充 | 来自 `eastmoney` 原始字段 `IS_EQUITY_RECENT`。 原始字段说明：是否近期股权登记 |
-| LAST_TRADE_DATE | Nullable(Date) | 待补充 | 待补充 | 待补充 | 来自 `eastmoney` 原始字段 `LAST_TRADE_DATE`。 原始字段说明：最后交易日 |
+| SECUCODE | LowCardinality(String) | 0 | 空字符串 0；`1970-01-01` 0 | distinct 5,520 | 证券代码（含市场后缀） |
+| SECURITY_CODE | LowCardinality(String) | 0 | 空字符串 0；`1970-01-01` 0 | distinct 5,520 | 证券代码（纯数字） |
+| SECURITY_NAME_ABBR | LowCardinality(String) | 0 | 空字符串 0；`1970-01-01` 0 | distinct 5,518 | 证券简称 |
+| NOTICE_DATE | Date | 0 | `1970-01-01` 0 | 1991-05-27 至 2026-06-02; distinct 6,992 | 公告日期 |
+| IMPL_PLAN_PROFILE | LowCardinality(Nullable(String)) | 85 | 空字符串 0；`1970-01-01` 0 | distinct 6,210 | 分红方案简述 |
+| ASSIGN_PROGRESS | LowCardinality(String) | 0 | 空字符串 0；`1970-01-01` 0 | distinct 6 | 分配进度 |
+| EQUITY_RECORD_DATE | Nullable(Date) | 95,808 | `1970-01-01` 0 | 1991-05-27 至 2026-07-10; distinct 5,223 | 股权登记日 |
+| EX_DIVIDEND_DATE | Nullable(Date) | 96,900 | `1970-01-01` 0 | 1991-02-26 至 2026-07-09; distinct 5,106 | 除权除息日 |
+| PAY_CASH_DATE | Nullable(Date) | 99,965 | `1970-01-01` 0 | 1992-03-23 至 2026-07-13; distinct 4,558 | 派息日 |
+| IS_UNASSIGN | Bool | 0 | 零值 58,152 | min=0, max=1, distinct 2 | 是否不分配："0" 否，"1" 是 |
+| REPORT_DATE | LowCardinality(String) | 0 | 空字符串 0；`1970-01-01` 0 | 1990年报 至 2026重整计划; distinct 151 | 报告期 |
+| ASSIGN_OBJECT | LowCardinality(Nullable(String)) | 77,399 | 空字符串 0；`1970-01-01` 0 | distinct 106 | 分配对象 |
+| IMPL_PLAN_NEWPROFILE | LowCardinality(String) | 0 | 空字符串 0；`1970-01-01` 0 | distinct 6,592 | 方案简介 + 进度后缀 |
+| NEW_PROFILE | LowCardinality(Nullable(String)) | 85 | 空字符串 0；`1970-01-01` 0 | distinct 6,237 | 分红方案（含税） |
+| GMDECISION_NOTICE_DATE | Nullable(Date) | 70,793 | `1970-01-01` 0 | 1991-04-17 至 2026-06-02; distinct 5,020 | 股东大会决议公告日 |
+| INFO_CODE | Nullable(String) | 70,499 | 空字符串 0；`1970-01-01` 0 | distinct 81,046 | 公告编号 |
+| DAT_YAGGR | Nullable(Date) | 100,343 | `1970-01-01` 0 | 2003-03-01 至 2026-06-02; distinct 2,629 | 年度股东大会日期 |
+| TOTAL_DIVIDEND | Nullable(Float64) | 434 | 零值 55,013；负值 0 | min=0, max=110,593,000,000, distinct 38,068 | 分红总额（元） |
+| TOTAL_DIVIDEND_A | Nullable(Float64) | 393 | 零值 55,055；负值 0 | min=0, max=83,661,000,000, distinct 38,073 | A股分红总额（元） |
+| REPORT_TIME | Nullable(String) | 1,621 | 空字符串 0；`1970-01-01` 0 | 1990-12-31 00:00:00 至 2026-09-30 00:00:00; distinct 98 | 报告期截止日 |
+| DAT_YAGGR_TODAY | Bool | 0 | 零值 151,605 | min=0, max=1, distinct 2 | 是否今日年度股东大会 |
+| NOTICE_TODAY | Bool | 0 | 零值 151,542 | min=0, max=1, distinct 2 | 是否今日公告 |
+| GMDECISION_TODAY | Bool | 0 | 零值 151,594 | min=0, max=1, distinct 2 | 是否今日股东大会决议 |
+| DIRECTORSUPERVISOR_TODAY | Bool | 0 | 零值 151,603 | min=0, max=1, distinct 2 | 是否今日监事会决议 |
+| EQUITY_TODAY | Bool | 0 | 零值 151,524 | min=0, max=1, distinct 2 | 是否今日股权登记 |
+| EX_DIVIDEND_TODAY | Bool | 0 | 零值 151,536 | min=0, max=1, distinct 2 | 是否今日除权除息 |
+| PAYCASH_TODAY | Bool | 0 | 零值 151,538 | min=0, max=1, distinct 2 | 是否今日派息 |
+| IS_PAYCASH | Bool | 0 | 零值 151,221 | min=0, max=1, distinct 2 | 是否派息 |
+| IS_EQUITY_RECENT | Bool | 0 | 零值 151,276 | min=0, max=1, distinct 2 | 是否近期股权登记 |
+| LAST_TRADE_DATE | Nullable(Date) | 151,606 | `1970-01-01` 0 | NULL 至 NULL; distinct 0 | 最后交易日 |
 
 ## 5. 关键字段发现
 
 ### 证券代码字段
 
-- 已画像字段：`SECUCODE`, `SECURITY_CODE`, `INFO_CODE`
-- 观察到的格式：待补充
-- 无效样例：待补充
-- 建议 staging 处理：待补充
+- 已画像字段：`SECUCODE`, `SECURITY_CODE`
+- 观察到的格式：`SECUCODE`: canonical 后缀 151,606/151,606，供应商前缀 0/151,606，纯数字 0/151,606，空值 0/151,606；`SECURITY_CODE`: canonical 后缀 0/151,606，供应商前缀 0/151,606，纯数字 151,606/151,606，空值 0/151,606
+- 无效样例：本轮聚合未发现空证券代码；格式差异按上方计数处理。
+- 建议 staging 处理：canonical 后缀格式可直接作为证券代码；BaoStock 前缀格式可确定性转换；纯 6 位代码只能作为本地代码，交易所归属需要其他字段或主数据。
 
 ### 日期与时间字段
 
-- 已画像字段：`NOTICE_DATE`, `EQUITY_RECORD_DATE`, `EX_DIVIDEND_DATE`, `PAY_CASH_DATE`
-- 范围：待补充
-- 无效值或占位值：待补充
-- 建议 staging 处理：待补充
+- 已画像字段：`NOTICE_DATE`, `EQUITY_RECORD_DATE`, `EX_DIVIDEND_DATE`, `PAY_CASH_DATE`, `REPORT_DATE`, `GMDECISION_NOTICE_DATE`, `DAT_YAGGR`, `REPORT_TIME`, `LAST_TRADE_DATE`
+- 范围：`NOTICE_DATE`: 1991-05-27 至 2026-06-02，NULL 0 行，`1970-01-01` 占位 0 行；`EQUITY_RECORD_DATE`: 1991-05-27 至 2026-07-10，NULL 95,808 行，`1970-01-01` 占位 0 行；`EX_DIVIDEND_DATE`: 1991-02-26 至 2026-07-09，NULL 96,900 行，`1970-01-01` 占位 0 行；`PAY_CASH_DATE`: 1992-03-23 至 2026-07-13，NULL 99,965 行，`1970-01-01` 占位 0 行；`REPORT_DATE`: 1990年报 至 2026重整计划，NULL 0 行，`1970-01-01` 占位 0 行；`GMDECISION_NOTICE_DATE`: 1991-04-17 至 2026-06-02，NULL 70,793 行，`1970-01-01` 占位 0 行；`DAT_YAGGR`: 2003-03-01 至 2026-06-02，NULL 100,343 行，`1970-01-01` 占位 0 行；`REPORT_TIME`: 1990-12-31 00:00:00 至 2026-09-30 00:00:00，NULL 1,621 行，`1970-01-01` 占位 0 行；`LAST_TRADE_DATE`: NULL 至 NULL，NULL 151,606 行，`1970-01-01` 占位 0 行
+- 无效值或占位值：日期/时间字段合计 `1970-01-01` 0 行。
+- 建议 staging 处理：ClickHouse Date/DateTime 类型保持类型；字符串日期在 staging 明确 cast；确定的 `1970-01-01` 占位可转 NULL 并记录 normalization。
 
 ### 枚举字段
 
-- 已画像字段：`SECUCODE`, `SECURITY_CODE`, `SECURITY_NAME_ABBR`, `IMPL_PLAN_PROFILE`, `ASSIGN_PROGRESS`, `IS_UNASSIGN`
-- 取值：待补充
-- 未知或异常取值：待补充
-- 建议 staging 处理：待补充
+- 已画像字段：`SECURITY_CODE`, `SECURITY_NAME_ABBR`, `IMPL_PLAN_PROFILE`, `ASSIGN_PROGRESS`, `IS_UNASSIGN`, `ASSIGN_OBJECT`, `IMPL_PLAN_NEWPROFILE`, `NEW_PROFILE`
+- 取值：`SECURITY_CODE`: `000002`(71), `600663`(70), `000020`(70), `000001`(70), `600610`(70), `600601`(70), `600654`(70), `600602`(70)；`SECURITY_NAME_ABBR`: `东方明珠`(113), `百联股份`(104), `万科A`(71), `平安银行`(70), `中毅达`(70), `中安科`(70), `方正科技`(70), `深华发A`(70)；`IMPL_PLAN_PROFILE`: `不分配不转增`(93,454), `10派1元`(5,205), `10派2元`(2,955), `10派0.5元`(2,871), `10派1.5元`(2,150), `10派3元`(1,777), `10派0.2元`(1,299), `10派0.3元`(1,298)；`ASSIGN_PROGRESS`: `董事会预案`(69,280), `实施方案`(55,806), `股东大会预案`(26,108), `预披露`(409), `股东大会否决`(2), `董事会决议未通过`(1)；`IS_UNASSIGN`: `1`(93,454), `0`(58,152)；`ASSIGN_OBJECT`: `NULL`(77,399), `全体股东`(69,514), `A股股东`(3,154), `流通股股东`(1,262), `A股流通股股东`(76), `重整投资人,债权人`(35), `重整管理人,债权人`(25), `非流通股股东`(17)；`IMPL_PLAN_NEWPROFILE`: `不分配不转增`(93,429), `10派1元(实施方案)`(5,077), `10派2元(实施方案)`(2,863), `10派0.5元(实施方案)`(2,786), `10派1.5元(实施方案)`(2,078), `10派3元(实施方案)`(1,716), `10派0.3元(实施方案)`(1,258), `10派0.2元(实施方案)`(1,256)；`NEW_PROFILE`: `不分配不转增`(93,454), `10派1元(含税)`(5,205), `10派2元(含税)`(2,955), `10派0.5元(含税)`(2,871), `10派1.5元(含税)`(2,150), `10派3元(含税)`(1,777), `10派0.2元(含税)`(1,299), `10派0.3元(含税)`(1,298)
+- 未知或异常取值：本轮只记录 top values；只有业务域封闭且取值稳定的字段才适合 accepted-values 测试。
+- 建议 staging 处理：布尔/状态字段可保留原始语义；业务文本枚举和长尾主题文本不要在 staging 强行收敛为跨源枚举。
 
 ### 数值字段
 
-- 已画像字段：`TOTAL_DIVIDEND`, `TOTAL_DIVIDEND_A`
-- 最小/最大值：待补充
-- 负数/零值/极端值：待补充
-- 单位假设：待补充
-- 建议 staging 处理：待补充
+- 已画像字段：全表 2 个数值字段。
+- 最小/最大值：逐字段 min/max 已写入字段画像表。
+- 负数/零值/极端值：已对 2 个数值字段执行 min/max、NULL、零值和负值检查；其中 0 个字段出现负值，2 个字段出现零值，0 个字段 NULL 数不低于 80%。
+- 单位假设：保留 raw 单位；金额、比例、股数和价格单位在具体 staging 字段 meta 中补充。
+- 建议 staging 处理：只做确定性 cast/rename/format normalization；指标口径、单位换算和异常阈值判断延后。
 
 ## 6. 数据质量问题
 
 | 问题 | 严重程度 | 证据 | staging 处理 | 延后处理 |
 |------|----------|------|--------------|----------|
-| 待补充 | 待补充 | 待补充 | 待补充 | 待补充 |
+| `SECURITY_CODE` 为 6 位本地代码 | 中 | 151,606/151,606 行为纯数字 | 只作为 `security_local_code`，不可单独推出交易所 | 交易所归属或证券主数据修正延后 |
+| 候选键存在重复 | 高 | `SECUCODE, REPORT_DATE` 重复键 19 组，单键最大 2 行 | staging 不做优先级去重，只保留 source-local 字段 | 版本选择和业务优先级延后 |
 
 ## 7. Staging 设计决策
 
-- 重命名：待补充
-- 类型转换：待补充
-- 标准化：待补充
-- NULL 处理：待补充
-- 测试：待补充
-- YAML 元数据：待补充
+- 重命名：按 `pipeline/elt/metadata/field_glossary.yml` 选择 canonical 字段；不要仅凭 raw 字段名自动扩展全部宽表字段。
+- 类型转换：Date/DateTime/Bool/Float/Int 保持或显式 cast；字符串日期、报告期和供应商布尔/状态字段需在 staging SQL 中记录转换。
+- 标准化：证券代码、交易所、本地代码使用项目 macro；文本清洗限于 trim/nullif 等 source-local 规则。
+- NULL 处理：空字符串、`1970-01-01` 和明确缺失值可转 NULL，但必须在 YAML `config.meta.normalization` 记录来源字段和规则。
+- 测试：候选键字段、日期字段和 canonical security code 优先加 `not_null`/格式 tests；宽表指标不加低价值全字段 `not_null`。
+- YAML 元数据：每个 staging 输出字段必须记录 `config.meta.source_columns`；派生字段记录 `derived_from` 和 normalization metadata。
 
 ## 8. 延后到 Intermediate/Mart
 
-- 跨源 join：待补充
-- 需要优先级判断的去重：待补充
-- 主数据修正：待补充
-- 粒度变化：待补充
-- 业务指标逻辑：待补充
+- 跨源 join：证券主数据、行业/题材实体匹配、财务 statement 合并均延后。
+- 需要优先级判断的去重：候选键重复或多公告版本选择不在 staging 静默处理。
+- 主数据修正：证券代码历史、上市/退市状态、交易所归属修正延后。
+- 粒度变化：财报宽表拆长表、事件合并、题材归并和行情事实组装延后。
+- 业务指标逻辑：财务科目重算、同比/环比口径、分红状态解释和复杂文本归一化延后。
 
 ## 待确认问题
 
-- [ ] 确认画像发现，并在依赖该报告开展新 staging 工作前更新报告状态。
+- [ ] 具体 staging model 落地时，针对实际暴露字段补充更细的字段级 tests 和单位 metadata。
+- [ ] 如候选键重复或事件日期顺序需要业务解释，在 intermediate/mart 设计中确认去重优先级和时间线规则。
 
 ## 关键 SQL 证据摘要
 
-- 行数：待补充
-- 日期 / 分区范围：待补充
-- 候选键重复：待补充
-- 关键 NULL / 占位值：待补充
-- 枚举 / 文本分布：待补充
-- 数值范围：待补充
+- 行数：151,606。
+- 日期 / 分区范围：`NOTICE_DATE`: 1991-05-27 至 2026-06-02，NULL 0 行，`1970-01-01` 占位 0 行；`EQUITY_RECORD_DATE`: 1991-05-27 至 2026-07-10，NULL 95,808 行，`1970-01-01` 占位 0 行；`EX_DIVIDEND_DATE`: 1991-02-26 至 2026-07-09，NULL 96,900 行，`1970-01-01` 占位 0 行；`PAY_CASH_DATE`: 1992-03-23 至 2026-07-13，NULL 99,965 行，`1970-01-01` 占位 0 行；`REPORT_DATE`: 1990年报 至 2026重整计划，NULL 0 行，`1970-01-01` 占位 0 行；`GMDECISION_NOTICE_DATE`: 1991-04-17 至 2026-06-02，NULL 70,793 行，`1970-01-01` 占位 0 行；`DAT_YAGGR`: 2003-03-01 至 2026-06-02，NULL 100,343 行，`1970-01-01` 占位 0 行；`REPORT_TIME`: 1990-12-31 00:00:00 至 2026-09-30 00:00:00，NULL 1,621 行，`1970-01-01` 占位 0 行；`LAST_TRADE_DATE`: NULL 至 NULL，NULL 151,606 行，`1970-01-01` 占位 0 行
+- 候选键重复：发现 19 组重复键，单键最大 2 行。
+- 关键 NULL / 占位值：`SECUCODE` NULL 0 行；`REPORT_DATE` NULL 0 行；日期/时间 `1970-01-01` 合计 0 行。
+- 枚举 / 文本分布：`SECURITY_CODE`: `000002`(71), `600663`(70), `000020`(70), `000001`(70), `600610`(70), `600601`(70), `600654`(70), `600602`(70)；`SECURITY_NAME_ABBR`: `东方明珠`(113), `百联股份`(104), `万科A`(71), `平安银行`(70), `中毅达`(70), `中安科`(70), `方正科技`(70), `深华发A`(70)；`IMPL_PLAN_PROFILE`: `不分配不转增`(93,454), `10派1元`(5,205), `10派2元`(2,955), `10派0.5元`(2,871), `10派1.5元`(2,150), `10派3元`(1,777), `10派0.2元`(1,299), `10派0.3元`(1,298)；`ASSIGN_PROGRESS`: `董事会预案`(69,280), `实施方案`(55,806), `股东大会预案`(26,108), `预披露`(409), `股东大会否决`(2), `董事会决议未通过`(1)；`IS_UNASSIGN`: `1`(93,454), `0`(58,152)；`ASSIGN_OBJECT`: `NULL`(77,399), `全体股东`(69,514), `A股股东`(3,154), `流通股股东`(1,262), `A股流通股股东`(76), `重整投资人,债权人`(35), `重整管理人,债权人`(25), `非流通股股东`(17)；`IMPL_PLAN_NEWPROFILE`: `不分配不转增`(93,429), `10派1元(实施方案)`(5,077), `10派2元(实施方案)`(2,863), `10派0.5元(实施方案)`(2,786), `10派1.5元(实施方案)`(2,078), `10派3元(实施方案)`(1,716), `10派0.3元(实施方案)`(1,258), `10派0.2元(实施方案)`(1,256)；`NEW_PROFILE`: `不分配不转增`(93,454), `10派1元(含税)`(5,205), `10派2元(含税)`(2,955), `10派0.5元(含税)`(2,871), `10派1.5元(含税)`(2,150), `10派3元(含税)`(1,777), `10派0.2元(含税)`(1,299), `10派0.3元(含税)`(1,298)
+- 数值范围：已对 2 个数值字段执行 min/max、NULL、零值和负值检查；其中 0 个字段出现负值，2 个字段出现零值，0 个字段 NULL 数不低于 80%。
 
 ## 9. 验收清单
 
-- [ ] 已抽样 raw source。
-- [ ] 已记录行数和日期/分区范围。
-- [ ] 已评估粒度和候选键。
-- [ ] 已完成关键字段画像。
-- [ ] 已列出 staging 转换建议。
-- [ ] 已列出延后处理事项。
-- [ ] 已提出测试或明确豁免。
+- [x] 已抽样 raw source。
+- [x] 已记录行数和日期/分区范围。
+- [x] 已评估粒度和候选键。
+- [x] 已完成关键字段画像。
+- [x] 已列出 staging 转换建议。
+- [x] 已列出延后处理事项。
+- [x] 已提出测试或明确豁免。
 
 ## Profiling SQL 与结果
 
 ### 样例行
 
 ```sql
-select *
-from {{ source('raw', 'eastmoney__dividend_main') }}
+select `SECUCODE`, `REPORT_DATE`, `SECURITY_CODE`, `NOTICE_DATE`, `EQUITY_RECORD_DATE`, `EX_DIVIDEND_DATE`, `PAY_CASH_DATE`, `GMDECISION_NOTICE_DATE`, `DAT_YAGGR`, `REPORT_TIME` from fleur_raw.eastmoney__dividend_main limit 5
 ```
 
-
-结果（成功）：
+结果：
 
 ```text
-21:31:56  Running with dbt=1.11.11
-21:31:56  Registered adapter: clickhouse=1.10.0
-21:31:56  [WARNING]: Configuration paths exist in your dbt_project.yml file which do not apply to any resources.
-There are 2 unused configuration paths:
-- models.elt.marts
-- models.elt.intermediate
-21:31:57  Found 3 models, 3 operations, 9 data tests, 1 sql operation, 15 sources, 528 macros
-21:31:57
-21:31:57  Concurrency: 1 threads (target='dev')
-21:31:57
-Previewing inline node:
-| SECUCODE  | SECURITY_CODE | SECURITY_NAME_ABBR | NOTICE_DATE | IMPL_PLAN_PROFILE | ASSIGN_PROGRESS | ... |
-| --------- | ------------- | ------------------ | ----------- | ----------------- | --------------- | --- |
-| 000001.SZ | 000001        | 平安银行               |  1991-12-31 | 10送5派2元           | 实施方案            | ... |
-| 000002.SZ | 000002        | 万科A                |  1991-05-27 | 10送2              | 实施方案            | ... |
-| 000004.SZ | 000004        | *ST国华              |  1991-06-30 | 10送2              | 实施方案            | ... |
-| 600601.SH | 600601        | 方正科技               |  1991-12-31 |                   | 实施方案            | ... |
-| 600651.SH | 600651        | 飞乐音响               |  1991-12-31 |                   | 实施方案            | ... |
-| 600653.SH | 600653        | 申华控股               |  1991-12-31 |                   | 实施方案            | ... |
-| 000002.SZ | 000002        | 万科A                |  1992-06-30 | 10送2              | 实施方案            | ... |
-| 000002.SZ | 000002        | 万科A                |  1992-06-30 | 不分配不转增            | 董事会预案           | ... |
-| 000004.SZ | 000004        | *ST国华              |  1992-04-01 | 10送2              | 实施方案            | ... |
-| 000007.SZ | 000007        | 全新好                |  1992-05-15 | 10送2派0.5元         | 实施方案            | ... |
-| 000011.SZ | 000011        | 深物业A               |  1992-08-20 | 不分配不转增            | 董事会预案           | ... |
-| 000012.SZ | 000012        | 南玻A                |  1992-08-13 | 不分配不转增            | 董事会预案           | ... |
-| 000016.SZ | 000016        | *ST康佳A             |  1992-08-18 | 不分配不转增            | 董事会预案           | ... |
-| 000017.SZ | 000017        | 深中华A               |  1992-08-31 | 不分配不转增            | 董事会预案           | ... |
-| 000018.SZ | 000018        | 神城A退               |  1992-08-29 | 不分配不转增            | 董事会预案           | ... |
-| 000020.SZ | 000020        | 深华发A               |  1992-08-25 | 不分配不转增            | 董事会预案           | ... |
-| 000504.SZ | 000504        | *ST生物              |  1992-12-31 | 10送3派0.6元         | 实施方案            | ... |
-| 600601.SH | 600601        | 方正科技               |  1992-06-30 | 不分配不转增            | 董事会预案           | ... |
-| 600602.SH | 600602        | 云赛智联               |  1992-03-29 | 10派100元           | 实施方案            | ... |
-| 600602.SH | 600602        | 云赛智联               |  1992-06-30 | 不分配不转增            | 董事会预案           | ... |
-| 600603.SH | 600603        | 广汇物流               |  1992-06-30 | 不分配不转增            | 董事会预案           | ... |
-| 600604.SH | 600604        | 市北高新               |  1992-06-30 | 不分配不转增            | 董事会预案           | ... |
-| 600607.SH | 600607        | 上实医药               |  1992-06-30 | 不分配不转增            | 董事会预案           | ... |
-| 600608.SH | 600608        | *ST沪科              |  1992-06-30 | 不分配不转增            | 董事会预案           | ... |
-| 600609.SH | 600609        | 金杯汽车               |  1992-12-18 | 10送3              | 实施方案            | ... |
-| 600609.SH | 600609        | 金杯汽车               |  1992-12-31 | 不分配不转增            | 实施方案            | ... |
-| 600654.SH | 600654        | 中安科                |  1992-06-30 |                   | 实施方案            | ... |
-| 000001.SZ | 000001        | 平安银行               |  1993-05-09 | 10送3.5转5派3元       | 实施方案            | ... |
-| 000001.SZ | 000001        | 平安银行               |  1993-08-11 | 不分配不转增            | 董事会预案           | ... |
-| 000002.SZ | 000002        | 万科A                |  1993-03-25 | 10送5派0.6元         | 实施方案            | ... |
-| 000002.SZ | 000002        | 万科A                |  1993-08-22 | 不分配不转增            | 董事会预案           | ... |
-| 000003.SZ | 000003        | PT金田A              |  1993-06-30 | 不分配不转增            | 董事会预案           | ... |
-| 000004.SZ | 000004        | *ST国华              |  1993-05-12 | 10送3派0.8元         | 实施方案            | ... |
-| 000006.SZ | 000006        | 深振业A               |  1993-05-26 | 10送3              | 实施方案            | ... |
-| 000007.SZ | 000007        | 全新好                |  1993-05-16 | 10送2              | 实施方案            | ... |
-| 000008.SZ | 000008        | 神州高铁               |  1993-05-19 | 10送1.5派0.5元       | 实施方案            | ... |
-| 000009.SZ | 000009        | 中国宝安               |  1993-01-01 | 10送3派0.9元         | 实施方案            | ... |
-| 000011.SZ | 000011        | 深物业A               |  1993-06-30 | 10送3派0.08元        | 实施方案            | ... |
-| 000011.SZ | 000011        | 深物业A               |  1993-08-21 | 不分配不转增            | 董事会预案           | ... |
-| 000012.SZ | 000012        | 南玻A                |  1993-05-13 | 10送3派0.7元         | 实施方案            | ... |
-| 000012.SZ | 000012        | 南玻A                |  1993-07-29 | 不分配不转增            | 董事会预案           | ... |
-| 000013.SZ | 000013        | *ST石化A             |  1993-06-06 | 不分配不转增            | 董事会预案           | ... |
-| 000013.SZ | 000013        | *ST石化A             |  1993-06-06 | 10送2派0.57元        | 实施方案            | ... |
-| 000013.SZ | 000013        | *ST石化A             |  1993-07-30 | 不分配不转增            | 董事会预案           | ... |
-| 000014.SZ | 000014        | 沙河股份               |  1993-04-17 | 10送3派0.8元         | 实施方案            | ... |
-| 000016.SZ | 000016        | *ST康佳A             |  1993-04-15 | 10送3.5派0.9元       | 实施方案            | ... |
-| 000016.SZ | 000016        | *ST康佳A             |  1993-08-18 | 不分配不转增            | 董事会预案           | ... |
-| 000017.SZ | 000017        | 深中华A               |  1993-08-20 | 10送3派0.81元        | 实施方案            | ... |
-| 000017.SZ | 000017        | 深中华A               |  1993-08-20 | 不分配不转增            | 董事会预案           | ... |
-| 000018.SZ | 000018        | 神城A退               |  1993-05-01 | 10送1派0.6元         | 实施方案            | ... |
+[{'SECUCODE': '000001.SZ', 'REPORT_DATE': '1991年报', 'SECURITY_CODE': '000001', 'NOTICE_DATE': datetime.date(1991, 12, 31), 'EQUITY_RECORD_DATE': None, 'EX_DIVIDEND_DATE': datetime.date(1992, 3, 23), 'PAY_CASH_DATE': datetime.date(1992, 3, 23), 'GMDECISION_NOTICE_DATE': None, 'DAT_YAGGR': None, 'REPORT_TIME': '1991-12-31 00:00:00'}, {'SECUCODE': '000002.SZ', 'REPORT_DATE': '1990年报', 'SECURITY_CODE': '000002', 'NOTICE_DATE': datetime.date(1991, 5, 27), 'EQUITY_RECORD_DATE': datetime.date(1991, 5, 27), 'EX_DIVIDEND_DATE': datetime.date(1991, 6, 8), 'PAY_CASH_DATE': None, 'GMDECISION_NOTICE_DATE': datetime.date(1991, 4, 17), 'DAT_YAGGR': None, 'REPORT_TIME': '1990-12-31 00:00:00'}, {'SECUCODE': '000004.SZ', 'REPORT_DATE': '1990年报', 'SECURITY_CODE': '000004', 'NOTICE_DATE': datetime.date(1991, 6, 30), 'EQUITY_RECORD_DATE': datetime.date(1991, 6, 17), 'EX_DIVIDEND_DATE': datetime.date(1991, 6, 28), 'PAY_CASH_DATE': None, 'GMDECISION_NOTICE_DATE': None, 'DAT_YAGGR': None, 'REPORT_TIME': '1990-12-31 00:00:00'}, {'SECUCODE': '600601.SH', 'REPORT_DATE': '1991年报', 'SECURITY_CODE': '600601', 'NOTICE_DATE': datetime.date(1991, 12, 31), 'EQUITY_RECORD_DATE': None, 'EX_DIVIDEND_DATE': datetime.date(1991, 3, 11), 'PAY_CASH_DATE': None, 'GMDECISION_NOTICE_DATE': None, 'DAT_YAGGR': None, 'REPORT_TIME': '1991-12-31 00:00:00'}, {'SECUCODE': '600651.SH', 'REPORT_DATE': '1991年报', 'SECURITY_CODE': '600651', 'NOTICE_DATE': datetime.date(1991, 12, 31), 'EQUITY_RECORD_DATE': None, 'EX_DIVIDEND_DATE': datetime.date(1991, 8, 26), 'PAY_CASH_DATE': None, 'GMDECISION_NOTICE_DATE': None, 'DAT_YAGGR': None, 'REPORT_TIME': '1991-12-31 00:00:00'}]
 ```
 
 ### 行数统计
 
 ```sql
-select count(*) as row_count
-from {{ source('raw', 'eastmoney__dividend_main') }}
+select count() from fleur_raw.eastmoney__dividend_main
 ```
 
-
-结果（成功）：
+结果：
 
 ```text
-21:32:00  Running with dbt=1.11.11
-21:32:00  Registered adapter: clickhouse=1.10.0
-21:32:01  [WARNING]: Configuration paths exist in your dbt_project.yml file which do not apply to any resources.
-There are 2 unused configuration paths:
-- models.elt.intermediate
-- models.elt.marts
-21:32:01  Found 3 models, 3 operations, 9 data tests, 1 sql operation, 15 sources, 528 macros
-21:32:01
-21:32:01  Concurrency: 1 threads (target='dev')
-21:32:01
-Previewing inline node:
-| row_count |
-| --------- |
-|    151606 |
+[[151606]]
 ```
 
-### 日期范围
+### 候选键重复检查
 
 ```sql
-select
-    min(`NOTICE_DATE`) as min_notice_date,
-    max(`NOTICE_DATE`) as max_notice_date,
-    countIf(isNull(`NOTICE_DATE`)) as null_notice_date,
-    countIf(`NOTICE_DATE` = toDate('1970-01-01')) as placeholder_notice_date,
-    min(`EQUITY_RECORD_DATE`) as min_equity_record_date,
-    max(`EQUITY_RECORD_DATE`) as max_equity_record_date,
-    countIf(isNull(`EQUITY_RECORD_DATE`)) as null_equity_record_date,
-    countIf(`EQUITY_RECORD_DATE` = toDate('1970-01-01')) as placeholder_equity_record_date,
-    min(`EX_DIVIDEND_DATE`) as min_ex_dividend_date,
-    max(`EX_DIVIDEND_DATE`) as max_ex_dividend_date,
-    countIf(isNull(`EX_DIVIDEND_DATE`)) as null_ex_dividend_date,
-    countIf(`EX_DIVIDEND_DATE` = toDate('1970-01-01')) as placeholder_ex_dividend_date,
-    min(`PAY_CASH_DATE`) as min_pay_cash_date,
-    max(`PAY_CASH_DATE`) as max_pay_cash_date,
-    countIf(isNull(`PAY_CASH_DATE`)) as null_pay_cash_date,
-    countIf(`PAY_CASH_DATE` = toDate('1970-01-01')) as placeholder_pay_cash_date
-from {{ source('raw', 'eastmoney__dividend_main') }}
+select count() as duplicate_key_count, max(row_count) as max_rows_per_key
+from (select `SECUCODE`, `REPORT_DATE`, count() as row_count from fleur_raw.eastmoney__dividend_main group by `SECUCODE`, `REPORT_DATE` having row_count > 1)
 ```
 
-
-结果（成功）：
+结果：
 
 ```text
-21:32:05  Running with dbt=1.11.11
-21:32:05  Registered adapter: clickhouse=1.10.0
-21:32:05  [WARNING]: Configuration paths exist in your dbt_project.yml file which do not apply to any resources.
-There are 2 unused configuration paths:
-- models.elt.marts
-- models.elt.intermediate
-21:32:06  Found 3 models, 3 operations, 9 data tests, 1 sql operation, 15 sources, 528 macros
-21:32:06
-21:32:06  Concurrency: 1 threads (target='dev')
-21:32:06
-Previewing inline node:
-| min_notice_date | max_notice_date | null_notice_date | placeholder_notic... | min_equity_record... | max_equity_record... | ... |
-| --------------- | --------------- | ---------------- | -------------------- | -------------------- | -------------------- | --- |
-|      1991-05-27 |      2026-06-02 |                0 |                    0 |           1991-05-27 |           2026-07-10 | ... |
+{'duplicate_key_count': 19, 'max_rows_per_key': 2}
 ```
 
-### 格式分布：SECUCODE
+### 证券代码格式：SECUCODE
 
 ```sql
-select
-    countIf(match(toString(`SECUCODE`), '^[0-9]{6}\\.(SH|SZ|BJ)$')) as canonical_suffix,
-    countIf(match(toString(`SECUCODE`), '^(sh|sz|bj)\\.[0-9]{6}$')) as vendor_prefix,
-    countIf(match(toString(`SECUCODE`), '^[0-9]{6}$')) as numeric_only,
-    countIf(isNull(`SECUCODE`) or toString(`SECUCODE`) = '') as empty_or_null,
-    count(*) as row_count
-from {{ source('raw', 'eastmoney__dividend_main') }}
+select countIf(match(toString(`SECUCODE`), '^[0-9]{6}\\.(SH|SZ|BJ)$')) as canonical_suffix, countIf(match(toString(`SECUCODE`), '^(sh|sz|bj)\\.[0-9]{6}$')) as vendor_prefix, countIf(match(toString(`SECUCODE`), '^[0-9]{6}$')) as numeric_only, countIf(isNull(`SECUCODE`) or toString(`SECUCODE`) = '') as empty_or_null, count() as row_count from fleur_raw.eastmoney__dividend_main
 ```
 
-
-结果（成功）：
+结果：
 
 ```text
-21:32:09  Running with dbt=1.11.11
-21:32:10  Registered adapter: clickhouse=1.10.0
-21:32:10  [WARNING]: Configuration paths exist in your dbt_project.yml file which do not apply to any resources.
-There are 2 unused configuration paths:
-- models.elt.marts
-- models.elt.intermediate
-21:32:11  Found 3 models, 3 operations, 9 data tests, 1 sql operation, 15 sources, 528 macros
-21:32:11
-21:32:11  Concurrency: 1 threads (target='dev')
-21:32:11
-Previewing inline node:
-| canonical_suffix | vendor_prefix | numeric_only | empty_or_null | row_count |
-| ---------------- | ------------- | ------------ | ------------- | --------- |
-|           151606 |             0 |            0 |             0 |    151606 |
+{'canonical_suffix': 151606, 'vendor_prefix': 0, 'numeric_only': 0, 'empty_or_null': 0, 'row_count': 151606}
 ```
 
-### 格式分布：SECURITY_CODE
+### 证券代码格式：SECURITY_CODE
 
 ```sql
-select
-    countIf(match(toString(`SECURITY_CODE`), '^[0-9]{6}\\.(SH|SZ|BJ)$')) as canonical_suffix,
-    countIf(match(toString(`SECURITY_CODE`), '^(sh|sz|bj)\\.[0-9]{6}$')) as vendor_prefix,
-    countIf(match(toString(`SECURITY_CODE`), '^[0-9]{6}$')) as numeric_only,
-    countIf(isNull(`SECURITY_CODE`) or toString(`SECURITY_CODE`) = '') as empty_or_null,
-    count(*) as row_count
-from {{ source('raw', 'eastmoney__dividend_main') }}
+select countIf(match(toString(`SECURITY_CODE`), '^[0-9]{6}\\.(SH|SZ|BJ)$')) as canonical_suffix, countIf(match(toString(`SECURITY_CODE`), '^(sh|sz|bj)\\.[0-9]{6}$')) as vendor_prefix, countIf(match(toString(`SECURITY_CODE`), '^[0-9]{6}$')) as numeric_only, countIf(isNull(`SECURITY_CODE`) or toString(`SECURITY_CODE`) = '') as empty_or_null, count() as row_count from fleur_raw.eastmoney__dividend_main
 ```
 
-
-结果（成功）：
+结果：
 
 ```text
-21:32:14  Running with dbt=1.11.11
-21:32:14  Registered adapter: clickhouse=1.10.0
-21:32:15  [WARNING]: Configuration paths exist in your dbt_project.yml file which do not apply to any resources.
-There are 2 unused configuration paths:
-- models.elt.intermediate
-- models.elt.marts
-21:32:15  Found 3 models, 3 operations, 9 data tests, 1 sql operation, 15 sources, 528 macros
-21:32:15
-21:32:15  Concurrency: 1 threads (target='dev')
-21:32:15
-Previewing inline node:
-| canonical_suffix | vendor_prefix | numeric_only | empty_or_null | row_count |
-| ---------------- | ------------- | ------------ | ------------- | --------- |
-|                0 |             0 |       151606 |             0 |    151606 |
-```
-
-### 格式分布：INFO_CODE
-
-```sql
-select
-    countIf(match(toString(`INFO_CODE`), '^[0-9]{6}\\.(SH|SZ|BJ)$')) as canonical_suffix,
-    countIf(match(toString(`INFO_CODE`), '^(sh|sz|bj)\\.[0-9]{6}$')) as vendor_prefix,
-    countIf(match(toString(`INFO_CODE`), '^[0-9]{6}$')) as numeric_only,
-    countIf(isNull(`INFO_CODE`) or toString(`INFO_CODE`) = '') as empty_or_null,
-    count(*) as row_count
-from {{ source('raw', 'eastmoney__dividend_main') }}
-```
-
-
-结果（成功）：
-
-```text
-21:32:18  Running with dbt=1.11.11
-21:32:19  Registered adapter: clickhouse=1.10.0
-21:32:19  [WARNING]: Configuration paths exist in your dbt_project.yml file which do not apply to any resources.
-There are 2 unused configuration paths:
-- models.elt.intermediate
-- models.elt.marts
-21:32:19  Found 3 models, 3 operations, 9 data tests, 1 sql operation, 15 sources, 528 macros
-21:32:19
-21:32:19  Concurrency: 1 threads (target='dev')
-21:32:19
-Previewing inline node:
-| canonical_suffix | vendor_prefix | numeric_only | empty_or_null | row_count |
-| ---------------- | ------------- | ------------ | ------------- | --------- |
-|                0 |             0 |            0 |         70499 |    151606 |
-```
-
-### 高频取值：SECUCODE
-
-```sql
-select
-    `SECUCODE` as value,
-    count(*) as row_count
-from {{ source('raw', 'eastmoney__dividend_main') }}
-group by `SECUCODE`
-order by row_count desc
-```
-
-
-结果（成功）：
-
-```text
-21:32:23  Running with dbt=1.11.11
-21:32:23  Registered adapter: clickhouse=1.10.0
-21:32:23  [WARNING]: Configuration paths exist in your dbt_project.yml file which do not apply to any resources.
-There are 2 unused configuration paths:
-- models.elt.marts
-- models.elt.intermediate
-21:32:24  Found 3 models, 3 operations, 9 data tests, 1 sql operation, 15 sources, 528 macros
-21:32:24
-21:32:24  Concurrency: 1 threads (target='dev')
-21:32:24
-Previewing inline node:
-| value     | row_count |
-| --------- | --------- |
-| 000002.SZ |        71 |
-| 600601.SH |        70 |
-| 600663.SH |        70 |
-| 000020.SZ |        70 |
-| 600654.SH |        70 |
-| 600610.SH |        70 |
-| 000001.SZ |        70 |
-| 600602.SH |        70 |
-| 600613.SH |        69 |
-| 600637.SH |        69 |
-| 000017.SZ |        69 |
-| 600608.SH |        69 |
-| 000012.SZ |        69 |
-| 000011.SZ |        69 |
-| 600660.SH |        69 |
-| 600615.SH |        69 |
-| 600686.SH |        69 |
-| 600604.SH |        69 |
-| 600609.SH |        69 |
-| 600612.SH |        69 |
-```
-
-### 高频取值：SECURITY_CODE
-
-```sql
-select
-    `SECURITY_CODE` as value,
-    count(*) as row_count
-from {{ source('raw', 'eastmoney__dividend_main') }}
-group by `SECURITY_CODE`
-order by row_count desc
-```
-
-
-结果（成功）：
-
-```text
-21:32:27  Running with dbt=1.11.11
-21:32:28  Registered adapter: clickhouse=1.10.0
-21:32:28  [WARNING]: Configuration paths exist in your dbt_project.yml file which do not apply to any resources.
-There are 2 unused configuration paths:
-- models.elt.intermediate
-- models.elt.marts
-21:32:28  Found 3 models, 3 operations, 9 data tests, 1 sql operation, 15 sources, 528 macros
-21:32:28
-21:32:28  Concurrency: 1 threads (target='dev')
-21:32:28
-Previewing inline node:
-| value  | row_count |
-| ------ | --------- |
-| 000002 |        71 |
-| 600610 |        70 |
-| 600602 |        70 |
-| 600654 |        70 |
-| 600601 |        70 |
-| 000001 |        70 |
-| 000020 |        70 |
-| 600663 |        70 |
-| 000012 |        69 |
-| 600615 |        69 |
-| 600608 |        69 |
-| 600612 |        69 |
-| 000016 |        69 |
-| 600604 |        69 |
-| 000011 |        69 |
-| 600660 |        69 |
-| 000017 |        69 |
-| 600613 |        69 |
-| 600637 |        69 |
-| 600686 |        69 |
-```
-
-### 高频取值：SECURITY_NAME_ABBR
-
-```sql
-select
-    `SECURITY_NAME_ABBR` as value,
-    count(*) as row_count
-from {{ source('raw', 'eastmoney__dividend_main') }}
-group by `SECURITY_NAME_ABBR`
-order by row_count desc
-```
-
-
-结果（成功）：
-
-```text
-21:32:32  Running with dbt=1.11.11
-21:32:32  Registered adapter: clickhouse=1.10.0
-21:32:32  [WARNING]: Configuration paths exist in your dbt_project.yml file which do not apply to any resources.
-There are 2 unused configuration paths:
-- models.elt.marts
-- models.elt.intermediate
-21:32:33  Found 3 models, 3 operations, 9 data tests, 1 sql operation, 15 sources, 528 macros
-21:32:33
-21:32:33  Concurrency: 1 threads (target='dev')
-21:32:33
-Previewing inline node:
-| value | row_count |
-| ----- | --------- |
-| 东方明珠  |       113 |
-| 百联股份  |       104 |
-| 万科A   |        71 |
-| 深华发A  |        70 |
-| 中毅达   |        70 |
-| 方正科技  |        70 |
-| 陆家嘴   |        70 |
-| 云赛智联  |        70 |
-| 平安银行  |        70 |
-| 中安科   |        70 |
-| 市北高新  |        69 |
-| 金杯汽车  |        69 |
-| 鑫源智造  |        69 |
-| 深物业A  |        69 |
-| *ST沪科 |        69 |
-| 神奇制药  |        69 |
-| 老凤祥   |        69 |
-| 金龙汽车  |        69 |
-| 深中华A  |        69 |
-| 福耀玻璃  |        69 |
-```
-
-### 高频取值：IMPL_PLAN_PROFILE
-
-```sql
-select
-    `IMPL_PLAN_PROFILE` as value,
-    count(*) as row_count
-from {{ source('raw', 'eastmoney__dividend_main') }}
-group by `IMPL_PLAN_PROFILE`
-order by row_count desc
-```
-
-
-结果（成功）：
-
-```text
-21:32:36  Running with dbt=1.11.11
-21:32:37  Registered adapter: clickhouse=1.10.0
-21:32:37  [WARNING]: Configuration paths exist in your dbt_project.yml file which do not apply to any resources.
-There are 2 unused configuration paths:
-- models.elt.intermediate
-- models.elt.marts
-21:32:37  Found 3 models, 3 operations, 9 data tests, 1 sql operation, 15 sources, 528 macros
-21:32:37
-21:32:37  Concurrency: 1 threads (target='dev')
-21:32:37
-Previewing inline node:
-| value   | row_count |
-| ------- | --------- |
-| 不分配不转增  |     93454 |
-| 10派1元   |      5205 |
-| 10派2元   |      2955 |
-| 10派0.5元 |      2871 |
-| 10派1.5元 |      2150 |
-| 10派3元   |      1777 |
-| 10派0.2元 |      1299 |
-| 10派0.3元 |      1298 |
-| 10派0.6元 |      1125 |
-| 10派2.5元 |      1085 |
-| 10派0.8元 |      1010 |
-| 10派1.2元 |      1010 |
-| 10派5元   |       982 |
-| 10派0.1元 |       824 |
-| 10派4元   |       802 |
-| 10派0.4元 |       726 |
-| 10派0.7元 |       659 |
-| 10派1.8元 |       514 |
-| 10派3.5元 |       477 |
-| 10派6元   |       454 |
-```
-
-### 高频取值：ASSIGN_PROGRESS
-
-```sql
-select
-    `ASSIGN_PROGRESS` as value,
-    count(*) as row_count
-from {{ source('raw', 'eastmoney__dividend_main') }}
-group by `ASSIGN_PROGRESS`
-order by row_count desc
-```
-
-
-结果（成功）：
-
-```text
-21:32:41  Running with dbt=1.11.11
-21:32:41  Registered adapter: clickhouse=1.10.0
-21:32:41  [WARNING]: Configuration paths exist in your dbt_project.yml file which do not apply to any resources.
-There are 2 unused configuration paths:
-- models.elt.marts
-- models.elt.intermediate
-21:32:42  Found 3 models, 3 operations, 9 data tests, 1 sql operation, 15 sources, 528 macros
-21:32:42
-21:32:42  Concurrency: 1 threads (target='dev')
-21:32:42
-Previewing inline node:
-| value    | row_count |
-| -------- | --------- |
-| 董事会预案    |     69280 |
-| 实施方案     |     55806 |
-| 股东大会预案   |     26108 |
-| 预披露      |       409 |
-| 股东大会否决   |         2 |
-| 董事会决议未通过 |         1 |
-```
-
-### 高频取值：IS_UNASSIGN
-
-```sql
-select
-    `IS_UNASSIGN` as value,
-    count(*) as row_count
-from {{ source('raw', 'eastmoney__dividend_main') }}
-group by `IS_UNASSIGN`
-order by row_count desc
-```
-
-
-结果（成功）：
-
-```text
-21:32:45  Running with dbt=1.11.11
-21:32:46  Registered adapter: clickhouse=1.10.0
-21:32:46  [WARNING]: Configuration paths exist in your dbt_project.yml file which do not apply to any resources.
-There are 2 unused configuration paths:
-- models.elt.marts
-- models.elt.intermediate
-21:32:46  Found 3 models, 3 operations, 9 data tests, 1 sql operation, 15 sources, 528 macros
-21:32:46
-21:32:46  Concurrency: 1 threads (target='dev')
-21:32:46
-Previewing inline node:
-| value | row_count |
-| ----- | --------- |
-|  True |     93454 |
-| False |     58152 |
-```
-
-### 数值范围：TOTAL_DIVIDEND
-
-```sql
-select
-    min(`TOTAL_DIVIDEND`) as min_value,
-    max(`TOTAL_DIVIDEND`) as max_value,
-    countIf(`TOTAL_DIVIDEND` = 0) as zero_count,
-    countIf(`TOTAL_DIVIDEND` < 0) as negative_count,
-    countIf(isNull(`TOTAL_DIVIDEND`)) as null_count,
-    count(*) as row_count
-from {{ source('raw', 'eastmoney__dividend_main') }}
-```
-
-
-结果（成功）：
-
-```text
-21:32:50  Running with dbt=1.11.11
-21:32:50  Registered adapter: clickhouse=1.10.0
-21:32:50  [WARNING]: Configuration paths exist in your dbt_project.yml file which do not apply to any resources.
-There are 2 unused configuration paths:
-- models.elt.intermediate
-- models.elt.marts
-21:32:51  Found 3 models, 3 operations, 9 data tests, 1 sql operation, 15 sources, 528 macros
-21:32:51
-21:32:51  Concurrency: 1 threads (target='dev')
-21:32:51
-Previewing inline node:
-| min_value |       max_value | zero_count | negative_count | null_count | row_count |
-| --------- | --------------- | ---------- | -------------- | ---------- | --------- |
-|         0 | 110,593,000,000 |      55013 |              0 |        434 |    151606 |
-```
-
-### 数值范围：TOTAL_DIVIDEND_A
-
-```sql
-select
-    min(`TOTAL_DIVIDEND_A`) as min_value,
-    max(`TOTAL_DIVIDEND_A`) as max_value,
-    countIf(`TOTAL_DIVIDEND_A` = 0) as zero_count,
-    countIf(`TOTAL_DIVIDEND_A` < 0) as negative_count,
-    countIf(isNull(`TOTAL_DIVIDEND_A`)) as null_count,
-    count(*) as row_count
-from {{ source('raw', 'eastmoney__dividend_main') }}
-```
-
-
-结果（成功）：
-
-```text
-21:32:54  Running with dbt=1.11.11
-21:32:55  Registered adapter: clickhouse=1.10.0
-21:32:55  [WARNING]: Configuration paths exist in your dbt_project.yml file which do not apply to any resources.
-There are 2 unused configuration paths:
-- models.elt.marts
-- models.elt.intermediate
-21:32:55  Found 3 models, 3 operations, 9 data tests, 1 sql operation, 15 sources, 528 macros
-21:32:55
-21:32:55  Concurrency: 1 threads (target='dev')
-21:32:55
-Previewing inline node:
-| min_value |      max_value | zero_count | negative_count | null_count | row_count |
-| --------- | -------------- | ---------- | -------------- | ---------- | --------- |
-|         0 | 83,661,000,000 |      55055 |              0 |        393 |    151606 |
+{'canonical_suffix': 0, 'vendor_prefix': 0, 'numeric_only': 151606, 'empty_or_null': 0, 'row_count': 151606}
 ```
