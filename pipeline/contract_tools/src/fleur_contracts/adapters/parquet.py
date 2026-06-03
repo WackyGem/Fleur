@@ -90,6 +90,10 @@ def pyarrow_type_from_contract(type_text: str) -> pa.DataType:
         return pa.timestamp("s")
     if type_text == "timestamp[s, tz=UTC]":
         return pa.timestamp("s", tz="UTC")
+    if type_text == "timestamp[ms]":
+        return pa.timestamp("ms")
+    if type_text == "timestamp[ms, tz=UTC]":
+        return pa.timestamp("ms", tz="UTC")
     if type_text == "timestamp[ns]":
         return pa.timestamp("ns")
     if type_text == "timestamp[ns, tz=UTC]":
@@ -121,6 +125,10 @@ def pyarrow_type_expression_from_contract(type_text: str) -> str:
         return 'pa.timestamp("s")'
     if type_text == "timestamp[s, tz=UTC]":
         return 'pa.timestamp("s", tz="UTC")'
+    if type_text == "timestamp[ms]":
+        return 'pa.timestamp("ms")'
+    if type_text == "timestamp[ms, tz=UTC]":
+        return 'pa.timestamp("ms", tz="UTC")'
     if type_text == "timestamp[ns]":
         return 'pa.timestamp("ns")'
     if type_text == "timestamp[ns, tz=UTC]":

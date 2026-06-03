@@ -4,6 +4,8 @@
 
 状态：Accepted
 
+实施复核（2026-06-03）：落地 `stg_jiuyan__industry_list` 时，当前 raw snapshot 已更新为 957 行、`industry_id` 957 个且仍唯一；`create_time` 最大值为 2026-06-03 18:28:23，`update_time` 最大值为 2026-06-03 21:36:59；`delete_time` 仍全表 NULL，`is_delete` 仍全部为 false；`author` NULL 749 行、空字符串 8 行，`content` 空字符串 17 行。
+
 关联：
 
 - 数据契约：`pipeline/contracts/datasets/jiuyan__industry_list.yml`

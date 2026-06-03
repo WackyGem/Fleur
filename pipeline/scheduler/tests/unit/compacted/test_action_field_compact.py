@@ -70,6 +70,7 @@ def test_compact_daily_asset_by_year_merges_non_empty_daily_tables(
                             "action_field_id": "field-2",
                             "name": "公告",
                             "date": date(2026, 1, 5),
+                            "reason": "题材原因",
                         },
                         {
                             "action_field_id": "field-3",
@@ -139,6 +140,7 @@ def test_compact_daily_asset_by_year_merges_non_empty_daily_tables(
     assert result.metadata is not None
     assert table.schema == PARQUET_SCHEMAS["jiuyan__action_field_compacted"]
     assert table.column("action_field_id").to_pylist() == ["field-1", "field-2", "field-3"]
+    assert table.column("reason").to_pylist() == [None, "题材原因", None]
     assert result.metadata["row_count"] == 3
     assert result.metadata["column_count"] == 18
     assert result.metadata["input_asset"] == "source/jiuyan__action_field"

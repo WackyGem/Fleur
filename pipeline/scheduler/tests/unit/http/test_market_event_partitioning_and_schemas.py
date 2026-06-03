@@ -128,12 +128,29 @@ class MarketEventSchemaTest(unittest.TestCase):
                             },
                         }
                     ],
-                }
+                },
+                {
+                    "action_field_id": "field-2",
+                    "name": "公告",
+                    "date": "2026-05-08",
+                    "reason": "",
+                    "list": [
+                        {
+                            "code": "sh600000",
+                            "name": "浦发银行",
+                            "article": {
+                                "action_info": {
+                                    "reason": None,
+                                },
+                            },
+                        }
+                    ],
+                },
             ]
         )
         table = result.table
 
-        self.assertEqual(table.num_rows, 1)
+        self.assertEqual(table.num_rows, 2)
         self.assertIn("time", table.column_names)
         self.assertIn("name", table.column_names)
         self.assertIn("reason", table.column_names)
@@ -147,9 +164,9 @@ class MarketEventSchemaTest(unittest.TestCase):
         self.assertNotIn("errCode", table.column_names)
         self.assertNotIn("serverTime", table.column_names)
         self.assertNotIn("source_endpoint", table.column_names)
-        self.assertEqual(table["time"].to_pylist(), [dt_time(9, 25)])
-        self.assertEqual(table["name"].to_pylist(), ["福达合金"])
-        self.assertEqual(table["reason"].to_pylist(), ["板块原因"])
+        self.assertEqual(table["time"].to_pylist(), [dt_time(9, 25), None])
+        self.assertEqual(table["name"].to_pylist(), ["福达合金", "浦发银行"])
+        self.assertEqual(table["reason"].to_pylist(), ["板块原因", None])
         self.assertGreater(result.unknown_field_count, 0)
 
     def test_ths_table_uses_info_rows_and_drops_page_and_count_columns(self) -> None:

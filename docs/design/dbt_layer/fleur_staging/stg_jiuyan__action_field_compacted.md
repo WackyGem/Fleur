@@ -29,15 +29,15 @@
 | Staging 字段 | 来源字段 | 类型建议 | 设计说明 |
 |--------------|----------|----------|----------|
 | `action_field_id` | `action_field_id` | `String` | 题材异动记录 ID。 |
-| `security_code` | `code` | `String` | 兼容该格式的 canonical `security_code`。 |
+| `security_code` | `code` | `String` | 使用 `normalize_cn_security_code(input_format='compact_prefix')` 将紧凑供应商代码转为 canonical 格式。 |
 | `trade_date` | `date` | `Date` | 题材异动对应日期。 |
 | `action_field_name` | `name` | `String` | 原始名称，source-local。 |
-| `reason` | `reason` | `Nullable(String)` | `trim(nullif(reason, ''))`；空字符串转 NULL。 |
+| `reason` | `reason` | `Nullable(String)` | `nullIf(reason, '')`；空字符串转 NULL。 |
 | `sort_no` | `sort_no` | `Int64` | 展示排序，0 值保留。 |
 | `is_delete` | `is_delete` | `Bool` | 删除标记。 |
-| `create_time` | `create_time` | `DateTime64(3)` | 记录创建时间。 |
+| `create_time` | `create_time` | `DateTime` | 记录创建时间。 |
 | `related_count` | `count` | `Int64` | 关联对象数量；避免使用保留词 `count`。 |
-| `event_time` | `time` | `Nullable(String)` | 可确定性提取 `HH:MM:SS`；落地前需明确 macro 或 SQL 表达式。 |
+| `event_time` | `time` | `Nullable(Time)` | 保留 raw Time 类型，1970 日期占位不进入 staging。 |
 | `limit_board_text` | `num` | `Nullable(String)` | 连板描述文本，不解析业务语义。 |
 | `limit_days` | `day` | `Nullable(Int64)` | 连板天数，NULL 保留。 |
 | `limit_boards` | `edition` | `Nullable(Int64)` | 连板板数，NULL 保留。 |
@@ -45,7 +45,7 @@
 
 ## 4. 标准化与 NULL 处理
 
-- 现有证券代码 macro 不支持 `sh600108` / `bj920183` 格式；第一版不要生成 `security_code`，除非先扩展 macro 并补 profile 格式计数。
+- `code` 使用 `compact_prefix` 证券代码格式，例如 `sh600108`、`bj920183`；staging 通过项目 macro 转为 canonical `security_code`。
 - `reason` 的空字符串可转 NULL。
 - `time` 中的 `1970-01-01` 不应按缺失日期处理；它是日内时间承载方式，建议保留原文并派生 time-of-day。
 - `shares_range = -999` 不能在 staging 静默转 NULL，需先确认供应商含义。
@@ -53,9 +53,9 @@
 ## 5. 测试建议
 
 - `action_field_id`: `not_null`。
-- `source_security_code`: `not_null`。
+- `security_code`: `not_null`，`cn_security_code_format`。
 - `trade_date`: `not_null`。
-- 组合键：`action_field_id`, `source_security_code` 唯一。
+- 组合键：`action_field_id`, `security_code` 唯一。
 - `is_delete`: `accepted_values`，取值 `false`；如未来出现删除行再放宽。
 - 不对 `num`, `day`, `edition`, `time` 加 `not_null`。
 
@@ -65,4 +65,3 @@
 - 题材、个股、行业实体归并。
 - 连板文本和 `shares_range` 业务含义解释。
 - 删除/更新版本处理。
-

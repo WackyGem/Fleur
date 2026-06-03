@@ -94,6 +94,7 @@ def run_tag(context: dg.AssetExecutionContext, key: str) -> str | None:
 
 def _compact_table_for_output_schema(table: pa.Table, *, dataset: str) -> pa.Table:
     expected_schema = PARQUET_SCHEMAS[dataset]
+    table = _normalize_compacted_table(table, dataset=dataset)
     if table.schema == expected_schema:
         return table
     missing_fields = [
@@ -103,3 +104,20 @@ def _compact_table_for_output_schema(table: pa.Table, *, dataset: str) -> pa.Tab
         msg = f"Compacted dataset {dataset} is missing fields: {missing_fields}"
         raise RuntimeError(msg)
     return table.select(expected_schema.names).cast(expected_schema)
+
+
+def _normalize_compacted_table(table: pa.Table, *, dataset: str) -> pa.Table:
+    if dataset != "jiuyan__action_field_compacted":
+        return table
+    if "reason" not in table.schema.names:
+        return table
+
+    normalized_reason = pa.array(
+        [None if value == "" else value for value in table["reason"].to_pylist()],
+        type=pa.string(),
+    )
+    return table.set_column(
+        table.schema.get_field_index("reason"),
+        "reason",
+        normalized_reason,
+    )

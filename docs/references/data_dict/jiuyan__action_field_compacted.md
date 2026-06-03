@@ -19,12 +19,12 @@
 | 1 | `action_field_id` | `string` | `string` | `action_field_id` | `String` | 韭研题材异动记录唯一标识。 |
 | 2 | `name` | `string` | `string` | `name` | `String` | 韭研题材异动名称。 |
 | 3 | `date` | `string` | `date32[day]` | `date` | `Date` | 韭研题材异动对应的交易日期。 |
-| 4 | `reason` | `string` | `string` | `reason` | `String` | 韭研题材异动形成或归类原因。 |
+| 4 | `reason` | `string` | `string` | `reason` | `Nullable(String)` | 韭研题材异动形成或归类原因。 |
 | 5 | `sort_no` | `integer` | `int64` | `sort_no` | `Int64` | 韭研题材异动展示排序号。 |
 | 6 | `is_delete` | `boolean` | `bool` | `is_delete` | `Bool` | 韭研题材异动记录是否被标记为删除。 |
-| 7 | `delete_time` | `string` | `timestamp[s]` | `delete_time` | `Nullable(DateTime)` | 韭研题材异动记录删除时间。 |
-| 8 | `create_time` | `string` | `timestamp[s]` | `create_time` | `DateTime` | 韭研题材异动记录创建时间。 |
-| 9 | `update_time` | `string` | `timestamp[s]` | `update_time` | `Nullable(DateTime)` | 韭研题材异动记录更新时间。 |
+| 7 | `delete_time` | `string` | `timestamp[ms]` | `delete_time` | `Nullable(DateTime)` | 韭研题材异动记录删除时间。 |
+| 8 | `create_time` | `string` | `timestamp[ms]` | `create_time` | `DateTime` | 韭研题材异动记录创建时间。 |
+| 9 | `update_time` | `string` | `timestamp[ms]` | `update_time` | `Nullable(DateTime)` | 韭研题材异动记录更新时间。 |
 | 10 | `count` | `integer` | `int64` | `count` | `Int64` | 韭研题材异动关联对象数量。 |
 | 11 | `code` | `string` | `string` | `code` | `LowCardinality(String)` | 题材异动关联的证券代码。 |
 | 12 | `time` | `string` | `time32[ms]` | `time` | `Nullable(Time)` | 题材异动关联证券的事件时间。 |
@@ -43,4 +43,4 @@
 
 - Initial contract migrated from docs/references/data_dict and current raw sync specs.
 - Downstream compacted contract consumes source-only asset source/jiuyan__action_field.
-- String type decision on S3 parquet source/jiuyan__action_field_compacted: rows=5881; action_field_id nonnull=5881 uniq=740 unique_rate=0.125829, name nonnull=5881 uniq=2106 unique_rate=0.358102, reason nonnull=5881 uniq=336 unique_rate=0.057133, expound nonnull=5881 uniq=4257 unique_rate=0.723856. action_field_id, name and reason use ClickHouse String by explicit schema decision for this raw table; expound is descriptive high-uniqueness text and also uses ClickHouse String. Parquet schema remains string.
+- String type decision on S3 parquet source/jiuyan__action_field_compacted: rows=5881; action_field_id nonnull=5881 uniq=740 unique_rate=0.125829, name nonnull=5881 uniq=2106 unique_rate=0.358102, reason nonnull=5881 uniq=336 unique_rate=0.057133, expound nonnull=5881 uniq=4257 unique_rate=0.723856. action_field_id and name use ClickHouse String by explicit schema decision for this raw table; reason uses Nullable(String) because empty reason text represents missing content at the raw table boundary; expound is descriptive high-uniqueness text and also uses ClickHouse String. Parquet schema remains string.

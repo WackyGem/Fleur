@@ -112,10 +112,10 @@ parquet:
     type: int64
     nullable: true
   - name: first_limit_up_time
-    type: timestamp[s, tz=UTC]
+    type: timestamp[ms, tz=UTC]
     nullable: false
   - name: last_limit_up_time
-    type: timestamp[s, tz=UTC]
+    type: timestamp[ms, tz=UTC]
     nullable: false
   - name: code
     type: string

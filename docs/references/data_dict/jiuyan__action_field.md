@@ -20,9 +20,9 @@
 | 4 | `reason` | `string` | `string` | 韭研题材异动形成或归类原因。 |
 | 5 | `sort_no` | `integer` | `int64` | 韭研题材异动展示排序号。 |
 | 6 | `is_delete` | `string` | `bool` | 韭研题材异动记录是否被标记为删除。 |
-| 7 | `delete_time` | `string` | `timestamp[s]` | 韭研题材异动记录删除时间。 |
-| 8 | `create_time` | `string` | `timestamp[s]` | 韭研题材异动记录创建时间。 |
-| 9 | `update_time` | `string` | `timestamp[s]` | 韭研题材异动记录更新时间。 |
+| 7 | `delete_time` | `string` | `timestamp[ms]` | 韭研题材异动记录删除时间。 |
+| 8 | `create_time` | `string` | `timestamp[ms]` | 韭研题材异动记录创建时间。 |
+| 9 | `update_time` | `string` | `timestamp[ms]` | 韭研题材异动记录更新时间。 |
 | 10 | `count` | `integer` | `int64` | 韭研题材异动关联对象数量。 |
 | 11 | `code` | `string` | `string` | 题材异动关联的证券代码。 |
 | 12 | `time` | `string` | `time32[ms]` | 题材异动关联证券的事件时间。 |

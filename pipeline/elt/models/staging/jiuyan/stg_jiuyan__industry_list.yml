@@ -1,0 +1,195 @@
+version: 2
+
+models:
+  - name: stg_jiuyan__industry_list
+    description: 韭研行业研究列表 staging 模型。
+    columns:
+      - name: industry_id
+        description: 行业研究记录 ID。
+        data_type: String
+        data_tests:
+          - not_null
+          - unique
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: jiuyan__industry_list
+                column: industry_id
+
+      - name: title
+        description: 行业研究标题。
+        data_type: String
+        data_tests:
+          - not_null
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: jiuyan__industry_list
+                column: title
+
+      - name: title_red
+        description: 标题红色高亮标记。
+        data_type: Bool
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: jiuyan__industry_list
+                column: title_red
+
+      - name: title_bold
+        description: 标题加粗标记。
+        data_type: Bool
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: jiuyan__industry_list
+                column: title_bold
+
+      - name: author
+        description: 内容作者。
+        data_type: Nullable(String)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: jiuyan__industry_list
+                column: author
+
+      - name: images_raw
+        description: 图片列表原文。
+        data_type: String
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: jiuyan__industry_list
+                column: imgs
+
+      - name: keyword
+        description: 关键词原文。
+        data_type: String
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: jiuyan__industry_list
+                column: keyword
+
+      - name: content
+        description: 正文内容。
+        data_type: Nullable(String)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: jiuyan__industry_list
+                column: content
+
+      - name: is_top
+        description: 置顶标记。
+        data_type: Bool
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: jiuyan__industry_list
+                column: is_top
+
+      - name: status_code
+        description: 供应商状态码。
+        data_type: Int64
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: jiuyan__industry_list
+                column: status
+
+      - name: sort_no
+        description: 展示排序号。
+        data_type: Int64
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: jiuyan__industry_list
+                column: sort_no
+
+      - name: forward_count
+        description: 转发次数。
+        data_type: Int64
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: jiuyan__industry_list
+                column: forward_count
+
+      - name: browsers_count
+        description: 浏览次数。
+        data_type: Int64
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: jiuyan__industry_list
+                column: browsers_count
+
+      - name: is_delete
+        description: 删除标记。
+        data_type: Bool
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: [false]
+                quote: false
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: jiuyan__industry_list
+                column: is_delete
+
+      - name: create_time
+        description: 记录创建时间。
+        data_type: DateTime
+        data_tests:
+          - not_null
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: jiuyan__industry_list
+                column: create_time
+
+      - name: update_time
+        description: 记录更新时间。
+        data_type: Nullable(DateTime)
+        data_tests:
+          - not_null
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: jiuyan__industry_list
+                column: update_time

@@ -104,7 +104,7 @@ parquet:
     nullable: false
   - name: reason
     type: string
-    nullable: false
+    nullable: true
   - name: sort_no
     type: int64
     nullable: false
@@ -112,13 +112,13 @@ parquet:
     type: bool
     nullable: false
   - name: delete_time
-    type: timestamp[s]
+    type: timestamp[ms]
     nullable: true
   - name: create_time
-    type: timestamp[s]
+    type: timestamp[ms]
     nullable: false
   - name: update_time
-    type: timestamp[s]
+    type: timestamp[ms]
     nullable: true
   - name: count
     type: int64
@@ -174,7 +174,7 @@ clickhouse_raw:
   - name: reason
     type: String
     from: reason
-    nullable: false
+    nullable: true
   - name: sort_no
     type: Int64
     from: sort_no
@@ -241,7 +241,8 @@ validation_notes:
   rows=5881; action_field_id nonnull=5881 uniq=740 unique_rate=0.125829,
   name nonnull=5881 uniq=2106 unique_rate=0.358102, reason nonnull=5881
   uniq=336 unique_rate=0.057133, expound nonnull=5881 uniq=4257
-  unique_rate=0.723856. action_field_id, name and reason use ClickHouse
-  String by explicit schema decision for this raw table; expound is descriptive
-  high-uniqueness text and also uses ClickHouse String. Parquet schema remains
-  string.'
+  unique_rate=0.723856. action_field_id and name use ClickHouse String by
+  explicit schema decision for this raw table; reason uses Nullable(String)
+  because empty reason text represents missing content at the raw table
+  boundary; expound is descriptive high-uniqueness text and also uses
+  ClickHouse String. Parquet schema remains string.'

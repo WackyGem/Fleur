@@ -103,6 +103,8 @@ def jiuyan_action_field_to_table(
             copy_selected_fields(output_row, content_row, JIUYAN_ACTION_FIELD_OUTER_COLUMNS)
             copy_selected_fields(output_row, stock, JIUYAN_ACTION_FIELD_STOCK_COLUMNS)
             copy_selected_fields(output_row, action_info, JIUYAN_ACTION_FIELD_ACTION_INFO_COLUMNS)
+            if output_row.get("reason") == "":
+                output_row["reason"] = None
             rows.append(output_row)
 
     return TableConversionResult(

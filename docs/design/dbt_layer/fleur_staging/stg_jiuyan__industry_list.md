@@ -1,6 +1,6 @@
 # stg_jiuyan__industry_list 设计
 
-状态：Design
+状态：Implemented
 
 依据：
 
@@ -14,13 +14,13 @@
 
 ## 2. 数据特征
 
-- 行数：956。
+- 行数：957（2026-06-03 实施时复核）。
 - 粒度：一行一个 `industry_id`。
 - 候选键：`industry_id`，profile 未发现重复。
-- `create_time` 无 NULL，范围 2024-03-16 至 2026-05-29。
-- `update_time` 无 NULL，范围 2026-05-07 至 2026-06-02。
+- `create_time` 无 NULL，范围 2024-03-16 至 2026-06-03。
+- `update_time` 无 NULL，范围 2026-05-07 至 2026-06-03。
 - `delete_time` 全表 NULL；`is_delete` 全部为 false。
-- `author` NULL 748 行、空字符串 8 行；`content` 空字符串 17 行。
+- `author` NULL 749 行、空字符串 8 行；`content` 空字符串 17 行。
 - `sort_no` 有 2 行负值，最小 -1；profile 未确认业务含义。
 
 ## 3. 字段设计
@@ -31,7 +31,7 @@
 | `title` | `title` | `String` | 标题原文。 |
 | `title_red` | `title_red` | `Bool` | 标题红色高亮标记。 |
 | `title_bold` | `title_bold` | `Bool` | 当前全为 false，保留字段。 |
-| `author` | `author` | `Nullable(String)` | `trim(nullif(author, ''))`，NULL 保留。 |
+| `author` | `author` | `Nullable(String)` | NULL 保留。 |
 | `images_raw` | `imgs` | `String` | 图片列表原文；不在 staging 解析数组。 |
 | `keyword` | `keyword` | `String` | 关键词原文。 |
 | `content` | `content` | `Nullable(String)` | 空字符串转 NULL。 |
@@ -41,13 +41,12 @@
 | `forward_count` | `forward_count` | `Int64` | 转发次数。 |
 | `browsers_count` | `browsers_count` | `Int64` | 浏览次数，保留供应商字段拼写语义。 |
 | `is_delete` | `is_delete` | `Bool` | 删除标记。 |
-| `delete_time` | `delete_time` | `Nullable(DateTime64(3))` | 全表 NULL，可第一版不暴露。 |
-| `create_time` | `create_time` | `DateTime64(3)` | 创建时间。 |
-| `update_time` | `update_time` | `DateTime64(3)` | 更新时间。 |
+| `create_time` | `create_time` | `DateTime` | 创建时间。 |
+| `update_time` | `update_time` | `Nullable(DateTime)` | 更新时间。 |
 
 ## 4. 标准化与 NULL 处理
 
-- `author` 与 `content` 空字符串转 NULL，其余长文本只做 trim。
+- `author` 与 `content` 空字符串转 NULL；其余长文本不做无证据清洗。
 - `imgs` 不在 staging 解析为结构化图片数组；保留原始字符串，解析延后。
 - `sort_no = -1` 保留，不静默修正。
 - 全表 NULL 的 `delete_time` 可以不进入第一版，避免低价值字段污染下游。
@@ -66,4 +65,3 @@
 - `imgs` / `keyword` / `content` 的结构化解析。
 - 行业主题实体匹配和正文 NLP。
 - 删除版本和更新版本的 SCD 处理。
-

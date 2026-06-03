@@ -111,7 +111,7 @@ parquet:
     nullable: false
   - name: content
     type: string
-    nullable: false
+    nullable: true
   - name: is_top
     type: bool
     nullable: false
@@ -131,13 +131,13 @@ parquet:
     type: bool
     nullable: false
   - name: delete_time
-    type: timestamp[s]
+    type: timestamp[ms]
     nullable: true
   - name: create_time
-    type: timestamp[s]
+    type: timestamp[ms]
     nullable: false
   - name: update_time
-    type: timestamp[s]
+    type: timestamp[ms]
     nullable: true
 clickhouse_raw:
   database: fleur_raw
@@ -182,7 +182,7 @@ clickhouse_raw:
   - name: content
     type: String
     from: content
-    nullable: false
+    nullable: true
   - name: is_top
     type: Bool
     from: is_top

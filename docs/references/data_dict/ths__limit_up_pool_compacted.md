@@ -18,8 +18,8 @@
 |---|----------|----------|--------------|---------------------|-----------------|----------|
 | 1 | `date` | `string` | `date32[day]` | `date` | `Date` | 同花顺涨停池对应的交易日期。 |
 | 2 | `open_num` | `integer` | `int64` | `open_num` | `Nullable(Int64)` | 股票当日涨停后开板次数。 |
-| 3 | `first_limit_up_time` | `string` | `timestamp[s, tz=UTC]` | `first_limit_up_time` | `DateTime('UTC')` | 股票当日首次涨停时间。 |
-| 4 | `last_limit_up_time` | `string` | `timestamp[s, tz=UTC]` | `last_limit_up_time` | `DateTime('UTC')` | 股票当日最后一次涨停时间。 |
+| 3 | `first_limit_up_time` | `string` | `timestamp[ms, tz=UTC]` | `first_limit_up_time` | `DateTime('UTC')` | 股票当日首次涨停时间。 |
+| 4 | `last_limit_up_time` | `string` | `timestamp[ms, tz=UTC]` | `last_limit_up_time` | `DateTime('UTC')` | 股票当日最后一次涨停时间。 |
 | 5 | `code` | `string` | `string` | `code` | `LowCardinality(String)` | 同花顺涨停池中的证券代码。 |
 | 6 | `limit_up_type` | `string` | `string` | `limit_up_type` | `LowCardinality(String)` | 涨停类型分类。 |
 | 7 | `order_volume` | `number` | `double` | `order_volume` | `Float64` | 涨停封单量。 |

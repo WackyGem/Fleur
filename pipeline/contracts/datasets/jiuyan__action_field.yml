@@ -100,7 +100,7 @@ parquet:
     nullable: false
   - name: reason
     type: string
-    nullable: false
+    nullable: true
   - name: sort_no
     type: int64
     nullable: false
@@ -108,13 +108,13 @@ parquet:
     type: bool
     nullable: false
   - name: delete_time
-    type: timestamp[s]
+    type: timestamp[ms]
     nullable: true
   - name: create_time
-    type: timestamp[s]
+    type: timestamp[ms]
     nullable: false
   - name: update_time
-    type: timestamp[s]
+    type: timestamp[ms]
     nullable: true
   - name: count
     type: int64

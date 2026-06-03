@@ -15293,8 +15293,8 @@ sources:
         upstream_raw_asset: clickhouse/raw/jiuyan__action_field_compacted
         clickhouse_raw_table: fleur_raw.jiuyan__action_field_compacted
         source_schema_hash: 420040dc985b45d05b853c26f2189d5d121ae14b3fca77bac7add4479b28a649
-        parquet_schema_hash: 9981ed930ef1626e1c7d336804147b1e8208123b0c248a49a59eeb7f41328fdc
-        clickhouse_schema_hash: 9ca0f3e8659391342acc216590363ee2928f39a9bebe192cb125fd7be1916544
+        parquet_schema_hash: 2a248625cf6381d5b9a086ce6a002cde2affad122d4374695be8a9d67cd46206
+        clickhouse_schema_hash: d3d68d34b8486f6790d2fa1d88ff10e116648a587c7791667e0e7d04a4fb010f
     columns:
     - name: action_field_id
       description: Raw source column from `jiuyan` field `action_field_id`. 原始字段说明：韭研题材异动记录唯一标识。
@@ -15325,7 +15325,7 @@ sources:
           external_description_zh: 韭研题材异动对应的交易日期。
     - name: reason
       description: Raw source column from `jiuyan` field `reason`. 原始字段说明：韭研题材异动形成或归类原因。
-      data_type: String
+      data_type: Nullable(String)
       config:
         meta:
           source_field: reason
@@ -15467,8 +15467,8 @@ sources:
         upstream_raw_asset: clickhouse/raw/jiuyan__industry_list
         clickhouse_raw_table: fleur_raw.jiuyan__industry_list
         source_schema_hash: 0ffb9d0169c30bb477a8371b4651c77b06c7719f95b1716adcc2ec5fbee4f659
-        parquet_schema_hash: 4c442ed2dd1917f12cad64391e0cbbe38dbf58125f7f3d8ebf1b92c9fed2dfe6
-        clickhouse_schema_hash: 73b5628f514e6d0d302d8fee009fdecc010c383968836a600034c31bece4babb
+        parquet_schema_hash: 172b22e40fb2e1a05e3530972002cbd63c19c3f150271dedd7dd0544d5ab3e62
+        clickhouse_schema_hash: 5eb6a5e10b8eaec12adc12cadd9cc4b02180f408c542825de8979b72f3acd6a2
     columns:
     - name: industry_id
       description: Raw source column from `jiuyan` field `industry_id`. 原始字段说明：韭研行业研究记录唯一标识。
@@ -15535,7 +15535,7 @@ sources:
           external_description_zh: 行业研究内容关键词。
     - name: content
       description: Raw source column from `jiuyan` field `content`. 原始字段说明：行业研究正文内容。
-      data_type: String
+      data_type: Nullable(String)
       config:
         meta:
           source_field: content
@@ -15743,7 +15743,7 @@ sources:
         upstream_raw_asset: clickhouse/raw/ths__limit_up_pool_compacted
         clickhouse_raw_table: fleur_raw.ths__limit_up_pool_compacted
         source_schema_hash: 7e75e676f5c3c3c1b48a81bd4c7415eb474c3a4cfbdcf3158387ab35e1df8892
-        parquet_schema_hash: 868f6bbaaa88135b6e740798fd3fe9c8cfeeccab87e8d2e05c702af6c25f2146
+        parquet_schema_hash: 13dc4f4c0499db962ecc81359b733b0931a721d2c05c5611612fbacde31bbb2f
         clickhouse_schema_hash: c623a2e701cf9f10e600e00f3937fe12f3f3c338c7f989123eae5b191a5a1ce1
     columns:
     - name: date
