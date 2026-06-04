@@ -9,7 +9,7 @@ macros:
         description: SQL expression containing the source security code.
       - name: input_format
         type: string
-        description: Supported values are `eastmoney_suffix` (`601088.SH`), `baostock_prefix` (`sh.601088`), and `compact_prefix` (`sh601088`).
+        description: Supported values are `eastmoney_suffix` (`601088.SH`), `baostock_prefix` (`sh.601088`), `compact_prefix` (`sh601088`), and `a_share_local_code` (`601088`, inferred from A-share code ranges).
 
   - name: cn_security_local_code
     description: Extract the six-digit local A-share security code.
@@ -19,7 +19,7 @@ macros:
         description: SQL expression containing the source security code.
       - name: input_format
         type: string
-        description: Supported values are `eastmoney_suffix`, `baostock_prefix`, and `compact_prefix`.
+        description: Supported values are `eastmoney_suffix`, `baostock_prefix`, `compact_prefix`, and `a_share_local_code`.
 
   - name: cn_exchange_code
     description: Extract the uppercase A-share exchange code.
@@ -29,7 +29,7 @@ macros:
         description: SQL expression containing the source security code.
       - name: input_format
         type: string
-        description: Supported values are `eastmoney_suffix`, `baostock_prefix`, and `compact_prefix`.
+        description: Supported values are `eastmoney_suffix`, `baostock_prefix`, `compact_prefix`, and `a_share_local_code`.
 
   - name: test_cn_security_code_format
     description: Validate canonical A-share security code format.

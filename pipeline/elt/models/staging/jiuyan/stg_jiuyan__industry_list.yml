@@ -53,39 +53,6 @@ models:
                 table: jiuyan__industry_list
                 column: title_bold
 
-      - name: author
-        description: 内容作者。
-        data_type: Nullable(String)
-        config:
-          meta:
-            dictionary_scope: local
-            source_columns:
-              - source: raw
-                table: jiuyan__industry_list
-                column: author
-
-      - name: images_raw
-        description: 图片列表原文。
-        data_type: String
-        config:
-          meta:
-            dictionary_scope: local
-            source_columns:
-              - source: raw
-                table: jiuyan__industry_list
-                column: imgs
-
-      - name: keyword
-        description: 关键词原文。
-        data_type: String
-        config:
-          meta:
-            dictionary_scope: local
-            source_columns:
-              - source: raw
-                table: jiuyan__industry_list
-                column: keyword
-
       - name: content
         description: 正文内容。
         data_type: Nullable(String)
@@ -129,28 +96,6 @@ models:
               - source: raw
                 table: jiuyan__industry_list
                 column: sort_no
-
-      - name: forward_count
-        description: 转发次数。
-        data_type: Int64
-        config:
-          meta:
-            dictionary_scope: local
-            source_columns:
-              - source: raw
-                table: jiuyan__industry_list
-                column: forward_count
-
-      - name: browsers_count
-        description: 浏览次数。
-        data_type: Int64
-        config:
-          meta:
-            dictionary_scope: local
-            source_columns:
-              - source: raw
-                table: jiuyan__industry_list
-                column: browsers_count
 
       - name: is_delete
         description: 删除标记。

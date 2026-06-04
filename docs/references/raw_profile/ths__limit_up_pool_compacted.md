@@ -64,7 +64,7 @@
 - 已画像字段：`code`
 - 观察到的格式：`code`: canonical 后缀 0/15664，供应商前缀 0/15664，纯数字 15664/15664，空值 0/15664
 - 无效样例：本轮聚合未输出逐条无效样例；空值和格式不匹配已在上方计数中体现。
-- 建议 staging 处理：同花顺 `code` 为 6 位本地代码；staging 可保留 `security_local_code`，交易所推断需要额外依据。
+- 建议 staging 处理：同花顺 `code` 为 6 位本地代码；staging 使用 `normalize_cn_security_code(input_format='a_share_local_code')` 按 A 股代码段推断 canonical `security_code`；无法命中代码段时输出 NULL 并由 tests 暴露。
 
 ### 日期与时间字段
 
@@ -92,7 +92,7 @@
 
 | 问题 | 严重程度 | 证据 | staging 处理 | 延后处理 |
 |------|----------|------|--------------|----------|
-| `code` 只有 6 位本地代码 | 中 | 15664/15664 行 | 仅作为 `security_local_code`；不可单独推出交易所 | 需要其他字段或主数据补齐交易所 |
+| `code` 只有 6 位本地代码 | 中 | 15664/15664 行 | 使用 `a_share_local_code` 宏按 A 股代码段推断 `security_code`，并用 tests 暴露未命中代码段 | 证券主数据修正、代码历史映射和跨市场实体归并延后 |
 
 ## 6. 建议的 Staging 转换
 

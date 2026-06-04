@@ -22,8 +22,8 @@
 | 4 | `ocr_row_index` | `N/A` | `int32` | `ocr_row_index` | `Int32` | OCR 结果在图片中的行序号。 |
 | 5 | `stock_name` | `string` | `string` | `stock_name` | `LowCardinality(String)` | OCR 识别出的股票名称。 |
 | 6 | `theme_path` | `string` | `string` | `theme_path` | `String` | OCR 识别出的题材或主题路径。 |
-| 7 | `relation` | `N/A` | `string` | `relation` | `String` | OCR 识别出的股票与题材关系说明。 |
-| 8 | `source` | `string` | `string` | `source` | `LowCardinality(String)` | OCR 结果对应的来源文件或来源渠道。 |
+| 7 | `relation` | `string` | `string` | `relation` | `Nullable(String)` | OCR 识别出的股票与题材关系说明。 |
+| 8 | `source` | `string` | `string` | `source` | `LowCardinality(Nullable(String))` | OCR 结果对应的来源文件或来源渠道。 |
 
 ## 数据集备注
 

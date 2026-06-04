@@ -15631,9 +15631,9 @@ sources:
         contract_version: 1
         upstream_raw_asset: clickhouse/raw/jiuyan__industry_ocr_snapshot
         clickhouse_raw_table: fleur_raw.jiuyan__industry_ocr_snapshot
-        source_schema_hash: 98d517320e6e757a9733cc3c06ca519902af0a840ad62e8fb8f5237ad7d7d18a
-        parquet_schema_hash: 9de73976a8e0b76f863fe4212a438845a16fd79e4049d2e9fb1dd022d1f93911
-        clickhouse_schema_hash: bd3404708e995c854327df0c5a025b20e62c164ed8f78c7b3c21f68e0b5ac835
+        source_schema_hash: fa2734b63d7c4d2f764cf3fbd42cbff85b926d1b1f0a23b580b70f943749b817
+        parquet_schema_hash: 6b1fecae1fe2c6c1d4b6346ee20bec5a425679a46474e38d6b0211c7b5c72112
+        clickhouse_schema_hash: 58d50ad7dd8987403b0c3238aa31105a10987d33b1b60366c9a6054ae589d79f
     columns:
     - name: industry_id
       description: Raw source column from `jiuyan` field `industry_id`. 原始字段说明：行业研究记录标识
@@ -15696,7 +15696,7 @@ sources:
           external_description_zh: OCR 识别出的题材或主题路径。
     - name: relation
       description: Raw source column from `jiuyan` field `relation`. 原始字段说明：OCR 识别出的股票与题材关系说明。
-      data_type: String
+      data_type: Nullable(String)
       config:
         meta:
           source_field: relation
@@ -15705,7 +15705,7 @@ sources:
           external_description_zh: OCR 识别出的股票与题材关系说明。
     - name: source
       description: Raw source column from `jiuyan` field `source`. 原始字段说明：OCR 结果对应的来源文件或来源渠道。
-      data_type: LowCardinality(String)
+      data_type: LowCardinality(Nullable(String))
       config:
         meta:
           source_field: source

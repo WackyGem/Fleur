@@ -1,0 +1,277 @@
+version: 2
+
+models:
+  - name: stg_ths__limit_up_pool_compacted
+    description: 同花顺涨停池日频明细 staging 模型。
+    data_tests:
+      - unique_combination_of_columns:
+          arguments:
+            combination_of_columns:
+              - trade_date
+              - security_code
+    columns:
+      - name: trade_date
+        description: "{{ doc('field_trade_date') }}"
+        data_type: Date
+        data_tests:
+          - not_null
+        config:
+          meta:
+            glossary_key: trade_date
+            source_columns:
+              - source: raw
+                table: ths__limit_up_pool_compacted
+                column: date
+
+      - name: security_code
+        description: "{{ doc('field_security_code') }}"
+        data_type: Nullable(String)
+        data_tests:
+          - not_null
+          - cn_security_code_format
+        config:
+          meta:
+            glossary_key: security_code
+            source_columns:
+              - source: raw
+                table: ths__limit_up_pool_compacted
+                column: code
+            normalization:
+              macro: normalize_cn_security_code
+              input_format: a_share_local_code
+
+      - name: security_name
+        description: 同花顺股票名称，source-local。
+        data_type: LowCardinality(String)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: ths__limit_up_pool_compacted
+                column: name
+
+      - name: first_limit_up_time
+        description: 股票当日首次涨停时间。
+        data_type: DateTime('UTC')
+        data_tests:
+          - not_null
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: ths__limit_up_pool_compacted
+                column: first_limit_up_time
+
+      - name: last_limit_up_time
+        description: 股票当日最后一次涨停时间。
+        data_type: DateTime('UTC')
+        data_tests:
+          - not_null
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: ths__limit_up_pool_compacted
+                column: last_limit_up_time
+
+      - name: open_num
+        description: 股票当日涨停后开板次数，0 值有效。
+        data_type: Nullable(Int64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: ths__limit_up_pool_compacted
+                column: open_num
+
+      - name: limit_up_type
+        description: 涨停类型分类。
+        data_type: LowCardinality(String)
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: ['换手板', '一字板', 'T字板']
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: ths__limit_up_pool_compacted
+                column: limit_up_type
+
+      - name: order_volume
+        description: 涨停封单量，单位按 raw 保留。
+        data_type: Float64
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: ths__limit_up_pool_compacted
+                column: order_volume
+
+      - name: order_amount
+        description: 涨停封单金额，单位按 raw 保留。
+        data_type: Float64
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: ths__limit_up_pool_compacted
+                column: order_amount
+
+      - name: is_new
+        description: 是否为当日新进入涨停池的股票。
+        data_type: Bool
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: ths__limit_up_pool_compacted
+                column: is_new
+
+      - name: is_again_limit
+        description: 是否再次涨停。
+        data_type: Bool
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: ths__limit_up_pool_compacted
+                column: is_again_limit
+
+      - name: limit_up_success_rate
+        description: 涨停成功率，profile 范围 0 至 1。
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: ths__limit_up_pool_compacted
+                column: limit_up_suc_rate
+
+      - name: currency_value
+        description: 股票流通市值，单位按 raw 保留。
+        data_type: Float64
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: ths__limit_up_pool_compacted
+                column: currency_value
+
+      - name: market_id
+        description: 同花顺市场标识。
+        data_type: Int64
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: ths__limit_up_pool_compacted
+                column: market_id
+
+      - name: market_type
+        description: 同花顺市场类型。
+        data_type: LowCardinality(String)
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: ['HS', 'GEM', 'STAR']
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: ths__limit_up_pool_compacted
+                column: market_type
+
+      - name: change_rate
+        description: 当日涨跌幅，单位按 raw 保留。
+        data_type: Float64
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: ths__limit_up_pool_compacted
+                column: change_rate
+
+      - name: turnover_rate
+        description: 当日换手率，单位按 raw 保留。
+        data_type: Float64
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: ths__limit_up_pool_compacted
+                column: turnover_rate
+
+      - name: reason_type
+        description: 涨停原因类型原文。
+        data_type: String
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: ths__limit_up_pool_compacted
+                column: reason_type
+
+      - name: high_days
+        description: 连板或高度天数文本，例如首板、2天2板。
+        data_type: LowCardinality(String)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: ths__limit_up_pool_compacted
+                column: high_days
+
+      - name: high_days_value_raw
+        description: 连板或高度天数原始数值，含义待确认。
+        data_type: Int64
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: ths__limit_up_pool_compacted
+                column: high_days_value
+
+      - name: change_tag
+        description: 同花顺涨跌幅标签。
+        data_type: LowCardinality(String)
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: ['LIMIT_BACK', 'FIRST_LIMIT']
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: ths__limit_up_pool_compacted
+                column: change_tag
+
+      - name: latest_price
+        description: 最新成交价格。
+        data_type: Float64
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: ths__limit_up_pool_compacted
+                column: latest

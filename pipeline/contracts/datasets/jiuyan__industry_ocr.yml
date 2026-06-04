@@ -48,10 +48,10 @@ parquet:
     nullable: false
   - name: relation
     type: string
-    nullable: false
+    nullable: true
   - name: source
     type: string
-    nullable: false
+    nullable: true
 dataset_note_zh: 韭研行业图片 OCR 结果 source 分区；该 source-only asset 不直接同步 ClickHouse raw。
 validation_notes:
 - Source-only contract added by Plan 0020 Phase 3 from Dagster JIUYAN_INDUSTRY_OCR_SCHEMA.

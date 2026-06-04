@@ -1,0 +1,51 @@
+with source as (
+    select
+        date,
+        open_num,
+        first_limit_up_time,
+        last_limit_up_time,
+        code,
+        limit_up_type,
+        order_volume,
+        is_new,
+        limit_up_suc_rate,
+        currency_value,
+        market_id,
+        is_again_limit,
+        change_rate,
+        turnover_rate,
+        reason_type,
+        order_amount,
+        high_days,
+        name,
+        high_days_value,
+        change_tag,
+        market_type,
+        latest
+    from {{ source('raw', 'ths__limit_up_pool_compacted') }}
+)
+
+select
+    date as trade_date,
+    {{ normalize_cn_security_code('code', input_format='a_share_local_code') }} as security_code,
+    name as security_name,
+    first_limit_up_time,
+    last_limit_up_time,
+    open_num,
+    limit_up_type,
+    order_volume,
+    order_amount,
+    is_new,
+    is_again_limit,
+    limit_up_suc_rate as limit_up_success_rate,
+    currency_value,
+    market_id,
+    market_type,
+    change_rate,
+    turnover_rate,
+    reason_type,
+    high_days,
+    high_days_value as high_days_value_raw,
+    change_tag,
+    latest as latest_price
+from source

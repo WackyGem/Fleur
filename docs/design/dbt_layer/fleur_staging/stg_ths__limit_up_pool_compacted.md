@@ -1,6 +1,6 @@
 # stg_ths__limit_up_pool_compacted 设计
 
-状态：Design
+状态：Implemented
 
 依据：
 
@@ -10,7 +10,7 @@
 
 ## 1. 模型定位
 
-同花顺涨停池日频明细的 source-local staging model。模型保留一股票一交易日的涨停池记录，完成字段命名、日期时间保留和本地证券代码暴露，不做交易所推断、涨停原因归并或连板语义重算。
+同花顺涨停池日频明细的 source-local staging model。模型保留一股票一交易日的涨停池记录，完成字段命名、日期时间保留和基于 A 股代码段的标准证券代码推断，不做证券主数据修正、涨停原因归并或连板语义重算。
 
 ## 2. 数据特征
 
@@ -29,7 +29,7 @@
 | Staging 字段 | 来源字段 | 类型建议 | 设计说明 |
 |--------------|----------|----------|----------|
 | `trade_date` | `date` | `Date` | 涨停池交易日期。 |
-| `security_local_code` | `code` | `String` | 只输出 6 位本地代码；不生成 canonical `security_code`。 |
+| `security_code` | `code` | `Nullable(String)` | 使用 `normalize_cn_security_code(input_format='a_share_local_code')` 按 A 股代码段推断 canonical 格式。 |
 | `security_name` | `name` | `String` | 同花顺股票名称，source-local。 |
 | `first_limit_up_time` | `first_limit_up_time` | `DateTime64(3, 'UTC')` | 首次涨停时间，保留 raw timezone 类型。 |
 | `last_limit_up_time` | `last_limit_up_time` | `DateTime64(3, 'UTC')` | 最后涨停时间。 |
@@ -53,7 +53,7 @@
 
 ## 4. 标准化与 NULL 处理
 
-- 不从 6 位 `code` 推断交易所；如果后续使用 `market_type` 或代码段推断，必须先形成单独 macro 和测试。
+- `code` 全部为 6 位 A 股本地代码，staging 通过项目 macro 按代码段推断 `security_code`；无法命中代码段时输出 NULL 并由 `not_null` 测试暴露。
 - `first_limit_up_time` / `last_limit_up_time` 保留 raw timezone；是否转换为本地交易时区延后。
 - `is_new` 全 false 不代表字段无效，staging 保留。
 - `high_days_value` 当前数值范围异常大，第一版保留 raw 字段名后缀，不解释业务语义。
@@ -61,17 +61,15 @@
 ## 5. 测试建议
 
 - `trade_date`: `not_null`。
-- `security_local_code`: `not_null`，可加 6 位数字格式测试。
-- 组合键：`trade_date`, `security_local_code` 唯一。
+- `security_code`: `not_null`，`cn_security_code_format`。
+- 组合键：`trade_date`, `security_code` 唯一。
 - `limit_up_type`: `accepted_values`，取值 `换手板`, `一字板`, `T字板`。
 - `market_type`: `accepted_values`，取值 `HS`, `GEM`, `STAR`。
 - `change_tag`: `accepted_values`，取值 `LIMIT_BACK`, `FIRST_LIMIT`。
-- 不对 `security_code` 加测试，因为第一版不输出该字段。
 
 ## 6. 延后事项
 
-- 交易所代码推断和 canonical 证券主键生成。
+- 证券主数据修正、代码历史映射和跨市场实体归并。
 - 涨停原因归并、连板高度解释和 `high_days_value` 解码。
 - 时间字段时区转换与交易时段合理性校验。
 - 与行情、题材或证券主数据合并。
-

@@ -1,6 +1,6 @@
 # stg_jiuyan__industry_ocr_snapshot 设计
 
-状态：Design
+状态：Implemented
 
 依据：
 
@@ -32,13 +32,13 @@
 | `ocr_row_index` | `ocr_row_index` | `Int32` | OCR 行序号，0 起始值有效。 |
 | `stock_name` | `stock_name` | `String` | OCR 识别出的股票名称；不匹配证券主数据。 |
 | `theme_path` | `theme_path` | `String` | OCR 识别出的主题路径原文。 |
-| `relation` | `relation` | `String` | 股票与主题关系说明原文。 |
-| `ocr_source` | `source` | `Nullable(String)` | `trim(nullif(source, ''))`，空字符串转 NULL。 |
+| `relation` | `relation` | `Nullable(String)` | 股票与主题关系说明原文。 |
+| `ocr_source` | `source` | `LowCardinality(Nullable(String))` | OCR 结果来源，透传 raw `source`。 |
 
 ## 4. 标准化与 NULL 处理
 
 - 不输出 `security_code`；仅凭 OCR 股票名无法稳定构造 canonical join key。
-- `source` 空字符串转 NULL。
+- `source` 透传为 `ocr_source`，不在 staging 做空字符串转 NULL。
 - `theme_path` 不拆层级；主题层级解析和清洗延后。
 - `image_index = 0` 与 `ocr_row_index = 0` 是有效序号，不转 NULL。
 
@@ -54,4 +54,3 @@
 - OCR 股票名称到证券主数据的实体匹配。
 - 主题路径拆解、主题归并和关系类型归一。
 - OCR 纠错、置信度建模和图片维表建设。
-

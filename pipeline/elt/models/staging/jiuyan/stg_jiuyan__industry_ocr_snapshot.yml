@@ -1,0 +1,111 @@
+version: 2
+
+models:
+  - name: stg_jiuyan__industry_ocr_snapshot
+    description: 韭研行业研究图片 OCR 结果快照 staging 模型。
+    data_tests:
+      - unique_combination_of_columns:
+          arguments:
+            combination_of_columns:
+              - industry_id
+              - image_filename
+              - image_index
+              - ocr_row_index
+    columns:
+      - name: industry_id
+        description: 行业研究记录 ID。
+        data_type: String
+        data_tests:
+          - not_null
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: jiuyan__industry_ocr_snapshot
+                column: industry_id
+
+      - name: image_filename
+        description: OCR 来源图片文件名。
+        data_type: String
+        data_tests:
+          - not_null
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: jiuyan__industry_ocr_snapshot
+                column: image_filename
+
+      - name: image_index
+        description: OCR 来源图片在批次中的序号，0 起始值有效。
+        data_type: Int32
+        data_tests:
+          - not_null
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: jiuyan__industry_ocr_snapshot
+                column: image_index
+
+      - name: ocr_row_index
+        description: OCR 结果在图片中的行序号，0 起始值有效。
+        data_type: Int32
+        data_tests:
+          - not_null
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: jiuyan__industry_ocr_snapshot
+                column: ocr_row_index
+
+      - name: stock_name
+        description: OCR 识别出的股票名称；不在 staging 匹配证券主数据。
+        data_type: LowCardinality(String)
+        data_tests:
+          - not_null
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: jiuyan__industry_ocr_snapshot
+                column: stock_name
+
+      - name: theme_path
+        description: OCR 识别出的题材或主题路径原文。
+        data_type: String
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: jiuyan__industry_ocr_snapshot
+                column: theme_path
+
+      - name: relation
+        description: OCR 识别出的股票与题材关系说明原文。
+        data_type: Nullable(String)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: jiuyan__industry_ocr_snapshot
+                column: relation
+
+      - name: ocr_source
+        description: OCR 识别出的主题来源，透传 raw source 字段。
+        data_type: LowCardinality(Nullable(String))
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: jiuyan__industry_ocr_snapshot
+                column: source

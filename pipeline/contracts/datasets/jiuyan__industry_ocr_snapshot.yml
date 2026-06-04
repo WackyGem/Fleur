@@ -42,7 +42,7 @@ source:
     required: true
     external_description_zh: OCR 识别出的题材或主题路径。
   - name: relation
-    type: N/A
+    type: string
     required: true
     external_description_zh: OCR 识别出的股票与题材关系说明。
   - name: source
@@ -72,10 +72,10 @@ parquet:
     nullable: false
   - name: relation
     type: string
-    nullable: false
+    nullable: true
   - name: source
     type: string
-    nullable: false
+    nullable: true
 clickhouse_raw:
   database: fleur_raw
   table: jiuyan__industry_ocr_snapshot
@@ -117,11 +117,11 @@ clickhouse_raw:
   - name: relation
     type: String
     from: relation
-    nullable: false
+    nullable: true
   - name: source
     type: LowCardinality(String)
     from: source
-    nullable: false
+    nullable: true
     reason: expected_low_cardinality_dimension
 dataset_note_zh: 韭研 OCR 成功结果快照
 validation_notes:
