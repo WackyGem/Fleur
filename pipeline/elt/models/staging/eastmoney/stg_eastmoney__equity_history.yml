@@ -2,7 +2,7 @@ version: 2
 
 models:
   - name: stg_eastmoney__equity_history
-    description: 东方财富股本变动历史 staging 模型。
+    description: 东方财富股本变动历史 staging 模型，完整透传 raw 层股本结构字段。
     data_tests:
       - unique_combination_of_columns:
           arguments:
@@ -27,6 +27,33 @@ models:
               macro: normalize_cn_security_code
               input_format: eastmoney_suffix
 
+      - name: security_local_code
+        description: "{{ doc('field_security_local_code') }}"
+        data_type: String
+        data_tests:
+          - not_null
+        config:
+          meta:
+            glossary_key: security_local_code
+            source_columns:
+              - source: raw
+                table: eastmoney__equity_history
+                column: SECURITY_CODE
+            normalization:
+              macro: cn_security_local_code
+              input_format: a_share_local_code
+
+      - name: org_code
+        description: 机构代码。
+        data_type: LowCardinality(String)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__equity_history
+                column: ORG_CODE
+
       - name: end_date
         description: 股本变动截止日。
         data_type: Date
@@ -40,9 +67,462 @@ models:
                 table: eastmoney__equity_history
                 column: END_DATE
 
+      - name: change_reason
+        description: 变动原因。
+        data_type: LowCardinality(String)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__equity_history
+                column: CHANGE_REASON
+
+      - name: limited_shares
+        description: 有限售条件股份。
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__equity_history
+                column: LIMITED_SHARES
+
+      - name: unlimited_shares
+        description: 无限售条件股份（已流通）。
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__equity_history
+                column: UNLIMITED_SHARES
+
+      - name: total_shares
+        description: 总股本。
+        data_type: Nullable(Float64)
+        data_tests:
+          - not_null
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__equity_history
+                column: TOTAL_SHARES
+
+      - name: limited_shares_ratio
+        description: 限售股比例（%）。
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__equity_history
+                column: LIMITED_SHARES_RATIO
+            unit: percent
+            scale: percent_value_not_fraction
+
+      - name: listed_shares_ratio
+        description: 已流通股比例（%）。
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__equity_history
+                column: LISTED_SHARES_RATIO
+            unit: percent
+            scale: percent_value_not_fraction
+
+      - name: total_shares_ratio
+        description: 总股本比例（%）。
+        data_type: Float64
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__equity_history
+                column: TOTAL_SHARES_RATIO
+            unit: percent
+            scale: percent_value_not_fraction
+
+      - name: listed_a_shares
+        description: 已上市流通 A 股。
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__equity_history
+                column: LISTED_A_SHARES
+
+      - name: limited_a_shares
+        description: 限售 A 股。
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__equity_history
+                column: LIMITED_A_SHARES
+
+      - name: listed_a_shares_ratio
+        description: A 股流通比例（%）。
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__equity_history
+                column: LISTED_A_SHARES_RATIO
+            unit: percent
+            scale: percent_value_not_fraction
+
+      - name: limited_a_shares_ratio
+        description: 限售A股比例（%）。
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__equity_history
+                column: LIMITED_A_SHARES_RATIO
+            unit: percent
+            scale: percent_value_not_fraction
+
+      - name: b_free_share
+        description: 已上市流通 B 股。
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__equity_history
+                column: B_FREE_SHARE
+
+      - name: h_free_share
+        description: 已上市流通 H 股。
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__equity_history
+                column: H_FREE_SHARE
+
+      - name: b_free_share_ratio
+        description: B股流通比例（%）。
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__equity_history
+                column: B_FREE_SHARE_RATIO
+            unit: percent
+            scale: percent_value_not_fraction
+
+      - name: h_free_share_ratio
+        description: H 股流通比例（%）。
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__equity_history
+                column: H_FREE_SHARE_RATIO
+            unit: percent
+            scale: percent_value_not_fraction
+
+      - name: security_type_code
+        description: 证券类型代码。
+        data_type: LowCardinality(String)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__equity_history
+                column: SECURITY_TYPE_CODE
+
+      - name: non_free_shares
+        description: 非自由流通股。
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__equity_history
+                column: NON_FREE_SHARES
+
+      - name: non_free_shares_ratio
+        description: 非自由流通股比例（%）。
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__equity_history
+                column: NON_FREESHARES_RATIO
+            unit: percent
+            scale: percent_value_not_fraction
+
+      - name: limited_b_shares
+        description: 限售 B 股。
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__equity_history
+                column: LIMITED_B_SHARES
+
+      - name: limited_b_shares_ratio
+        description: 限售B股比例（%）。
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__equity_history
+                column: LIMITED_BSHARES_RATIO
+            unit: percent
+            scale: percent_value_not_fraction
+
+      - name: other_free_shares
+        description: 其他已上市流通股。
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__equity_history
+                column: OTHER_FREE_SHARES
+
+      - name: other_free_shares_ratio
+        description: 其他流通股比例（%）。
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__equity_history
+                column: OTHER_FREESHARES_RATIO
+            unit: percent
+            scale: percent_value_not_fraction
+
+      - name: limited_state_shares
+        description: 国家持股（限售）。
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__equity_history
+                column: LIMITED_STATE_SHARES
+
+      - name: limited_state_legal
+        description: 国有法人持股（限售）。
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__equity_history
+                column: LIMITED_STATE_LEGAL
+
+      - name: limited_othars
+        description: 其他限售股份。
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__equity_history
+                column: LIMITED_OTHARS
+
+      - name: limited_domestic_nostate
+        description: 境内非国有法人持股（限售）。
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__equity_history
+                column: LIMITED_DOMESTIC_NOSTATE
+
+      - name: limited_domestic_natural
+        description: 境内自然人持股（限售）。
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__equity_history
+                column: LIMITED_DOMESTIC_NATURAL
+
+      - name: lock_shares
+        description: 锁定股份。
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__equity_history
+                column: LOCK_SHARES
+
+      - name: limited_foreign_shares
+        description: 外资持股（限售）。
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__equity_history
+                column: LIMITED_FOREIGN_SHARES
+
+      - name: limited_overseas_nostate
+        description: 境外非国有法人持股（限售）。
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__equity_history
+                column: LIMITED_OVERSEAS_NOSTATE
+
+      - name: limited_overseas_natural
+        description: 境外自然人持股（限售）。
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__equity_history
+                column: LIMITED_OVERSEAS_NATURAL
+
+      - name: limited_h_shares
+        description: 限售 H 股。
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__equity_history
+                column: LIMITED_H_SHARES
+
+      - name: sponsor_shares
+        description: 发起人股份。
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__equity_history
+                column: SPONSOR_SHARES
+
+      - name: state_sponsor_shares
+        description: 国家发起人股份。
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__equity_history
+                column: STATE_SPONSOR_SHARES
+
+      - name: sponsor_social_shares
+        description: 社会发起人股份。
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__equity_history
+                column: SPONSOR_SOCIAL_SHARES
+
+      - name: raise_shares
+        description: 募集法人股份。
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__equity_history
+                column: RAISE_SHARES
+
+      - name: raise_state_shares
+        description: 国家募集法人股份。
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__equity_history
+                column: RAISE_STATE_SHARES
+
+      - name: raise_domestic_shares
+        description: 境内募集法人股份。
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__equity_history
+                column: RAISE_DOMESTIC_SHARES
+
+      - name: raise_overseas_shares
+        description: 境外募集法人股份。
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__equity_history
+                column: RAISE_OVERSEAS_SHARES
+
       - name: notice_date
         description: 公告披露日。
         data_type: Date
+        data_tests:
+          - not_null
         config:
           meta:
             dictionary_scope: local
@@ -54,6 +534,8 @@ models:
       - name: listing_date
         description: 上市流通日期。
         data_type: Date
+        data_tests:
+          - not_null
         config:
           meta:
             dictionary_scope: local
@@ -62,19 +544,129 @@ models:
                 table: eastmoney__equity_history
                 column: LISTING_DATE
 
-      - name: change_reason
-        description: 股本变动原因。
-        data_type: LowCardinality(String)
+      - name: limited_shares_change
+        description: 限售股变动量。
+        data_type: Nullable(Float64)
         config:
           meta:
             dictionary_scope: local
             source_columns:
               - source: raw
                 table: eastmoney__equity_history
-                column: CHANGE_REASON
+                column: LIMITED_SHARES_CHANGE
+
+      - name: unlimited_shares_change
+        description: 流通股变动量。
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__equity_history
+                column: UNLIMITED_SHARES_CHANGE
+
+      - name: total_shares_change
+        description: 总股本变动量。
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__equity_history
+                column: TOTAL_SHARES_CHANGE
+
+      - name: listed_a_shares_change
+        description: 已上市流通A股变动量。
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__equity_history
+                column: LISTED_ASHARES_CHANGE
+
+      - name: limited_a_shares_change
+        description: 限售A股变动量。
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__equity_history
+                column: LIMITED_ASHARES_CHANGE
+
+      - name: b_free_share_change
+        description: B股流通变动量。
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__equity_history
+                column: B_FREESHARE_CHANGE
+
+      - name: h_free_share_change
+        description: H股流通变动量。
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__equity_history
+                column: H_FREESHARE_CHANGE
+
+      - name: limited_b_shares_change
+        description: 限售B股变动量。
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__equity_history
+                column: LIMITED_BSHARES_CHANGE
+
+      - name: non_free_shares_change
+        description: 非自由流通股变动量。
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__equity_history
+                column: NONFREE_SHARES_CHANGE
+
+      - name: other_free_shares_change
+        description: 其他流通股变动量。
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__equity_history
+                column: OTHERFREE_SHARES_CHANGE
+
+      - name: free_shares
+        description: 自由流通股本。
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__equity_history
+                column: FREE_SHARES
 
       - name: change_reason_explain
-        description: 股本变动原因说明。
+        description: 变动原因详细说明。
         data_type: LowCardinality(String)
         config:
           meta:
@@ -84,59 +676,146 @@ models:
                 table: eastmoney__equity_history
                 column: CHANGE_REASON_EXPLAIN
 
-      - name: total_shares
-        description: 总股本。
-        data_type: Float64
-        data_tests:
-          - not_null
+      - name: limited_h_shares_ratio
+        description: 限售H股比例（%）。
+        data_type: Nullable(Float64)
         config:
           meta:
             dictionary_scope: local
             source_columns:
               - source: raw
                 table: eastmoney__equity_history
-                column: TOTAL_SHARES
+                column: LIMITED_H_SHARES_RATIO
+            unit: percent
+            scale: percent_value_not_fraction
 
-      - name: limited_shares
-        description: 有限售股份。
-        data_type: Float64
+      - name: limited_h_shares_change
+        description: 限售H股变动量。
+        data_type: Nullable(Float64)
         config:
           meta:
             dictionary_scope: local
             source_columns:
               - source: raw
                 table: eastmoney__equity_history
-                column: LIMITED_SHARES
+                column: LIMITED_H_SHARES_CHANGE
 
-      - name: unlimited_shares
-        description: 无限售股份。
-        data_type: Float64
+      - name: is_free_window
+        description: 是否为自由流通窗口。
+        data_type: Bool
         config:
           meta:
             dictionary_scope: local
             source_columns:
               - source: raw
                 table: eastmoney__equity_history
-                column: UNLIMITED_SHARES
+                column: IS_FREE_WINDOW
 
-      - name: listed_a_shares
-        description: A 股流通股。
-        data_type: Float64
+      - name: is_limited_window
+        description: 是否限售窗口。
+        data_type: Bool
         config:
           meta:
             dictionary_scope: local
             source_columns:
               - source: raw
                 table: eastmoney__equity_history
-                column: LISTED_A_SHARES
+                column: IS_LIMITED_WINDOW
 
-      - name: limited_a_shares
-        description: A 股限售股。
-        data_type: Float64
+      - name: listed_a_ratio_pc
+        description: A 股占已流通比例（%）。
+        data_type: Nullable(Float64)
         config:
           meta:
             dictionary_scope: local
             source_columns:
               - source: raw
                 table: eastmoney__equity_history
-                column: LIMITED_A_SHARES
+                column: LISTED_A_RATIOPC
+            unit: percent
+            scale: percent_value_not_fraction
+
+      - name: listed_b_ratio_pc
+        description: B股占已流通比例（%）。
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__equity_history
+                column: LISTED_B_RATIOPC
+            unit: percent
+            scale: percent_value_not_fraction
+
+      - name: listed_h_ratio_pc
+        description: H 股占已流通比例（%）。
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__equity_history
+                column: LISTED_H_RATIOPC
+            unit: percent
+            scale: percent_value_not_fraction
+
+      - name: listed_other_ratio_pc
+        description: 其他占已流通比例（%）。
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__equity_history
+                column: LISTED_OTHER_RATIOPC
+            unit: percent
+            scale: percent_value_not_fraction
+
+      - name: listed_sum_ratio_pc
+        description: 合计占已流通比例（%）。
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__equity_history
+                column: LISTED_SUM_RATIOPC
+            unit: percent
+            scale: percent_value_not_fraction
+
+      - name: market_code
+        description: 市场代码。
+        data_type: LowCardinality(String)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__equity_history
+                column: MARKET_CODE
+
+      - name: is_use
+        description: 是否有效。
+        data_type: Bool
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__equity_history
+                column: IS_USE
+
+      - name: security_name_abbr
+        description: 证券简称。
+        data_type: LowCardinality(String)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__equity_history
+                column: SECURITY_NAME_ABBR

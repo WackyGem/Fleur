@@ -37,7 +37,7 @@
 | 19 | `H_FREE_SHARE_RATIO` | `number` | `double` | `H_FREE_SHARE_RATIO` | `Nullable(Float64)` | H 股流通比例（%） |
 | 20 | `SECURITY_TYPE_CODE` | `string` | `string` | `SECURITY_TYPE_CODE` | `LowCardinality(String)` | 证券类型代码 |
 | 21 | `NON_FREE_SHARES` | `number` | `double` | `NON_FREE_SHARES` | `Nullable(Float64)` | 非自由流通股 |
-| 22 | `NON_FREESHARES_RATIO` | `number` | `double` | `NON_FREESHARES_RATIO` | `Nullable(Float64)` | 非流通股比例（%） |
+| 22 | `NON_FREESHARES_RATIO` | `number` | `double` | `NON_FREESHARES_RATIO` | `Nullable(Float64)` | 非自由流通股比例（%） |
 | 23 | `LIMITED_B_SHARES` | `number` | `double` | `LIMITED_B_SHARES` | `Nullable(Float64)` | 限售 B 股 |
 | 24 | `LIMITED_BSHARES_RATIO` | `number` | `double` | `LIMITED_BSHARES_RATIO` | `Nullable(Float64)` | 限售B股比例（%） |
 | 25 | `OTHER_FREE_SHARES` | `number` | `double` | `OTHER_FREE_SHARES` | `Nullable(Float64)` | 其他已上市流通股 |
@@ -69,9 +69,9 @@
 | 51 | `B_FREESHARE_CHANGE` | `number` | `double` | `B_FREESHARE_CHANGE` | `Nullable(Float64)` | B股流通变动量 |
 | 52 | `H_FREESHARE_CHANGE` | `number` | `double` | `H_FREESHARE_CHANGE` | `Nullable(Float64)` | H股流通变动量 |
 | 53 | `LIMITED_BSHARES_CHANGE` | `number` | `double` | `LIMITED_BSHARES_CHANGE` | `Nullable(Float64)` | 限售B股变动量 |
-| 54 | `NONFREE_SHARES_CHANGE` | `number` | `double` | `NONFREE_SHARES_CHANGE` | `Nullable(Float64)` | 非流通股变动量 |
+| 54 | `NONFREE_SHARES_CHANGE` | `number` | `double` | `NONFREE_SHARES_CHANGE` | `Nullable(Float64)` | 非自由流通股变动量 |
 | 55 | `OTHERFREE_SHARES_CHANGE` | `number` | `double` | `OTHERFREE_SHARES_CHANGE` | `Nullable(Float64)` | 其他流通股变动量 |
-| 56 | `FREE_SHARES` | `number` | `double` | `FREE_SHARES` | `Nullable(Float64)` | 流通股（通常 = TOTAL_SHARES） |
+| 56 | `FREE_SHARES` | `number` | `double` | `FREE_SHARES` | `Nullable(Float64)` | 自由流通股本 |
 | 57 | `CHANGE_REASON_EXPLAIN` | `string` | `string` | `CHANGE_REASON_EXPLAIN` | `LowCardinality(String)` | 变动原因详细说明 |
 | 58 | `LIMITED_H_SHARES_RATIO` | `number` | `double` | `LIMITED_H_SHARES_RATIO` | `Nullable(Float64)` | 限售H股比例（%） |
 | 59 | `LIMITED_H_SHARES_CHANGE` | `number` | `double` | `LIMITED_H_SHARES_CHANGE` | `Nullable(Float64)` | 限售H股变动量 |

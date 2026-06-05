@@ -1,0 +1,16 @@
+version: 2
+
+models:
+  - name: int_trade_calendar
+    description: A 股交易日历 intermediate 模型，基于交易日序列派生前一交易日。
+    columns:
+      - name: trade_date
+        description: "{{ doc('field_trade_date') }}"
+        data_type: Date
+        data_tests:
+          - not_null
+          - unique
+
+      - name: prev_trade_date
+        description: 当前交易日在交易日序列中的前一个交易日；最早交易日为 NULL。
+        data_type: Nullable(Date)

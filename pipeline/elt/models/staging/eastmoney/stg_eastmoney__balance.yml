@@ -1,0 +1,4034 @@
+version: 2
+
+models:
+  - name: stg_eastmoney__balance
+    description: 东方财富资产负债表 F10 staging 模型。
+    data_tests:
+      - unique_combination_of_columns:
+          arguments:
+            combination_of_columns:
+              - security_code
+              - report_date
+    columns:
+      - name: security_code
+        description: "{{ doc('field_security_code') }}"
+        data_type: String
+        data_tests:
+          - not_null
+          - cn_security_code_format
+        config:
+          meta:
+            glossary_key: security_code
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: SECUCODE
+            normalization:
+              macro: normalize_cn_security_code
+              input_format: eastmoney_suffix
+
+      - name: security_local_code
+        description: "{{ doc('field_security_local_code') }}"
+        data_type: String
+        data_tests:
+          - not_null
+        config:
+          meta:
+            glossary_key: security_local_code
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: SECURITY_CODE
+            normalization_exempt_reason_zh: EastMoney raw SECURITY_CODE 已是 6 位本地证券代码，profile 确认全量为纯数字；staging 仅转为 String 后透传。
+
+      - name: security_name_abbr
+        description: 证券简称
+        data_type: LowCardinality(String)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: SECURITY_NAME_ABBR
+
+      - name: org_code
+        description: 机构代码
+        data_type: LowCardinality(String)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: ORG_CODE
+
+      - name: org_type
+        description: 机构类型
+        data_type: LowCardinality(String)
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: ["通用"]
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: ORG_TYPE
+
+      - name: report_date
+        description: "{{ doc('field_report_date') }}"
+        data_type: Date
+        data_tests:
+          - not_null
+        config:
+          meta:
+            glossary_key: report_date
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: REPORT_DATE
+
+      - name: report_type
+        description: 报告类型
+        data_type: LowCardinality(String)
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ["一季报", "中报", "三季报", "年报"]
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: REPORT_TYPE
+
+      - name: report_date_name
+        description: 报告期名称
+        data_type: LowCardinality(String)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: REPORT_DATE_NAME
+
+      - name: security_type_code
+        description: 证券类型代码
+        data_type: LowCardinality(String)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: SECURITY_TYPE_CODE
+
+      - name: notice_date
+        description: 公告日期
+        data_type: Date
+        data_tests:
+          - not_null
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: NOTICE_DATE
+
+      - name: update_date
+        description: 更新日期
+        data_type: Nullable(Date)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: UPDATE_DATE
+
+      - name: currency
+        description: 资产负债表披露金额使用的币种。
+        data_type: LowCardinality(Nullable(String))
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: ["CNY"]
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: CURRENCY
+
+      - name: accept_deposit_interbank
+        description: 同业存放
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: ACCEPT_DEPOSIT_INTERBANK
+            unit: raw_statement_value
+
+      - name: accounts_payable
+        description: 应付账款
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: ACCOUNTS_PAYABLE
+            unit: raw_statement_value
+
+      - name: accounts_rece
+        description: 应收账款
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: ACCOUNTS_RECE
+            unit: raw_statement_value
+
+      - name: accrued_expense
+        description: 预提费用
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: ACCRUED_EXPENSE
+            unit: raw_statement_value
+
+      - name: advance_receivables
+        description: 预收款项
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: ADVANCE_RECEIVABLES
+            unit: raw_statement_value
+
+      - name: agent_trade_security
+        description: 代理买卖证券款
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: AGENT_TRADE_SECURITY
+            unit: raw_statement_value
+
+      - name: agent_underwrite_security
+        description: 代理承销证券款
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: AGENT_UNDERWRITE_SECURITY
+            unit: raw_statement_value
+
+      - name: amortize_cost_finasset
+        description: 以摊余成本计量的金融资产
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: AMORTIZE_COST_FINASSET
+            unit: raw_statement_value
+
+      - name: amortize_cost_finliab
+        description: 以摊余成本计量的金融负债
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: AMORTIZE_COST_FINLIAB
+            unit: raw_statement_value
+
+      - name: amortize_cost_ncfinasset
+        description: 非流动金融资产（摊余成本）
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: AMORTIZE_COST_NCFINASSET
+            unit: raw_statement_value
+
+      - name: amortize_cost_ncfinliab
+        description: 非流动金融负债（摊余成本）
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: AMORTIZE_COST_NCFINLIAB
+            unit: raw_statement_value
+
+      - name: appoint_fvtpl_finasset
+        description: 指定为FVTPL的金融资产
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: APPOINT_FVTPL_FINASSET
+            unit: raw_statement_value
+
+      - name: appoint_fvtpl_finliab
+        description: 指定为FVTPL的金融负债
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: APPOINT_FVTPL_FINLIAB
+            unit: raw_statement_value
+
+      - name: asset_balance
+        description: 资产平衡项
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: ASSET_BALANCE
+            unit: raw_statement_value
+
+      - name: asset_other
+        description: 资产其他项
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: ASSET_OTHER
+            unit: raw_statement_value
+
+      - name: assign_cash_dividend
+        description: 应付现金股利
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: ASSIGN_CASH_DIVIDEND
+            unit: raw_statement_value
+
+      - name: available_sale_finasset
+        description: 可供出售金融资产
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: AVAILABLE_SALE_FINASSET
+            unit: raw_statement_value
+
+      - name: bond_payable
+        description: 应付债券
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: BOND_PAYABLE
+            unit: raw_statement_value
+
+      - name: borrow_fund
+        description: 拆入资金
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: BORROW_FUND
+            unit: raw_statement_value
+
+      - name: buy_resale_finasset
+        description: 买入返售金融资产
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: BUY_RESALE_FINASSET
+            unit: raw_statement_value
+
+      - name: capital_reserve
+        description: 资本公积
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: CAPITAL_RESERVE
+            unit: raw_statement_value
+
+      - name: cip
+        description: 在建工程
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: CIP
+            unit: raw_statement_value
+
+      - name: consumptive_biological_asset
+        description: 消耗性生物资产
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: CONSUMPTIVE_BIOLOGICAL_ASSET
+            unit: raw_statement_value
+
+      - name: contract_asset
+        description: 合同资产
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: CONTRACT_ASSET
+            unit: raw_statement_value
+
+      - name: contract_liab
+        description: 合同负债
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: CONTRACT_LIAB
+            unit: raw_statement_value
+
+      - name: convert_diff
+        description: 外币报表折算差额
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: CONVERT_DIFF
+            unit: raw_statement_value
+
+      - name: creditor_invest
+        description: 债权投资
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: CREDITOR_INVEST
+            unit: raw_statement_value
+
+      - name: current_asset_balance
+        description: 流动资产平衡项
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: CURRENT_ASSET_BALANCE
+            unit: raw_statement_value
+
+      - name: current_asset_other
+        description: 流动资产其他项
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: CURRENT_ASSET_OTHER
+            unit: raw_statement_value
+
+      - name: current_liab_balance
+        description: 流动负债平衡项
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: CURRENT_LIAB_BALANCE
+            unit: raw_statement_value
+
+      - name: current_liab_other
+        description: 流动负债其他项
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: CURRENT_LIAB_OTHER
+            unit: raw_statement_value
+
+      - name: defer_income
+        description: 递延收益
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: DEFER_INCOME
+            unit: raw_statement_value
+
+      - name: defer_income_1year
+        description: 一年内到期递延收益
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: DEFER_INCOME_1YEAR
+            unit: raw_statement_value
+
+      - name: defer_tax_asset
+        description: 递延所得税资产
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: DEFER_TAX_ASSET
+            unit: raw_statement_value
+
+      - name: defer_tax_liab
+        description: 递延所得税负债
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: DEFER_TAX_LIAB
+            unit: raw_statement_value
+
+      - name: derive_finasset
+        description: 衍生金融资产
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: DERIVE_FINASSET
+            unit: raw_statement_value
+
+      - name: derive_finliab
+        description: 衍生金融负债
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: DERIVE_FINLIAB
+            unit: raw_statement_value
+
+      - name: develop_expense
+        description: 开发支出
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: DEVELOP_EXPENSE
+            unit: raw_statement_value
+
+      - name: div_holdsale_asset
+        description: 持有待售资产（除）
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: DIV_HOLDSALE_ASSET
+            unit: raw_statement_value
+
+      - name: div_holdsale_liab
+        description: 持有待售负债（除）
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: DIV_HOLDSALE_LIAB
+            unit: raw_statement_value
+
+      - name: dividend_payable
+        description: 应付股利
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: DIVIDEND_PAYABLE
+            unit: raw_statement_value
+
+      - name: dividend_rece
+        description: 应收股利
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: DIVIDEND_RECE
+            unit: raw_statement_value
+
+      - name: equity_balance
+        description: 所有者权益平衡项
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: EQUITY_BALANCE
+            unit: raw_statement_value
+
+      - name: equity_other
+        description: 所有者权益其他项
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: EQUITY_OTHER
+            unit: raw_statement_value
+
+      - name: export_refund_rece
+        description: 应收出口退税
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: EXPORT_REFUND_RECE
+            unit: raw_statement_value
+
+      - name: fee_commission_payable
+        description: 应付手续费及佣金
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: FEE_COMMISSION_PAYABLE
+            unit: raw_statement_value
+
+      - name: fin_fund
+        description: 金融往来资金
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: FIN_FUND
+            unit: raw_statement_value
+
+      - name: finance_rece
+        description: 金融应收款
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: FINANCE_RECE
+            unit: raw_statement_value
+
+      - name: fixed_asset
+        description: 固定资产
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: FIXED_ASSET
+            unit: raw_statement_value
+
+      - name: fixed_asset_disposal
+        description: 固定资产清理
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: FIXED_ASSET_DISPOSAL
+            unit: raw_statement_value
+
+      - name: fvtoci_finasset
+        description: 以公允价值计量且其变动计入其他综合收益的金融资产
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: FVTOCI_FINASSET
+            unit: raw_statement_value
+
+      - name: fvtoci_ncfinasset
+        description: 其他非流动金融资产（FVTOCI）
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: FVTOCI_NCFINASSET
+            unit: raw_statement_value
+
+      - name: fvtpl_finasset
+        description: 以公允价值计量且其变动计入当期损益的金融资产
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: FVTPL_FINASSET
+            unit: raw_statement_value
+
+      - name: fvtpl_finliab
+        description: 以公允价值计量且其变动计入当期损益的金融负债
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: FVTPL_FINLIAB
+            unit: raw_statement_value
+
+      - name: general_risk_reserve
+        description: 一般风险准备
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: GENERAL_RISK_RESERVE
+            unit: raw_statement_value
+
+      - name: goodwill
+        description: 资产负债表披露的商誉金额。
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: GOODWILL
+            unit: raw_statement_value
+
+      - name: hold_maturity_invest
+        description: 持有至到期投资
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: HOLD_MATURITY_INVEST
+            unit: raw_statement_value
+
+      - name: holdsale_asset
+        description: 持有待售资产
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: HOLDSALE_ASSET
+            unit: raw_statement_value
+
+      - name: holdsale_liab
+        description: 持有待售负债
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: HOLDSALE_LIAB
+            unit: raw_statement_value
+
+      - name: insurance_contract_reserve
+        description: 保险合同准备金
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: INSURANCE_CONTRACT_RESERVE
+            unit: raw_statement_value
+
+      - name: intangible_asset
+        description: 无形资产
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: INTANGIBLE_ASSET
+            unit: raw_statement_value
+
+      - name: interest_payable
+        description: 应付利息
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: INTEREST_PAYABLE
+            unit: raw_statement_value
+
+      - name: interest_rece
+        description: 应收利息
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: INTEREST_RECE
+            unit: raw_statement_value
+
+      - name: internal_payable
+        description: 内部应付款
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: INTERNAL_PAYABLE
+            unit: raw_statement_value
+
+      - name: internal_rece
+        description: 内部应收款
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: INTERNAL_RECE
+            unit: raw_statement_value
+
+      - name: inventory
+        description: 资产负债表披露的存货金额。
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: INVENTORY
+            unit: raw_statement_value
+
+      - name: invest_realestate
+        description: 投资性房地产
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: INVEST_REALESTATE
+            unit: raw_statement_value
+
+      - name: lease_liab
+        description: 租赁负债
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: LEASE_LIAB
+            unit: raw_statement_value
+
+      - name: lend_fund
+        description: 拆出资金
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: LEND_FUND
+            unit: raw_statement_value
+
+      - name: liab_balance
+        description: 负债平衡项
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: LIAB_BALANCE
+            unit: raw_statement_value
+
+      - name: liab_equity_balance
+        description: 负债和所有者权益平衡项
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: LIAB_EQUITY_BALANCE
+            unit: raw_statement_value
+
+      - name: liab_equity_other
+        description: 负债和所有者权益其他项
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: LIAB_EQUITY_OTHER
+            unit: raw_statement_value
+
+      - name: liab_other
+        description: 负债其他项
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: LIAB_OTHER
+            unit: raw_statement_value
+
+      - name: loan_advance
+        description: 发放贷款及垫款
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: LOAN_ADVANCE
+            unit: raw_statement_value
+
+      - name: loan_pbc
+        description: 向央行借款
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: LOAN_PBC
+            unit: raw_statement_value
+
+      - name: long_equity_invest
+        description: 长期股权投资
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: LONG_EQUITY_INVEST
+            unit: raw_statement_value
+
+      - name: long_loan
+        description: 长期借款
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: LONG_LOAN
+            unit: raw_statement_value
+
+      - name: long_payable
+        description: 长期应付款
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: LONG_PAYABLE
+            unit: raw_statement_value
+
+      - name: long_prepaid_expense
+        description: 长期待摊费用
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: LONG_PREPAID_EXPENSE
+            unit: raw_statement_value
+
+      - name: long_rece
+        description: 长期应收款
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: LONG_RECE
+            unit: raw_statement_value
+
+      - name: long_staffsalary_payable
+        description: 长期应付职工薪酬
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: LONG_STAFFSALARY_PAYABLE
+            unit: raw_statement_value
+
+      - name: minority_equity
+        description: 少数股东权益
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: MINORITY_EQUITY
+            unit: raw_statement_value
+
+      - name: monetary_funds
+        description: 货币资金
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: MONETARYFUNDS
+            normalization:
+              reason: spelling_correction
+              original_name: MONETARYFUNDS
+            unit: raw_statement_value
+
+      - name: noncurrent_asset_1year
+        description: 一年内到期的非流动资产
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: NONCURRENT_ASSET_1YEAR
+            unit: raw_statement_value
+
+      - name: noncurrent_asset_balance
+        description: 非流动资产平衡项
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: NONCURRENT_ASSET_BALANCE
+            unit: raw_statement_value
+
+      - name: noncurrent_asset_other
+        description: 非流动资产其他项
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: NONCURRENT_ASSET_OTHER
+            unit: raw_statement_value
+
+      - name: noncurrent_liab_1year
+        description: 一年内到期的非流动负债
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: NONCURRENT_LIAB_1YEAR
+            unit: raw_statement_value
+
+      - name: noncurrent_liab_balance
+        description: 非流动负债平衡项
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: NONCURRENT_LIAB_BALANCE
+            unit: raw_statement_value
+
+      - name: noncurrent_liab_other
+        description: 非流动负债其他项
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: NONCURRENT_LIAB_OTHER
+            unit: raw_statement_value
+
+      - name: note_accounts_payable
+        description: 应付票据及应付账款
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: NOTE_ACCOUNTS_PAYABLE
+            unit: raw_statement_value
+
+      - name: note_accounts_rece
+        description: 应收票据及应收账款
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: NOTE_ACCOUNTS_RECE
+            unit: raw_statement_value
+
+      - name: note_payable
+        description: 应付票据
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: NOTE_PAYABLE
+            unit: raw_statement_value
+
+      - name: note_rece
+        description: 应收票据
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: NOTE_RECE
+            unit: raw_statement_value
+
+      - name: oil_gas_asset
+        description: 油气资产
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: OIL_GAS_ASSET
+            unit: raw_statement_value
+
+      - name: other_compre_income
+        description: 其他综合收益
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: OTHER_COMPRE_INCOME
+            unit: raw_statement_value
+
+      - name: other_creditor_invest
+        description: 其他债权投资
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: OTHER_CREDITOR_INVEST
+            unit: raw_statement_value
+
+      - name: other_current_asset
+        description: 其他流动资产
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: OTHER_CURRENT_ASSET
+            unit: raw_statement_value
+
+      - name: other_current_liab
+        description: 其他流动负债
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: OTHER_CURRENT_LIAB
+            unit: raw_statement_value
+
+      - name: other_equity_invest
+        description: 其他权益工具投资
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: OTHER_EQUITY_INVEST
+            unit: raw_statement_value
+
+      - name: other_equity_other
+        description: 其他权益其他项
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: OTHER_EQUITY_OTHER
+            unit: raw_statement_value
+
+      - name: other_equity_tool
+        description: 其他权益工具
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: OTHER_EQUITY_TOOL
+            unit: raw_statement_value
+
+      - name: other_noncurrent_asset
+        description: 其他非流动资产
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: OTHER_NONCURRENT_ASSET
+            unit: raw_statement_value
+
+      - name: other_noncurrent_finasset
+        description: 其他非流动金融资产
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: OTHER_NONCURRENT_FINASSET
+            unit: raw_statement_value
+
+      - name: other_noncurrent_liab
+        description: 其他非流动负债
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: OTHER_NONCURRENT_LIAB
+            unit: raw_statement_value
+
+      - name: other_payable
+        description: 其他应付款
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: OTHER_PAYABLE
+            unit: raw_statement_value
+
+      - name: other_rece
+        description: 其他应收款
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: OTHER_RECE
+            unit: raw_statement_value
+
+      - name: parent_equity_balance
+        description: 归母权益平衡项
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: PARENT_EQUITY_BALANCE
+            unit: raw_statement_value
+
+      - name: parent_equity_other
+        description: 归母权益其他项
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: PARENT_EQUITY_OTHER
+            unit: raw_statement_value
+
+      - name: perpetual_bond
+        description: 永续债
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: PERPETUAL_BOND
+            unit: raw_statement_value
+
+      - name: perpetual_bond_payable
+        description: 永续债（负债端）
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: PERPETUAL_BOND_PAYBALE
+            normalization:
+              reason: spelling_correction
+              original_name: PERPETUAL_BOND_PAYBALE
+            unit: raw_statement_value
+
+      - name: predict_current_liab
+        description: 预计流动负债
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: PREDICT_CURRENT_LIAB
+            unit: raw_statement_value
+
+      - name: predict_liab
+        description: 预计负债
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: PREDICT_LIAB
+            unit: raw_statement_value
+
+      - name: preferred_shares
+        description: 优先股
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: PREFERRED_SHARES
+            unit: raw_statement_value
+
+      - name: preferred_shares_payable
+        description: 应付优先股
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: PREFERRED_SHARES_PAYBALE
+            normalization:
+              reason: spelling_correction
+              original_name: PREFERRED_SHARES_PAYBALE
+            unit: raw_statement_value
+
+      - name: premium_rece
+        description: 预收保费
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: PREMIUM_RECE
+            unit: raw_statement_value
+
+      - name: prepayment
+        description: 预付款项
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: PREPAYMENT
+            unit: raw_statement_value
+
+      - name: productive_biology_asset
+        description: 生产性生物资产
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: PRODUCTIVE_BIOLOGY_ASSET
+            unit: raw_statement_value
+
+      - name: project_material
+        description: 工程物资
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: PROJECT_MATERIAL
+            unit: raw_statement_value
+
+      - name: rc_reserve_rece
+        description: 再保合同应收准备金
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: RC_RESERVE_RECE
+            unit: raw_statement_value
+
+      - name: reinsure_payable
+        description: 应付再保款
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: REINSURE_PAYABLE
+            unit: raw_statement_value
+
+      - name: reinsure_rece
+        description: 应收再保款
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: REINSURE_RECE
+            unit: raw_statement_value
+
+      - name: sell_repo_finasset
+        description: 卖出回购金融资产款
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: SELL_REPO_FINASSET
+            unit: raw_statement_value
+
+      - name: settle_excess_reserve
+        description: 清算备付金
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: SETTLE_EXCESS_RESERVE
+            unit: raw_statement_value
+
+      - name: share_capital
+        description: 实收资本（股本）
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: SHARE_CAPITAL
+            unit: raw_statement_value
+
+      - name: short_bond_payable
+        description: 短期应付债券
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: SHORT_BOND_PAYABLE
+            unit: raw_statement_value
+
+      - name: short_fin_payable
+        description: 短期金融负债
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: SHORT_FIN_PAYABLE
+            unit: raw_statement_value
+
+      - name: short_loan
+        description: 短期借款
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: SHORT_LOAN
+            unit: raw_statement_value
+
+      - name: special_payable
+        description: 专项应付款
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: SPECIAL_PAYABLE
+            unit: raw_statement_value
+
+      - name: special_reserve
+        description: 专项储备
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: SPECIAL_RESERVE
+            unit: raw_statement_value
+
+      - name: staff_salary_payable
+        description: 应付职工薪酬
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: STAFF_SALARY_PAYABLE
+            unit: raw_statement_value
+
+      - name: subsidy_rece
+        description: 应收补贴
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: SUBSIDY_RECE
+            unit: raw_statement_value
+
+      - name: surplus_reserve
+        description: 盈余公积
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: SURPLUS_RESERVE
+            unit: raw_statement_value
+
+      - name: tax_payable
+        description: 应交税费
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: TAX_PAYABLE
+            unit: raw_statement_value
+
+      - name: total_assets
+        description: 资产总计
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: TOTAL_ASSETS
+            unit: raw_statement_value
+
+      - name: total_current_assets
+        description: 流动资产合计
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: TOTAL_CURRENT_ASSETS
+            unit: raw_statement_value
+
+      - name: total_current_liab
+        description: 流动负债合计
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: TOTAL_CURRENT_LIAB
+            unit: raw_statement_value
+
+      - name: total_equity
+        description: 所有者权益合计
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: TOTAL_EQUITY
+            unit: raw_statement_value
+
+      - name: total_liab_equity
+        description: 负债和所有者权益总计
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: TOTAL_LIAB_EQUITY
+            unit: raw_statement_value
+
+      - name: total_liabilities
+        description: 负债合计
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: TOTAL_LIABILITIES
+            unit: raw_statement_value
+
+      - name: total_noncurrent_assets
+        description: 非流动资产合计
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: TOTAL_NONCURRENT_ASSETS
+            unit: raw_statement_value
+
+      - name: total_noncurrent_liab
+        description: 非流动负债合计
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: TOTAL_NONCURRENT_LIAB
+            unit: raw_statement_value
+
+      - name: total_other_payable
+        description: 其他应付款合计
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: TOTAL_OTHER_PAYABLE
+            unit: raw_statement_value
+
+      - name: total_other_rece
+        description: 其他应收款合计
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: TOTAL_OTHER_RECE
+            unit: raw_statement_value
+
+      - name: total_parent_equity
+        description: 归属于母公司股东权益合计
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: TOTAL_PARENT_EQUITY
+            unit: raw_statement_value
+
+      - name: trade_finasset
+        description: 交易性金融资产
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: TRADE_FINASSET
+            unit: raw_statement_value
+
+      - name: trade_finasset_notfvtpl
+        description: 非FVTPL交易性金融资产
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: TRADE_FINASSET_NOTFVTPL
+            unit: raw_statement_value
+
+      - name: trade_finliab
+        description: 交易性金融负债
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: TRADE_FINLIAB
+            unit: raw_statement_value
+
+      - name: trade_finliab_notfvtpl
+        description: 非FVTPL交易性金融负债
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: TRADE_FINLIAB_NOTFVTPL
+            unit: raw_statement_value
+
+      - name: treasury_shares
+        description: 库存股
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: TREASURY_SHARES
+            unit: raw_statement_value
+
+      - name: unassigned_profit
+        description: 未分配利润
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: UNASSIGN_RPOFIT
+            normalization:
+              reason: spelling_correction
+              original_name: UNASSIGN_RPOFIT
+            unit: raw_statement_value
+
+      - name: unconfirm_invest_loss
+        description: 未确认投资损失
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: UNCONFIRM_INVEST_LOSS
+            unit: raw_statement_value
+
+      - name: use_right_asset
+        description: 使用权资产
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: USERIGHT_ASSET
+            normalization:
+              reason: spelling_correction
+              original_name: USERIGHT_ASSET
+            unit: raw_statement_value
+
+      - name: accept_deposit_interbank_yoy
+        description: 同业存放同比增长率（%）
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: ACCEPT_DEPOSIT_INTERBANK_YOY
+            unit: percent
+            scale: percent_value_not_fraction
+
+      - name: accounts_payable_yoy
+        description: 应付账款同比增长率（%）
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: ACCOUNTS_PAYABLE_YOY
+            unit: percent
+            scale: percent_value_not_fraction
+
+      - name: accounts_rece_yoy
+        description: 应收账款同比增长率（%）
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: ACCOUNTS_RECE_YOY
+            unit: percent
+            scale: percent_value_not_fraction
+
+      - name: accrued_expense_yoy
+        description: 预提费用同比增长率（%）
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: ACCRUED_EXPENSE_YOY
+            unit: percent
+            scale: percent_value_not_fraction
+
+      - name: advance_receivables_yoy
+        description: 预收款项同比增长率（%）
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: ADVANCE_RECEIVABLES_YOY
+            unit: percent
+            scale: percent_value_not_fraction
+
+      - name: agent_trade_security_yoy
+        description: 代理买卖证券款同比增长率（%）
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: AGENT_TRADE_SECURITY_YOY
+            unit: percent
+            scale: percent_value_not_fraction
+
+      - name: agent_underwrite_security_yoy
+        description: 代理承销证券款同比增长率（%）
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: AGENT_UNDERWRITE_SECURITY_YOY
+            unit: percent
+            scale: percent_value_not_fraction
+
+      - name: amortize_cost_finasset_yoy
+        description: 以摊余成本计量的金融资产同比增长率（%）
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: AMORTIZE_COST_FINASSET_YOY
+            unit: percent
+            scale: percent_value_not_fraction
+
+      - name: amortize_cost_finliab_yoy
+        description: 以摊余成本计量的金融负债同比增长率（%）
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: AMORTIZE_COST_FINLIAB_YOY
+            unit: percent
+            scale: percent_value_not_fraction
+
+      - name: amortize_cost_ncfinasset_yoy
+        description: 非流动金融资产（摊余成本）同比增长率（%）
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: AMORTIZE_COST_NCFINASSET_YOY
+            unit: percent
+            scale: percent_value_not_fraction
+
+      - name: amortize_cost_ncfinliab_yoy
+        description: 非流动金融负债（摊余成本）同比增长率（%）
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: AMORTIZE_COST_NCFINLIAB_YOY
+            unit: percent
+            scale: percent_value_not_fraction
+
+      - name: appoint_fvtpl_finasset_yoy
+        description: 指定为FVTPL的金融资产同比增长率（%）
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: APPOINT_FVTPL_FINASSET_YOY
+            unit: percent
+            scale: percent_value_not_fraction
+
+      - name: appoint_fvtpl_finliab_yoy
+        description: 指定为FVTPL的金融负债同比增长率（%）
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: APPOINT_FVTPL_FINLIAB_YOY
+            unit: percent
+            scale: percent_value_not_fraction
+
+      - name: asset_balance_yoy
+        description: 资产平衡项同比增长率（%）
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: ASSET_BALANCE_YOY
+            unit: percent
+            scale: percent_value_not_fraction
+
+      - name: asset_other_yoy
+        description: 资产其他项同比增长率（%）
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: ASSET_OTHER_YOY
+            unit: percent
+            scale: percent_value_not_fraction
+
+      - name: assign_cash_dividend_yoy
+        description: 应付现金股利同比增长率（%）
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: ASSIGN_CASH_DIVIDEND_YOY
+            unit: percent
+            scale: percent_value_not_fraction
+
+      - name: available_sale_finasset_yoy
+        description: 可供出售金融资产同比增长率（%）
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: AVAILABLE_SALE_FINASSET_YOY
+            unit: percent
+            scale: percent_value_not_fraction
+
+      - name: bond_payable_yoy
+        description: 应付债券同比增长率（%）
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: BOND_PAYABLE_YOY
+            unit: percent
+            scale: percent_value_not_fraction
+
+      - name: borrow_fund_yoy
+        description: 拆入资金同比增长率（%）
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: BORROW_FUND_YOY
+            unit: percent
+            scale: percent_value_not_fraction
+
+      - name: buy_resale_finasset_yoy
+        description: 买入返售金融资产同比增长率（%）
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: BUY_RESALE_FINASSET_YOY
+            unit: percent
+            scale: percent_value_not_fraction
+
+      - name: capital_reserve_yoy
+        description: 资本公积同比增长率（%）
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: CAPITAL_RESERVE_YOY
+            unit: percent
+            scale: percent_value_not_fraction
+
+      - name: cip_yoy
+        description: 在建工程同比增长率（%）
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: CIP_YOY
+            unit: percent
+            scale: percent_value_not_fraction
+
+      - name: consumptive_biological_asset_yoy
+        description: 消耗性生物资产同比增长率（%）
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: CONSUMPTIVE_BIOLOGICAL_ASSET_YOY
+            unit: percent
+            scale: percent_value_not_fraction
+
+      - name: contract_asset_yoy
+        description: 合同资产同比增长率（%）
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: CONTRACT_ASSET_YOY
+            unit: percent
+            scale: percent_value_not_fraction
+
+      - name: contract_liab_yoy
+        description: 合同负债同比增长率（%）
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: CONTRACT_LIAB_YOY
+            unit: percent
+            scale: percent_value_not_fraction
+
+      - name: convert_diff_yoy
+        description: 外币报表折算差额同比增长率（%）
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: CONVERT_DIFF_YOY
+            unit: percent
+            scale: percent_value_not_fraction
+
+      - name: creditor_invest_yoy
+        description: 债权投资同比增长率（%）
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: CREDITOR_INVEST_YOY
+            unit: percent
+            scale: percent_value_not_fraction
+
+      - name: current_asset_balance_yoy
+        description: 流动资产平衡项同比增长率（%）
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: CURRENT_ASSET_BALANCE_YOY
+            unit: percent
+            scale: percent_value_not_fraction
+
+      - name: current_asset_other_yoy
+        description: 流动资产其他项同比增长率（%）
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: CURRENT_ASSET_OTHER_YOY
+            unit: percent
+            scale: percent_value_not_fraction
+
+      - name: current_liab_balance_yoy
+        description: 流动负债平衡项同比增长率（%）
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: CURRENT_LIAB_BALANCE_YOY
+            unit: percent
+            scale: percent_value_not_fraction
+
+      - name: current_liab_other_yoy
+        description: 流动负债其他项同比增长率（%）
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: CURRENT_LIAB_OTHER_YOY
+            unit: percent
+            scale: percent_value_not_fraction
+
+      - name: defer_income_1year_yoy
+        description: 一年内到期递延收益同比增长率（%）
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: DEFER_INCOME_1YEAR_YOY
+            unit: percent
+            scale: percent_value_not_fraction
+
+      - name: defer_income_yoy
+        description: 递延收益同比增长率（%）
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: DEFER_INCOME_YOY
+            unit: percent
+            scale: percent_value_not_fraction
+
+      - name: defer_tax_asset_yoy
+        description: 递延所得税资产同比增长率（%）
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: DEFER_TAX_ASSET_YOY
+            unit: percent
+            scale: percent_value_not_fraction
+
+      - name: defer_tax_liab_yoy
+        description: 递延所得税负债同比增长率（%）
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: DEFER_TAX_LIAB_YOY
+            unit: percent
+            scale: percent_value_not_fraction
+
+      - name: derive_finasset_yoy
+        description: 衍生金融资产同比增长率（%）
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: DERIVE_FINASSET_YOY
+            unit: percent
+            scale: percent_value_not_fraction
+
+      - name: derive_finliab_yoy
+        description: 衍生金融负债同比增长率（%）
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: DERIVE_FINLIAB_YOY
+            unit: percent
+            scale: percent_value_not_fraction
+
+      - name: develop_expense_yoy
+        description: 开发支出同比增长率（%）
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: DEVELOP_EXPENSE_YOY
+            unit: percent
+            scale: percent_value_not_fraction
+
+      - name: div_holdsale_asset_yoy
+        description: 持有待售资产（除）同比增长率（%）
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: DIV_HOLDSALE_ASSET_YOY
+            unit: percent
+            scale: percent_value_not_fraction
+
+      - name: div_holdsale_liab_yoy
+        description: 持有待售负债（除）同比增长率（%）
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: DIV_HOLDSALE_LIAB_YOY
+            unit: percent
+            scale: percent_value_not_fraction
+
+      - name: dividend_payable_yoy
+        description: 应付股利同比增长率（%）
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: DIVIDEND_PAYABLE_YOY
+            unit: percent
+            scale: percent_value_not_fraction
+
+      - name: dividend_rece_yoy
+        description: 应收股利同比增长率（%）
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: DIVIDEND_RECE_YOY
+            unit: percent
+            scale: percent_value_not_fraction
+
+      - name: equity_balance_yoy
+        description: 所有者权益平衡项同比增长率（%）
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: EQUITY_BALANCE_YOY
+            unit: percent
+            scale: percent_value_not_fraction
+
+      - name: equity_other_yoy
+        description: 所有者权益其他项同比增长率（%）
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: EQUITY_OTHER_YOY
+            unit: percent
+            scale: percent_value_not_fraction
+
+      - name: export_refund_rece_yoy
+        description: 应收出口退税同比增长率（%）
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: EXPORT_REFUND_RECE_YOY
+            unit: percent
+            scale: percent_value_not_fraction
+
+      - name: fee_commission_payable_yoy
+        description: 应付手续费及佣金同比增长率（%）
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: FEE_COMMISSION_PAYABLE_YOY
+            unit: percent
+            scale: percent_value_not_fraction
+
+      - name: fin_fund_yoy
+        description: 金融往来资金同比增长率（%）
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: FIN_FUND_YOY
+            unit: percent
+            scale: percent_value_not_fraction
+
+      - name: finance_rece_yoy
+        description: 金融应收款同比增长率（%）
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: FINANCE_RECE_YOY
+            unit: percent
+            scale: percent_value_not_fraction
+
+      - name: fixed_asset_disposal_yoy
+        description: 固定资产清理同比增长率（%）
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: FIXED_ASSET_DISPOSAL_YOY
+            unit: percent
+            scale: percent_value_not_fraction
+
+      - name: fixed_asset_yoy
+        description: 固定资产同比增长率（%）
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: FIXED_ASSET_YOY
+            unit: percent
+            scale: percent_value_not_fraction
+
+      - name: fvtoci_finasset_yoy
+        description: 以公允价值计量且其变动计入其他综合收益的金融资产同比增长率（%）
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: FVTOCI_FINASSET_YOY
+            unit: percent
+            scale: percent_value_not_fraction
+
+      - name: fvtoci_ncfinasset_yoy
+        description: 其他非流动金融资产（FVTOCI）同比增长率（%）
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: FVTOCI_NCFINASSET_YOY
+            unit: percent
+            scale: percent_value_not_fraction
+
+      - name: fvtpl_finasset_yoy
+        description: 以公允价值计量且其变动计入当期损益的金融资产同比增长率（%）
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: FVTPL_FINASSET_YOY
+            unit: percent
+            scale: percent_value_not_fraction
+
+      - name: fvtpl_finliab_yoy
+        description: 以公允价值计量且其变动计入当期损益的金融负债同比增长率（%）
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: FVTPL_FINLIAB_YOY
+            unit: percent
+            scale: percent_value_not_fraction
+
+      - name: general_risk_reserve_yoy
+        description: 一般风险准备同比增长率（%）
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: GENERAL_RISK_RESERVE_YOY
+            unit: percent
+            scale: percent_value_not_fraction
+
+      - name: goodwill_yoy
+        description: 商誉同比增长率（%）
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: GOODWILL_YOY
+            unit: percent
+            scale: percent_value_not_fraction
+
+      - name: hold_maturity_invest_yoy
+        description: 持有至到期投资同比增长率（%）
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: HOLD_MATURITY_INVEST_YOY
+            unit: percent
+            scale: percent_value_not_fraction
+
+      - name: holdsale_asset_yoy
+        description: 持有待售资产同比增长率（%）
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: HOLDSALE_ASSET_YOY
+            unit: percent
+            scale: percent_value_not_fraction
+
+      - name: holdsale_liab_yoy
+        description: 持有待售负债同比增长率（%）
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: HOLDSALE_LIAB_YOY
+            unit: percent
+            scale: percent_value_not_fraction
+
+      - name: insurance_contract_reserve_yoy
+        description: 保险合同准备金同比增长率（%）
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: INSURANCE_CONTRACT_RESERVE_YOY
+            unit: percent
+            scale: percent_value_not_fraction
+
+      - name: intangible_asset_yoy
+        description: 无形资产同比增长率（%）
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: INTANGIBLE_ASSET_YOY
+            unit: percent
+            scale: percent_value_not_fraction
+
+      - name: interest_payable_yoy
+        description: 应付利息同比增长率（%）
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: INTEREST_PAYABLE_YOY
+            unit: percent
+            scale: percent_value_not_fraction
+
+      - name: interest_rece_yoy
+        description: 应收利息同比增长率（%）
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: INTEREST_RECE_YOY
+            unit: percent
+            scale: percent_value_not_fraction
+
+      - name: internal_payable_yoy
+        description: 内部应付款同比增长率（%）
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: INTERNAL_PAYABLE_YOY
+            unit: percent
+            scale: percent_value_not_fraction
+
+      - name: internal_rece_yoy
+        description: 内部应收款同比增长率（%）
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: INTERNAL_RECE_YOY
+            unit: percent
+            scale: percent_value_not_fraction
+
+      - name: inventory_yoy
+        description: 存货同比增长率（%）
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: INVENTORY_YOY
+            unit: percent
+            scale: percent_value_not_fraction
+
+      - name: invest_realestate_yoy
+        description: 投资性房地产同比增长率（%）
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: INVEST_REALESTATE_YOY
+            unit: percent
+            scale: percent_value_not_fraction
+
+      - name: lease_liab_yoy
+        description: 租赁负债同比增长率（%）
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: LEASE_LIAB_YOY
+            unit: percent
+            scale: percent_value_not_fraction
+
+      - name: lend_fund_yoy
+        description: 拆出资金同比增长率（%）
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: LEND_FUND_YOY
+            unit: percent
+            scale: percent_value_not_fraction
+
+      - name: liab_balance_yoy
+        description: 负债平衡项同比增长率（%）
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: LIAB_BALANCE_YOY
+            unit: percent
+            scale: percent_value_not_fraction
+
+      - name: liab_equity_balance_yoy
+        description: 负债和所有者权益平衡项同比增长率（%）
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: LIAB_EQUITY_BALANCE_YOY
+            unit: percent
+            scale: percent_value_not_fraction
+
+      - name: liab_equity_other_yoy
+        description: 负债和所有者权益其他项同比增长率（%）
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: LIAB_EQUITY_OTHER_YOY
+            unit: percent
+            scale: percent_value_not_fraction
+
+      - name: liab_other_yoy
+        description: 负债其他项同比增长率（%）
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: LIAB_OTHER_YOY
+            unit: percent
+            scale: percent_value_not_fraction
+
+      - name: loan_advance_yoy
+        description: 发放贷款及垫款同比增长率（%）
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: LOAN_ADVANCE_YOY
+            unit: percent
+            scale: percent_value_not_fraction
+
+      - name: loan_pbc_yoy
+        description: 向央行借款同比增长率（%）
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: LOAN_PBC_YOY
+            unit: percent
+            scale: percent_value_not_fraction
+
+      - name: long_equity_invest_yoy
+        description: 长期股权投资同比增长率（%）
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: LONG_EQUITY_INVEST_YOY
+            unit: percent
+            scale: percent_value_not_fraction
+
+      - name: long_loan_yoy
+        description: 长期借款同比增长率（%）
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: LONG_LOAN_YOY
+            unit: percent
+            scale: percent_value_not_fraction
+
+      - name: long_payable_yoy
+        description: 长期应付款同比增长率（%）
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: LONG_PAYABLE_YOY
+            unit: percent
+            scale: percent_value_not_fraction
+
+      - name: long_prepaid_expense_yoy
+        description: 长期待摊费用同比增长率（%）
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: LONG_PREPAID_EXPENSE_YOY
+            unit: percent
+            scale: percent_value_not_fraction
+
+      - name: long_rece_yoy
+        description: 长期应收款同比增长率（%）
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: LONG_RECE_YOY
+            unit: percent
+            scale: percent_value_not_fraction
+
+      - name: long_staffsalary_payable_yoy
+        description: 长期应付职工薪酬同比增长率（%）
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: LONG_STAFFSALARY_PAYABLE_YOY
+            unit: percent
+            scale: percent_value_not_fraction
+
+      - name: minority_equity_yoy
+        description: 少数股东权益同比增长率（%）
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: MINORITY_EQUITY_YOY
+            unit: percent
+            scale: percent_value_not_fraction
+
+      - name: monetary_funds_yoy
+        description: 货币资金同比增长率（%）
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: MONETARYFUNDS_YOY
+            normalization:
+              reason: spelling_correction
+              original_name: MONETARYFUNDS_YOY
+            unit: percent
+            scale: percent_value_not_fraction
+
+      - name: noncurrent_asset_1year_yoy
+        description: 一年内到期的非流动资产同比增长率（%）
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: NONCURRENT_ASSET_1YEAR_YOY
+            unit: percent
+            scale: percent_value_not_fraction
+
+      - name: noncurrent_asset_balance_yoy
+        description: 非流动资产平衡项同比增长率（%）
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: NONCURRENT_ASSET_BALANCE_YOY
+            unit: percent
+            scale: percent_value_not_fraction
+
+      - name: noncurrent_asset_other_yoy
+        description: 非流动资产其他项同比增长率（%）
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: NONCURRENT_ASSET_OTHER_YOY
+            unit: percent
+            scale: percent_value_not_fraction
+
+      - name: noncurrent_liab_1year_yoy
+        description: 一年内到期的非流动负债同比增长率（%）
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: NONCURRENT_LIAB_1YEAR_YOY
+            unit: percent
+            scale: percent_value_not_fraction
+
+      - name: noncurrent_liab_balance_yoy
+        description: 非流动负债平衡项同比增长率（%）
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: NONCURRENT_LIAB_BALANCE_YOY
+            unit: percent
+            scale: percent_value_not_fraction
+
+      - name: noncurrent_liab_other_yoy
+        description: 非流动负债其他项同比增长率（%）
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: NONCURRENT_LIAB_OTHER_YOY
+            unit: percent
+            scale: percent_value_not_fraction
+
+      - name: note_accounts_payable_yoy
+        description: 应付票据及应付账款同比增长率（%）
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: NOTE_ACCOUNTS_PAYABLE_YOY
+            unit: percent
+            scale: percent_value_not_fraction
+
+      - name: note_accounts_rece_yoy
+        description: 应收票据及应收账款同比增长率（%）
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: NOTE_ACCOUNTS_RECE_YOY
+            unit: percent
+            scale: percent_value_not_fraction
+
+      - name: note_payable_yoy
+        description: 应付票据同比增长率（%）
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: NOTE_PAYABLE_YOY
+            unit: percent
+            scale: percent_value_not_fraction
+
+      - name: note_rece_yoy
+        description: 应收票据同比增长率（%）
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: NOTE_RECE_YOY
+            unit: percent
+            scale: percent_value_not_fraction
+
+      - name: oil_gas_asset_yoy
+        description: 油气资产同比增长率（%）
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: OIL_GAS_ASSET_YOY
+            unit: percent
+            scale: percent_value_not_fraction
+
+      - name: other_compre_income_yoy
+        description: 其他综合收益总额同比增长率（%）
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: OTHER_COMPRE_INCOME_YOY
+            unit: percent
+            scale: percent_value_not_fraction
+
+      - name: other_creditor_invest_yoy
+        description: 其他债权投资同比增长率（%）
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: OTHER_CREDITOR_INVEST_YOY
+            unit: percent
+            scale: percent_value_not_fraction
+
+      - name: other_current_asset_yoy
+        description: 其他流动资产同比增长率（%）
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: OTHER_CURRENT_ASSET_YOY
+            unit: percent
+            scale: percent_value_not_fraction
+
+      - name: other_current_liab_yoy
+        description: 其他流动负债同比增长率（%）
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: OTHER_CURRENT_LIAB_YOY
+            unit: percent
+            scale: percent_value_not_fraction
+
+      - name: other_equity_invest_yoy
+        description: 其他权益工具投资同比增长率（%）
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: OTHER_EQUITY_INVEST_YOY
+            unit: percent
+            scale: percent_value_not_fraction
+
+      - name: other_equity_other_yoy
+        description: 其他权益其他项同比增长率（%）
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: OTHER_EQUITY_OTHER_YOY
+            unit: percent
+            scale: percent_value_not_fraction
+
+      - name: other_equity_tool_yoy
+        description: 其他权益工具同比增长率（%）
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: OTHER_EQUITY_TOOL_YOY
+            unit: percent
+            scale: percent_value_not_fraction
+
+      - name: other_noncurrent_asset_yoy
+        description: 其他非流动资产同比增长率（%）
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: OTHER_NONCURRENT_ASSET_YOY
+            unit: percent
+            scale: percent_value_not_fraction
+
+      - name: other_noncurrent_finasset_yoy
+        description: 其他非流动金融资产同比增长率（%）
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: OTHER_NONCURRENT_FINASSET_YOY
+            unit: percent
+            scale: percent_value_not_fraction
+
+      - name: other_noncurrent_liab_yoy
+        description: 其他非流动负债同比增长率（%）
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: OTHER_NONCURRENT_LIAB_YOY
+            unit: percent
+            scale: percent_value_not_fraction
+
+      - name: other_payable_yoy
+        description: 其他应付款同比增长率（%）
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: OTHER_PAYABLE_YOY
+            unit: percent
+            scale: percent_value_not_fraction
+
+      - name: other_rece_yoy
+        description: 其他应收款同比增长率（%）
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: OTHER_RECE_YOY
+            unit: percent
+            scale: percent_value_not_fraction
+
+      - name: parent_equity_balance_yoy
+        description: 归母权益平衡项同比增长率（%）
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: PARENT_EQUITY_BALANCE_YOY
+            unit: percent
+            scale: percent_value_not_fraction
+
+      - name: parent_equity_other_yoy
+        description: 归母权益其他项同比增长率（%）
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: PARENT_EQUITY_OTHER_YOY
+            unit: percent
+            scale: percent_value_not_fraction
+
+      - name: perpetual_bond_payable_yoy
+        description: 永续债（负债端）同比增长率（%）
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: PERPETUAL_BOND_PAYBALE_YOY
+            normalization:
+              reason: spelling_correction
+              original_name: PERPETUAL_BOND_PAYBALE_YOY
+            unit: percent
+            scale: percent_value_not_fraction
+
+      - name: perpetual_bond_yoy
+        description: 永续债同比增长率（%）
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: PERPETUAL_BOND_YOY
+            unit: percent
+            scale: percent_value_not_fraction
+
+      - name: predict_current_liab_yoy
+        description: 预计流动负债同比增长率（%）
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: PREDICT_CURRENT_LIAB_YOY
+            unit: percent
+            scale: percent_value_not_fraction
+
+      - name: predict_liab_yoy
+        description: 预计负债同比增长率（%）
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: PREDICT_LIAB_YOY
+            unit: percent
+            scale: percent_value_not_fraction
+
+      - name: preferred_shares_payable_yoy
+        description: 应付优先股同比增长率（%）
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: PREFERRED_SHARES_PAYBALE_YOY
+            normalization:
+              reason: spelling_correction
+              original_name: PREFERRED_SHARES_PAYBALE_YOY
+            unit: percent
+            scale: percent_value_not_fraction
+
+      - name: preferred_shares_yoy
+        description: 优先股同比增长率（%）
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: PREFERRED_SHARES_YOY
+            unit: percent
+            scale: percent_value_not_fraction
+
+      - name: premium_rece_yoy
+        description: 预收保费同比增长率（%）
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: PREMIUM_RECE_YOY
+            unit: percent
+            scale: percent_value_not_fraction
+
+      - name: prepayment_yoy
+        description: 预付款项同比增长率（%）
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: PREPAYMENT_YOY
+            unit: percent
+            scale: percent_value_not_fraction
+
+      - name: productive_biology_asset_yoy
+        description: 生产性生物资产同比增长率（%）
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: PRODUCTIVE_BIOLOGY_ASSET_YOY
+            unit: percent
+            scale: percent_value_not_fraction
+
+      - name: project_material_yoy
+        description: 工程物资同比增长率（%）
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: PROJECT_MATERIAL_YOY
+            unit: percent
+            scale: percent_value_not_fraction
+
+      - name: rc_reserve_rece_yoy
+        description: 再保合同应收准备金同比增长率（%）
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: RC_RESERVE_RECE_YOY
+            unit: percent
+            scale: percent_value_not_fraction
+
+      - name: reinsure_payable_yoy
+        description: 应付再保款同比增长率（%）
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: REINSURE_PAYABLE_YOY
+            unit: percent
+            scale: percent_value_not_fraction
+
+      - name: reinsure_rece_yoy
+        description: 应收再保款同比增长率（%）
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: REINSURE_RECE_YOY
+            unit: percent
+            scale: percent_value_not_fraction
+
+      - name: sell_repo_finasset_yoy
+        description: 卖出回购金融资产款同比增长率（%）
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: SELL_REPO_FINASSET_YOY
+            unit: percent
+            scale: percent_value_not_fraction
+
+      - name: settle_excess_reserve_yoy
+        description: 清算备付金同比增长率（%）
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: SETTLE_EXCESS_RESERVE_YOY
+            unit: percent
+            scale: percent_value_not_fraction
+
+      - name: share_capital_yoy
+        description: 实收资本（股本）同比增长率（%）
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: SHARE_CAPITAL_YOY
+            unit: percent
+            scale: percent_value_not_fraction
+
+      - name: short_bond_payable_yoy
+        description: 短期应付债券同比增长率（%）
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: SHORT_BOND_PAYABLE_YOY
+            unit: percent
+            scale: percent_value_not_fraction
+
+      - name: short_fin_payable_yoy
+        description: 短期金融负债同比增长率（%）
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: SHORT_FIN_PAYABLE_YOY
+            unit: percent
+            scale: percent_value_not_fraction
+
+      - name: short_loan_yoy
+        description: 短期借款同比增长率（%）
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: SHORT_LOAN_YOY
+            unit: percent
+            scale: percent_value_not_fraction
+
+      - name: special_payable_yoy
+        description: 专项应付款同比增长率（%）
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: SPECIAL_PAYABLE_YOY
+            unit: percent
+            scale: percent_value_not_fraction
+
+      - name: special_reserve_yoy
+        description: 专项储备同比增长率（%）
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: SPECIAL_RESERVE_YOY
+            unit: percent
+            scale: percent_value_not_fraction
+
+      - name: staff_salary_payable_yoy
+        description: 应付职工薪酬同比增长率（%）
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: STAFF_SALARY_PAYABLE_YOY
+            unit: percent
+            scale: percent_value_not_fraction
+
+      - name: subsidy_rece_yoy
+        description: 应收补贴同比增长率（%）
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: SUBSIDY_RECE_YOY
+            unit: percent
+            scale: percent_value_not_fraction
+
+      - name: surplus_reserve_yoy
+        description: 盈余公积同比增长率（%）
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: SURPLUS_RESERVE_YOY
+            unit: percent
+            scale: percent_value_not_fraction
+
+      - name: tax_payable_yoy
+        description: 应交税费同比增长率（%）
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: TAX_PAYABLE_YOY
+            unit: percent
+            scale: percent_value_not_fraction
+
+      - name: total_assets_yoy
+        description: 资产总计同比增长率（%）
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: TOTAL_ASSETS_YOY
+            unit: percent
+            scale: percent_value_not_fraction
+
+      - name: total_current_assets_yoy
+        description: 流动资产合计同比增长率（%）
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: TOTAL_CURRENT_ASSETS_YOY
+            unit: percent
+            scale: percent_value_not_fraction
+
+      - name: total_current_liab_yoy
+        description: 流动负债合计同比增长率（%）
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: TOTAL_CURRENT_LIAB_YOY
+            unit: percent
+            scale: percent_value_not_fraction
+
+      - name: total_equity_yoy
+        description: 所有者权益合计同比增长率（%）
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: TOTAL_EQUITY_YOY
+            unit: percent
+            scale: percent_value_not_fraction
+
+      - name: total_liab_equity_yoy
+        description: 负债和所有者权益总计同比增长率（%）
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: TOTAL_LIAB_EQUITY_YOY
+            unit: percent
+            scale: percent_value_not_fraction
+
+      - name: total_liabilities_yoy
+        description: 负债合计同比增长率（%）
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: TOTAL_LIABILITIES_YOY
+            unit: percent
+            scale: percent_value_not_fraction
+
+      - name: total_noncurrent_assets_yoy
+        description: 非流动资产合计同比增长率（%）
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: TOTAL_NONCURRENT_ASSETS_YOY
+            unit: percent
+            scale: percent_value_not_fraction
+
+      - name: total_noncurrent_liab_yoy
+        description: 非流动负债合计同比增长率（%）
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: TOTAL_NONCURRENT_LIAB_YOY
+            unit: percent
+            scale: percent_value_not_fraction
+
+      - name: total_other_payable_yoy
+        description: 其他应付款合计同比增长率（%）
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: TOTAL_OTHER_PAYABLE_YOY
+            unit: percent
+            scale: percent_value_not_fraction
+
+      - name: total_other_rece_yoy
+        description: 其他应收款合计同比增长率（%）
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: TOTAL_OTHER_RECE_YOY
+            unit: percent
+            scale: percent_value_not_fraction
+
+      - name: total_parent_equity_yoy
+        description: 归属于母公司股东权益合计同比增长率（%）
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: TOTAL_PARENT_EQUITY_YOY
+            unit: percent
+            scale: percent_value_not_fraction
+
+      - name: trade_finasset_notfvtpl_yoy
+        description: 非FVTPL交易性金融资产同比增长率（%）
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: TRADE_FINASSET_NOTFVTPL_YOY
+            unit: percent
+            scale: percent_value_not_fraction
+
+      - name: trade_finasset_yoy
+        description: 交易性金融资产同比增长率（%）
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: TRADE_FINASSET_YOY
+            unit: percent
+            scale: percent_value_not_fraction
+
+      - name: trade_finliab_notfvtpl_yoy
+        description: 非FVTPL交易性金融负债同比增长率（%）
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: TRADE_FINLIAB_NOTFVTPL_YOY
+            unit: percent
+            scale: percent_value_not_fraction
+
+      - name: trade_finliab_yoy
+        description: 交易性金融负债同比增长率（%）
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: TRADE_FINLIAB_YOY
+            unit: percent
+            scale: percent_value_not_fraction
+
+      - name: treasury_shares_yoy
+        description: 库存股同比增长率（%）
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: TREASURY_SHARES_YOY
+            unit: percent
+            scale: percent_value_not_fraction
+
+      - name: unassigned_profit_yoy
+        description: 未分配利润同比增长率（%）
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: UNASSIGN_RPOFIT_YOY
+            normalization:
+              reason: spelling_correction
+              original_name: UNASSIGN_RPOFIT_YOY
+            unit: percent
+            scale: percent_value_not_fraction
+
+      - name: unconfirm_invest_loss_yoy
+        description: 未确认投资损失同比增长率（%）
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: UNCONFIRM_INVEST_LOSS_YOY
+            unit: percent
+            scale: percent_value_not_fraction
+
+      - name: use_right_asset_yoy
+        description: 使用权资产同比增长率（%）
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: USERIGHT_ASSET_YOY
+            normalization:
+              reason: spelling_correction
+              original_name: USERIGHT_ASSET_YOY
+            unit: percent
+            scale: percent_value_not_fraction
+
+      - name: opinion_type
+        description: 审计意见类型
+        data_type: LowCardinality(Nullable(String))
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: OPINION_TYPE
+
+      - name: osopinion_type
+        description: 内控审计意见类型
+        data_type: LowCardinality(Nullable(String))
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: OSOPINION_TYPE
+
+      - name: listing_state
+        description: 上市状态
+        data_type: LowCardinality(String)
+        data_tests:
+          - not_null
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__balance
+                column: LISTING_STATE

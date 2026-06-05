@@ -10,9 +10,7 @@ with source as (
         volume,
         amount,
         adjustflag,
-        turn,
         tradestatus,
-        pctChg,
         isST
     from {{ source('raw', 'baostock__query_history_k_data_plus_daily') }}
 )
@@ -24,12 +22,10 @@ select
     high as high_price,
     low as low_price,
     close as close_price,
-    preclose as previous_close_price,
+    preclose as prev_close_price,
     volume as volume,
     amount as amount,
-    adjustflag as adjust_flag,
-    turn as turnover_rate,
-    tradestatus as trade_status,
-    isST as is_st,
-    pctChg as pct_change
+    cast(tradestatus = 0, 'Bool') as is_suspend,
+    isST as is_st
 from source
+where adjustflag = 3

@@ -84,7 +84,7 @@ models:
                 table: baostock__query_history_k_data_plus_daily
                 column: close
 
-      - name: previous_close_price
+      - name: prev_close_price
         description: 上一交易日收盘价。
         data_type: Nullable(Float64)
         config:
@@ -117,35 +117,11 @@ models:
                 table: baostock__query_history_k_data_plus_daily
                 column: amount
 
-      - name: adjust_flag
-        description: BaoStock 复权标记。
-        data_type: Int8
-        config:
-          meta:
-            dictionary_scope: local
-            source_columns:
-              - source: raw
-                table: baostock__query_history_k_data_plus_daily
-                column: adjustflag
-
-      - name: turnover_rate
-        description: 交易日换手率。
-        data_type: Nullable(Float64)
-        config:
-          meta:
-            dictionary_scope: local
-            source_columns:
-              - source: raw
-                table: baostock__query_history_k_data_plus_daily
-                column: turn
-
-      - name: trade_status
-        description: BaoStock 交易状态码。
-        data_type: Int8
+      - name: is_suspend
+        description: 是否停牌；由 BaoStock trade_status = 0 派生。
+        data_type: Bool
         data_tests:
-          - accepted_values:
-              arguments:
-                values: [0, 1]
+          - not_null
         config:
           meta:
             dictionary_scope: local
@@ -153,6 +129,9 @@ models:
               - source: raw
                 table: baostock__query_history_k_data_plus_daily
                 column: tradestatus
+            derived_from:
+              - tradestatus
+            derivation_note_zh: BaoStock tradestatus = 0 时为 true，tradestatus = 1 时为 false。
 
       - name: is_st
         description: 是否 ST 或风险警示。
@@ -164,14 +143,3 @@ models:
               - source: raw
                 table: baostock__query_history_k_data_plus_daily
                 column: isST
-
-      - name: pct_change
-        description: 交易日涨跌幅。
-        data_type: Nullable(Float64)
-        config:
-          meta:
-            dictionary_scope: local
-            source_columns:
-              - source: raw
-                table: baostock__query_history_k_data_plus_daily
-                column: pctChg

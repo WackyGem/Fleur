@@ -55,7 +55,7 @@
 | H_FREE_SHARE_RATIO | Float64 | 未逐列统计 | 未逐列统计 | 保留 raw 字段；按需在具体 staging 中补充 | H 股流通比例（%） |
 | SECURITY_TYPE_CODE | LowCardinality(String) | 未逐列统计 | 未逐列统计 | 见关键字段画像 | 证券类型代码 |
 | NON_FREE_SHARES | Float64 | 未逐列统计 | 未逐列统计 | 保留 raw 字段；按需在具体 staging 中补充 | 非自由流通股 |
-| NON_FREESHARES_RATIO | Float64 | 未逐列统计 | 未逐列统计 | 保留 raw 字段；按需在具体 staging 中补充 | 非流通股比例（%） |
+| NON_FREESHARES_RATIO | Float64 | 未逐列统计 | 未逐列统计 | 保留 raw 字段；按需在具体 staging 中补充 | 非自由流通股比例（%） |
 | LIMITED_B_SHARES | Float64 | 未逐列统计 | 未逐列统计 | 保留 raw 字段；按需在具体 staging 中补充 | 限售 B 股 |
 | LIMITED_BSHARES_RATIO | Float64 | 未逐列统计 | 未逐列统计 | 保留 raw 字段；按需在具体 staging 中补充 | 限售B股比例（%） |
 | OTHER_FREE_SHARES | Float64 | 未逐列统计 | 未逐列统计 | 保留 raw 字段；按需在具体 staging 中补充 | 其他已上市流通股 |
@@ -87,9 +87,9 @@
 | B_FREESHARE_CHANGE | Float64 | 未逐列统计 | 未逐列统计 | 保留 raw 字段；按需在具体 staging 中补充 | B股流通变动量 |
 | H_FREESHARE_CHANGE | Float64 | 未逐列统计 | 未逐列统计 | 保留 raw 字段；按需在具体 staging 中补充 | H股流通变动量 |
 | LIMITED_BSHARES_CHANGE | Float64 | 未逐列统计 | 未逐列统计 | 保留 raw 字段；按需在具体 staging 中补充 | 限售B股变动量 |
-| NONFREE_SHARES_CHANGE | Float64 | 未逐列统计 | 未逐列统计 | 保留 raw 字段；按需在具体 staging 中补充 | 非流通股变动量 |
+| NONFREE_SHARES_CHANGE | Float64 | 未逐列统计 | 未逐列统计 | 保留 raw 字段；按需在具体 staging 中补充 | 非自由流通股变动量 |
 | OTHERFREE_SHARES_CHANGE | Float64 | 未逐列统计 | 未逐列统计 | 保留 raw 字段；按需在具体 staging 中补充 | 其他流通股变动量 |
-| FREE_SHARES | Float64 | 未逐列统计 | 未逐列统计 | 保留 raw 字段；按需在具体 staging 中补充 | 流通股（通常 = TOTAL_SHARES） |
+| FREE_SHARES | Float64 | 未逐列统计 | 未逐列统计 | 保留 raw 字段；按需在具体 staging 中补充 | 自由流通股本 |
 | CHANGE_REASON_EXPLAIN | LowCardinality(String) | 未逐列统计 | 未逐列统计 | 见关键字段画像 | 变动原因详细说明 |
 | LIMITED_H_SHARES_RATIO | Float64 | 未逐列统计 | 未逐列统计 | 保留 raw 字段；按需在具体 staging 中补充 | 限售H股比例（%） |
 | LIMITED_H_SHARES_CHANGE | Float64 | 未逐列统计 | 未逐列统计 | 保留 raw 字段；按需在具体 staging 中补充 | 限售H股变动量 |

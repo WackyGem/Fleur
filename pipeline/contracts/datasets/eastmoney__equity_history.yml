@@ -104,7 +104,7 @@ source:
   - name: NON_FREESHARES_RATIO
     type: number
     required: true
-    external_description_zh: 非流通股比例（%）
+    external_description_zh: 非自由流通股比例（%）
   - name: LIMITED_B_SHARES
     type: number
     required: true
@@ -232,7 +232,7 @@ source:
   - name: NONFREE_SHARES_CHANGE
     type: number
     required: true
-    external_description_zh: 非流通股变动量
+    external_description_zh: 非自由流通股变动量
   - name: OTHERFREE_SHARES_CHANGE
     type: number
     required: true
@@ -240,7 +240,7 @@ source:
   - name: FREE_SHARES
     type: number
     required: true
-    external_description_zh: 流通股（通常 = TOTAL_SHARES）
+    external_description_zh: 自由流通股本
   - name: CHANGE_REASON_EXPLAIN
     type: string
     required: true

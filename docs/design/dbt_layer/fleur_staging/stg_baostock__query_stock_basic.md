@@ -37,6 +37,7 @@ BaoStock 证券基础信息快照的 source-local staging model。staging 只统
 | `security_board` | `security_code` | `Nullable(Enum8('sse_main_board' = 1, 'szse_main_board' = 2, 'chinext' = 3, 'star_market' = 4))` | 证券所属板块，仅股票类型证券需要。根据 canonical `security_code` 解析交易所和本地代码段，派生沪市主板、深市主板、创业板、科创板；代码段不命中股票板块时保留 NULL。 |
 | `listing_status_code` | `status` | `Int8` | BaoStock 上市状态原始枚举编码。 |
 | `listing_status` | `status` | `Enum8('delisted' = 0, 'listed' = 1)` | 由 `listing_status_code` 确定性映射出的 ClickHouse 枚举值。 |
+| `is_listed` | `listing_status` | `Bool` | 当前快照是否上市；`listing_status = 'listed'` 时为 true，不代表历史任意交易日状态。 |
 
 ## 4. 枚举字段设计
 
@@ -99,6 +100,7 @@ BaoStock 证券基础信息快照的 source-local staging model。staging 只统
 - `security_board`: 条件测试，`security_code` 可解析为沪市主板、深市主板、创业板、科创板代码段时必须非 NULL；未命中这些代码段时必须为 NULL。
 - `listing_status_code`: `accepted_values`，取值 `0`, `1`。
 - `listing_status`: `accepted_values`，取值 `listed`, `delisted`。
+- `is_listed`: `not_null`。
 - 不对 `out_date` 加 `not_null`。
 
 ## 7. 延后事项

@@ -179,3 +179,20 @@ models:
             derived_from:
               - listing_status_code
             derivation_note_zh: 由 BaoStock 原始 status 编码确定性映射为 source-local 上市状态枚举。
+
+      - name: is_listed
+        description: 当前快照是否上市；不代表历史任意交易日状态。
+        data_type: Bool
+        data_tests:
+          - not_null
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: baostock__query_stock_basic
+                column: status
+            derived_from:
+              - listing_status_code
+              - listing_status
+            derivation_note_zh: 由 BaoStock 上市状态标签确定性派生，listing_status = 'listed' 时为 true。

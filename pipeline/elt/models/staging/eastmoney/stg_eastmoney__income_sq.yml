@@ -1,0 +1,3700 @@
+version: 2
+models:
+- name: stg_eastmoney__income_sq
+  description: 东方财富利润表单季度 staging 模型。
+  data_tests:
+  - unique_combination_of_columns:
+      arguments:
+        combination_of_columns:
+        - security_code
+        - report_date
+  columns:
+  - name: security_code
+    description: '{{ doc(''field_security_code'') }}'
+    data_type: String
+    data_tests:
+    - not_null
+    - cn_security_code_format
+    config:
+      meta:
+        glossary_key: security_code
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: SECUCODE
+        normalization:
+          macro: normalize_cn_security_code
+          input_format: eastmoney_suffix
+  - name: security_local_code
+    description: '{{ doc(''field_security_local_code'') }}'
+    data_type: String
+    data_tests:
+    - not_null
+    config:
+      meta:
+        glossary_key: security_local_code
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: SECURITY_CODE
+        normalization:
+          macro: cn_security_local_code
+          input_format: a_share_local_code
+  - name: security_name_abbr
+    description: 证券简称。
+    data_type: LowCardinality(String)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: SECURITY_NAME_ABBR
+  - name: org_code
+    description: 机构代码。
+    data_type: LowCardinality(String)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: ORG_CODE
+  - name: org_type
+    description: 机构类型。
+    data_type: LowCardinality(String)
+    data_tests:
+    - accepted_values:
+        arguments:
+          values:
+          - 通用
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: ORG_TYPE
+  - name: report_date
+    description: 报告期。
+    data_type: Date
+    data_tests:
+    - not_null
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: REPORT_DATE
+  - name: report_type
+    description: 报告类型。
+    data_type: LowCardinality(String)
+    data_tests:
+    - not_null
+    - accepted_values:
+        arguments:
+          values:
+          - 一季度
+          - 二季度
+          - 三季度
+          - 四季度
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: REPORT_TYPE
+  - name: report_date_name
+    description: 报告期名称。
+    data_type: LowCardinality(String)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: REPORT_DATE_NAME
+  - name: security_type_code
+    description: 证券类型代码。
+    data_type: LowCardinality(String)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: SECURITY_TYPE_CODE
+  - name: notice_date
+    description: 公告日期。
+    data_type: Date
+    data_tests:
+    - not_null
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: NOTICE_DATE
+  - name: update_date
+    description: 更新日期。
+    data_type: Nullable(Date)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: UPDATE_DATE
+  - name: currency
+    description: 利润表单季度金额使用的币种。
+    data_type: LowCardinality(Nullable(String))
+    data_tests:
+    - accepted_values:
+        arguments:
+          values:
+          - CNY
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: CURRENCY
+  - name: opinion_type
+    description: 审计意见类型。
+    data_type: LowCardinality(Nullable(String))
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: OPINION_TYPE
+  - name: osopinion_type
+    description: 内控审计意见类型。
+    data_type: LowCardinality(Nullable(String))
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: OSOPINION_TYPE
+  - name: total_operate_income
+    description: 营业总收入。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: TOTAL_OPERATE_INCOME
+        unit: raw_currency_amount
+  - name: total_operate_income_qoq
+    description: 营业总收入环比增长率（%）。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: TOTAL_OPERATE_INCOME_QOQ
+        unit: percent
+        scale: percent_value_not_fraction
+        period_comparison: quarter_over_quarter
+  - name: operate_income
+    description: 营业收入。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: OPERATE_INCOME
+        unit: raw_currency_amount
+  - name: operate_income_qoq
+    description: 营业收入环比增长率（%）。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: OPERATE_INCOME_QOQ
+        unit: percent
+        scale: percent_value_not_fraction
+        period_comparison: quarter_over_quarter
+  - name: interest_income
+    description: 利息收入。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: INTEREST_INCOME
+        unit: raw_currency_amount
+  - name: interest_income_qoq
+    description: 利息收入环比增长率（%）。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: INTEREST_INCOME_QOQ
+        unit: percent
+        scale: percent_value_not_fraction
+        period_comparison: quarter_over_quarter
+  - name: earned_premium
+    description: 已赚保费。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: EARNED_PREMIUM
+        unit: raw_currency_amount
+  - name: earned_premium_qoq
+    description: 已赚保费环比增长率（%）。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: EARNED_PREMIUM_QOQ
+        unit: percent
+        scale: percent_value_not_fraction
+        period_comparison: quarter_over_quarter
+  - name: fee_commission_income
+    description: 手续费及佣金收入。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: FEE_COMMISSION_INCOME
+        unit: raw_currency_amount
+  - name: fee_commission_income_qoq
+    description: 手续费及佣金收入环比增长率（%）。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: FEE_COMMISSION_INCOME_QOQ
+        unit: percent
+        scale: percent_value_not_fraction
+        period_comparison: quarter_over_quarter
+  - name: other_business_income
+    description: 其他业务收入。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: OTHER_BUSINESS_INCOME
+        unit: raw_currency_amount
+  - name: other_business_income_qoq
+    description: 其他业务收入环比增长率（%）。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: OTHER_BUSINESS_INCOME_QOQ
+        unit: percent
+        scale: percent_value_not_fraction
+        period_comparison: quarter_over_quarter
+  - name: toi_other
+    description: 营业总收入其他。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: TOI_OTHER
+        unit: raw_currency_amount
+  - name: toi_other_qoq
+    description: 营业总收入其他环比增长率（%）。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: TOI_OTHER_QOQ
+        unit: percent
+        scale: percent_value_not_fraction
+        period_comparison: quarter_over_quarter
+  - name: total_operate_cost
+    description: 营业总成本。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: TOTAL_OPERATE_COST
+        unit: raw_currency_amount
+  - name: total_operate_cost_qoq
+    description: 营业总成本环比增长率（%）。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: TOTAL_OPERATE_COST_QOQ
+        unit: percent
+        scale: percent_value_not_fraction
+        period_comparison: quarter_over_quarter
+  - name: operate_cost
+    description: 营业成本。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: OPERATE_COST
+        unit: raw_currency_amount
+  - name: operate_cost_qoq
+    description: 营业成本环比增长率（%）。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: OPERATE_COST_QOQ
+        unit: percent
+        scale: percent_value_not_fraction
+        period_comparison: quarter_over_quarter
+  - name: interest_expense
+    description: 利息支出。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: INTEREST_EXPENSE
+        unit: raw_currency_amount
+  - name: interest_expense_qoq
+    description: 利息支出环比增长率（%）。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: INTEREST_EXPENSE_QOQ
+        unit: percent
+        scale: percent_value_not_fraction
+        period_comparison: quarter_over_quarter
+  - name: fee_commission_expense
+    description: 手续费及佣金支出。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: FEE_COMMISSION_EXPENSE
+        unit: raw_currency_amount
+  - name: fee_commission_expense_qoq
+    description: 手续费及佣金支出环比增长率（%）。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: FEE_COMMISSION_EXPENSE_QOQ
+        unit: percent
+        scale: percent_value_not_fraction
+        period_comparison: quarter_over_quarter
+  - name: research_expense
+    description: 研发费用。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: RESEARCH_EXPENSE
+        unit: raw_currency_amount
+  - name: research_expense_qoq
+    description: 研发费用环比增长率（%）。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: RESEARCH_EXPENSE_QOQ
+        unit: percent
+        scale: percent_value_not_fraction
+        period_comparison: quarter_over_quarter
+  - name: surrender_value
+    description: 退保金。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: SURRENDER_VALUE
+        unit: raw_currency_amount
+  - name: surrender_value_qoq
+    description: 退保金环比增长率（%）。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: SURRENDER_VALUE_QOQ
+        unit: percent
+        scale: percent_value_not_fraction
+        period_comparison: quarter_over_quarter
+  - name: net_compensate_expense
+    description: 分保费用。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: NET_COMPENSATE_EXPENSE
+        unit: raw_currency_amount
+  - name: net_compensate_expense_qoq
+    description: 分保费用环比增长率（%）。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: NET_COMPENSATE_EXPENSE_QOQ
+        unit: percent
+        scale: percent_value_not_fraction
+        period_comparison: quarter_over_quarter
+  - name: net_contract_reserve
+    description: 提取保险合同准备金。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: NET_CONTRACT_RESERVE
+        unit: raw_currency_amount
+  - name: net_contract_reserve_qoq
+    description: 提取保险合同准备金环比增长率（%）。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: NET_CONTRACT_RESERVE_QOQ
+        unit: percent
+        scale: percent_value_not_fraction
+        period_comparison: quarter_over_quarter
+  - name: policy_bonus_expense
+    description: 保单红利支出。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: POLICY_BONUS_EXPENSE
+        unit: raw_currency_amount
+  - name: policy_bonus_expense_qoq
+    description: 保单红利支出环比增长率（%）。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: POLICY_BONUS_EXPENSE_QOQ
+        unit: percent
+        scale: percent_value_not_fraction
+        period_comparison: quarter_over_quarter
+  - name: reinsure_expense
+    description: 分保费用支出。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: REINSURE_EXPENSE
+        unit: raw_currency_amount
+  - name: reinsure_expense_qoq
+    description: 分保费用支出环比增长率（%）。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: REINSURE_EXPENSE_QOQ
+        unit: percent
+        scale: percent_value_not_fraction
+        period_comparison: quarter_over_quarter
+  - name: other_business_cost
+    description: 其他业务成本。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: OTHER_BUSINESS_COST
+        unit: raw_currency_amount
+  - name: other_business_cost_qoq
+    description: 其他业务成本环比增长率（%）。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: OTHER_BUSINESS_COST_QOQ
+        unit: percent
+        scale: percent_value_not_fraction
+        period_comparison: quarter_over_quarter
+  - name: operate_tax_add
+    description: 营业税金及附加。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: OPERATE_TAX_ADD
+        unit: raw_currency_amount
+  - name: operate_tax_add_qoq
+    description: 营业税金及附加环比增长率（%）。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: OPERATE_TAX_ADD_QOQ
+        unit: percent
+        scale: percent_value_not_fraction
+        period_comparison: quarter_over_quarter
+  - name: sale_expense
+    description: 销售费用。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: SALE_EXPENSE
+        unit: raw_currency_amount
+  - name: sale_expense_qoq
+    description: 销售费用环比增长率（%）。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: SALE_EXPENSE_QOQ
+        unit: percent
+        scale: percent_value_not_fraction
+        period_comparison: quarter_over_quarter
+  - name: manage_expense
+    description: 管理费用。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: MANAGE_EXPENSE
+        unit: raw_currency_amount
+  - name: manage_expense_qoq
+    description: 管理费用环比增长率（%）。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: MANAGE_EXPENSE_QOQ
+        unit: percent
+        scale: percent_value_not_fraction
+        period_comparison: quarter_over_quarter
+  - name: me_research_expense
+    description: 管理费用中的研发费用。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: ME_RESEARCH_EXPENSE
+        unit: raw_currency_amount
+  - name: me_research_expense_qoq
+    description: 管理费用中的研发费用环比增长率（%）。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: ME_RESEARCH_EXPENSE_QOQ
+        unit: percent
+        scale: percent_value_not_fraction
+        period_comparison: quarter_over_quarter
+  - name: finance_expense
+    description: 财务费用。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: FINANCE_EXPENSE
+        unit: raw_currency_amount
+  - name: finance_expense_qoq
+    description: 财务费用环比增长率（%）。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: FINANCE_EXPENSE_QOQ
+        unit: percent
+        scale: percent_value_not_fraction
+        period_comparison: quarter_over_quarter
+  - name: fe_interest_expense
+    description: 财务费用之利息费用。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: FE_INTEREST_EXPENSE
+        unit: raw_currency_amount
+  - name: fe_interest_expense_qoq
+    description: 财务费用之利息费用环比增长率（%）。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: FE_INTEREST_EXPENSE_QOQ
+        unit: percent
+        scale: percent_value_not_fraction
+        period_comparison: quarter_over_quarter
+  - name: fe_interest_income
+    description: 财务费用之利息收入。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: FE_INTEREST_INCOME
+        unit: raw_currency_amount
+  - name: fe_interest_income_qoq
+    description: 财务费用之利息收入环比增长率（%）。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: FE_INTEREST_INCOME_QOQ
+        unit: percent
+        scale: percent_value_not_fraction
+        period_comparison: quarter_over_quarter
+  - name: asset_impairment_loss
+    description: 资产减值损失。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: ASSET_IMPAIRMENT_LOSS
+        unit: raw_currency_amount
+  - name: asset_impairment_loss_qoq
+    description: 资产减值损失环比增长率（%）。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: ASSET_IMPAIRMENT_LOSS_QOQ
+        unit: percent
+        scale: percent_value_not_fraction
+        period_comparison: quarter_over_quarter
+  - name: credit_impairment_loss
+    description: 信用减值损失。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: CREDIT_IMPAIRMENT_LOSS
+        unit: raw_currency_amount
+  - name: credit_impairment_loss_qoq
+    description: 信用减值损失环比增长率（%）。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: CREDIT_IMPAIRMENT_LOSS_QOQ
+        unit: percent
+        scale: percent_value_not_fraction
+        period_comparison: quarter_over_quarter
+  - name: other_income
+    description: 其他收益。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: OTHER_INCOME
+        unit: raw_currency_amount
+  - name: other_income_qoq
+    description: 其他收益环比增长率（%）。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: OTHER_INCOME_QOQ
+        unit: percent
+        scale: percent_value_not_fraction
+        period_comparison: quarter_over_quarter
+  - name: toc_other
+    description: 营业总成本其他。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: TOC_OTHER
+        unit: raw_currency_amount
+  - name: toc_other_qoq
+    description: 营业总成本其他环比增长率（%）。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: TOC_OTHER_QOQ
+        unit: percent
+        scale: percent_value_not_fraction
+        period_comparison: quarter_over_quarter
+  - name: invest_income
+    description: 投资收益。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: INVEST_INCOME
+        unit: raw_currency_amount
+  - name: invest_income_qoq
+    description: 投资收益环比增长率（%）。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: INVEST_INCOME_QOQ
+        unit: percent
+        scale: percent_value_not_fraction
+        period_comparison: quarter_over_quarter
+  - name: invest_joint_income
+    description: 对联营企业和合营企业的投资收益。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: INVEST_JOINT_INCOME
+        unit: raw_currency_amount
+  - name: invest_joint_income_qoq
+    description: 对联营企业和合营企业的投资收益环比增长率（%）。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: INVEST_JOINT_INCOME_QOQ
+        unit: percent
+        scale: percent_value_not_fraction
+        period_comparison: quarter_over_quarter
+  - name: acf_end_income
+    description: 持续经营终止经营净损益。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: ACF_END_INCOME
+        unit: raw_currency_amount
+  - name: acf_end_income_qoq
+    description: 持续经营终止经营净损益环比增长率（%）。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: ACF_END_INCOME_QOQ
+        unit: percent
+        scale: percent_value_not_fraction
+        period_comparison: quarter_over_quarter
+  - name: exchange_income
+    description: 汇兑收益。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: EXCHANGE_INCOME
+        unit: raw_currency_amount
+  - name: exchange_income_qoq
+    description: 汇兑收益环比增长率（%）。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: EXCHANGE_INCOME_QOQ
+        unit: percent
+        scale: percent_value_not_fraction
+        period_comparison: quarter_over_quarter
+  - name: net_exposure_income
+    description: 净敞口收益。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: NET_EXPOSURE_INCOME
+        unit: raw_currency_amount
+  - name: net_exposure_income_qoq
+    description: 净敞口收益环比增长率（%）。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: NET_EXPOSURE_INCOME_QOQ
+        unit: percent
+        scale: percent_value_not_fraction
+        period_comparison: quarter_over_quarter
+  - name: fairvalue_change_income
+    description: 公允价值变动收益。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: FAIRVALUE_CHANGE_INCOME
+        unit: raw_currency_amount
+  - name: fairvalue_change_income_qoq
+    description: 公允价值变动收益环比增长率（%）。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: FAIRVALUE_CHANGE_INCOME_QOQ
+        unit: percent
+        scale: percent_value_not_fraction
+        period_comparison: quarter_over_quarter
+  - name: asset_disposal_income
+    description: 资产处置收益。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: ASSET_DISPOSAL_INCOME
+        unit: raw_currency_amount
+  - name: asset_disposal_income_qoq
+    description: 资产处置收益环比增长率（%）。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: ASSET_DISPOSAL_INCOME_QOQ
+        unit: percent
+        scale: percent_value_not_fraction
+        period_comparison: quarter_over_quarter
+  - name: credit_impairment_income
+    description: 信用减值收益。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: CREDIT_IMPAIRMENT_INCOME
+        unit: raw_currency_amount
+  - name: credit_impairment_income_qoq
+    description: 信用减值收益环比增长率（%）。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: CREDIT_IMPAIRMENT_INCOME_QOQ
+        unit: percent
+        scale: percent_value_not_fraction
+        period_comparison: quarter_over_quarter
+  - name: asset_impairment_income
+    description: 资产减值收益。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: ASSET_IMPAIRMENT_INCOME
+        unit: raw_currency_amount
+  - name: asset_impairment_income_qoq
+    description: 资产减值收益环比增长率（%）。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: ASSET_IMPAIRMENT_INCOME_QOQ
+        unit: percent
+        scale: percent_value_not_fraction
+        period_comparison: quarter_over_quarter
+  - name: operate_profit
+    description: 营业利润。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: OPERATE_PROFIT
+        unit: raw_currency_amount
+  - name: operate_profit_qoq
+    description: 营业利润环比增长率（%）。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: OPERATE_PROFIT_QOQ
+        unit: percent
+        scale: percent_value_not_fraction
+        period_comparison: quarter_over_quarter
+  - name: nonbusiness_income
+    description: 营业外收入。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: NONBUSINESS_INCOME
+        unit: raw_currency_amount
+  - name: nonbusiness_income_qoq
+    description: 营业外收入环比增长率（%）。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: NONBUSINESS_INCOME_QOQ
+        unit: percent
+        scale: percent_value_not_fraction
+        period_comparison: quarter_over_quarter
+  - name: noncurrent_disposal_income
+    description: 非流动资产处置净收益。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: NONCURRENT_DISPOSAL_INCOME
+        unit: raw_currency_amount
+  - name: noncurrent_disposal_income_qoq
+    description: 非流动资产处置净收益环比增长率（%）。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: NONCURRENT_DISPOSAL_INCOME_QOQ
+        unit: percent
+        scale: percent_value_not_fraction
+        period_comparison: quarter_over_quarter
+  - name: nonbusiness_expense
+    description: 营业外支出。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: NONBUSINESS_EXPENSE
+        unit: raw_currency_amount
+  - name: nonbusiness_expense_qoq
+    description: 营业外支出环比增长率（%）。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: NONBUSINESS_EXPENSE_QOQ
+        unit: percent
+        scale: percent_value_not_fraction
+        period_comparison: quarter_over_quarter
+  - name: noncurrent_disposal_loss
+    description: 非流动资产处置净损失。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: NONCURRENT_DISPOSAL_LOSS
+        unit: raw_currency_amount
+  - name: noncurrent_disposal_loss_qoq
+    description: 非流动资产处置净损失环比增长率（%）。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: NONCURRENT_DISPOSAL_LOSS_QOQ
+        unit: percent
+        scale: percent_value_not_fraction
+        period_comparison: quarter_over_quarter
+  - name: operate_profit_other
+    description: 营业利润其他。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: OPERATE_PROFIT_OTHER
+        unit: raw_currency_amount
+  - name: operate_profit_other_qoq
+    description: 营业利润其他环比增长率（%）。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: OPERATE_PROFIT_OTHER_QOQ
+        unit: percent
+        scale: percent_value_not_fraction
+        period_comparison: quarter_over_quarter
+  - name: operate_profit_balance
+    description: 营业利润平衡项。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: OPERATE_PROFIT_BALANCE
+        unit: raw_currency_amount
+  - name: operate_profit_balance_qoq
+    description: 营业利润平衡项环比增长率（%）。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: OPERATE_PROFIT_BALANCE_QOQ
+        unit: percent
+        scale: percent_value_not_fraction
+        period_comparison: quarter_over_quarter
+  - name: total_profit
+    description: 利润总额。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: TOTAL_PROFIT
+        unit: raw_currency_amount
+  - name: total_profit_qoq
+    description: 利润总额环比增长率（%）。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: TOTAL_PROFIT_QOQ
+        unit: percent
+        scale: percent_value_not_fraction
+        period_comparison: quarter_over_quarter
+  - name: effect_tp_other
+    description: 影响利润总额其他。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: EFFECT_TP_OTHER
+        unit: raw_currency_amount
+  - name: effect_tp_other_qoq
+    description: 影响利润总额其他环比增长率（%）。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: EFFECT_TP_OTHER_QOQ
+        unit: percent
+        scale: percent_value_not_fraction
+        period_comparison: quarter_over_quarter
+  - name: total_profit_balance
+    description: 利润总额平衡项。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: TOTAL_PROFIT_BALANCE
+        unit: raw_currency_amount
+  - name: total_profit_balance_qoq
+    description: 利润总额平衡项环比增长率（%）。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: TOTAL_PROFIT_BALANCE_QOQ
+        unit: percent
+        scale: percent_value_not_fraction
+        period_comparison: quarter_over_quarter
+  - name: income_tax
+    description: 所得税费用。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: INCOME_TAX
+        unit: raw_currency_amount
+  - name: income_tax_qoq
+    description: 所得税费用环比增长率（%）。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: INCOME_TAX_QOQ
+        unit: percent
+        scale: percent_value_not_fraction
+        period_comparison: quarter_over_quarter
+  - name: netprofit
+    description: 净利润。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: NETPROFIT
+        unit: raw_currency_amount
+  - name: netprofit_qoq
+    description: 净利润环比增长率（%）。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: NETPROFIT_QOQ
+        unit: percent
+        scale: percent_value_not_fraction
+        period_comparison: quarter_over_quarter
+  - name: continued_netprofit
+    description: 持续经营净利润。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: CONTINUED_NETPROFIT
+        unit: raw_currency_amount
+  - name: continued_netprofit_qoq
+    description: 持续经营净利润环比增长率（%）。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: CONTINUED_NETPROFIT_QOQ
+        unit: percent
+        scale: percent_value_not_fraction
+        period_comparison: quarter_over_quarter
+  - name: discontinued_netprofit
+    description: 终止经营净利润。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: DISCONTINUED_NETPROFIT
+        unit: raw_currency_amount
+  - name: discontinued_netprofit_qoq
+    description: 终止经营净利润环比增长率（%）。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: DISCONTINUED_NETPROFIT_QOQ
+        unit: percent
+        scale: percent_value_not_fraction
+        period_comparison: quarter_over_quarter
+  - name: netprofit_other
+    description: 净利润其他。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: NETPROFIT_OTHER
+        unit: raw_currency_amount
+  - name: netprofit_other_qoq
+    description: 净利润其他环比增长率（%）。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: NETPROFIT_OTHER_QOQ
+        unit: percent
+        scale: percent_value_not_fraction
+        period_comparison: quarter_over_quarter
+  - name: netprofit_balance
+    description: 净利润平衡项。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: NETPROFIT_BALANCE
+        unit: raw_currency_amount
+  - name: netprofit_balance_qoq
+    description: 净利润平衡项环比增长率（%）。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: NETPROFIT_BALANCE_QOQ
+        unit: percent
+        scale: percent_value_not_fraction
+        period_comparison: quarter_over_quarter
+  - name: effect_netprofit_other
+    description: 影响净利润其他。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: EFFECT_NETPROFIT_OTHER
+        unit: raw_currency_amount
+  - name: effect_netprofit_other_qoq
+    description: 影响净利润其他环比增长率（%）。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: EFFECT_NETPROFIT_OTHER_QOQ
+        unit: percent
+        scale: percent_value_not_fraction
+        period_comparison: quarter_over_quarter
+  - name: effect_netprofit_balance
+    description: 净利润平衡项。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: EFFECT_NETPROFIT_BALANCE
+        unit: raw_currency_amount
+  - name: effect_netprofit_balance_qoq
+    description: 净利润平衡项环比增长率（%）。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: EFFECT_NETPROFIT_BALANCE_QOQ
+        unit: percent
+        scale: percent_value_not_fraction
+        period_comparison: quarter_over_quarter
+  - name: unconfirm_invest_loss
+    description: 未确认投资损失。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: UNCONFIRM_INVEST_LOSS
+        unit: raw_currency_amount
+  - name: unconfirm_invest_loss_qoq
+    description: 未确认投资损失环比增长率（%）。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: UNCONFIRM_INVEST_LOSS_QOQ
+        unit: percent
+        scale: percent_value_not_fraction
+        period_comparison: quarter_over_quarter
+  - name: minority_interest
+    description: 少数股东损益。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: MINORITY_INTEREST
+        unit: raw_currency_amount
+  - name: minority_interest_qoq
+    description: 少数股东损益环比增长率（%）。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: MINORITY_INTEREST_QOQ
+        unit: percent
+        scale: percent_value_not_fraction
+        period_comparison: quarter_over_quarter
+  - name: parent_netprofit
+    description: 归属于母公司股东的净利润。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: PARENT_NETPROFIT
+        unit: raw_currency_amount
+  - name: parent_netprofit_qoq
+    description: 归属于母公司股东的净利润环比增长率（%）。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: PARENT_NETPROFIT_QOQ
+        unit: percent
+        scale: percent_value_not_fraction
+        period_comparison: quarter_over_quarter
+  - name: basic_eps
+    description: 基本每股收益（元/股）。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: BASIC_EPS
+        unit: CNY_per_share
+  - name: basic_eps_qoq
+    description: 基本每股收益（元/股）环比增长率（%）。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: BASIC_EPS_QOQ
+        unit: percent
+        scale: percent_value_not_fraction
+        period_comparison: quarter_over_quarter
+  - name: diluted_eps
+    description: 稀释每股收益（元/股）。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: DILUTED_EPS
+        unit: CNY_per_share
+  - name: diluted_eps_qoq
+    description: 稀释每股收益（元/股）环比增长率（%）。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: DILUTED_EPS_QOQ
+        unit: percent
+        scale: percent_value_not_fraction
+        period_comparison: quarter_over_quarter
+  - name: unable_oci
+    description: 以后将重分类进损益的其他综合收益。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: UNABLE_OCI
+        unit: raw_currency_amount
+  - name: unable_oci_qoq
+    description: 以后将重分类进损益的其他综合收益环比增长率（%）。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: UNABLE_OCI_QOQ
+        unit: percent
+        scale: percent_value_not_fraction
+        period_comparison: quarter_over_quarter
+  - name: creditrisk_fairvalue_change
+    description: 信用风险引起的公允价值变动。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: CREDITRISK_FAIRVALUE_CHANGE
+        unit: raw_currency_amount
+  - name: creditrisk_fairvalue_change_qoq
+    description: 信用风险引起的公允价值变动环比增长率（%）。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: CREDITRISK_FAIRVALUE_CHANGE_QOQ
+        unit: percent
+        scale: percent_value_not_fraction
+        period_comparison: quarter_over_quarter
+  - name: otherright_fairvalue_change
+    description: 其他权益工具公允价值变动。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: OTHERRIGHT_FAIRVALUE_CHANGE
+        unit: raw_currency_amount
+  - name: otherright_fairvalue_change_qoq
+    description: 其他权益工具公允价值变动环比增长率（%）。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: OTHERRIGHT_FAIRVALUE_CHANGE_QOQ
+        unit: percent
+        scale: percent_value_not_fraction
+        period_comparison: quarter_over_quarter
+  - name: setup_profit_change
+    description: 重分类调整变动。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: SETUP_PROFIT_CHANGE
+        unit: raw_currency_amount
+  - name: setup_profit_change_qoq
+    description: 重分类调整变动环比增长率（%）。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: SETUP_PROFIT_CHANGE_QOQ
+        unit: percent
+        scale: percent_value_not_fraction
+        period_comparison: quarter_over_quarter
+  - name: rightlaw_unable_oci
+    description: 权益法下不能重分类的其他综合收益。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: RIGHTLAW_UNABLE_OCI
+        unit: raw_currency_amount
+  - name: rightlaw_unable_oci_qoq
+    description: 权益法下不能重分类的其他综合收益环比增长率（%）。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: RIGHTLAW_UNABLE_OCI_QOQ
+        unit: percent
+        scale: percent_value_not_fraction
+        period_comparison: quarter_over_quarter
+  - name: unable_oci_other
+    description: 不能重分类其他综合收益其他。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: UNABLE_OCI_OTHER
+        unit: raw_currency_amount
+  - name: unable_oci_other_qoq
+    description: 不能重分类其他综合收益其他环比增长率（%）。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: UNABLE_OCI_OTHER_QOQ
+        unit: percent
+        scale: percent_value_not_fraction
+        period_comparison: quarter_over_quarter
+  - name: unable_oci_balance
+    description: 不能重分类其他综合收益平衡项。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: UNABLE_OCI_BALANCE
+        unit: raw_currency_amount
+  - name: unable_oci_balance_qoq
+    description: 不能重分类其他综合收益平衡项环比增长率（%）。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: UNABLE_OCI_BALANCE_QOQ
+        unit: percent
+        scale: percent_value_not_fraction
+        period_comparison: quarter_over_quarter
+  - name: able_oci
+    description: 以后将重分类进损益的其他综合收益（可重分类）。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: ABLE_OCI
+        unit: raw_currency_amount
+  - name: able_oci_qoq
+    description: 以后将重分类进损益的其他综合收益（可重分类）环比增长率（%）。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: ABLE_OCI_QOQ
+        unit: percent
+        scale: percent_value_not_fraction
+        period_comparison: quarter_over_quarter
+  - name: rightlaw_able_oci
+    description: 权益法下可重分类的其他综合收益。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: RIGHTLAW_ABLE_OCI
+        unit: raw_currency_amount
+  - name: rightlaw_able_oci_qoq
+    description: 权益法下可重分类的其他综合收益环比增长率（%）。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: RIGHTLAW_ABLE_OCI_QOQ
+        unit: percent
+        scale: percent_value_not_fraction
+        period_comparison: quarter_over_quarter
+  - name: afa_fairvalue_change
+    description: 可供出售金融资产公允价值变动。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: AFA_FAIRVALUE_CHANGE
+        unit: raw_currency_amount
+  - name: afa_fairvalue_change_qoq
+    description: 可供出售金融资产公允价值变动环比增长率（%）。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: AFA_FAIRVALUE_CHANGE_QOQ
+        unit: percent
+        scale: percent_value_not_fraction
+        period_comparison: quarter_over_quarter
+  - name: hmi_afa
+    description: 持有有待售资产公允价值变动。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: HMI_AFA
+        unit: raw_currency_amount
+  - name: hmi_afa_qoq
+    description: 持有有待售资产公允价值变动环比增长率（%）。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: HMI_AFA_QOQ
+        unit: percent
+        scale: percent_value_not_fraction
+        period_comparison: quarter_over_quarter
+  - name: cashflow_hedge_valid
+    description: 现金流量套期有效部分。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: CASHFLOW_HEDGE_VALID
+        unit: raw_currency_amount
+  - name: cashflow_hedge_valid_qoq
+    description: 现金流量套期有效部分环比增长率（%）。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: CASHFLOW_HEDGE_VALID_QOQ
+        unit: percent
+        scale: percent_value_not_fraction
+        period_comparison: quarter_over_quarter
+  - name: creditor_fairvalue_change
+    description: 债权投资公允价值变动。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: CREDITOR_FAIRVALUE_CHANGE
+        unit: raw_currency_amount
+  - name: creditor_fairvalue_change_qoq
+    description: 债权投资公允价值变动环比增长率（%）。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: CREDITOR_FAIRVALUE_CHANGE_QOQ
+        unit: percent
+        scale: percent_value_not_fraction
+        period_comparison: quarter_over_quarter
+  - name: creditor_impairment_reserve
+    description: 债权投资减值准备。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: CREDITOR_IMPAIRMENT_RESERVE
+        unit: raw_currency_amount
+  - name: creditor_impairment_reserve_qoq
+    description: 债权投资减值准备环比增长率（%）。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: CREDITOR_IMPAIRMENT_RESERVE_QOQ
+        unit: percent
+        scale: percent_value_not_fraction
+        period_comparison: quarter_over_quarter
+  - name: finance_oci_amt
+    description: 金融资产重分类金额。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: FINANCE_OCI_AMT
+        unit: raw_currency_amount
+  - name: finance_oci_amt_qoq
+    description: 金融资产重分类金额环比增长率（%）。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: FINANCE_OCI_AMT_QOQ
+        unit: percent
+        scale: percent_value_not_fraction
+        period_comparison: quarter_over_quarter
+  - name: convert_diff
+    description: 外币报表折算差额。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: CONVERT_DIFF
+        unit: raw_currency_amount
+  - name: convert_diff_qoq
+    description: 外币报表折算差额环比增长率（%）。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: CONVERT_DIFF_QOQ
+        unit: percent
+        scale: percent_value_not_fraction
+        period_comparison: quarter_over_quarter
+  - name: able_oci_other
+    description: 可重分类其他综合收益其他。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: ABLE_OCI_OTHER
+        unit: raw_currency_amount
+  - name: able_oci_other_qoq
+    description: 可重分类其他综合收益其他环比增长率（%）。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: ABLE_OCI_OTHER_QOQ
+        unit: percent
+        scale: percent_value_not_fraction
+        period_comparison: quarter_over_quarter
+  - name: able_oci_balance
+    description: 可重分类其他综合收益平衡项。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: ABLE_OCI_BALANCE
+        unit: raw_currency_amount
+  - name: able_oci_balance_qoq
+    description: 可重分类其他综合收益平衡项环比增长率（%）。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: ABLE_OCI_BALANCE_QOQ
+        unit: percent
+        scale: percent_value_not_fraction
+        period_comparison: quarter_over_quarter
+  - name: oci_other
+    description: 其他综合收益其他。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: OCI_OTHER
+        unit: raw_currency_amount
+  - name: oci_other_qoq
+    description: 其他综合收益其他环比增长率（%）。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: OCI_OTHER_QOQ
+        unit: percent
+        scale: percent_value_not_fraction
+        period_comparison: quarter_over_quarter
+  - name: oci_balance
+    description: 其他综合收益平衡项。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: OCI_BALANCE
+        unit: raw_currency_amount
+  - name: oci_balance_qoq
+    description: 其他综合收益平衡项环比增长率（%）。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: OCI_BALANCE_QOQ
+        unit: percent
+        scale: percent_value_not_fraction
+        period_comparison: quarter_over_quarter
+  - name: other_compre_income
+    description: 其他综合收益总额。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: OTHER_COMPRE_INCOME
+        unit: raw_currency_amount
+  - name: other_compre_income_qoq
+    description: 其他综合收益总额环比增长率（%）。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: OTHER_COMPRE_INCOME_QOQ
+        unit: percent
+        scale: percent_value_not_fraction
+        period_comparison: quarter_over_quarter
+  - name: parent_oci
+    description: 归属于母公司股东的其他综合收益。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: PARENT_OCI
+        unit: raw_currency_amount
+  - name: parent_oci_qoq
+    description: 归母其他综合收益环比增长率（%）。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: PARENT_OCI_QOQ
+        unit: percent
+        scale: percent_value_not_fraction
+        period_comparison: quarter_over_quarter
+  - name: minority_oci
+    description: 归属于少数股东的其他综合收益。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: MINORITY_OCI
+        unit: raw_currency_amount
+  - name: minority_oci_qoq
+    description: 少数股东其他综合收益环比增长率（%）。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: MINORITY_OCI_QOQ
+        unit: percent
+        scale: percent_value_not_fraction
+        period_comparison: quarter_over_quarter
+  - name: parent_oci_other
+    description: 归母其他综合收益其他。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: PARENT_OCI_OTHER
+        unit: raw_currency_amount
+  - name: parent_oci_other_qoq
+    description: 归母其他综合收益其他环比增长率（%）。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: PARENT_OCI_OTHER_QOQ
+        unit: percent
+        scale: percent_value_not_fraction
+        period_comparison: quarter_over_quarter
+  - name: parent_oci_balance
+    description: 归母其他综合收益平衡项。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: PARENT_OCI_BALANCE
+        unit: raw_currency_amount
+  - name: parent_oci_balance_qoq
+    description: 归母其他综合收益平衡项环比增长率（%）。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: PARENT_OCI_BALANCE_QOQ
+        unit: percent
+        scale: percent_value_not_fraction
+        period_comparison: quarter_over_quarter
+  - name: total_compre_income
+    description: 综合收益总额。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: TOTAL_COMPRE_INCOME
+        unit: raw_currency_amount
+  - name: total_compre_income_qoq
+    description: 综合收益总额环比增长率（%）。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: TOTAL_COMPRE_INCOME_QOQ
+        unit: percent
+        scale: percent_value_not_fraction
+        period_comparison: quarter_over_quarter
+  - name: parent_tci
+    description: 归属于母公司股东的综合收益总额。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: PARENT_TCI
+        unit: raw_currency_amount
+  - name: parent_tci_qoq
+    description: 归母综合收益总额环比增长率（%）。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: PARENT_TCI_QOQ
+        unit: percent
+        scale: percent_value_not_fraction
+        period_comparison: quarter_over_quarter
+  - name: minority_tci
+    description: 归属于少数股东的综合收益总额。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: MINORITY_TCI
+        unit: raw_currency_amount
+  - name: minority_tci_qoq
+    description: 少数股东综合收益总额环比增长率（%）。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: MINORITY_TCI_QOQ
+        unit: percent
+        scale: percent_value_not_fraction
+        period_comparison: quarter_over_quarter
+  - name: effect_tci_balance
+    description: 综合收益总额平衡项。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: EFFECT_TCI_BALANCE
+        unit: raw_currency_amount
+  - name: effect_tci_balance_qoq
+    description: 综合收益总额平衡项环比增长率（%）。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: EFFECT_TCI_BALANCE_QOQ
+        unit: percent
+        scale: percent_value_not_fraction
+        period_comparison: quarter_over_quarter
+  - name: tci_other
+    description: 综合收益总额其他。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: TCI_OTHER
+        unit: raw_currency_amount
+  - name: tci_other_qoq
+    description: 综合收益总额其他环比增长率（%）。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: TCI_OTHER_QOQ
+        unit: percent
+        scale: percent_value_not_fraction
+        period_comparison: quarter_over_quarter
+  - name: tci_balance
+    description: 综合收益总额平衡项。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: TCI_BALANCE
+        unit: raw_currency_amount
+  - name: tci_balance_qoq
+    description: 综合收益总额平衡项环比增长率（%）。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: TCI_BALANCE_QOQ
+        unit: percent
+        scale: percent_value_not_fraction
+        period_comparison: quarter_over_quarter
+  - name: precombine_profit
+    description: 合并前净损益。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: PRECOMBINE_PROFIT
+        unit: raw_currency_amount
+  - name: precombine_profit_qoq
+    description: 合并前净损益环比增长率（%）。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: PRECOMBINE_PROFIT_QOQ
+        unit: percent
+        scale: percent_value_not_fraction
+        period_comparison: quarter_over_quarter
+  - name: precombine_tci
+    description: 合并前综合收益总额。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: PRECOMBINE_TCI
+        unit: raw_currency_amount
+  - name: precombine_tci_qoq
+    description: 合并前综合收益总额环比增长率（%）。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: PRECOMBINE_TCI_QOQ
+        unit: percent
+        scale: percent_value_not_fraction
+        period_comparison: quarter_over_quarter
+  - name: deduct_parent_netprofit
+    description: 扣除非经常性损益后归属于母公司股东的净利润。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: DEDUCT_PARENT_NETPROFIT
+        unit: raw_currency_amount
+  - name: deduct_parent_netprofit_qoq
+    description: 扣非归母净利润环比增长率（%）。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: DEDUCT_PARENT_NETPROFIT_QOQ
+        unit: percent
+        scale: percent_value_not_fraction
+        period_comparison: quarter_over_quarter
+  - name: total_operate_income_yoy
+    description: 营业总收入同比增长率（%）。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: TOTAL_OPERATE_INCOME_YOY
+        unit: percent
+        scale: percent_value_not_fraction
+        period_comparison: year_over_year
+  - name: operate_income_yoy
+    description: 营业收入同比增长率（%）。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: OPERATE_INCOME_YOY
+        unit: percent
+        scale: percent_value_not_fraction
+        period_comparison: year_over_year
+  - name: interest_income_yoy
+    description: 利息收入同比增长率（%）。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: INTEREST_INCOME_YOY
+        unit: percent
+        scale: percent_value_not_fraction
+        period_comparison: year_over_year
+  - name: earned_premium_yoy
+    description: 已赚保费同比增长率（%）。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: EARNED_PREMIUM_YOY
+        unit: percent
+        scale: percent_value_not_fraction
+        period_comparison: year_over_year
+  - name: fee_commission_income_yoy
+    description: 手续费及佣金收入同比增长率（%）。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: FEE_COMMISSION_INCOME_YOY
+        unit: percent
+        scale: percent_value_not_fraction
+        period_comparison: year_over_year
+  - name: other_business_income_yoy
+    description: 其他业务收入同比增长率（%）。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: OTHER_BUSINESS_INCOME_YOY
+        unit: percent
+        scale: percent_value_not_fraction
+        period_comparison: year_over_year
+  - name: toi_other_yoy
+    description: 营业总收入其他同比增长率（%）。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: TOI_OTHER_YOY
+        unit: percent
+        scale: percent_value_not_fraction
+        period_comparison: year_over_year
+  - name: total_operate_cost_yoy
+    description: 营业总成本同比增长率（%）。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: TOTAL_OPERATE_COST_YOY
+        unit: percent
+        scale: percent_value_not_fraction
+        period_comparison: year_over_year
+  - name: operate_cost_yoy
+    description: 营业成本同比增长率（%）。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: OPERATE_COST_YOY
+        unit: percent
+        scale: percent_value_not_fraction
+        period_comparison: year_over_year
+  - name: interest_expense_yoy
+    description: 利息支出同比增长率（%）。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: INTEREST_EXPENSE_YOY
+        unit: percent
+        scale: percent_value_not_fraction
+        period_comparison: year_over_year
+  - name: fee_commission_expense_yoy
+    description: 手续费及佣金支出同比增长率（%）。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: FEE_COMMISSION_EXPENSE_YOY
+        unit: percent
+        scale: percent_value_not_fraction
+        period_comparison: year_over_year
+  - name: research_expense_yoy
+    description: 研发费用同比增长率（%）。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: RESEARCH_EXPENSE_YOY
+        unit: percent
+        scale: percent_value_not_fraction
+        period_comparison: year_over_year
+  - name: surrender_value_yoy
+    description: 退保金同比增长率（%）。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: SURRENDER_VALUE_YOY
+        unit: percent
+        scale: percent_value_not_fraction
+        period_comparison: year_over_year
+  - name: net_compensate_expense_yoy
+    description: 分保费用同比增长率（%）。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: NET_COMPENSATE_EXPENSE_YOY
+        unit: percent
+        scale: percent_value_not_fraction
+        period_comparison: year_over_year
+  - name: net_contract_reserve_yoy
+    description: 提取保险合同准备金同比增长率（%）。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: NET_CONTRACT_RESERVE_YOY
+        unit: percent
+        scale: percent_value_not_fraction
+        period_comparison: year_over_year
+  - name: policy_bonus_expense_yoy
+    description: 保单红利支出同比增长率（%）。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: POLICY_BONUS_EXPENSE_YOY
+        unit: percent
+        scale: percent_value_not_fraction
+        period_comparison: year_over_year
+  - name: reinsure_expense_yoy
+    description: 分保费用支出同比增长率（%）。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: REINSURE_EXPENSE_YOY
+        unit: percent
+        scale: percent_value_not_fraction
+        period_comparison: year_over_year
+  - name: other_business_cost_yoy
+    description: 其他业务成本同比增长率（%）。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: OTHER_BUSINESS_COST_YOY
+        unit: percent
+        scale: percent_value_not_fraction
+        period_comparison: year_over_year
+  - name: operate_tax_add_yoy
+    description: 营业税金及附加同比增长率（%）。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: OPERATE_TAX_ADD_YOY
+        unit: percent
+        scale: percent_value_not_fraction
+        period_comparison: year_over_year
+  - name: sale_expense_yoy
+    description: 销售费用同比增长率（%）。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: SALE_EXPENSE_YOY
+        unit: percent
+        scale: percent_value_not_fraction
+        period_comparison: year_over_year
+  - name: manage_expense_yoy
+    description: 管理费用同比增长率（%）。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: MANAGE_EXPENSE_YOY
+        unit: percent
+        scale: percent_value_not_fraction
+        period_comparison: year_over_year
+  - name: me_research_expense_yoy
+    description: 管理费用中的研发费用同比增长率（%）。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: ME_RESEARCH_EXPENSE_YOY
+        unit: percent
+        scale: percent_value_not_fraction
+        period_comparison: year_over_year
+  - name: finance_expense_yoy
+    description: 财务费用同比增长率（%）。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: FINANCE_EXPENSE_YOY
+        unit: percent
+        scale: percent_value_not_fraction
+        period_comparison: year_over_year
+  - name: fe_interest_expense_yoy
+    description: 财务费用之利息费用同比增长率（%）。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: FE_INTEREST_EXPENSE_YOY
+        unit: percent
+        scale: percent_value_not_fraction
+        period_comparison: year_over_year
+  - name: fe_interest_income_yoy
+    description: 财务费用之利息收入同比增长率（%）。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: FE_INTEREST_INCOME_YOY
+        unit: percent
+        scale: percent_value_not_fraction
+        period_comparison: year_over_year
+  - name: asset_impairment_loss_yoy
+    description: 资产减值损失同比增长率（%）。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: ASSET_IMPAIRMENT_LOSS_YOY
+        unit: percent
+        scale: percent_value_not_fraction
+        period_comparison: year_over_year
+  - name: credit_impairment_loss_yoy
+    description: 信用减值损失同比增长率（%）。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: CREDIT_IMPAIRMENT_LOSS_YOY
+        unit: percent
+        scale: percent_value_not_fraction
+        period_comparison: year_over_year
+  - name: other_income_yoy
+    description: 其他收益同比增长率（%）。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: OTHER_INCOME_YOY
+        unit: percent
+        scale: percent_value_not_fraction
+        period_comparison: year_over_year
+  - name: toc_other_yoy
+    description: 营业总成本其他同比增长率（%）。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: TOC_OTHER_YOY
+        unit: percent
+        scale: percent_value_not_fraction
+        period_comparison: year_over_year
+  - name: invest_income_yoy
+    description: 投资收益同比增长率（%）。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: INVEST_INCOME_YOY
+        unit: percent
+        scale: percent_value_not_fraction
+        period_comparison: year_over_year
+  - name: invest_joint_income_yoy
+    description: 对联营企业和合营企业的投资收益同比增长率（%）。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: INVEST_JOINT_INCOME_YOY
+        unit: percent
+        scale: percent_value_not_fraction
+        period_comparison: year_over_year
+  - name: acf_end_income_yoy
+    description: 持续经营终止经营净损益同比增长率（%）。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: ACF_END_INCOME_YOY
+        unit: percent
+        scale: percent_value_not_fraction
+        period_comparison: year_over_year
+  - name: exchange_income_yoy
+    description: 汇兑收益同比增长率（%）。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: EXCHANGE_INCOME_YOY
+        unit: percent
+        scale: percent_value_not_fraction
+        period_comparison: year_over_year
+  - name: net_exposure_income_yoy
+    description: 净敞口收益同比增长率（%）。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: NET_EXPOSURE_INCOME_YOY
+        unit: percent
+        scale: percent_value_not_fraction
+        period_comparison: year_over_year
+  - name: fairvalue_change_income_yoy
+    description: 公允价值变动收益同比增长率（%）。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: FAIRVALUE_CHANGE_INCOME_YOY
+        unit: percent
+        scale: percent_value_not_fraction
+        period_comparison: year_over_year
+  - name: asset_disposal_income_yoy
+    description: 资产处置收益同比增长率（%）。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: ASSET_DISPOSAL_INCOME_YOY
+        unit: percent
+        scale: percent_value_not_fraction
+        period_comparison: year_over_year
+  - name: credit_impairment_income_yoy
+    description: 信用减值收益同比增长率（%）。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: CREDIT_IMPAIRMENT_INCOME_YOY
+        unit: percent
+        scale: percent_value_not_fraction
+        period_comparison: year_over_year
+  - name: asset_impairment_income_yoy
+    description: 资产减值收益同比增长率（%）。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: ASSET_IMPAIRMENT_INCOME_YOY
+        unit: percent
+        scale: percent_value_not_fraction
+        period_comparison: year_over_year
+  - name: operate_profit_yoy
+    description: 营业利润同比增长率（%）。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: OPERATE_PROFIT_YOY
+        unit: percent
+        scale: percent_value_not_fraction
+        period_comparison: year_over_year
+  - name: nonbusiness_income_yoy
+    description: 营业外收入同比增长率（%）。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: NONBUSINESS_INCOME_YOY
+        unit: percent
+        scale: percent_value_not_fraction
+        period_comparison: year_over_year
+  - name: noncurrent_disposal_income_yoy
+    description: 非流动资产处置净收益同比增长率（%）。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: NONCURRENT_DISPOSAL_INCOME_YOY
+        unit: percent
+        scale: percent_value_not_fraction
+        period_comparison: year_over_year
+  - name: nonbusiness_expense_yoy
+    description: 营业外支出同比增长率（%）。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: NONBUSINESS_EXPENSE_YOY
+        unit: percent
+        scale: percent_value_not_fraction
+        period_comparison: year_over_year
+  - name: noncurrent_disposal_loss_yoy
+    description: 非流动资产处置净损失同比增长率（%）。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: NONCURRENT_DISPOSAL_LOSS_YOY
+        unit: percent
+        scale: percent_value_not_fraction
+        period_comparison: year_over_year
+  - name: operate_profit_other_yoy
+    description: 营业利润其他同比增长率（%）。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: OPERATE_PROFIT_OTHER_YOY
+        unit: percent
+        scale: percent_value_not_fraction
+        period_comparison: year_over_year
+  - name: operate_profit_balance_yoy
+    description: 营业利润平衡项同比增长率（%）。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: OPERATE_PROFIT_BALANCE_YOY
+        unit: percent
+        scale: percent_value_not_fraction
+        period_comparison: year_over_year
+  - name: total_profit_yoy
+    description: 利润总额同比增长率（%）。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: TOTAL_PROFIT_YOY
+        unit: percent
+        scale: percent_value_not_fraction
+        period_comparison: year_over_year
+  - name: effect_tp_other_yoy
+    description: 影响利润总额其他同比增长率（%）。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: EFFECT_TP_OTHER_YOY
+        unit: percent
+        scale: percent_value_not_fraction
+        period_comparison: year_over_year
+  - name: total_profit_balance_yoy
+    description: 利润总额平衡项同比增长率（%）。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: TOTAL_PROFIT_BALANCE_YOY
+        unit: percent
+        scale: percent_value_not_fraction
+        period_comparison: year_over_year
+  - name: income_tax_yoy
+    description: 所得税费用同比增长率（%）。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: INCOME_TAX_YOY
+        unit: percent
+        scale: percent_value_not_fraction
+        period_comparison: year_over_year
+  - name: netprofit_yoy
+    description: 净利润同比增长率（%）。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: NETPROFIT_YOY
+        unit: percent
+        scale: percent_value_not_fraction
+        period_comparison: year_over_year
+  - name: continued_netprofit_yoy
+    description: 持续经营净利润同比增长率（%）。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: CONTINUED_NETPROFIT_YOY
+        unit: percent
+        scale: percent_value_not_fraction
+        period_comparison: year_over_year
+  - name: discontinued_netprofit_yoy
+    description: 终止经营净利润同比增长率（%）。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: DISCONTINUED_NETPROFIT_YOY
+        unit: percent
+        scale: percent_value_not_fraction
+        period_comparison: year_over_year
+  - name: netprofit_other_yoy
+    description: 净利润其他同比增长率（%）。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: NETPROFIT_OTHER_YOY
+        unit: percent
+        scale: percent_value_not_fraction
+        period_comparison: year_over_year
+  - name: netprofit_balance_yoy
+    description: 净利润平衡项同比增长率（%）。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: NETPROFIT_BALANCE_YOY
+        unit: percent
+        scale: percent_value_not_fraction
+        period_comparison: year_over_year
+  - name: effect_netprofit_other_yoy
+    description: 影响净利润其他同比增长率（%）。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: EFFECT_NETPROFIT_OTHER_YOY
+        unit: percent
+        scale: percent_value_not_fraction
+        period_comparison: year_over_year
+  - name: effect_netprofit_balance_yoy
+    description: 净利润平衡项同比增长率（%）。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: EFFECT_NETPROFIT_BALANCE_YOY
+        unit: percent
+        scale: percent_value_not_fraction
+        period_comparison: year_over_year
+  - name: unconfirm_invest_loss_yoy
+    description: 未确认投资损失同比增长率（%）。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: UNCONFIRM_INVEST_LOSS_YOY
+        unit: percent
+        scale: percent_value_not_fraction
+        period_comparison: year_over_year
+  - name: minority_interest_yoy
+    description: 少数股东损益同比增长率（%）。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: MINORITY_INTEREST_YOY
+        unit: percent
+        scale: percent_value_not_fraction
+        period_comparison: year_over_year
+  - name: parent_netprofit_yoy
+    description: 归属于母公司股东的净利润同比增长率（%）。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: PARENT_NETPROFIT_YOY
+        unit: percent
+        scale: percent_value_not_fraction
+        period_comparison: year_over_year
+  - name: basic_eps_yoy
+    description: 基本每股收益（元/股）同比增长率（%）。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: BASIC_EPS_YOY
+        unit: percent
+        scale: percent_value_not_fraction
+        period_comparison: year_over_year
+  - name: diluted_eps_yoy
+    description: 稀释每股收益（元/股）同比增长率（%）。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: DILUTED_EPS_YOY
+        unit: percent
+        scale: percent_value_not_fraction
+        period_comparison: year_over_year
+  - name: unable_oci_yoy
+    description: 以后将重分类进损益的其他综合收益同比增长率（%）。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: UNABLE_OCI_YOY
+        unit: percent
+        scale: percent_value_not_fraction
+        period_comparison: year_over_year
+  - name: creditrisk_fairvalue_change_yoy
+    description: 信用风险引起的公允价值变动同比增长率（%）。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: CREDITRISK_FAIRVALUE_CHANGE_YOY
+        unit: percent
+        scale: percent_value_not_fraction
+        period_comparison: year_over_year
+  - name: otherright_fairvalue_change_yoy
+    description: 其他权益工具公允价值变动同比增长率（%）。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: OTHERRIGHT_FAIRVALUE_CHANGE_YOY
+        unit: percent
+        scale: percent_value_not_fraction
+        period_comparison: year_over_year
+  - name: setup_profit_change_yoy
+    description: 重分类调整变动同比增长率（%）。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: SETUP_PROFIT_CHANGE_YOY
+        unit: percent
+        scale: percent_value_not_fraction
+        period_comparison: year_over_year
+  - name: rightlaw_unable_oci_yoy
+    description: 权益法下不能重分类的其他综合收益同比增长率（%）。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: RIGHTLAW_UNABLE_OCI_YOY
+        unit: percent
+        scale: percent_value_not_fraction
+        period_comparison: year_over_year
+  - name: unable_oci_other_yoy
+    description: 不能重分类其他综合收益其他同比增长率（%）。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: UNABLE_OCI_OTHER_YOY
+        unit: percent
+        scale: percent_value_not_fraction
+        period_comparison: year_over_year
+  - name: unable_oci_balance_yoy
+    description: 不能重分类其他综合收益平衡项同比增长率（%）。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: UNABLE_OCI_BALANCE_YOY
+        unit: percent
+        scale: percent_value_not_fraction
+        period_comparison: year_over_year
+  - name: able_oci_yoy
+    description: 以后将重分类进损益的其他综合收益（可重分类）同比增长率（%）。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: ABLE_OCI_YOY
+        unit: percent
+        scale: percent_value_not_fraction
+        period_comparison: year_over_year
+  - name: rightlaw_able_oci_yoy
+    description: 权益法下可重分类的其他综合收益同比增长率（%）。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: RIGHTLAW_ABLE_OCI_YOY
+        unit: percent
+        scale: percent_value_not_fraction
+        period_comparison: year_over_year
+  - name: afa_fairvalue_change_yoy
+    description: 可供出售金融资产公允价值变动同比增长率（%）。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: AFA_FAIRVALUE_CHANGE_YOY
+        unit: percent
+        scale: percent_value_not_fraction
+        period_comparison: year_over_year
+  - name: hmi_afa_yoy
+    description: 持有有待售资产公允价值变动同比增长率（%）。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: HMI_AFA_YOY
+        unit: percent
+        scale: percent_value_not_fraction
+        period_comparison: year_over_year
+  - name: cashflow_hedge_valid_yoy
+    description: 现金流量套期有效部分同比增长率（%）。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: CASHFLOW_HEDGE_VALID_YOY
+        unit: percent
+        scale: percent_value_not_fraction
+        period_comparison: year_over_year
+  - name: creditor_fairvalue_change_yoy
+    description: 债权投资公允价值变动同比增长率（%）。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: CREDITOR_FAIRVALUE_CHANGE_YOY
+        unit: percent
+        scale: percent_value_not_fraction
+        period_comparison: year_over_year
+  - name: creditor_impairment_reserve_yoy
+    description: 债权投资减值准备同比增长率（%）。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: CREDITOR_IMPAIRMENT_RESERVE_YOY
+        unit: percent
+        scale: percent_value_not_fraction
+        period_comparison: year_over_year
+  - name: finance_oci_amt_yoy
+    description: 金融资产重分类金额同比增长率（%）。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: FINANCE_OCI_AMT_YOY
+        unit: percent
+        scale: percent_value_not_fraction
+        period_comparison: year_over_year
+  - name: convert_diff_yoy
+    description: 外币报表折算差额同比增长率（%）。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: CONVERT_DIFF_YOY
+        unit: percent
+        scale: percent_value_not_fraction
+        period_comparison: year_over_year
+  - name: able_oci_other_yoy
+    description: 可重分类其他综合收益其他同比增长率（%）。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: ABLE_OCI_OTHER_YOY
+        unit: percent
+        scale: percent_value_not_fraction
+        period_comparison: year_over_year
+  - name: able_oci_balance_yoy
+    description: 可重分类其他综合收益平衡项同比增长率（%）。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: ABLE_OCI_BALANCE_YOY
+        unit: percent
+        scale: percent_value_not_fraction
+        period_comparison: year_over_year
+  - name: oci_other_yoy
+    description: 其他综合收益其他同比增长率（%）。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: OCI_OTHER_YOY
+        unit: percent
+        scale: percent_value_not_fraction
+        period_comparison: year_over_year
+  - name: oci_balance_yoy
+    description: 其他综合收益平衡项同比增长率（%）。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: OCI_BALANCE_YOY
+        unit: percent
+        scale: percent_value_not_fraction
+        period_comparison: year_over_year
+  - name: other_compre_income_yoy
+    description: 其他综合收益总额同比增长率（%）。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: OTHER_COMPRE_INCOME_YOY
+        unit: percent
+        scale: percent_value_not_fraction
+        period_comparison: year_over_year
+  - name: parent_oci_yoy
+    description: 归母其他综合收益同比增长率（%）。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: PARENT_OCI_YOY
+        unit: percent
+        scale: percent_value_not_fraction
+        period_comparison: year_over_year
+  - name: minority_oci_yoy
+    description: 少数股东其他综合收益同比增长率（%）。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: MINORITY_OCI_YOY
+        unit: percent
+        scale: percent_value_not_fraction
+        period_comparison: year_over_year
+  - name: parent_oci_other_yoy
+    description: 归母其他综合收益其他同比增长率（%）。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: PARENT_OCI_OTHER_YOY
+        unit: percent
+        scale: percent_value_not_fraction
+        period_comparison: year_over_year
+  - name: parent_oci_balance_yoy
+    description: 归母其他综合收益平衡项同比增长率（%）。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: PARENT_OCI_BALANCE_YOY
+        unit: percent
+        scale: percent_value_not_fraction
+        period_comparison: year_over_year
+  - name: total_compre_income_yoy
+    description: 综合收益总额同比增长率（%）。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: TOTAL_COMPRE_INCOME_YOY
+        unit: percent
+        scale: percent_value_not_fraction
+        period_comparison: year_over_year
+  - name: parent_tci_yoy
+    description: 归母综合收益总额同比增长率（%）。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: PARENT_TCI_YOY
+        unit: percent
+        scale: percent_value_not_fraction
+        period_comparison: year_over_year
+  - name: minority_tci_yoy
+    description: 少数股东综合收益总额同比增长率（%）。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: MINORITY_TCI_YOY
+        unit: percent
+        scale: percent_value_not_fraction
+        period_comparison: year_over_year
+  - name: effect_tci_balance_yoy
+    description: 综合收益总额平衡项同比增长率（%）。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: EFFECT_TCI_BALANCE_YOY
+        unit: percent
+        scale: percent_value_not_fraction
+        period_comparison: year_over_year
+  - name: tci_other_yoy
+    description: 综合收益总额其他同比增长率（%）。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: TCI_OTHER_YOY
+        unit: percent
+        scale: percent_value_not_fraction
+        period_comparison: year_over_year
+  - name: tci_balance_yoy
+    description: 综合收益总额平衡项同比增长率（%）。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: TCI_BALANCE_YOY
+        unit: percent
+        scale: percent_value_not_fraction
+        period_comparison: year_over_year
+  - name: precombine_profit_yoy
+    description: 合并前净损益同比增长率（%）。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: PRECOMBINE_PROFIT_YOY
+        unit: percent
+        scale: percent_value_not_fraction
+        period_comparison: year_over_year
+  - name: precombine_tci_yoy
+    description: 合并前综合收益总额同比增长率（%）。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: PRECOMBINE_TCI_YOY
+        unit: percent
+        scale: percent_value_not_fraction
+        period_comparison: year_over_year
+  - name: deduct_parent_netprofit_yoy
+    description: 扣非归母净利润同比增长率（%）。
+    data_type: Nullable(Float64)
+    config:
+      meta:
+        dictionary_scope: local
+        source_columns:
+        - source: raw
+          table: eastmoney__income_sq
+          column: DEDUCT_PARENT_NETPROFIT_YOY
+        unit: percent
+        scale: percent_value_not_fraction
+        period_comparison: year_over_year

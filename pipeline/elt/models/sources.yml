@@ -9964,14 +9964,14 @@ sources:
           external_description_zh: 非自由流通股
     - name: NON_FREESHARES_RATIO
       description: Raw source column from `eastmoney` field `NON_FREESHARES_RATIO`.
-        原始字段说明：非流通股比例（%）
+        原始字段说明：非自由流通股比例（%）
       data_type: Nullable(Float64)
       config:
         meta:
           source_field: NON_FREESHARES_RATIO
           parquet_field: NON_FREESHARES_RATIO
           clickhouse_raw_field: NON_FREESHARES_RATIO
-          external_description_zh: 非流通股比例（%）
+          external_description_zh: 非自由流通股比例（%）
     - name: LIMITED_B_SHARES
       description: Raw source column from `eastmoney` field `LIMITED_B_SHARES`. 原始字段说明：限售
         B 股
@@ -10277,14 +10277,14 @@ sources:
           external_description_zh: 限售B股变动量
     - name: NONFREE_SHARES_CHANGE
       description: Raw source column from `eastmoney` field `NONFREE_SHARES_CHANGE`.
-        原始字段说明：非流通股变动量
+        原始字段说明：非自由流通股变动量
       data_type: Nullable(Float64)
       config:
         meta:
           source_field: NONFREE_SHARES_CHANGE
           parquet_field: NONFREE_SHARES_CHANGE
           clickhouse_raw_field: NONFREE_SHARES_CHANGE
-          external_description_zh: 非流通股变动量
+          external_description_zh: 非自由流通股变动量
     - name: OTHERFREE_SHARES_CHANGE
       description: Raw source column from `eastmoney` field `OTHERFREE_SHARES_CHANGE`.
         原始字段说明：其他流通股变动量
@@ -10296,15 +10296,14 @@ sources:
           clickhouse_raw_field: OTHERFREE_SHARES_CHANGE
           external_description_zh: 其他流通股变动量
     - name: FREE_SHARES
-      description: Raw source column from `eastmoney` field `FREE_SHARES`. 原始字段说明：流通股（通常
-        = TOTAL_SHARES）
+      description: Raw source column from `eastmoney` field `FREE_SHARES`. 原始字段说明：自由流通股本
       data_type: Nullable(Float64)
       config:
         meta:
           source_field: FREE_SHARES
           parquet_field: FREE_SHARES
           clickhouse_raw_field: FREE_SHARES
-          external_description_zh: 流通股（通常 = TOTAL_SHARES）
+          external_description_zh: 自由流通股本
     - name: CHANGE_REASON_EXPLAIN
       description: Raw source column from `eastmoney` field `CHANGE_REASON_EXPLAIN`.
         原始字段说明：变动原因详细说明
