@@ -1,0 +1,214 @@
+openapi: 3.0.0
+info:
+  title: 东方财富 F10 前十大流通股东
+  description: '东方财富数据中心接口。使用 `data/v1/get`，参数名: `reportName/pageNumber/pageSize/sortColumns/sortTypes`。无需认证。
+
+    ## Filter DSL
+
+    - 按证券代码: `(SECUCODE="601088.SH")`
+
+    - 按报告期: `(END_DATE=''2025-12-31'')`
+
+    - 按报告期区间: `(END_DATE>=''2025-01-01'')(END_DATE<=''2025-12-31'')`
+
+    ## 排序
+
+    - scheduler 使用 `sortColumns=END_DATE,HOLDER_RANK&sortTypes=-1,1`
+
+    '
+  version: 1.0.0
+servers:
+- url: https://datacenter.eastmoney.com
+  description: The default server
+paths:
+  /securities/api/data/v1/get:
+    get:
+      summary: 获取前十大流通股东数据
+      description: '东方财富 F10 前十大流通股东接口。
+
+        无需认证，直接 GET 请求。
+
+        注意: 当无数据时返回 `result: null, code: 9201`。
+
+        '
+      operationId: getFreeholders
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  version:
+                    type: string
+                    nullable: true
+                    description: 数据版本标识
+                  result:
+                    type: object
+                    nullable: true
+                    properties:
+                      pages:
+                        type: number
+                        description: 总页数
+                      data:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            SECUCODE:
+                              type: string
+                              description: 证券代码（含市场后缀）
+                            SECURITY_CODE:
+                              type: string
+                              description: 证券代码（纯数字）
+                            END_DATE:
+                              type: string
+                              description: 报告期截止日期
+                            HOLDER_RANK:
+                              type: number
+                              description: 股东排名
+                            HOLDER_NEW:
+                              type: string
+                              description: 东方财富股东标识编码
+                            HOLDER_NAME:
+                              type: string
+                              description: 股东名称
+                            HOLDER_TYPE:
+                              type: string
+                              description: 股东类型
+                            SHARES_TYPE:
+                              type: string
+                              description: 持股股份类别
+                            HOLD_NUM:
+                              type: number
+                              description: 持有流通股数量，单位为股
+                            FREE_HOLDNUM_RATIO:
+                              type: number
+                              description: 持有流通股比例，单位为百分比
+                            HOLD_NUM_CHANGE:
+                              type: string
+                              description: 较上期持股数量变动，可为数值文本或“不变”
+                            CHANGE_RATIO:
+                              type: number
+                              nullable: true
+                              description: 较上期持股数量变动比例，单位为百分比
+                        description: 返回数据
+                      count:
+                        type: number
+                        description: 总记录数
+                    description: 返回数据（无数据时为 null）
+                  success:
+                    type: boolean
+                    description: 请求是否成功
+                  message:
+                    type: string
+                    description: 状态消息
+                  code:
+                    type: number
+                    description: '状态码，0 = 正常；9201 + result=null 表示空响应'
+              example:
+                version: null
+                result:
+                  pages: 1
+                  data:
+                  - SECUCODE: 601088.SH
+                    SECURITY_CODE: '601088'
+                    END_DATE: '2025-12-31 00:00:00'
+                    HOLDER_RANK: 1
+                    HOLDER_NEW: '10066363'
+                    HOLDER_NAME: 国家能源投资集团有限责任公司
+                    HOLDER_TYPE: 投资公司
+                    SHARES_TYPE: A股
+                    HOLD_NUM: 13812709196
+                    FREE_HOLDNUM_RATIO: 69.520574392477
+                    HOLD_NUM_CHANGE: 不变
+                    CHANGE_RATIO: null
+                  count: 10
+                success: true
+                message: ok
+                code: 0
+      parameters:
+      - name: reportName
+        in: query
+        required: true
+        description: 报表标识，固定值 RPT_F10_EH_FREEHOLDERS
+        schema:
+          type: string
+          example: RPT_F10_EH_FREEHOLDERS
+      - name: columns
+        in: query
+        required: true
+        description: 返回字段清单
+        schema:
+          type: string
+          example: SECUCODE,SECURITY_CODE,END_DATE,HOLDER_RANK,HOLDER_NEW,HOLDER_NAME,HOLDER_TYPE,SHARES_TYPE,HOLD_NUM,FREE_HOLDNUM_RATIO,HOLD_NUM_CHANGE,CHANGE_RATIO
+      - name: filter
+        in: query
+        required: true
+        description: 'DataCenter DSL 过滤条件。
+
+          - 按证券代码: `(SECUCODE="601088.SH")`
+
+          - 按报告期区间: `(END_DATE>=''2025-01-01'')(END_DATE<=''2025-12-31'')`
+
+          '
+        schema:
+          type: string
+          example: (SECUCODE="601088.SH")(END_DATE>='2025-01-01')(END_DATE<='2025-12-31')
+      - name: pageNumber
+        in: query
+        required: true
+        description: 页码，从 1 开始
+        schema:
+          type: integer
+          example: 1
+      - name: pageSize
+        in: query
+        required: true
+        description: 每页条数
+        schema:
+          type: integer
+          example: 500
+      - name: sortColumns
+        in: query
+        required: true
+        description: 排序字段
+        schema:
+          type: string
+          example: END_DATE,HOLDER_RANK
+      - name: sortTypes
+        in: query
+        required: true
+        description: 排序方向，-1 降序，1 升序
+        schema:
+          type: string
+          example: -1,1
+      - name: source
+        in: query
+        required: true
+        description: 数据来源标识
+        schema:
+          type: string
+          example: HSF10
+      - name: client
+        in: query
+        required: true
+        description: 客户端标识
+        schema:
+          type: string
+          example: PC
+      - name: quoteColumns
+        in: query
+        required: false
+        description: 行情字段，一般留空
+        schema:
+          type: string
+          example: ''
+      - name: v
+        in: query
+        required: false
+        description: 缓存破坏参数
+        schema:
+          type: string
+          example: '001928638127177329'

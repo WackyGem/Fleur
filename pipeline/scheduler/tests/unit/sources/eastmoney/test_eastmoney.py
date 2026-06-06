@@ -37,6 +37,7 @@ EXPECTED_EASTMONEY_FIELD_COUNTS = {
     "eastmoney__dividend_allotment": 10,
     "eastmoney__dividend_main": 30,
     "eastmoney__equity_history": 69,
+    "eastmoney__freeholders": 12,
     "eastmoney__income_sq": 299,
     "eastmoney__income_ytd": 203,
 }
@@ -60,6 +61,12 @@ EXPECTED_PHASE_4_SCHEMA_FIELDS = {
         "OPINION_TYPE": (pa.string(), True),
         "OSOPINION_TYPE": (pa.string(), True),
     },
+    "eastmoney__freeholders": {
+        "END_DATE": (pa.date32(), False),
+        "HOLDER_RANK": (pa.int64(), False),
+        "HOLD_NUM": (pa.int64(), False),
+        "CHANGE_RATIO": (pa.float64(), True),
+    },
     "eastmoney__cashflow_sq": {
         "OPINION_TYPE": (pa.string(), True),
         "OSOPINION_TYPE": (pa.string(), True),
@@ -81,7 +88,7 @@ EXPECTED_PHASE_4_SCHEMA_FIELDS = {
 class EastmoneySchemaTest(unittest.TestCase):
     def test_all_endpoint_schemas_include_complete_contract_fields_with_correct_types(self) -> None:
         """验证所有端点 schema 包含完整的 contract 字段，并使用正确的类型。"""
-        self.assertEqual(len(ENDPOINT_CONFIGS), 8)
+        self.assertEqual(len(ENDPOINT_CONFIGS), 9)
 
         for endpoint in ENDPOINT_CONFIGS:
             with self.subTest(endpoint=endpoint.asset_name):
@@ -188,6 +195,38 @@ class EastmoneySchemaTest(unittest.TestCase):
         self.assertEqual(result.table.num_rows, 2)
         self.assertEqual(result.table["REPORT_TIME"].to_pylist(), [date(1991, 12, 31), None])
 
+    def test_freeholders_rows_to_table_converts_types_and_preserves_nullable_change_ratio(
+        self,
+    ) -> None:
+        endpoint = endpoint_by_asset_name("eastmoney__freeholders")
+        result = eastmoney_rows_to_table(
+            endpoint,
+            [
+                EastmoneyFetchedRow(
+                    data={
+                        "SECUCODE": "601088.SH",
+                        "SECURITY_CODE": "601088",
+                        "END_DATE": "2025-12-31 00:00:00",
+                        "HOLDER_RANK": 1,
+                        "HOLDER_NEW": "10066363",
+                        "HOLDER_NAME": "国家能源投资集团有限责任公司",
+                        "HOLDER_TYPE": "投资公司",
+                        "SHARES_TYPE": "A股",
+                        "HOLD_NUM": 13812709196,
+                        "FREE_HOLDNUM_RATIO": 69.520574392477,
+                        "HOLD_NUM_CHANGE": "不变",
+                        "CHANGE_RATIO": None,
+                    }
+                )
+            ],
+        )
+
+        self.assertEqual(result.table.num_rows, 1)
+        self.assertEqual(result.table["END_DATE"].to_pylist(), [date(2025, 12, 31)])
+        self.assertEqual(result.table["HOLDER_RANK"].to_pylist(), [1])
+        self.assertEqual(result.table["HOLD_NUM"].to_pylist(), [13812709196])
+        self.assertEqual(result.table["CHANGE_RATIO"].to_pylist(), [None])
+
 
 class EastmoneyClientTest(unittest.TestCase):
     def test_code_conversion_accepts_shanghai_and_shenzhen_only(self) -> None:
@@ -233,6 +272,30 @@ class EastmoneyClientTest(unittest.TestCase):
         self.assertEqual(params["sortColumns"], "NOTICE_DATE,SECURITY_CODE")
         self.assertEqual(params["sortTypes"], "-1,-1")
         self.assertNotIn("p", params)
+
+    def test_freeholders_params_use_end_date_range_and_rank_sort(self) -> None:
+        endpoint = endpoint_by_asset_name("eastmoney__freeholders")
+        params = build_request_params(
+            endpoint,
+            "601088.SH",
+            date(2025, 1, 1),
+            date(2025, 12, 31),
+            page_number=1,
+        )
+
+        self.assertEqual(params["reportName"], "RPT_F10_EH_FREEHOLDERS")
+        self.assertEqual(
+            params["columns"],
+            (
+                "SECUCODE,SECURITY_CODE,END_DATE,HOLDER_RANK,HOLDER_NEW,HOLDER_NAME,"
+                "HOLDER_TYPE,SHARES_TYPE,HOLD_NUM,FREE_HOLDNUM_RATIO,HOLD_NUM_CHANGE,"
+                "CHANGE_RATIO"
+            ),
+        )
+        self.assertEqual(params["sortColumns"], "END_DATE,HOLDER_RANK")
+        self.assertEqual(params["sortTypes"], "-1,1")
+        self.assertIn("(END_DATE>='2025-01-01')", params["filter"])
+        self.assertIn("(END_DATE<='2025-12-31')", params["filter"])
 
     def test_code_9201_null_result_is_empty_page(self) -> None:
         endpoint = endpoint_by_asset_name("eastmoney__dividend_main")

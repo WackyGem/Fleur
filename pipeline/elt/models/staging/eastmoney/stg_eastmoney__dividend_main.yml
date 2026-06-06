@@ -58,12 +58,12 @@ models:
                 table: eastmoney__dividend_main
                 column: REPORT_DATE
 
-      - name: report_time
-        description: 报告期截止日。
+      - name: report_date
+        description: "{{ doc('field_report_date') }}"
         data_type: Nullable(Date)
         config:
           meta:
-            dictionary_scope: local
+            glossary_key: report_date
             source_columns:
               - source: raw
                 table: eastmoney__dividend_main

@@ -30,6 +30,10 @@ eastmoney__equity_history:
   name: eastmoney__equity_history
   description_zh: 东方财富股本变动历史 F10 年度 raw 分区
   description: EastMoney equity history F10 rows by natural-year raw partition.
+eastmoney__freeholders:
+  name: eastmoney__freeholders
+  description_zh: 东方财富前十大流通股东 F10 年度 raw 分区
+  description: EastMoney free-float top holders F10 rows by natural-year raw partition.
 eastmoney__income_sq:
   name: eastmoney__income_sq
   description_zh: 东方财富单季度利润表 F10 年度 raw 分区

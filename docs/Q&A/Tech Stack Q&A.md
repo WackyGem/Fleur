@@ -21,8 +21,6 @@
 | 换手(实) / 实际换手率 | `当日成交总股数 / 自由流通股本 * 100%` | 可计算 | `volume`, `free_shares` | `free_shares` 来自 EastMoney `FREE_SHARES`，需按交易日 as-of join。 |
 | 涨停价 | `前一日收盘价 * (1 + 涨跌幅限制比例)` | 可计算理论价 | `prev_close_price`, `security_board`, `is_st` | 需要 A 股涨跌幅规则和价格 tick 四舍五入。THS 涨停池可校验部分涨停事件。 |
 | 跌停价 | `前一日收盘价 * (1 - 涨跌幅限制比例)` | 可计算理论价 | `prev_close_price`, `security_board`, `is_st` | 当前无全市场跌停事件表，只能从日线理论价与行情匹配判断。 |
-| 外盘 | 以卖出价成交的累计手数（主动买入） | 尚缺失 | 无 | 需要逐笔成交或盘口成交方向数据；当前 stg 没有。 |
-| 内盘 | 以买入价成交的累计手数（主动卖出） | 尚缺失 | 无 | 同上。 |
 | 市盈(静) | `总市值 / 上一年度归母净利润` 或 `当前股价 / 上一年度 EPS` | 可计算 | `close_price`, `total_shares`, `parent_netprofit`, `basic_eps` | 需选择上一年度年报，按公告 / 报告期口径定版本。 |
 | 市盈(TTM) | `总市值 / 最近 12 个月归母净利润` 或 `当前股价 / TTM EPS` | 可计算 | `close_price`, `total_shares`, `income_sq.parent_netprofit` | 优先用最近四个单季度归母净利润滚动求和。 |
 | 市盈(动) | `总市值 / 预估全年净利润`，常见为最新季报年化 | 可计算但需定规则 | `close_price`, `total_shares`, `basic_eps`, `parent_netprofit` | Q1 * 4、H1 * 2、Q3 * 4/3 等规则需在 mart 明确定义。 |

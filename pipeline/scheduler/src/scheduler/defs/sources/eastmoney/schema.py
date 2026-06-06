@@ -121,6 +121,22 @@ ENDPOINT_CONFIGS: tuple[EastmoneyEndpointConfig, ...] = (
         },
     ),
     EastmoneyEndpointConfig(
+        asset_name="eastmoney__freeholders",
+        api_family="data_v1_get",
+        date_field="END_DATE",
+        sort_fields=("END_DATE", "HOLDER_RANK"),
+        sort_directions=("-1", "1"),
+        page_size=500,
+        fixed_params={
+            "reportName": "RPT_F10_EH_FREEHOLDERS",
+            "columns": (
+                "SECUCODE,SECURITY_CODE,END_DATE,HOLDER_RANK,HOLDER_NEW,HOLDER_NAME,"
+                "HOLDER_TYPE,SHARES_TYPE,HOLD_NUM,FREE_HOLDNUM_RATIO,HOLD_NUM_CHANGE,"
+                "CHANGE_RATIO"
+            ),
+        },
+    ),
+    EastmoneyEndpointConfig(
         asset_name="eastmoney__income_sq",
         api_family="data_get",
         date_field="NOTICE_DATE",

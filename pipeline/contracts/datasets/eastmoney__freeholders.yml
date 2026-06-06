@@ -1,0 +1,175 @@
+dataset: eastmoney__freeholders
+version: 1
+owner: data
+grain: one row per security code per report end date per free-float shareholder rank
+source_asset_key:
+- source
+- eastmoney__freeholders
+raw_asset_key:
+- clickhouse
+- raw
+- eastmoney__freeholders
+external:
+  provider: eastmoney
+  source_table_name: eastmoney__freeholders
+  source_description_zh: 东方财富前十大流通股东 F10 年度 raw 分区
+source:
+  protocol: http
+  payload_format: json
+  fields:
+  - name: SECUCODE
+    type: string
+    required: true
+    external_description_zh: 证券代码（含市场后缀）。
+  - name: SECURITY_CODE
+    type: string
+    required: true
+    external_description_zh: 证券代码（纯数字）。
+  - name: END_DATE
+    type: string
+    required: true
+    external_description_zh: 前十大流通股东名单对应的报告期截止日期。
+  - name: HOLDER_RANK
+    type: number
+    required: true
+    external_description_zh: 股东在该报告期前十大流通股东名单中的排名。
+  - name: HOLDER_NEW
+    type: string
+    required: true
+    external_description_zh: 东方财富返回的股东标识编码。
+  - name: HOLDER_NAME
+    type: string
+    required: true
+    external_description_zh: 股东名称。
+  - name: HOLDER_TYPE
+    type: string
+    required: true
+    external_description_zh: 股东类型或机构类型。
+  - name: SHARES_TYPE
+    type: string
+    required: true
+    external_description_zh: 股东持有股份类别。
+  - name: HOLD_NUM
+    type: number
+    required: true
+    external_description_zh: 股东持有流通股数量，单位为股。
+  - name: FREE_HOLDNUM_RATIO
+    type: number
+    required: true
+    external_description_zh: 股东持有流通股数量占流通股比例，单位为百分比。
+  - name: HOLD_NUM_CHANGE
+    type: string
+    required: true
+    external_description_zh: 较上期持股数量变动；接口以字符串返回，可为数值文本或“不变”。
+  - name: CHANGE_RATIO
+    type: number
+    required: false
+    external_description_zh: 较上期持股数量变动比例，单位为百分比；无变动时可能为空。
+parquet:
+  storage_mode: partitioned
+  partition_key_name: year
+  fields:
+  - name: SECUCODE
+    type: string
+    nullable: false
+  - name: SECURITY_CODE
+    type: string
+    nullable: false
+  - name: END_DATE
+    type: date32[day]
+    nullable: false
+  - name: HOLDER_RANK
+    type: int64
+    nullable: false
+  - name: HOLDER_NEW
+    type: string
+    nullable: false
+  - name: HOLDER_NAME
+    type: string
+    nullable: false
+  - name: HOLDER_TYPE
+    type: string
+    nullable: false
+  - name: SHARES_TYPE
+    type: string
+    nullable: false
+  - name: HOLD_NUM
+    type: int64
+    nullable: false
+  - name: FREE_HOLDNUM_RATIO
+    type: double
+    nullable: false
+  - name: HOLD_NUM_CHANGE
+    type: string
+    nullable: false
+  - name: CHANGE_RATIO
+    type: double
+    nullable: true
+clickhouse_raw:
+  database: fleur_raw
+  table: eastmoney__freeholders
+  partition_strategy: year
+  engine: MergeTree
+  partition_by: '`year`'
+  order_by:
+  - SECUCODE
+  - END_DATE
+  - HOLDER_RANK
+  allow_empty: true
+  sync_enabled: true
+  fields:
+  - name: SECUCODE
+    type: LowCardinality(String)
+    from: SECUCODE
+    nullable: false
+    reason: expected_low_cardinality_dimension
+  - name: SECURITY_CODE
+    type: LowCardinality(String)
+    from: SECURITY_CODE
+    nullable: false
+    reason: expected_low_cardinality_dimension
+  - name: END_DATE
+    type: Date
+    from: END_DATE
+    nullable: false
+  - name: HOLDER_RANK
+    type: Int64
+    from: HOLDER_RANK
+    nullable: false
+  - name: HOLDER_NEW
+    type: String
+    from: HOLDER_NEW
+    nullable: false
+  - name: HOLDER_NAME
+    type: String
+    from: HOLDER_NAME
+    nullable: false
+  - name: HOLDER_TYPE
+    type: LowCardinality(String)
+    from: HOLDER_TYPE
+    nullable: false
+    reason: expected_low_cardinality_dimension
+  - name: SHARES_TYPE
+    type: LowCardinality(String)
+    from: SHARES_TYPE
+    nullable: false
+    reason: expected_low_cardinality_dimension
+  - name: HOLD_NUM
+    type: Int64
+    from: HOLD_NUM
+    nullable: false
+  - name: FREE_HOLDNUM_RATIO
+    type: Float64
+    from: FREE_HOLDNUM_RATIO
+    nullable: false
+  - name: HOLD_NUM_CHANGE
+    type: String
+    from: HOLD_NUM_CHANGE
+    nullable: false
+  - name: CHANGE_RATIO
+    type: Float64
+    from: CHANGE_RATIO
+    nullable: true
+dataset_note_zh: 东方财富前十大流通股东 F10 年度 raw 分区
+validation_notes:
+- Initial contract added from EastMoney RPT_F10_EH_FREEHOLDERS endpoint sample.

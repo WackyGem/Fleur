@@ -10429,6 +10429,127 @@ sources:
           parquet_field: SECURITY_NAME_ABBR
           clickhouse_raw_field: SECURITY_NAME_ABBR
           external_description_zh: 证券简称
+  - name: eastmoney__freeholders
+    description: EastMoney free-float top holders F10 rows by natural-year raw partition.
+    config:
+      meta:
+        contract_dataset: eastmoney__freeholders
+        contract_version: 1
+        upstream_raw_asset: clickhouse/raw/eastmoney__freeholders
+        clickhouse_raw_table: fleur_raw.eastmoney__freeholders
+        source_schema_hash: f4d45be82961bf45b6fb4ad55ea62d13d5cdd6ed5b616a2db2c509570241c09e
+        parquet_schema_hash: fb51c98d540e2f544a3a1354edefffec4e81738a691aaa0d5fc47d6760e19ba5
+        clickhouse_schema_hash: ef2e14dc41d104bbfb230917d2ba00b4dec982f3ee178b46ed1737ac80d94cce
+    columns:
+    - name: SECUCODE
+      description: Raw source column from `eastmoney` field `SECUCODE`. 原始字段说明：证券代码（含市场后缀）。
+      data_type: LowCardinality(String)
+      config:
+        meta:
+          source_field: SECUCODE
+          parquet_field: SECUCODE
+          clickhouse_raw_field: SECUCODE
+          external_description_zh: 证券代码（含市场后缀）。
+    - name: SECURITY_CODE
+      description: Raw source column from `eastmoney` field `SECURITY_CODE`. 原始字段说明：证券代码（纯数字）。
+      data_type: LowCardinality(String)
+      config:
+        meta:
+          source_field: SECURITY_CODE
+          parquet_field: SECURITY_CODE
+          clickhouse_raw_field: SECURITY_CODE
+          external_description_zh: 证券代码（纯数字）。
+    - name: END_DATE
+      description: Raw source column from `eastmoney` field `END_DATE`. 原始字段说明：前十大流通股东名单对应的报告期截止日期。
+      data_type: Date
+      config:
+        meta:
+          source_field: END_DATE
+          parquet_field: END_DATE
+          clickhouse_raw_field: END_DATE
+          external_description_zh: 前十大流通股东名单对应的报告期截止日期。
+    - name: HOLDER_RANK
+      description: Raw source column from `eastmoney` field `HOLDER_RANK`. 原始字段说明：股东在该报告期前十大流通股东名单中的排名。
+      data_type: Int64
+      config:
+        meta:
+          source_field: HOLDER_RANK
+          parquet_field: HOLDER_RANK
+          clickhouse_raw_field: HOLDER_RANK
+          external_description_zh: 股东在该报告期前十大流通股东名单中的排名。
+    - name: HOLDER_NEW
+      description: Raw source column from `eastmoney` field `HOLDER_NEW`. 原始字段说明：东方财富返回的股东标识编码。
+      data_type: String
+      config:
+        meta:
+          source_field: HOLDER_NEW
+          parquet_field: HOLDER_NEW
+          clickhouse_raw_field: HOLDER_NEW
+          external_description_zh: 东方财富返回的股东标识编码。
+    - name: HOLDER_NAME
+      description: Raw source column from `eastmoney` field `HOLDER_NAME`. 原始字段说明：股东名称。
+      data_type: String
+      config:
+        meta:
+          source_field: HOLDER_NAME
+          parquet_field: HOLDER_NAME
+          clickhouse_raw_field: HOLDER_NAME
+          external_description_zh: 股东名称。
+    - name: HOLDER_TYPE
+      description: Raw source column from `eastmoney` field `HOLDER_TYPE`. 原始字段说明：股东类型或机构类型。
+      data_type: LowCardinality(String)
+      config:
+        meta:
+          source_field: HOLDER_TYPE
+          parquet_field: HOLDER_TYPE
+          clickhouse_raw_field: HOLDER_TYPE
+          external_description_zh: 股东类型或机构类型。
+    - name: SHARES_TYPE
+      description: Raw source column from `eastmoney` field `SHARES_TYPE`. 原始字段说明：股东持有股份类别。
+      data_type: LowCardinality(String)
+      config:
+        meta:
+          source_field: SHARES_TYPE
+          parquet_field: SHARES_TYPE
+          clickhouse_raw_field: SHARES_TYPE
+          external_description_zh: 股东持有股份类别。
+    - name: HOLD_NUM
+      description: Raw source column from `eastmoney` field `HOLD_NUM`. 原始字段说明：股东持有流通股数量，单位为股。
+      data_type: Int64
+      config:
+        meta:
+          source_field: HOLD_NUM
+          parquet_field: HOLD_NUM
+          clickhouse_raw_field: HOLD_NUM
+          external_description_zh: 股东持有流通股数量，单位为股。
+    - name: FREE_HOLDNUM_RATIO
+      description: Raw source column from `eastmoney` field `FREE_HOLDNUM_RATIO`.
+        原始字段说明：股东持有流通股数量占流通股比例，单位为百分比。
+      data_type: Float64
+      config:
+        meta:
+          source_field: FREE_HOLDNUM_RATIO
+          parquet_field: FREE_HOLDNUM_RATIO
+          clickhouse_raw_field: FREE_HOLDNUM_RATIO
+          external_description_zh: 股东持有流通股数量占流通股比例，单位为百分比。
+    - name: HOLD_NUM_CHANGE
+      description: Raw source column from `eastmoney` field `HOLD_NUM_CHANGE`. 原始字段说明：较上期持股数量变动；接口以字符串返回，可为数值文本或“不变”。
+      data_type: String
+      config:
+        meta:
+          source_field: HOLD_NUM_CHANGE
+          parquet_field: HOLD_NUM_CHANGE
+          clickhouse_raw_field: HOLD_NUM_CHANGE
+          external_description_zh: 较上期持股数量变动；接口以字符串返回，可为数值文本或“不变”。
+    - name: CHANGE_RATIO
+      description: Raw source column from `eastmoney` field `CHANGE_RATIO`. 原始字段说明：较上期持股数量变动比例，单位为百分比；无变动时可能为空。
+      data_type: Nullable(Float64)
+      config:
+        meta:
+          source_field: CHANGE_RATIO
+          parquet_field: CHANGE_RATIO
+          clickhouse_raw_field: CHANGE_RATIO
+          external_description_zh: 较上期持股数量变动比例，单位为百分比；无变动时可能为空。
   - name: eastmoney__income_sq
     description: EastMoney single-quarter income F10 rows by natural-year raw partition.
     config:

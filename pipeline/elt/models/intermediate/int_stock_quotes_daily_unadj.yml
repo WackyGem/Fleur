@@ -2,7 +2,14 @@ version: 2
 
 models:
   - name: int_stock_quotes_daily_unadj
-    description: A 股股票日频未复权行情 intermediate 模型；只保留 1995-01-01 后恢复 T+1 交易制度时期的行情。
+    description: A 股股票日频未复权行情 intermediate 模型；保留 1995-01-01 后恢复 T+1 交易制度时期的股票行情，并派生成交、涨跌停、市值、股本和股息率口径字段。
+    config:
+      meta:
+        grain_zh: 每证券、交易日一行。
+        business_logic_zh:
+          - 使用 int_stock_basic_snapshot 限定股票 universe，不按当前上市状态过滤历史行情。
+          - prev_close_price 保留 BaoStock 原始 preclose 口径，prev_close_price_unadj 使用交易日历前一交易日的未复权收盘价。
+          - 换手率、市值和股息率均基于项目 intermediate 层口径派生，不直接使用 source-local 指标。
     data_tests:
       - unique_combination_of_columns:
           arguments:
@@ -48,7 +55,7 @@ models:
         data_type: Nullable(Float64)
 
       - name: prev_close_price_unadj
-        description: 当前证券在前一交易日的未复权收盘价；首个交易日、前一交易日无行情或 source 缺口时为 NULL。
+        description: 当前证券在前一 A 股交易日的未复权收盘价；首个交易日、前一交易日无行情或 source 缺口时为 NULL。
         data_type: Nullable(Float64)
 
       - name: volume
@@ -57,6 +64,62 @@ models:
 
       - name: amount
         description: 交易日成交金额，单位沿用 BaoStock source-local 口径。
+        data_type: Nullable(Float64)
+
+      - name: turnover_rate
+        description: 换手率，等于成交量除以 A 股流通股本再乘以 100，百分数口径。
+        data_type: Nullable(Float64)
+
+      - name: turnover_rate_actual
+        description: 实际换手率，等于成交量除以 A 股自由流通股本再乘以 100，百分数口径。
+        data_type: Nullable(Float64)
+
+      - name: pct_amplitude
+        description: 振幅，等于最高价减最低价后除以 BaoStock preclose 口径前收盘价再乘以 100。
+        data_type: Nullable(Float64)
+
+      - name: pct_change
+        description: 涨跌幅，等于收盘价减 BaoStock preclose 口径前收盘价后除以前收盘价再乘以 100。
+        data_type: Nullable(Float64)
+
+      - name: limit_up_price
+        description: 基于板块、ST 状态和 BaoStock preclose 口径前收盘价派生的涨停价，四舍五入到分。
+        data_type: Nullable(Float64)
+
+      - name: limit_down_price
+        description: 基于板块、ST 状态和 BaoStock preclose 口径前收盘价派生的跌停价，四舍五入到分。
+        data_type: Nullable(Float64)
+
+      - name: a_market_cap
+        description: A 股市值，等于未复权收盘价乘以 A 股股本，单位元。
+        data_type: Nullable(Float64)
+
+      - name: a_float_market_cap
+        description: A 股流通市值，等于未复权收盘价乘以 A 股流通股本，单位元。
+        data_type: Nullable(Float64)
+
+      - name: a_free_float_market_cap
+        description: A 股自由流通市值，等于未复权收盘价乘以 A 股自由流通股本，单位元。
+        data_type: Nullable(Float64)
+
+      - name: a_shares
+        description: A 股股本，单位股，来自 int_stock_shares_history as-of 区间。
+        data_type: Nullable(Float64)
+
+      - name: a_float_shares
+        description: A 股流通股本，单位股，来自 int_stock_shares_history as-of 区间。
+        data_type: Nullable(Float64)
+
+      - name: a_free_float_shares
+        description: A 股自由流通股本估算值，单位股，来自 int_stock_shares_history as-of 区间。
+        data_type: Nullable(Float64)
+
+      - name: dy_static
+        description: 静态股息率，使用最近年度现金分红每股金额除以未复权收盘价再乘以 100。
+        data_type: Nullable(Float64)
+
+      - name: dy_ttm
+        description: TTM 股息率，使用过去 12 个月现金分红每股金额合计除以未复权收盘价再乘以 100。
         data_type: Nullable(Float64)
 
       - name: is_suspend

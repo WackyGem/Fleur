@@ -27,7 +27,7 @@ select
     SECURITY_NAME_ABBR as security_name_abbr,
     NOTICE_DATE as notice_date,
     REPORT_DATE as report_period_label,
-    REPORT_TIME as report_time,
+    REPORT_TIME as report_date,
     ASSIGN_PROGRESS as assign_progress,
     IS_UNASSIGN as is_unassign,
     IMPL_PLAN_PROFILE as impl_plan_profile,

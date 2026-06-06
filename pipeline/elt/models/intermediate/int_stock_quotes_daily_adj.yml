@@ -1,0 +1,95 @@
+version: 2
+
+models:
+  - name: int_stock_quotes_daily_adj
+    description: A 股股票日频复权价格 intermediate 模型；基于未复权日行情和复权因子输出前复权、后复权价格字段。
+    config:
+      meta:
+        grain_zh: 每证券、交易日一行。
+        business_logic_zh:
+          - 只输出复权价格和解释因子，不重复输出成交、状态、涨跌幅等非价格事实。
+          - 后复权价格等于未复权价格乘以后复权因子。
+          - 前复权价格等于未复权价格乘以前复权因子。
+    data_tests:
+      - unique_combination_of_columns:
+          arguments:
+            combination_of_columns:
+              - security_code
+              - trade_date
+    columns:
+      - name: security_code
+        description: "{{ doc('field_security_code') }}"
+        data_type: String
+        data_tests:
+          - not_null
+          - cn_security_code_format
+
+      - name: trade_date
+        description: "{{ doc('field_trade_date') }}"
+        data_type: Date
+        data_tests:
+          - not_null
+
+      - name: open_price_backward_adj
+        description: 后复权开盘价。
+        data_type: Nullable(Float64)
+
+      - name: high_price_backward_adj
+        description: 后复权最高价。
+        data_type: Nullable(Float64)
+
+      - name: low_price_backward_adj
+        description: 后复权最低价。
+        data_type: Nullable(Float64)
+
+      - name: close_price_backward_adj
+        description: 后复权收盘价。
+        data_type: Nullable(Float64)
+
+      - name: prev_close_price_backward_adj
+        description: 当日记录携带的昨日收盘价口径在后复权尺度下的值。
+        data_type: Nullable(Float64)
+
+      - name: open_price_forward_adj
+        description: 前复权开盘价。
+        data_type: Nullable(Float64)
+
+      - name: high_price_forward_adj
+        description: 前复权最高价。
+        data_type: Nullable(Float64)
+
+      - name: low_price_forward_adj
+        description: 前复权最低价。
+        data_type: Nullable(Float64)
+
+      - name: close_price_forward_adj
+        description: 前复权收盘价。
+        data_type: Nullable(Float64)
+
+      - name: prev_close_price_forward_adj
+        description: 当日记录携带的昨日收盘价口径在前复权尺度下的值。
+        data_type: Nullable(Float64)
+
+      - name: backward_adjustment_factor
+        description: 后复权累计因子。
+        data_type: Float64
+        data_tests:
+          - not_null
+
+      - name: backward_adjustment_ratio
+        description: 后复权单步比例。
+        data_type: Float64
+        data_tests:
+          - not_null
+
+      - name: forward_adjustment_factor
+        description: 前复权累计因子。
+        data_type: Float64
+        data_tests:
+          - not_null
+
+      - name: forward_adjustment_ratio
+        description: 前复权单步比例。
+        data_type: Float64
+        data_tests:
+          - not_null

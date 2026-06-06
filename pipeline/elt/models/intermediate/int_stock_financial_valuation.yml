@@ -1,0 +1,60 @@
+version: 2
+
+models:
+  - name: int_stock_financial_valuation
+    description: 财报期末估值 intermediate 模型；以证券和报告期为粒度，基于报告期最近交易日收盘价、as-of 股本、利润表和资产负债表输出 PE、PB、每股净资产、ROE 和 ROAE。
+    config:
+      meta:
+        grain_zh: 每证券、财报报告期一行。
+        business_logic_zh:
+          - 报告期集合来自 YTD 利润表与资产负债表的证券报告期并集。
+          - 价格使用报告期当日或之前最近交易日未复权收盘价。
+          - TTM 利润使用当前及之前连续四个单季度归母净利润。
+          - 估值分母非正或缺失时输出 NULL；ROE 和 ROAE 允许负利润带来的负值。
+    data_tests:
+      - unique_combination_of_columns:
+          arguments:
+            combination_of_columns:
+              - security_code
+              - report_date
+    columns:
+      - name: security_code
+        description: "{{ doc('field_security_code') }}"
+        data_type: String
+        data_tests:
+          - not_null
+          - cn_security_code_format
+
+      - name: report_date
+        description: "{{ doc('field_report_date') }}"
+        data_type: Date
+        data_tests:
+          - not_null
+
+      - name: pe_static
+        description: 静态市盈率，使用报告期 as-of 最近年度年报归母净利润。
+        data_type: Nullable(Float64)
+
+      - name: pe_ttm
+        description: TTM 市盈率，使用当前及之前连续四个单季度归母净利润合计。
+        data_type: Nullable(Float64)
+
+      - name: pe_forecast
+        description: 动态市盈率，使用当前 YTD 归母净利润按报告期季度数年化。
+        data_type: Nullable(Float64)
+
+      - name: pb_mrq
+        description: MRQ 市净率，使用报告期 as-of 最近归母权益。
+        data_type: Nullable(Float64)
+
+      - name: book_value_per_share
+        description: 每股净资产，使用报告期 as-of 最近归母权益除以实收资本。
+        data_type: Nullable(Float64)
+
+      - name: roe
+        description: ROE，使用当前报告期 YTD 归母净利润除以期末归母权益。
+        data_type: Nullable(Float64)
+
+      - name: roae
+        description: ROAE，使用当前报告期 YTD 归母净利润除以期初和期末归母权益平均值。
+        data_type: Nullable(Float64)

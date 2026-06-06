@@ -76,7 +76,7 @@ select
     {{ normalize_cn_security_code('SECUCODE', input_format='eastmoney_suffix') }} as security_code,
     {{ cn_security_local_code('SECURITY_CODE', input_format='a_share_local_code') }} as security_local_code,
     ORG_CODE as org_code,
-    END_DATE as end_date,
+    END_DATE as report_date,
     CHANGE_REASON as change_reason,
     LIMITED_SHARES as limited_shares,
     UNLIMITED_SHARES as unlimited_shares,

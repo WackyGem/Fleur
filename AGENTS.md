@@ -146,6 +146,7 @@ uv run dg check defs
 | Skill | 用途 |
 |-------|------|
 | `dagster-expert` | 任何 Dagster 相关任务之前使用，包括资产、物化、组件、数据管道、调度、传感器、作业、项目结构、`dg` CLI 用法或 Dagster 概念问题 |
+| `dagster-http-source-asset` | 用户提供远端 HTTP/HTTPS 链接、API endpoint 或样例，希望新增 Dagster source asset，落 S3 Parquet 并按 contract 同步 ClickHouse raw 层时使用 |
 | `dg-backfill-runbook` | mono-fleur 的 Dagster 回填操作手册，用于选择 `dg launch` 命令、资产选择、partition 参数和各数据源回填模板 |
 | `dignified-python` | Python 代码质量、类型提示、现代 Python 风格、pathlib、异常处理、接口、CLI 模式或 Python 审查/重构 |
 | `using-dbt-for-analytics-engineering` | 构建或修改 dbt 模型、源、测试、SQL 转换、dbt 项目调试、数据探索或影响分析 |

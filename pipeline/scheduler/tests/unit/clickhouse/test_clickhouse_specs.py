@@ -13,13 +13,14 @@ def test_enabled_specs_cover_initial_snapshot_compacted_and_eastmoney_groups() -
         spec.raw_asset_key.to_user_string() for spec in ENABLED_CLICKHOUSE_RAW_TABLE_SPECS
     }
 
-    assert len(raw_asset_keys) == 15
+    assert len(raw_asset_keys) == 16
     assert "clickhouse/raw/baostock__query_history_k_data_plus_daily" in raw_asset_keys
     assert "clickhouse/raw/sina__trade_calendar" in raw_asset_keys
     assert "clickhouse/raw/jiuyan__industry_ocr_snapshot" in raw_asset_keys
     assert "clickhouse/raw/jiuyan__action_field_compacted" in raw_asset_keys
     assert "clickhouse/raw/ths__limit_up_pool_compacted" in raw_asset_keys
     assert "clickhouse/raw/eastmoney__balance" in raw_asset_keys
+    assert "clickhouse/raw/eastmoney__freeholders" in raw_asset_keys
 
 
 def test_baostock_spec_uses_year_partition_and_query_driven_order_by() -> None:
@@ -76,6 +77,9 @@ def test_affected_nullable_date_fields_generate_nullable_clickhouse_types() -> N
         },
         "eastmoney__income_ytd": {
             "UPDATE_DATE": "Nullable(Date)",
+        },
+        "eastmoney__freeholders": {
+            "CHANGE_RATIO": "Nullable(Float64)",
         },
         "eastmoney__dividend_main": {
             "EQUITY_RECORD_DATE": "Nullable(Date)",

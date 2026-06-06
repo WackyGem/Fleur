@@ -69,7 +69,7 @@ def test_clickhouse_raw_sync_all_job_is_registered_and_covers_enabled_assets() -
     registered_asset_keys = {asset_key(asset) for asset in CLICKHOUSE_RAW_ASSETS}
 
     assert "clickhouse__raw_sync_all_job" in job_names
-    assert len(enabled_asset_keys) == 15
+    assert len(enabled_asset_keys) == 16
     assert enabled_asset_keys == registered_asset_keys
 
 
@@ -118,6 +118,7 @@ def test_source_bundle_contracts_are_stable() -> None:
         "source/eastmoney__dividend_allotment",
         "source/eastmoney__dividend_main",
         "source/eastmoney__equity_history",
+        "source/eastmoney__freeholders",
         "source/eastmoney__income_sq",
         "source/eastmoney__income_ytd",
     ]

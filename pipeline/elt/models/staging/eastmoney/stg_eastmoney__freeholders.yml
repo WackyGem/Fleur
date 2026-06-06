@@ -1,0 +1,187 @@
+version: 2
+
+models:
+  - name: stg_eastmoney__freeholders
+    description: 东方财富前十大流通股东 staging 模型；保留 raw 中每个证券、报告期、名次、股东和股份类别的明细行，不在 staging 层合并股东身份或裁剪名次。
+    config:
+      meta:
+        raw_profile: docs/references/raw_profile/eastmoney__freeholders.md
+        raw_source: source('raw', 'eastmoney__freeholders')
+        staging_grain_zh: 每证券、报告期、流通股东名次、股东标识/名称和股份类别一行。
+        natural_key:
+          - security_code
+          - end_date
+          - holder_rank
+          - holder_eastmoney_code
+          - holder_name
+          - shares_type
+        design_basis_zh:
+          - raw 画像确认 SECUCODE、END_DATE 和 HOLDER_RANK 不唯一，不能作为 staging 唯一键。
+          - raw 画像确认包含 rank 11 至 50 的少量记录，staging 不裁剪为严格前十大。
+          - HOLDER_NEW 混合数字编码和文本，staging 仅保留为东方财富本地标识，不提升为跨源股东 ID。
+          - CHANGE_RATIO 在“不变”和“新进”场景下为空属于预期缺失，staging 保留 NULL。
+          - FREE_HOLDNUM_RATIO 和 CHANGE_RATIO 均保留东方财富百分比数值，不转换为小数比例。
+        deferred_to_intermediate_or_mart_zh:
+          - 证券主数据、股东主数据和机构类型标准字典关联。
+          - 每证券每报告期每名次一行的业务去重或排序规则。
+          - HOLDER_NEW/HOLDER_NAME 的跨源股东身份归并。
+          - HOLD_NUM_CHANGE 的数值解析、方向拆分或变动比例重算。
+          - 只保留严格前十大流通股东的业务过滤。
+    data_tests:
+      - unique_combination_of_columns:
+          arguments:
+            combination_of_columns:
+              - security_code
+              - end_date
+              - holder_rank
+              - holder_eastmoney_code
+              - holder_name
+              - shares_type
+    columns:
+      - name: security_code
+        description: "{{ doc('field_security_code') }}"
+        data_type: String
+        data_tests:
+          - not_null
+          - cn_security_code_format
+        config:
+          meta:
+            glossary_key: security_code
+            source_columns:
+              - source: raw
+                table: eastmoney__freeholders
+                column: SECUCODE
+            normalization:
+              macro: normalize_cn_security_code
+              input_format: eastmoney_suffix
+
+      - name: end_date
+        description: 前十大流通股东名单对应的报告期截止日期。
+        data_type: Date
+        data_tests:
+          - not_null
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__freeholders
+                column: END_DATE
+
+      - name: holder_rank
+        description: 股东在东方财富返回的该报告期流通股东名单中的名次；实际 raw 数据存在 11 至 50 的少量名次，不在 staging 层裁剪为 1 至 10。
+        data_type: Int64
+        data_tests:
+          - not_null
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__freeholders
+                column: HOLDER_RANK
+
+      - name: holder_eastmoney_code
+        description: 东方财富返回的股东标识文本；字段可能是数字编码，也可能直接是股东姓名，不能在 staging 层当作跨源稳定股东 ID。
+        data_type: String
+        data_tests:
+          - not_null
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__freeholders
+                column: HOLDER_NEW
+
+      - name: holder_name
+        description: 东方财富披露的流通股东名称。
+        data_type: String
+        data_tests:
+          - not_null
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__freeholders
+                column: HOLDER_NAME
+
+      - name: holder_type
+        description: 东方财富返回的股东类型或机构类型，保留供应商原始分类文本。
+        data_type: LowCardinality(String)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__freeholders
+                column: HOLDER_TYPE
+
+      - name: shares_type
+        description: 股东持有股份类别，保留东方财富原始股份类别文本。
+        data_type: LowCardinality(String)
+        data_tests:
+          - not_null
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__freeholders
+                column: SHARES_TYPE
+
+      - name: free_float_hold_shares
+        description: 股东持有流通股数量，单位为股。
+        data_type: Int64
+        data_tests:
+          - not_null
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__freeholders
+                column: HOLD_NUM
+            unit: shares
+
+      - name: free_float_holdnum_ratio_pct
+        description: 股东持有流通股数量占流通股比例，保留东方财富百分比数值而非小数比例。
+        data_type: Float64
+        data_tests:
+          - not_null
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__freeholders
+                column: FREE_HOLDNUM_RATIO
+            unit: percent
+            scale: percent_value_not_fraction
+
+      - name: hold_num_change_text
+        description: 较上期持股数量变动的原始文本；可为数值文本，也可为“不变”或“新进”。
+        data_type: String
+        data_tests:
+          - not_null
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__freeholders
+                column: HOLD_NUM_CHANGE
+
+      - name: change_ratio_pct
+        description: 较上期持股数量变动比例，保留东方财富百分比数值；当变动文本为“不变”或“新进”时通常为空。
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: eastmoney__freeholders
+                column: CHANGE_RATIO
+            unit: percent
+            scale: percent_value_not_fraction
