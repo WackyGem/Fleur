@@ -10,6 +10,7 @@ mono-fleur/
 │   ├── contract_tools/ # 数据契约校验与生成工具
 │   ├── contracts/      # 数据契约注册表（字段事实源）
 │   └── migrate/        # Alembic 数据库迁移
+├── engines/            # Rust 后端和计算引擎工作区，由 Cargo 管理
 ├── deploy/             # 部署配置
 │   ├── docker-compose.yml
 │   ├── postgres/       # PostgreSQL 配置
@@ -52,6 +53,19 @@ uv sync --all-packages --all-groups
 | elt | `pipeline/elt/` | uv (pyproject.toml) | dbt 数据转换 |
 | contract_tools | `pipeline/contract_tools/` | uv (pyproject.toml) | contract registry 校验与生成 |
 | migrate | `pipeline/migrate/` | uv (pyproject.toml) | Alembic 数据库迁移 |
+
+## Rust 与 engines 工作区
+
+- Rust workspace 路径：`engines/`
+- 使用 Cargo 管理 Rust crate，不放入 `pipeline/` 的 uv 工作区。
+- 所有 Rust / Cargo 命令在 `engines/` 目录下执行。
+- 初始 crates：
+
+| Crate | 路径 | 类型 | 说明 |
+|-------|------|------|------|
+| furnace | `engines/crates/furnace/` | binary | Rust 计算引擎 CLI 入口 |
+| furnace-core | `engines/crates/furnace-core/` | library | 指标计算核心和领域模型 |
+| furnace-io | `engines/crates/furnace-io/` | library | ClickHouse、Parquet、Arrow 等 I/O 适配 |
 
 ## Dagster（scheduler）
 
@@ -125,6 +139,15 @@ uv run pytest scheduler/tests contract_tools/tests --cov=scheduler/src/scheduler
 # Dagster definitions 检查
 cd scheduler
 uv run dg check defs
+```
+
+涉及 Rust engines 时额外运行：
+
+```bash
+cd engines
+cargo fmt --check
+cargo clippy --workspace --all-targets --all-features -- -D warnings
+cargo test --workspace
 ```
 
 ## Git 与生成文件
