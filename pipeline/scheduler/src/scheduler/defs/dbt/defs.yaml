@@ -1,0 +1,11 @@
+type: scheduler.components.fleur_dbt.FleurDbtProjectComponent
+
+attributes:
+  project:
+    project_dir: "{{ context.project_root }}/../elt"
+    profiles_dir: "{{ context.project_root }}/../elt"
+  cli_args:
+    - build
+  translation_settings:
+    enable_asset_checks: true
+    enable_source_tests_as_checks: false

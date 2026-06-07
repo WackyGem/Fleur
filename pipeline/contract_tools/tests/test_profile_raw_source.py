@@ -87,8 +87,7 @@ def test_profile_raw_source_uses_string_placeholder_check_for_date_name_columns(
     expression = module._placeholder_count_expression(column)
 
     assert expression == (
-        "countIf(toString(`REPORT_DATE_NAME`) = '1970-01-01') "
-        "as placeholder_report_date_name"
+        "countIf(toString(`REPORT_DATE_NAME`) = '1970-01-01') as placeholder_report_date_name"
     )
 
 

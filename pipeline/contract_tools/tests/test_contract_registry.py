@@ -94,6 +94,12 @@ def test_dbt_sources_include_raw_column_catalog() -> None:
     assert "name: raw" in sources_yaml
     assert "schema: fleur_raw" in sources_yaml
     assert "clickhouse_raw_table: fleur_raw.demo__raw_table" in sources_yaml
+    assert "upstream_raw_asset: clickhouse/raw/demo__raw_table" in sources_yaml
+    assert "dagster:" in sources_yaml
+    assert "asset_key:" in sources_yaml
+    assert "- clickhouse" in sources_yaml
+    assert "- raw" in sources_yaml
+    assert "- demo__raw_table" in sources_yaml
     assert "source_schema_hash:" in sources_yaml
     assert "parquet_schema_hash:" in sources_yaml
     assert "clickhouse_schema_hash:" in sources_yaml

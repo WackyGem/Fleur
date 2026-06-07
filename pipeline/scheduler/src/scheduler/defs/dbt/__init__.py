@@ -1,0 +1,1 @@
+"""dbt component instance definitions."""

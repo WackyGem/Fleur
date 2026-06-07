@@ -7,6 +7,7 @@ dependencies = [
     "clickhouse-connect>=1.1.1",
     "contract-tools",
     "dagster==1.13.6",
+    "dagster-dbt==0.29.6",
     "dagster-slack==0.29.6",
     "psycopg[binary]>=3.2.10",
     "pyarrow>=22.0.0",

@@ -3,6 +3,7 @@ from __future__ import annotations
 import dagster as dg
 from scheduler.defs.clickhouse.definitions import CLICKHOUSE_RAW_ASSETS, CLICKHOUSE_RAW_JOBS
 from scheduler.defs.clickhouse.specs import ENABLED_CLICKHOUSE_RAW_TABLE_SPECS
+from scheduler.defs.dbt_jobs import DBT_JOBS, DBT_SCHEDULES
 from scheduler.defs.definitions import SOURCE_BUNDLES
 from scheduler.defs.definitions import defs as scheduler_defs
 
@@ -11,6 +12,10 @@ from scheduler import definitions as top_level_definitions
 
 def asset_key(asset: dg.AssetsDefinition) -> str:
     return asset.key.to_user_string()
+
+
+def asset_keys(asset: dg.AssetsDefinition) -> set[str]:
+    return {key.to_user_string() for key in asset.keys}
 
 
 def test_source_bundles_have_unique_names_and_defs() -> None:
@@ -34,18 +39,24 @@ def test_registered_definitions_match_source_bundles() -> None:
     expected_jobs = {job.name for bundle in SOURCE_BUNDLES for job in bundle.jobs}
     expected_clickhouse_assets = {asset_key(asset) for asset in CLICKHOUSE_RAW_ASSETS}
     expected_clickhouse_jobs = {job.name for job in CLICKHOUSE_RAW_JOBS}
+    expected_dbt_jobs = {job.name for job in DBT_JOBS}
+    expected_dbt_schedules = {schedule.name for schedule in DBT_SCHEDULES}
     expected_schedules = {
         schedule.name for bundle in SOURCE_BUNDLES for schedule in bundle.schedules
     }
 
     assert top_level_definitions.defs is scheduler_defs
-    assert {asset_key(asset) for asset in loaded_defs.assets or []} == (
-        expected_assets | expected_clickhouse_assets
-    )
+    registered_asset_keys = {key for asset in loaded_defs.assets or [] for key in asset_keys(asset)}
+    assert registered_asset_keys >= expected_assets | expected_clickhouse_assets
+    assert "stg_ths__limit_up_pool_compacted" in registered_asset_keys
+    assert "mart_stock_quotes_daily" in registered_asset_keys
+    assert len(registered_asset_keys) == len(expected_assets | expected_clickhouse_assets) + 25
     assert {job.name for job in loaded_defs.jobs or []} == (
-        expected_jobs | expected_clickhouse_jobs
+        expected_jobs | expected_clickhouse_jobs | expected_dbt_jobs
     )
-    assert {schedule.name for schedule in loaded_defs.schedules or []} == expected_schedules
+    assert {schedule.name for schedule in loaded_defs.schedules or []} == (
+        expected_schedules | expected_dbt_schedules
+    )
     assert {sensor.name for sensor in loaded_defs.sensors or []} == {"slack_asset_failure_sensor"}
     assert set(loaded_defs.resources) >= {
         "s3_io_manager",
@@ -71,6 +82,38 @@ def test_clickhouse_raw_sync_all_job_is_registered_and_covers_enabled_assets() -
     assert "clickhouse__raw_sync_all_job" in job_names
     assert len(enabled_asset_keys) == 16
     assert enabled_asset_keys == registered_asset_keys
+
+
+def test_dbt_assets_are_registered_with_raw_lineage_and_checks() -> None:
+    loaded_defs = scheduler_defs.load_fn()
+    loaded_asset_keys = {key for asset in loaded_defs.assets or [] for key in asset_keys(asset)}
+    stg_ths_key = dg.AssetKey("stg_ths__limit_up_pool_compacted")
+    mart_key = dg.AssetKey("mart_stock_quotes_daily")
+    dbt_asset_def = next(asset for asset in loaded_defs.assets or [] if stg_ths_key in asset.keys)
+
+    assert len(dbt_asset_def.keys) == 25
+    assert len(dbt_asset_def.check_keys) == 200
+    assert "stg_ths__limit_up_pool_compacted" in loaded_asset_keys
+    assert "mart_stock_quotes_daily" in loaded_asset_keys
+    assert dbt_asset_def.specs_by_key[stg_ths_key].group_name == "dbt_staging"
+    assert dbt_asset_def.specs_by_key[mart_key].group_name == "dbt_marts"
+    assert (
+        dbt_asset_def.tags_by_key[stg_ths_key].items()
+        >= {
+            "layer": "staging",
+            "owner": "dbt",
+            "storage": "clickhouse",
+        }.items()
+    )
+    assert {key.to_user_string() for key in dbt_asset_def.asset_deps[stg_ths_key]} == {
+        "clickhouse/raw/ths__limit_up_pool_compacted"
+    }
+    assert {job.name for job in DBT_JOBS} == {
+        "dbt__daily_build_job",
+        "dbt__marts_build_job",
+        "dbt__staging_build_job",
+    }
+    assert {schedule.name for schedule in DBT_SCHEDULES} == {"dbt__daily_build_schedule"}
 
 
 def test_source_bundle_contracts_are_stable() -> None:

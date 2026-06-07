@@ -35,6 +35,9 @@ def render_sources_yaml(registry: ContractRegistry) -> str:
                         "contract_dataset": dataset.dataset,
                         "contract_version": dataset.version,
                         "upstream_raw_asset": "/".join(raw_asset_key),
+                        "dagster": {
+                            "asset_key": list(raw_asset_key),
+                        },
                         "clickhouse_raw_table": f"{raw.database}.{raw.table}",
                         "source_schema_hash": source_schema_hash(dataset),
                         "parquet_schema_hash": parquet_schema_hash(dataset),
