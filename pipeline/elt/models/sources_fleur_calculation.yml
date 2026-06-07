@@ -1,0 +1,55 @@
+version: 2
+
+sources:
+  - name: fleur_calculation
+    schema: fleur_calculation
+    description: External calculation products materialized by Furnace through Dagster.
+    tables:
+      - name: calc_stock_kdj_daily
+        description: Furnace/Dagster materialized daily RSV/KDJ technical indicator table.
+        config:
+          meta:
+            dagster:
+              asset_key:
+                - fleur_calculation
+                - calc_stock_kdj_daily
+        columns:
+          - name: security_code
+            description: "{{ doc('field_security_code') }}"
+            data_type: String
+            data_tests:
+              - not_null
+
+          - name: trade_date
+            description: "{{ doc('field_trade_date') }}"
+            data_type: Date
+            data_tests:
+              - not_null
+
+          - name: rsv_window
+            description: RSV rolling window. First production version only allows canonical value 9.
+            data_type: UInt16
+
+          - name: k_smoothing
+            description: K smoothing denominator. First production version only allows canonical value 3.
+            data_type: UInt16
+
+          - name: d_smoothing
+            description: D smoothing denominator. First production version only allows canonical value 3.
+            data_type: UInt16
+
+          - name: rsv
+            description: RSV value. NULL means the current row has no complete valid RSV window.
+            data_type: Nullable(Float64)
+
+          - name: k_value
+            description: K value. NULL means RSV is unavailable for the current row.
+            data_type: Nullable(Float64)
+
+          - name: d_value
+            description: D value. NULL means RSV is unavailable for the current row.
+            data_type: Nullable(Float64)
+
+          - name: j_value
+            description: J value. NULL means RSV is unavailable for the current row.
+            data_type: Nullable(Float64)

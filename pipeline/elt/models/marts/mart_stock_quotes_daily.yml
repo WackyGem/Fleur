@@ -10,6 +10,7 @@ models:
           - 以 int_stock_quotes_daily_unadj 为左表，保留其完整主键集合和交易日粒度。
           - 交易指标、市值、股本和股息率字段只从 int_stock_quotes_daily_unadj 透传，不在 mart 层重算。
           - 财报期估值字段按 security_code 和最近 report_date <= trade_date 从 int_stock_financial_valuation as-of 取值。
+          - RSV/KDJ 指标通过 int_stock_kdj_daily wrapper 左连接，不直接读取 fleur_calculation 物理表。
     data_tests:
       - unique_combination_of_columns:
           arguments:
@@ -155,3 +156,19 @@ models:
       - name: is_st
         description: 是否 ST 或风险警示，沿用 BaoStock source-local 口径。
         data_type: Nullable(Bool)
+
+      - name: kdj_rsv
+        description: RSV 值，来自 int_stock_kdj_daily；窗口不足、缺价或价格异常时允许为 NULL。
+        data_type: Nullable(Float64)
+
+      - name: kdj_k_value
+        description: KDJ K 值，来自 int_stock_kdj_daily；RSV 不可用时允许为 NULL。
+        data_type: Nullable(Float64)
+
+      - name: kdj_d_value
+        description: KDJ D 值，来自 int_stock_kdj_daily；RSV 不可用时允许为 NULL。
+        data_type: Nullable(Float64)
+
+      - name: kdj_j_value
+        description: KDJ J 值，来自 int_stock_kdj_daily；RSV 不可用时允许为 NULL。
+        data_type: Nullable(Float64)

@@ -55,6 +55,8 @@ def defs() -> dg.Definitions:
             "slack": SlackAlertResource(),
         },
     )
-    dbt_defs = dg.ComponentTree.for_project(path_within_project=Path(__file__)).build_defs("dbt")
+    component_tree = dg.ComponentTree.for_project(path_within_project=Path(__file__))
+    dbt_defs = component_tree.build_defs("dbt")
+    furnace_defs = component_tree.build_defs("furnace")
 
-    return dg.Definitions.merge(base_defs, dbt_defs)
+    return dg.Definitions.merge(base_defs, dbt_defs, furnace_defs)

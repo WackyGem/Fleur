@@ -1,0 +1,6 @@
+type: scheduler.components.furnace.FurnaceKdjComponent
+
+attributes:
+  binary_path: "engines/target/debug/furnace"
+  working_dir: "."
+  daily_cron_schedule: "45 18 * * *"

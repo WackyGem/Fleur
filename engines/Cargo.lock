@@ -5,6 +5,10 @@ version = 4
 [[package]]
 name = "furnace"
 version = "0.1.0"
+dependencies = [
+ "furnace-core",
+ "furnace-io",
+]
 
 [[package]]
 name = "furnace-core"
@@ -13,3 +17,6 @@ version = "0.1.0"
 [[package]]
 name = "furnace-io"
 version = "0.1.0"
+dependencies = [
+ "furnace-core",
+]

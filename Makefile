@@ -6,6 +6,9 @@ BAOSTOCK_RUN_POOL := baostock_run_pool
 EASTMONEY_RUN_POOL := eastmoney_run_pool
 DAGSTER_WEBUI_HOST ?= 127.0.0.1
 DAGSTER_WEBUI_PORT ?= 3000
+RUST_DOC_HOST ?= 127.0.0.1
+RUST_DOC_PORT ?= 8000
+RUST_DOC_CRATE ?= furnace_core
 
 ifneq ("$(wildcard .env)","")
 include .env
@@ -21,7 +24,7 @@ $(error DAGSTER_HOME must come from .env, not $(origin DAGSTER_HOME))
 endif
 export DAGSTER_HOME
 
-.PHONY: help dev-up dev-down dev-logs wait-rustfs dagster-home check-defs materialize-trade-calendar dev-materialize-trade-calendar webui
+.PHONY: help dev-up dev-down dev-logs wait-rustfs dagster-home check-defs materialize-trade-calendar dev-materialize-trade-calendar webui rust-doc rust-doc-open rust-doc-serve
 
 help:
 	@printf '%s\n' 'Available targets:'
@@ -32,6 +35,9 @@ help:
 	@printf '  %-34s %s\n' 'materialize-trade-calendar' 'Materialize sina__trade_calendar'
 	@printf '  %-34s %s\n' 'dev-materialize-trade-calendar' 'Start dev services, wait for RustFS, then materialize the calendar'
 	@printf '  %-34s %s\n' 'webui' 'Start Dagster Web UI for the local dev instance'
+	@printf '  %-34s %s\n' 'rust-doc' 'Generate Rust API docs under engines/target/doc'
+	@printf '  %-34s %s\n' 'rust-doc-open' 'Generate and open Furnace core Rust API docs'
+	@printf '  %-34s %s\n' 'rust-doc-serve' 'Serve Rust API docs over http://127.0.0.1:8000'
 
 dev-up:
 	docker compose --env-file .env -f $(COMPOSE_FILE) up -d
@@ -80,3 +86,14 @@ dev-materialize-trade-calendar: dev-up wait-rustfs materialize-trade-calendar
 webui: dagster-home
 	@printf 'Starting Dagster Web UI at http://%s:%s\n' '$(DAGSTER_WEBUI_HOST)' '$(DAGSTER_WEBUI_PORT)'
 	cd $(PIPELINE_DIR)/$(SCHEDULER_TARGET) && uv run dg dev --host $(DAGSTER_WEBUI_HOST) --port $(DAGSTER_WEBUI_PORT)
+
+rust-doc:
+	cd engines && cargo doc --workspace --no-deps
+	@printf 'Rust docs generated at %s\n' 'engines/target/doc/$(RUST_DOC_CRATE)/index.html'
+
+rust-doc-open: rust-doc
+	xdg-open engines/target/doc/$(RUST_DOC_CRATE)/index.html
+
+rust-doc-serve: rust-doc
+	@printf 'Serving Rust docs at http://%s:%s/%s/\n' '$(RUST_DOC_HOST)' '$(RUST_DOC_PORT)' '$(RUST_DOC_CRATE)'
+	python3 -m http.server $(RUST_DOC_PORT) --bind $(RUST_DOC_HOST) --directory engines/target/doc

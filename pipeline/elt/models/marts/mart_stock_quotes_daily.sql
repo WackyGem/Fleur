@@ -50,6 +50,17 @@ financial_valuation as (
     from {{ ref('int_stock_financial_valuation') }}
 ),
 
+kdj as (
+    select
+        security_code,
+        trade_date,
+        rsv as kdj_rsv,
+        k_value as kdj_k_value,
+        d_value as kdj_d_value,
+        j_value as kdj_j_value
+    from {{ ref('int_stock_kdj_daily') }}
+),
+
 quotes_with_financial_valuation as (
     select
         quotes.security_code,
@@ -84,11 +95,18 @@ quotes_with_financial_valuation as (
         quotes.dy_static,
         quotes.dy_ttm,
         quotes.is_suspend,
-        quotes.is_st
+        quotes.is_st,
+        kdj.kdj_rsv,
+        kdj.kdj_k_value,
+        kdj.kdj_d_value,
+        kdj.kdj_j_value
     from quotes
     asof left join financial_valuation
         on quotes.security_code = financial_valuation.security_code
         and quotes.trade_date >= financial_valuation.report_date
+    left join kdj
+        on quotes.security_code = kdj.security_code
+        and quotes.trade_date = kdj.trade_date
 )
 
 select
@@ -124,5 +142,9 @@ select
     dy_static,
     dy_ttm,
     is_suspend,
-    is_st
+    is_st,
+    kdj_rsv,
+    kdj_k_value,
+    kdj_d_value,
+    kdj_j_value
 from quotes_with_financial_valuation
