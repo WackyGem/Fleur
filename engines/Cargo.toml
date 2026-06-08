@@ -16,5 +16,8 @@ broken_intra_doc_links = "deny"
 
 [workspace.lints.clippy]
 dbg_macro = "deny"
+large_enum_variant = "deny"
+needless_collect = "deny"
+redundant_clone = "deny"
 todo = "deny"
 unimplemented = "deny"

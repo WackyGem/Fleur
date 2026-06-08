@@ -150,14 +150,17 @@ fn retain_old_rows_skips_fully_covered_all_market_year_partitions() {
         ..KdjRunRequest::default()
     };
 
-    let retained = retain_old_rows_for_staging(
+    let retained = retain_existing_rows_for_staging(
         &mut executor,
-        &request,
-        "fleur_calculation.stage",
-        &[],
-        true,
-        &[2020, 2021, 2022],
-        "2022-12-31",
+        &RetainStagingRows {
+            output_table: DEFAULT_KDJ_OUTPUT_TABLE,
+            staging_table: "fleur_calculation.stage",
+            request_from: &request.request_from,
+            symbols: &[],
+            all_symbols_requested: true,
+            years: &[2020, 2021, 2022],
+            effective_output_to: "2022-12-31",
+        },
     )
     .unwrap();
 

@@ -7,11 +7,15 @@ pub(super) mod writing;
 use crate::FurnaceIoError;
 use crate::clickhouse::ClickHouseExecutor;
 use crate::request::{KdjRunRequest, KdjWriteMode};
-use crate::runners::shared::{group_input_rows, target_table_exists, validate_staging};
+use crate::runners::shared::{
+    RetainStagingRows, cleanup_staging, ensure_output_schema, ensure_production_output_rows,
+    ensure_production_symbols, group_input_rows, replace_partitions,
+    retain_existing_rows_for_staging, setup_staging, target_table_exists,
+    validate_staging_or_error,
+};
 use crate::schema::{
-    DEFAULT_KDJ_OUTPUT_TABLE, create_calculation_database_sql, create_kdj_output_table_sql,
-    create_kdj_staging_table_sql, drop_kdj_staging_table_sql, kdj_staging_table_name,
-    replace_kdj_partition_sql,
+    DEFAULT_KDJ_OUTPUT_TABLE, create_kdj_output_table_sql, create_kdj_staging_table_sql,
+    drop_kdj_staging_table_sql, kdj_staging_table_name,
 };
 use crate::summary::{
     KdjRunSummary, PartitionReplaceSummary, PerformanceTimings, ValidationSummary, time_result,
@@ -21,9 +25,7 @@ use crate::validation::affected_years;
 use self::materialize::calculate_outputs;
 use self::planning::{read_input_row_binary, read_previous_states, resolve_effective_output_to};
 use self::planning::{resolve_input_from, resolve_symbols};
-use self::writing::{
-    ensure_append_latest_is_safe, insert_result_rows, retain_old_rows_for_staging,
-};
+use self::writing::{ensure_append_latest_is_safe, insert_result_rows};
 
 /// 当请求校验、ClickHouse I/O 或指标计算失败时，返回 [`FurnaceIoError`]。
 pub fn run_kdj<E: ClickHouseExecutor>(
@@ -35,17 +37,12 @@ pub fn run_kdj<E: ClickHouseExecutor>(
     request.validate()?;
 
     if request.mode.writes_applied() {
-        executor.execute(create_calculation_database_sql())?;
-        executor.execute(&create_kdj_output_table_sql())?;
+        ensure_output_schema(executor, &create_kdj_output_table_sql())?;
     }
 
     let all_symbols_requested = request.symbols.is_empty();
     let symbols = resolve_symbols(executor, request)?;
-    if request.mode.writes_applied() && symbols.is_empty() {
-        return Err(FurnaceIoError::InvalidRequest(
-            "production KDJ writes require at least one input security".to_string(),
-        ));
-    }
+    ensure_production_symbols("KDJ", request.mode.writes_applied(), &symbols)?;
     let effective_output_to =
         resolve_effective_output_to(executor, request, &symbols, all_symbols_requested)?;
     let input_from = resolve_input_from(executor, request, &symbols, all_symbols_requested)?;
@@ -88,11 +85,7 @@ pub fn run_kdj<E: ClickHouseExecutor>(
     timings.parallelism = calculated.parallelism;
     timings.worker_threads = calculated.worker_threads;
     let output_rows = calculated.rows;
-    if request.mode.writes_applied() && output_rows.is_empty() {
-        return Err(FurnaceIoError::InvalidRequest(
-            "production KDJ writes produced no output rows".to_string(),
-        ));
-    }
+    ensure_production_output_rows("KDJ", request.mode.writes_applied(), output_rows.is_empty())?;
     let affected_years = affected_years(&request.request_from, &effective_output_to)?;
     let output_rows_count = calculated.output_rows;
     let null_indicator_rows = calculated.null_indicator_rows;
@@ -122,21 +115,27 @@ pub fn run_kdj<E: ClickHouseExecutor>(
                 .as_deref()
                 .unwrap_or("manual_replace_cascade");
             let staging = kdj_staging_table_name(run_id);
-            let staging_setup_sql = vec![
-                drop_kdj_staging_table_sql(&staging),
-                create_kdj_staging_table_sql(&staging),
-            ];
-            let timed = time_result(|| executor.execute_many(&staging_setup_sql))?;
+            let drop_staging_sql = drop_kdj_staging_table_sql(&staging);
+            let timed = time_result(|| {
+                setup_staging(
+                    executor,
+                    drop_staging_sql.clone(),
+                    create_kdj_staging_table_sql(&staging),
+                )
+            })?;
             timings.staging += timed.elapsed;
             let timed = time_result(|| {
-                retain_old_rows_for_staging(
+                retain_existing_rows_for_staging(
                     executor,
-                    request,
-                    &staging,
-                    &symbols,
-                    all_symbols_requested,
-                    &affected_years,
-                    &effective_output_to,
+                    &RetainStagingRows {
+                        output_table: DEFAULT_KDJ_OUTPUT_TABLE,
+                        staging_table: &staging,
+                        request_from: &request.request_from,
+                        symbols: &symbols,
+                        all_symbols_requested,
+                        years: &affected_years,
+                        effective_output_to: &effective_output_to,
+                    },
                 )
             })?;
             timings.staging += timed.elapsed;
@@ -145,22 +144,20 @@ pub fn run_kdj<E: ClickHouseExecutor>(
                 insert_result_rows(executor, &staging, &output_rows, request.insert_batch_size)
             })?;
             timings.write += timed.elapsed;
-            let timed = time_result(|| validate_staging(executor, &staging, &affected_years))?;
+            let timed =
+                time_result(|| validate_staging_or_error(executor, &staging, &affected_years))?;
             timings.staging += timed.elapsed;
             staging_validation = timed.value;
-            if staging_validation.status != "passed" {
-                return Err(FurnaceIoError::InvalidRequest(format!(
-                    "staging validation failed with {} duplicate keys",
-                    staging_validation.duplicate_keys
-                )));
-            }
-            let replace_sql = affected_years
-                .iter()
-                .map(|year| replace_kdj_partition_sql(&staging, *year))
-                .collect::<Vec<_>>();
-            let timed = time_result(|| executor.execute_many(&replace_sql))?;
+            let timed = time_result(|| {
+                replace_partitions(
+                    executor,
+                    DEFAULT_KDJ_OUTPUT_TABLE,
+                    &staging,
+                    &affected_years,
+                )
+            })?;
             timings.partition_replace += timed.elapsed;
-            let timed = time_result(|| executor.execute(&drop_kdj_staging_table_sql(&staging)))?;
+            let timed = time_result(|| cleanup_staging(executor, &drop_staging_sql))?;
             timings.staging += timed.elapsed;
             partition_replace = PartitionReplaceSummary::replaced(affected_years.clone());
             staging_table = Some(staging);

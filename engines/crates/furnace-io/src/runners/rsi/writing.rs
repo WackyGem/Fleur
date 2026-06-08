@@ -2,82 +2,31 @@ use crate::FurnaceIoError;
 use crate::clickhouse::ClickHouseExecutor;
 use crate::request::RsiRunRequest;
 use crate::rows::RsiResultRow;
-use crate::runners::shared::{count_year_rows, partition_year_fully_covered};
-use crate::sql::{first_tsv_value, parse_u64, sql_string, symbol_where_clause};
+use crate::runners::shared::{
+    ensure_append_latest_is_safe as ensure_append_latest_is_safe_for_table, insert_rowbinary_rows,
+};
+
 pub(super) fn ensure_rsi_append_latest_is_safe<E: ClickHouseExecutor>(
     executor: &mut E,
     request: &RsiRunRequest,
     symbols: &[String],
     all_symbols_requested: bool,
 ) -> Result<(), FurnaceIoError> {
-    if symbols.is_empty() && !all_symbols_requested {
-        return Ok(());
-    }
-    let sql = format!(
-        "\
-SELECT count()
-FROM {}
-WHERE trade_date >= toDate('{}')
-  AND {}
-FORMAT TSV",
-        request.output_table,
-        sql_string(&request.request_from),
-        symbol_where_clause(symbols, all_symbols_requested)
-    );
-    let existing_rows = parse_u64(&first_tsv_value(&executor.query(&sql)?).unwrap_or_default())?;
-    if existing_rows > 0 {
-        return Err(FurnaceIoError::InvalidRequest(format!(
-            "append-latest found {existing_rows} existing same-or-later result rows; use replace-cascade"
-        )));
-    }
-    Ok(())
+    ensure_append_latest_is_safe_for_table(
+        executor,
+        &request.output_table,
+        &request.request_from,
+        symbols,
+        all_symbols_requested,
+    )
 }
-pub(super) fn retain_old_rsi_rows_for_staging<E: ClickHouseExecutor>(
-    executor: &mut E,
-    request: &RsiRunRequest,
-    staging_table: &str,
-    symbols: &[String],
-    all_symbols_requested: bool,
-    years: &[u16],
-    effective_output_to: &str,
-) -> Result<u64, FurnaceIoError> {
-    let mut retained = 0;
-    for year in years {
-        if all_symbols_requested
-            && partition_year_fully_covered(*year, &request.request_from, effective_output_to)
-        {
-            continue;
-        }
-        let sql = format!(
-            "\
-INSERT INTO {staging_table}
-SELECT *
-FROM {}
-WHERE toYear(trade_date) = {year}
-  AND NOT (
-      {}
-      AND trade_date >= toDate('{}')
-      AND trade_date <= toDate('{}')
-  )",
-            request.output_table,
-            symbol_where_clause(symbols, all_symbols_requested),
-            sql_string(&request.request_from),
-            sql_string(effective_output_to)
-        );
-        executor.execute(&sql)?;
-        retained += count_year_rows(executor, staging_table, *year)?;
-    }
-    Ok(retained)
-}
+
 pub(super) fn insert_rsi_result_rows<E: ClickHouseExecutor>(
     executor: &mut E,
     table: &str,
     rows: &[RsiResultRow],
     batch_size: usize,
 ) -> Result<(), FurnaceIoError> {
-    if rows.is_empty() {
-        return Ok(());
-    }
     let insert_sql = format!(
         "\
 INSERT INTO {table}
@@ -105,12 +54,12 @@ INSERT INTO {table}
 )
 FORMAT RowBinary"
     );
-    for batch in rows.chunks(batch_size) {
-        let mut row_binary = Vec::with_capacity(batch.len().saturating_mul(170));
-        for row in batch {
-            row.write_row_binary(&mut row_binary)?;
-        }
-        executor.insert_bytes(&insert_sql, &row_binary)?;
-    }
-    Ok(())
+    insert_rowbinary_rows(
+        executor,
+        &insert_sql,
+        rows,
+        batch_size,
+        170,
+        |row, bytes| row.write_row_binary(bytes),
+    )
 }

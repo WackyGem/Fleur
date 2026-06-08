@@ -7,10 +7,14 @@ pub(super) mod writing;
 use crate::FurnaceIoError;
 use crate::clickhouse::ClickHouseExecutor;
 use crate::request::{RsiRunRequest, RsiWriteMode};
-use crate::runners::shared::{group_rsi_input_rows, table_exists, validate_staging};
+use crate::runners::shared::{
+    RetainStagingRows, cleanup_staging, ensure_output_schema, ensure_production_output_rows,
+    ensure_production_symbols, group_rsi_input_rows, replace_partitions,
+    retain_existing_rows_for_staging, setup_staging, table_exists, validate_staging_or_error,
+};
 use crate::schema::{
-    create_calculation_database_sql, create_rsi_output_table_sql, create_rsi_staging_table_sql,
-    drop_rsi_staging_table_sql, replace_rsi_partition_sql, rsi_staging_table_name,
+    create_rsi_output_table_sql, create_rsi_staging_table_sql, drop_rsi_staging_table_sql,
+    rsi_staging_table_name,
 };
 use crate::summary::{
     PartitionReplaceSummary, PerformanceTimings, RsiRunSummary, ValidationSummary, time_result,
@@ -23,9 +27,7 @@ use self::planning::{
     read_rsi_mixed_input_row_binary, resolve_rsi_effective_output_to, resolve_rsi_input_from,
     resolve_rsi_symbols,
 };
-use self::writing::{
-    ensure_rsi_append_latest_is_safe, insert_rsi_result_rows, retain_old_rsi_rows_for_staging,
-};
+use self::writing::{ensure_rsi_append_latest_is_safe, insert_rsi_result_rows};
 
 /// 基于 ClickHouse 执行完整 RSI 计算。
 ///
@@ -41,17 +43,15 @@ pub fn run_rsi<E: ClickHouseExecutor>(
     request.validate()?;
 
     if request.mode.writes_applied() {
-        executor.execute(create_calculation_database_sql())?;
-        executor.execute(&create_rsi_output_table_sql(&request.output_table))?;
+        ensure_output_schema(
+            executor,
+            &create_rsi_output_table_sql(&request.output_table),
+        )?;
     }
 
     let all_symbols_requested = request.symbols.is_empty();
     let symbols = resolve_rsi_symbols(executor, request)?;
-    if request.mode.writes_applied() && symbols.is_empty() {
-        return Err(FurnaceIoError::InvalidRequest(
-            "production RSI writes require at least one input security".to_string(),
-        ));
-    }
+    ensure_production_symbols("RSI", request.mode.writes_applied(), &symbols)?;
     let effective_output_to =
         resolve_rsi_effective_output_to(executor, request, &symbols, all_symbols_requested)?;
     let full_history_input_from =
@@ -138,11 +138,7 @@ pub fn run_rsi<E: ClickHouseExecutor>(
     timings.parallelism = calculated.parallelism;
     timings.worker_threads = calculated.worker_threads;
     let output_rows = calculated.rows;
-    if request.mode.writes_applied() && output_rows.is_empty() {
-        return Err(FurnaceIoError::InvalidRequest(
-            "production RSI writes produced no output rows".to_string(),
-        ));
-    }
+    ensure_production_output_rows("RSI", request.mode.writes_applied(), output_rows.is_empty())?;
     let affected_years = affected_years(&request.request_from, &effective_output_to)?;
     let output_rows_count = calculated.output_rows;
     let null_indicator_rows = calculated.null_indicator_rows;
@@ -172,21 +168,27 @@ pub fn run_rsi<E: ClickHouseExecutor>(
                 .as_deref()
                 .unwrap_or("manual_replace_cascade");
             let staging = rsi_staging_table_name(&request.output_table, run_id);
-            let staging_setup_sql = vec![
-                drop_rsi_staging_table_sql(&staging),
-                create_rsi_staging_table_sql(&request.output_table, &staging),
-            ];
-            let timed = time_result(|| executor.execute_many(&staging_setup_sql))?;
+            let drop_staging_sql = drop_rsi_staging_table_sql(&staging);
+            let timed = time_result(|| {
+                setup_staging(
+                    executor,
+                    drop_staging_sql.clone(),
+                    create_rsi_staging_table_sql(&request.output_table, &staging),
+                )
+            })?;
             timings.staging += timed.elapsed;
             let timed = time_result(|| {
-                retain_old_rsi_rows_for_staging(
+                retain_existing_rows_for_staging(
                     executor,
-                    request,
-                    &staging,
-                    &symbols,
-                    all_symbols_requested,
-                    &affected_years,
-                    &effective_output_to,
+                    &RetainStagingRows {
+                        output_table: &request.output_table,
+                        staging_table: &staging,
+                        request_from: &request.request_from,
+                        symbols: &symbols,
+                        all_symbols_requested,
+                        years: &affected_years,
+                        effective_output_to: &effective_output_to,
+                    },
                 )
             })?;
             timings.staging += timed.elapsed;
@@ -195,22 +197,15 @@ pub fn run_rsi<E: ClickHouseExecutor>(
                 insert_rsi_result_rows(executor, &staging, &output_rows, request.insert_batch_size)
             })?;
             timings.write += timed.elapsed;
-            let timed = time_result(|| validate_staging(executor, &staging, &affected_years))?;
+            let timed =
+                time_result(|| validate_staging_or_error(executor, &staging, &affected_years))?;
             timings.staging += timed.elapsed;
             staging_validation = timed.value;
-            if staging_validation.status != "passed" {
-                return Err(FurnaceIoError::InvalidRequest(format!(
-                    "staging validation failed with {} duplicate keys",
-                    staging_validation.duplicate_keys
-                )));
-            }
-            let replace_sql = affected_years
-                .iter()
-                .map(|year| replace_rsi_partition_sql(&request.output_table, &staging, *year))
-                .collect::<Vec<_>>();
-            let timed = time_result(|| executor.execute_many(&replace_sql))?;
+            let timed = time_result(|| {
+                replace_partitions(executor, &request.output_table, &staging, &affected_years)
+            })?;
             timings.partition_replace += timed.elapsed;
-            let timed = time_result(|| executor.execute(&drop_rsi_staging_table_sql(&staging)))?;
+            let timed = time_result(|| cleanup_staging(executor, &drop_staging_sql))?;
             timings.staging += timed.elapsed;
             partition_replace = PartitionReplaceSummary::replaced(affected_years.clone());
             staging_table = Some(staging);

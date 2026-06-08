@@ -21,7 +21,6 @@ use crate::runners::boll::materialize::{
 use crate::runners::kdj::materialize::{
     calculate_grouped_outputs_parallel, calculate_grouped_outputs_serial,
 };
-use crate::runners::kdj::writing::retain_old_rows_for_staging;
 use crate::runners::ma::materialize::{
     calculate_ma_grouped_outputs_parallel_with_collection,
     calculate_ma_grouped_outputs_serial_with_collection,
@@ -30,12 +29,15 @@ use crate::runners::rsi::materialize::{
     calculate_rsi_grouped_outputs_parallel_with_collection,
     calculate_rsi_grouped_outputs_serial_with_collection,
 };
-use crate::runners::shared::validate_staging;
+use crate::runners::shared::{
+    RetainStagingRows, retain_existing_rows_for_staging, validate_staging,
+};
 use crate::schema::{
-    DEFAULT_BOLL_OUTPUT_TABLE, DEFAULT_MA_OUTPUT_TABLE, DEFAULT_RSI_OUTPUT_TABLE,
-    MIN_INSERT_BATCH_SIZE, create_boll_output_table_sql, create_kdj_output_table_sql,
-    create_ma_output_table_sql, create_rsi_output_table_sql, kdj_staging_table_name,
-    ma_staging_table_name, replace_kdj_partition_sql, replace_ma_partition_sql,
+    DEFAULT_BOLL_OUTPUT_TABLE, DEFAULT_KDJ_OUTPUT_TABLE, DEFAULT_MA_OUTPUT_TABLE,
+    DEFAULT_RSI_OUTPUT_TABLE, MIN_INSERT_BATCH_SIZE, create_boll_output_table_sql,
+    create_kdj_output_table_sql, create_ma_output_table_sql, create_rsi_output_table_sql,
+    kdj_staging_table_name, ma_staging_table_name, replace_kdj_partition_sql,
+    replace_ma_partition_sql,
 };
 use crate::summary::ValidationSummary;
 
