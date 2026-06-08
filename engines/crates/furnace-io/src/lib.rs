@@ -12,7 +12,10 @@ use std::process::{Command, Stdio};
 use std::str;
 use std::time::{Duration, Instant};
 
-use furnace_core::{KdjInput, KdjParams, KdjState, calculate_kdj_series};
+use furnace_core::{
+    DEFAULT_EMA_WINDOW, DEFAULT_MA_WINDOWS, KdjInput, KdjParams, KdjState, MaInput, MaParams,
+    MaPreviousState, MaState, calculate_kdj_series, calculate_ma_series_from_previous_state,
+};
 use rayon::prelude::*;
 
 /// 默认的 dbt 中间层输入表，存放前复权日行情价格。
@@ -20,6 +23,12 @@ pub const DEFAULT_INPUT_TABLE: &str = "fleur_intermediate.int_stock_quotes_daily
 
 /// Furnace 负责写入的日频 KDJ 计算结果表。
 pub const DEFAULT_KDJ_OUTPUT_TABLE: &str = "fleur_calculation.calc_stock_kdj_daily";
+
+/// Furnace 负责写入的日频 Moving Average 计算结果表。
+pub const DEFAULT_MA_OUTPUT_TABLE: &str = "fleur_calculation.calc_stock_ma_daily";
+
+/// Moving Average 第一版使用的 canonical 前复权收盘价字段。
+pub const DEFAULT_MA_PRICE_COLUMN: &str = "close_price_forward_adj";
 
 /// ClickHouse 单批插入的默认目标行数。
 pub const DEFAULT_INSERT_BATCH_SIZE: usize = 10_000;
@@ -58,6 +67,39 @@ CREATE TABLE IF NOT EXISTS {DEFAULT_KDJ_OUTPUT_TABLE}
     k_value Nullable(Float64),
     d_value Nullable(Float64),
     j_value Nullable(Float64)
+)
+ENGINE = MergeTree()
+PARTITION BY toYear(trade_date)
+ORDER BY (trade_date, security_code)"
+    )
+}
+
+/// 返回 Moving Average 结果表的 ClickHouse DDL。
+pub fn create_ma_output_table_sql(output_table: &str) -> String {
+    format!(
+        "\
+CREATE TABLE IF NOT EXISTS {output_table}
+(
+    security_code String,
+    trade_date Date,
+    ma_3 Nullable(Float64),
+    ma_5 Nullable(Float64),
+    ma_6 Nullable(Float64),
+    ma_10 Nullable(Float64),
+    ma_12 Nullable(Float64),
+    ma_14 Nullable(Float64),
+    ma_20 Nullable(Float64),
+    ma_24 Nullable(Float64),
+    ma_28 Nullable(Float64),
+    ma_57 Nullable(Float64),
+    ma_60 Nullable(Float64),
+    ma_114 Nullable(Float64),
+    ma_250 Nullable(Float64),
+    avg_ma_3_6_12_24 Nullable(Float64),
+    avg_ma_14_28_57_114 Nullable(Float64),
+    ema1_10_state Nullable(Float64),
+    ema2_10 Nullable(Float64),
+    ema2_10_state Nullable(Float64)
 )
 ENGINE = MergeTree()
 PARTITION BY toYear(trade_date)
@@ -112,6 +154,51 @@ pub fn drop_kdj_staging_table_sql(staging_table: &str) -> String {
     format!("DROP TABLE IF EXISTS {staging_table}")
 }
 
+/// 根据运行 ID 构造 MA staging 表名。
+pub fn ma_staging_table_name(output_table: &str, run_id: &str) -> String {
+    let normalized = run_id
+        .chars()
+        .map(|character| {
+            if character.is_ascii_alphanumeric() {
+                character.to_ascii_lowercase()
+            } else {
+                '_'
+            }
+        })
+        .collect::<String>()
+        .trim_matches('_')
+        .to_string();
+
+    let suffix = if normalized.is_empty() {
+        "manual".to_string()
+    } else {
+        normalized
+    };
+    format!("{output_table}__staging__{suffix}")
+}
+
+/// 构造 MA staging 表创建 SQL，表结构与目标表一致。
+pub fn create_ma_staging_table_sql(output_table: &str, staging_table: &str) -> String {
+    format!(
+        "\
+CREATE TABLE IF NOT EXISTS {staging_table}
+AS {output_table}
+ENGINE = MergeTree()
+PARTITION BY toYear(trade_date)
+ORDER BY (trade_date, security_code)"
+    )
+}
+
+/// 构造将单个年份分区从 MA staging 表替换到目标表的 SQL。
+pub fn replace_ma_partition_sql(output_table: &str, staging_table: &str, year: u16) -> String {
+    format!("ALTER TABLE {output_table} REPLACE PARTITION {year} FROM {staging_table}")
+}
+
+/// 构造删除 MA staging 表的 SQL。
+pub fn drop_ma_staging_table_sql(staging_table: &str) -> String {
+    format!("DROP TABLE IF EXISTS {staging_table}")
+}
+
 /// CLI 或 Dagster 请求的 KDJ 写入模式。
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum KdjWriteMode {
@@ -137,6 +224,45 @@ impl KdjWriteMode {
             "replace-cascade" => Ok(Self::ReplaceCascade),
             other => Err(FurnaceIoError::InvalidRequest(format!(
                 "invalid KDJ write mode: {other}"
+            ))),
+        }
+    }
+
+    /// 返回该模式在 CLI 中使用的拼写。
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::DryRun => "dry-run",
+            Self::AppendLatest => "append-latest",
+            Self::ReplaceCascade => "replace-cascade",
+        }
+    }
+
+    /// 判断该模式是否会写入生产 ClickHouse 数据。
+    pub fn writes_applied(self) -> bool {
+        !matches!(self, Self::DryRun)
+    }
+}
+
+/// CLI 或 Dagster 请求的 Moving Average 写入模式。
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum MaWriteMode {
+    /// 只计算并汇总结果，不写入 ClickHouse。
+    DryRun,
+    /// 当目标表不存在同日或更晚结果时，追加最新区间。
+    AppendLatest,
+    /// 重算历史区间，并级联到受影响的最新输入日期。
+    ReplaceCascade,
+}
+
+impl MaWriteMode {
+    /// 解析该模式在 CLI 中使用的拼写。
+    pub fn parse(value: &str) -> Result<Self, FurnaceIoError> {
+        match value {
+            "dry-run" => Ok(Self::DryRun),
+            "append-latest" => Ok(Self::AppendLatest),
+            "replace-cascade" => Ok(Self::ReplaceCascade),
+            other => Err(FurnaceIoError::InvalidRequest(format!(
+                "invalid MA write mode: {other}"
             ))),
         }
     }
@@ -212,6 +338,85 @@ impl Default for KdjRunRequest {
             run_id: None,
             mode: KdjWriteMode::DryRun,
             params: KdjParams::default(),
+            insert_batch_size: DEFAULT_INSERT_BATCH_SIZE,
+        }
+    }
+}
+
+/// 单次 Furnace Moving Average 运行请求。
+#[derive(Debug, Clone, PartialEq)]
+pub struct MaRunRequest {
+    /// 请求输出的起始日期。
+    pub request_from: String,
+    /// 请求输出的结束日期。
+    pub request_to: String,
+    /// 可选证券代码白名单；为空时从输入行中推断。
+    pub symbols: Vec<String>,
+    /// 来自 Dagster 或 Furnace CLI 的运行标识。
+    pub run_id: Option<String>,
+    /// 写入模式。
+    pub mode: MaWriteMode,
+    /// Moving Average 参数。
+    pub params: MaParams,
+    /// 输入表。
+    pub input_table: String,
+    /// 输出表。
+    pub output_table: String,
+    /// close 输入字段名。
+    pub price_column: String,
+    /// ClickHouse 每批插入的目标行数。
+    pub insert_batch_size: usize,
+}
+
+impl MaRunRequest {
+    /// 在执行 ClickHouse 操作前校验请求。
+    pub fn validate(&self) -> Result<(), FurnaceIoError> {
+        validate_date("request_from", &self.request_from)?;
+        validate_date("request_to", &self.request_to)?;
+        if self.request_to < self.request_from {
+            return Err(FurnaceIoError::InvalidRequest(
+                "request_to must be greater than or equal to request_from".to_string(),
+            ));
+        }
+        if self.mode.writes_applied() && !self.params.is_canonical() {
+            return Err(FurnaceIoError::InvalidRequest(
+                "production MA writes only allow canonical parameters".to_string(),
+            ));
+        }
+        if self.mode.writes_applied() && self.input_table != DEFAULT_INPUT_TABLE {
+            return Err(FurnaceIoError::InvalidRequest(format!(
+                "production MA writes only allow input table {DEFAULT_INPUT_TABLE}"
+            )));
+        }
+        if self.mode.writes_applied() && self.price_column != DEFAULT_MA_PRICE_COLUMN {
+            return Err(FurnaceIoError::InvalidRequest(format!(
+                "production MA writes only allow price column {DEFAULT_MA_PRICE_COLUMN}"
+            )));
+        }
+        if self.mode.writes_applied() && self.insert_batch_size < MIN_INSERT_BATCH_SIZE {
+            return Err(FurnaceIoError::InvalidRequest(format!(
+                "production insert batch size must be at least {MIN_INSERT_BATCH_SIZE}"
+            )));
+        }
+        validate_table_name("input_table", &self.input_table)?;
+        validate_table_name("output_table", &self.output_table)?;
+        validate_identifier("price_column", &self.price_column)?;
+        Ok(())
+    }
+}
+
+impl Default for MaRunRequest {
+    fn default() -> Self {
+        Self {
+            request_from: String::new(),
+            request_to: String::new(),
+            symbols: Vec::new(),
+            run_id: None,
+            mode: MaWriteMode::DryRun,
+            params: MaParams::default(),
+            input_table: DEFAULT_INPUT_TABLE.to_string(),
+            output_table: DEFAULT_MA_OUTPUT_TABLE.to_string(),
+            price_column: DEFAULT_MA_PRICE_COLUMN.to_string(),
             insert_batch_size: DEFAULT_INSERT_BATCH_SIZE,
         }
     }
@@ -295,6 +500,96 @@ impl KdjRunSummary {
             self.params.k_smoothing,
             self.params.d_smoothing,
             escape_json_string(&self.state_source),
+            json_optional_string(self.run_id.as_deref()),
+            self.writes_applied,
+            self.performance_metrics.to_json()
+        )
+    }
+}
+
+/// Furnace Moving Average 单次运行输出摘要。
+#[derive(Debug, Clone, PartialEq)]
+pub struct MaRunSummary {
+    /// 请求输出的起始日期。
+    pub request_from: String,
+    /// 请求输出的结束日期。
+    pub request_to: String,
+    /// 实际写入输出的起始日期。
+    pub effective_output_from: String,
+    /// 实际写入输出的结束日期。
+    pub effective_output_to: String,
+    /// 实际读取输入的起始日期。
+    pub input_from: String,
+    /// 实际读取输入的结束日期。
+    pub input_to: String,
+    /// 写入模式。
+    pub mode: MaWriteMode,
+    /// 本次运行选中的证券。
+    pub symbols: Vec<String>,
+    /// 输入行数。
+    pub input_rows: u64,
+    /// 输出行数。
+    pub output_rows: u64,
+    /// 有效 close 行数。
+    pub valid_close_rows: u64,
+    /// 所有业务指标值均不可用的输出行数。
+    pub null_indicator_rows: u64,
+    /// 受影响的 ClickHouse 年度分区。
+    pub affected_years: Vec<u16>,
+    /// staging 分区中保留的旧行数。
+    pub retained_rows: u64,
+    /// 本次运行使用的临时 staging 表；未使用时为空。
+    pub staging_table: Option<String>,
+    /// staging 表校验结果。
+    pub staging_validation: ValidationSummary,
+    /// 分区替换结果。
+    pub partition_replace: PartitionReplaceSummary,
+    /// 历史 EMA 状态来源摘要。
+    pub ema_state_source: String,
+    /// 来自 Dagster 或 Furnace CLI 的运行标识。
+    pub run_id: Option<String>,
+    /// 是否实际写入了生产数据。
+    pub writes_applied: bool,
+    /// 内部耗时和吞吐指标。
+    pub performance_metrics: PerformanceMetrics,
+}
+
+impl MaRunSummary {
+    /// 将摘要序列化为 JSON。
+    pub fn to_json(&self) -> String {
+        let affected_years = self
+            .affected_years
+            .iter()
+            .map(u16::to_string)
+            .collect::<Vec<_>>()
+            .join(",");
+        let ma_windows = DEFAULT_MA_WINDOWS
+            .iter()
+            .map(usize::to_string)
+            .collect::<Vec<_>>()
+            .join(",");
+        format!(
+            "{{\"indicator\":\"ma\",\"request_from\":\"{}\",\"request_to\":\"{}\",\"effective_output_from\":\"{}\",\"effective_output_to\":\"{}\",\"input_from\":\"{}\",\"input_to\":\"{}\",\"mode\":\"{}\",\"symbols_count\":{},\"input_rows\":{},\"output_rows\":{},\"valid_close_rows\":{},\"null_indicator_rows\":{},\"affected_years\":[{}],\"retained_rows\":{},\"staging_table\":{},\"staging_validation\":{},\"partition_replace\":{},\"ma_windows\":[{}],\"ema_window\":{},\"ema_state_source\":\"{}\",\"run_id\":{},\"writes_applied\":{},\"performance_metrics\":{}}}",
+            escape_json_string(&self.request_from),
+            escape_json_string(&self.request_to),
+            escape_json_string(&self.effective_output_from),
+            escape_json_string(&self.effective_output_to),
+            escape_json_string(&self.input_from),
+            escape_json_string(&self.input_to),
+            self.mode.as_str(),
+            self.symbols.len(),
+            self.input_rows,
+            self.output_rows,
+            self.valid_close_rows,
+            self.null_indicator_rows,
+            affected_years,
+            self.retained_rows,
+            json_optional_string(self.staging_table.as_deref()),
+            self.staging_validation.to_json(),
+            self.partition_replace.to_json(),
+            ma_windows,
+            DEFAULT_EMA_WINDOW,
+            escape_json_string(&self.ema_state_source),
             json_optional_string(self.run_id.as_deref()),
             self.writes_applied,
             self.performance_metrics.to_json()
@@ -807,6 +1102,62 @@ struct KdjSecurityCalculation {
     null_indicator_rows: u64,
 }
 
+#[derive(Debug, Clone, PartialEq)]
+struct MaResultRow {
+    security_code: String,
+    trade_date: String,
+    ma_3: Option<f64>,
+    ma_5: Option<f64>,
+    ma_6: Option<f64>,
+    ma_10: Option<f64>,
+    ma_12: Option<f64>,
+    ma_14: Option<f64>,
+    ma_20: Option<f64>,
+    ma_24: Option<f64>,
+    ma_28: Option<f64>,
+    ma_57: Option<f64>,
+    ma_60: Option<f64>,
+    ma_114: Option<f64>,
+    ma_250: Option<f64>,
+    avg_ma_3_6_12_24: Option<f64>,
+    avg_ma_14_28_57_114: Option<f64>,
+    ema1_10_state: Option<f64>,
+    ema2_10: Option<f64>,
+    ema2_10_state: Option<f64>,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+struct MaCalculationResult {
+    rows: Vec<MaResultRow>,
+    output_rows: u64,
+    valid_close_rows: u64,
+    null_indicator_rows: u64,
+    compute_elapsed: Duration,
+    parallelism: &'static str,
+    worker_threads: usize,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+struct MaInputGroups {
+    groups: Vec<MaGroupedInput>,
+    input_rows: u64,
+    valid_close_rows: u64,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+struct MaGroupedInput {
+    security_code: String,
+    inputs: Vec<MaInput>,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+struct MaSecurityCalculation {
+    rows: Vec<MaResultRow>,
+    output_rows: u64,
+    valid_close_rows: u64,
+    null_indicator_rows: u64,
+}
+
 /// 基于 ClickHouse 执行完整 KDJ 计算。
 ///
 /// # 错误
@@ -986,6 +1337,222 @@ pub fn run_kdj<E: ClickHouseExecutor>(
     })
 }
 
+/// 基于 ClickHouse 执行完整 Moving Average 计算。
+///
+/// # 错误
+///
+/// 当请求校验、ClickHouse I/O 或指标计算失败时，返回 [`FurnaceIoError`]。
+pub fn run_ma<E: ClickHouseExecutor>(
+    executor: &mut E,
+    request: &MaRunRequest,
+) -> Result<MaRunSummary, FurnaceIoError> {
+    let mut timings = PerformanceTimings::started();
+
+    request.validate()?;
+
+    if request.mode.writes_applied() {
+        executor.execute(create_calculation_database_sql())?;
+        executor.execute(&create_ma_output_table_sql(&request.output_table))?;
+    }
+
+    let all_symbols_requested = request.symbols.is_empty();
+    let symbols = resolve_ma_symbols(executor, request)?;
+    if request.mode.writes_applied() && symbols.is_empty() {
+        return Err(FurnaceIoError::InvalidRequest(
+            "production MA writes require at least one input security".to_string(),
+        ));
+    }
+    let effective_output_to =
+        resolve_ma_effective_output_to(executor, request, &symbols, all_symbols_requested)?;
+    let ma_target_exists = table_exists(executor, &request.output_table)?;
+    let ma_states = if ma_target_exists {
+        let timed = time_result(|| {
+            read_previous_ma_states(executor, request, &symbols, all_symbols_requested)
+        })?;
+        timings.read_state = timed.elapsed;
+        timed.value
+    } else {
+        HashMap::new()
+    };
+    let missing_state_symbols = symbols
+        .iter()
+        .filter(|symbol| !ma_states.contains_key(symbol.as_str()))
+        .cloned()
+        .collect::<Vec<_>>();
+    let can_consider_previous_state =
+        request.mode != MaWriteMode::ReplaceCascade && !symbols.is_empty() && !ma_states.is_empty();
+    let lookback_input_from = if can_consider_previous_state {
+        Some(resolve_ma_lookback_input_from(
+            executor,
+            request,
+            &symbols,
+            all_symbols_requested,
+        )?)
+    } else {
+        None
+    };
+    let missing_started_before_lookback = if let Some(input_from) = lookback_input_from.as_deref() {
+        !missing_state_symbols.is_empty()
+            && ma_symbols_started_before(executor, request, &missing_state_symbols, input_from)?
+    } else {
+        false
+    };
+    let can_use_previous_state = can_consider_previous_state && !missing_started_before_lookback;
+    let input_from = if can_use_previous_state {
+        lookback_input_from.unwrap_or_else(|| request.request_from.clone())
+    } else {
+        resolve_ma_input_from(executor, request, &symbols, all_symbols_requested)?
+    };
+    let timed_input = time_result(|| {
+        read_ma_input_row_binary(
+            executor,
+            request,
+            &symbols,
+            all_symbols_requested,
+            &input_from,
+            &effective_output_to,
+        )
+    })?;
+    timings.read_input = timed_input.elapsed;
+    let input_bytes = timed_input.value;
+    let timed_groups = time_result(|| group_ma_input_rows(&input_bytes))?;
+    timings.group = timed_groups.elapsed;
+    drop(input_bytes);
+    let input_groups = timed_groups.value;
+    let input_rows_count = input_groups.input_rows;
+    let input_valid_close_rows = input_groups.valid_close_rows;
+
+    let calculated = calculate_ma_outputs(
+        request,
+        &effective_output_to,
+        input_groups.groups,
+        input_rows_count as usize,
+        &ma_states,
+        request.mode.writes_applied(),
+    )?;
+    timings.compute = calculated.compute_elapsed;
+    timings.parallelism = calculated.parallelism;
+    timings.worker_threads = calculated.worker_threads;
+    let output_rows = calculated.rows;
+    if request.mode.writes_applied() && output_rows.is_empty() {
+        return Err(FurnaceIoError::InvalidRequest(
+            "production MA writes produced no output rows".to_string(),
+        ));
+    }
+    let affected_years = affected_years(&request.request_from, &effective_output_to)?;
+    let output_rows_count = calculated.output_rows;
+    let null_indicator_rows = calculated.null_indicator_rows;
+
+    let mut retained_rows = 0;
+    let mut staging_table = None;
+    let mut staging_validation = ValidationSummary::not_applicable();
+    let mut partition_replace = PartitionReplaceSummary::not_applicable();
+
+    match request.mode {
+        MaWriteMode::DryRun => {}
+        MaWriteMode::AppendLatest => {
+            ensure_ma_append_latest_is_safe(executor, request, &symbols, all_symbols_requested)?;
+            let timed = time_result(|| {
+                insert_ma_result_rows(
+                    executor,
+                    &request.output_table,
+                    &output_rows,
+                    request.insert_batch_size,
+                )
+            })?;
+            timings.write += timed.elapsed;
+        }
+        MaWriteMode::ReplaceCascade => {
+            let run_id = request
+                .run_id
+                .as_deref()
+                .unwrap_or("manual_replace_cascade");
+            let staging = ma_staging_table_name(&request.output_table, run_id);
+            let staging_setup_sql = vec![
+                drop_ma_staging_table_sql(&staging),
+                create_ma_staging_table_sql(&request.output_table, &staging),
+            ];
+            let timed = time_result(|| executor.execute_many(&staging_setup_sql))?;
+            timings.staging += timed.elapsed;
+            let timed = time_result(|| {
+                retain_old_ma_rows_for_staging(
+                    executor,
+                    request,
+                    &staging,
+                    &symbols,
+                    all_symbols_requested,
+                    &affected_years,
+                    &effective_output_to,
+                )
+            })?;
+            timings.staging += timed.elapsed;
+            retained_rows = timed.value;
+            let timed = time_result(|| {
+                insert_ma_result_rows(executor, &staging, &output_rows, request.insert_batch_size)
+            })?;
+            timings.write += timed.elapsed;
+            let timed = time_result(|| validate_staging(executor, &staging, &affected_years))?;
+            timings.staging += timed.elapsed;
+            staging_validation = timed.value;
+            if staging_validation.status != "passed" {
+                return Err(FurnaceIoError::InvalidRequest(format!(
+                    "staging validation failed with {} duplicate keys",
+                    staging_validation.duplicate_keys
+                )));
+            }
+            let replace_sql = affected_years
+                .iter()
+                .map(|year| replace_ma_partition_sql(&request.output_table, &staging, *year))
+                .collect::<Vec<_>>();
+            let timed = time_result(|| executor.execute_many(&replace_sql))?;
+            timings.partition_replace += timed.elapsed;
+            let timed = time_result(|| executor.execute(&drop_ma_staging_table_sql(&staging)))?;
+            timings.staging += timed.elapsed;
+            partition_replace = PartitionReplaceSummary::replaced(affected_years.clone());
+            staging_table = Some(staging);
+        }
+    }
+
+    let symbols_count = symbols.len() as u64;
+    let performance_metrics = timings.finish(input_rows_count, output_rows_count, symbols_count);
+
+    Ok(MaRunSummary {
+        request_from: request.request_from.clone(),
+        request_to: request.request_to.clone(),
+        effective_output_from: request.request_from.clone(),
+        effective_output_to: effective_output_to.clone(),
+        input_from,
+        input_to: effective_output_to,
+        mode: request.mode,
+        symbols,
+        input_rows: input_rows_count,
+        output_rows: output_rows_count,
+        valid_close_rows: calculated.valid_close_rows.min(input_valid_close_rows),
+        null_indicator_rows,
+        affected_years,
+        retained_rows,
+        staging_table,
+        staging_validation,
+        partition_replace,
+        ema_state_source: if can_use_previous_state {
+            if missing_state_symbols.is_empty() {
+                format!("previous-state:{}", ma_states.len())
+            } else {
+                format!(
+                    "mixed:previous-state:{},full-history:{}",
+                    ma_states.len(),
+                    missing_state_symbols.len()
+                )
+            }
+        } else {
+            "full-history".to_string()
+        },
+        run_id: request.run_id.clone(),
+        writes_applied: request.mode.writes_applied(),
+        performance_metrics,
+    })
+}
+
 fn resolve_symbols<E: ClickHouseExecutor>(
     executor: &mut E,
     request: &KdjRunRequest,
@@ -1092,6 +1659,15 @@ fn target_table_exists<E: ClickHouseExecutor>(executor: &mut E) -> Result<bool, 
     Ok(value == "1")
 }
 
+fn table_exists<E: ClickHouseExecutor>(
+    executor: &mut E,
+    table: &str,
+) -> Result<bool, FurnaceIoError> {
+    let value = first_tsv_value(&executor.query(&format!("EXISTS TABLE {table} FORMAT TSV"))?)
+        .unwrap_or_else(|| "0".to_string());
+    Ok(value == "1")
+}
+
 fn read_previous_states<E: ClickHouseExecutor>(
     executor: &mut E,
     request: &KdjRunRequest,
@@ -1147,6 +1723,69 @@ FORMAT TSV",
     Ok(states)
 }
 
+fn read_previous_ma_states<E: ClickHouseExecutor>(
+    executor: &mut E,
+    request: &MaRunRequest,
+    symbols: &[String],
+    all_symbols_requested: bool,
+) -> Result<HashMap<String, MaPreviousState>, FurnaceIoError> {
+    if symbols.is_empty() && !all_symbols_requested {
+        return Ok(HashMap::new());
+    }
+    let sql = format!(
+        "\
+SELECT security_code, toString(trade_date), ema1_10_state, ema2_10_state
+FROM (
+    SELECT
+        security_code,
+        trade_date,
+        ema1_10_state,
+        ema2_10_state,
+        row_number() OVER (PARTITION BY security_code ORDER BY trade_date DESC) AS rn
+    FROM {}
+    WHERE trade_date < toDate('{}')
+      AND ema1_10_state IS NOT NULL
+      AND ema2_10_state IS NOT NULL
+      AND {}
+)
+WHERE rn = 1
+FORMAT TSV",
+        request.output_table,
+        sql_string(&request.request_from),
+        symbol_where_clause(symbols, all_symbols_requested)
+    );
+
+    let mut states = HashMap::new();
+    for line in executor
+        .query(&sql)?
+        .lines()
+        .filter(|line| !line.is_empty())
+    {
+        let fields = line.split('\t').collect::<Vec<_>>();
+        if fields.len() != 4 {
+            return Err(FurnaceIoError::Parse(format!(
+                "expected 4 previous MA state fields, got {}",
+                fields.len()
+            )));
+        }
+        let ema1 = parse_f64(fields[2])?.ok_or_else(|| {
+            FurnaceIoError::Parse("previous ema1_10_state must not be null".to_string())
+        })?;
+        let ema2 = parse_f64(fields[3])?.ok_or_else(|| {
+            FurnaceIoError::Parse("previous ema2_10_state must not be null".to_string())
+        })?;
+        states.insert(
+            fields[0].to_string(),
+            MaPreviousState::new(
+                fields[1].to_string(),
+                MaState::new(ema1, ema2)
+                    .map_err(|source| FurnaceIoError::Parse(source.to_string()))?,
+            ),
+        );
+    }
+    Ok(states)
+}
+
 fn read_input_row_binary<E: ClickHouseExecutor>(
     executor: &mut E,
     symbols: &[String],
@@ -1171,6 +1810,170 @@ WHERE trade_date >= toDate('{}')
   AND {}
 ORDER BY security_code, trade_date
 FORMAT RowBinary",
+        sql_string(input_from),
+        sql_string(input_to),
+        symbol_where_clause(symbols, all_symbols_requested)
+    );
+
+    executor.query_bytes(&sql)
+}
+
+fn resolve_ma_symbols<E: ClickHouseExecutor>(
+    executor: &mut E,
+    request: &MaRunRequest,
+) -> Result<Vec<String>, FurnaceIoError> {
+    if !request.symbols.is_empty() {
+        return Ok(normalize_symbols(&request.symbols));
+    }
+
+    let sql = format!(
+        "\
+SELECT security_code
+FROM {}
+WHERE trade_date >= toDate('{}')
+  AND trade_date <= toDate('{}')
+GROUP BY security_code
+ORDER BY security_code
+FORMAT TSV",
+        request.input_table,
+        sql_string(&request.request_from),
+        sql_string(&request.request_to)
+    );
+    parse_single_column_strings(&executor.query(&sql)?)
+}
+
+fn resolve_ma_effective_output_to<E: ClickHouseExecutor>(
+    executor: &mut E,
+    request: &MaRunRequest,
+    symbols: &[String],
+    all_symbols_requested: bool,
+) -> Result<String, FurnaceIoError> {
+    if symbols.is_empty() || request.mode != MaWriteMode::ReplaceCascade {
+        return Ok(request.request_to.clone());
+    }
+    let sql = format!(
+        "\
+SELECT toString(max(trade_date))
+FROM {}
+WHERE {}
+FORMAT TSV",
+        request.input_table,
+        symbol_where_clause(symbols, all_symbols_requested)
+    );
+    let value =
+        first_tsv_value(&executor.query(&sql)?).unwrap_or_else(|| request.request_to.clone());
+    if value.is_empty() || value == "\\N" {
+        return Ok(request.request_to.clone());
+    }
+    Ok(value.max(request.request_to.clone()))
+}
+
+fn resolve_ma_input_from<E: ClickHouseExecutor>(
+    executor: &mut E,
+    request: &MaRunRequest,
+    symbols: &[String],
+    all_symbols_requested: bool,
+) -> Result<String, FurnaceIoError> {
+    let sql = format!(
+        "\
+SELECT toString(min(trade_date))
+FROM {}
+WHERE {}
+FORMAT TSV",
+        request.input_table,
+        symbol_where_clause(symbols, all_symbols_requested)
+    );
+    let value =
+        first_tsv_value(&executor.query(&sql)?).unwrap_or_else(|| request.request_from.clone());
+    if value.is_empty() || value == "\\N" {
+        Ok(request.request_from.clone())
+    } else {
+        Ok(value)
+    }
+}
+
+fn resolve_ma_lookback_input_from<E: ClickHouseExecutor>(
+    executor: &mut E,
+    request: &MaRunRequest,
+    symbols: &[String],
+    all_symbols_requested: bool,
+) -> Result<String, FurnaceIoError> {
+    let symbol_filter = symbol_where_clause(symbols, all_symbols_requested);
+    let lookback_window = DEFAULT_MA_WINDOWS.iter().copied().max().unwrap_or(250);
+    let sql = format!(
+        "\
+SELECT toString(min(trade_date))
+FROM (
+    SELECT trade_date
+    FROM {}
+    WHERE trade_date <= toDate('{}')
+      AND {symbol_filter}
+    GROUP BY trade_date
+    ORDER BY trade_date DESC
+    LIMIT {lookback_window}
+)
+FORMAT TSV",
+        request.input_table,
+        sql_string(&request.request_from)
+    );
+    let value =
+        first_tsv_value(&executor.query(&sql)?).unwrap_or_else(|| request.request_from.clone());
+    if value.is_empty() || value == "\\N" {
+        Ok(request.request_from.clone())
+    } else {
+        Ok(value)
+    }
+}
+
+fn ma_symbols_started_before<E: ClickHouseExecutor>(
+    executor: &mut E,
+    request: &MaRunRequest,
+    symbols: &[String],
+    input_from: &str,
+) -> Result<bool, FurnaceIoError> {
+    if symbols.is_empty() {
+        return Ok(false);
+    }
+    let sql = format!(
+        "\
+SELECT count()
+FROM {}
+WHERE trade_date < toDate('{}')
+  AND {}
+FORMAT TSV",
+        request.input_table,
+        sql_string(input_from),
+        symbol_where_clause(symbols, false)
+    );
+    let count = parse_u64(&first_tsv_value(&executor.query(&sql)?).unwrap_or_default())?;
+    Ok(count > 0)
+}
+
+fn read_ma_input_row_binary<E: ClickHouseExecutor>(
+    executor: &mut E,
+    request: &MaRunRequest,
+    symbols: &[String],
+    all_symbols_requested: bool,
+    input_from: &str,
+    input_to: &str,
+) -> Result<Vec<u8>, FurnaceIoError> {
+    if symbols.is_empty() && !all_symbols_requested {
+        return Ok(Vec::new());
+    }
+    let sql = format!(
+        "\
+SELECT
+    security_code,
+    toString(trade_date),
+    {}
+FROM {}
+WHERE trade_date >= toDate('{}')
+  AND trade_date <= toDate('{}')
+  AND {}
+ORDER BY security_code, trade_date
+FORMAT RowBinary",
+        request.price_column,
+        request.input_table,
         sql_string(input_from),
         sql_string(input_to),
         symbol_where_clause(symbols, all_symbols_requested)
@@ -1220,6 +2023,50 @@ fn group_input_rows(input_bytes: &[u8]) -> Result<KdjInputGroups, FurnaceIoError
     }
 
     Ok(KdjInputGroups { groups, input_rows })
+}
+
+fn group_ma_input_rows(input_bytes: &[u8]) -> Result<MaInputGroups, FurnaceIoError> {
+    let mut groups = Vec::new();
+    let mut current_security_code = None;
+    let mut current_inputs = Vec::new();
+    let mut input_rows = 0;
+    let mut valid_close_rows = 0;
+    let mut cursor = 0;
+
+    while cursor < input_bytes.len() {
+        let security_code = read_rowbinary_string(input_bytes, &mut cursor)?;
+        let trade_date = read_rowbinary_string(input_bytes, &mut cursor)?;
+        let close_price = read_rowbinary_nullable_f64(input_bytes, &mut cursor)?;
+        if close_price.is_some() {
+            valid_close_rows += 1;
+        }
+
+        if current_security_code.as_deref() != Some(security_code) {
+            let previous_security_code = current_security_code.replace(security_code.to_string());
+            if let Some(security_code) = previous_security_code {
+                groups.push(MaGroupedInput {
+                    security_code,
+                    inputs: std::mem::take(&mut current_inputs),
+                });
+            }
+        }
+
+        current_inputs.push(MaInput::new(trade_date.to_string(), close_price));
+        input_rows += 1;
+    }
+
+    if let Some(security_code) = current_security_code {
+        groups.push(MaGroupedInput {
+            security_code,
+            inputs: current_inputs,
+        });
+    }
+
+    Ok(MaInputGroups {
+        groups,
+        input_rows,
+        valid_close_rows,
+    })
 }
 
 fn read_rowbinary_string<'a>(
@@ -1345,10 +2192,180 @@ fn calculate_outputs(
     })
 }
 
+fn calculate_ma_outputs(
+    request: &MaRunRequest,
+    effective_output_to: &str,
+    groups: Vec<MaGroupedInput>,
+    input_row_count: usize,
+    states: &HashMap<String, MaPreviousState>,
+    collect_rows: bool,
+) -> Result<MaCalculationResult, FurnaceIoError> {
+    let worker_threads = rayon::current_num_threads();
+    let parallel = should_parallelize(groups.len(), input_row_count, worker_threads);
+    let compute_started = Instant::now();
+    let mut calculated = if parallel {
+        calculate_ma_grouped_outputs_parallel_with_collection(
+            request,
+            effective_output_to,
+            &groups,
+            states,
+            collect_rows,
+        )?
+    } else {
+        calculate_ma_grouped_outputs_serial_with_collection(
+            request,
+            effective_output_to,
+            &groups,
+            states,
+            collect_rows,
+        )?
+    };
+    if collect_rows {
+        calculated.rows.sort_by(|left, right| {
+            left.security_code
+                .cmp(&right.security_code)
+                .then(left.trade_date.cmp(&right.trade_date))
+        });
+    }
+    Ok(MaCalculationResult {
+        rows: calculated.rows,
+        output_rows: calculated.output_rows,
+        valid_close_rows: calculated.valid_close_rows,
+        null_indicator_rows: calculated.null_indicator_rows,
+        compute_elapsed: compute_started.elapsed(),
+        parallelism: if parallel { "rayon" } else { "serial" },
+        worker_threads,
+    })
+}
+
 fn should_parallelize(group_count: usize, input_row_count: usize, worker_threads: usize) -> bool {
     worker_threads > 1
         && group_count >= worker_threads.saturating_mul(2).max(2)
         && input_row_count > 0
+}
+
+fn calculate_ma_grouped_outputs_serial_with_collection(
+    request: &MaRunRequest,
+    effective_output_to: &str,
+    groups: &[MaGroupedInput],
+    states: &HashMap<String, MaPreviousState>,
+    collect_rows: bool,
+) -> Result<MaSecurityCalculation, FurnaceIoError> {
+    let mut output_rows = Vec::new();
+    let mut output_row_count = 0;
+    let mut valid_close_rows = 0;
+    let mut null_indicator_rows = 0;
+    for group in groups {
+        let calculated = calculate_ma_security_outputs(
+            request,
+            effective_output_to,
+            states,
+            group,
+            collect_rows,
+        )?;
+        output_row_count += calculated.output_rows;
+        valid_close_rows += calculated.valid_close_rows;
+        null_indicator_rows += calculated.null_indicator_rows;
+        output_rows.extend(calculated.rows);
+    }
+    Ok(MaSecurityCalculation {
+        rows: output_rows,
+        output_rows: output_row_count,
+        valid_close_rows,
+        null_indicator_rows,
+    })
+}
+
+fn calculate_ma_grouped_outputs_parallel_with_collection(
+    request: &MaRunRequest,
+    effective_output_to: &str,
+    groups: &[MaGroupedInput],
+    states: &HashMap<String, MaPreviousState>,
+    collect_rows: bool,
+) -> Result<MaSecurityCalculation, FurnaceIoError> {
+    let nested = groups
+        .par_iter()
+        .map(|group| {
+            calculate_ma_security_outputs(request, effective_output_to, states, group, collect_rows)
+        })
+        .collect::<Result<Vec<_>, _>>()?;
+    let mut rows = Vec::new();
+    let mut output_row_count = 0;
+    let mut valid_close_rows = 0;
+    let mut null_indicator_rows = 0;
+    for calculated in nested {
+        output_row_count += calculated.output_rows;
+        valid_close_rows += calculated.valid_close_rows;
+        null_indicator_rows += calculated.null_indicator_rows;
+        rows.extend(calculated.rows);
+    }
+    Ok(MaSecurityCalculation {
+        rows,
+        output_rows: output_row_count,
+        valid_close_rows,
+        null_indicator_rows,
+    })
+}
+
+fn calculate_ma_security_outputs(
+    request: &MaRunRequest,
+    effective_output_to: &str,
+    states: &HashMap<String, MaPreviousState>,
+    group: &MaGroupedInput,
+    collect_rows: bool,
+) -> Result<MaSecurityCalculation, FurnaceIoError> {
+    let previous_state = states.get(group.security_code.as_str()).cloned();
+    let outputs =
+        calculate_ma_series_from_previous_state(&group.inputs, &request.params, previous_state)
+            .map_err(|source| FurnaceIoError::Compute(source.to_string()))?;
+    let mut output_rows = Vec::new();
+    let mut output_row_count = 0;
+    let mut valid_close_rows = 0;
+    let mut null_indicator_rows = 0;
+    for (input, output) in group.inputs.iter().zip(outputs) {
+        if output.trade_date.as_str() < request.request_from.as_str()
+            || output.trade_date.as_str() > effective_output_to
+        {
+            continue;
+        }
+        output_row_count += 1;
+        if input.close_price.is_some() {
+            valid_close_rows += 1;
+        }
+        if output.all_business_indicators_null() {
+            null_indicator_rows += 1;
+        }
+        if collect_rows {
+            output_rows.push(MaResultRow {
+                security_code: group.security_code.clone(),
+                ma_3: output.ma(3),
+                ma_5: output.ma(5),
+                ma_6: output.ma(6),
+                ma_10: output.ma(10),
+                ma_12: output.ma(12),
+                ma_14: output.ma(14),
+                ma_20: output.ma(20),
+                ma_24: output.ma(24),
+                ma_28: output.ma(28),
+                ma_57: output.ma(57),
+                ma_60: output.ma(60),
+                ma_114: output.ma(114),
+                ma_250: output.ma(250),
+                avg_ma_3_6_12_24: output.avg_ma_3_6_12_24,
+                avg_ma_14_28_57_114: output.avg_ma_14_28_57_114,
+                ema1_10_state: output.ema1_10_state,
+                ema2_10: output.ema2_10,
+                ema2_10_state: output.ema2_10_state,
+                trade_date: output.trade_date,
+            });
+        }
+    }
+    Ok(MaSecurityCalculation {
+        rows: output_rows,
+        output_rows: output_row_count,
+        valid_close_rows,
+        null_indicator_rows,
+    })
 }
 
 #[cfg(test)]
@@ -1509,6 +2526,35 @@ FORMAT TSV",
     Ok(())
 }
 
+fn ensure_ma_append_latest_is_safe<E: ClickHouseExecutor>(
+    executor: &mut E,
+    request: &MaRunRequest,
+    symbols: &[String],
+    all_symbols_requested: bool,
+) -> Result<(), FurnaceIoError> {
+    if symbols.is_empty() && !all_symbols_requested {
+        return Ok(());
+    }
+    let sql = format!(
+        "\
+SELECT count()
+FROM {}
+WHERE trade_date >= toDate('{}')
+  AND {}
+FORMAT TSV",
+        request.output_table,
+        sql_string(&request.request_from),
+        symbol_where_clause(symbols, all_symbols_requested)
+    );
+    let existing_rows = parse_u64(&first_tsv_value(&executor.query(&sql)?).unwrap_or_default())?;
+    if existing_rows > 0 {
+        return Err(FurnaceIoError::InvalidRequest(format!(
+            "append-latest found {existing_rows} existing same-or-later result rows; use replace-cascade"
+        )));
+    }
+    Ok(())
+}
+
 fn retain_old_rows_for_staging<E: ClickHouseExecutor>(
     executor: &mut E,
     request: &KdjRunRequest,
@@ -1536,6 +2582,44 @@ WHERE toYear(trade_date) = {year}
       AND trade_date >= toDate('{}')
       AND trade_date <= toDate('{}')
   )",
+            symbol_where_clause(symbols, all_symbols_requested),
+            sql_string(&request.request_from),
+            sql_string(effective_output_to)
+        );
+        executor.execute(&sql)?;
+        retained += count_year_rows(executor, staging_table, *year)?;
+    }
+    Ok(retained)
+}
+
+fn retain_old_ma_rows_for_staging<E: ClickHouseExecutor>(
+    executor: &mut E,
+    request: &MaRunRequest,
+    staging_table: &str,
+    symbols: &[String],
+    all_symbols_requested: bool,
+    years: &[u16],
+    effective_output_to: &str,
+) -> Result<u64, FurnaceIoError> {
+    let mut retained = 0;
+    for year in years {
+        if all_symbols_requested
+            && partition_year_fully_covered(*year, &request.request_from, effective_output_to)
+        {
+            continue;
+        }
+        let sql = format!(
+            "\
+INSERT INTO {staging_table}
+SELECT *
+FROM {}
+WHERE toYear(trade_date) = {year}
+  AND NOT (
+      {}
+      AND trade_date >= toDate('{}')
+      AND trade_date <= toDate('{}')
+  )",
+            request.output_table,
             symbol_where_clause(symbols, all_symbols_requested),
             sql_string(&request.request_from),
             sql_string(effective_output_to)
@@ -1636,6 +2720,52 @@ FORMAT RowBinary"
     Ok(())
 }
 
+fn insert_ma_result_rows<E: ClickHouseExecutor>(
+    executor: &mut E,
+    table: &str,
+    rows: &[MaResultRow],
+    batch_size: usize,
+) -> Result<(), FurnaceIoError> {
+    if rows.is_empty() {
+        return Ok(());
+    }
+    let insert_sql = format!(
+        "\
+INSERT INTO {table}
+(
+    security_code,
+    trade_date,
+    ma_3,
+    ma_5,
+    ma_6,
+    ma_10,
+    ma_12,
+    ma_14,
+    ma_20,
+    ma_24,
+    ma_28,
+    ma_57,
+    ma_60,
+    ma_114,
+    ma_250,
+    avg_ma_3_6_12_24,
+    avg_ma_14_28_57_114,
+    ema1_10_state,
+    ema2_10,
+    ema2_10_state
+)
+FORMAT RowBinary"
+    );
+    for batch in rows.chunks(batch_size) {
+        let mut row_binary = Vec::with_capacity(batch.len().saturating_mul(170));
+        for row in batch {
+            row.write_row_binary(&mut row_binary)?;
+        }
+        executor.insert_bytes(&insert_sql, &row_binary)?;
+    }
+    Ok(())
+}
+
 impl KdjResultRow {
     fn write_row_binary(&self, bytes: &mut Vec<u8>) -> Result<(), FurnaceIoError> {
         push_rowbinary_string(bytes, &self.security_code);
@@ -1647,6 +2777,32 @@ impl KdjResultRow {
         push_rowbinary_nullable_f64(bytes, self.k_value);
         push_rowbinary_nullable_f64(bytes, self.d_value);
         push_rowbinary_nullable_f64(bytes, self.j_value);
+        Ok(())
+    }
+}
+
+impl MaResultRow {
+    fn write_row_binary(&self, bytes: &mut Vec<u8>) -> Result<(), FurnaceIoError> {
+        push_rowbinary_string(bytes, &self.security_code);
+        push_rowbinary_date(bytes, &self.trade_date)?;
+        push_rowbinary_nullable_f64(bytes, self.ma_3);
+        push_rowbinary_nullable_f64(bytes, self.ma_5);
+        push_rowbinary_nullable_f64(bytes, self.ma_6);
+        push_rowbinary_nullable_f64(bytes, self.ma_10);
+        push_rowbinary_nullable_f64(bytes, self.ma_12);
+        push_rowbinary_nullable_f64(bytes, self.ma_14);
+        push_rowbinary_nullable_f64(bytes, self.ma_20);
+        push_rowbinary_nullable_f64(bytes, self.ma_24);
+        push_rowbinary_nullable_f64(bytes, self.ma_28);
+        push_rowbinary_nullable_f64(bytes, self.ma_57);
+        push_rowbinary_nullable_f64(bytes, self.ma_60);
+        push_rowbinary_nullable_f64(bytes, self.ma_114);
+        push_rowbinary_nullable_f64(bytes, self.ma_250);
+        push_rowbinary_nullable_f64(bytes, self.avg_ma_3_6_12_24);
+        push_rowbinary_nullable_f64(bytes, self.avg_ma_14_28_57_114);
+        push_rowbinary_nullable_f64(bytes, self.ema1_10_state);
+        push_rowbinary_nullable_f64(bytes, self.ema2_10);
+        push_rowbinary_nullable_f64(bytes, self.ema2_10_state);
         Ok(())
     }
 }
@@ -1729,6 +2885,39 @@ fn validate_date(name: &str, value: &str) -> Result<(), FurnaceIoError> {
     {
         return Err(FurnaceIoError::InvalidRequest(format!(
             "{name} must use YYYY-MM-DD format"
+        )));
+    }
+    Ok(())
+}
+
+fn validate_table_name(name: &str, value: &str) -> Result<(), FurnaceIoError> {
+    let parts = value.split('.').collect::<Vec<_>>();
+    if parts.len() != 2 {
+        return Err(FurnaceIoError::InvalidRequest(format!(
+            "{name} must use database.table format"
+        )));
+    }
+    for part in parts {
+        validate_identifier(name, part)?;
+    }
+    Ok(())
+}
+
+fn validate_identifier(name: &str, value: &str) -> Result<(), FurnaceIoError> {
+    let mut chars = value.chars();
+    let Some(first) = chars.next() else {
+        return Err(FurnaceIoError::InvalidRequest(format!(
+            "{name} must not be empty"
+        )));
+    };
+    if !(first.is_ascii_alphabetic() || first == '_') {
+        return Err(FurnaceIoError::InvalidRequest(format!(
+            "{name} must start with an ASCII letter or underscore"
+        )));
+    }
+    if !chars.all(|character| character.is_ascii_alphanumeric() || character == '_') {
+        return Err(FurnaceIoError::InvalidRequest(format!(
+            "{name} must contain only ASCII letters, digits, or underscores"
         )));
     }
     Ok(())
@@ -1827,6 +3016,7 @@ mod tests {
     use super::*;
 
     type RowBinaryInputFixture<'a> = (&'a str, &'a str, Option<f64>, Option<f64>, Option<f64>);
+    type MaRowBinaryInputFixture<'a> = (&'a str, &'a str, Option<f64>);
 
     #[derive(Debug, Default)]
     struct FakeExecutor {
@@ -1898,6 +3088,16 @@ mod tests {
         bytes
     }
 
+    fn ma_rowbinary_input_rows(rows: &[MaRowBinaryInputFixture<'_>]) -> Vec<u8> {
+        let mut bytes = Vec::new();
+        for (security_code, trade_date, close_price) in rows {
+            write_rowbinary_string(&mut bytes, security_code);
+            write_rowbinary_string(&mut bytes, trade_date);
+            write_rowbinary_nullable_f64(&mut bytes, *close_price);
+        }
+        bytes
+    }
+
     fn write_rowbinary_string(bytes: &mut Vec<u8>, value: &str) {
         write_rowbinary_var_uint(bytes, value.len());
         bytes.extend_from_slice(value.as_bytes());
@@ -1950,6 +3150,38 @@ mod tests {
     }
 
     #[test]
+    fn create_ma_output_table_sql_uses_canonical_fields() {
+        let sql = create_ma_output_table_sql(DEFAULT_MA_OUTPUT_TABLE);
+
+        assert!(sql.contains("ma_57 Nullable(Float64)"));
+        assert!(sql.contains("avg_ma_14_28_57_114 Nullable(Float64)"));
+        assert!(!sql.contains("ma_47"));
+        assert!(sql.contains("ema1_10_state Nullable(Float64)"));
+        assert!(sql.contains("ema2_10_state Nullable(Float64)"));
+        assert!(sql.contains("ORDER BY (trade_date, security_code)"));
+    }
+
+    #[test]
+    fn ma_staging_table_name_normalizes_run_id() {
+        let table_name = ma_staging_table_name(DEFAULT_MA_OUTPUT_TABLE, "RUN/2026-01-01");
+
+        assert_eq!(
+            table_name,
+            "fleur_calculation.calc_stock_ma_daily__staging__run_2026_01_01"
+        );
+    }
+
+    #[test]
+    fn replace_ma_partition_sql_uses_configurable_output_table() {
+        let sql = replace_ma_partition_sql("db.calc_ma", "db.stage", 2026);
+
+        assert_eq!(
+            sql,
+            "ALTER TABLE db.calc_ma REPLACE PARTITION 2026 FROM db.stage"
+        );
+    }
+
+    #[test]
     fn run_kdj_dry_run_reads_inputs_and_computes_summary() {
         let responses = ["sh.600000\n", "2026-01-01\n", "1\n", ""];
         let input_rows = rowbinary_input_rows(&[
@@ -1979,6 +3211,99 @@ mod tests {
             query.contains("AND 1 = 1\nORDER BY security_code, trade_date\nFORMAT RowBinary")
         }));
         assert!(!summary.writes_applied);
+    }
+
+    #[test]
+    fn run_ma_dry_run_reads_close_inputs_and_computes_summary() {
+        let responses = ["sh.600000\n", "2026-01-01\n", ""];
+        let rows = (1..=20)
+            .map(|day| {
+                (
+                    "sh.600000",
+                    format!("2026-01-{day:02}"),
+                    if day == 11 { None } else { Some(day as f64) },
+                )
+            })
+            .collect::<Vec<_>>();
+        let row_refs = rows
+            .iter()
+            .map(|(security_code, trade_date, close)| (*security_code, trade_date.as_str(), *close))
+            .collect::<Vec<_>>();
+        let input_rows = ma_rowbinary_input_rows(&row_refs);
+        let mut executor = FakeExecutor::with_responses_and_bytes(&responses, vec![input_rows]);
+        let request = MaRunRequest {
+            request_from: "2026-01-01".to_string(),
+            request_to: "2026-01-20".to_string(),
+            ..MaRunRequest::default()
+        };
+
+        let summary = run_ma(&mut executor, &request).unwrap();
+
+        assert_eq!(summary.input_rows, 20);
+        assert_eq!(summary.output_rows, 20);
+        assert_eq!(summary.valid_close_rows, 19);
+        assert!(summary.null_indicator_rows > 0);
+        assert_eq!(summary.ema_state_source, "full-history");
+        assert!(summary.to_json().contains("\"indicator\":\"ma\""));
+        assert!(executor.queries.iter().any(|query| {
+            query.contains("close_price_forward_adj")
+                && query.contains("ORDER BY security_code, trade_date")
+                && query.contains("FORMAT RowBinary")
+        }));
+    }
+
+    #[test]
+    fn parallel_ma_outputs_match_serial_outputs() {
+        let request = MaRunRequest {
+            request_from: "2026-01-01".to_string(),
+            request_to: "2026-01-20".to_string(),
+            ..MaRunRequest::default()
+        };
+        let groups = vec![
+            MaGroupedInput {
+                security_code: "sh.600000".to_string(),
+                inputs: (1..=20)
+                    .map(|day| MaInput::new(format!("2026-01-{day:02}"), Some(day as f64)))
+                    .collect(),
+            },
+            MaGroupedInput {
+                security_code: "sz.000001".to_string(),
+                inputs: (1..=20)
+                    .map(|day| MaInput::new(format!("2026-01-{day:02}"), Some((day + 20) as f64)))
+                    .collect(),
+            },
+        ];
+
+        let mut serial = calculate_ma_grouped_outputs_serial_with_collection(
+            &request,
+            "2026-01-20",
+            &groups,
+            &HashMap::new(),
+            true,
+        )
+        .unwrap()
+        .rows;
+        let mut parallel = calculate_ma_grouped_outputs_parallel_with_collection(
+            &request,
+            "2026-01-20",
+            &groups,
+            &HashMap::new(),
+            true,
+        )
+        .unwrap()
+        .rows;
+        serial.sort_by(|left, right| {
+            left.security_code
+                .cmp(&right.security_code)
+                .then(left.trade_date.cmp(&right.trade_date))
+        });
+        parallel.sort_by(|left, right| {
+            left.security_code
+                .cmp(&right.security_code)
+                .then(left.trade_date.cmp(&right.trade_date))
+        });
+
+        assert_eq!(parallel, serial);
     }
 
     #[test]
@@ -2056,6 +3381,90 @@ mod tests {
         assert_eq!(executor.byte_inserts.len(), 1);
         assert!(executor.byte_inserts[0].0.contains("FORMAT RowBinary"));
         assert!(executor.byte_inserts[0].1.starts_with(b"\tsh.600000"));
+    }
+
+    #[test]
+    fn run_ma_append_latest_inserts_result_rows() {
+        let responses = ["2026-01-01\n", "", "0\n"];
+        let rows = (1..=20)
+            .map(|day| ("sh.600000", format!("2026-01-{day:02}"), Some(day as f64)))
+            .collect::<Vec<_>>();
+        let row_refs = rows
+            .iter()
+            .map(|(security_code, trade_date, close)| (*security_code, trade_date.as_str(), *close))
+            .collect::<Vec<_>>();
+        let input_rows = ma_rowbinary_input_rows(&row_refs);
+        let mut executor = FakeExecutor::with_responses_and_bytes(&responses, vec![input_rows]);
+        let request = MaRunRequest {
+            request_from: "2026-01-01".to_string(),
+            request_to: "2026-01-20".to_string(),
+            symbols: vec!["sh.600000".to_string()],
+            mode: MaWriteMode::AppendLatest,
+            insert_batch_size: MIN_INSERT_BATCH_SIZE,
+            ..MaRunRequest::default()
+        };
+
+        let summary = run_ma(&mut executor, &request).unwrap();
+
+        assert!(summary.writes_applied);
+        assert_eq!(executor.byte_inserts.len(), 1);
+        assert!(executor.byte_inserts[0].0.contains("calc_stock_ma_daily"));
+        assert!(executor.byte_inserts[0].0.contains("ema2_10_state"));
+        assert!(executor.byte_inserts[0].1.starts_with(b"\tsh.600000"));
+    }
+
+    #[test]
+    fn ma_result_row_writes_clickhouse_rowbinary_encoding() {
+        let row = MaResultRow {
+            security_code: "sh.600000".to_string(),
+            trade_date: "2026-01-03".to_string(),
+            ma_3: Some(1.0),
+            ma_5: None,
+            ma_6: None,
+            ma_10: None,
+            ma_12: None,
+            ma_14: None,
+            ma_20: None,
+            ma_24: None,
+            ma_28: None,
+            ma_57: Some(57.0),
+            ma_60: None,
+            ma_114: None,
+            ma_250: None,
+            avg_ma_3_6_12_24: None,
+            avg_ma_14_28_57_114: Some(2.0),
+            ema1_10_state: Some(3.0),
+            ema2_10: Some(4.0),
+            ema2_10_state: Some(4.0),
+        };
+        let mut bytes = Vec::new();
+
+        row.write_row_binary(&mut bytes).unwrap();
+
+        let mut cursor = 0;
+        assert_eq!(
+            read_rowbinary_string(&bytes, &mut cursor).unwrap(),
+            "sh.600000"
+        );
+        cursor += 2;
+        assert_eq!(
+            read_rowbinary_nullable_f64(&bytes, &mut cursor).unwrap(),
+            Some(1.0)
+        );
+        assert_eq!(
+            read_rowbinary_nullable_f64(&bytes, &mut cursor).unwrap(),
+            None
+        );
+        for _ in 0..7 {
+            assert_eq!(
+                read_rowbinary_nullable_f64(&bytes, &mut cursor).unwrap(),
+                None
+            );
+        }
+        assert_eq!(
+            read_rowbinary_nullable_f64(&bytes, &mut cursor).unwrap(),
+            Some(57.0)
+        );
     }
 
     #[test]
@@ -2181,6 +3590,22 @@ mod tests {
             mode: KdjWriteMode::AppendLatest,
             insert_batch_size: 10,
             ..KdjRunRequest::default()
+        };
+
+        let error = request.validate().unwrap_err();
+
+        assert!(matches!(error, FurnaceIoError::InvalidRequest(_)));
+    }
+
+    #[test]
+    fn ma_request_validation_rejects_non_canonical_price_column_for_writes() {
+        let request = MaRunRequest {
+            request_from: "2026-01-01".to_string(),
+            request_to: "2026-01-03".to_string(),
+            mode: MaWriteMode::AppendLatest,
+            price_column: "close_price".to_string(),
+            insert_batch_size: MIN_INSERT_BATCH_SIZE,
+            ..MaRunRequest::default()
         };
 
         let error = request.validate().unwrap_err();

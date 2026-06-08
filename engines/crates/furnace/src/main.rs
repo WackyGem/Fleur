@@ -5,8 +5,9 @@ use std::process::ExitCode;
 
 use furnace_core::{DEFAULT_D_SMOOTHING, DEFAULT_K_SMOOTHING, DEFAULT_RSV_WINDOW, KdjParams};
 use furnace_io::{
-    ClickHouseCliExecutor, ClickHouseExecutor, DEFAULT_INSERT_BATCH_SIZE, KdjRunRequest,
-    KdjWriteMode, run_kdj,
+    ClickHouseCliExecutor, ClickHouseExecutor, DEFAULT_INPUT_TABLE, DEFAULT_INSERT_BATCH_SIZE,
+    DEFAULT_MA_OUTPUT_TABLE, DEFAULT_MA_PRICE_COLUMN, KdjRunRequest, KdjWriteMode, MaRunRequest,
+    MaWriteMode, run_kdj, run_ma,
 };
 
 const EXIT_USAGE: u8 = 2;
@@ -54,6 +55,13 @@ fn run_with_executor<E: ClickHouseExecutor>(
                 .map_err(|error| CliError::Runtime(error.to_string()))?;
             Ok(summary.to_json())
         }
+        "ma" => {
+            let config = MaCommandConfig::parse(args)?;
+            config.validate()?;
+            let summary = run_ma(executor, &config.to_request())
+                .map_err(|error| CliError::Runtime(error.to_string()))?;
+            Ok(summary.to_json())
+        }
         "--help" | "-h" => {
             print_help();
             Ok(String::new())
@@ -64,7 +72,7 @@ fn run_with_executor<E: ClickHouseExecutor>(
 
 fn print_help() {
     eprintln!(
-        "Usage: furnace kdj --from YYYY-MM-DD --to YYYY-MM-DD [--mode dry-run|append-latest|replace-cascade] [--symbols CODE1,CODE2] [--run-id ID] [--rsv-window 9] [--k-smoothing 3] [--d-smoothing 3] [--insert-batch-size 10000] [--output-format json]"
+        "Usage: furnace kdj --from YYYY-MM-DD --to YYYY-MM-DD [--mode dry-run|append-latest|replace-cascade] [--symbols CODE1,CODE2] [--run-id ID] [--rsv-window 9] [--k-smoothing 3] [--d-smoothing 3] [--insert-batch-size 10000] [--output-format json]\n       furnace ma --from YYYY-MM-DD --to YYYY-MM-DD [--mode dry-run|append-latest|replace-cascade] [--symbols CODE1,CODE2] [--run-id ID] [--input-table fleur_intermediate.int_stock_quotes_daily_adj] [--output-table fleur_calculation.calc_stock_ma_daily] [--price-column close_price_forward_adj] [--insert-batch-size 10000] [--output-format json]"
     );
 }
 
@@ -211,6 +219,118 @@ impl KdjCommandConfig {
     }
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct MaCommandConfig {
+    request_from: String,
+    request_to: String,
+    symbols: Vec<String>,
+    run_id: Option<String>,
+    mode: MaWriteMode,
+    input_table: String,
+    output_table: String,
+    price_column: String,
+    insert_batch_size: usize,
+    output_format: String,
+}
+
+impl MaCommandConfig {
+    fn parse(args: impl IntoIterator<Item = String>) -> Result<Self, CliError> {
+        let mut request_from = None;
+        let mut request_to = None;
+        let mut symbols = Vec::new();
+        let mut run_id = None;
+        let mut mode = MaWriteMode::DryRun;
+        let mut input_table = DEFAULT_INPUT_TABLE.to_string();
+        let mut output_table = DEFAULT_MA_OUTPUT_TABLE.to_string();
+        let mut price_column = DEFAULT_MA_PRICE_COLUMN.to_string();
+        let mut insert_batch_size = DEFAULT_INSERT_BATCH_SIZE;
+        let mut output_format = "json".to_string();
+
+        let mut args = args.into_iter();
+        while let Some(flag) = args.next() {
+            let value = match flag.as_str() {
+                "--from"
+                | "--to"
+                | "--symbols"
+                | "--run-id"
+                | "--mode"
+                | "--input-table"
+                | "--output-table"
+                | "--price-column"
+                | "--insert-batch-size"
+                | "--output-format" => args
+                    .next()
+                    .ok_or_else(|| CliError::Usage(format!("missing value for {flag}")))?,
+                other => return Err(CliError::Usage(format!("unknown option: {other}"))),
+            };
+
+            match flag.as_str() {
+                "--from" => request_from = Some(value),
+                "--to" => request_to = Some(value),
+                "--symbols" => symbols = parse_symbols(&value),
+                "--run-id" => run_id = Some(value),
+                "--mode" => {
+                    mode = MaWriteMode::parse(&value)
+                        .map_err(|error| CliError::Usage(error.to_string()))?
+                }
+                "--input-table" => input_table = value,
+                "--output-table" => output_table = value,
+                "--price-column" => price_column = value,
+                "--insert-batch-size" => {
+                    insert_batch_size = parse_usize_flag("--insert-batch-size", &value)?;
+                }
+                "--output-format" => output_format = value,
+                _ => unreachable!("flag match is exhaustive"),
+            }
+        }
+
+        Ok(Self {
+            request_from: request_from
+                .ok_or_else(|| CliError::Usage("missing required --from".to_string()))?,
+            request_to: request_to
+                .ok_or_else(|| CliError::Usage("missing required --to".to_string()))?,
+            symbols,
+            run_id,
+            mode,
+            input_table,
+            output_table,
+            price_column,
+            insert_batch_size,
+            output_format,
+        })
+    }
+
+    fn validate(&self) -> Result<(), CliError> {
+        if self.output_format != "json" {
+            return Err(CliError::Usage(format!(
+                "unsupported --output-format value: {}",
+                self.output_format
+            )));
+        }
+        if self.request_to < self.request_from {
+            return Err(CliError::Usage(
+                "--to must be greater than or equal to --from".to_string(),
+            ));
+        }
+        Ok(())
+    }
+
+    fn to_request(&self) -> MaRunRequest {
+        MaRunRequest {
+            request_from: self.request_from.clone(),
+            request_to: self.request_to.clone(),
+            symbols: self.symbols.clone(),
+            run_id: self.run_id.clone(),
+            mode: self.mode,
+            input_table: self.input_table.clone(),
+            output_table: self.output_table.clone(),
+            price_column: self.price_column.clone(),
+            insert_batch_size: self.insert_batch_size,
+            ..MaRunRequest::default()
+        }
+    }
+}
+
 fn parse_symbols(value: &str) -> Vec<String> {
     value
         .split(',')
@@ -299,6 +419,16 @@ mod tests {
         bytes
     }
 
+    fn ma_rowbinary_input_rows(rows: &[(&str, &str, f64)]) -> Vec<u8> {
+        let mut bytes = Vec::new();
+        for (security_code, trade_date, close_price) in rows {
+            write_rowbinary_string(&mut bytes, security_code);
+            write_rowbinary_string(&mut bytes, trade_date);
+            write_rowbinary_nullable_f64(&mut bytes, Some(*close_price));
+        }
+        bytes
+    }
+
     fn write_rowbinary_string(bytes: &mut Vec<u8>, value: &str) {
         write_rowbinary_var_uint(bytes, value.len());
         bytes.extend_from_slice(value.as_bytes());
@@ -353,6 +483,41 @@ mod tests {
     }
 
     #[test]
+    fn run_ma_returns_json_summary_for_dry_run() {
+        let responses = ["2026-01-01\n", "2026-01-01\n"];
+        let rows = (1..=20)
+            .map(|day| ("sh.600000", format!("2026-01-{day:02}"), day as f64))
+            .collect::<Vec<_>>();
+        let row_refs = rows
+            .iter()
+            .map(|(security_code, trade_date, close)| (*security_code, trade_date.as_str(), *close))
+            .collect::<Vec<_>>();
+        let input_rows = ma_rowbinary_input_rows(&row_refs);
+        let mut executor = FakeExecutor::with_responses_and_bytes(&responses, vec![input_rows]);
+
+        let output = run_with_executor(
+            args(&[
+                "ma",
+                "--from",
+                "2026-01-01",
+                "--to",
+                "2026-01-20",
+                "--symbols",
+                "sh.600000",
+                "--run-id",
+                "ma-run-1",
+            ]),
+            &mut executor,
+        )
+        .unwrap();
+
+        assert!(output.contains("\"indicator\":\"ma\""));
+        assert!(output.contains("\"symbols_count\":1"));
+        assert!(output.contains("\"mode\":\"dry-run\""));
+        assert!(output.contains("\"run_id\":\"ma-run-1\""));
+    }
+
+    #[test]
     fn run_kdj_rejects_non_canonical_write_parameters() {
         let mut executor = FakeExecutor::with_responses(&[]);
 
@@ -394,5 +559,49 @@ mod tests {
         .unwrap_err();
 
         assert!(matches!(error, CliError::Usage(_)));
+    }
+
+    #[test]
+    fn run_ma_rejects_unknown_output_format() {
+        let mut executor = FakeExecutor::with_responses(&[]);
+
+        let error = run_with_executor(
+            args(&[
+                "ma",
+                "--from",
+                "2026-01-01",
+                "--to",
+                "2026-01-02",
+                "--output-format",
+                "text",
+            ]),
+            &mut executor,
+        )
+        .unwrap_err();
+
+        assert!(matches!(error, CliError::Usage(_)));
+    }
+
+    #[test]
+    fn run_ma_rejects_non_canonical_write_price_column() {
+        let mut executor = FakeExecutor::with_responses(&[]);
+
+        let error = run_with_executor(
+            args(&[
+                "ma",
+                "--from",
+                "2026-01-01",
+                "--to",
+                "2026-01-02",
+                "--mode",
+                "append-latest",
+                "--price-column",
+                "close_price",
+            ]),
+            &mut executor,
+        )
+        .unwrap_err();
+
+        assert!(matches!(error, CliError::Runtime(_)));
     }
 }

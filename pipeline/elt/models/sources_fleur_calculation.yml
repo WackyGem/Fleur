@@ -53,3 +53,96 @@ sources:
           - name: j_value
             description: J value. NULL means RSV is unavailable for the current row.
             data_type: Nullable(Float64)
+
+      - name: calc_stock_ma_daily
+        description: Furnace/Dagster materialized daily Moving Average technical indicator table.
+        config:
+          meta:
+            dagster:
+              asset_key:
+                - fleur_calculation
+                - calc_stock_ma_daily
+        columns:
+          - name: security_code
+            description: "{{ doc('field_security_code') }}"
+            data_type: String
+            data_tests:
+              - not_null
+
+          - name: trade_date
+            description: "{{ doc('field_trade_date') }}"
+            data_type: Date
+            data_tests:
+              - not_null
+
+          - name: ma_3
+            description: 3-valid-close simple moving average based on close_price_forward_adj.
+            data_type: Nullable(Float64)
+
+          - name: ma_5
+            description: 5-valid-close simple moving average based on close_price_forward_adj.
+            data_type: Nullable(Float64)
+
+          - name: ma_6
+            description: 6-valid-close simple moving average based on close_price_forward_adj.
+            data_type: Nullable(Float64)
+
+          - name: ma_10
+            description: 10-valid-close simple moving average based on close_price_forward_adj.
+            data_type: Nullable(Float64)
+
+          - name: ma_12
+            description: 12-valid-close simple moving average based on close_price_forward_adj.
+            data_type: Nullable(Float64)
+
+          - name: ma_14
+            description: 14-valid-close simple moving average based on close_price_forward_adj.
+            data_type: Nullable(Float64)
+
+          - name: ma_20
+            description: 20-valid-close simple moving average based on close_price_forward_adj.
+            data_type: Nullable(Float64)
+
+          - name: ma_24
+            description: 24-valid-close simple moving average based on close_price_forward_adj.
+            data_type: Nullable(Float64)
+
+          - name: ma_28
+            description: 28-valid-close simple moving average based on close_price_forward_adj.
+            data_type: Nullable(Float64)
+
+          - name: ma_57
+            description: 57-valid-close simple moving average based on close_price_forward_adj.
+            data_type: Nullable(Float64)
+
+          - name: ma_60
+            description: 60-valid-close simple moving average based on close_price_forward_adj.
+            data_type: Nullable(Float64)
+
+          - name: ma_114
+            description: 114-valid-close simple moving average based on close_price_forward_adj.
+            data_type: Nullable(Float64)
+
+          - name: ma_250
+            description: 250-valid-close simple moving average based on close_price_forward_adj.
+            data_type: Nullable(Float64)
+
+          - name: avg_ma_3_6_12_24
+            description: Average of ma_3, ma_6, ma_12, and ma_24; NULL when any component is NULL.
+            data_type: Nullable(Float64)
+
+          - name: avg_ma_14_28_57_114
+            description: Average of ma_14, ma_28, ma_57, and ma_114; NULL when any component is NULL.
+            data_type: Nullable(Float64)
+
+          - name: ema1_10_state
+            description: Internal EMA(close, 10) state used by Furnace for exact continuation.
+            data_type: Nullable(Float64)
+
+          - name: ema2_10
+            description: Double EMA EMA(EMA(close_price_forward_adj, 10), 10) with SMA startup.
+            data_type: Nullable(Float64)
+
+          - name: ema2_10_state
+            description: Internal EMA2 state; numerically equal to ema2_10 when available.
+            data_type: Nullable(Float64)

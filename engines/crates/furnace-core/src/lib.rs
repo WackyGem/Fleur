@@ -21,9 +21,17 @@
 //! ```
 
 pub mod indicators;
+pub mod operators;
 
 pub use indicators::kdj::{
     DEFAULT_D_SMOOTHING, DEFAULT_INITIAL_D, DEFAULT_INITIAL_K, DEFAULT_K_SMOOTHING,
     DEFAULT_RSV_WINDOW, KdjError, KdjInput, KdjOutput, KdjParams, KdjState, PriceBar,
     calculate_kdj_next, calculate_kdj_series,
+};
+pub use indicators::moving_average::{
+    DEFAULT_EMA_WINDOW, DEFAULT_MA_WINDOWS, MaError, MaInput, MaOutput, MaParams, MaPreviousState,
+    MaState, calculate_ma_series, calculate_ma_series_from_previous_state,
+};
+pub use operators::{
+    EmaState, RollingSma, SmaSeededEma, calculate_sma_seeded_ema_series, calculate_sma_series,
 };

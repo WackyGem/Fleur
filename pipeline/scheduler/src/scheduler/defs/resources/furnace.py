@@ -32,6 +32,27 @@ class FurnaceKdjCliResult:
     exit_code: int
 
 
+@dataclass(frozen=True)
+class FurnaceMaCliRequest:
+    request_from: str
+    request_to: str
+    mode: str = "dry-run"
+    symbols: Sequence[str] = field(default_factory=tuple)
+    input_table: str = "fleur_intermediate.int_stock_quotes_daily_adj"
+    output_table: str = "fleur_calculation.calc_stock_ma_daily"
+    price_column: str = "close_price_forward_adj"
+    insert_batch_size: int = 10_000
+    run_id: str | None = None
+
+
+@dataclass(frozen=True)
+class FurnaceMaCliResult:
+    summary: Mapping[str, Any]
+    stdout: str
+    stderr: str
+    exit_code: int
+
+
 class FurnaceCliResource(dg.ConfigurableResource):
     binary_path: str = "engines/target/debug/furnace"
     working_dir: str = "."
@@ -66,6 +87,34 @@ class FurnaceCliResource(dg.ConfigurableResource):
             exit_code=completed.returncode,
         )
 
+    def run_ma(self, request: FurnaceMaCliRequest) -> FurnaceMaCliResult:
+        command = self.command_for_ma_request(request)
+        try:
+            completed = subprocess.run(
+                command,
+                cwd=self._resolved_working_dir(),
+                env=self._subprocess_env(),
+                text=True,
+                capture_output=True,
+                timeout=self.timeout_seconds,
+                check=False,
+            )
+        except subprocess.TimeoutExpired as error:
+            msg = f"Furnace CLI timed out after {self.timeout_seconds} seconds"
+            raise RuntimeError(msg) from error
+
+        if completed.returncode != 0:
+            msg = f"Furnace CLI failed with exit code {completed.returncode}: {completed.stderr}"
+            raise RuntimeError(msg)
+
+        summary = self._parse_summary(completed.stdout)
+        return FurnaceMaCliResult(
+            summary=summary,
+            stdout=completed.stdout,
+            stderr=completed.stderr,
+            exit_code=completed.returncode,
+        )
+
     def command_for_request(self, request: FurnaceKdjCliRequest) -> list[str]:
         command = [
             self._resolved_binary_path(),
@@ -82,6 +131,33 @@ class FurnaceCliResource(dg.ConfigurableResource):
             str(request.k_smoothing),
             "--d-smoothing",
             str(request.d_smoothing),
+            "--insert-batch-size",
+            str(request.insert_batch_size),
+            "--output-format",
+            "json",
+        ]
+        if request.symbols:
+            command.extend(["--symbols", ",".join(request.symbols)])
+        if request.run_id is not None:
+            command.extend(["--run-id", request.run_id])
+        return command
+
+    def command_for_ma_request(self, request: FurnaceMaCliRequest) -> list[str]:
+        command = [
+            self._resolved_binary_path(),
+            "ma",
+            "--from",
+            request.request_from,
+            "--to",
+            request.request_to,
+            "--mode",
+            request.mode,
+            "--input-table",
+            request.input_table,
+            "--output-table",
+            request.output_table,
+            "--price-column",
+            request.price_column,
             "--insert-batch-size",
             str(request.insert_batch_size),
             "--output-format",

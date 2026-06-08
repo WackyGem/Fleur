@@ -53,12 +53,15 @@ def test_registered_definitions_match_source_bundles() -> None:
     assert "stg_ths__limit_up_pool_compacted" in registered_asset_keys
     assert "mart_stock_quotes_daily" in registered_asset_keys
     assert "fleur_calculation/calc_stock_kdj_daily" in registered_asset_keys
-    assert len(registered_asset_keys) == len(expected_assets | expected_clickhouse_assets) + 27
+    assert "fleur_calculation/calc_stock_ma_daily" in registered_asset_keys
+    assert len(registered_asset_keys) == len(expected_assets | expected_clickhouse_assets) + 29
     assert {job.name for job in loaded_defs.jobs or []} == (
         expected_jobs | expected_clickhouse_jobs | expected_dbt_jobs | expected_furnace_jobs
     )
     assert {schedule.name for schedule in loaded_defs.schedules or []} == (
-        expected_schedules | expected_dbt_schedules | {"furnace__kdj_daily_schedule"}
+        expected_schedules
+        | expected_dbt_schedules
+        | {"furnace__kdj_daily_schedule", "furnace__ma_daily_schedule"}
     )
     assert {sensor.name for sensor in loaded_defs.sensors or []} == {"slack_asset_failure_sensor"}
     assert set(loaded_defs.resources) >= {
@@ -93,16 +96,19 @@ def test_dbt_assets_are_registered_with_raw_lineage_and_checks() -> None:
     loaded_asset_keys = {key for asset in loaded_defs.assets or [] for key in asset_keys(asset)}
     stg_ths_key = dg.AssetKey("stg_ths__limit_up_pool_compacted")
     int_kdj_key = dg.AssetKey("int_stock_kdj_daily")
+    int_ma_key = dg.AssetKey("int_stock_ma_daily")
     mart_key = dg.AssetKey("mart_stock_quotes_daily")
     dbt_asset_def = next(asset for asset in loaded_defs.assets or [] if stg_ths_key in asset.keys)
 
-    assert len(dbt_asset_def.keys) == 26
-    assert len(dbt_asset_def.check_keys) == 210
+    assert len(dbt_asset_def.keys) == 27
+    assert len(dbt_asset_def.check_keys) == 214
     assert "stg_ths__limit_up_pool_compacted" in loaded_asset_keys
     assert "int_stock_kdj_daily" in loaded_asset_keys
+    assert "int_stock_ma_daily" in loaded_asset_keys
     assert "mart_stock_quotes_daily" in loaded_asset_keys
     assert dbt_asset_def.specs_by_key[stg_ths_key].group_name == "dbt_staging"
     assert dbt_asset_def.specs_by_key[int_kdj_key].group_name == "dbt_intermediate"
+    assert dbt_asset_def.specs_by_key[int_ma_key].group_name == "dbt_intermediate"
     assert dbt_asset_def.specs_by_key[mart_key].group_name == "dbt_marts"
     assert (
         dbt_asset_def.tags_by_key[stg_ths_key].items()
@@ -117,6 +123,9 @@ def test_dbt_assets_are_registered_with_raw_lineage_and_checks() -> None:
     }
     assert {key.to_user_string() for key in dbt_asset_def.asset_deps[int_kdj_key]} == {
         "fleur_calculation/calc_stock_kdj_daily"
+    }
+    assert {key.to_user_string() for key in dbt_asset_def.asset_deps[int_ma_key]} == {
+        "fleur_calculation/calc_stock_ma_daily"
     }
     assert {job.name for job in DBT_JOBS} == {
         "dbt__daily_build_job",
