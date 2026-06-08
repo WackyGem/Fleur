@@ -32,6 +32,7 @@ mono-fleur/
 - 运行报告：`docs/jobs/reports/`
 - 接口、数据字典和样例：`docs/references/`
 - 项目 skills：`docs/skills/`
+- Rust engines 文档地图：`engines/README.md`
 
 ## Python 与工作区
 
@@ -59,13 +60,32 @@ uv sync --all-packages --all-groups
 - Rust workspace 路径：`engines/`
 - 使用 Cargo 管理 Rust crate，不放入 `pipeline/` 的 uv 工作区。
 - 所有 Rust / Cargo 命令在 `engines/` 目录下执行。
-- 初始 crates：
+- engines 文档地图：`engines/README.md`
+- Furnace 设计入口：`docs/RFC/0016-rust-furnace-compute-engine.md`
+- Furnace KDJ 实施与性能计划：`docs/plans/0027-furnace-rsv-kdj-technical-indicators-implementation-plan.md`、`docs/plans/0028-furnace-kdj-parallel-performance-implementation-plan.md`
+- Furnace 运行报告：`docs/jobs/reports/2026-06-07-furnace-kdj-smoke-run.md`、`docs/jobs/reports/2026-06-07-furnace-kdj-performance-baseline.md`、`docs/jobs/reports/2026-06-07-furnace-kdj-parallel-optimization.md`
+- 当前 crates：
 
 | Crate | 路径 | 类型 | 说明 |
 |-------|------|------|------|
-| furnace | `engines/crates/furnace/` | binary | Rust 计算引擎 CLI 入口 |
-| furnace-core | `engines/crates/furnace-core/` | library | 指标计算核心和领域模型 |
-| furnace-io | `engines/crates/furnace-io/` | library | ClickHouse、Parquet、Arrow 等 I/O 适配 |
+| furnace | `engines/crates/furnace/` | binary | `furnace kdj` CLI 入口、参数解析、请求校验和 JSON summary 输出 |
+| furnace-core | `engines/crates/furnace-core/` | library | KDJ 参数、输入/输出模型、单证券 RSV/KDJ 纯计算；不依赖 ClickHouse、Dagster、dbt、Rayon 或环境变量 |
+| furnace-io | `engines/crates/furnace-io/` | library | ClickHouse DDL/SQL、`clickhouse-client` 执行、RowBinary 读写、按证券并行调度、staging/partition replace 和运行摘要 |
+
+- Rust API 文档：
+
+```bash
+make rust-doc
+make rust-doc-serve
+```
+
+### Furnace 边界
+
+- 指标公式只放在 `furnace-core`，不要在 Python asset、dbt SQL 或 ClickHouse SQL 中重写 RSV/KDJ 递推公式。
+- ClickHouse、RowBinary、Rayon 并行、staging 和分区替换逻辑放在 `furnace-io`。
+- Dagster 通过 `pipeline/scheduler/src/scheduler/defs/resources/furnace.py` 调用 Rust CLI，传入运行参数并读取 JSON summary。
+- 当前 Furnace 输出表：`fleur_calculation.calc_stock_kdj_daily`；dbt wrapper：`fleur_intermediate.int_stock_kdj_daily`。
+- 生产 KDJ 写入只允许 canonical 参数 `KDJ(9,3,3)`；历史修正使用 `replace-cascade` 并级联到受影响证券的最新输入交易日。
 
 ## Dagster（scheduler）
 
