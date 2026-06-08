@@ -94,6 +94,7 @@ def _metadata_from_summary(summary: Mapping[str, Any]) -> Mapping[str, Any]:
         "state_source": summary.get("state_source"),
         "staging_validation": summary.get("staging_validation", {}),
         "partition_replace": summary.get("partition_replace", {}),
+        "performance_metrics": summary.get("performance_metrics", {}),
         "furnace_exit_code": 0,
         "writes_applied": summary.get("writes_applied", False),
     }

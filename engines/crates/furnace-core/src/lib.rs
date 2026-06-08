@@ -1,10 +1,9 @@
-//! Pure financial indicator calculations for the Furnace compute engine.
+//! Furnace 计算引擎的纯金融指标计算库。
 //!
-//! This crate contains deterministic, reusable indicator functions. It does
-//! not connect to ClickHouse, read environment variables, or depend on
-//! Dagster/dbt runtime concepts.
+//! 本 crate 只提供确定性、可复用的指标函数；不连接 ClickHouse，不读取环境变量，
+//! 也不依赖 Dagster/dbt 的运行时概念。
 //!
-//! # Examples
+//! # 示例
 //!
 //! ```
 //! use furnace_core::{calculate_kdj_series, KdjInput, KdjParams};

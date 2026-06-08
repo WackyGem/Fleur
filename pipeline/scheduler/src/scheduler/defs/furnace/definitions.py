@@ -13,6 +13,7 @@ def build_furnace_defs(
     binary_path: str = "engines/target/debug/furnace",
     working_dir: str = ".",
     daily_cron_schedule: str = "45 18 * * *",
+    rayon_num_threads: int | None = 8,
 ) -> dg.Definitions:
     jobs = build_furnace_jobs()
     return dg.Definitions(
@@ -30,6 +31,7 @@ def build_furnace_defs(
             "furnace_cli": FurnaceCliResource(
                 binary_path=binary_path,
                 working_dir=working_dir,
+                rayon_num_threads=rayon_num_threads,
             )
         },
     )

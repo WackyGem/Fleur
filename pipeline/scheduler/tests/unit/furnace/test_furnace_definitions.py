@@ -106,9 +106,11 @@ def test_furnace_metadata_maps_cli_summary_to_materialization_metadata() -> None
             "state_source": "previous_materialization",
             "staging_validation": {"status": "passed"},
             "partition_replace": {"status": "not_applied"},
+            "performance_metrics": {"parallelism": "rayon", "compute_ms": 12},
             "writes_applied": False,
         }
     )
 
     assert metadata["effective_output_range"] == {"from": "2026-01-01", "to": "2026-01-02"}
     assert metadata["output_rows"] == 20
+    assert metadata["performance_metrics"] == {"parallelism": "rayon", "compute_ms": 12}

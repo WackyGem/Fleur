@@ -244,12 +244,21 @@ mod tests {
     #[derive(Debug)]
     struct FakeExecutor {
         responses: Vec<String>,
+        byte_responses: Vec<Vec<u8>>,
     }
 
     impl FakeExecutor {
         fn with_responses(responses: &[&str]) -> Self {
             Self {
                 responses: responses.iter().map(ToString::to_string).collect(),
+                byte_responses: Vec::new(),
+            }
+        }
+
+        fn with_responses_and_bytes(responses: &[&str], byte_responses: Vec<Vec<u8>>) -> Self {
+            Self {
+                responses: responses.iter().map(ToString::to_string).collect(),
+                byte_responses,
             }
         }
     }
@@ -262,19 +271,65 @@ mod tests {
             Ok(self.responses.remove(0))
         }
 
+        fn query_bytes(&mut self, _sql: &str) -> Result<Vec<u8>, FurnaceIoError> {
+            if self.byte_responses.is_empty() {
+                return Ok(Vec::new());
+            }
+            Ok(self.byte_responses.remove(0))
+        }
+
         fn insert_tsv(&mut self, _sql: &str, _tsv: &str) -> Result<(), FurnaceIoError> {
             Ok(())
+        }
+
+        fn insert_bytes(&mut self, _sql: &str, _bytes: &[u8]) -> Result<(), FurnaceIoError> {
+            Ok(())
+        }
+    }
+
+    fn rowbinary_input_rows(rows: &[(&str, &str, f64, f64, f64)]) -> Vec<u8> {
+        let mut bytes = Vec::new();
+        for (security_code, trade_date, high_price, low_price, close_price) in rows {
+            write_rowbinary_string(&mut bytes, security_code);
+            write_rowbinary_string(&mut bytes, trade_date);
+            write_rowbinary_nullable_f64(&mut bytes, Some(*high_price));
+            write_rowbinary_nullable_f64(&mut bytes, Some(*low_price));
+            write_rowbinary_nullable_f64(&mut bytes, Some(*close_price));
+        }
+        bytes
+    }
+
+    fn write_rowbinary_string(bytes: &mut Vec<u8>, value: &str) {
+        write_rowbinary_var_uint(bytes, value.len());
+        bytes.extend_from_slice(value.as_bytes());
+    }
+
+    fn write_rowbinary_var_uint(bytes: &mut Vec<u8>, mut value: usize) {
+        while value >= 0x80 {
+            bytes.push((value as u8) | 0x80);
+            value >>= 7;
+        }
+        bytes.push(value as u8);
+    }
+
+    fn write_rowbinary_nullable_f64(bytes: &mut Vec<u8>, value: Option<f64>) {
+        match value {
+            Some(value) => {
+                bytes.push(0);
+                bytes.extend_from_slice(&value.to_le_bytes());
+            }
+            None => bytes.push(1),
         }
     }
 
     #[test]
     fn run_kdj_returns_json_summary_for_dry_run() {
-        let responses = [
-            "2026-01-01\n",
-            "0\n",
-            "sh.600000\t2026-01-01\t10\t8\t9\nsz.000001\t2026-01-01\t11\t9\t10\n",
-        ];
-        let mut executor = FakeExecutor::with_responses(&responses);
+        let responses = ["2026-01-01\n", "0\n"];
+        let input_rows = rowbinary_input_rows(&[
+            ("sh.600000", "2026-01-01", 10.0, 8.0, 9.0),
+            ("sz.000001", "2026-01-01", 11.0, 9.0, 10.0),
+        ]);
+        let mut executor = FakeExecutor::with_responses_and_bytes(&responses, vec![input_rows]);
 
         let output = run_with_executor(
             args(&[

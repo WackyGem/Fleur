@@ -1,44 +1,44 @@
-//! RSV/KDJ indicator calculation.
+//! RSV/KDJ 指标计算。
 
 use std::collections::VecDeque;
 use std::error::Error;
 use std::fmt;
 
-/// Default RSV rolling window for the first Furnace KDJ implementation.
+/// Furnace 首版 KDJ 实现使用的默认 RSV 滚动窗口。
 pub const DEFAULT_RSV_WINDOW: u16 = 9;
 
-/// Default K smoothing parameter for the first Furnace KDJ implementation.
+/// Furnace 首版 KDJ 实现使用的默认 K 平滑参数。
 pub const DEFAULT_K_SMOOTHING: u16 = 3;
 
-/// Default D smoothing parameter for the first Furnace KDJ implementation.
+/// Furnace 首版 KDJ 实现使用的默认 D 平滑参数。
 pub const DEFAULT_D_SMOOTHING: u16 = 3;
 
-/// Default initial K value used only when no prior state exists.
+/// 无历史状态时使用的默认初始 K 值。
 pub const DEFAULT_INITIAL_K: f64 = 50.0;
 
-/// Default initial D value used only when no prior state exists.
+/// 无历史状态时使用的默认初始 D 值。
 pub const DEFAULT_INITIAL_D: f64 = 50.0;
 
-/// Input price row for a single security and trading date.
+/// 单只证券在单个交易日的价格输入行。
 ///
-/// Inputs to [`calculate_kdj_series`] must be sorted by `trade_date` in
-/// strictly ascending order and must all belong to the same security series.
+/// 传入 [`calculate_kdj_series`] 的输入必须按 `trade_date` 严格升序排列，
+/// 并且全部属于同一只证券的时间序列。
 #[derive(Debug, Clone, PartialEq)]
 pub struct KdjInput {
-    /// Trading date encoded as an ISO-like sortable date string.
+    /// 交易日期，使用类似 ISO 日期的可排序字符串表示。
     pub trade_date: String,
-    /// Forward-adjusted high price.
+    /// 前复权最高价。
     pub high_price: Option<f64>,
-    /// Forward-adjusted low price.
+    /// 前复权最低价。
     pub low_price: Option<f64>,
-    /// Forward-adjusted close price.
+    /// 前复权收盘价。
     pub close_price: Option<f64>,
 }
 
 impl KdjInput {
-    /// Creates a new KDJ input row.
+    /// 创建一行新的 KDJ 输入数据。
     ///
-    /// # Examples
+    /// # 示例
     ///
     /// ```
     /// use furnace_core::KdjInput;
@@ -61,24 +61,24 @@ impl KdjInput {
     }
 }
 
-/// Valid price bar retained in the RSV rolling window.
+/// RSV 滚动窗口中保留的有效价格柱。
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct PriceBar {
-    /// High price.
+    /// 最高价。
     pub high_price: f64,
-    /// Low price.
+    /// 最低价。
     pub low_price: f64,
-    /// Close price.
+    /// 收盘价。
     pub close_price: f64,
 }
 
 impl PriceBar {
-    /// Creates a validated price bar.
+    /// 创建一根已通过校验的价格柱。
     ///
-    /// # Errors
+    /// # 错误
     ///
-    /// Returns [`KdjError::InvalidPrice`] when any price is non-finite or
-    /// `high_price < low_price`.
+    /// 当任一价格不是有限数，或 `high_price < low_price` 时，
+    /// 返回 [`KdjError::InvalidPrice`]。
     pub fn new(high_price: f64, low_price: f64, close_price: f64) -> Result<Self, KdjError> {
         let bar = Self {
             high_price,
@@ -99,18 +99,18 @@ impl PriceBar {
     }
 }
 
-/// KDJ parameter set.
+/// KDJ 参数集。
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct KdjParams {
-    /// RSV rolling window length.
+    /// RSV 滚动窗口长度。
     pub rsv_window: u16,
-    /// K smoothing denominator.
+    /// K 值平滑分母。
     pub k_smoothing: u16,
-    /// D smoothing denominator.
+    /// D 值平滑分母。
     pub d_smoothing: u16,
-    /// Initial K used only when no prior valid K/D state exists.
+    /// 仅在不存在有效历史 K/D 状态时使用的初始 K 值。
     pub initial_k: f64,
-    /// Initial D used only when no prior valid K/D state exists.
+    /// 仅在不存在有效历史 K/D 状态时使用的初始 D 值。
     pub initial_d: f64,
 }
 
@@ -127,7 +127,7 @@ impl Default for KdjParams {
 }
 
 impl KdjParams {
-    /// Returns true when the parameter set is the first production canonical KDJ set.
+    /// 判断参数是否为首个生产标准 KDJ 参数集。
     pub fn is_canonical(self) -> bool {
         self.rsv_window == DEFAULT_RSV_WINDOW
             && self.k_smoothing == DEFAULT_K_SMOOTHING
@@ -155,34 +155,34 @@ impl KdjParams {
     }
 }
 
-/// Recursive K/D state from the latest valid KDJ output.
+/// 从最近一次有效 KDJ 输出延续下来的递归 K/D 状态。
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct KdjState {
-    /// Latest valid K value.
+    /// 最近一次有效 K 值。
     pub k_value: f64,
-    /// Latest valid D value.
+    /// 最近一次有效 D 值。
     pub d_value: f64,
 }
 
 impl KdjState {
-    /// Creates a new K/D state.
+    /// 创建新的 K/D 状态。
     pub fn new(k_value: f64, d_value: f64) -> Self {
         Self { k_value, d_value }
     }
 }
 
-/// KDJ output for one input row.
+/// 单行输入对应的 KDJ 输出。
 #[derive(Debug, Clone, PartialEq)]
 pub struct KdjOutput {
-    /// Trading date copied from the input row.
+    /// 从输入行复制的交易日期。
     pub trade_date: String,
-    /// RSV value. `None` means the row has no complete valid RSV window.
+    /// RSV 值。`None` 表示该行尚无完整有效的 RSV 窗口。
     pub rsv: Option<f64>,
-    /// K value. `None` means RSV is unavailable for this row.
+    /// K 值。`None` 表示该行无法计算 RSV。
     pub k_value: Option<f64>,
-    /// D value. `None` means RSV is unavailable for this row.
+    /// D 值。`None` 表示该行无法计算 RSV。
     pub d_value: Option<f64>,
-    /// J value. `None` means RSV is unavailable for this row.
+    /// J 值。`None` 表示该行无法计算 RSV。
     pub j_value: Option<f64>,
 }
 
@@ -198,19 +198,19 @@ impl KdjOutput {
     }
 }
 
-/// Errors returned by KDJ calculation.
+/// KDJ 计算返回的错误。
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum KdjError {
-    /// Parameter values are not usable.
+    /// 参数值不可用。
     InvalidParams(&'static str),
-    /// Input rows are not strictly sorted by trading date.
+    /// 输入行没有按交易日期严格升序排列。
     NonIncreasingTradeDate {
-        /// Previous trading date.
+        /// 前一行交易日期。
         previous: String,
-        /// Current trading date.
+        /// 当前行交易日期。
         current: String,
     },
-    /// A price bar has non-finite values or `high_price < low_price`.
+    /// 价格柱包含非有限数，或满足 `high_price < low_price`。
     InvalidPrice,
 }
 
@@ -232,20 +232,17 @@ impl fmt::Display for KdjError {
 
 impl Error for KdjError {}
 
-/// Calculates a single KDJ step from a complete RSV window and prior state.
+/// 基于完整 RSV 窗口和上一轮状态计算单步 KDJ。
 ///
-/// This function is useful for incremental callers that already maintain the
-/// RSV rolling window and previous K/D state.
+/// 适用于已经自行维护 RSV 滚动窗口和上一轮 K/D 状态的增量调用方。
 ///
-/// If the highest high equals the lowest low, RSV is set to `50.0` following
-/// common market-data convention.
+/// 当窗口内最高价等于最低价时，按常见行情数据约定将 RSV 置为 `50.0`。
 ///
-/// # Errors
+/// # 错误
 ///
-/// Returns [`KdjError`] when parameters are invalid or the price window is
-/// empty/contains invalid prices.
+/// 当参数无效、价格窗口为空或窗口内包含非法价格时，返回 [`KdjError`]。
 ///
-/// # Examples
+/// # 示例
 ///
 /// ```
 /// use furnace_core::{calculate_kdj_next, KdjParams, KdjState, PriceBar};
@@ -308,17 +305,15 @@ pub fn calculate_kdj_next(
     Ok((rsv, KdjState { k_value, d_value }, j_value))
 }
 
-/// Calculates KDJ outputs for one sorted security time series.
+/// 为单只证券的有序时间序列计算 KDJ 输出。
 ///
-/// Invalid or incomplete rows emit `None` indicator fields and do not advance
-/// the recursive K/D state. A prior `previous_state` should be supplied for
-/// daily incremental runs; when it is `None`, `initial_k=50` and `initial_d=50`
-/// are used only for the first valid RSV.
+/// 无效或不完整的输入行会输出 `None` 指标字段，并且不会推进递归 K/D 状态。
+/// 日级增量运行应传入上一轮 `previous_state`；当其为 `None` 时，
+/// `initial_k=50` 和 `initial_d=50` 只用于第一次有效 RSV。
 ///
-/// # Errors
+/// # 错误
 ///
-/// Returns [`KdjError`] when parameters are invalid or input `trade_date`
-/// values are not strictly increasing.
+/// 当参数无效，或输入的 `trade_date` 未严格递增时，返回 [`KdjError`]。
 pub fn calculate_kdj_series(
     inputs: &[KdjInput],
     params: KdjParams,

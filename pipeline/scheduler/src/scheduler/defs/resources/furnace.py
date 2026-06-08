@@ -36,6 +36,7 @@ class FurnaceCliResource(dg.ConfigurableResource):
     binary_path: str = "engines/target/debug/furnace"
     working_dir: str = "."
     timeout_seconds: int = 300
+    rayon_num_threads: int | None = 8
 
     def run_kdj(self, request: FurnaceKdjCliRequest) -> FurnaceKdjCliResult:
         command = self.command_for_request(request)
@@ -112,9 +113,11 @@ class FurnaceCliResource(dg.ConfigurableResource):
             return working_dir
         return Path.cwd() / working_dir
 
-    @staticmethod
-    def _subprocess_env() -> dict[str, str]:
-        return dict(os.environ)
+    def _subprocess_env(self) -> dict[str, str]:
+        env = dict(os.environ)
+        if self.rayon_num_threads is not None and "RAYON_NUM_THREADS" not in env:
+            env["RAYON_NUM_THREADS"] = str(self.rayon_num_threads)
+        return env
 
     @staticmethod
     def _parse_summary(stdout: str) -> Mapping[str, Any]:

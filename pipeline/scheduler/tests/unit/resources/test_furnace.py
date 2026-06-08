@@ -66,6 +66,56 @@ def test_furnace_cli_resource_parses_json_summary(
     assert result.summary["output_rows"] == 10
 
 
+def test_furnace_cli_resource_injects_default_rayon_threads(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    captured_env: dict[str, str] = {}
+
+    def fake_run(*args: Any, **kwargs: Any) -> subprocess.CompletedProcess[str]:
+        captured_env.update(kwargs["env"])
+        return subprocess.CompletedProcess(
+            args=args[0],
+            returncode=0,
+            stdout='{"request_from":"2026-01-01","output_rows":10}',
+            stderr="",
+        )
+
+    monkeypatch.delenv("RAYON_NUM_THREADS", raising=False)
+    monkeypatch.setattr("scheduler.defs.resources.furnace.subprocess.run", fake_run)
+    resource = FurnaceCliResource(binary_path="/bin/furnace", working_dir="/tmp")
+
+    resource.run_kdj(
+        FurnaceKdjCliRequest(request_from="2026-01-01", request_to="2026-01-02")
+    )
+
+    assert captured_env["RAYON_NUM_THREADS"] == "8"
+
+
+def test_furnace_cli_resource_respects_existing_rayon_threads(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    captured_env: dict[str, str] = {}
+
+    def fake_run(*args: Any, **kwargs: Any) -> subprocess.CompletedProcess[str]:
+        captured_env.update(kwargs["env"])
+        return subprocess.CompletedProcess(
+            args=args[0],
+            returncode=0,
+            stdout='{"request_from":"2026-01-01","output_rows":10}',
+            stderr="",
+        )
+
+    monkeypatch.setenv("RAYON_NUM_THREADS", "4")
+    monkeypatch.setattr("scheduler.defs.resources.furnace.subprocess.run", fake_run)
+    resource = FurnaceCliResource(binary_path="/bin/furnace", working_dir="/tmp")
+
+    resource.run_kdj(
+        FurnaceKdjCliRequest(request_from="2026-01-01", request_to="2026-01-02")
+    )
+
+    assert captured_env["RAYON_NUM_THREADS"] == "4"
+
+
 def test_furnace_cli_resource_rejects_invalid_json_stdout(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:

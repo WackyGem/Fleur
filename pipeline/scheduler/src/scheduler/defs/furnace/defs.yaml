@@ -4,3 +4,4 @@ attributes:
   binary_path: "engines/target/debug/furnace"
   working_dir: "."
   daily_cron_schedule: "45 18 * * *"
+  rayon_num_threads: 8

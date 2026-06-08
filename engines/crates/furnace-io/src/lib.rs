@@ -1,41 +1,43 @@
-//! ClickHouse I/O boundary for Furnace.
+//! Furnace 的 ClickHouse I/O 边界。
 //!
-//! This crate owns database-facing table names, DDL, SQL generation,
-//! `clickhouse-client` execution, and run summaries. Pure indicator formulas
-//! remain in `furnace-core`.
+//! 本 crate 负责面向数据库的表名、DDL、SQL 生成、`clickhouse-client` 执行以及运行摘要。
+//! 纯指标公式保留在 `furnace-core` 中。
 
-use std::collections::{BTreeMap, BTreeSet, HashMap};
+use std::collections::{BTreeSet, HashMap};
 use std::env;
 use std::error::Error;
 use std::fmt;
-use std::io::Write;
+use std::io::Write as IoWrite;
 use std::process::{Command, Stdio};
+use std::str;
+use std::time::{Duration, Instant};
 
 use furnace_core::{KdjInput, KdjParams, KdjState, calculate_kdj_series};
+use rayon::prelude::*;
 
-/// Default dbt intermediate input table for forward-adjusted daily prices.
+/// 默认的 dbt 中间层输入表，存放前复权日行情价格。
 pub const DEFAULT_INPUT_TABLE: &str = "fleur_intermediate.int_stock_quotes_daily_adj";
 
-/// Furnace-owned calculation output table for daily KDJ.
+/// Furnace 负责写入的日频 KDJ 计算结果表。
 pub const DEFAULT_KDJ_OUTPUT_TABLE: &str = "fleur_calculation.calc_stock_kdj_daily";
 
-/// Default target rows per ClickHouse insert batch.
+/// ClickHouse 单批插入的默认目标行数。
 pub const DEFAULT_INSERT_BATCH_SIZE: usize = 10_000;
 
-/// Minimum insert batch size allowed for production write modes.
+/// 生产写入模式允许的最小插入批次行数。
 pub const MIN_INSERT_BATCH_SIZE: usize = 1_000;
 
-/// Default warmup multiple for KDJ state and RSV window construction.
+/// 构造 KDJ 状态和 RSV 窗口时使用的默认预热倍数。
 pub const DEFAULT_WARMUP_MULTIPLE: u16 = 3;
 
-/// Returns the production ClickHouse database creation SQL.
+/// 返回生产 ClickHouse 数据库的创建 SQL。
 pub fn create_calculation_database_sql() -> &'static str {
     "CREATE DATABASE IF NOT EXISTS fleur_calculation"
 }
 
-/// Returns the production ClickHouse DDL for `calc_stock_kdj_daily`.
+/// 返回 `calc_stock_kdj_daily` 生产表的 ClickHouse DDL。
 ///
-/// # Examples
+/// # 示例
 ///
 /// ```
 /// let ddl = furnace_io::create_kdj_output_table_sql();
@@ -63,10 +65,9 @@ ORDER BY (trade_date, security_code)"
     )
 }
 
-/// Builds a deterministic temporary staging table name from a run id.
+/// 根据运行 ID 构造确定性的临时 staging 表名。
 ///
-/// Non-alphanumeric characters are normalized to `_` so the result is safe to
-/// interpolate as a ClickHouse identifier suffix.
+/// 非字母数字字符会被规范化为 `_`，确保结果可以安全地作为 ClickHouse 标识符后缀。
 pub fn kdj_staging_table_name(run_id: &str) -> String {
     let normalized = run_id
         .chars()
@@ -89,7 +90,7 @@ pub fn kdj_staging_table_name(run_id: &str) -> String {
     format!("fleur_calculation.calc_stock_kdj_daily__staging__{suffix}")
 }
 
-/// Builds SQL for creating a staging table with the same schema as production.
+/// 构造 staging 表创建 SQL，表结构与生产表一致。
 pub fn create_kdj_staging_table_sql(staging_table: &str) -> String {
     format!(
         "\
@@ -101,34 +102,34 @@ ORDER BY (trade_date, security_code)"
     )
 }
 
-/// Builds SQL for replacing one yearly partition from staging into production.
+/// 构造将单个年份分区从 staging 表替换到生产表的 SQL。
 pub fn replace_kdj_partition_sql(staging_table: &str, year: u16) -> String {
     format!("ALTER TABLE {DEFAULT_KDJ_OUTPUT_TABLE} REPLACE PARTITION {year} FROM {staging_table}")
 }
 
-/// Builds SQL for dropping a temporary staging table.
+/// 构造删除临时 staging 表的 SQL。
 pub fn drop_kdj_staging_table_sql(staging_table: &str) -> String {
     format!("DROP TABLE IF EXISTS {staging_table}")
 }
 
-/// KDJ write mode requested by the CLI or Dagster.
+/// CLI 或 Dagster 请求的 KDJ 写入模式。
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum KdjWriteMode {
-    /// Compute and summarize without writing ClickHouse.
+    /// 只计算并汇总结果，不写入 ClickHouse。
     DryRun,
-    /// Append latest range when no same-or-later result already exists.
+    /// 当目标表不存在同日或更晚结果时，追加最新区间。
     AppendLatest,
-    /// Recompute a historical range and cascade to latest affected input.
+    /// 重算历史区间，并级联到受影响的最新输入日期。
     ReplaceCascade,
 }
 
 impl KdjWriteMode {
-    /// Parses the CLI spelling for this mode.
+    /// 解析该模式在 CLI 中使用的拼写。
     ///
-    /// # Errors
+    /// # 错误
     ///
-    /// Returns [`FurnaceIoError::InvalidRequest`] when `value` is not one of
-    /// `dry-run`, `append-latest`, or `replace-cascade`.
+    /// 当 `value` 不是 `dry-run`、`append-latest` 或 `replace-cascade` 时，
+    /// 返回 [`FurnaceIoError::InvalidRequest`]。
     pub fn parse(value: &str) -> Result<Self, FurnaceIoError> {
         match value {
             "dry-run" => Ok(Self::DryRun),
@@ -140,7 +141,7 @@ impl KdjWriteMode {
         }
     }
 
-    /// Returns the CLI spelling for this mode.
+    /// 返回该模式在 CLI 中使用的拼写。
     pub fn as_str(self) -> &'static str {
         match self {
             Self::DryRun => "dry-run",
@@ -149,38 +150,37 @@ impl KdjWriteMode {
         }
     }
 
-    /// Returns true when the mode writes production ClickHouse data.
+    /// 判断该模式是否会写入生产 ClickHouse 数据。
     pub fn writes_applied(self) -> bool {
         !matches!(self, Self::DryRun)
     }
 }
 
-/// Request for one Furnace KDJ run.
+/// 单次 Furnace KDJ 运行请求。
 #[derive(Debug, Clone, PartialEq)]
 pub struct KdjRunRequest {
-    /// Requested output start date.
+    /// 请求输出的起始日期。
     pub request_from: String,
-    /// Requested output end date.
+    /// 请求输出的结束日期。
     pub request_to: String,
-    /// Optional security-code allowlist. Empty means infer from input rows.
+    /// 可选证券代码白名单；为空时从输入行中推断。
     pub symbols: Vec<String>,
-    /// Run identifier from Dagster or Furnace CLI.
+    /// 来自 Dagster 或 Furnace CLI 的运行标识。
     pub run_id: Option<String>,
-    /// Write mode.
+    /// 写入模式。
     pub mode: KdjWriteMode,
-    /// KDJ parameters.
+    /// KDJ 参数。
     pub params: KdjParams,
-    /// Target ClickHouse rows per insert batch.
+    /// ClickHouse 每批插入的目标行数。
     pub insert_batch_size: usize,
 }
 
 impl KdjRunRequest {
-    /// Validates a request before any ClickHouse work.
+    /// 在执行任何 ClickHouse 操作前校验请求。
     ///
-    /// # Errors
+    /// # 错误
     ///
-    /// Returns [`FurnaceIoError::InvalidRequest`] when dates, parameters, or
-    /// batch-size settings cannot be used safely.
+    /// 当日期、参数或批次大小设置无法安全使用时，返回 [`FurnaceIoError::InvalidRequest`]。
     pub fn validate(&self) -> Result<(), FurnaceIoError> {
         validate_date("request_from", &self.request_from)?;
         validate_date("request_to", &self.request_to)?;
@@ -217,53 +217,55 @@ impl Default for KdjRunRequest {
     }
 }
 
-/// Summary emitted by a Furnace KDJ run.
+/// Furnace KDJ 单次运行输出的摘要。
 #[derive(Debug, Clone, PartialEq)]
 pub struct KdjRunSummary {
-    /// Requested output start date.
+    /// 请求输出的起始日期。
     pub request_from: String,
-    /// Requested output end date.
+    /// 请求输出的结束日期。
     pub request_to: String,
-    /// Effective written output start date.
+    /// 实际写入输出的起始日期。
     pub effective_output_from: String,
-    /// Effective written output end date.
+    /// 实际写入输出的结束日期。
     pub effective_output_to: String,
-    /// Actual input start date.
+    /// 实际读取输入的起始日期。
     pub input_from: String,
-    /// Actual input end date.
+    /// 实际读取输入的结束日期。
     pub input_to: String,
-    /// Write mode.
+    /// 写入模式。
     pub mode: KdjWriteMode,
-    /// Selected securities.
+    /// 本次运行选中的证券。
     pub symbols: Vec<String>,
-    /// Input row count.
+    /// 输入行数。
     pub input_rows: u64,
-    /// Output row count.
+    /// 输出行数。
     pub output_rows: u64,
-    /// Output rows with all indicator values unavailable.
+    /// 所有指标值均不可用的输出行数。
     pub null_indicator_rows: u64,
-    /// Affected yearly ClickHouse partitions.
+    /// 受影响的 ClickHouse 年度分区。
     pub affected_years: Vec<u16>,
-    /// Old rows retained in staging partitions.
+    /// staging 分区中保留的旧行数。
     pub retained_rows: u64,
-    /// Temporary staging table, when used.
+    /// 本次运行使用的临时 staging 表；未使用时为空。
     pub staging_table: Option<String>,
-    /// Staging validation result.
+    /// staging 表校验结果。
     pub staging_validation: ValidationSummary,
-    /// Partition replacement result.
+    /// 分区替换结果。
     pub partition_replace: PartitionReplaceSummary,
-    /// KDJ parameters.
+    /// KDJ 参数。
     pub params: KdjParams,
-    /// State source summary.
+    /// 历史状态来源摘要。
     pub state_source: String,
-    /// Run identifier from Dagster or Furnace CLI.
+    /// 来自 Dagster 或 Furnace CLI 的运行标识。
     pub run_id: Option<String>,
-    /// Whether production writes were applied.
+    /// 是否实际写入了生产数据。
     pub writes_applied: bool,
+    /// 内部耗时和吞吐指标。
+    pub performance_metrics: PerformanceMetrics,
 }
 
 impl KdjRunSummary {
-    /// Serializes the summary as JSON without requiring a runtime dependency.
+    /// 将摘要序列化为 JSON，避免引入运行时序列化依赖。
     pub fn to_json(&self) -> String {
         let affected_years = self
             .affected_years
@@ -272,7 +274,7 @@ impl KdjRunSummary {
             .collect::<Vec<_>>()
             .join(",");
         format!(
-            "{{\"request_from\":\"{}\",\"request_to\":\"{}\",\"effective_output_from\":\"{}\",\"effective_output_to\":\"{}\",\"input_from\":\"{}\",\"input_to\":\"{}\",\"mode\":\"{}\",\"symbols_count\":{},\"symbols\":{},\"input_rows\":{},\"output_rows\":{},\"null_indicator_rows\":{},\"affected_years\":[{}],\"retained_rows\":{},\"staging_table\":{},\"staging_validation\":{},\"partition_replace\":{},\"kdj_params\":{{\"rsv_window\":{},\"k_smoothing\":{},\"d_smoothing\":{}}},\"state_source\":\"{}\",\"run_id\":{},\"writes_applied\":{}}}",
+            "{{\"request_from\":\"{}\",\"request_to\":\"{}\",\"effective_output_from\":\"{}\",\"effective_output_to\":\"{}\",\"input_from\":\"{}\",\"input_to\":\"{}\",\"mode\":\"{}\",\"symbols_count\":{},\"input_rows\":{},\"output_rows\":{},\"null_indicator_rows\":{},\"affected_years\":[{}],\"retained_rows\":{},\"staging_table\":{},\"staging_validation\":{},\"partition_replace\":{},\"kdj_params\":{{\"rsv_window\":{},\"k_smoothing\":{},\"d_smoothing\":{}}},\"state_source\":\"{}\",\"run_id\":{},\"writes_applied\":{},\"performance_metrics\":{}}}",
             escape_json_string(&self.request_from),
             escape_json_string(&self.request_to),
             escape_json_string(&self.effective_output_from),
@@ -281,7 +283,6 @@ impl KdjRunSummary {
             escape_json_string(&self.input_to),
             self.mode.as_str(),
             self.symbols.len(),
-            json_string_array(&self.symbols),
             self.input_rows,
             self.output_rows,
             self.null_indicator_rows,
@@ -295,17 +296,136 @@ impl KdjRunSummary {
             self.params.d_smoothing,
             escape_json_string(&self.state_source),
             json_optional_string(self.run_id.as_deref()),
-            self.writes_applied
+            self.writes_applied,
+            self.performance_metrics.to_json()
         )
     }
 }
 
-/// Staging validation result.
+/// Furnace KDJ 单次运行输出的性能指标。
+#[derive(Debug, Clone, PartialEq)]
+pub struct PerformanceMetrics {
+    /// `run_kdj` 内部的端到端耗时。
+    pub total_ms: u128,
+    /// 读取价格输入行的耗时。
+    pub read_input_ms: u128,
+    /// 读取上一轮 K/D 状态的耗时。
+    pub read_state_ms: u128,
+    /// 按证券分组输入行的耗时。
+    pub group_ms: u128,
+    /// 计算 KDJ 输出的耗时。
+    pub compute_ms: u128,
+    /// 插入新 KDJ 行的耗时。
+    pub write_ms: u128,
+    /// staging DDL、旧行保留、校验和清理的总耗时。
+    pub staging_ms: u128,
+    /// 替换 ClickHouse 分区的耗时。
+    pub partition_replace_ms: u128,
+    /// 输入读取阶段的每秒读取行数。
+    pub input_rows_per_sec: f64,
+    /// 计算阶段的每秒输出行数。
+    pub output_rows_per_sec: f64,
+    /// 本次运行包含的证券数量。
+    pub symbols_count: u64,
+    /// Furnace 使用的计算策略。
+    pub parallelism: String,
+    /// 本次运行可用的 Rayon worker 线程数。
+    pub worker_threads: usize,
+}
+
+impl PerformanceMetrics {
+    fn to_json(&self) -> String {
+        format!(
+            "{{\"total_ms\":{},\"read_input_ms\":{},\"read_state_ms\":{},\"group_ms\":{},\"compute_ms\":{},\"write_ms\":{},\"staging_ms\":{},\"partition_replace_ms\":{},\"input_rows_per_sec\":{},\"output_rows_per_sec\":{},\"symbols_count\":{},\"parallelism\":\"{}\",\"worker_threads\":{}}}",
+            self.total_ms,
+            self.read_input_ms,
+            self.read_state_ms,
+            self.group_ms,
+            self.compute_ms,
+            self.write_ms,
+            self.staging_ms,
+            self.partition_replace_ms,
+            json_f64(self.input_rows_per_sec),
+            json_f64(self.output_rows_per_sec),
+            self.symbols_count,
+            escape_json_string(&self.parallelism),
+            self.worker_threads
+        )
+    }
+}
+
+#[derive(Debug, Clone, PartialEq)]
+struct PerformanceTimings {
+    run_started: Instant,
+    read_input: Duration,
+    read_state: Duration,
+    group: Duration,
+    compute: Duration,
+    write: Duration,
+    staging: Duration,
+    partition_replace: Duration,
+    parallelism: &'static str,
+    worker_threads: usize,
+}
+
+impl PerformanceTimings {
+    fn started() -> Self {
+        Self {
+            run_started: Instant::now(),
+            read_input: Duration::ZERO,
+            read_state: Duration::ZERO,
+            group: Duration::ZERO,
+            compute: Duration::ZERO,
+            write: Duration::ZERO,
+            staging: Duration::ZERO,
+            partition_replace: Duration::ZERO,
+            parallelism: "serial",
+            worker_threads: rayon::current_num_threads(),
+        }
+    }
+
+    fn finish(&self, input_rows: u64, output_rows: u64, symbols_count: u64) -> PerformanceMetrics {
+        PerformanceMetrics {
+            total_ms: self.run_started.elapsed().as_millis(),
+            read_input_ms: self.read_input.as_millis(),
+            read_state_ms: self.read_state.as_millis(),
+            group_ms: self.group.as_millis(),
+            compute_ms: self.compute.as_millis(),
+            write_ms: self.write.as_millis(),
+            staging_ms: self.staging.as_millis(),
+            partition_replace_ms: self.partition_replace.as_millis(),
+            input_rows_per_sec: rows_per_second(input_rows, self.read_input),
+            output_rows_per_sec: rows_per_second(output_rows, self.compute),
+            symbols_count,
+            parallelism: self.parallelism.to_string(),
+            worker_threads: self.worker_threads,
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq)]
+struct Timed<T> {
+    value: T,
+    elapsed: Duration,
+}
+
+fn time_result<T>(
+    action: impl FnOnce() -> Result<T, FurnaceIoError>,
+) -> Result<Timed<T>, FurnaceIoError> {
+    let started = Instant::now();
+    let value = action()?;
+    Ok(Timed {
+        value,
+        elapsed: started.elapsed(),
+    })
+}
+
+/// staging 表校验结果。
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ValidationSummary {
-    /// Validation status.
+    /// 校验状态。
     pub status: String,
-    /// Duplicate key count.
+    /// 重复键数量。
     pub duplicate_keys: u64,
 }
 
@@ -333,12 +453,12 @@ impl ValidationSummary {
     }
 }
 
-/// Partition replacement result.
+/// 分区替换结果。
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct PartitionReplaceSummary {
-    /// Replacement status.
+    /// 替换状态。
     pub status: String,
-    /// Years replaced.
+    /// 已替换的年份分区。
     pub years: Vec<u16>,
 }
 
@@ -372,33 +492,67 @@ impl PartitionReplaceSummary {
     }
 }
 
-/// A minimal ClickHouse execution interface for tests and CLI adapters.
+/// 面向测试和 CLI 适配器的最小 ClickHouse 执行接口。
 pub trait ClickHouseExecutor {
-    /// Executes a query and returns stdout.
+    /// 执行查询并返回标准输出。
     ///
-    /// # Errors
+    /// # 错误
     ///
-    /// Returns [`FurnaceIoError`] when ClickHouse execution fails.
+    /// 当 ClickHouse 执行失败时，返回 [`FurnaceIoError`]。
     fn query(&mut self, sql: &str) -> Result<String, FurnaceIoError>;
 
-    /// Executes an INSERT statement with TSV rows provided on stdin.
+    /// 执行查询并返回原始标准输出字节。
     ///
-    /// # Errors
+    /// RowBinary 等二进制格式可以避免大规模扫描时的文本解析开销。
+    /// 测试执行器可以继续使用默认的 UTF-8 实现。
     ///
-    /// Returns [`FurnaceIoError`] when ClickHouse execution fails.
+    /// # 错误
+    ///
+    /// 当 ClickHouse 执行失败时，返回 [`FurnaceIoError`]。
+    fn query_bytes(&mut self, sql: &str) -> Result<Vec<u8>, FurnaceIoError> {
+        self.query(sql).map(String::into_bytes)
+    }
+
+    /// 执行 INSERT 语句，并通过 stdin 提供 TSV 行。
+    ///
+    /// # 错误
+    ///
+    /// 当 ClickHouse 执行失败时，返回 [`FurnaceIoError`]。
     fn insert_tsv(&mut self, sql: &str, tsv: &str) -> Result<(), FurnaceIoError>;
 
-    /// Executes a statement whose stdout is ignored.
+    /// 执行 INSERT 语句，并通过 stdin 提供原始字节。
     ///
-    /// # Errors
+    /// # 错误
     ///
-    /// Returns [`FurnaceIoError`] when ClickHouse execution fails.
+    /// 当 ClickHouse 执行失败时，返回 [`FurnaceIoError`]。
+    fn insert_bytes(&mut self, sql: &str, bytes: &[u8]) -> Result<(), FurnaceIoError>;
+
+    /// 执行语句并忽略其标准输出。
+    ///
+    /// # 错误
+    ///
+    /// 当 ClickHouse 执行失败时，返回 [`FurnaceIoError`]。
     fn execute(&mut self, sql: &str) -> Result<(), FurnaceIoError> {
         self.query(sql).map(|_| ())
     }
+
+    /// 执行多条语句并忽略其标准输出。
+    ///
+    /// 默认实现会逐条执行语句。基于 CLI 的执行器可以覆盖该方法，
+    /// 以减少子进程往返次数。
+    ///
+    /// # 错误
+    ///
+    /// 当 ClickHouse 执行失败时，返回 [`FurnaceIoError`]。
+    fn execute_many(&mut self, sqls: &[String]) -> Result<(), FurnaceIoError> {
+        for sql in sqls {
+            self.execute(sql)?;
+        }
+        Ok(())
+    }
 }
 
-/// `clickhouse-client` subprocess executor.
+/// `clickhouse-client` 子进程执行器。
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ClickHouseCliExecutor {
     command: String,
@@ -413,12 +567,12 @@ pub struct ClickHouseCliExecutor {
 }
 
 impl ClickHouseCliExecutor {
-    /// Builds a CLI executor from environment variables.
+    /// 根据环境变量构造 CLI 执行器。
     ///
-    /// Supported variables: `FURNACE_CLICKHOUSE_CLIENT`, `CLICKHOUSE_HOST`,
+    /// 支持的变量包括：`FURNACE_CLICKHOUSE_CLIENT`、`CLICKHOUSE_HOST`、
     /// `FURNACE_CLICKHOUSE_CLIENT_ARGS`, `CLICKHOUSE_NATIVE_PORT`,
     /// `CLICKHOUSE_USER`, `CLICKHOUSE_PASSWORD`, `CLICKHOUSE_SECURE`,
-    /// `CLICKHOUSE_CONNECT_TIMEOUT_SECONDS`, and `CLICKHOUSE_QUERY_TIMEOUT_SECONDS`.
+    /// `CLICKHOUSE_CONNECT_TIMEOUT_SECONDS` 和 `CLICKHOUSE_QUERY_TIMEOUT_SECONDS`。
     pub fn from_env() -> Self {
         Self {
             command: env::var("FURNACE_CLICKHOUSE_CLIENT")
@@ -484,7 +638,30 @@ impl ClickHouseExecutor for ClickHouseCliExecutor {
         Ok(String::from_utf8_lossy(&output.stdout).to_string())
     }
 
+    fn query_bytes(&mut self, sql: &str) -> Result<Vec<u8>, FurnaceIoError> {
+        let output = self
+            .base_command()
+            .arg("--query")
+            .arg(sql)
+            .output()
+            .map_err(|source| FurnaceIoError::ClickHouseCommand {
+                message: format!("failed to run {}", self.command),
+                source: Some(source.to_string()),
+            })?;
+        if !output.status.success() {
+            return Err(FurnaceIoError::ClickHouseCommand {
+                message: format!("clickhouse-client exited with {}", output.status),
+                source: Some(String::from_utf8_lossy(&output.stderr).trim().to_string()),
+            });
+        }
+        Ok(output.stdout)
+    }
+
     fn insert_tsv(&mut self, sql: &str, tsv: &str) -> Result<(), FurnaceIoError> {
+        self.insert_bytes(sql, tsv.as_bytes())
+    }
+
+    fn insert_bytes(&mut self, sql: &str, bytes: &[u8]) -> Result<(), FurnaceIoError> {
         let mut child = self
             .base_command()
             .arg("--query")
@@ -505,9 +682,9 @@ impl ClickHouseExecutor for ClickHouseCliExecutor {
             });
         };
         stdin
-            .write_all(tsv.as_bytes())
+            .write_all(bytes)
             .map_err(|source| FurnaceIoError::ClickHouseCommand {
-                message: "failed to write TSV rows to clickhouse-client".to_string(),
+                message: "failed to write insert bytes to clickhouse-client".to_string(),
                 source: Some(source.to_string()),
             })?;
 
@@ -526,23 +703,46 @@ impl ClickHouseExecutor for ClickHouseCliExecutor {
         }
         Ok(())
     }
+
+    fn execute_many(&mut self, sqls: &[String]) -> Result<(), FurnaceIoError> {
+        if sqls.is_empty() {
+            return Ok(());
+        }
+        let mut command = self.base_command();
+        for sql in sqls {
+            command.arg("--query").arg(sql);
+        }
+        let output = command
+            .output()
+            .map_err(|source| FurnaceIoError::ClickHouseCommand {
+                message: format!("failed to run {}", self.command),
+                source: Some(source.to_string()),
+            })?;
+        if !output.status.success() {
+            return Err(FurnaceIoError::ClickHouseCommand {
+                message: format!("clickhouse-client exited with {}", output.status),
+                source: Some(String::from_utf8_lossy(&output.stderr).trim().to_string()),
+            });
+        }
+        Ok(())
+    }
 }
 
-/// Errors returned by Furnace I/O.
+/// Furnace I/O 返回的错误。
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum FurnaceIoError {
-    /// Request cannot be executed safely.
+    /// 请求无法安全执行。
     InvalidRequest(String),
-    /// ClickHouse subprocess or query failed.
+    /// ClickHouse 子进程或查询执行失败。
     ClickHouseCommand {
-        /// Error summary.
+        /// 错误摘要。
         message: String,
-        /// Optional stderr/source detail.
+        /// 可选的 stderr 或底层来源细节。
         source: Option<String>,
     },
-    /// ClickHouse output could not be parsed.
+    /// 无法解析 ClickHouse 输出。
     Parse(String),
-    /// Indicator calculation failed.
+    /// 指标计算失败。
     Compute(String),
 }
 
@@ -566,15 +766,6 @@ impl fmt::Display for FurnaceIoError {
 impl Error for FurnaceIoError {}
 
 #[derive(Debug, Clone, PartialEq)]
-struct PriceInputRow {
-    security_code: String,
-    trade_date: String,
-    high_price: Option<f64>,
-    low_price: Option<f64>,
-    close_price: Option<f64>,
-}
-
-#[derive(Debug, Clone, PartialEq)]
 struct KdjResultRow {
     security_code: String,
     trade_date: String,
@@ -587,16 +778,46 @@ struct KdjResultRow {
     j_value: Option<f64>,
 }
 
-/// Runs a full KDJ calculation against ClickHouse.
+#[derive(Debug, Clone, PartialEq)]
+struct KdjCalculationResult {
+    rows: Vec<KdjResultRow>,
+    output_rows: u64,
+    null_indicator_rows: u64,
+    compute_elapsed: Duration,
+    parallelism: &'static str,
+    worker_threads: usize,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+struct KdjInputGroups {
+    groups: Vec<KdjGroupedInput>,
+    input_rows: u64,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+struct KdjGroupedInput {
+    security_code: String,
+    inputs: Vec<KdjInput>,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+struct KdjSecurityCalculation {
+    rows: Vec<KdjResultRow>,
+    output_rows: u64,
+    null_indicator_rows: u64,
+}
+
+/// 基于 ClickHouse 执行完整 KDJ 计算。
 ///
-/// # Errors
+/// # 错误
 ///
-/// Returns [`FurnaceIoError`] when validation, ClickHouse I/O, or indicator
-/// computation fails.
+/// 当请求校验、ClickHouse I/O 或指标计算失败时，返回 [`FurnaceIoError`]。
 pub fn run_kdj<E: ClickHouseExecutor>(
     executor: &mut E,
     request: &KdjRunRequest,
 ) -> Result<KdjRunSummary, FurnaceIoError> {
+    let mut timings = PerformanceTimings::started();
+
     request.validate()?;
 
     if request.mode.writes_applied() {
@@ -604,38 +825,63 @@ pub fn run_kdj<E: ClickHouseExecutor>(
         executor.execute(&create_kdj_output_table_sql())?;
     }
 
+    let all_symbols_requested = request.symbols.is_empty();
     let symbols = resolve_symbols(executor, request)?;
     if request.mode.writes_applied() && symbols.is_empty() {
         return Err(FurnaceIoError::InvalidRequest(
             "production KDJ writes require at least one input security".to_string(),
         ));
     }
-    let effective_output_to = resolve_effective_output_to(executor, request, &symbols)?;
-    let input_from = resolve_input_from(executor, request, &symbols)?;
+    let effective_output_to =
+        resolve_effective_output_to(executor, request, &symbols, all_symbols_requested)?;
+    let input_from = resolve_input_from(executor, request, &symbols, all_symbols_requested)?;
     let target_exists = target_table_exists(executor)?;
     let states = if target_exists {
-        read_previous_states(executor, request, &symbols)?
+        let timed = time_result(|| {
+            read_previous_states(executor, request, &symbols, all_symbols_requested)
+        })?;
+        timings.read_state = timed.elapsed;
+        timed.value
     } else {
         HashMap::new()
     };
-    let input_rows = read_input_rows(
-        executor,
+    let timed_input = time_result(|| {
+        read_input_row_binary(
+            executor,
+            &symbols,
+            all_symbols_requested,
+            &input_from,
+            &effective_output_to,
+        )
+    })?;
+    timings.read_input = timed_input.elapsed;
+    let input_bytes = timed_input.value;
+    let timed_groups = time_result(|| group_input_rows(&input_bytes))?;
+    timings.group = timed_groups.elapsed;
+    drop(input_bytes);
+    let input_groups = timed_groups.value;
+    let input_rows_count = input_groups.input_rows;
+
+    let calculated = calculate_outputs(
         request,
-        &symbols,
-        &input_from,
         &effective_output_to,
+        input_groups.groups,
+        input_rows_count as usize,
+        &states,
+        request.mode.writes_applied(),
     )?;
-    let output_rows = calculate_outputs(request, &effective_output_to, &input_rows, &states)?;
+    timings.compute = calculated.compute_elapsed;
+    timings.parallelism = calculated.parallelism;
+    timings.worker_threads = calculated.worker_threads;
+    let output_rows = calculated.rows;
     if request.mode.writes_applied() && output_rows.is_empty() {
         return Err(FurnaceIoError::InvalidRequest(
             "production KDJ writes produced no output rows".to_string(),
         ));
     }
     let affected_years = affected_years(&request.request_from, &effective_output_to)?;
-    let null_indicator_rows = output_rows
-        .iter()
-        .filter(|row| row.rsv.is_none() && row.k_value.is_none() && row.d_value.is_none())
-        .count() as u64;
+    let output_rows_count = calculated.output_rows;
+    let null_indicator_rows = calculated.null_indicator_rows;
 
     let mut retained_rows = 0;
     let mut staging_table = None;
@@ -645,13 +891,16 @@ pub fn run_kdj<E: ClickHouseExecutor>(
     match request.mode {
         KdjWriteMode::DryRun => {}
         KdjWriteMode::AppendLatest => {
-            ensure_append_latest_is_safe(executor, request, &symbols)?;
-            insert_result_rows(
-                executor,
-                DEFAULT_KDJ_OUTPUT_TABLE,
-                &output_rows,
-                request.insert_batch_size,
-            )?;
+            ensure_append_latest_is_safe(executor, request, &symbols, all_symbols_requested)?;
+            let timed = time_result(|| {
+                insert_result_rows(
+                    executor,
+                    DEFAULT_KDJ_OUTPUT_TABLE,
+                    &output_rows,
+                    request.insert_batch_size,
+                )
+            })?;
+            timings.write += timed.elapsed;
         }
         KdjWriteMode::ReplaceCascade => {
             let run_id = request
@@ -659,28 +908,46 @@ pub fn run_kdj<E: ClickHouseExecutor>(
                 .as_deref()
                 .unwrap_or("manual_replace_cascade");
             let staging = kdj_staging_table_name(run_id);
-            executor.execute(&drop_kdj_staging_table_sql(&staging))?;
-            executor.execute(&create_kdj_staging_table_sql(&staging))?;
-            retained_rows = retain_old_rows_for_staging(
-                executor,
-                request,
-                &staging,
-                &symbols,
-                &affected_years,
-                &effective_output_to,
-            )?;
-            insert_result_rows(executor, &staging, &output_rows, request.insert_batch_size)?;
-            staging_validation = validate_staging(executor, &staging, &affected_years)?;
+            let staging_setup_sql = vec![
+                drop_kdj_staging_table_sql(&staging),
+                create_kdj_staging_table_sql(&staging),
+            ];
+            let timed = time_result(|| executor.execute_many(&staging_setup_sql))?;
+            timings.staging += timed.elapsed;
+            let timed = time_result(|| {
+                retain_old_rows_for_staging(
+                    executor,
+                    request,
+                    &staging,
+                    &symbols,
+                    all_symbols_requested,
+                    &affected_years,
+                    &effective_output_to,
+                )
+            })?;
+            timings.staging += timed.elapsed;
+            retained_rows = timed.value;
+            let timed = time_result(|| {
+                insert_result_rows(executor, &staging, &output_rows, request.insert_batch_size)
+            })?;
+            timings.write += timed.elapsed;
+            let timed = time_result(|| validate_staging(executor, &staging, &affected_years))?;
+            timings.staging += timed.elapsed;
+            staging_validation = timed.value;
             if staging_validation.status != "passed" {
                 return Err(FurnaceIoError::InvalidRequest(format!(
                     "staging validation failed with {} duplicate keys",
                     staging_validation.duplicate_keys
                 )));
             }
-            for year in &affected_years {
-                executor.execute(&replace_kdj_partition_sql(&staging, *year))?;
-            }
-            executor.execute(&drop_kdj_staging_table_sql(&staging))?;
+            let replace_sql = affected_years
+                .iter()
+                .map(|year| replace_kdj_partition_sql(&staging, *year))
+                .collect::<Vec<_>>();
+            let timed = time_result(|| executor.execute_many(&replace_sql))?;
+            timings.partition_replace += timed.elapsed;
+            let timed = time_result(|| executor.execute(&drop_kdj_staging_table_sql(&staging)))?;
+            timings.staging += timed.elapsed;
             partition_replace = PartitionReplaceSummary::replaced(affected_years.clone());
             staging_table = Some(staging);
         }
@@ -691,6 +958,8 @@ pub fn run_kdj<E: ClickHouseExecutor>(
     } else {
         format!("previous_kd_rows:{}", states.len())
     };
+    let symbols_count = symbols.len() as u64;
+    let performance_metrics = timings.finish(input_rows_count, output_rows_count, symbols_count);
 
     Ok(KdjRunSummary {
         request_from: request.request_from.clone(),
@@ -701,8 +970,8 @@ pub fn run_kdj<E: ClickHouseExecutor>(
         input_to: effective_output_to,
         mode: request.mode,
         symbols,
-        input_rows: input_rows.len() as u64,
-        output_rows: output_rows.len() as u64,
+        input_rows: input_rows_count,
+        output_rows: output_rows_count,
         null_indicator_rows,
         affected_years,
         retained_rows,
@@ -713,6 +982,7 @@ pub fn run_kdj<E: ClickHouseExecutor>(
         state_source,
         run_id: request.run_id.clone(),
         writes_applied: request.mode.writes_applied(),
+        performance_metrics,
     })
 }
 
@@ -754,6 +1024,7 @@ fn resolve_effective_output_to<E: ClickHouseExecutor>(
     executor: &mut E,
     request: &KdjRunRequest,
     symbols: &[String],
+    all_symbols_requested: bool,
 ) -> Result<String, FurnaceIoError> {
     if symbols.is_empty() || request.mode != KdjWriteMode::ReplaceCascade {
         return Ok(request.request_to.clone());
@@ -764,7 +1035,7 @@ SELECT toString(max(trade_date))
 FROM {DEFAULT_INPUT_TABLE}
 WHERE {}
 FORMAT TSV",
-        symbol_where_clause(symbols)
+        symbol_where_clause(symbols, all_symbols_requested)
     );
     let value =
         first_tsv_value(&executor.query(&sql)?).unwrap_or_else(|| request.request_to.clone());
@@ -778,6 +1049,7 @@ fn resolve_input_from<E: ClickHouseExecutor>(
     executor: &mut E,
     request: &KdjRunRequest,
     symbols: &[String],
+    all_symbols_requested: bool,
 ) -> Result<String, FurnaceIoError> {
     let warmup_window = u32::from(
         request
@@ -787,11 +1059,7 @@ fn resolve_input_from<E: ClickHouseExecutor>(
             .max(request.params.d_smoothing),
     ) * u32::from(DEFAULT_WARMUP_MULTIPLE);
 
-    let symbol_filter = if symbols.is_empty() {
-        "1 = 1".to_string()
-    } else {
-        symbol_where_clause(symbols)
-    };
+    let symbol_filter = symbol_where_clause(symbols, all_symbols_requested);
     let sql = format!(
         "\
 SELECT toString(min(trade_date))
@@ -828,8 +1096,9 @@ fn read_previous_states<E: ClickHouseExecutor>(
     executor: &mut E,
     request: &KdjRunRequest,
     symbols: &[String],
+    all_symbols_requested: bool,
 ) -> Result<HashMap<String, KdjState>, FurnaceIoError> {
-    if symbols.is_empty() {
+    if symbols.is_empty() && !all_symbols_requested {
         return Ok(HashMap::new());
     }
     let sql = format!(
@@ -851,7 +1120,7 @@ FROM (
 WHERE rn = 1
 FORMAT TSV",
         sql_string(&request.request_from),
-        symbol_where_clause(symbols)
+        symbol_where_clause(symbols, all_symbols_requested)
     );
 
     let mut states = HashMap::new();
@@ -878,14 +1147,14 @@ FORMAT TSV",
     Ok(states)
 }
 
-fn read_input_rows<E: ClickHouseExecutor>(
+fn read_input_row_binary<E: ClickHouseExecutor>(
     executor: &mut E,
-    request: &KdjRunRequest,
     symbols: &[String],
+    all_symbols_requested: bool,
     input_from: &str,
     input_to: &str,
-) -> Result<Vec<PriceInputRow>, FurnaceIoError> {
-    if symbols.is_empty() {
+) -> Result<Vec<u8>, FurnaceIoError> {
+    if symbols.is_empty() && !all_symbols_requested {
         return Ok(Vec::new());
     }
     let sql = format!(
@@ -901,69 +1170,299 @@ WHERE trade_date >= toDate('{}')
   AND trade_date <= toDate('{}')
   AND {}
 ORDER BY security_code, trade_date
-FORMAT TSV",
+FORMAT RowBinary",
         sql_string(input_from),
         sql_string(input_to),
-        symbol_where_clause(symbols)
+        symbol_where_clause(symbols, all_symbols_requested)
     );
 
-    let mut rows = Vec::new();
-    for line in executor
-        .query(&sql)?
-        .lines()
-        .filter(|line| !line.is_empty())
-    {
-        let fields = line.split('\t').collect::<Vec<_>>();
-        if fields.len() != 5 {
-            return Err(FurnaceIoError::Parse(format!(
-                "expected 5 input fields, got {}",
-                fields.len()
-            )));
+    executor.query_bytes(&sql)
+}
+
+fn group_input_rows(input_bytes: &[u8]) -> Result<KdjInputGroups, FurnaceIoError> {
+    let mut groups = Vec::new();
+    let mut current_security_code = None;
+    let mut current_inputs = Vec::new();
+    let mut input_rows = 0;
+    let mut cursor = 0;
+
+    while cursor < input_bytes.len() {
+        let security_code = read_rowbinary_string(input_bytes, &mut cursor)?;
+        let trade_date = read_rowbinary_string(input_bytes, &mut cursor)?;
+        let high_price = read_rowbinary_nullable_f64(input_bytes, &mut cursor)?;
+        let low_price = read_rowbinary_nullable_f64(input_bytes, &mut cursor)?;
+        let close_price = read_rowbinary_nullable_f64(input_bytes, &mut cursor)?;
+
+        if current_security_code.as_deref() != Some(security_code) {
+            let previous_security_code = current_security_code.replace(security_code.to_string());
+            if let Some(security_code) = previous_security_code {
+                groups.push(KdjGroupedInput {
+                    security_code,
+                    inputs: std::mem::take(&mut current_inputs),
+                });
+            }
         }
-        rows.push(PriceInputRow {
-            security_code: fields[0].to_string(),
-            trade_date: fields[1].to_string(),
-            high_price: parse_f64(fields[2])?,
-            low_price: parse_f64(fields[3])?,
-            close_price: parse_f64(fields[4])?,
+
+        current_inputs.push(KdjInput::new(
+            trade_date.to_string(),
+            high_price,
+            low_price,
+            close_price,
+        ));
+        input_rows += 1;
+    }
+
+    if let Some(security_code) = current_security_code {
+        groups.push(KdjGroupedInput {
+            security_code,
+            inputs: current_inputs,
         });
     }
-    let _ = request;
-    Ok(rows)
+
+    Ok(KdjInputGroups { groups, input_rows })
+}
+
+fn read_rowbinary_string<'a>(
+    input: &'a [u8],
+    cursor: &mut usize,
+) -> Result<&'a str, FurnaceIoError> {
+    let length = read_rowbinary_var_uint(input, cursor)?;
+    let end = cursor
+        .checked_add(length)
+        .ok_or_else(|| FurnaceIoError::Parse("RowBinary string length overflow".to_string()))?;
+    if end > input.len() {
+        return Err(FurnaceIoError::Parse(
+            "truncated RowBinary string field".to_string(),
+        ));
+    }
+    let value = str::from_utf8(&input[*cursor..end])
+        .map_err(|source| FurnaceIoError::Parse(format!("invalid RowBinary UTF-8: {source}")))?;
+    *cursor = end;
+    Ok(value)
+}
+
+fn read_rowbinary_var_uint(input: &[u8], cursor: &mut usize) -> Result<usize, FurnaceIoError> {
+    let mut value = 0u64;
+    let mut shift = 0;
+    loop {
+        if *cursor >= input.len() {
+            return Err(FurnaceIoError::Parse(
+                "truncated RowBinary VarUInt".to_string(),
+            ));
+        }
+        let byte = input[*cursor];
+        *cursor += 1;
+        value |= u64::from(byte & 0x7f) << shift;
+        if byte & 0x80 == 0 {
+            return usize::try_from(value)
+                .map_err(|_| FurnaceIoError::Parse("RowBinary VarUInt too large".to_string()));
+        }
+        shift += 7;
+        if shift >= 64 {
+            return Err(FurnaceIoError::Parse(
+                "RowBinary VarUInt exceeds u64".to_string(),
+            ));
+        }
+    }
+}
+
+fn read_rowbinary_nullable_f64(
+    input: &[u8],
+    cursor: &mut usize,
+) -> Result<Option<f64>, FurnaceIoError> {
+    if *cursor >= input.len() {
+        return Err(FurnaceIoError::Parse(
+            "truncated RowBinary Nullable(Float64) marker".to_string(),
+        ));
+    }
+    let is_null = input[*cursor];
+    *cursor += 1;
+    match is_null {
+        0 => {
+            let end = cursor
+                .checked_add(8)
+                .ok_or_else(|| FurnaceIoError::Parse("RowBinary Float64 overflow".to_string()))?;
+            if end > input.len() {
+                return Err(FurnaceIoError::Parse(
+                    "truncated RowBinary Float64".to_string(),
+                ));
+            }
+            let bytes = input[*cursor..end].try_into().map_err(|_| {
+                FurnaceIoError::Parse("invalid RowBinary Float64 width".to_string())
+            })?;
+            *cursor = end;
+            Ok(Some(f64::from_le_bytes(bytes)))
+        }
+        1 => Ok(None),
+        other => Err(FurnaceIoError::Parse(format!(
+            "invalid RowBinary Nullable(Float64) marker: {other}"
+        ))),
+    }
 }
 
 fn calculate_outputs(
     request: &KdjRunRequest,
     effective_output_to: &str,
-    input_rows: &[PriceInputRow],
+    groups: Vec<KdjGroupedInput>,
+    input_row_count: usize,
+    states: &HashMap<String, KdjState>,
+    collect_rows: bool,
+) -> Result<KdjCalculationResult, FurnaceIoError> {
+    let worker_threads = rayon::current_num_threads();
+    let parallel = should_parallelize(groups.len(), input_row_count, worker_threads);
+    let compute_started = Instant::now();
+    let mut calculated = if parallel {
+        calculate_grouped_outputs_parallel_with_collection(
+            request,
+            effective_output_to,
+            &groups,
+            states,
+            collect_rows,
+        )?
+    } else {
+        calculate_grouped_outputs_serial_with_collection(
+            request,
+            effective_output_to,
+            &groups,
+            states,
+            collect_rows,
+        )?
+    };
+    if collect_rows {
+        calculated.rows.sort_by(|left, right| {
+            left.security_code
+                .cmp(&right.security_code)
+                .then(left.trade_date.cmp(&right.trade_date))
+        });
+    }
+    Ok(KdjCalculationResult {
+        rows: calculated.rows,
+        output_rows: calculated.output_rows,
+        null_indicator_rows: calculated.null_indicator_rows,
+        compute_elapsed: compute_started.elapsed(),
+        parallelism: if parallel { "rayon" } else { "serial" },
+        worker_threads,
+    })
+}
+
+fn should_parallelize(group_count: usize, input_row_count: usize, worker_threads: usize) -> bool {
+    worker_threads > 1
+        && group_count >= worker_threads.saturating_mul(2).max(2)
+        && input_row_count > 0
+}
+
+#[cfg(test)]
+fn calculate_grouped_outputs_serial(
+    request: &KdjRunRequest,
+    effective_output_to: &str,
+    groups: &[KdjGroupedInput],
     states: &HashMap<String, KdjState>,
 ) -> Result<Vec<KdjResultRow>, FurnaceIoError> {
-    let mut grouped: BTreeMap<&str, Vec<KdjInput>> = BTreeMap::new();
-    for row in input_rows {
-        grouped
-            .entry(&row.security_code)
-            .or_default()
-            .push(KdjInput::new(
-                row.trade_date.clone(),
-                row.high_price,
-                row.low_price,
-                row.close_price,
-            ));
-    }
+    Ok(calculate_grouped_outputs_serial_with_collection(
+        request,
+        effective_output_to,
+        groups,
+        states,
+        true,
+    )?
+    .rows)
+}
 
+fn calculate_grouped_outputs_serial_with_collection(
+    request: &KdjRunRequest,
+    effective_output_to: &str,
+    groups: &[KdjGroupedInput],
+    states: &HashMap<String, KdjState>,
+    collect_rows: bool,
+) -> Result<KdjSecurityCalculation, FurnaceIoError> {
     let mut output_rows = Vec::new();
-    for (security_code, inputs) in grouped {
-        let previous_state = states.get(security_code).copied();
-        let outputs = calculate_kdj_series(&inputs, request.params, previous_state)
-            .map_err(|source| FurnaceIoError::Compute(source.to_string()))?;
-        for output in outputs {
-            if output.trade_date.as_str() < request.request_from.as_str()
-                || output.trade_date.as_str() > effective_output_to
-            {
-                continue;
-            }
+    let mut output_row_count = 0;
+    let mut null_indicator_rows = 0;
+    for group in groups {
+        let calculated =
+            calculate_security_outputs(request, effective_output_to, states, group, collect_rows)?;
+        output_row_count += calculated.output_rows;
+        null_indicator_rows += calculated.null_indicator_rows;
+        output_rows.extend(calculated.rows);
+    }
+    Ok(KdjSecurityCalculation {
+        rows: output_rows,
+        output_rows: output_row_count,
+        null_indicator_rows,
+    })
+}
+
+#[cfg(test)]
+fn calculate_grouped_outputs_parallel(
+    request: &KdjRunRequest,
+    effective_output_to: &str,
+    groups: &[KdjGroupedInput],
+    states: &HashMap<String, KdjState>,
+) -> Result<Vec<KdjResultRow>, FurnaceIoError> {
+    Ok(calculate_grouped_outputs_parallel_with_collection(
+        request,
+        effective_output_to,
+        groups,
+        states,
+        true,
+    )?
+    .rows)
+}
+
+fn calculate_grouped_outputs_parallel_with_collection(
+    request: &KdjRunRequest,
+    effective_output_to: &str,
+    groups: &[KdjGroupedInput],
+    states: &HashMap<String, KdjState>,
+    collect_rows: bool,
+) -> Result<KdjSecurityCalculation, FurnaceIoError> {
+    let nested = groups
+        .par_iter()
+        .map(|group| {
+            calculate_security_outputs(request, effective_output_to, states, group, collect_rows)
+        })
+        .collect::<Result<Vec<_>, _>>()?;
+    let mut rows = Vec::new();
+    let mut output_row_count = 0;
+    let mut null_indicator_rows = 0;
+    for calculated in nested {
+        output_row_count += calculated.output_rows;
+        null_indicator_rows += calculated.null_indicator_rows;
+        rows.extend(calculated.rows);
+    }
+    Ok(KdjSecurityCalculation {
+        rows,
+        output_rows: output_row_count,
+        null_indicator_rows,
+    })
+}
+
+fn calculate_security_outputs(
+    request: &KdjRunRequest,
+    effective_output_to: &str,
+    states: &HashMap<String, KdjState>,
+    group: &KdjGroupedInput,
+    collect_rows: bool,
+) -> Result<KdjSecurityCalculation, FurnaceIoError> {
+    let previous_state = states.get(group.security_code.as_str()).copied();
+    let outputs = calculate_kdj_series(&group.inputs, request.params, previous_state)
+        .map_err(|source| FurnaceIoError::Compute(source.to_string()))?;
+    let mut output_rows = Vec::new();
+    let mut output_row_count = 0;
+    let mut null_indicator_rows = 0;
+    for output in outputs {
+        if output.trade_date.as_str() < request.request_from.as_str()
+            || output.trade_date.as_str() > effective_output_to
+        {
+            continue;
+        }
+        output_row_count += 1;
+        if output.rsv.is_none() && output.k_value.is_none() && output.d_value.is_none() {
+            null_indicator_rows += 1;
+        }
+        if collect_rows {
             output_rows.push(KdjResultRow {
-                security_code: security_code.to_string(),
+                security_code: group.security_code.clone(),
                 trade_date: output.trade_date,
                 rsv_window: request.params.rsv_window,
                 k_smoothing: request.params.k_smoothing,
@@ -975,15 +1474,20 @@ fn calculate_outputs(
             });
         }
     }
-    Ok(output_rows)
+    Ok(KdjSecurityCalculation {
+        rows: output_rows,
+        output_rows: output_row_count,
+        null_indicator_rows,
+    })
 }
 
 fn ensure_append_latest_is_safe<E: ClickHouseExecutor>(
     executor: &mut E,
     request: &KdjRunRequest,
     symbols: &[String],
+    all_symbols_requested: bool,
 ) -> Result<(), FurnaceIoError> {
-    if symbols.is_empty() {
+    if symbols.is_empty() && !all_symbols_requested {
         return Ok(());
     }
     let sql = format!(
@@ -994,7 +1498,7 @@ WHERE trade_date >= toDate('{}')
   AND {}
 FORMAT TSV",
         sql_string(&request.request_from),
-        symbol_where_clause(symbols)
+        symbol_where_clause(symbols, all_symbols_requested)
     );
     let existing_rows = parse_u64(&first_tsv_value(&executor.query(&sql)?).unwrap_or_default())?;
     if existing_rows > 0 {
@@ -1010,11 +1514,17 @@ fn retain_old_rows_for_staging<E: ClickHouseExecutor>(
     request: &KdjRunRequest,
     staging_table: &str,
     symbols: &[String],
+    all_symbols_requested: bool,
     years: &[u16],
     effective_output_to: &str,
 ) -> Result<u64, FurnaceIoError> {
     let mut retained = 0;
     for year in years {
+        if all_symbols_requested
+            && partition_year_fully_covered(*year, &request.request_from, effective_output_to)
+        {
+            continue;
+        }
         let sql = format!(
             "\
 INSERT INTO {staging_table}
@@ -1026,7 +1536,7 @@ WHERE toYear(trade_date) = {year}
       AND trade_date >= toDate('{}')
       AND trade_date <= toDate('{}')
   )",
-            symbol_where_clause(symbols),
+            symbol_where_clause(symbols, all_symbols_requested),
             sql_string(&request.request_from),
             sql_string(effective_output_to)
         );
@@ -1036,26 +1546,42 @@ WHERE toYear(trade_date) = {year}
     Ok(retained)
 }
 
+fn partition_year_fully_covered(year: u16, from: &str, to: &str) -> bool {
+    let year_start = format!("{year}-01-01");
+    let year_end = format!("{year}-12-31");
+    from <= year_start.as_str() && to >= year_end.as_str()
+}
+
 fn validate_staging<E: ClickHouseExecutor>(
     executor: &mut E,
     staging_table: &str,
     years: &[u16],
 ) -> Result<ValidationSummary, FurnaceIoError> {
-    for year in years {
-        let sql = format!(
-            "\
-SELECT count() - uniqExact(security_code, trade_date)
-FROM {staging_table}
-WHERE toYear(trade_date) = {year}
+    if years.is_empty() {
+        return Ok(ValidationSummary::passed());
+    }
+    let years = years
+        .iter()
+        .map(u16::to_string)
+        .collect::<Vec<_>>()
+        .join(",");
+    let sql = format!(
+        "\
+SELECT sum(duplicates)
+FROM (
+    SELECT count() - uniqExact(security_code, trade_date) AS duplicates
+    FROM {staging_table}
+    WHERE toYear(trade_date) IN ({years})
+    GROUP BY toYear(trade_date)
+)
 FORMAT TSV"
-        );
-        let duplicates = parse_u64(&first_tsv_value(&executor.query(&sql)?).unwrap_or_default())?;
-        if duplicates > 0 {
-            return Ok(ValidationSummary {
-                status: "failed".to_string(),
-                duplicate_keys: duplicates,
-            });
-        }
+    );
+    let duplicates = parse_u64(&first_tsv_value(&executor.query(&sql)?).unwrap_or_default())?;
+    if duplicates > 0 {
+        return Ok(ValidationSummary {
+            status: "failed".to_string(),
+            duplicate_keys: duplicates,
+        });
     }
     Ok(ValidationSummary::passed())
 }
@@ -1098,34 +1624,85 @@ INSERT INTO {table}
     d_value,
     j_value
 )
-FORMAT TSV"
+FORMAT RowBinary"
     );
     for batch in rows.chunks(batch_size) {
-        let mut tsv = String::new();
+        let mut row_binary = Vec::with_capacity(batch.len().saturating_mul(80));
         for row in batch {
-            tsv.push_str(&row.to_tsv());
-            tsv.push('\n');
+            row.write_row_binary(&mut row_binary)?;
         }
-        executor.insert_tsv(&insert_sql, &tsv)?;
+        executor.insert_bytes(&insert_sql, &row_binary)?;
     }
     Ok(())
 }
 
 impl KdjResultRow {
-    fn to_tsv(&self) -> String {
-        [
-            escape_tsv(&self.security_code),
-            escape_tsv(&self.trade_date),
-            self.rsv_window.to_string(),
-            self.k_smoothing.to_string(),
-            self.d_smoothing.to_string(),
-            tsv_f64(self.rsv),
-            tsv_f64(self.k_value),
-            tsv_f64(self.d_value),
-            tsv_f64(self.j_value),
-        ]
-        .join("\t")
+    fn write_row_binary(&self, bytes: &mut Vec<u8>) -> Result<(), FurnaceIoError> {
+        push_rowbinary_string(bytes, &self.security_code);
+        push_rowbinary_date(bytes, &self.trade_date)?;
+        bytes.extend_from_slice(&self.rsv_window.to_le_bytes());
+        bytes.extend_from_slice(&self.k_smoothing.to_le_bytes());
+        bytes.extend_from_slice(&self.d_smoothing.to_le_bytes());
+        push_rowbinary_nullable_f64(bytes, self.rsv);
+        push_rowbinary_nullable_f64(bytes, self.k_value);
+        push_rowbinary_nullable_f64(bytes, self.d_value);
+        push_rowbinary_nullable_f64(bytes, self.j_value);
+        Ok(())
     }
+}
+
+fn push_rowbinary_string(bytes: &mut Vec<u8>, value: &str) {
+    push_rowbinary_var_uint(bytes, value.len());
+    bytes.extend_from_slice(value.as_bytes());
+}
+
+fn push_rowbinary_var_uint(bytes: &mut Vec<u8>, mut value: usize) {
+    while value >= 0x80 {
+        bytes.push((value as u8) | 0x80);
+        value >>= 7;
+    }
+    bytes.push(value as u8);
+}
+
+fn push_rowbinary_date(bytes: &mut Vec<u8>, value: &str) -> Result<(), FurnaceIoError> {
+    let days = date_days_since_unix_epoch(value)?;
+    bytes.extend_from_slice(&days.to_le_bytes());
+    Ok(())
+}
+
+fn push_rowbinary_nullable_f64(bytes: &mut Vec<u8>, value: Option<f64>) {
+    match value {
+        Some(value) => {
+            bytes.push(0);
+            bytes.extend_from_slice(&value.to_le_bytes());
+        }
+        None => bytes.push(1),
+    }
+}
+
+fn date_days_since_unix_epoch(value: &str) -> Result<u16, FurnaceIoError> {
+    validate_date("date", value)?;
+    let year = value[0..4]
+        .parse::<i32>()
+        .map_err(|_| FurnaceIoError::Parse(format!("invalid date year: {value}")))?;
+    let month = value[5..7]
+        .parse::<u32>()
+        .map_err(|_| FurnaceIoError::Parse(format!("invalid date month: {value}")))?;
+    let day = value[8..10]
+        .parse::<u32>()
+        .map_err(|_| FurnaceIoError::Parse(format!("invalid date day: {value}")))?;
+    let days = days_from_civil(year, month, day);
+    u16::try_from(days).map_err(|_| FurnaceIoError::Parse(format!("Date out of range: {value}")))
+}
+
+fn days_from_civil(year: i32, month: u32, day: u32) -> i32 {
+    let year = year - i32::from(month <= 2);
+    let era = if year >= 0 { year } else { year - 399 } / 400;
+    let year_of_era = year - era * 400;
+    let month = month as i32;
+    let day_of_year = (153 * (month + if month > 2 { -3 } else { 9 }) + 2) / 5 + day as i32 - 1;
+    let day_of_era = year_of_era * 365 + year_of_era / 4 - year_of_era / 100 + day_of_year;
+    era * 146_097 + day_of_era - 719_468
 }
 
 fn affected_years(from: &str, to: &str) -> Result<Vec<u16>, FurnaceIoError> {
@@ -1188,7 +1765,10 @@ fn parse_u64(value: &str) -> Result<u64, FurnaceIoError> {
         .map_err(|_| FurnaceIoError::Parse(format!("invalid UInt64 value: {value}")))
 }
 
-fn symbol_where_clause(symbols: &[String]) -> String {
+fn symbol_where_clause(symbols: &[String], all_symbols_requested: bool) -> String {
+    if all_symbols_requested {
+        return "1 = 1".to_string();
+    }
     if symbols.is_empty() {
         return "1 = 0".to_string();
     }
@@ -1204,20 +1784,6 @@ fn sql_string(value: &str) -> String {
     value.replace('\\', "\\\\").replace('\'', "\\'")
 }
 
-fn tsv_f64(value: Option<f64>) -> String {
-    value
-        .map(|value| value.to_string())
-        .unwrap_or_else(|| "\\N".to_string())
-}
-
-fn escape_tsv(value: &str) -> String {
-    value
-        .replace('\\', "\\\\")
-        .replace('\t', "\\t")
-        .replace('\n', "\\n")
-        .replace('\r', "\\r")
-}
-
 fn json_optional_string(value: Option<&str>) -> String {
     match value {
         Some(value) => format!("\"{}\"", escape_json_string(value)),
@@ -1225,13 +1791,20 @@ fn json_optional_string(value: Option<&str>) -> String {
     }
 }
 
-fn json_string_array(values: &[String]) -> String {
-    let values = values
-        .iter()
-        .map(|value| format!("\"{}\"", escape_json_string(value)))
-        .collect::<Vec<_>>()
-        .join(",");
-    format!("[{values}]")
+fn json_f64(value: f64) -> String {
+    if value.is_finite() {
+        value.to_string()
+    } else {
+        "0".to_string()
+    }
+}
+
+fn rows_per_second(rows: u64, elapsed: Duration) -> f64 {
+    let seconds = elapsed.as_secs_f64();
+    if seconds == 0.0 {
+        return 0.0;
+    }
+    rows as f64 / seconds
 }
 
 fn escape_json_string(value: &str) -> String {
@@ -1253,17 +1826,23 @@ fn escape_json_string(value: &str) -> String {
 mod tests {
     use super::*;
 
+    type RowBinaryInputFixture<'a> = (&'a str, &'a str, Option<f64>, Option<f64>, Option<f64>);
+
     #[derive(Debug, Default)]
     struct FakeExecutor {
         queries: Vec<String>,
+        multi_queries: Vec<Vec<String>>,
         inserts: Vec<(String, String)>,
+        byte_inserts: Vec<(String, Vec<u8>)>,
         responses: Vec<String>,
+        byte_responses: Vec<Vec<u8>>,
     }
 
     impl FakeExecutor {
-        fn with_responses(responses: &[&str]) -> Self {
+        fn with_responses_and_bytes(responses: &[&str], byte_responses: Vec<Vec<u8>>) -> Self {
             Self {
                 responses: responses.iter().map(ToString::to_string).collect(),
+                byte_responses,
                 ..Self::default()
             }
         }
@@ -1278,14 +1857,67 @@ mod tests {
             Ok(self.responses.remove(0))
         }
 
+        fn query_bytes(&mut self, sql: &str) -> Result<Vec<u8>, FurnaceIoError> {
+            self.queries.push(sql.to_string());
+            if self.byte_responses.is_empty() {
+                return Ok(Vec::new());
+            }
+            Ok(self.byte_responses.remove(0))
+        }
+
         fn insert_tsv(&mut self, sql: &str, tsv: &str) -> Result<(), FurnaceIoError> {
             self.inserts.push((sql.to_string(), tsv.to_string()));
+            Ok(())
+        }
+
+        fn insert_bytes(&mut self, sql: &str, bytes: &[u8]) -> Result<(), FurnaceIoError> {
+            self.byte_inserts.push((sql.to_string(), bytes.to_vec()));
             Ok(())
         }
 
         fn execute(&mut self, sql: &str) -> Result<(), FurnaceIoError> {
             self.queries.push(sql.to_string());
             Ok(())
+        }
+
+        fn execute_many(&mut self, sqls: &[String]) -> Result<(), FurnaceIoError> {
+            self.multi_queries.push(sqls.to_vec());
+            Ok(())
+        }
+    }
+
+    fn rowbinary_input_rows(rows: &[RowBinaryInputFixture<'_>]) -> Vec<u8> {
+        let mut bytes = Vec::new();
+        for (security_code, trade_date, high_price, low_price, close_price) in rows {
+            write_rowbinary_string(&mut bytes, security_code);
+            write_rowbinary_string(&mut bytes, trade_date);
+            write_rowbinary_nullable_f64(&mut bytes, *high_price);
+            write_rowbinary_nullable_f64(&mut bytes, *low_price);
+            write_rowbinary_nullable_f64(&mut bytes, *close_price);
+        }
+        bytes
+    }
+
+    fn write_rowbinary_string(bytes: &mut Vec<u8>, value: &str) {
+        write_rowbinary_var_uint(bytes, value.len());
+        bytes.extend_from_slice(value.as_bytes());
+    }
+
+    fn write_rowbinary_var_uint(bytes: &mut Vec<u8>, mut value: usize) {
+        while value >= 0x80 {
+            bytes.push((value as u8) | 0x80);
+            value >>= 7;
+        }
+        bytes.push(value as u8);
+    }
+
+    fn write_rowbinary_nullable_f64(bytes: &mut Vec<u8>, value: Option<f64>) {
+        match value {
+            Some(value) => {
+                bytes.push(0);
+                bytes.extend_from_slice(&value.to_le_bytes());
+            }
+            None => bytes.push(1),
         }
     }
 
@@ -1319,14 +1951,13 @@ mod tests {
 
     #[test]
     fn run_kdj_dry_run_reads_inputs_and_computes_summary() {
-        let responses = [
-            "sh.600000\n",
-            "2026-01-01\n",
-            "1\n",
-            "",
-            "sh.600000\t2026-01-01\t10\t8\t9\nsh.600000\t2026-01-02\t11\t8\t10\nsh.600000\t2026-01-03\t12\t8\t11\n",
-        ];
-        let mut executor = FakeExecutor::with_responses(&responses);
+        let responses = ["sh.600000\n", "2026-01-01\n", "1\n", ""];
+        let input_rows = rowbinary_input_rows(&[
+            ("sh.600000", "2026-01-01", Some(10.0), Some(8.0), Some(9.0)),
+            ("sh.600000", "2026-01-02", Some(11.0), Some(8.0), Some(10.0)),
+            ("sh.600000", "2026-01-03", Some(12.0), Some(8.0), Some(11.0)),
+        ]);
+        let mut executor = FakeExecutor::with_responses_and_bytes(&responses, vec![input_rows]);
         let request = KdjRunRequest {
             request_from: "2026-01-01".to_string(),
             request_to: "2026-01-03".to_string(),
@@ -1342,19 +1973,74 @@ mod tests {
         assert_eq!(summary.input_rows, 3);
         assert_eq!(summary.output_rows, 3);
         assert_eq!(summary.null_indicator_rows, 2);
+        assert!(summary.performance_metrics.input_rows_per_sec.is_finite());
+        assert!(summary.to_json().contains("\"performance_metrics\""));
+        assert!(executor.queries.iter().any(|query| {
+            query.contains("AND 1 = 1\nORDER BY security_code, trade_date\nFORMAT RowBinary")
+        }));
         assert!(!summary.writes_applied);
     }
 
     #[test]
-    fn run_kdj_append_latest_inserts_result_rows() {
-        let responses = [
-            "2026-01-01\n",
-            "1\n",
-            "",
-            "sh.600000\t2026-01-01\t10\t8\t9\nsh.600000\t2026-01-02\t11\t8\t10\nsh.600000\t2026-01-03\t12\t8\t11\n",
-            "0\n",
+    fn parallel_kdj_outputs_match_serial_outputs() {
+        let request = KdjRunRequest {
+            request_from: "2026-01-01".to_string(),
+            request_to: "2026-01-04".to_string(),
+            params: KdjParams {
+                rsv_window: 3,
+                ..KdjParams::default()
+            },
+            ..KdjRunRequest::default()
+        };
+        let groups = vec![
+            KdjGroupedInput {
+                security_code: "sh.600000".to_string(),
+                inputs: vec![
+                    KdjInput::new("2026-01-01".to_string(), Some(10.0), Some(8.0), Some(9.0)),
+                    KdjInput::new("2026-01-02".to_string(), Some(11.0), Some(8.0), Some(10.0)),
+                    KdjInput::new("2026-01-03".to_string(), Some(12.0), Some(8.0), Some(11.0)),
+                    KdjInput::new("2026-01-04".to_string(), Some(13.0), Some(8.0), Some(12.0)),
+                ],
+            },
+            KdjGroupedInput {
+                security_code: "sz.000001".to_string(),
+                inputs: vec![
+                    KdjInput::new("2026-01-01".to_string(), Some(20.0), Some(18.0), Some(19.0)),
+                    KdjInput::new("2026-01-02".to_string(), Some(21.0), Some(18.0), Some(20.0)),
+                    KdjInput::new("2026-01-03".to_string(), Some(22.0), Some(18.0), Some(21.0)),
+                    KdjInput::new("2026-01-04".to_string(), Some(23.0), Some(18.0), Some(22.0)),
+                ],
+            },
         ];
-        let mut executor = FakeExecutor::with_responses(&responses);
+        let states = HashMap::from([("sz.000001".to_string(), KdjState::new(52.0, 48.0))]);
+
+        let mut serial =
+            calculate_grouped_outputs_serial(&request, "2026-01-04", &groups, &states).unwrap();
+        let mut parallel =
+            calculate_grouped_outputs_parallel(&request, "2026-01-04", &groups, &states).unwrap();
+        serial.sort_by(|left, right| {
+            left.security_code
+                .cmp(&right.security_code)
+                .then(left.trade_date.cmp(&right.trade_date))
+        });
+        parallel.sort_by(|left, right| {
+            left.security_code
+                .cmp(&right.security_code)
+                .then(left.trade_date.cmp(&right.trade_date))
+        });
+
+        assert_eq!(parallel, serial);
+    }
+
+    #[test]
+    fn run_kdj_append_latest_inserts_result_rows() {
+        let responses = ["2026-01-01\n", "1\n", "", "0\n"];
+        let input_rows = rowbinary_input_rows(&[
+            ("sh.600000", "2026-01-01", Some(10.0), Some(8.0), Some(9.0)),
+            ("sh.600000", "2026-01-02", Some(11.0), Some(8.0), Some(10.0)),
+            ("sh.600000", "2026-01-03", Some(12.0), Some(8.0), Some(11.0)),
+        ]);
+        let mut executor = FakeExecutor::with_responses_and_bytes(&responses, vec![input_rows]);
         let request = KdjRunRequest {
             request_from: "2026-01-01".to_string(),
             request_to: "2026-01-03".to_string(),
@@ -1367,8 +2053,124 @@ mod tests {
         let summary = run_kdj(&mut executor, &request).unwrap();
 
         assert!(summary.writes_applied);
-        assert_eq!(executor.inserts.len(), 1);
-        assert!(executor.inserts[0].1.contains("sh.600000\t2026-01-03"));
+        assert_eq!(executor.byte_inserts.len(), 1);
+        assert!(executor.byte_inserts[0].0.contains("FORMAT RowBinary"));
+        assert!(executor.byte_inserts[0].1.starts_with(b"\tsh.600000"));
+    }
+
+    #[test]
+    fn kdj_result_row_writes_clickhouse_rowbinary_encoding() {
+        let row = KdjResultRow {
+            security_code: "sh.600000".to_string(),
+            trade_date: "2026-01-03".to_string(),
+            rsv_window: 9,
+            k_smoothing: 3,
+            d_smoothing: 3,
+            rsv: None,
+            k_value: Some(12.5),
+            d_value: None,
+            j_value: Some(1.25),
+        };
+        let mut bytes = Vec::new();
+
+        row.write_row_binary(&mut bytes).unwrap();
+
+        let mut expected = Vec::new();
+        expected.push(9);
+        expected.extend_from_slice(b"sh.600000");
+        expected.extend_from_slice(&20_456_u16.to_le_bytes());
+        expected.extend_from_slice(&9_u16.to_le_bytes());
+        expected.extend_from_slice(&3_u16.to_le_bytes());
+        expected.extend_from_slice(&3_u16.to_le_bytes());
+        expected.push(1);
+        expected.push(0);
+        expected.extend_from_slice(&12.5_f64.to_le_bytes());
+        expected.push(1);
+        expected.push(0);
+        expected.extend_from_slice(&1.25_f64.to_le_bytes());
+        assert_eq!(bytes, expected);
+    }
+
+    #[test]
+    fn retain_old_rows_skips_fully_covered_all_market_year_partitions() {
+        let mut executor = FakeExecutor::default();
+        let request = KdjRunRequest {
+            request_from: "2020-01-01".to_string(),
+            request_to: "2022-12-31".to_string(),
+            mode: KdjWriteMode::ReplaceCascade,
+            ..KdjRunRequest::default()
+        };
+
+        let retained = retain_old_rows_for_staging(
+            &mut executor,
+            &request,
+            "fleur_calculation.stage",
+            &[],
+            true,
+            &[2020, 2021, 2022],
+            "2022-12-31",
+        )
+        .unwrap();
+
+        assert_eq!(retained, 0);
+        assert!(executor.queries.is_empty());
+    }
+
+    #[test]
+    fn validate_staging_checks_all_years_with_one_query() {
+        let mut executor = FakeExecutor::with_responses_and_bytes(&["0\n"], Vec::new());
+
+        let summary = validate_staging(
+            &mut executor,
+            "fleur_calculation.stage",
+            &[2020, 2021, 2022],
+        )
+        .unwrap();
+
+        assert_eq!(summary, ValidationSummary::passed());
+        assert_eq!(executor.queries.len(), 1);
+        assert!(executor.queries[0].contains("toYear(trade_date) IN (2020,2021,2022)"));
+    }
+
+    #[test]
+    fn run_kdj_replace_cascade_batches_partition_replace_statements() {
+        let responses = [
+            "2027-01-02\n",
+            "2026-12-30\n",
+            "1\n",
+            "",
+            "0\n",
+            "0\n",
+            "0\n",
+        ];
+        let input_rows = rowbinary_input_rows(&[
+            ("sh.600000", "2026-12-30", Some(10.0), Some(8.0), Some(9.0)),
+            ("sh.600000", "2026-12-31", Some(11.0), Some(8.0), Some(10.0)),
+            ("sh.600000", "2027-01-01", Some(12.0), Some(8.0), Some(11.0)),
+            ("sh.600000", "2027-01-02", Some(13.0), Some(8.0), Some(12.0)),
+        ]);
+        let mut executor = FakeExecutor::with_responses_and_bytes(&responses, vec![input_rows]);
+        let request = KdjRunRequest {
+            request_from: "2026-12-30".to_string(),
+            request_to: "2026-12-31".to_string(),
+            symbols: vec!["sh.600000".to_string()],
+            run_id: Some("replace-batch-test".to_string()),
+            mode: KdjWriteMode::ReplaceCascade,
+            insert_batch_size: MIN_INSERT_BATCH_SIZE,
+            ..KdjRunRequest::default()
+        };
+
+        let summary = run_kdj(&mut executor, &request).unwrap();
+
+        assert_eq!(summary.partition_replace.years, vec![2026, 2027]);
+        assert_eq!(executor.multi_queries.len(), 2);
+        assert_eq!(executor.multi_queries[0].len(), 2);
+        assert_eq!(executor.multi_queries[1].len(), 2);
+        assert!(
+            executor.multi_queries[1]
+                .iter()
+                .all(|sql| sql.contains("REPLACE PARTITION"))
+        );
     }
 
     #[test]
