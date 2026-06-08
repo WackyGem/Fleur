@@ -2,6 +2,8 @@
 
 pub mod ema;
 pub mod sma;
+pub mod stddev;
 
 pub use ema::{EmaState, SmaSeededEma, calculate_sma_seeded_ema_series};
 pub use sma::{RollingSma, calculate_sma_series};
+pub use stddev::{RollingMeanStdDev, RollingStdDev, calculate_stddev_series};

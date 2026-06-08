@@ -8,9 +8,9 @@ models:
         grain_zh: 每证券、交易日一行。
         business_logic_zh:
           - 上游物理表为 fleur_calculation.calc_stock_ma_daily，由 Furnace 计算、Dagster 调度和观测。
-          - 第一版固定使用 close_price_forward_adj 前复权收盘价口径。
-          - MA 窗口按有效 close 计数；EMA 使用前 10 个有效值的 SMA 启动。
-          - dbt wrapper 只暴露业务字段；ema1_10_state 和 ema2_10_state 为 Furnace 内部状态列，不在本模型暴露。
+          - 价格指标固定使用 close_price_forward_adj 前复权收盘价口径；均量指标固定使用未复权日行情 volume 口径，0 成交量为有效值。
+          - MA 窗口按有效输入值计数；EMA 使用前 10 个有效 close 的 SMA 启动。
+          - dbt wrapper 只暴露业务字段；price_ema1_10_state 和 price_ema2_10_state 为 Furnace 内部状态列，不在本模型暴露。
           - dbt 不重写 MA/EMA 公式，只提供 intermediate wrapper、字段文档和下游消费契约。
     data_tests:
       - unique_combination_of_columns:
@@ -32,66 +32,82 @@ models:
         data_tests:
           - not_null
 
-      - name: ma_3
+      - name: price_ma_3
         description: 3-valid-close simple moving average based on close_price_forward_adj.
         data_type: Nullable(Float64)
 
-      - name: ma_5
+      - name: price_ma_5
         description: 5-valid-close simple moving average based on close_price_forward_adj.
         data_type: Nullable(Float64)
 
-      - name: ma_6
+      - name: price_ma_6
         description: 6-valid-close simple moving average based on close_price_forward_adj.
         data_type: Nullable(Float64)
 
-      - name: ma_10
+      - name: price_ma_10
         description: 10-valid-close simple moving average based on close_price_forward_adj.
         data_type: Nullable(Float64)
 
-      - name: ma_12
+      - name: price_ma_12
         description: 12-valid-close simple moving average based on close_price_forward_adj.
         data_type: Nullable(Float64)
 
-      - name: ma_14
+      - name: price_ma_14
         description: 14-valid-close simple moving average based on close_price_forward_adj.
         data_type: Nullable(Float64)
 
-      - name: ma_20
+      - name: price_ma_20
         description: 20-valid-close simple moving average based on close_price_forward_adj.
         data_type: Nullable(Float64)
 
-      - name: ma_24
+      - name: price_ma_24
         description: 24-valid-close simple moving average based on close_price_forward_adj.
         data_type: Nullable(Float64)
 
-      - name: ma_28
+      - name: price_ma_28
         description: 28-valid-close simple moving average based on close_price_forward_adj.
         data_type: Nullable(Float64)
 
-      - name: ma_57
+      - name: price_ma_57
         description: 57-valid-close simple moving average based on close_price_forward_adj.
         data_type: Nullable(Float64)
 
-      - name: ma_60
+      - name: price_ma_60
         description: 60-valid-close simple moving average based on close_price_forward_adj.
         data_type: Nullable(Float64)
 
-      - name: ma_114
+      - name: price_ma_114
         description: 114-valid-close simple moving average based on close_price_forward_adj.
         data_type: Nullable(Float64)
 
-      - name: ma_250
+      - name: price_ma_250
         description: 250-valid-close simple moving average based on close_price_forward_adj.
         data_type: Nullable(Float64)
 
-      - name: avg_ma_3_6_12_24
-        description: Average of ma_3, ma_6, ma_12, and ma_24; NULL when any component is NULL.
+      - name: price_avg_ma_3_6_12_24
+        description: Average of price_ma_3, price_ma_6, price_ma_12, and price_ma_24; NULL when any component is NULL.
         data_type: Nullable(Float64)
 
-      - name: avg_ma_14_28_57_114
-        description: Average of ma_14, ma_28, ma_57, and ma_114; NULL when any component is NULL.
+      - name: price_avg_ma_14_28_57_114
+        description: Average of price_ma_14, price_ma_28, price_ma_57, and price_ma_114; NULL when any component is NULL.
         data_type: Nullable(Float64)
 
-      - name: ema2_10
+      - name: price_ema2_10
         description: Double EMA EMA(EMA(close_price_forward_adj, 10), 10) with SMA startup; first non-NULL at the 19th valid close.
+        data_type: Nullable(Float64)
+
+      - name: volume_ma_5
+        description: 5-valid-volume simple moving average based on int_stock_quotes_daily_unadj.volume; 0 volume is a valid input.
+        data_type: Nullable(Float64)
+
+      - name: volume_ma_10
+        description: 10-valid-volume simple moving average based on int_stock_quotes_daily_unadj.volume; 0 volume is a valid input.
+        data_type: Nullable(Float64)
+
+      - name: volume_ma_20
+        description: 20-valid-volume simple moving average based on int_stock_quotes_daily_unadj.volume; 0 volume is a valid input.
+        data_type: Nullable(Float64)
+
+      - name: volume_ma_60
+        description: 60-valid-volume simple moving average based on int_stock_quotes_daily_unadj.volume; 0 volume is a valid input.
         data_type: Nullable(Float64)

@@ -23,15 +23,25 @@
 pub mod indicators;
 pub mod operators;
 
+pub use indicators::bollinger_bands::{
+    BollBand, BollConfig, BollError, BollInput, BollOutput, BollParams, DEFAULT_BOLL_CONFIGS,
+    DEFAULT_BOLL_MAX_WINDOW, DEFAULT_BOLL_STDDEV_DDOF, calculate_boll_series,
+};
 pub use indicators::kdj::{
     DEFAULT_D_SMOOTHING, DEFAULT_INITIAL_D, DEFAULT_INITIAL_K, DEFAULT_K_SMOOTHING,
     DEFAULT_RSV_WINDOW, KdjError, KdjInput, KdjOutput, KdjParams, KdjState, PriceBar,
     calculate_kdj_next, calculate_kdj_series,
 };
 pub use indicators::moving_average::{
-    DEFAULT_EMA_WINDOW, DEFAULT_MA_WINDOWS, MaError, MaInput, MaOutput, MaParams, MaPreviousState,
-    MaState, calculate_ma_series, calculate_ma_series_from_previous_state,
+    DEFAULT_EMA_WINDOW, DEFAULT_PRICE_MA_WINDOWS, DEFAULT_VOLUME_MA_WINDOWS, MaError, MaInput,
+    MaOutput, MaParams, MaPreviousState, MaState, calculate_ma_series,
+    calculate_ma_series_from_previous_state,
+};
+pub use indicators::rsi::{
+    DEFAULT_RSI_WINDOWS, RsiError, RsiInput, RsiOutput, RsiParams, RsiPreviousState, RsiState,
+    RsiWindowState, calculate_rsi_series, calculate_rsi_series_from_previous_state,
 };
 pub use operators::{
-    EmaState, RollingSma, SmaSeededEma, calculate_sma_seeded_ema_series, calculate_sma_series,
+    EmaState, RollingMeanStdDev, RollingSma, RollingStdDev, SmaSeededEma,
+    calculate_sma_seeded_ema_series, calculate_sma_series, calculate_stddev_series,
 };

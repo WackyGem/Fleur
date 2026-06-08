@@ -75,74 +75,240 @@ sources:
             data_tests:
               - not_null
 
-          - name: ma_3
+          - name: price_ma_3
             description: 3-valid-close simple moving average based on close_price_forward_adj.
             data_type: Nullable(Float64)
 
-          - name: ma_5
+          - name: price_ma_5
             description: 5-valid-close simple moving average based on close_price_forward_adj.
             data_type: Nullable(Float64)
 
-          - name: ma_6
+          - name: price_ma_6
             description: 6-valid-close simple moving average based on close_price_forward_adj.
             data_type: Nullable(Float64)
 
-          - name: ma_10
+          - name: price_ma_10
             description: 10-valid-close simple moving average based on close_price_forward_adj.
             data_type: Nullable(Float64)
 
-          - name: ma_12
+          - name: price_ma_12
             description: 12-valid-close simple moving average based on close_price_forward_adj.
             data_type: Nullable(Float64)
 
-          - name: ma_14
+          - name: price_ma_14
             description: 14-valid-close simple moving average based on close_price_forward_adj.
             data_type: Nullable(Float64)
 
-          - name: ma_20
+          - name: price_ma_20
             description: 20-valid-close simple moving average based on close_price_forward_adj.
             data_type: Nullable(Float64)
 
-          - name: ma_24
+          - name: price_ma_24
             description: 24-valid-close simple moving average based on close_price_forward_adj.
             data_type: Nullable(Float64)
 
-          - name: ma_28
+          - name: price_ma_28
             description: 28-valid-close simple moving average based on close_price_forward_adj.
             data_type: Nullable(Float64)
 
-          - name: ma_57
+          - name: price_ma_57
             description: 57-valid-close simple moving average based on close_price_forward_adj.
             data_type: Nullable(Float64)
 
-          - name: ma_60
+          - name: price_ma_60
             description: 60-valid-close simple moving average based on close_price_forward_adj.
             data_type: Nullable(Float64)
 
-          - name: ma_114
+          - name: price_ma_114
             description: 114-valid-close simple moving average based on close_price_forward_adj.
             data_type: Nullable(Float64)
 
-          - name: ma_250
+          - name: price_ma_250
             description: 250-valid-close simple moving average based on close_price_forward_adj.
             data_type: Nullable(Float64)
 
-          - name: avg_ma_3_6_12_24
-            description: Average of ma_3, ma_6, ma_12, and ma_24; NULL when any component is NULL.
+          - name: price_avg_ma_3_6_12_24
+            description: Average of price_ma_3, price_ma_6, price_ma_12, and price_ma_24; NULL when any component is NULL.
             data_type: Nullable(Float64)
 
-          - name: avg_ma_14_28_57_114
-            description: Average of ma_14, ma_28, ma_57, and ma_114; NULL when any component is NULL.
+          - name: price_avg_ma_14_28_57_114
+            description: Average of price_ma_14, price_ma_28, price_ma_57, and price_ma_114; NULL when any component is NULL.
             data_type: Nullable(Float64)
 
-          - name: ema1_10_state
+          - name: price_ema1_10_state
             description: Internal EMA(close, 10) state used by Furnace for exact continuation.
             data_type: Nullable(Float64)
 
-          - name: ema2_10
+          - name: price_ema2_10
             description: Double EMA EMA(EMA(close_price_forward_adj, 10), 10) with SMA startup.
             data_type: Nullable(Float64)
 
-          - name: ema2_10_state
-            description: Internal EMA2 state; numerically equal to ema2_10 when available.
+          - name: price_ema2_10_state
+            description: Internal EMA2 state; numerically equal to price_ema2_10 when available.
+            data_type: Nullable(Float64)
+
+          - name: volume_ma_5
+            description: 5-valid-volume simple moving average based on int_stock_quotes_daily_unadj.volume; 0 volume is a valid input.
+            data_type: Nullable(Float64)
+
+          - name: volume_ma_10
+            description: 10-valid-volume simple moving average based on int_stock_quotes_daily_unadj.volume; 0 volume is a valid input.
+            data_type: Nullable(Float64)
+
+          - name: volume_ma_20
+            description: 20-valid-volume simple moving average based on int_stock_quotes_daily_unadj.volume; 0 volume is a valid input.
+            data_type: Nullable(Float64)
+
+          - name: volume_ma_60
+            description: 60-valid-volume simple moving average based on int_stock_quotes_daily_unadj.volume; 0 volume is a valid input.
+            data_type: Nullable(Float64)
+
+      - name: calc_stock_rsi_daily
+        description: Furnace/Dagster materialized daily RSI technical indicator table.
+        config:
+          meta:
+            dagster:
+              asset_key:
+                - fleur_calculation
+                - calc_stock_rsi_daily
+        columns:
+          - name: security_code
+            description: "{{ doc('field_security_code') }}"
+            data_type: String
+            data_tests:
+              - not_null
+
+          - name: trade_date
+            description: "{{ doc('field_trade_date') }}"
+            data_type: Date
+            data_tests:
+              - not_null
+
+          - name: rsi_6
+            description: RSI(6) based on close_price_forward_adj using Wilder smoothing; NULL before the 7th valid close or when close is NULL.
+            data_type: Nullable(Float64)
+
+          - name: rsi_12
+            description: RSI(12) based on close_price_forward_adj using Wilder smoothing; NULL before the 13th valid close or when close is NULL.
+            data_type: Nullable(Float64)
+
+          - name: rsi_14
+            description: RSI(14) based on close_price_forward_adj using Wilder smoothing; NULL before the 15th valid close or when close is NULL.
+            data_type: Nullable(Float64)
+
+          - name: rsi_24
+            description: RSI(24) based on close_price_forward_adj using Wilder smoothing; NULL before the 25th valid close or when close is NULL.
+            data_type: Nullable(Float64)
+
+          - name: rsi_25
+            description: RSI(25) based on close_price_forward_adj using Wilder smoothing; NULL before the 26th valid close or when close is NULL.
+            data_type: Nullable(Float64)
+
+          - name: rsi_50
+            description: RSI(50) based on close_price_forward_adj using Wilder smoothing; NULL before the 51st valid close or when close is NULL.
+            data_type: Nullable(Float64)
+
+          - name: avg_gain_6_state
+            description: Internal RSI(6) average gain state used by Furnace for exact continuation; downstream models should not consume directly.
+            data_type: Nullable(Float64)
+
+          - name: avg_loss_6_state
+            description: Internal RSI(6) average loss state used by Furnace for exact continuation; downstream models should not consume directly.
+            data_type: Nullable(Float64)
+
+          - name: avg_gain_12_state
+            description: Internal RSI(12) average gain state used by Furnace for exact continuation; downstream models should not consume directly.
+            data_type: Nullable(Float64)
+
+          - name: avg_loss_12_state
+            description: Internal RSI(12) average loss state used by Furnace for exact continuation; downstream models should not consume directly.
+            data_type: Nullable(Float64)
+
+          - name: avg_gain_14_state
+            description: Internal RSI(14) average gain state used by Furnace for exact continuation; downstream models should not consume directly.
+            data_type: Nullable(Float64)
+
+          - name: avg_loss_14_state
+            description: Internal RSI(14) average loss state used by Furnace for exact continuation; downstream models should not consume directly.
+            data_type: Nullable(Float64)
+
+          - name: avg_gain_24_state
+            description: Internal RSI(24) average gain state used by Furnace for exact continuation; downstream models should not consume directly.
+            data_type: Nullable(Float64)
+
+          - name: avg_loss_24_state
+            description: Internal RSI(24) average loss state used by Furnace for exact continuation; downstream models should not consume directly.
+            data_type: Nullable(Float64)
+
+          - name: avg_gain_25_state
+            description: Internal RSI(25) average gain state used by Furnace for exact continuation; downstream models should not consume directly.
+            data_type: Nullable(Float64)
+
+          - name: avg_loss_25_state
+            description: Internal RSI(25) average loss state used by Furnace for exact continuation; downstream models should not consume directly.
+            data_type: Nullable(Float64)
+
+          - name: avg_gain_50_state
+            description: Internal RSI(50) average gain state used by Furnace for exact continuation; downstream models should not consume directly.
+            data_type: Nullable(Float64)
+
+          - name: avg_loss_50_state
+            description: Internal RSI(50) average loss state used by Furnace for exact continuation; downstream models should not consume directly.
+            data_type: Nullable(Float64)
+
+      - name: calc_stock_boll_daily
+        description: Furnace/Dagster materialized daily Bollinger Bands technical indicator table.
+        config:
+          meta:
+            dagster:
+              asset_key:
+                - fleur_calculation
+                - calc_stock_boll_daily
+        columns:
+          - name: security_code
+            description: "{{ doc('field_security_code') }}"
+            data_type: String
+            data_tests:
+              - not_null
+
+          - name: trade_date
+            description: "{{ doc('field_trade_date') }}"
+            data_type: Date
+            data_tests:
+              - not_null
+
+          - name: boll_mid_10_1p5
+            description: BOLL(10, 1.5) middle band; 10-valid-close SMA based on close_price_forward_adj.
+            data_type: Nullable(Float64)
+
+          - name: boll_up_10_1p5
+            description: BOLL(10, 1.5) upper band; MID + 1.5 * population STD(close_price_forward_adj, 10), ddof=0.
+            data_type: Nullable(Float64)
+
+          - name: boll_dn_10_1p5
+            description: BOLL(10, 1.5) lower band; MID - 1.5 * population STD(close_price_forward_adj, 10), ddof=0.
+            data_type: Nullable(Float64)
+
+          - name: boll_mid_20_2
+            description: BOLL(20, 2) middle band; 20-valid-close SMA based on close_price_forward_adj.
+            data_type: Nullable(Float64)
+
+          - name: boll_up_20_2
+            description: BOLL(20, 2) upper band; MID + 2 * population STD(close_price_forward_adj, 20), ddof=0.
+            data_type: Nullable(Float64)
+
+          - name: boll_dn_20_2
+            description: BOLL(20, 2) lower band; MID - 2 * population STD(close_price_forward_adj, 20), ddof=0.
+            data_type: Nullable(Float64)
+
+          - name: boll_mid_50_2p5
+            description: BOLL(50, 2.5) middle band; 50-valid-close SMA based on close_price_forward_adj.
+            data_type: Nullable(Float64)
+
+          - name: boll_up_50_2p5
+            description: BOLL(50, 2.5) upper band; MID + 2.5 * population STD(close_price_forward_adj, 50), ddof=0.
+            data_type: Nullable(Float64)
+
+          - name: boll_dn_50_2p5
+            description: BOLL(50, 2.5) lower band; MID - 2.5 * population STD(close_price_forward_adj, 50), ddof=0.
             data_type: Nullable(Float64)

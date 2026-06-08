@@ -13,13 +13,20 @@ use std::str;
 use std::time::{Duration, Instant};
 
 use furnace_core::{
-    DEFAULT_EMA_WINDOW, DEFAULT_MA_WINDOWS, KdjInput, KdjParams, KdjState, MaInput, MaParams,
-    MaPreviousState, MaState, calculate_kdj_series, calculate_ma_series_from_previous_state,
+    BollInput, BollParams, DEFAULT_BOLL_CONFIGS, DEFAULT_BOLL_MAX_WINDOW, DEFAULT_BOLL_STDDEV_DDOF,
+    DEFAULT_EMA_WINDOW, DEFAULT_PRICE_MA_WINDOWS, DEFAULT_RSI_WINDOWS, DEFAULT_VOLUME_MA_WINDOWS,
+    KdjInput, KdjParams, KdjState, MaInput, MaParams, MaPreviousState, MaState, RsiInput,
+    RsiParams, RsiPreviousState, RsiState, RsiWindowState, calculate_boll_series,
+    calculate_kdj_series, calculate_ma_series_from_previous_state,
+    calculate_rsi_series_from_previous_state,
 };
 use rayon::prelude::*;
 
 /// 默认的 dbt 中间层输入表，存放前复权日行情价格。
 pub const DEFAULT_INPUT_TABLE: &str = "fleur_intermediate.int_stock_quotes_daily_adj";
+
+/// 默认的 dbt 中间层成交量输入表，存放未复权日行情成交量。
+pub const DEFAULT_MA_VOLUME_INPUT_TABLE: &str = "fleur_intermediate.int_stock_quotes_daily_unadj";
 
 /// Furnace 负责写入的日频 KDJ 计算结果表。
 pub const DEFAULT_KDJ_OUTPUT_TABLE: &str = "fleur_calculation.calc_stock_kdj_daily";
@@ -27,8 +34,23 @@ pub const DEFAULT_KDJ_OUTPUT_TABLE: &str = "fleur_calculation.calc_stock_kdj_dai
 /// Furnace 负责写入的日频 Moving Average 计算结果表。
 pub const DEFAULT_MA_OUTPUT_TABLE: &str = "fleur_calculation.calc_stock_ma_daily";
 
+/// Furnace 负责写入的日频 RSI 计算结果表。
+pub const DEFAULT_RSI_OUTPUT_TABLE: &str = "fleur_calculation.calc_stock_rsi_daily";
+
+/// Furnace 负责写入的日频 Bollinger Bands 计算结果表。
+pub const DEFAULT_BOLL_OUTPUT_TABLE: &str = "fleur_calculation.calc_stock_boll_daily";
+
 /// Moving Average 第一版使用的 canonical 前复权收盘价字段。
 pub const DEFAULT_MA_PRICE_COLUMN: &str = "close_price_forward_adj";
+
+/// Moving Average 第一版使用的 canonical 成交量字段。
+pub const DEFAULT_MA_VOLUME_COLUMN: &str = "volume";
+
+/// RSI 第一版使用的 canonical 前复权收盘价字段。
+pub const DEFAULT_RSI_PRICE_COLUMN: &str = "close_price_forward_adj";
+
+/// Bollinger Bands 第一版使用的 canonical 前复权收盘价字段。
+pub const DEFAULT_BOLL_PRICE_COLUMN: &str = "close_price_forward_adj";
 
 /// ClickHouse 单批插入的默认目标行数。
 pub const DEFAULT_INSERT_BATCH_SIZE: usize = 10_000;
@@ -82,24 +104,85 @@ CREATE TABLE IF NOT EXISTS {output_table}
 (
     security_code String,
     trade_date Date,
-    ma_3 Nullable(Float64),
-    ma_5 Nullable(Float64),
-    ma_6 Nullable(Float64),
-    ma_10 Nullable(Float64),
-    ma_12 Nullable(Float64),
-    ma_14 Nullable(Float64),
-    ma_20 Nullable(Float64),
-    ma_24 Nullable(Float64),
-    ma_28 Nullable(Float64),
-    ma_57 Nullable(Float64),
-    ma_60 Nullable(Float64),
-    ma_114 Nullable(Float64),
-    ma_250 Nullable(Float64),
-    avg_ma_3_6_12_24 Nullable(Float64),
-    avg_ma_14_28_57_114 Nullable(Float64),
-    ema1_10_state Nullable(Float64),
-    ema2_10 Nullable(Float64),
-    ema2_10_state Nullable(Float64)
+    price_ma_3 Nullable(Float64),
+    price_ma_5 Nullable(Float64),
+    price_ma_6 Nullable(Float64),
+    price_ma_10 Nullable(Float64),
+    price_ma_12 Nullable(Float64),
+    price_ma_14 Nullable(Float64),
+    price_ma_20 Nullable(Float64),
+    price_ma_24 Nullable(Float64),
+    price_ma_28 Nullable(Float64),
+    price_ma_57 Nullable(Float64),
+    price_ma_60 Nullable(Float64),
+    price_ma_114 Nullable(Float64),
+    price_ma_250 Nullable(Float64),
+    price_avg_ma_3_6_12_24 Nullable(Float64),
+    price_avg_ma_14_28_57_114 Nullable(Float64),
+    price_ema1_10_state Nullable(Float64),
+    price_ema2_10 Nullable(Float64),
+    price_ema2_10_state Nullable(Float64),
+    volume_ma_5 Nullable(Float64),
+    volume_ma_10 Nullable(Float64),
+    volume_ma_20 Nullable(Float64),
+    volume_ma_60 Nullable(Float64)
+)
+ENGINE = MergeTree()
+PARTITION BY toYear(trade_date)
+ORDER BY (trade_date, security_code)"
+    )
+}
+
+/// 返回 RSI 结果表的 ClickHouse DDL。
+pub fn create_rsi_output_table_sql(output_table: &str) -> String {
+    format!(
+        "\
+CREATE TABLE IF NOT EXISTS {output_table}
+(
+    security_code String,
+    trade_date Date,
+    rsi_6 Nullable(Float64),
+    rsi_12 Nullable(Float64),
+    rsi_14 Nullable(Float64),
+    rsi_24 Nullable(Float64),
+    rsi_25 Nullable(Float64),
+    rsi_50 Nullable(Float64),
+    avg_gain_6_state Nullable(Float64),
+    avg_loss_6_state Nullable(Float64),
+    avg_gain_12_state Nullable(Float64),
+    avg_loss_12_state Nullable(Float64),
+    avg_gain_14_state Nullable(Float64),
+    avg_loss_14_state Nullable(Float64),
+    avg_gain_24_state Nullable(Float64),
+    avg_loss_24_state Nullable(Float64),
+    avg_gain_25_state Nullable(Float64),
+    avg_loss_25_state Nullable(Float64),
+    avg_gain_50_state Nullable(Float64),
+    avg_loss_50_state Nullable(Float64)
+)
+ENGINE = MergeTree()
+PARTITION BY toYear(trade_date)
+ORDER BY (trade_date, security_code)"
+    )
+}
+
+/// 返回 Bollinger Bands 结果表的 ClickHouse DDL。
+pub fn create_boll_output_table_sql(output_table: &str) -> String {
+    format!(
+        "\
+CREATE TABLE IF NOT EXISTS {output_table}
+(
+    security_code String,
+    trade_date Date,
+    boll_mid_10_1p5 Nullable(Float64),
+    boll_up_10_1p5 Nullable(Float64),
+    boll_dn_10_1p5 Nullable(Float64),
+    boll_mid_20_2 Nullable(Float64),
+    boll_up_20_2 Nullable(Float64),
+    boll_dn_20_2 Nullable(Float64),
+    boll_mid_50_2p5 Nullable(Float64),
+    boll_up_50_2p5 Nullable(Float64),
+    boll_dn_50_2p5 Nullable(Float64)
 )
 ENGINE = MergeTree()
 PARTITION BY toYear(trade_date)
@@ -199,6 +282,46 @@ pub fn drop_ma_staging_table_sql(staging_table: &str) -> String {
     format!("DROP TABLE IF EXISTS {staging_table}")
 }
 
+/// 根据运行 ID 构造 RSI staging 表名。
+pub fn rsi_staging_table_name(output_table: &str, run_id: &str) -> String {
+    ma_staging_table_name(output_table, run_id)
+}
+
+/// 构造 RSI staging 表创建 SQL，表结构与目标表一致。
+pub fn create_rsi_staging_table_sql(output_table: &str, staging_table: &str) -> String {
+    create_ma_staging_table_sql(output_table, staging_table)
+}
+
+/// 构造将单个年份分区从 RSI staging 表替换到目标表的 SQL。
+pub fn replace_rsi_partition_sql(output_table: &str, staging_table: &str, year: u16) -> String {
+    replace_ma_partition_sql(output_table, staging_table, year)
+}
+
+/// 构造删除 RSI staging 表的 SQL。
+pub fn drop_rsi_staging_table_sql(staging_table: &str) -> String {
+    drop_ma_staging_table_sql(staging_table)
+}
+
+/// 根据运行 ID 构造 Bollinger Bands staging 表名。
+pub fn boll_staging_table_name(output_table: &str, run_id: &str) -> String {
+    ma_staging_table_name(output_table, run_id)
+}
+
+/// 构造 Bollinger Bands staging 表创建 SQL，表结构与目标表一致。
+pub fn create_boll_staging_table_sql(output_table: &str, staging_table: &str) -> String {
+    create_ma_staging_table_sql(output_table, staging_table)
+}
+
+/// 构造将单个年份分区从 Bollinger Bands staging 表替换到目标表的 SQL。
+pub fn replace_boll_partition_sql(output_table: &str, staging_table: &str, year: u16) -> String {
+    replace_ma_partition_sql(output_table, staging_table, year)
+}
+
+/// 构造删除 Bollinger Bands 临时 staging 表的 SQL。
+pub fn drop_boll_staging_table_sql(staging_table: &str) -> String {
+    drop_ma_staging_table_sql(staging_table)
+}
+
 /// CLI 或 Dagster 请求的 KDJ 写入模式。
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum KdjWriteMode {
@@ -263,6 +386,84 @@ impl MaWriteMode {
             "replace-cascade" => Ok(Self::ReplaceCascade),
             other => Err(FurnaceIoError::InvalidRequest(format!(
                 "invalid MA write mode: {other}"
+            ))),
+        }
+    }
+
+    /// 返回该模式在 CLI 中使用的拼写。
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::DryRun => "dry-run",
+            Self::AppendLatest => "append-latest",
+            Self::ReplaceCascade => "replace-cascade",
+        }
+    }
+
+    /// 判断该模式是否会写入生产 ClickHouse 数据。
+    pub fn writes_applied(self) -> bool {
+        !matches!(self, Self::DryRun)
+    }
+}
+
+/// CLI 或 Dagster 请求的 RSI 写入模式。
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum RsiWriteMode {
+    /// 只计算并汇总结果，不写入 ClickHouse。
+    DryRun,
+    /// 当目标表不存在同日或更晚结果时，追加最新区间。
+    AppendLatest,
+    /// 重算历史区间，并级联到受影响的最新输入日期。
+    ReplaceCascade,
+}
+
+impl RsiWriteMode {
+    /// 解析该模式在 CLI 中使用的拼写。
+    pub fn parse(value: &str) -> Result<Self, FurnaceIoError> {
+        match value {
+            "dry-run" => Ok(Self::DryRun),
+            "append-latest" => Ok(Self::AppendLatest),
+            "replace-cascade" => Ok(Self::ReplaceCascade),
+            other => Err(FurnaceIoError::InvalidRequest(format!(
+                "invalid RSI write mode: {other}"
+            ))),
+        }
+    }
+
+    /// 返回该模式在 CLI 中使用的拼写。
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::DryRun => "dry-run",
+            Self::AppendLatest => "append-latest",
+            Self::ReplaceCascade => "replace-cascade",
+        }
+    }
+
+    /// 判断该模式是否会写入生产 ClickHouse 数据。
+    pub fn writes_applied(self) -> bool {
+        !matches!(self, Self::DryRun)
+    }
+}
+
+/// CLI 或 Dagster 请求的 Bollinger Bands 写入模式。
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum BollWriteMode {
+    /// 只计算并汇总结果，不写入 ClickHouse。
+    DryRun,
+    /// 当目标表不存在同日或更晚结果时，追加最新区间。
+    AppendLatest,
+    /// 重算历史区间，并级联到受影响的最新输入日期。
+    ReplaceCascade,
+}
+
+impl BollWriteMode {
+    /// 解析该模式在 CLI 中使用的拼写。
+    pub fn parse(value: &str) -> Result<Self, FurnaceIoError> {
+        match value {
+            "dry-run" => Ok(Self::DryRun),
+            "append-latest" => Ok(Self::AppendLatest),
+            "replace-cascade" => Ok(Self::ReplaceCascade),
+            other => Err(FurnaceIoError::InvalidRequest(format!(
+                "invalid Bollinger Bands write mode: {other}"
             ))),
         }
     }
@@ -360,10 +561,14 @@ pub struct MaRunRequest {
     pub params: MaParams,
     /// 输入表。
     pub input_table: String,
+    /// 成交量输入表。
+    pub volume_input_table: String,
     /// 输出表。
     pub output_table: String,
     /// close 输入字段名。
     pub price_column: String,
+    /// volume 输入字段名。
+    pub volume_column: String,
     /// ClickHouse 每批插入的目标行数。
     pub insert_batch_size: usize,
 }
@@ -388,9 +593,19 @@ impl MaRunRequest {
                 "production MA writes only allow input table {DEFAULT_INPUT_TABLE}"
             )));
         }
+        if self.mode.writes_applied() && self.volume_input_table != DEFAULT_MA_VOLUME_INPUT_TABLE {
+            return Err(FurnaceIoError::InvalidRequest(format!(
+                "production MA writes only allow volume input table {DEFAULT_MA_VOLUME_INPUT_TABLE}"
+            )));
+        }
         if self.mode.writes_applied() && self.price_column != DEFAULT_MA_PRICE_COLUMN {
             return Err(FurnaceIoError::InvalidRequest(format!(
                 "production MA writes only allow price column {DEFAULT_MA_PRICE_COLUMN}"
+            )));
+        }
+        if self.mode.writes_applied() && self.volume_column != DEFAULT_MA_VOLUME_COLUMN {
+            return Err(FurnaceIoError::InvalidRequest(format!(
+                "production MA writes only allow volume column {DEFAULT_MA_VOLUME_COLUMN}"
             )));
         }
         if self.mode.writes_applied() && self.insert_batch_size < MIN_INSERT_BATCH_SIZE {
@@ -399,8 +614,10 @@ impl MaRunRequest {
             )));
         }
         validate_table_name("input_table", &self.input_table)?;
+        validate_table_name("volume_input_table", &self.volume_input_table)?;
         validate_table_name("output_table", &self.output_table)?;
         validate_identifier("price_column", &self.price_column)?;
+        validate_identifier("volume_column", &self.volume_column)?;
         Ok(())
     }
 }
@@ -415,8 +632,168 @@ impl Default for MaRunRequest {
             mode: MaWriteMode::DryRun,
             params: MaParams::default(),
             input_table: DEFAULT_INPUT_TABLE.to_string(),
+            volume_input_table: DEFAULT_MA_VOLUME_INPUT_TABLE.to_string(),
             output_table: DEFAULT_MA_OUTPUT_TABLE.to_string(),
             price_column: DEFAULT_MA_PRICE_COLUMN.to_string(),
+            volume_column: DEFAULT_MA_VOLUME_COLUMN.to_string(),
+            insert_batch_size: DEFAULT_INSERT_BATCH_SIZE,
+        }
+    }
+}
+
+/// 单次 Furnace RSI 运行请求。
+#[derive(Debug, Clone, PartialEq)]
+pub struct RsiRunRequest {
+    /// 请求输出的起始日期。
+    pub request_from: String,
+    /// 请求输出的结束日期。
+    pub request_to: String,
+    /// 可选证券代码白名单；为空时从输入行中推断。
+    pub symbols: Vec<String>,
+    /// 来自 Dagster 或 Furnace CLI 的运行标识。
+    pub run_id: Option<String>,
+    /// 写入模式。
+    pub mode: RsiWriteMode,
+    /// RSI 参数。
+    pub params: RsiParams,
+    /// 输入表。
+    pub input_table: String,
+    /// 输出表。
+    pub output_table: String,
+    /// close 输入字段名。
+    pub price_column: String,
+    /// ClickHouse 每批插入的目标行数。
+    pub insert_batch_size: usize,
+}
+
+impl RsiRunRequest {
+    /// 在执行 ClickHouse 操作前校验请求。
+    pub fn validate(&self) -> Result<(), FurnaceIoError> {
+        validate_date("request_from", &self.request_from)?;
+        validate_date("request_to", &self.request_to)?;
+        if self.request_to < self.request_from {
+            return Err(FurnaceIoError::InvalidRequest(
+                "request_to must be greater than or equal to request_from".to_string(),
+            ));
+        }
+        if self.mode.writes_applied() && !self.params.is_canonical() {
+            return Err(FurnaceIoError::InvalidRequest(
+                "production RSI writes only allow canonical parameters".to_string(),
+            ));
+        }
+        if self.mode.writes_applied() && self.input_table != DEFAULT_INPUT_TABLE {
+            return Err(FurnaceIoError::InvalidRequest(format!(
+                "production RSI writes only allow input table {DEFAULT_INPUT_TABLE}"
+            )));
+        }
+        if self.mode.writes_applied() && self.price_column != DEFAULT_RSI_PRICE_COLUMN {
+            return Err(FurnaceIoError::InvalidRequest(format!(
+                "production RSI writes only allow price column {DEFAULT_RSI_PRICE_COLUMN}"
+            )));
+        }
+        if self.mode.writes_applied() && self.insert_batch_size < MIN_INSERT_BATCH_SIZE {
+            return Err(FurnaceIoError::InvalidRequest(format!(
+                "production insert batch size must be at least {MIN_INSERT_BATCH_SIZE}"
+            )));
+        }
+        validate_table_name("input_table", &self.input_table)?;
+        validate_table_name("output_table", &self.output_table)?;
+        validate_identifier("price_column", &self.price_column)?;
+        Ok(())
+    }
+}
+
+impl Default for RsiRunRequest {
+    fn default() -> Self {
+        Self {
+            request_from: String::new(),
+            request_to: String::new(),
+            symbols: Vec::new(),
+            run_id: None,
+            mode: RsiWriteMode::DryRun,
+            params: RsiParams::default(),
+            input_table: DEFAULT_INPUT_TABLE.to_string(),
+            output_table: DEFAULT_RSI_OUTPUT_TABLE.to_string(),
+            price_column: DEFAULT_RSI_PRICE_COLUMN.to_string(),
+            insert_batch_size: DEFAULT_INSERT_BATCH_SIZE,
+        }
+    }
+}
+
+/// 单次 Furnace Bollinger Bands 运行请求。
+#[derive(Debug, Clone, PartialEq)]
+pub struct BollRunRequest {
+    /// 请求输出的起始日期。
+    pub request_from: String,
+    /// 请求输出的结束日期。
+    pub request_to: String,
+    /// 可选证券代码白名单；为空时从输入行中推断。
+    pub symbols: Vec<String>,
+    /// 来自 Dagster 或 Furnace CLI 的运行标识。
+    pub run_id: Option<String>,
+    /// 写入模式。
+    pub mode: BollWriteMode,
+    /// Bollinger Bands 参数。
+    pub params: BollParams,
+    /// 输入表。
+    pub input_table: String,
+    /// 输出表。
+    pub output_table: String,
+    /// close 输入字段名。
+    pub price_column: String,
+    /// ClickHouse 每批插入的目标行数。
+    pub insert_batch_size: usize,
+}
+
+impl BollRunRequest {
+    /// 在执行 ClickHouse 操作前校验请求。
+    pub fn validate(&self) -> Result<(), FurnaceIoError> {
+        validate_date("request_from", &self.request_from)?;
+        validate_date("request_to", &self.request_to)?;
+        if self.request_to < self.request_from {
+            return Err(FurnaceIoError::InvalidRequest(
+                "request_to must be greater than or equal to request_from".to_string(),
+            ));
+        }
+        if self.mode.writes_applied() && !self.params.is_canonical() {
+            return Err(FurnaceIoError::InvalidRequest(
+                "production Bollinger Bands writes only allow canonical parameters".to_string(),
+            ));
+        }
+        if self.mode.writes_applied() && self.input_table != DEFAULT_INPUT_TABLE {
+            return Err(FurnaceIoError::InvalidRequest(format!(
+                "production Bollinger Bands writes only allow input table {DEFAULT_INPUT_TABLE}"
+            )));
+        }
+        if self.mode.writes_applied() && self.price_column != DEFAULT_BOLL_PRICE_COLUMN {
+            return Err(FurnaceIoError::InvalidRequest(format!(
+                "production Bollinger Bands writes only allow price column {DEFAULT_BOLL_PRICE_COLUMN}"
+            )));
+        }
+        if self.mode.writes_applied() && self.insert_batch_size < MIN_INSERT_BATCH_SIZE {
+            return Err(FurnaceIoError::InvalidRequest(format!(
+                "production insert batch size must be at least {MIN_INSERT_BATCH_SIZE}"
+            )));
+        }
+        validate_table_name("input_table", &self.input_table)?;
+        validate_table_name("output_table", &self.output_table)?;
+        validate_identifier("price_column", &self.price_column)?;
+        Ok(())
+    }
+}
+
+impl Default for BollRunRequest {
+    fn default() -> Self {
+        Self {
+            request_from: String::new(),
+            request_to: String::new(),
+            symbols: Vec::new(),
+            run_id: None,
+            mode: BollWriteMode::DryRun,
+            params: BollParams::default(),
+            input_table: DEFAULT_INPUT_TABLE.to_string(),
+            output_table: DEFAULT_BOLL_OUTPUT_TABLE.to_string(),
+            price_column: DEFAULT_BOLL_PRICE_COLUMN.to_string(),
             insert_batch_size: DEFAULT_INSERT_BATCH_SIZE,
         }
     }
@@ -532,6 +909,8 @@ pub struct MaRunSummary {
     pub output_rows: u64,
     /// 有效 close 行数。
     pub valid_close_rows: u64,
+    /// 有效 volume 行数。
+    pub valid_volume_rows: u64,
     /// 所有业务指标值均不可用的输出行数。
     pub null_indicator_rows: u64,
     /// 受影响的 ClickHouse 年度分区。
@@ -563,13 +942,114 @@ impl MaRunSummary {
             .map(u16::to_string)
             .collect::<Vec<_>>()
             .join(",");
-        let ma_windows = DEFAULT_MA_WINDOWS
+        let price_ma_windows = DEFAULT_PRICE_MA_WINDOWS
+            .iter()
+            .map(usize::to_string)
+            .collect::<Vec<_>>()
+            .join(",");
+        let volume_ma_windows = DEFAULT_VOLUME_MA_WINDOWS
             .iter()
             .map(usize::to_string)
             .collect::<Vec<_>>()
             .join(",");
         format!(
-            "{{\"indicator\":\"ma\",\"request_from\":\"{}\",\"request_to\":\"{}\",\"effective_output_from\":\"{}\",\"effective_output_to\":\"{}\",\"input_from\":\"{}\",\"input_to\":\"{}\",\"mode\":\"{}\",\"symbols_count\":{},\"input_rows\":{},\"output_rows\":{},\"valid_close_rows\":{},\"null_indicator_rows\":{},\"affected_years\":[{}],\"retained_rows\":{},\"staging_table\":{},\"staging_validation\":{},\"partition_replace\":{},\"ma_windows\":[{}],\"ema_window\":{},\"ema_state_source\":\"{}\",\"run_id\":{},\"writes_applied\":{},\"performance_metrics\":{}}}",
+            "{{\"indicator\":\"ma\",\"request_from\":\"{}\",\"request_to\":\"{}\",\"effective_output_from\":\"{}\",\"effective_output_to\":\"{}\",\"input_from\":\"{}\",\"input_to\":\"{}\",\"mode\":\"{}\",\"symbols_count\":{},\"input_rows\":{},\"output_rows\":{},\"valid_close_rows\":{},\"valid_volume_rows\":{},\"null_indicator_rows\":{},\"affected_years\":[{}],\"retained_rows\":{},\"staging_table\":{},\"staging_validation\":{},\"partition_replace\":{},\"price_ma_windows\":[{}],\"volume_ma_windows\":[{}],\"ema_window\":{},\"ema_state_source\":\"{}\",\"run_id\":{},\"writes_applied\":{},\"performance_metrics\":{}}}",
+            escape_json_string(&self.request_from),
+            escape_json_string(&self.request_to),
+            escape_json_string(&self.effective_output_from),
+            escape_json_string(&self.effective_output_to),
+            escape_json_string(&self.input_from),
+            escape_json_string(&self.input_to),
+            self.mode.as_str(),
+            self.symbols.len(),
+            self.input_rows,
+            self.output_rows,
+            self.valid_close_rows,
+            self.valid_volume_rows,
+            self.null_indicator_rows,
+            affected_years,
+            self.retained_rows,
+            json_optional_string(self.staging_table.as_deref()),
+            self.staging_validation.to_json(),
+            self.partition_replace.to_json(),
+            price_ma_windows,
+            volume_ma_windows,
+            DEFAULT_EMA_WINDOW,
+            escape_json_string(&self.ema_state_source),
+            json_optional_string(self.run_id.as_deref()),
+            self.writes_applied,
+            self.performance_metrics.to_json()
+        )
+    }
+}
+
+/// Furnace RSI 单次运行输出摘要。
+#[derive(Debug, Clone, PartialEq)]
+pub struct RsiRunSummary {
+    /// 请求输出的起始日期。
+    pub request_from: String,
+    /// 请求输出的结束日期。
+    pub request_to: String,
+    /// 实际写入输出的起始日期。
+    pub effective_output_from: String,
+    /// 实际写入输出的结束日期。
+    pub effective_output_to: String,
+    /// 实际读取输入的起始日期。
+    pub input_from: String,
+    /// 实际读取输入的结束日期。
+    pub input_to: String,
+    /// 写入模式。
+    pub mode: RsiWriteMode,
+    /// 本次运行选中的证券。
+    pub symbols: Vec<String>,
+    /// 输入行数。
+    pub input_rows: u64,
+    /// 输出行数。
+    pub output_rows: u64,
+    /// 有效 close 行数。
+    pub valid_close_rows: u64,
+    /// 所有业务指标值均不可用的输出行数。
+    pub null_indicator_rows: u64,
+    /// 受影响的 ClickHouse 年度分区。
+    pub affected_years: Vec<u16>,
+    /// staging 分区中保留的旧行数。
+    pub retained_rows: u64,
+    /// 本次运行使用的临时 staging 表；未使用时为空。
+    pub staging_table: Option<String>,
+    /// staging 表校验结果。
+    pub staging_validation: ValidationSummary,
+    /// 分区替换结果。
+    pub partition_replace: PartitionReplaceSummary,
+    /// 历史 RSI 状态来源摘要。
+    pub rsi_state_source: String,
+    /// 有结果缺口的证券数量。
+    pub gap_symbols_count: u64,
+    /// 建议补算起点。
+    pub gap_fill_from: Option<String>,
+    /// 来自 Dagster 或 Furnace CLI 的运行标识。
+    pub run_id: Option<String>,
+    /// 是否实际写入了生产数据。
+    pub writes_applied: bool,
+    /// 内部耗时和吞吐指标。
+    pub performance_metrics: PerformanceMetrics,
+}
+
+impl RsiRunSummary {
+    /// 将摘要序列化为 JSON。
+    pub fn to_json(&self) -> String {
+        let affected_years = self
+            .affected_years
+            .iter()
+            .map(u16::to_string)
+            .collect::<Vec<_>>()
+            .join(",");
+        let rsi_windows = DEFAULT_RSI_WINDOWS
+            .iter()
+            .map(usize::to_string)
+            .collect::<Vec<_>>()
+            .join(",");
+        format!(
+            "{{\"indicator\":\"rsi\",\"request_from\":\"{}\",\"request_to\":\"{}\",\"effective_output_from\":\"{}\",\"effective_output_to\":\"{}\",\"input_from\":\"{}\",\"input_to\":\"{}\",\"mode\":\"{}\",\"symbols_count\":{},\"input_rows\":{},\"output_rows\":{},\"valid_close_rows\":{},\"null_indicator_rows\":{},\"affected_years\":[{}],\"retained_rows\":{},\"staging_table\":{},\"staging_validation\":{},\"partition_replace\":{},\"rsi_windows\":[{}],\"rsi_state_source\":\"{}\",\"gap_symbols_count\":{},\"gap_fill_from\":{},\"run_id\":{},\"writes_applied\":{},\"performance_metrics\":{}}}",
             escape_json_string(&self.request_from),
             escape_json_string(&self.request_to),
             escape_json_string(&self.effective_output_from),
@@ -587,9 +1067,99 @@ impl MaRunSummary {
             json_optional_string(self.staging_table.as_deref()),
             self.staging_validation.to_json(),
             self.partition_replace.to_json(),
-            ma_windows,
-            DEFAULT_EMA_WINDOW,
-            escape_json_string(&self.ema_state_source),
+            rsi_windows,
+            escape_json_string(&self.rsi_state_source),
+            self.gap_symbols_count,
+            json_optional_string(self.gap_fill_from.as_deref()),
+            json_optional_string(self.run_id.as_deref()),
+            self.writes_applied,
+            self.performance_metrics.to_json()
+        )
+    }
+}
+
+/// Furnace Bollinger Bands 单次运行输出摘要。
+#[derive(Debug, Clone, PartialEq)]
+pub struct BollRunSummary {
+    /// 请求输出的起始日期。
+    pub request_from: String,
+    /// 请求输出的结束日期。
+    pub request_to: String,
+    /// 实际写入输出的起始日期。
+    pub effective_output_from: String,
+    /// 实际写入输出的结束日期。
+    pub effective_output_to: String,
+    /// 实际读取输入的起始日期。
+    pub input_from: String,
+    /// 实际读取输入的结束日期。
+    pub input_to: String,
+    /// 写入模式。
+    pub mode: BollWriteMode,
+    /// 本次运行选中的证券。
+    pub symbols: Vec<String>,
+    /// 输入行数。
+    pub input_rows: u64,
+    /// 输出行数。
+    pub output_rows: u64,
+    /// 输入区间有效 close 行数。
+    pub input_valid_close_rows: u64,
+    /// 输出区间有效 close 行数。
+    pub output_valid_close_rows: u64,
+    /// 所有业务指标值均不可用的输出行数。
+    pub null_indicator_rows: u64,
+    /// 受影响的 ClickHouse 年度分区。
+    pub affected_years: Vec<u16>,
+    /// staging 分区中保留的旧行数。
+    pub retained_rows: u64,
+    /// 本次运行使用的临时 staging 表；未使用时为空。
+    pub staging_table: Option<String>,
+    /// staging 表校验结果。
+    pub staging_validation: ValidationSummary,
+    /// 分区替换结果。
+    pub partition_replace: PartitionReplaceSummary,
+    /// rolling 状态来源摘要。
+    pub state_source: String,
+    /// 来自 Dagster 或 Furnace CLI 的运行标识。
+    pub run_id: Option<String>,
+    /// 是否实际写入了生产数据。
+    pub writes_applied: bool,
+    /// 内部耗时和吞吐指标。
+    pub performance_metrics: PerformanceMetrics,
+}
+
+impl BollRunSummary {
+    /// 将摘要序列化为 JSON。
+    pub fn to_json(&self) -> String {
+        let affected_years = self
+            .affected_years
+            .iter()
+            .map(u16::to_string)
+            .collect::<Vec<_>>()
+            .join(",");
+        format!(
+            "{{\"indicator\":\"boll\",\"request_from\":\"{}\",\"request_to\":\"{}\",\"effective_output_from\":\"{}\",\"effective_output_to\":\"{}\",\"input_from\":\"{}\",\"input_to\":\"{}\",\"mode\":\"{}\",\"symbols_count\":{},\"input_rows\":{},\"output_rows\":{},\"input_valid_close_rows\":{},\"output_valid_close_rows\":{},\"null_indicator_rows\":{},\"affected_years\":[{}],\"retained_rows\":{},\"staging_table\":{},\"staging_validation\":{},\"partition_replace\":{},\"boll_configs\":{},\"max_window\":{},\"stddev_ddof\":{},\"state_source\":\"{}\",\"run_id\":{},\"writes_applied\":{},\"performance_metrics\":{}}}",
+            escape_json_string(&self.request_from),
+            escape_json_string(&self.request_to),
+            escape_json_string(&self.effective_output_from),
+            escape_json_string(&self.effective_output_to),
+            escape_json_string(&self.input_from),
+            escape_json_string(&self.input_to),
+            self.mode.as_str(),
+            self.symbols.len(),
+            self.input_rows,
+            self.output_rows,
+            self.input_valid_close_rows,
+            self.output_valid_close_rows,
+            self.null_indicator_rows,
+            affected_years,
+            self.retained_rows,
+            json_optional_string(self.staging_table.as_deref()),
+            self.staging_validation.to_json(),
+            self.partition_replace.to_json(),
+            boll_configs_json(),
+            DEFAULT_BOLL_MAX_WINDOW,
+            DEFAULT_BOLL_STDDEV_DDOF,
+            escape_json_string(&self.state_source),
             json_optional_string(self.run_id.as_deref()),
             self.writes_applied,
             self.performance_metrics.to_json()
@@ -1106,24 +1676,28 @@ struct KdjSecurityCalculation {
 struct MaResultRow {
     security_code: String,
     trade_date: String,
-    ma_3: Option<f64>,
-    ma_5: Option<f64>,
-    ma_6: Option<f64>,
-    ma_10: Option<f64>,
-    ma_12: Option<f64>,
-    ma_14: Option<f64>,
-    ma_20: Option<f64>,
-    ma_24: Option<f64>,
-    ma_28: Option<f64>,
-    ma_57: Option<f64>,
-    ma_60: Option<f64>,
-    ma_114: Option<f64>,
-    ma_250: Option<f64>,
-    avg_ma_3_6_12_24: Option<f64>,
-    avg_ma_14_28_57_114: Option<f64>,
-    ema1_10_state: Option<f64>,
-    ema2_10: Option<f64>,
-    ema2_10_state: Option<f64>,
+    price_ma_3: Option<f64>,
+    price_ma_5: Option<f64>,
+    price_ma_6: Option<f64>,
+    price_ma_10: Option<f64>,
+    price_ma_12: Option<f64>,
+    price_ma_14: Option<f64>,
+    price_ma_20: Option<f64>,
+    price_ma_24: Option<f64>,
+    price_ma_28: Option<f64>,
+    price_ma_57: Option<f64>,
+    price_ma_60: Option<f64>,
+    price_ma_114: Option<f64>,
+    price_ma_250: Option<f64>,
+    price_avg_ma_3_6_12_24: Option<f64>,
+    price_avg_ma_14_28_57_114: Option<f64>,
+    price_ema1_10_state: Option<f64>,
+    price_ema2_10: Option<f64>,
+    price_ema2_10_state: Option<f64>,
+    volume_ma_5: Option<f64>,
+    volume_ma_10: Option<f64>,
+    volume_ma_20: Option<f64>,
+    volume_ma_60: Option<f64>,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -1131,6 +1705,7 @@ struct MaCalculationResult {
     rows: Vec<MaResultRow>,
     output_rows: u64,
     valid_close_rows: u64,
+    valid_volume_rows: u64,
     null_indicator_rows: u64,
     compute_elapsed: Duration,
     parallelism: &'static str,
@@ -1142,6 +1717,7 @@ struct MaInputGroups {
     groups: Vec<MaGroupedInput>,
     input_rows: u64,
     valid_close_rows: u64,
+    valid_volume_rows: u64,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -1155,6 +1731,111 @@ struct MaSecurityCalculation {
     rows: Vec<MaResultRow>,
     output_rows: u64,
     valid_close_rows: u64,
+    valid_volume_rows: u64,
+    null_indicator_rows: u64,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+struct RsiResultRow {
+    security_code: String,
+    trade_date: String,
+    rsi_6: Option<f64>,
+    rsi_12: Option<f64>,
+    rsi_14: Option<f64>,
+    rsi_24: Option<f64>,
+    rsi_25: Option<f64>,
+    rsi_50: Option<f64>,
+    avg_gain_6_state: Option<f64>,
+    avg_loss_6_state: Option<f64>,
+    avg_gain_12_state: Option<f64>,
+    avg_loss_12_state: Option<f64>,
+    avg_gain_14_state: Option<f64>,
+    avg_loss_14_state: Option<f64>,
+    avg_gain_24_state: Option<f64>,
+    avg_loss_24_state: Option<f64>,
+    avg_gain_25_state: Option<f64>,
+    avg_loss_25_state: Option<f64>,
+    avg_gain_50_state: Option<f64>,
+    avg_loss_50_state: Option<f64>,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+struct RsiCalculationResult {
+    rows: Vec<RsiResultRow>,
+    output_rows: u64,
+    valid_close_rows: u64,
+    null_indicator_rows: u64,
+    compute_elapsed: Duration,
+    parallelism: &'static str,
+    worker_threads: usize,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+struct RsiInputGroups {
+    groups: Vec<RsiGroupedInput>,
+    input_rows: u64,
+    valid_close_rows: u64,
+    input_from: Option<String>,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+struct RsiGroupedInput {
+    security_code: String,
+    inputs: Vec<RsiInput>,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+struct RsiSecurityCalculation {
+    rows: Vec<RsiResultRow>,
+    output_rows: u64,
+    valid_close_rows: u64,
+    null_indicator_rows: u64,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+struct BollResultRow {
+    security_code: String,
+    trade_date: String,
+    boll_mid_10_1p5: Option<f64>,
+    boll_up_10_1p5: Option<f64>,
+    boll_dn_10_1p5: Option<f64>,
+    boll_mid_20_2: Option<f64>,
+    boll_up_20_2: Option<f64>,
+    boll_dn_20_2: Option<f64>,
+    boll_mid_50_2p5: Option<f64>,
+    boll_up_50_2p5: Option<f64>,
+    boll_dn_50_2p5: Option<f64>,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+struct BollCalculationResult {
+    rows: Vec<BollResultRow>,
+    output_rows: u64,
+    output_valid_close_rows: u64,
+    null_indicator_rows: u64,
+    compute_elapsed: Duration,
+    parallelism: &'static str,
+    worker_threads: usize,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+struct BollInputGroups {
+    groups: Vec<BollGroupedInput>,
+    input_rows: u64,
+    input_valid_close_rows: u64,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+struct BollGroupedInput {
+    security_code: String,
+    inputs: Vec<BollInput>,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+struct BollSecurityCalculation {
+    rows: Vec<BollResultRow>,
+    output_rows: u64,
+    output_valid_close_rows: u64,
     null_indicator_rows: u64,
 }
 
@@ -1421,6 +2102,7 @@ pub fn run_ma<E: ClickHouseExecutor>(
     let input_groups = timed_groups.value;
     let input_rows_count = input_groups.input_rows;
     let input_valid_close_rows = input_groups.valid_close_rows;
+    let input_valid_volume_rows = input_groups.valid_volume_rows;
 
     let calculated = calculate_ma_outputs(
         request,
@@ -1528,6 +2210,7 @@ pub fn run_ma<E: ClickHouseExecutor>(
         input_rows: input_rows_count,
         output_rows: output_rows_count,
         valid_close_rows: calculated.valid_close_rows.min(input_valid_close_rows),
+        valid_volume_rows: calculated.valid_volume_rows.min(input_valid_volume_rows),
         null_indicator_rows,
         affected_years,
         retained_rows,
@@ -1536,17 +2219,414 @@ pub fn run_ma<E: ClickHouseExecutor>(
         partition_replace,
         ema_state_source: if can_use_previous_state {
             if missing_state_symbols.is_empty() {
-                format!("previous-state:{}", ma_states.len())
+                "previous-state".to_string()
             } else {
-                format!(
-                    "mixed:previous-state:{},full-history:{}",
-                    ma_states.len(),
-                    missing_state_symbols.len()
-                )
+                "mixed".to_string()
             }
         } else {
             "full-history".to_string()
         },
+        run_id: request.run_id.clone(),
+        writes_applied: request.mode.writes_applied(),
+        performance_metrics,
+    })
+}
+
+/// 基于 ClickHouse 执行完整 RSI 计算。
+///
+/// # 错误
+///
+/// 当请求校验、ClickHouse I/O 或指标计算失败时，返回 [`FurnaceIoError`]。
+pub fn run_rsi<E: ClickHouseExecutor>(
+    executor: &mut E,
+    request: &RsiRunRequest,
+) -> Result<RsiRunSummary, FurnaceIoError> {
+    let mut timings = PerformanceTimings::started();
+
+    request.validate()?;
+
+    if request.mode.writes_applied() {
+        executor.execute(create_calculation_database_sql())?;
+        executor.execute(&create_rsi_output_table_sql(&request.output_table))?;
+    }
+
+    let all_symbols_requested = request.symbols.is_empty();
+    let symbols = resolve_rsi_symbols(executor, request)?;
+    if request.mode.writes_applied() && symbols.is_empty() {
+        return Err(FurnaceIoError::InvalidRequest(
+            "production RSI writes require at least one input security".to_string(),
+        ));
+    }
+    let effective_output_to =
+        resolve_rsi_effective_output_to(executor, request, &symbols, all_symbols_requested)?;
+    let full_history_input_from =
+        resolve_rsi_input_from(executor, request, &symbols, all_symbols_requested)?;
+    let request_covers_full_history =
+        request.request_from.as_str() <= full_history_input_from.as_str();
+    let rsi_target_exists = table_exists(executor, &request.output_table)?;
+    let previous_states = if rsi_target_exists
+        && request.mode != RsiWriteMode::ReplaceCascade
+        && !request_covers_full_history
+    {
+        let timed = time_result(|| {
+            read_previous_rsi_states(executor, request, &symbols, all_symbols_requested)
+        })?;
+        timings.read_state = timed.elapsed;
+        timed.value
+    } else {
+        HashMap::new()
+    };
+    let timed_gap =
+        time_result(|| count_rsi_gap_symbols(executor, request, &symbols, all_symbols_requested))?;
+    timings.read_state += timed_gap.elapsed;
+    let (gap_symbols_count, gap_fill_from) = timed_gap.value;
+    if request.mode == RsiWriteMode::AppendLatest && gap_symbols_count > 0 {
+        return Err(FurnaceIoError::InvalidRequest(format!(
+            "append-latest found RSI result gaps for {gap_symbols_count} symbols; rerun from {} or use replace-cascade",
+            gap_fill_from.as_deref().unwrap_or(&request.request_from)
+        )));
+    }
+
+    let can_use_previous_state = request.mode != RsiWriteMode::ReplaceCascade
+        && gap_symbols_count == 0
+        && !previous_states.is_empty();
+    let states_for_compute = if can_use_previous_state {
+        previous_states
+    } else {
+        HashMap::new()
+    };
+
+    let timed_input = if can_use_previous_state {
+        time_result(|| {
+            read_rsi_mixed_input_row_binary(
+                executor,
+                request,
+                &symbols,
+                all_symbols_requested,
+                &effective_output_to,
+            )
+        })?
+    } else {
+        time_result(|| {
+            read_rsi_input_row_binary(
+                executor,
+                request,
+                &symbols,
+                all_symbols_requested,
+                &full_history_input_from,
+                &effective_output_to,
+            )
+        })?
+    };
+    timings.read_input = timed_input.elapsed;
+    let input_bytes = timed_input.value;
+    let timed_groups = time_result(|| group_rsi_input_rows(&input_bytes))?;
+    timings.group = timed_groups.elapsed;
+    drop(input_bytes);
+    let input_groups = timed_groups.value;
+    let input_rows_count = input_groups.input_rows;
+    let input_valid_close_rows = input_groups.valid_close_rows;
+    let input_from = input_groups
+        .input_from
+        .clone()
+        .unwrap_or(full_history_input_from);
+
+    let calculated = calculate_rsi_outputs(
+        request,
+        &effective_output_to,
+        input_groups.groups,
+        input_rows_count as usize,
+        &states_for_compute,
+        request.mode.writes_applied(),
+    )?;
+    timings.compute = calculated.compute_elapsed;
+    timings.parallelism = calculated.parallelism;
+    timings.worker_threads = calculated.worker_threads;
+    let output_rows = calculated.rows;
+    if request.mode.writes_applied() && output_rows.is_empty() {
+        return Err(FurnaceIoError::InvalidRequest(
+            "production RSI writes produced no output rows".to_string(),
+        ));
+    }
+    let affected_years = affected_years(&request.request_from, &effective_output_to)?;
+    let output_rows_count = calculated.output_rows;
+    let null_indicator_rows = calculated.null_indicator_rows;
+
+    let mut retained_rows = 0;
+    let mut staging_table = None;
+    let mut staging_validation = ValidationSummary::not_applicable();
+    let mut partition_replace = PartitionReplaceSummary::not_applicable();
+
+    match request.mode {
+        RsiWriteMode::DryRun => {}
+        RsiWriteMode::AppendLatest => {
+            ensure_rsi_append_latest_is_safe(executor, request, &symbols, all_symbols_requested)?;
+            let timed = time_result(|| {
+                insert_rsi_result_rows(
+                    executor,
+                    &request.output_table,
+                    &output_rows,
+                    request.insert_batch_size,
+                )
+            })?;
+            timings.write += timed.elapsed;
+        }
+        RsiWriteMode::ReplaceCascade => {
+            let run_id = request
+                .run_id
+                .as_deref()
+                .unwrap_or("manual_replace_cascade");
+            let staging = rsi_staging_table_name(&request.output_table, run_id);
+            let staging_setup_sql = vec![
+                drop_rsi_staging_table_sql(&staging),
+                create_rsi_staging_table_sql(&request.output_table, &staging),
+            ];
+            let timed = time_result(|| executor.execute_many(&staging_setup_sql))?;
+            timings.staging += timed.elapsed;
+            let timed = time_result(|| {
+                retain_old_rsi_rows_for_staging(
+                    executor,
+                    request,
+                    &staging,
+                    &symbols,
+                    all_symbols_requested,
+                    &affected_years,
+                    &effective_output_to,
+                )
+            })?;
+            timings.staging += timed.elapsed;
+            retained_rows = timed.value;
+            let timed = time_result(|| {
+                insert_rsi_result_rows(executor, &staging, &output_rows, request.insert_batch_size)
+            })?;
+            timings.write += timed.elapsed;
+            let timed = time_result(|| validate_staging(executor, &staging, &affected_years))?;
+            timings.staging += timed.elapsed;
+            staging_validation = timed.value;
+            if staging_validation.status != "passed" {
+                return Err(FurnaceIoError::InvalidRequest(format!(
+                    "staging validation failed with {} duplicate keys",
+                    staging_validation.duplicate_keys
+                )));
+            }
+            let replace_sql = affected_years
+                .iter()
+                .map(|year| replace_rsi_partition_sql(&request.output_table, &staging, *year))
+                .collect::<Vec<_>>();
+            let timed = time_result(|| executor.execute_many(&replace_sql))?;
+            timings.partition_replace += timed.elapsed;
+            let timed = time_result(|| executor.execute(&drop_rsi_staging_table_sql(&staging)))?;
+            timings.staging += timed.elapsed;
+            partition_replace = PartitionReplaceSummary::replaced(affected_years.clone());
+            staging_table = Some(staging);
+        }
+    }
+
+    let rsi_state_source = if can_use_previous_state {
+        if states_for_compute.len() == symbols.len() {
+            format!("previous-state:{}", states_for_compute.len())
+        } else {
+            format!(
+                "mixed:previous-state:{},full-history:{}",
+                states_for_compute.len(),
+                symbols.len().saturating_sub(states_for_compute.len())
+            )
+        }
+    } else {
+        "full-history".to_string()
+    };
+    let symbols_count = symbols.len() as u64;
+    let performance_metrics = timings.finish(input_rows_count, output_rows_count, symbols_count);
+
+    Ok(RsiRunSummary {
+        request_from: request.request_from.clone(),
+        request_to: request.request_to.clone(),
+        effective_output_from: request.request_from.clone(),
+        effective_output_to: effective_output_to.clone(),
+        input_from,
+        input_to: effective_output_to,
+        mode: request.mode,
+        symbols,
+        input_rows: input_rows_count,
+        output_rows: output_rows_count,
+        valid_close_rows: input_valid_close_rows,
+        null_indicator_rows,
+        affected_years,
+        retained_rows,
+        staging_table,
+        staging_validation,
+        partition_replace,
+        rsi_state_source,
+        gap_symbols_count,
+        gap_fill_from,
+        run_id: request.run_id.clone(),
+        writes_applied: request.mode.writes_applied(),
+        performance_metrics,
+    })
+}
+
+/// 基于 ClickHouse 执行完整 Bollinger Bands 计算。
+///
+/// # 错误
+///
+/// 当请求校验、ClickHouse I/O 或指标计算失败时，返回 [`FurnaceIoError`]。
+pub fn run_boll<E: ClickHouseExecutor>(
+    executor: &mut E,
+    request: &BollRunRequest,
+) -> Result<BollRunSummary, FurnaceIoError> {
+    let mut timings = PerformanceTimings::started();
+
+    request.validate()?;
+
+    if request.mode.writes_applied() {
+        executor.execute(create_calculation_database_sql())?;
+        executor.execute(&create_boll_output_table_sql(&request.output_table))?;
+    }
+
+    let all_symbols_requested = request.symbols.is_empty();
+    let symbols = resolve_boll_symbols(executor, request)?;
+    if request.mode.writes_applied() && symbols.is_empty() {
+        return Err(FurnaceIoError::InvalidRequest(
+            "production Bollinger Bands writes require at least one input security".to_string(),
+        ));
+    }
+    let effective_output_to =
+        resolve_boll_effective_output_to(executor, request, &symbols, all_symbols_requested)?;
+    let input_from =
+        resolve_boll_lookback_input_from(executor, request, &symbols, all_symbols_requested)?;
+    let timed_input = time_result(|| {
+        read_boll_input_row_binary(
+            executor,
+            request,
+            &symbols,
+            all_symbols_requested,
+            &input_from,
+            &effective_output_to,
+        )
+    })?;
+    timings.read_input = timed_input.elapsed;
+    let input_bytes = timed_input.value;
+    let timed_groups = time_result(|| group_boll_input_rows(&input_bytes))?;
+    timings.group = timed_groups.elapsed;
+    drop(input_bytes);
+    let input_groups = timed_groups.value;
+    let input_rows_count = input_groups.input_rows;
+    let input_valid_close_rows = input_groups.input_valid_close_rows;
+
+    let calculated = calculate_boll_outputs(
+        request,
+        &effective_output_to,
+        input_groups.groups,
+        input_rows_count as usize,
+        request.mode.writes_applied(),
+    )?;
+    timings.compute = calculated.compute_elapsed;
+    timings.parallelism = calculated.parallelism;
+    timings.worker_threads = calculated.worker_threads;
+    let output_rows = calculated.rows;
+    if request.mode.writes_applied() && output_rows.is_empty() {
+        return Err(FurnaceIoError::InvalidRequest(
+            "production Bollinger Bands writes produced no output rows".to_string(),
+        ));
+    }
+    let affected_years = affected_years(&request.request_from, &effective_output_to)?;
+    let output_rows_count = calculated.output_rows;
+    let output_valid_close_rows = calculated.output_valid_close_rows;
+    let null_indicator_rows = calculated.null_indicator_rows;
+
+    let mut retained_rows = 0;
+    let mut staging_table = None;
+    let mut staging_validation = ValidationSummary::not_applicable();
+    let mut partition_replace = PartitionReplaceSummary::not_applicable();
+
+    match request.mode {
+        BollWriteMode::DryRun => {}
+        BollWriteMode::AppendLatest => {
+            ensure_boll_append_latest_is_safe(executor, request, &symbols, all_symbols_requested)?;
+            let timed = time_result(|| {
+                insert_boll_result_rows(
+                    executor,
+                    &request.output_table,
+                    &output_rows,
+                    request.insert_batch_size,
+                )
+            })?;
+            timings.write += timed.elapsed;
+        }
+        BollWriteMode::ReplaceCascade => {
+            let run_id = request
+                .run_id
+                .as_deref()
+                .unwrap_or("manual_replace_cascade");
+            let staging = boll_staging_table_name(&request.output_table, run_id);
+            let staging_setup_sql = vec![
+                drop_boll_staging_table_sql(&staging),
+                create_boll_staging_table_sql(&request.output_table, &staging),
+            ];
+            let timed = time_result(|| executor.execute_many(&staging_setup_sql))?;
+            timings.staging += timed.elapsed;
+            let timed = time_result(|| {
+                retain_old_boll_rows_for_staging(
+                    executor,
+                    request,
+                    &staging,
+                    &symbols,
+                    all_symbols_requested,
+                    &affected_years,
+                    &effective_output_to,
+                )
+            })?;
+            timings.staging += timed.elapsed;
+            retained_rows = timed.value;
+            let timed = time_result(|| {
+                insert_boll_result_rows(executor, &staging, &output_rows, request.insert_batch_size)
+            })?;
+            timings.write += timed.elapsed;
+            let timed = time_result(|| validate_staging(executor, &staging, &affected_years))?;
+            timings.staging += timed.elapsed;
+            staging_validation = timed.value;
+            if staging_validation.status != "passed" {
+                return Err(FurnaceIoError::InvalidRequest(format!(
+                    "staging validation failed with {} duplicate keys",
+                    staging_validation.duplicate_keys
+                )));
+            }
+            let replace_sql = affected_years
+                .iter()
+                .map(|year| replace_boll_partition_sql(&request.output_table, &staging, *year))
+                .collect::<Vec<_>>();
+            let timed = time_result(|| executor.execute_many(&replace_sql))?;
+            timings.partition_replace += timed.elapsed;
+            let timed = time_result(|| executor.execute(&drop_boll_staging_table_sql(&staging)))?;
+            timings.staging += timed.elapsed;
+            partition_replace = PartitionReplaceSummary::replaced(affected_years.clone());
+            staging_table = Some(staging);
+        }
+    }
+
+    let symbols_count = symbols.len() as u64;
+    let performance_metrics = timings.finish(input_rows_count, output_rows_count, symbols_count);
+
+    Ok(BollRunSummary {
+        request_from: request.request_from.clone(),
+        request_to: request.request_to.clone(),
+        effective_output_from: request.request_from.clone(),
+        effective_output_to: effective_output_to.clone(),
+        input_from,
+        input_to: effective_output_to,
+        mode: request.mode,
+        symbols,
+        input_rows: input_rows_count,
+        output_rows: output_rows_count,
+        input_valid_close_rows,
+        output_valid_close_rows,
+        null_indicator_rows,
+        affected_years,
+        retained_rows,
+        staging_table,
+        staging_validation,
+        partition_replace,
+        state_source: "rolling-lookback".to_string(),
         run_id: request.run_id.clone(),
         writes_applied: request.mode.writes_applied(),
         performance_metrics,
@@ -1734,18 +2814,18 @@ fn read_previous_ma_states<E: ClickHouseExecutor>(
     }
     let sql = format!(
         "\
-SELECT security_code, toString(trade_date), ema1_10_state, ema2_10_state
+SELECT security_code, toString(trade_date), price_ema1_10_state, price_ema2_10_state
 FROM (
     SELECT
         security_code,
         trade_date,
-        ema1_10_state,
-        ema2_10_state,
+        price_ema1_10_state,
+        price_ema2_10_state,
         row_number() OVER (PARTITION BY security_code ORDER BY trade_date DESC) AS rn
     FROM {}
     WHERE trade_date < toDate('{}')
-      AND ema1_10_state IS NOT NULL
-      AND ema2_10_state IS NOT NULL
+      AND price_ema1_10_state IS NOT NULL
+      AND price_ema2_10_state IS NOT NULL
       AND {}
 )
 WHERE rn = 1
@@ -1769,10 +2849,10 @@ FORMAT TSV",
             )));
         }
         let ema1 = parse_f64(fields[2])?.ok_or_else(|| {
-            FurnaceIoError::Parse("previous ema1_10_state must not be null".to_string())
+            FurnaceIoError::Parse("previous price_ema1_10_state must not be null".to_string())
         })?;
         let ema2 = parse_f64(fields[3])?.ok_or_else(|| {
-            FurnaceIoError::Parse("previous ema2_10_state must not be null".to_string())
+            FurnaceIoError::Parse("previous price_ema2_10_state must not be null".to_string())
         })?;
         states.insert(
             fields[0].to_string(),
@@ -1784,6 +2864,187 @@ FORMAT TSV",
         );
     }
     Ok(states)
+}
+
+fn read_previous_rsi_states<E: ClickHouseExecutor>(
+    executor: &mut E,
+    request: &RsiRunRequest,
+    symbols: &[String],
+    all_symbols_requested: bool,
+) -> Result<HashMap<String, RsiPreviousState>, FurnaceIoError> {
+    if symbols.is_empty() && !all_symbols_requested {
+        return Ok(HashMap::new());
+    }
+    let sql = format!(
+        "\
+SELECT
+    state.security_code,
+    toString(state.state_date),
+    input.close_price_forward_adj,
+    state.state_avg_gain_6,
+    state.state_avg_loss_6,
+    state.state_avg_gain_12,
+    state.state_avg_loss_12,
+    state.state_avg_gain_14,
+    state.state_avg_loss_14,
+    state.state_avg_gain_24,
+    state.state_avg_loss_24,
+    state.state_avg_gain_25,
+    state.state_avg_loss_25,
+    state.state_avg_gain_50,
+    state.state_avg_loss_50
+FROM (
+    SELECT
+        security_code,
+        max(trade_date) AS state_date,
+        argMax(avg_gain_6_state, trade_date) AS state_avg_gain_6,
+        argMax(avg_loss_6_state, trade_date) AS state_avg_loss_6,
+        argMax(avg_gain_12_state, trade_date) AS state_avg_gain_12,
+        argMax(avg_loss_12_state, trade_date) AS state_avg_loss_12,
+        argMax(avg_gain_14_state, trade_date) AS state_avg_gain_14,
+        argMax(avg_loss_14_state, trade_date) AS state_avg_loss_14,
+        argMax(avg_gain_24_state, trade_date) AS state_avg_gain_24,
+        argMax(avg_loss_24_state, trade_date) AS state_avg_loss_24,
+        argMax(avg_gain_25_state, trade_date) AS state_avg_gain_25,
+        argMax(avg_loss_25_state, trade_date) AS state_avg_loss_25,
+        argMax(avg_gain_50_state, trade_date) AS state_avg_gain_50,
+        argMax(avg_loss_50_state, trade_date) AS state_avg_loss_50
+    FROM {}
+    WHERE trade_date < toDate('{}')
+      AND avg_gain_6_state IS NOT NULL
+      AND avg_loss_6_state IS NOT NULL
+      AND avg_gain_12_state IS NOT NULL
+      AND avg_loss_12_state IS NOT NULL
+      AND avg_gain_14_state IS NOT NULL
+      AND avg_loss_14_state IS NOT NULL
+      AND avg_gain_24_state IS NOT NULL
+      AND avg_loss_24_state IS NOT NULL
+      AND avg_gain_25_state IS NOT NULL
+      AND avg_loss_25_state IS NOT NULL
+      AND avg_gain_50_state IS NOT NULL
+      AND avg_loss_50_state IS NOT NULL
+      AND {}
+    GROUP BY security_code
+) AS state
+INNER JOIN {} AS input
+    ON input.security_code = state.security_code
+   AND input.trade_date = state.state_date
+WHERE input.close_price_forward_adj IS NOT NULL
+FORMAT TSV",
+        request.output_table,
+        sql_string(&request.request_from),
+        symbol_where_clause(symbols, all_symbols_requested),
+        request.input_table
+    );
+
+    let mut states = HashMap::new();
+    for line in executor
+        .query(&sql)?
+        .lines()
+        .filter(|line| !line.is_empty())
+    {
+        let fields = line.split('\t').collect::<Vec<_>>();
+        if fields.len() != 15 {
+            return Err(FurnaceIoError::Parse(format!(
+                "expected 15 previous RSI state fields, got {}",
+                fields.len()
+            )));
+        }
+        let previous_close = parse_f64(fields[2])?.ok_or_else(|| {
+            FurnaceIoError::Parse("previous RSI close must not be null".to_string())
+        })?;
+        let state = RsiState::new(
+            previous_close,
+            rsi_window_state(fields[3], fields[4])?,
+            rsi_window_state(fields[5], fields[6])?,
+            rsi_window_state(fields[7], fields[8])?,
+            rsi_window_state(fields[9], fields[10])?,
+            rsi_window_state(fields[11], fields[12])?,
+            rsi_window_state(fields[13], fields[14])?,
+        )
+        .map_err(|source| FurnaceIoError::Parse(source.to_string()))?;
+        states.insert(
+            fields[0].to_string(),
+            RsiPreviousState::new(fields[1].to_string(), state),
+        );
+    }
+    Ok(states)
+}
+
+fn rsi_window_state(gain: &str, loss: &str) -> Result<RsiWindowState, FurnaceIoError> {
+    let gain = parse_f64(gain)?
+        .ok_or_else(|| FurnaceIoError::Parse("previous RSI gain must not be null".to_string()))?;
+    let loss = parse_f64(loss)?
+        .ok_or_else(|| FurnaceIoError::Parse("previous RSI loss must not be null".to_string()))?;
+    RsiWindowState::new(gain, loss).map_err(|source| FurnaceIoError::Parse(source.to_string()))
+}
+
+fn count_rsi_gap_symbols<E: ClickHouseExecutor>(
+    executor: &mut E,
+    request: &RsiRunRequest,
+    symbols: &[String],
+    all_symbols_requested: bool,
+) -> Result<(u64, Option<String>), FurnaceIoError> {
+    if symbols.is_empty() && !all_symbols_requested {
+        return Ok((0, None));
+    }
+    let sql = format!(
+        "\
+WITH states AS (
+    SELECT security_code, max(trade_date) AS state_date
+    FROM {}
+    WHERE trade_date < toDate('{}')
+      AND avg_gain_6_state IS NOT NULL
+      AND avg_loss_6_state IS NOT NULL
+      AND avg_gain_12_state IS NOT NULL
+      AND avg_loss_12_state IS NOT NULL
+      AND avg_gain_14_state IS NOT NULL
+      AND avg_loss_14_state IS NOT NULL
+      AND avg_gain_24_state IS NOT NULL
+      AND avg_loss_24_state IS NOT NULL
+      AND avg_gain_25_state IS NOT NULL
+      AND avg_loss_25_state IS NOT NULL
+      AND avg_gain_50_state IS NOT NULL
+      AND avg_loss_50_state IS NOT NULL
+      AND {}
+    GROUP BY security_code
+)
+SELECT
+    countDistinct(input.security_code),
+    toString(min(input.trade_date))
+FROM {} AS input
+INNER JOIN states
+    ON input.security_code = states.security_code
+WHERE input.trade_date > states.state_date
+  AND input.trade_date < toDate('{}')
+  AND input.close_price_forward_adj IS NOT NULL
+FORMAT TSV",
+        request.output_table,
+        sql_string(&request.request_from),
+        symbol_where_clause(symbols, all_symbols_requested),
+        request.input_table,
+        sql_string(&request.request_from)
+    );
+    let output = executor.query(&sql)?;
+    let fields = output
+        .lines()
+        .next()
+        .unwrap_or_default()
+        .split('\t')
+        .collect::<Vec<_>>();
+    let gap_symbols = fields
+        .first()
+        .map(|value| parse_u64(value))
+        .transpose()?
+        .unwrap_or(0);
+    let gap_fill_from = fields.get(1).and_then(|value| {
+        if gap_symbols == 0 || value.is_empty() || *value == "\\N" {
+            None
+        } else {
+            Some((*value).to_string())
+        }
+    });
+    Ok((gap_symbols, gap_fill_from))
 }
 
 fn read_input_row_binary<E: ClickHouseExecutor>(
@@ -1892,29 +3153,140 @@ FORMAT TSV",
     }
 }
 
+fn resolve_rsi_symbols<E: ClickHouseExecutor>(
+    executor: &mut E,
+    request: &RsiRunRequest,
+) -> Result<Vec<String>, FurnaceIoError> {
+    if !request.symbols.is_empty() {
+        return Ok(normalize_symbols(&request.symbols));
+    }
+
+    let sql = format!(
+        "\
+SELECT security_code
+FROM {}
+WHERE trade_date >= toDate('{}')
+  AND trade_date <= toDate('{}')
+GROUP BY security_code
+ORDER BY security_code
+FORMAT TSV",
+        request.input_table,
+        sql_string(&request.request_from),
+        sql_string(&request.request_to)
+    );
+    parse_single_column_strings(&executor.query(&sql)?)
+}
+
+fn resolve_rsi_effective_output_to<E: ClickHouseExecutor>(
+    executor: &mut E,
+    request: &RsiRunRequest,
+    symbols: &[String],
+    all_symbols_requested: bool,
+) -> Result<String, FurnaceIoError> {
+    if symbols.is_empty() || request.mode != RsiWriteMode::ReplaceCascade {
+        return Ok(request.request_to.clone());
+    }
+    let sql = format!(
+        "\
+SELECT toString(max(trade_date))
+FROM {}
+WHERE {}
+FORMAT TSV",
+        request.input_table,
+        symbol_where_clause(symbols, all_symbols_requested)
+    );
+    let value =
+        first_tsv_value(&executor.query(&sql)?).unwrap_or_else(|| request.request_to.clone());
+    if value.is_empty() || value == "\\N" {
+        return Ok(request.request_to.clone());
+    }
+    Ok(value.max(request.request_to.clone()))
+}
+
+fn resolve_rsi_input_from<E: ClickHouseExecutor>(
+    executor: &mut E,
+    request: &RsiRunRequest,
+    symbols: &[String],
+    all_symbols_requested: bool,
+) -> Result<String, FurnaceIoError> {
+    let sql = format!(
+        "\
+SELECT toString(min(trade_date))
+FROM {}
+WHERE {}
+FORMAT TSV",
+        request.input_table,
+        symbol_where_clause(symbols, all_symbols_requested)
+    );
+    let value =
+        first_tsv_value(&executor.query(&sql)?).unwrap_or_else(|| request.request_from.clone());
+    if value.is_empty() || value == "\\N" {
+        Ok(request.request_from.clone())
+    } else {
+        Ok(value)
+    }
+}
+
 fn resolve_ma_lookback_input_from<E: ClickHouseExecutor>(
     executor: &mut E,
     request: &MaRunRequest,
     symbols: &[String],
     all_symbols_requested: bool,
 ) -> Result<String, FurnaceIoError> {
-    let symbol_filter = symbol_where_clause(symbols, all_symbols_requested);
-    let lookback_window = DEFAULT_MA_WINDOWS.iter().copied().max().unwrap_or(250);
+    let price_symbol_filter = symbol_where_clause(symbols, all_symbols_requested);
+    let volume_symbol_filter =
+        symbol_where_clause_for_column("adj.security_code", symbols, all_symbols_requested);
+    let price_lookback_window = DEFAULT_PRICE_MA_WINDOWS
+        .iter()
+        .copied()
+        .max()
+        .unwrap_or(250);
+    let volume_lookback_window = DEFAULT_VOLUME_MA_WINDOWS
+        .iter()
+        .copied()
+        .max()
+        .unwrap_or(60);
     let sql = format!(
         "\
 SELECT toString(min(trade_date))
 FROM (
     SELECT trade_date
-    FROM {}
-    WHERE trade_date <= toDate('{}')
-      AND {symbol_filter}
-    GROUP BY trade_date
-    ORDER BY trade_date DESC
-    LIMIT {lookback_window}
+    FROM (
+        SELECT
+            security_code,
+            trade_date,
+            row_number() OVER (PARTITION BY security_code ORDER BY trade_date DESC) AS rn
+        FROM {}
+        WHERE trade_date <= toDate('{}')
+          AND {} IS NOT NULL
+          AND {price_symbol_filter}
+    )
+    WHERE rn <= {price_lookback_window}
+    UNION ALL
+    SELECT trade_date
+    FROM (
+        SELECT
+            adj.security_code,
+            adj.trade_date,
+            row_number() OVER (PARTITION BY adj.security_code ORDER BY adj.trade_date DESC) AS rn
+        FROM {} AS adj
+        LEFT JOIN {} AS unadj
+          ON adj.security_code = unadj.security_code
+         AND adj.trade_date = unadj.trade_date
+        WHERE adj.trade_date <= toDate('{}')
+          AND unadj.{} IS NOT NULL
+          AND {volume_symbol_filter}
+    )
+    WHERE rn <= {volume_lookback_window}
 )
 FORMAT TSV",
         request.input_table,
-        sql_string(&request.request_from)
+        sql_string(&request.request_from),
+        request.price_column,
+        request.input_table,
+        request.volume_input_table,
+        sql_string(&request.request_from),
+        request.volume_column
     );
     let value =
         first_tsv_value(&executor.query(&sql)?).unwrap_or_else(|| request.request_from.clone());
@@ -1949,9 +3321,225 @@ FORMAT TSV",
     Ok(count > 0)
 }
 
+fn resolve_boll_symbols<E: ClickHouseExecutor>(
+    executor: &mut E,
+    request: &BollRunRequest,
+) -> Result<Vec<String>, FurnaceIoError> {
+    if !request.symbols.is_empty() {
+        return Ok(normalize_symbols(&request.symbols));
+    }
+
+    let sql = format!(
+        "\
+SELECT security_code
+FROM {}
+WHERE trade_date >= toDate('{}')
+  AND trade_date <= toDate('{}')
+GROUP BY security_code
+ORDER BY security_code
+FORMAT TSV",
+        request.input_table,
+        sql_string(&request.request_from),
+        sql_string(&request.request_to)
+    );
+    parse_single_column_strings(&executor.query(&sql)?)
+}
+
+fn resolve_boll_effective_output_to<E: ClickHouseExecutor>(
+    executor: &mut E,
+    request: &BollRunRequest,
+    symbols: &[String],
+    all_symbols_requested: bool,
+) -> Result<String, FurnaceIoError> {
+    if symbols.is_empty() || request.mode != BollWriteMode::ReplaceCascade {
+        return Ok(request.request_to.clone());
+    }
+    let sql = format!(
+        "\
+SELECT toString(max(trade_date))
+FROM {}
+WHERE {}
+FORMAT TSV",
+        request.input_table,
+        symbol_where_clause(symbols, all_symbols_requested)
+    );
+    let value =
+        first_tsv_value(&executor.query(&sql)?).unwrap_or_else(|| request.request_to.clone());
+    if value.is_empty() || value == "\\N" {
+        return Ok(request.request_to.clone());
+    }
+    Ok(value.max(request.request_to.clone()))
+}
+
+fn resolve_boll_lookback_input_from<E: ClickHouseExecutor>(
+    executor: &mut E,
+    request: &BollRunRequest,
+    symbols: &[String],
+    all_symbols_requested: bool,
+) -> Result<String, FurnaceIoError> {
+    let symbol_filter = symbol_where_clause(symbols, all_symbols_requested);
+    let max_window = request.params.max_window().max(DEFAULT_BOLL_MAX_WINDOW);
+    let sql = format!(
+        "\
+SELECT toString(min(trade_date))
+FROM (
+    SELECT trade_date
+    FROM (
+        SELECT
+            security_code,
+            trade_date,
+            row_number() OVER (PARTITION BY security_code ORDER BY trade_date DESC) AS rn
+        FROM {}
+        WHERE trade_date <= toDate('{}')
+          AND {} IS NOT NULL
+          AND {symbol_filter}
+    )
+    WHERE rn <= {max_window}
+)
+FORMAT TSV",
+        request.input_table,
+        sql_string(&request.request_from),
+        request.price_column
+    );
+    let value =
+        first_tsv_value(&executor.query(&sql)?).unwrap_or_else(|| request.request_from.clone());
+    if value.is_empty() || value == "\\N" {
+        Ok(request.request_from.clone())
+    } else {
+        Ok(value)
+    }
+}
+
 fn read_ma_input_row_binary<E: ClickHouseExecutor>(
     executor: &mut E,
     request: &MaRunRequest,
+    symbols: &[String],
+    all_symbols_requested: bool,
+    input_from: &str,
+    input_to: &str,
+) -> Result<Vec<u8>, FurnaceIoError> {
+    if symbols.is_empty() && !all_symbols_requested {
+        return Ok(Vec::new());
+    }
+    let sql = format!(
+        "\
+SELECT
+    adj.security_code,
+    toString(adj.trade_date),
+    adj.{},
+    CAST(unadj.{}, 'Nullable(Float64)')
+FROM {} AS adj
+LEFT JOIN {} AS unadj
+  ON adj.security_code = unadj.security_code
+ AND adj.trade_date = unadj.trade_date
+WHERE adj.trade_date >= toDate('{}')
+  AND adj.trade_date <= toDate('{}')
+  AND {}
+ORDER BY adj.security_code, adj.trade_date
+FORMAT RowBinary",
+        request.price_column,
+        request.volume_column,
+        request.input_table,
+        request.volume_input_table,
+        sql_string(input_from),
+        sql_string(input_to),
+        symbol_where_clause_for_column("adj.security_code", symbols, all_symbols_requested)
+    );
+
+    executor.query_bytes(&sql)
+}
+
+fn read_rsi_input_row_binary<E: ClickHouseExecutor>(
+    executor: &mut E,
+    request: &RsiRunRequest,
+    symbols: &[String],
+    all_symbols_requested: bool,
+    input_from: &str,
+    input_to: &str,
+) -> Result<Vec<u8>, FurnaceIoError> {
+    if symbols.is_empty() && !all_symbols_requested {
+        return Ok(Vec::new());
+    }
+    let sql = format!(
+        "\
+SELECT
+    security_code,
+    toString(trade_date),
+    {}
+FROM {}
+WHERE trade_date >= toDate('{}')
+  AND trade_date <= toDate('{}')
+  AND {}
+ORDER BY security_code, trade_date
+FORMAT RowBinary",
+        request.price_column,
+        request.input_table,
+        sql_string(input_from),
+        sql_string(input_to),
+        symbol_where_clause(symbols, all_symbols_requested)
+    );
+
+    executor.query_bytes(&sql)
+}
+
+fn read_rsi_mixed_input_row_binary<E: ClickHouseExecutor>(
+    executor: &mut E,
+    request: &RsiRunRequest,
+    symbols: &[String],
+    all_symbols_requested: bool,
+    input_to: &str,
+) -> Result<Vec<u8>, FurnaceIoError> {
+    if symbols.is_empty() && !all_symbols_requested {
+        return Ok(Vec::new());
+    }
+    let sql = format!(
+        "\
+WITH states AS (
+    SELECT security_code, max(trade_date) AS state_date
+    FROM {}
+    WHERE trade_date < toDate('{}')
+      AND avg_gain_6_state IS NOT NULL
+      AND avg_loss_6_state IS NOT NULL
+      AND avg_gain_12_state IS NOT NULL
+      AND avg_loss_12_state IS NOT NULL
+      AND avg_gain_14_state IS NOT NULL
+      AND avg_loss_14_state IS NOT NULL
+      AND avg_gain_24_state IS NOT NULL
+      AND avg_loss_24_state IS NOT NULL
+      AND avg_gain_25_state IS NOT NULL
+      AND avg_loss_25_state IS NOT NULL
+      AND avg_gain_50_state IS NOT NULL
+      AND avg_loss_50_state IS NOT NULL
+      AND {}
+    GROUP BY security_code
+)
+SELECT
+    input.security_code,
+    toString(input.trade_date),
+    input.{}
+FROM {} AS input
+LEFT JOIN states
+    ON input.security_code = states.security_code
+WHERE input.trade_date <= toDate('{}')
+  AND {}
+  AND (states.state_date IS NULL OR input.trade_date >= states.state_date)
+ORDER BY input.security_code, input.trade_date
+FORMAT RowBinary",
+        request.output_table,
+        sql_string(&request.request_from),
+        symbol_where_clause(symbols, all_symbols_requested),
+        request.price_column,
+        request.input_table,
+        sql_string(input_to),
+        symbol_where_clause_for("input.security_code", symbols, all_symbols_requested)
+    );
+
+    executor.query_bytes(&sql)
+}
+
+fn read_boll_input_row_binary<E: ClickHouseExecutor>(
+    executor: &mut E,
+    request: &BollRunRequest,
     symbols: &[String],
     all_symbols_requested: bool,
     input_from: &str,
@@ -2031,14 +3619,19 @@ fn group_ma_input_rows(input_bytes: &[u8]) -> Result<MaInputGroups, FurnaceIoErr
     let mut current_inputs = Vec::new();
     let mut input_rows = 0;
     let mut valid_close_rows = 0;
+    let mut valid_volume_rows = 0;
     let mut cursor = 0;
 
     while cursor < input_bytes.len() {
         let security_code = read_rowbinary_string(input_bytes, &mut cursor)?;
         let trade_date = read_rowbinary_string(input_bytes, &mut cursor)?;
         let close_price = read_rowbinary_nullable_f64(input_bytes, &mut cursor)?;
+        let volume = read_rowbinary_nullable_f64(input_bytes, &mut cursor)?;
         if close_price.is_some() {
             valid_close_rows += 1;
+        }
+        if volume.is_some() {
+            valid_volume_rows += 1;
         }
 
         if current_security_code.as_deref() != Some(security_code) {
@@ -2051,7 +3644,7 @@ fn group_ma_input_rows(input_bytes: &[u8]) -> Result<MaInputGroups, FurnaceIoErr
             }
         }
 
-        current_inputs.push(MaInput::new(trade_date.to_string(), close_price));
+        current_inputs.push(MaInput::new(trade_date.to_string(), close_price, volume));
         input_rows += 1;
     }
 
@@ -2066,6 +3659,101 @@ fn group_ma_input_rows(input_bytes: &[u8]) -> Result<MaInputGroups, FurnaceIoErr
         groups,
         input_rows,
         valid_close_rows,
+        valid_volume_rows,
+    })
+}
+
+fn group_rsi_input_rows(input_bytes: &[u8]) -> Result<RsiInputGroups, FurnaceIoError> {
+    let mut groups = Vec::new();
+    let mut current_security_code = None;
+    let mut current_inputs = Vec::new();
+    let mut input_rows = 0;
+    let mut valid_close_rows = 0;
+    let mut input_from = None::<String>;
+    let mut cursor = 0;
+
+    while cursor < input_bytes.len() {
+        let security_code = read_rowbinary_string(input_bytes, &mut cursor)?;
+        let trade_date = read_rowbinary_string(input_bytes, &mut cursor)?;
+        let close_price = read_rowbinary_nullable_f64(input_bytes, &mut cursor)?;
+        input_from = match input_from {
+            Some(current) if current.as_str() <= trade_date => Some(current),
+            _ => Some(trade_date.to_string()),
+        };
+        if close_price.is_some() {
+            valid_close_rows += 1;
+        }
+
+        if current_security_code.as_deref() != Some(security_code) {
+            let previous_security_code = current_security_code.replace(security_code.to_string());
+            if let Some(security_code) = previous_security_code {
+                groups.push(RsiGroupedInput {
+                    security_code,
+                    inputs: std::mem::take(&mut current_inputs),
+                });
+            }
+        }
+
+        current_inputs.push(RsiInput::new(trade_date.to_string(), close_price));
+        input_rows += 1;
+    }
+
+    if let Some(security_code) = current_security_code {
+        groups.push(RsiGroupedInput {
+            security_code,
+            inputs: current_inputs,
+        });
+    }
+
+    Ok(RsiInputGroups {
+        groups,
+        input_rows,
+        valid_close_rows,
+        input_from,
+    })
+}
+
+fn group_boll_input_rows(input_bytes: &[u8]) -> Result<BollInputGroups, FurnaceIoError> {
+    let mut groups = Vec::new();
+    let mut current_security_code = None;
+    let mut current_inputs = Vec::new();
+    let mut input_rows = 0;
+    let mut input_valid_close_rows = 0;
+    let mut cursor = 0;
+
+    while cursor < input_bytes.len() {
+        let security_code = read_rowbinary_string(input_bytes, &mut cursor)?;
+        let trade_date = read_rowbinary_string(input_bytes, &mut cursor)?;
+        let close_price = read_rowbinary_nullable_f64(input_bytes, &mut cursor)?;
+        if close_price.is_some() {
+            input_valid_close_rows += 1;
+        }
+
+        if current_security_code.as_deref() != Some(security_code) {
+            let previous_security_code = current_security_code.replace(security_code.to_string());
+            if let Some(security_code) = previous_security_code {
+                groups.push(BollGroupedInput {
+                    security_code,
+                    inputs: std::mem::take(&mut current_inputs),
+                });
+            }
+        }
+
+        current_inputs.push(BollInput::new(trade_date.to_string(), close_price));
+        input_rows += 1;
+    }
+
+    if let Some(security_code) = current_security_code {
+        groups.push(BollGroupedInput {
+            security_code,
+            inputs: current_inputs,
+        });
+    }
+
+    Ok(BollInputGroups {
+        groups,
+        input_rows,
+        input_valid_close_rows,
     })
 }
 
@@ -2231,6 +3919,96 @@ fn calculate_ma_outputs(
         rows: calculated.rows,
         output_rows: calculated.output_rows,
         valid_close_rows: calculated.valid_close_rows,
+        valid_volume_rows: calculated.valid_volume_rows,
+        null_indicator_rows: calculated.null_indicator_rows,
+        compute_elapsed: compute_started.elapsed(),
+        parallelism: if parallel { "rayon" } else { "serial" },
+        worker_threads,
+    })
+}
+
+fn calculate_rsi_outputs(
+    request: &RsiRunRequest,
+    effective_output_to: &str,
+    groups: Vec<RsiGroupedInput>,
+    input_row_count: usize,
+    states: &HashMap<String, RsiPreviousState>,
+    collect_rows: bool,
+) -> Result<RsiCalculationResult, FurnaceIoError> {
+    let worker_threads = rayon::current_num_threads();
+    let parallel = should_parallelize(groups.len(), input_row_count, worker_threads);
+    let compute_started = Instant::now();
+    let mut calculated = if parallel {
+        calculate_rsi_grouped_outputs_parallel_with_collection(
+            request,
+            effective_output_to,
+            &groups,
+            states,
+            collect_rows,
+        )?
+    } else {
+        calculate_rsi_grouped_outputs_serial_with_collection(
+            request,
+            effective_output_to,
+            &groups,
+            states,
+            collect_rows,
+        )?
+    };
+    if collect_rows {
+        calculated.rows.sort_by(|left, right| {
+            left.security_code
+                .cmp(&right.security_code)
+                .then(left.trade_date.cmp(&right.trade_date))
+        });
+    }
+    Ok(RsiCalculationResult {
+        rows: calculated.rows,
+        output_rows: calculated.output_rows,
+        valid_close_rows: calculated.valid_close_rows,
+        null_indicator_rows: calculated.null_indicator_rows,
+        compute_elapsed: compute_started.elapsed(),
+        parallelism: if parallel { "rayon" } else { "serial" },
+        worker_threads,
+    })
+}
+
+fn calculate_boll_outputs(
+    request: &BollRunRequest,
+    effective_output_to: &str,
+    groups: Vec<BollGroupedInput>,
+    input_row_count: usize,
+    collect_rows: bool,
+) -> Result<BollCalculationResult, FurnaceIoError> {
+    let worker_threads = rayon::current_num_threads();
+    let parallel = should_parallelize(groups.len(), input_row_count, worker_threads);
+    let compute_started = Instant::now();
+    let mut calculated = if parallel {
+        calculate_boll_grouped_outputs_parallel_with_collection(
+            request,
+            effective_output_to,
+            &groups,
+            collect_rows,
+        )?
+    } else {
+        calculate_boll_grouped_outputs_serial_with_collection(
+            request,
+            effective_output_to,
+            &groups,
+            collect_rows,
+        )?
+    };
+    if collect_rows {
+        calculated.rows.sort_by(|left, right| {
+            left.security_code
+                .cmp(&right.security_code)
+                .then(left.trade_date.cmp(&right.trade_date))
+        });
+    }
+    Ok(BollCalculationResult {
+        rows: calculated.rows,
+        output_rows: calculated.output_rows,
+        output_valid_close_rows: calculated.output_valid_close_rows,
         null_indicator_rows: calculated.null_indicator_rows,
         compute_elapsed: compute_started.elapsed(),
         parallelism: if parallel { "rayon" } else { "serial" },
@@ -2244,6 +4022,111 @@ fn should_parallelize(group_count: usize, input_row_count: usize, worker_threads
         && input_row_count > 0
 }
 
+fn calculate_boll_grouped_outputs_serial_with_collection(
+    request: &BollRunRequest,
+    effective_output_to: &str,
+    groups: &[BollGroupedInput],
+    collect_rows: bool,
+) -> Result<BollSecurityCalculation, FurnaceIoError> {
+    let mut output_rows = Vec::new();
+    let mut output_row_count = 0;
+    let mut output_valid_close_rows = 0;
+    let mut null_indicator_rows = 0;
+    for group in groups {
+        let calculated =
+            calculate_boll_security_outputs(request, effective_output_to, group, collect_rows)?;
+        output_row_count += calculated.output_rows;
+        output_valid_close_rows += calculated.output_valid_close_rows;
+        null_indicator_rows += calculated.null_indicator_rows;
+        output_rows.extend(calculated.rows);
+    }
+    Ok(BollSecurityCalculation {
+        rows: output_rows,
+        output_rows: output_row_count,
+        output_valid_close_rows,
+        null_indicator_rows,
+    })
+}
+
+fn calculate_boll_grouped_outputs_parallel_with_collection(
+    request: &BollRunRequest,
+    effective_output_to: &str,
+    groups: &[BollGroupedInput],
+    collect_rows: bool,
+) -> Result<BollSecurityCalculation, FurnaceIoError> {
+    let nested = groups
+        .par_iter()
+        .map(|group| {
+            calculate_boll_security_outputs(request, effective_output_to, group, collect_rows)
+        })
+        .collect::<Result<Vec<_>, _>>()?;
+    let mut rows = Vec::new();
+    let mut output_row_count = 0;
+    let mut output_valid_close_rows = 0;
+    let mut null_indicator_rows = 0;
+    for calculated in nested {
+        output_row_count += calculated.output_rows;
+        output_valid_close_rows += calculated.output_valid_close_rows;
+        null_indicator_rows += calculated.null_indicator_rows;
+        rows.extend(calculated.rows);
+    }
+    Ok(BollSecurityCalculation {
+        rows,
+        output_rows: output_row_count,
+        output_valid_close_rows,
+        null_indicator_rows,
+    })
+}
+
+fn calculate_boll_security_outputs(
+    request: &BollRunRequest,
+    effective_output_to: &str,
+    group: &BollGroupedInput,
+    collect_rows: bool,
+) -> Result<BollSecurityCalculation, FurnaceIoError> {
+    let outputs = calculate_boll_series(&group.inputs, &request.params)
+        .map_err(|source| FurnaceIoError::Compute(source.to_string()))?;
+    let mut output_rows = Vec::new();
+    let mut output_row_count = 0;
+    let mut output_valid_close_rows = 0;
+    let mut null_indicator_rows = 0;
+    for (input, output) in group.inputs.iter().zip(outputs) {
+        if output.trade_date.as_str() < request.request_from.as_str()
+            || output.trade_date.as_str() > effective_output_to
+        {
+            continue;
+        }
+        output_row_count += 1;
+        if input.close_price.is_some() {
+            output_valid_close_rows += 1;
+        }
+        if output.all_business_indicators_null() {
+            null_indicator_rows += 1;
+        }
+        if collect_rows {
+            output_rows.push(BollResultRow {
+                security_code: group.security_code.clone(),
+                trade_date: output.trade_date,
+                boll_mid_10_1p5: output.boll_mid_10_1p5,
+                boll_up_10_1p5: output.boll_up_10_1p5,
+                boll_dn_10_1p5: output.boll_dn_10_1p5,
+                boll_mid_20_2: output.boll_mid_20_2,
+                boll_up_20_2: output.boll_up_20_2,
+                boll_dn_20_2: output.boll_dn_20_2,
+                boll_mid_50_2p5: output.boll_mid_50_2p5,
+                boll_up_50_2p5: output.boll_up_50_2p5,
+                boll_dn_50_2p5: output.boll_dn_50_2p5,
+            });
+        }
+    }
+    Ok(BollSecurityCalculation {
+        rows: output_rows,
+        output_rows: output_row_count,
+        output_valid_close_rows,
+        null_indicator_rows,
+    })
+}
+
 fn calculate_ma_grouped_outputs_serial_with_collection(
     request: &MaRunRequest,
     effective_output_to: &str,
@@ -2254,6 +4137,7 @@ fn calculate_ma_grouped_outputs_serial_with_collection(
     let mut output_rows = Vec::new();
     let mut output_row_count = 0;
     let mut valid_close_rows = 0;
+    let mut valid_volume_rows = 0;
     let mut null_indicator_rows = 0;
     for group in groups {
         let calculated = calculate_ma_security_outputs(
@@ -2265,6 +4149,7 @@ fn calculate_ma_grouped_outputs_serial_with_collection(
         )?;
         output_row_count += calculated.output_rows;
         valid_close_rows += calculated.valid_close_rows;
+        valid_volume_rows += calculated.valid_volume_rows;
         null_indicator_rows += calculated.null_indicator_rows;
         output_rows.extend(calculated.rows);
     }
@@ -2272,6 +4157,7 @@ fn calculate_ma_grouped_outputs_serial_with_collection(
         rows: output_rows,
         output_rows: output_row_count,
         valid_close_rows,
+        valid_volume_rows,
         null_indicator_rows,
     })
 }
@@ -2292,6 +4178,78 @@ fn calculate_ma_grouped_outputs_parallel_with_collection(
     let mut rows = Vec::new();
     let mut output_row_count = 0;
     let mut valid_close_rows = 0;
+    let mut valid_volume_rows = 0;
+    let mut null_indicator_rows = 0;
+    for calculated in nested {
+        output_row_count += calculated.output_rows;
+        valid_close_rows += calculated.valid_close_rows;
+        valid_volume_rows += calculated.valid_volume_rows;
+        null_indicator_rows += calculated.null_indicator_rows;
+        rows.extend(calculated.rows);
+    }
+    Ok(MaSecurityCalculation {
+        rows,
+        output_rows: output_row_count,
+        valid_close_rows,
+        valid_volume_rows,
+        null_indicator_rows,
+    })
+}
+
+fn calculate_rsi_grouped_outputs_serial_with_collection(
+    request: &RsiRunRequest,
+    effective_output_to: &str,
+    groups: &[RsiGroupedInput],
+    states: &HashMap<String, RsiPreviousState>,
+    collect_rows: bool,
+) -> Result<RsiSecurityCalculation, FurnaceIoError> {
+    let mut output_rows = Vec::new();
+    let mut output_row_count = 0;
+    let mut valid_close_rows = 0;
+    let mut null_indicator_rows = 0;
+    for group in groups {
+        let calculated = calculate_rsi_security_outputs(
+            request,
+            effective_output_to,
+            states,
+            group,
+            collect_rows,
+        )?;
+        output_row_count += calculated.output_rows;
+        valid_close_rows += calculated.valid_close_rows;
+        null_indicator_rows += calculated.null_indicator_rows;
+        output_rows.extend(calculated.rows);
+    }
+    Ok(RsiSecurityCalculation {
+        rows: output_rows,
+        output_rows: output_row_count,
+        valid_close_rows,
+        null_indicator_rows,
+    })
+}
+
+fn calculate_rsi_grouped_outputs_parallel_with_collection(
+    request: &RsiRunRequest,
+    effective_output_to: &str,
+    groups: &[RsiGroupedInput],
+    states: &HashMap<String, RsiPreviousState>,
+    collect_rows: bool,
+) -> Result<RsiSecurityCalculation, FurnaceIoError> {
+    let nested = groups
+        .par_iter()
+        .map(|group| {
+            calculate_rsi_security_outputs(
+                request,
+                effective_output_to,
+                states,
+                group,
+                collect_rows,
+            )
+        })
+        .collect::<Result<Vec<_>, _>>()?;
+    let mut rows = Vec::new();
+    let mut output_row_count = 0;
+    let mut valid_close_rows = 0;
     let mut null_indicator_rows = 0;
     for calculated in nested {
         output_row_count += calculated.output_rows;
@@ -2299,8 +4257,69 @@ fn calculate_ma_grouped_outputs_parallel_with_collection(
         null_indicator_rows += calculated.null_indicator_rows;
         rows.extend(calculated.rows);
     }
-    Ok(MaSecurityCalculation {
+    Ok(RsiSecurityCalculation {
         rows,
+        output_rows: output_row_count,
+        valid_close_rows,
+        null_indicator_rows,
+    })
+}
+
+fn calculate_rsi_security_outputs(
+    request: &RsiRunRequest,
+    effective_output_to: &str,
+    states: &HashMap<String, RsiPreviousState>,
+    group: &RsiGroupedInput,
+    collect_rows: bool,
+) -> Result<RsiSecurityCalculation, FurnaceIoError> {
+    let previous_state = states.get(group.security_code.as_str()).cloned();
+    let outputs =
+        calculate_rsi_series_from_previous_state(&group.inputs, &request.params, previous_state)
+            .map_err(|source| FurnaceIoError::Compute(source.to_string()))?;
+    let mut output_rows = Vec::new();
+    let mut output_row_count = 0;
+    let mut valid_close_rows = 0;
+    let mut null_indicator_rows = 0;
+    for (input, output) in group.inputs.iter().zip(outputs) {
+        if output.trade_date.as_str() < request.request_from.as_str()
+            || output.trade_date.as_str() > effective_output_to
+        {
+            continue;
+        }
+        output_row_count += 1;
+        if input.close_price.is_some() {
+            valid_close_rows += 1;
+        }
+        if output.all_business_indicators_null() {
+            null_indicator_rows += 1;
+        }
+        if collect_rows {
+            output_rows.push(RsiResultRow {
+                security_code: group.security_code.clone(),
+                trade_date: output.trade_date,
+                rsi_6: output.rsi_6,
+                rsi_12: output.rsi_12,
+                rsi_14: output.rsi_14,
+                rsi_24: output.rsi_24,
+                rsi_25: output.rsi_25,
+                rsi_50: output.rsi_50,
+                avg_gain_6_state: output.avg_gain_6_state,
+                avg_loss_6_state: output.avg_loss_6_state,
+                avg_gain_12_state: output.avg_gain_12_state,
+                avg_loss_12_state: output.avg_loss_12_state,
+                avg_gain_14_state: output.avg_gain_14_state,
+                avg_loss_14_state: output.avg_loss_14_state,
+                avg_gain_24_state: output.avg_gain_24_state,
+                avg_loss_24_state: output.avg_loss_24_state,
+                avg_gain_25_state: output.avg_gain_25_state,
+                avg_loss_25_state: output.avg_loss_25_state,
+                avg_gain_50_state: output.avg_gain_50_state,
+                avg_loss_50_state: output.avg_loss_50_state,
+            });
+        }
+    }
+    Ok(RsiSecurityCalculation {
+        rows: output_rows,
         output_rows: output_row_count,
         valid_close_rows,
         null_indicator_rows,
@@ -2321,6 +4340,7 @@ fn calculate_ma_security_outputs(
     let mut output_rows = Vec::new();
     let mut output_row_count = 0;
     let mut valid_close_rows = 0;
+    let mut valid_volume_rows = 0;
     let mut null_indicator_rows = 0;
     for (input, output) in group.inputs.iter().zip(outputs) {
         if output.trade_date.as_str() < request.request_from.as_str()
@@ -2332,30 +4352,37 @@ fn calculate_ma_security_outputs(
         if input.close_price.is_some() {
             valid_close_rows += 1;
         }
+        if input.volume.is_some() {
+            valid_volume_rows += 1;
+        }
         if output.all_business_indicators_null() {
             null_indicator_rows += 1;
         }
         if collect_rows {
             output_rows.push(MaResultRow {
                 security_code: group.security_code.clone(),
-                ma_3: output.ma(3),
-                ma_5: output.ma(5),
-                ma_6: output.ma(6),
-                ma_10: output.ma(10),
-                ma_12: output.ma(12),
-                ma_14: output.ma(14),
-                ma_20: output.ma(20),
-                ma_24: output.ma(24),
-                ma_28: output.ma(28),
-                ma_57: output.ma(57),
-                ma_60: output.ma(60),
-                ma_114: output.ma(114),
-                ma_250: output.ma(250),
-                avg_ma_3_6_12_24: output.avg_ma_3_6_12_24,
-                avg_ma_14_28_57_114: output.avg_ma_14_28_57_114,
-                ema1_10_state: output.ema1_10_state,
-                ema2_10: output.ema2_10,
-                ema2_10_state: output.ema2_10_state,
+                price_ma_3: output.price_ma(3),
+                price_ma_5: output.price_ma(5),
+                price_ma_6: output.price_ma(6),
+                price_ma_10: output.price_ma(10),
+                price_ma_12: output.price_ma(12),
+                price_ma_14: output.price_ma(14),
+                price_ma_20: output.price_ma(20),
+                price_ma_24: output.price_ma(24),
+                price_ma_28: output.price_ma(28),
+                price_ma_57: output.price_ma(57),
+                price_ma_60: output.price_ma(60),
+                price_ma_114: output.price_ma(114),
+                price_ma_250: output.price_ma(250),
+                price_avg_ma_3_6_12_24: output.price_avg_ma_3_6_12_24,
+                price_avg_ma_14_28_57_114: output.price_avg_ma_14_28_57_114,
+                price_ema1_10_state: output.price_ema1_10_state,
+                price_ema2_10: output.price_ema2_10,
+                price_ema2_10_state: output.price_ema2_10_state,
+                volume_ma_5: output.volume_ma(5),
+                volume_ma_10: output.volume_ma(10),
+                volume_ma_20: output.volume_ma(20),
+                volume_ma_60: output.volume_ma(60),
                 trade_date: output.trade_date,
             });
         }
@@ -2364,6 +4391,7 @@ fn calculate_ma_security_outputs(
         rows: output_rows,
         output_rows: output_row_count,
         valid_close_rows,
+        valid_volume_rows,
         null_indicator_rows,
     })
 }
@@ -2555,6 +4583,64 @@ FORMAT TSV",
     Ok(())
 }
 
+fn ensure_rsi_append_latest_is_safe<E: ClickHouseExecutor>(
+    executor: &mut E,
+    request: &RsiRunRequest,
+    symbols: &[String],
+    all_symbols_requested: bool,
+) -> Result<(), FurnaceIoError> {
+    if symbols.is_empty() && !all_symbols_requested {
+        return Ok(());
+    }
+    let sql = format!(
+        "\
+SELECT count()
+FROM {}
+WHERE trade_date >= toDate('{}')
+  AND {}
+FORMAT TSV",
+        request.output_table,
+        sql_string(&request.request_from),
+        symbol_where_clause(symbols, all_symbols_requested)
+    );
+    let existing_rows = parse_u64(&first_tsv_value(&executor.query(&sql)?).unwrap_or_default())?;
+    if existing_rows > 0 {
+        return Err(FurnaceIoError::InvalidRequest(format!(
+            "append-latest found {existing_rows} existing same-or-later result rows; use replace-cascade"
+        )));
+    }
+    Ok(())
+}
+
+fn ensure_boll_append_latest_is_safe<E: ClickHouseExecutor>(
+    executor: &mut E,
+    request: &BollRunRequest,
+    symbols: &[String],
+    all_symbols_requested: bool,
+) -> Result<(), FurnaceIoError> {
+    if symbols.is_empty() && !all_symbols_requested {
+        return Ok(());
+    }
+    let sql = format!(
+        "\
+SELECT count()
+FROM {}
+WHERE trade_date >= toDate('{}')
+  AND {}
+FORMAT TSV",
+        request.output_table,
+        sql_string(&request.request_from),
+        symbol_where_clause(symbols, all_symbols_requested)
+    );
+    let existing_rows = parse_u64(&first_tsv_value(&executor.query(&sql)?).unwrap_or_default())?;
+    if existing_rows > 0 {
+        return Err(FurnaceIoError::InvalidRequest(format!(
+            "append-latest found {existing_rows} existing same-or-later result rows; use replace-cascade"
+        )));
+    }
+    Ok(())
+}
+
 fn retain_old_rows_for_staging<E: ClickHouseExecutor>(
     executor: &mut E,
     request: &KdjRunRequest,
@@ -2595,6 +4681,82 @@ WHERE toYear(trade_date) = {year}
 fn retain_old_ma_rows_for_staging<E: ClickHouseExecutor>(
     executor: &mut E,
     request: &MaRunRequest,
+    staging_table: &str,
+    symbols: &[String],
+    all_symbols_requested: bool,
+    years: &[u16],
+    effective_output_to: &str,
+) -> Result<u64, FurnaceIoError> {
+    let mut retained = 0;
+    for year in years {
+        if all_symbols_requested
+            && partition_year_fully_covered(*year, &request.request_from, effective_output_to)
+        {
+            continue;
+        }
+        let sql = format!(
+            "\
+INSERT INTO {staging_table}
+SELECT *
+FROM {}
+WHERE toYear(trade_date) = {year}
+  AND NOT (
+      {}
+      AND trade_date >= toDate('{}')
+      AND trade_date <= toDate('{}')
+  )",
+            request.output_table,
+            symbol_where_clause(symbols, all_symbols_requested),
+            sql_string(&request.request_from),
+            sql_string(effective_output_to)
+        );
+        executor.execute(&sql)?;
+        retained += count_year_rows(executor, staging_table, *year)?;
+    }
+    Ok(retained)
+}
+
+fn retain_old_rsi_rows_for_staging<E: ClickHouseExecutor>(
+    executor: &mut E,
+    request: &RsiRunRequest,
+    staging_table: &str,
+    symbols: &[String],
+    all_symbols_requested: bool,
+    years: &[u16],
+    effective_output_to: &str,
+) -> Result<u64, FurnaceIoError> {
+    let mut retained = 0;
+    for year in years {
+        if all_symbols_requested
+            && partition_year_fully_covered(*year, &request.request_from, effective_output_to)
+        {
+            continue;
+        }
+        let sql = format!(
+            "\
+INSERT INTO {staging_table}
+SELECT *
+FROM {}
+WHERE toYear(trade_date) = {year}
+  AND NOT (
+      {}
+      AND trade_date >= toDate('{}')
+      AND trade_date <= toDate('{}')
+  )",
+            request.output_table,
+            symbol_where_clause(symbols, all_symbols_requested),
+            sql_string(&request.request_from),
+            sql_string(effective_output_to)
+        );
+        executor.execute(&sql)?;
+        retained += count_year_rows(executor, staging_table, *year)?;
+    }
+    Ok(retained)
+}
+
+fn retain_old_boll_rows_for_staging<E: ClickHouseExecutor>(
+    executor: &mut E,
+    request: &BollRunRequest,
     staging_table: &str,
     symbols: &[String],
     all_symbols_requested: bool,
@@ -2735,29 +4897,116 @@ INSERT INTO {table}
 (
     security_code,
     trade_date,
-    ma_3,
-    ma_5,
-    ma_6,
-    ma_10,
-    ma_12,
-    ma_14,
-    ma_20,
-    ma_24,
-    ma_28,
-    ma_57,
-    ma_60,
-    ma_114,
-    ma_250,
-    avg_ma_3_6_12_24,
-    avg_ma_14_28_57_114,
-    ema1_10_state,
-    ema2_10,
-    ema2_10_state
+    price_ma_3,
+    price_ma_5,
+    price_ma_6,
+    price_ma_10,
+    price_ma_12,
+    price_ma_14,
+    price_ma_20,
+    price_ma_24,
+    price_ma_28,
+    price_ma_57,
+    price_ma_60,
+    price_ma_114,
+    price_ma_250,
+    price_avg_ma_3_6_12_24,
+    price_avg_ma_14_28_57_114,
+    price_ema1_10_state,
+    price_ema2_10,
+    price_ema2_10_state,
+    volume_ma_5,
+    volume_ma_10,
+    volume_ma_20,
+    volume_ma_60
 )
 FORMAT RowBinary"
     );
     for batch in rows.chunks(batch_size) {
         let mut row_binary = Vec::with_capacity(batch.len().saturating_mul(170));
+        for row in batch {
+            row.write_row_binary(&mut row_binary)?;
+        }
+        executor.insert_bytes(&insert_sql, &row_binary)?;
+    }
+    Ok(())
+}
+
+fn insert_rsi_result_rows<E: ClickHouseExecutor>(
+    executor: &mut E,
+    table: &str,
+    rows: &[RsiResultRow],
+    batch_size: usize,
+) -> Result<(), FurnaceIoError> {
+    if rows.is_empty() {
+        return Ok(());
+    }
+    let insert_sql = format!(
+        "\
+INSERT INTO {table}
+(
+    security_code,
+    trade_date,
+    rsi_6,
+    rsi_12,
+    rsi_14,
+    rsi_24,
+    rsi_25,
+    rsi_50,
+    avg_gain_6_state,
+    avg_loss_6_state,
+    avg_gain_12_state,
+    avg_loss_12_state,
+    avg_gain_14_state,
+    avg_loss_14_state,
+    avg_gain_24_state,
+    avg_loss_24_state,
+    avg_gain_25_state,
+    avg_loss_25_state,
+    avg_gain_50_state,
+    avg_loss_50_state
+)
+FORMAT RowBinary"
+    );
+    for batch in rows.chunks(batch_size) {
+        let mut row_binary = Vec::with_capacity(batch.len().saturating_mul(170));
+        for row in batch {
+            row.write_row_binary(&mut row_binary)?;
+        }
+        executor.insert_bytes(&insert_sql, &row_binary)?;
+    }
+    Ok(())
+}
+
+fn insert_boll_result_rows<E: ClickHouseExecutor>(
+    executor: &mut E,
+    table: &str,
+    rows: &[BollResultRow],
+    batch_size: usize,
+) -> Result<(), FurnaceIoError> {
+    if rows.is_empty() {
+        return Ok(());
+    }
+    let insert_sql = format!(
+        "\
+INSERT INTO {table}
+(
+    security_code,
+    trade_date,
+    boll_mid_10_1p5,
+    boll_up_10_1p5,
+    boll_dn_10_1p5,
+    boll_mid_20_2,
+    boll_up_20_2,
+    boll_dn_20_2,
+    boll_mid_50_2p5,
+    boll_up_50_2p5,
+    boll_dn_50_2p5
+)
+FORMAT RowBinary"
+    );
+    for batch in rows.chunks(batch_size) {
+        let mut row_binary = Vec::with_capacity(batch.len().saturating_mul(105));
         for row in batch {
             row.write_row_binary(&mut row_binary)?;
         }
@@ -2785,24 +5034,71 @@ impl MaResultRow {
     fn write_row_binary(&self, bytes: &mut Vec<u8>) -> Result<(), FurnaceIoError> {
         push_rowbinary_string(bytes, &self.security_code);
         push_rowbinary_date(bytes, &self.trade_date)?;
-        push_rowbinary_nullable_f64(bytes, self.ma_3);
-        push_rowbinary_nullable_f64(bytes, self.ma_5);
-        push_rowbinary_nullable_f64(bytes, self.ma_6);
-        push_rowbinary_nullable_f64(bytes, self.ma_10);
-        push_rowbinary_nullable_f64(bytes, self.ma_12);
-        push_rowbinary_nullable_f64(bytes, self.ma_14);
-        push_rowbinary_nullable_f64(bytes, self.ma_20);
-        push_rowbinary_nullable_f64(bytes, self.ma_24);
-        push_rowbinary_nullable_f64(bytes, self.ma_28);
-        push_rowbinary_nullable_f64(bytes, self.ma_57);
-        push_rowbinary_nullable_f64(bytes, self.ma_60);
-        push_rowbinary_nullable_f64(bytes, self.ma_114);
-        push_rowbinary_nullable_f64(bytes, self.ma_250);
-        push_rowbinary_nullable_f64(bytes, self.avg_ma_3_6_12_24);
-        push_rowbinary_nullable_f64(bytes, self.avg_ma_14_28_57_114);
-        push_rowbinary_nullable_f64(bytes, self.ema1_10_state);
-        push_rowbinary_nullable_f64(bytes, self.ema2_10);
-        push_rowbinary_nullable_f64(bytes, self.ema2_10_state);
+        push_rowbinary_nullable_f64(bytes, self.price_ma_3);
+        push_rowbinary_nullable_f64(bytes, self.price_ma_5);
+        push_rowbinary_nullable_f64(bytes, self.price_ma_6);
+        push_rowbinary_nullable_f64(bytes, self.price_ma_10);
+        push_rowbinary_nullable_f64(bytes, self.price_ma_12);
+        push_rowbinary_nullable_f64(bytes, self.price_ma_14);
+        push_rowbinary_nullable_f64(bytes, self.price_ma_20);
+        push_rowbinary_nullable_f64(bytes, self.price_ma_24);
+        push_rowbinary_nullable_f64(bytes, self.price_ma_28);
+        push_rowbinary_nullable_f64(bytes, self.price_ma_57);
+        push_rowbinary_nullable_f64(bytes, self.price_ma_60);
+        push_rowbinary_nullable_f64(bytes, self.price_ma_114);
+        push_rowbinary_nullable_f64(bytes, self.price_ma_250);
+        push_rowbinary_nullable_f64(bytes, self.price_avg_ma_3_6_12_24);
+        push_rowbinary_nullable_f64(bytes, self.price_avg_ma_14_28_57_114);
+        push_rowbinary_nullable_f64(bytes, self.price_ema1_10_state);
+        push_rowbinary_nullable_f64(bytes, self.price_ema2_10);
+        push_rowbinary_nullable_f64(bytes, self.price_ema2_10_state);
+        push_rowbinary_nullable_f64(bytes, self.volume_ma_5);
+        push_rowbinary_nullable_f64(bytes, self.volume_ma_10);
+        push_rowbinary_nullable_f64(bytes, self.volume_ma_20);
+        push_rowbinary_nullable_f64(bytes, self.volume_ma_60);
+        Ok(())
+    }
+}
+
+impl RsiResultRow {
+    fn write_row_binary(&self, bytes: &mut Vec<u8>) -> Result<(), FurnaceIoError> {
+        push_rowbinary_string(bytes, &self.security_code);
+        push_rowbinary_date(bytes, &self.trade_date)?;
+        push_rowbinary_nullable_f64(bytes, self.rsi_6);
+        push_rowbinary_nullable_f64(bytes, self.rsi_12);
+        push_rowbinary_nullable_f64(bytes, self.rsi_14);
+        push_rowbinary_nullable_f64(bytes, self.rsi_24);
+        push_rowbinary_nullable_f64(bytes, self.rsi_25);
+        push_rowbinary_nullable_f64(bytes, self.rsi_50);
+        push_rowbinary_nullable_f64(bytes, self.avg_gain_6_state);
+        push_rowbinary_nullable_f64(bytes, self.avg_loss_6_state);
+        push_rowbinary_nullable_f64(bytes, self.avg_gain_12_state);
+        push_rowbinary_nullable_f64(bytes, self.avg_loss_12_state);
+        push_rowbinary_nullable_f64(bytes, self.avg_gain_14_state);
+        push_rowbinary_nullable_f64(bytes, self.avg_loss_14_state);
+        push_rowbinary_nullable_f64(bytes, self.avg_gain_24_state);
+        push_rowbinary_nullable_f64(bytes, self.avg_loss_24_state);
+        push_rowbinary_nullable_f64(bytes, self.avg_gain_25_state);
+        push_rowbinary_nullable_f64(bytes, self.avg_loss_25_state);
+        push_rowbinary_nullable_f64(bytes, self.avg_gain_50_state);
+        push_rowbinary_nullable_f64(bytes, self.avg_loss_50_state);
+        Ok(())
+    }
+}
+
+impl BollResultRow {
+    fn write_row_binary(&self, bytes: &mut Vec<u8>) -> Result<(), FurnaceIoError> {
+        push_rowbinary_string(bytes, &self.security_code);
+        push_rowbinary_date(bytes, &self.trade_date)?;
+        push_rowbinary_nullable_f64(bytes, self.boll_mid_10_1p5);
+        push_rowbinary_nullable_f64(bytes, self.boll_up_10_1p5);
+        push_rowbinary_nullable_f64(bytes, self.boll_dn_10_1p5);
+        push_rowbinary_nullable_f64(bytes, self.boll_mid_20_2);
+        push_rowbinary_nullable_f64(bytes, self.boll_up_20_2);
+        push_rowbinary_nullable_f64(bytes, self.boll_dn_20_2);
+        push_rowbinary_nullable_f64(bytes, self.boll_mid_50_2p5);
+        push_rowbinary_nullable_f64(bytes, self.boll_up_50_2p5);
+        push_rowbinary_nullable_f64(bytes, self.boll_dn_50_2p5);
         Ok(())
     }
 }
@@ -2955,6 +5251,14 @@ fn parse_u64(value: &str) -> Result<u64, FurnaceIoError> {
 }
 
 fn symbol_where_clause(symbols: &[String], all_symbols_requested: bool) -> String {
+    symbol_where_clause_for_column("security_code", symbols, all_symbols_requested)
+}
+
+fn symbol_where_clause_for_column(
+    column: &str,
+    symbols: &[String],
+    all_symbols_requested: bool,
+) -> String {
     if all_symbols_requested {
         return "1 = 1".to_string();
     }
@@ -2966,7 +5270,15 @@ fn symbol_where_clause(symbols: &[String], all_symbols_requested: bool) -> Strin
         .map(|symbol| format!("'{}'", sql_string(symbol)))
         .collect::<Vec<_>>()
         .join(", ");
-    format!("security_code IN ({values})")
+    format!("{column} IN ({values})")
+}
+
+fn symbol_where_clause_for(
+    column: &str,
+    symbols: &[String],
+    all_symbols_requested: bool,
+) -> String {
+    symbol_where_clause_for_column(column, symbols, all_symbols_requested)
 }
 
 fn sql_string(value: &str) -> String {
@@ -2978,6 +5290,22 @@ fn json_optional_string(value: Option<&str>) -> String {
         Some(value) => format!("\"{}\"", escape_json_string(value)),
         None => "null".to_string(),
     }
+}
+
+fn boll_configs_json() -> String {
+    let configs = DEFAULT_BOLL_CONFIGS
+        .iter()
+        .map(|config| {
+            format!(
+                "{{\"window\":{},\"multiplier\":{},\"field_suffix\":\"{}\"}}",
+                config.window,
+                json_f64(config.multiplier),
+                escape_json_string(config.field_suffix)
+            )
+        })
+        .collect::<Vec<_>>()
+        .join(",");
+    format!("[{configs}]")
 }
 
 fn json_f64(value: f64) -> String {
@@ -3016,7 +5344,9 @@ mod tests {
     use super::*;
 
     type RowBinaryInputFixture<'a> = (&'a str, &'a str, Option<f64>, Option<f64>, Option<f64>);
-    type MaRowBinaryInputFixture<'a> = (&'a str, &'a str, Option<f64>);
+    type MaRowBinaryInputFixture<'a> = (&'a str, &'a str, Option<f64>, Option<f64>);
+    type RsiRowBinaryInputFixture<'a> = (&'a str, &'a str, Option<f64>);
+    type BollRowBinaryInputFixture<'a> = (&'a str, &'a str, Option<f64>);
 
     #[derive(Debug, Default)]
     struct FakeExecutor {
@@ -3090,6 +5420,27 @@ mod tests {
 
     fn ma_rowbinary_input_rows(rows: &[MaRowBinaryInputFixture<'_>]) -> Vec<u8> {
         let mut bytes = Vec::new();
+        for (security_code, trade_date, close_price, volume) in rows {
+            write_rowbinary_string(&mut bytes, security_code);
+            write_rowbinary_string(&mut bytes, trade_date);
+            write_rowbinary_nullable_f64(&mut bytes, *close_price);
+            write_rowbinary_nullable_f64(&mut bytes, *volume);
+        }
+        bytes
+    }
+
+    fn rsi_rowbinary_input_rows(rows: &[RsiRowBinaryInputFixture<'_>]) -> Vec<u8> {
+        let mut bytes = Vec::new();
+        for (security_code, trade_date, close_price) in rows {
+            write_rowbinary_string(&mut bytes, security_code);
+            write_rowbinary_string(&mut bytes, trade_date);
+            write_rowbinary_nullable_f64(&mut bytes, *close_price);
+        }
+        bytes
+    }
+
+    fn boll_rowbinary_input_rows(rows: &[BollRowBinaryInputFixture<'_>]) -> Vec<u8> {
+        let mut bytes = Vec::new();
         for (security_code, trade_date, close_price) in rows {
             write_rowbinary_string(&mut bytes, security_code);
             write_rowbinary_string(&mut bytes, trade_date);
@@ -3153,11 +5504,24 @@ mod tests {
     fn create_ma_output_table_sql_uses_canonical_fields() {
         let sql = create_ma_output_table_sql(DEFAULT_MA_OUTPUT_TABLE);
 
-        assert!(sql.contains("ma_57 Nullable(Float64)"));
-        assert!(sql.contains("avg_ma_14_28_57_114 Nullable(Float64)"));
+        assert!(sql.contains("price_ma_57 Nullable(Float64)"));
+        assert!(sql.contains("price_avg_ma_14_28_57_114 Nullable(Float64)"));
+        assert!(sql.contains("volume_ma_5 Nullable(Float64)"));
         assert!(!sql.contains("ma_47"));
-        assert!(sql.contains("ema1_10_state Nullable(Float64)"));
-        assert!(sql.contains("ema2_10_state Nullable(Float64)"));
+        assert!(!sql.contains("price_ma57"));
+        assert!(sql.contains("price_ema1_10_state Nullable(Float64)"));
+        assert!(sql.contains("price_ema2_10_state Nullable(Float64)"));
+        assert!(sql.contains("ORDER BY (trade_date, security_code)"));
+    }
+
+    #[test]
+    fn create_rsi_output_table_sql_uses_canonical_fields() {
+        let sql = create_rsi_output_table_sql(DEFAULT_RSI_OUTPUT_TABLE);
+
+        assert!(sql.contains("rsi_6 Nullable(Float64)"));
+        assert!(sql.contains("rsi_50 Nullable(Float64)"));
+        assert!(sql.contains("avg_gain_50_state Nullable(Float64)"));
+        assert!(sql.contains("avg_loss_50_state Nullable(Float64)"));
         assert!(sql.contains("ORDER BY (trade_date, security_code)"));
     }
 
@@ -3179,6 +5543,17 @@ mod tests {
             sql,
             "ALTER TABLE db.calc_ma REPLACE PARTITION 2026 FROM db.stage"
         );
+    }
+
+    #[test]
+    fn create_boll_output_table_sql_uses_canonical_fields() {
+        let sql = create_boll_output_table_sql(DEFAULT_BOLL_OUTPUT_TABLE);
+
+        assert!(sql.contains("boll_mid_10_1p5 Nullable(Float64)"));
+        assert!(sql.contains("boll_up_20_2 Nullable(Float64)"));
+        assert!(sql.contains("boll_dn_50_2p5 Nullable(Float64)"));
+        assert!(!sql.contains("boll_mid_n20_k2"));
+        assert!(sql.contains("ORDER BY (trade_date, security_code)"));
     }
 
     #[test]
@@ -3222,12 +5597,19 @@ mod tests {
                     "sh.600000",
                     format!("2026-01-{day:02}"),
                     if day == 11 { None } else { Some(day as f64) },
+                    if day == 12 {
+                        None
+                    } else {
+                        Some((day * 100) as f64)
+                    },
                 )
             })
             .collect::<Vec<_>>();
         let row_refs = rows
             .iter()
-            .map(|(security_code, trade_date, close)| (*security_code, trade_date.as_str(), *close))
+            .map(|(security_code, trade_date, close, volume)| {
+                (*security_code, trade_date.as_str(), *close, *volume)
+            })
             .collect::<Vec<_>>();
         let input_rows = ma_rowbinary_input_rows(&row_refs);
         let mut executor = FakeExecutor::with_responses_and_bytes(&responses, vec![input_rows]);
@@ -3242,9 +5624,96 @@ mod tests {
         assert_eq!(summary.input_rows, 20);
         assert_eq!(summary.output_rows, 20);
         assert_eq!(summary.valid_close_rows, 19);
+        assert_eq!(summary.valid_volume_rows, 19);
         assert!(summary.null_indicator_rows > 0);
         assert_eq!(summary.ema_state_source, "full-history");
         assert!(summary.to_json().contains("\"indicator\":\"ma\""));
+        assert!(
+            summary
+                .to_json()
+                .contains("\"volume_ma_windows\":[5,10,20,60]")
+        );
+        assert!(executor.queries.iter().any(|query| {
+            query.contains("close_price_forward_adj")
+                && query.contains("CAST(unadj.volume, 'Nullable(Float64)')")
+                && query.contains("ORDER BY adj.security_code, adj.trade_date")
+                && query.contains("FORMAT RowBinary")
+        }));
+    }
+
+    #[test]
+    fn run_ma_with_previous_state_uses_per_security_valid_price_and_volume_lookback() {
+        let responses = ["1\n", "sh.600000\t2026-01-10\t10\t9\n", "2025-01-01\n"];
+        let rows = (1..=20)
+            .map(|day| {
+                (
+                    "sh.600000",
+                    format!("2026-01-{day:02}"),
+                    Some(day as f64),
+                    Some((day * 100) as f64),
+                )
+            })
+            .collect::<Vec<_>>();
+        let row_refs = rows
+            .iter()
+            .map(|(security_code, trade_date, close, volume)| {
+                (*security_code, trade_date.as_str(), *close, *volume)
+            })
+            .collect::<Vec<_>>();
+        let input_rows = ma_rowbinary_input_rows(&row_refs);
+        let mut executor = FakeExecutor::with_responses_and_bytes(&responses, vec![input_rows]);
+        let request = MaRunRequest {
+            request_from: "2026-01-11".to_string(),
+            request_to: "2026-01-20".to_string(),
+            symbols: vec!["sh.600000".to_string()],
+            output_table: "fleur_calculation.calc_stock_ma_daily_validation".to_string(),
+            ..MaRunRequest::default()
+        };
+
+        let summary = run_ma(&mut executor, &request).unwrap();
+
+        assert_eq!(summary.input_from, "2025-01-01");
+        assert_eq!(summary.ema_state_source, "previous-state");
+        let lookback_query = executor
+            .queries
+            .iter()
+            .find(|query| query.contains("rn <= 250") && query.contains("rn <= 60"))
+            .expect("MA lookback query should use explicit valid-row windows");
+        assert!(lookback_query.contains("PARTITION BY security_code ORDER BY trade_date DESC"));
+        assert!(lookback_query.contains("close_price_forward_adj IS NOT NULL"));
+        assert!(
+            lookback_query
+                .contains("LEFT JOIN fleur_intermediate.int_stock_quotes_daily_unadj AS unadj")
+        );
+        assert!(lookback_query.contains("unadj.volume IS NOT NULL"));
+    }
+
+    #[test]
+    fn run_rsi_dry_run_reads_close_inputs_and_computes_summary() {
+        let responses = ["sh.600000\n", "2026-01-01\n", ""];
+        let rows = (1..=51)
+            .map(|day| ("sh.600000", format!("2026-01-{day:02}"), Some(day as f64)))
+            .collect::<Vec<_>>();
+        let row_refs = rows
+            .iter()
+            .map(|(security_code, trade_date, close)| (*security_code, trade_date.as_str(), *close))
+            .collect::<Vec<_>>();
+        let input_rows = rsi_rowbinary_input_rows(&row_refs);
+        let mut executor = FakeExecutor::with_responses_and_bytes(&responses, vec![input_rows]);
+        let request = RsiRunRequest {
+            request_from: "2026-01-01".to_string(),
+            request_to: "2026-01-51".to_string(),
+            ..RsiRunRequest::default()
+        };
+
+        let summary = run_rsi(&mut executor, &request).unwrap();
+
+        assert_eq!(summary.input_rows, 51);
+        assert_eq!(summary.output_rows, 51);
+        assert_eq!(summary.valid_close_rows, 51);
+        assert!(summary.null_indicator_rows > 0);
+        assert_eq!(summary.rsi_state_source, "full-history");
+        assert!(summary.to_json().contains("\"indicator\":\"rsi\""));
         assert!(executor.queries.iter().any(|query| {
             query.contains("close_price_forward_adj")
                 && query.contains("ORDER BY security_code, trade_date")
@@ -3263,13 +5732,25 @@ mod tests {
             MaGroupedInput {
                 security_code: "sh.600000".to_string(),
                 inputs: (1..=20)
-                    .map(|day| MaInput::new(format!("2026-01-{day:02}"), Some(day as f64)))
+                    .map(|day| {
+                        MaInput::new(
+                            format!("2026-01-{day:02}"),
+                            Some(day as f64),
+                            Some((day * 100) as f64),
+                        )
+                    })
                     .collect(),
             },
             MaGroupedInput {
                 security_code: "sz.000001".to_string(),
                 inputs: (1..=20)
-                    .map(|day| MaInput::new(format!("2026-01-{day:02}"), Some((day + 20) as f64)))
+                    .map(|day| {
+                        MaInput::new(
+                            format!("2026-01-{day:02}"),
+                            Some((day + 20) as f64),
+                            Some((day * 200) as f64),
+                        )
+                    })
                     .collect(),
             },
         ];
@@ -3284,6 +5765,60 @@ mod tests {
         .unwrap()
         .rows;
         let mut parallel = calculate_ma_grouped_outputs_parallel_with_collection(
+            &request,
+            "2026-01-20",
+            &groups,
+            &HashMap::new(),
+            true,
+        )
+        .unwrap()
+        .rows;
+        serial.sort_by(|left, right| {
+            left.security_code
+                .cmp(&right.security_code)
+                .then(left.trade_date.cmp(&right.trade_date))
+        });
+        parallel.sort_by(|left, right| {
+            left.security_code
+                .cmp(&right.security_code)
+                .then(left.trade_date.cmp(&right.trade_date))
+        });
+
+        assert_eq!(parallel, serial);
+    }
+
+    #[test]
+    fn parallel_rsi_outputs_match_serial_outputs() {
+        let request = RsiRunRequest {
+            request_from: "2026-01-01".to_string(),
+            request_to: "2026-01-20".to_string(),
+            ..RsiRunRequest::default()
+        };
+        let groups = vec![
+            RsiGroupedInput {
+                security_code: "sh.600000".to_string(),
+                inputs: (1..=20)
+                    .map(|day| RsiInput::new(format!("2026-01-{day:02}"), Some(day as f64)))
+                    .collect(),
+            },
+            RsiGroupedInput {
+                security_code: "sz.000001".to_string(),
+                inputs: (1..=20)
+                    .map(|day| RsiInput::new(format!("2026-01-{day:02}"), Some((day + 20) as f64)))
+                    .collect(),
+            },
+        ];
+
+        let mut serial = calculate_rsi_grouped_outputs_serial_with_collection(
+            &request,
+            "2026-01-20",
+            &groups,
+            &HashMap::new(),
+            true,
+        )
+        .unwrap()
+        .rows;
+        let mut parallel = calculate_rsi_grouped_outputs_parallel_with_collection(
             &request,
             "2026-01-20",
             &groups,
@@ -3358,6 +5893,100 @@ mod tests {
     }
 
     #[test]
+    fn run_boll_dry_run_reads_close_inputs_and_computes_summary() {
+        let responses = ["sh.600000\n", "2026-01-01\n"];
+        let rows = (1..=20)
+            .map(|day| {
+                (
+                    "sh.600000",
+                    format!("2026-01-{day:02}"),
+                    if day == 11 { None } else { Some(day as f64) },
+                )
+            })
+            .collect::<Vec<_>>();
+        let row_refs = rows
+            .iter()
+            .map(|(security_code, trade_date, close)| (*security_code, trade_date.as_str(), *close))
+            .collect::<Vec<_>>();
+        let input_rows = boll_rowbinary_input_rows(&row_refs);
+        let mut executor = FakeExecutor::with_responses_and_bytes(&responses, vec![input_rows]);
+        let request = BollRunRequest {
+            request_from: "2026-01-01".to_string(),
+            request_to: "2026-01-20".to_string(),
+            ..BollRunRequest::default()
+        };
+
+        let summary = run_boll(&mut executor, &request).unwrap();
+
+        assert_eq!(summary.input_rows, 20);
+        assert_eq!(summary.output_rows, 20);
+        assert_eq!(summary.input_valid_close_rows, 19);
+        assert_eq!(summary.output_valid_close_rows, 19);
+        assert!(summary.null_indicator_rows > 0);
+        assert_eq!(summary.state_source, "rolling-lookback");
+        assert!(summary.to_json().contains("\"indicator\":\"boll\""));
+        assert!(summary.to_json().contains("\"stddev_ddof\":0"));
+        assert!(summary.to_json().contains("\"field_suffix\":\"10_1p5\""));
+        assert!(executor.queries.iter().any(|query| {
+            query.contains("close_price_forward_adj")
+                && query.contains("ORDER BY security_code, trade_date")
+                && query.contains("FORMAT RowBinary")
+        }));
+    }
+
+    #[test]
+    fn parallel_boll_outputs_match_serial_outputs() {
+        let request = BollRunRequest {
+            request_from: "2026-01-01".to_string(),
+            request_to: "2026-02-20".to_string(),
+            ..BollRunRequest::default()
+        };
+        let groups = vec![
+            BollGroupedInput {
+                security_code: "sh.600000".to_string(),
+                inputs: (1..=51)
+                    .map(|day| BollInput::new(format!("2026-02-{day:02}"), Some(day as f64)))
+                    .collect(),
+            },
+            BollGroupedInput {
+                security_code: "sz.000001".to_string(),
+                inputs: (1..=51)
+                    .map(|day| BollInput::new(format!("2026-02-{day:02}"), Some((day + 20) as f64)))
+                    .collect(),
+            },
+        ];
+
+        let mut serial = calculate_boll_grouped_outputs_serial_with_collection(
+            &request,
+            "2026-02-20",
+            &groups,
+            true,
+        )
+        .unwrap()
+        .rows;
+        let mut parallel = calculate_boll_grouped_outputs_parallel_with_collection(
+            &request,
+            "2026-02-20",
+            &groups,
+            true,
+        )
+        .unwrap()
+        .rows;
+        serial.sort_by(|left, right| {
+            left.security_code
+                .cmp(&right.security_code)
+                .then(left.trade_date.cmp(&right.trade_date))
+        });
+        parallel.sort_by(|left, right| {
+            left.security_code
+                .cmp(&right.security_code)
+                .then(left.trade_date.cmp(&right.trade_date))
+        });
+
+        assert_eq!(parallel, serial);
+    }
+
+    #[test]
     fn run_kdj_append_latest_inserts_result_rows() {
         let responses = ["2026-01-01\n", "1\n", "", "0\n"];
         let input_rows = rowbinary_input_rows(&[
@@ -3387,11 +6016,20 @@ mod tests {
     fn run_ma_append_latest_inserts_result_rows() {
         let responses = ["2026-01-01\n", "", "0\n"];
         let rows = (1..=20)
-            .map(|day| ("sh.600000", format!("2026-01-{day:02}"), Some(day as f64)))
+            .map(|day| {
+                (
+                    "sh.600000",
+                    format!("2026-01-{day:02}"),
+                    Some(day as f64),
+                    Some((day * 100) as f64),
+                )
+            })
             .collect::<Vec<_>>();
         let row_refs = rows
             .iter()
-            .map(|(security_code, trade_date, close)| (*security_code, trade_date.as_str(), *close))
+            .map(|(security_code, trade_date, close, volume)| {
+                (*security_code, trade_date.as_str(), *close, *volume)
+            })
             .collect::<Vec<_>>();
         let input_rows = ma_rowbinary_input_rows(&row_refs);
         let mut executor = FakeExecutor::with_responses_and_bytes(&responses, vec![input_rows]);
@@ -3409,8 +6047,70 @@ mod tests {
         assert!(summary.writes_applied);
         assert_eq!(executor.byte_inserts.len(), 1);
         assert!(executor.byte_inserts[0].0.contains("calc_stock_ma_daily"));
-        assert!(executor.byte_inserts[0].0.contains("ema2_10_state"));
+        assert!(executor.byte_inserts[0].0.contains("price_ema2_10_state"));
+        assert!(executor.byte_inserts[0].0.contains("volume_ma_5"));
         assert!(executor.byte_inserts[0].1.starts_with(b"\tsh.600000"));
+    }
+
+    #[test]
+    fn run_rsi_append_latest_inserts_result_rows() {
+        let responses = ["2026-01-01\n", "", "0\n"];
+        let rows = (1..=51)
+            .map(|day| ("sh.600000", format!("2026-01-{day:02}"), Some(day as f64)))
+            .collect::<Vec<_>>();
+        let row_refs = rows
+            .iter()
+            .map(|(security_code, trade_date, close)| (*security_code, trade_date.as_str(), *close))
+            .collect::<Vec<_>>();
+        let input_rows = rsi_rowbinary_input_rows(&row_refs);
+        let mut executor = FakeExecutor::with_responses_and_bytes(&responses, vec![input_rows]);
+        let request = RsiRunRequest {
+            request_from: "2026-01-01".to_string(),
+            request_to: "2026-01-51".to_string(),
+            symbols: vec!["sh.600000".to_string()],
+            mode: RsiWriteMode::AppendLatest,
+            insert_batch_size: MIN_INSERT_BATCH_SIZE,
+            ..RsiRunRequest::default()
+        };
+
+        let summary = run_rsi(&mut executor, &request).unwrap();
+
+        assert!(summary.writes_applied);
+        assert_eq!(executor.byte_inserts.len(), 1);
+        assert!(executor.byte_inserts[0].0.contains("calc_stock_rsi_daily"));
+        assert!(executor.byte_inserts[0].0.contains("avg_loss_50_state"));
+        assert!(executor.byte_inserts[0].1.starts_with(b"\tsh.600000"));
+    }
+
+    #[test]
+    fn run_rsi_append_latest_rejects_previous_state_gaps() {
+        let responses = [
+            "2026-01-01\n",
+            "1\n",
+            "sh.600000\t2026-01-10\t10\t0\t1\t0\t1\t0\t1\t0\t1\t0\t1\t0\t1\n",
+            "1\t2026-01-11\n",
+        ];
+        let mut executor = FakeExecutor::with_responses_and_bytes(&responses, Vec::new());
+        let request = RsiRunRequest {
+            request_from: "2026-01-20".to_string(),
+            request_to: "2026-01-21".to_string(),
+            symbols: vec!["sh.600000".to_string()],
+            mode: RsiWriteMode::AppendLatest,
+            insert_batch_size: MIN_INSERT_BATCH_SIZE,
+            ..RsiRunRequest::default()
+        };
+
+        let error = run_rsi(&mut executor, &request).unwrap_err();
+
+        assert!(error.to_string().contains("RSI result gaps"));
+        assert!(error.to_string().contains("2026-01-11"));
+        assert!(executor.byte_inserts.is_empty());
+        assert!(
+            executor
+                .queries
+                .iter()
+                .any(|query| query.contains("countDistinct(input.security_code)"))
+        );
     }
 
     #[test]
@@ -3418,24 +6118,28 @@ mod tests {
         let row = MaResultRow {
             security_code: "sh.600000".to_string(),
             trade_date: "2026-01-03".to_string(),
-            ma_3: Some(1.0),
-            ma_5: None,
-            ma_6: None,
-            ma_10: None,
-            ma_12: None,
-            ma_14: None,
-            ma_20: None,
-            ma_24: None,
-            ma_28: None,
-            ma_57: Some(57.0),
-            ma_60: None,
-            ma_114: None,
-            ma_250: None,
-            avg_ma_3_6_12_24: None,
-            avg_ma_14_28_57_114: Some(2.0),
-            ema1_10_state: Some(3.0),
-            ema2_10: Some(4.0),
-            ema2_10_state: Some(4.0),
+            price_ma_3: Some(1.0),
+            price_ma_5: None,
+            price_ma_6: None,
+            price_ma_10: None,
+            price_ma_12: None,
+            price_ma_14: None,
+            price_ma_20: None,
+            price_ma_24: None,
+            price_ma_28: None,
+            price_ma_57: Some(57.0),
+            price_ma_60: None,
+            price_ma_114: None,
+            price_ma_250: None,
+            price_avg_ma_3_6_12_24: None,
+            price_avg_ma_14_28_57_114: Some(2.0),
+            price_ema1_10_state: Some(3.0),
+            price_ema2_10: Some(4.0),
+            price_ema2_10_state: Some(4.0),
+            volume_ma_5: Some(5.0),
+            volume_ma_10: None,
+            volume_ma_20: None,
+            volume_ma_60: None,
         };
         let mut bytes = Vec::new();
 
@@ -3464,6 +6168,79 @@ mod tests {
         assert_eq!(
             read_rowbinary_nullable_f64(&bytes, &mut cursor).unwrap(),
             Some(57.0)
+        );
+    }
+
+    #[test]
+    fn run_boll_append_latest_inserts_result_rows() {
+        let responses = ["2026-01-01\n", "0\n"];
+        let rows = (1..=20)
+            .map(|day| ("sh.600000", format!("2026-01-{day:02}"), Some(day as f64)))
+            .collect::<Vec<_>>();
+        let row_refs = rows
+            .iter()
+            .map(|(security_code, trade_date, close)| (*security_code, trade_date.as_str(), *close))
+            .collect::<Vec<_>>();
+        let input_rows = boll_rowbinary_input_rows(&row_refs);
+        let mut executor = FakeExecutor::with_responses_and_bytes(&responses, vec![input_rows]);
+        let request = BollRunRequest {
+            request_from: "2026-01-01".to_string(),
+            request_to: "2026-01-20".to_string(),
+            symbols: vec!["sh.600000".to_string()],
+            mode: BollWriteMode::AppendLatest,
+            insert_batch_size: MIN_INSERT_BATCH_SIZE,
+            ..BollRunRequest::default()
+        };
+
+        let summary = run_boll(&mut executor, &request).unwrap();
+
+        assert!(summary.writes_applied);
+        assert_eq!(executor.byte_inserts.len(), 1);
+        assert!(executor.byte_inserts[0].0.contains("calc_stock_boll_daily"));
+        assert!(executor.byte_inserts[0].0.contains("boll_dn_50_2p5"));
+        assert!(executor.byte_inserts[0].1.starts_with(b"\tsh.600000"));
+    }
+
+    #[test]
+    fn boll_result_row_writes_clickhouse_rowbinary_encoding() {
+        let row = BollResultRow {
+            security_code: "sh.600000".to_string(),
+            trade_date: "2026-01-03".to_string(),
+            boll_mid_10_1p5: Some(1.0),
+            boll_up_10_1p5: Some(2.0),
+            boll_dn_10_1p5: Some(0.0),
+            boll_mid_20_2: None,
+            boll_up_20_2: None,
+            boll_dn_20_2: None,
+            boll_mid_50_2p5: Some(3.0),
+            boll_up_50_2p5: Some(4.0),
+            boll_dn_50_2p5: Some(5.0),
+        };
+        let mut bytes = Vec::new();
+
+        row.write_row_binary(&mut bytes).unwrap();
+
+        let mut cursor = 0;
+        assert_eq!(
+            read_rowbinary_string(&bytes, &mut cursor).unwrap(),
+            "sh.600000"
+        );
+        cursor += 2;
+        assert_eq!(
+            read_rowbinary_nullable_f64(&bytes, &mut cursor).unwrap(),
+            Some(1.0)
+        );
+        assert_eq!(
+            read_rowbinary_nullable_f64(&bytes, &mut cursor).unwrap(),
+            Some(2.0)
+        );
+        assert_eq!(
+            read_rowbinary_nullable_f64(&bytes, &mut cursor).unwrap(),
+            Some(0.0)
+        );
+        assert_eq!(
+            read_rowbinary_nullable_f64(&bytes, &mut cursor).unwrap(),
+            None
         );
     }
 
@@ -3611,5 +6388,49 @@ mod tests {
         let error = request.validate().unwrap_err();
 
         assert!(matches!(error, FurnaceIoError::InvalidRequest(_)));
+    }
+
+    #[test]
+    fn rsi_result_row_writes_clickhouse_rowbinary_encoding() {
+        let row = RsiResultRow {
+            security_code: "sh.600000".to_string(),
+            trade_date: "2026-01-03".to_string(),
+            rsi_6: Some(1.0),
+            rsi_12: None,
+            rsi_14: None,
+            rsi_24: None,
+            rsi_25: None,
+            rsi_50: Some(50.0),
+            avg_gain_6_state: Some(0.1),
+            avg_loss_6_state: Some(0.2),
+            avg_gain_12_state: None,
+            avg_loss_12_state: None,
+            avg_gain_14_state: None,
+            avg_loss_14_state: None,
+            avg_gain_24_state: None,
+            avg_loss_24_state: None,
+            avg_gain_25_state: None,
+            avg_loss_25_state: None,
+            avg_gain_50_state: Some(0.5),
+            avg_loss_50_state: Some(0.6),
+        };
+        let mut bytes = Vec::new();
+
+        row.write_row_binary(&mut bytes).unwrap();
+
+        let mut cursor = 0;
+        assert_eq!(
+            read_rowbinary_string(&bytes, &mut cursor).unwrap(),
+            "sh.600000"
+        );
+        cursor += 2;
+        assert_eq!(
+            read_rowbinary_nullable_f64(&bytes, &mut cursor).unwrap(),
+            Some(1.0)
+        );
+        assert_eq!(
+            read_rowbinary_nullable_f64(&bytes, &mut cursor).unwrap(),
+            None
+        );
     }
 }

@@ -1,4 +1,4 @@
-# Plan 0029: Furnace Moving Average 日线技术指标实施方案
+# Plan 0029: Furnace Price/Volume Moving Average 日线技术指标实施方案
 
 日期：2026-06-08
 
@@ -8,6 +8,7 @@
 
 - `docs/RFC/0017-furnace-moving-average-technical-indicators.md`
 - `docs/RFC/0016-rust-furnace-compute-engine.md`
+- `docs/ADR/0010-technical-indicator-field-naming.md`
 - `docs/plans/0027-furnace-rsv-kdj-technical-indicators-implementation-plan.md`
 - `docs/plans/0028-furnace-kdj-parallel-performance-implementation-plan.md`
 - `engines/README.md`
@@ -31,7 +32,7 @@
 
 ## 1. 目标
 
-基于 RFC 0017，在现有 Furnace Rust workspace 中新增日频 Moving Average 指标计算能力，从 `fleur_intermediate.int_stock_quotes_daily_adj` 读取前复权收盘价，计算 MA、组合均线和双重 EMA，并写入：
+基于 RFC 0017，在现有 Furnace Rust workspace 中新增日频 Moving Average 指标计算能力，从 `fleur_intermediate.int_stock_quotes_daily_adj` 读取前复权收盘价、从 `fleur_intermediate.int_stock_quotes_daily_unadj` 读取成交量，计算价格均线、均量、价格组合均线和价格双重 EMA，并写入：
 
 ```text
 fleur_calculation.calc_stock_ma_daily
@@ -46,25 +47,29 @@ fleur_intermediate.int_stock_ma_daily
 完成后应满足：
 
 1. `furnace ma` 支持按日期区间、证券集合和运行模式计算 Moving Average 指标。
-2. 所有指标使用 `close_price_forward_adj` 作为 `close` 输入，不混用其他价格口径。
-3. 第一版输出 RFC 0017 中列出的 canonical 字段：`ma_3`、`ma_5`、`ma_6`、`ma_10`、`ma_12`、`ma_14`、`ma_20`、`ma_24`、`ma_28`、`ma_57`、`ma_60`、`ma_114`、`ma_250`、`avg_ma_3_6_12_24`、`avg_ma_14_28_57_114`、`ema2_10`。
-4. MA/EMA 基础算子抽取到 `furnace-core` 公共算子层，Moving Average 指标模块只负责组合算子并映射业务字段。
-5. Rust、ClickHouse、Dagster 和 dbt 的 ownership 边界沿用 KDJ：公式在 `furnace-core`，I/O 和并行调度在 `furnace-io`，CLI 在 `furnace`，调度与 metadata 在 Dagster，消费契约在 dbt。
-6. 生产写入使用 staging + 年度 `REPLACE PARTITION` 协议，保持幂等并避免高频 mutation。
-7. 计算按证券维度并行；单证券内部按 `trade_date` 串行递推。
-8. 验收必须包含全市场、全历史数据量的并行计算运行，并记录性能和结果质量报告。
+2. 所有价格指标使用 `close_price_forward_adj` 作为 `close` 输入，不混用其他价格口径；所有均量指标使用未复权日行情的 `volume` 输入，0 成交量是有效值。
+3. 本修订版输出字段采用带口径前缀的 canonical 命名；价格侧废弃裸 `ma_*` / `avg_ma_*` / `ema2_10` 字段，改为 `price_*` 字段，均量侧新增 `volume_ma_5`、`volume_ma_10`、`volume_ma_20`、`volume_ma_60`。
+4. 价格侧 canonical 字段为：`price_ma_3`、`price_ma_5`、`price_ma_6`、`price_ma_10`、`price_ma_12`、`price_ma_14`、`price_ma_20`、`price_ma_24`、`price_ma_28`、`price_ma_57`、`price_ma_60`、`price_ma_114`、`price_ma_250`、`price_avg_ma_3_6_12_24`、`price_avg_ma_14_28_57_114`、`price_ema2_10`。
+5. 字段窗口参数统一使用 `ma_5` / `ma_10` 风格；`ema2_10` 保持 `ema2` 连写，因为 `2` 表示 EMA 复合次数，`10` 才是窗口参数。
+6. MA/EMA 基础算子抽取到 `furnace-core` 公共算子层，Moving Average 指标模块只负责组合算子并映射业务字段。
+7. Rust、ClickHouse、Dagster 和 dbt 的 ownership 边界沿用 KDJ：公式在 `furnace-core`，I/O 和并行调度在 `furnace-io`，CLI 在 `furnace`，调度与 metadata 在 Dagster，消费契约在 dbt。
+8. 生产写入使用 staging + 年度 `REPLACE PARTITION` 协议，保持幂等并避免高频 mutation。
+9. 计算按证券维度并行；单证券内部按 `trade_date` 串行递推。
+10. 验收必须包含全市场、全历史数据量的并行计算运行，并记录性能和结果质量报告。
 
 ## 2. 非目标
 
 本计划不做以下事情：
 
 1. 不实现 MACD、RSI、布林线或其他未列入 RFC 0017 的指标。
-2. 不改变 `int_stock_quotes_daily_adj` 的复权逻辑、字段语义或物化策略。
-3. 不在 dbt SQL 或 Dagster Python asset 中重写 MA/EMA 公式。
-4. 不让 Furnace 直接写入 `fleur_intermediate.int_stock_ma_daily`。
-5. 不把同一证券时间序列按日期并行；EMA 递推状态不允许这样做。
-6. 不在第一版支持多价格口径、多参数集合或长表 `indicator_name/value` 结构。
-7. 不强制同步重构已实现的 KDJ 模块；KDJ 当前只抽到 `furnace-core::indicators::kdj`，本计划只要求 MA/EMA 新实现使用公共算子层。后续可另立计划将 KDJ 的 K/D 平滑迁移到公共算子。
+2. 不改变 `int_stock_quotes_daily_adj` 的复权逻辑、字段语义或物化策略；该模型仍只承载复权价格，不为 MA 复制成交量。
+3. 不改变 `int_stock_quotes_daily_unadj.volume` 的原始口径，不做按复权因子调整成交量。
+4. 不实现成交量 EMA、成交量组合均线或其他未明确列出的均量指标。
+5. 不在 dbt SQL 或 Dagster Python asset 中重写 MA/EMA 公式。
+6. 不让 Furnace 直接写入 `fleur_intermediate.int_stock_ma_daily`。
+7. 不把同一证券时间序列按日期并行；EMA 递推状态不允许这样做。
+8. 不在第一版支持多价格口径、多成交量口径、多参数集合或长表 `indicator_name/value` 结构。
+9. 不强制同步重构已实现的 KDJ 模块；KDJ 当前只抽到 `furnace-core::indicators::kdj`，本计划只要求 MA/EMA 新实现使用公共算子层。后续可另立计划将 KDJ 的 K/D 平滑迁移到公共算子。
 
 ## 3. 当前事实基线
 
@@ -89,10 +94,16 @@ engines/
 
 ### 3.2 输入模型
 
-Moving Average 输入默认来自：
+价格输入默认来自：
 
 ```text
 fleur_intermediate.int_stock_quotes_daily_adj
+```
+
+成交量输入默认来自：
+
+```text
+fleur_intermediate.int_stock_quotes_daily_unadj
 ```
 
 相关 dbt 文件：
@@ -100,15 +111,20 @@ fleur_intermediate.int_stock_quotes_daily_adj
 ```text
 pipeline/elt/models/intermediate/int_stock_quotes_daily_adj.sql
 pipeline/elt/models/intermediate/int_stock_quotes_daily_adj.yml
+pipeline/elt/models/intermediate/int_stock_quotes_daily_unadj.sql
+pipeline/elt/models/intermediate/int_stock_quotes_daily_unadj.yml
 ```
 
-第一版只读取：
+现有 `int_stock_quotes_daily_adj` 明确只输出复权价格和复权因子，不重复存储成交量、成交金额、换手率、交易状态等非价格字段。因此第一版 MA 输入 SQL 应按 `(security_code, trade_date)` join 复权价格表和未复权行情表，而不是把 `volume` 加回 `int_stock_quotes_daily_adj`。
 
-| 字段 | 用途 |
-|------|------|
-| `security_code` | 证券代码 |
-| `trade_date` | 交易日 |
-| `close_price_forward_adj` | MA/EMA 的 canonical `close` 输入 |
+第一版读取：
+
+| 字段 | 来源 | 用途 |
+|------|------|------|
+| `security_code` | `int_stock_quotes_daily_adj` | 证券代码 |
+| `trade_date` | `int_stock_quotes_daily_adj` | 交易日 |
+| `close_price_forward_adj` | `int_stock_quotes_daily_adj` | 价格 MA/EMA 的 canonical `close` 输入 |
+| `volume` | `int_stock_quotes_daily_unadj` | 均量 MA 的 canonical `volume` 输入，0 为有效成交量 |
 
 输入必须按以下顺序提供给单证券核心计算：
 
@@ -118,12 +134,14 @@ security_code ASC, trade_date ASC
 
 输入和输出行口径：
 
-1. 输出 grain 与输入行情 grain 对齐，为每证券、交易日一行；请求输出区间内即使 `close_price_forward_adj IS NULL` 也要输出一行，所有指标字段为 `NULL`。
-2. `input_rows` 统计实际读取的行情行数，不只统计有效 close 行。
-3. `output_rows` 统计实际落入 `effective_output_from..effective_output_to` 的行情行数。
-4. `valid_close_rows` 可作为运行报告辅助指标，但不是输出行数口径。
-5. 同一证券内 `trade_date` 必须严格递增；如果输入中出现重复日期或乱序，核心计算返回错误，不在 Rust 中静默去重。
-6. `null_indicator_rows` 统计所有业务指标字段都为 `NULL` 的输出行；只要任一 `ma_*`、组合均线或 `ema2_10` 非空，该行不计入 `null_indicator_rows`。
+1. 输出 grain 与复权价格输入行情 grain 对齐，为每证券、交易日一行；请求输出区间内即使 `close_price_forward_adj IS NULL` 或 `volume IS NULL` 也要输出一行。
+2. 当前行 `close_price_forward_adj IS NULL` 时，所有 `price_*` 业务字段为 `NULL`，价格 EMA 状态不推进；如果 `volume` 有效，`volume_ma_*` 可按均量窗口正常输出。
+3. 当前行 `volume IS NULL` 时，所有 `volume_ma_*` 字段为 `NULL`，均量窗口不推进；如果 `close_price_forward_adj` 有效，`price_*` 字段可正常输出。
+4. `input_rows` 统计实际读取的行情行数，不只统计有效 close 或有效 volume 行。
+5. `output_rows` 统计实际落入 `effective_output_from..effective_output_to` 的行情行数。
+6. `valid_close_rows` 和 `valid_volume_rows` 可作为运行报告辅助指标，但不是输出行数口径。
+7. 同一证券内 `trade_date` 必须严格递增；如果输入中出现重复日期或乱序，核心计算返回错误，不在 Rust 中静默去重。
+8. `null_indicator_rows` 统计所有业务指标字段都为 `NULL` 的输出行；只要任一 `price_*` 或 `volume_ma_*` 字段非空，该行不计入 `null_indicator_rows`。
 
 ### 3.3 dbt 和 Dagster 现状
 
@@ -139,6 +157,22 @@ security_code ASC, trade_date ASC
 2. `pipeline/scheduler/src/scheduler/defs/resources/furnace.py` 已实现 `FurnaceCliResource`、请求 dataclass、命令构造、stdout JSON 解析和 `RAYON_NUM_THREADS` 注入。
 3. `pipeline/scheduler/src/scheduler/defs/furnace/definitions.py` 已定义 KDJ jobs 和 schedule。
 
+### 3.4 影响范围评审
+
+本次修订同时改变字段契约和输入依赖，影响范围如下：
+
+| 层级 | 影响 | 必改内容 |
+|------|------|----------|
+| 需求/架构文档 | RFC 0017 仍使用裸 `ma_*` 字段 | 实施以 Plan 0029 和 ADR 0010 为准；后续同步 RFC 或在 PR 中声明覆盖关系 |
+| Rust core | `MaInput` 从单一 close 扩展为 close + volume | 增加 volume SMA 窗口；价格字段改为 `price_*`；均量字段使用 `volume_ma_*` |
+| Rust IO | 输入 RowBinary 从 3 列变为 4 列 | 输入 SQL join `int_stock_quotes_daily_unadj`，读取 `volume`，summary 增加 `valid_volume_rows` |
+| ClickHouse DDL | calculation 表字段契约变化 | 裸 `ma_*` / `avg_ma_*` / `ema2_10` 字段替换为 `price_*`，新增 `volume_ma_*` |
+| CLI | canonical 输入不再只有价格表 | 增加或固化 `volume-input-table` / `volume-column` 口径，写入模式拒绝非 canonical 输入 |
+| Dagster | asset 上游依赖增加 | `calc_stock_ma_daily` 同时依赖 adj 和 unadj quotes；metadata 显示 volume 行数和窗口 |
+| dbt source/wrapper | 下游消费字段变化 | source YAML、wrapper SQL、wrapper YAML 全部改为 `price_ma_5` / `volume_ma_5` 风格 |
+| 测试 | 旧字段名测试不充分 | 新增字段命名防回归、volume 为空、volume 为 0、价格/成交量独立缺失测试 |
+| 全量验收 | spot check 需要覆盖均量 | 验收报告记录 `valid_volume_rows`，spot check 覆盖 `volume_ma_*` 和 0 成交量 |
+
 ## 4. 复用原则
 
 本实施必须优先复用已有代码资源，避免为 MA 复制出第二套不兼容基础设施。
@@ -148,7 +182,7 @@ security_code ASC, trade_date ASC
 | 现有资源 | 复用方式 |
 |----------|----------|
 | `ClickHouseExecutor` | MA 运行路径继续通过同一 executor 抽象执行 SQL 和 RowBinary 写入 |
-| RowBinary 输入解析 | 复用现有 RowBinary 读取框架，针对 MA 增加只含 close 的输入行解析 |
+| RowBinary 输入解析 | 复用现有 RowBinary 读取框架，针对 MA 增加 close + volume 输入行解析 |
 | RowBinary 输出写入 | 复用 `insert_result_rows` 思路，新增 MA result row 编码 |
 | staging + `REPLACE PARTITION` | 复用 KDJ 的 staging 建表、旧行保留、校验、年度分区替换和清理流程 |
 | `PerformanceMetrics` | MA summary 使用同类阶段计时字段，便于和 KDJ 性能横向比较 |
@@ -225,40 +259,50 @@ engines/crates/furnace-core/src/indicators/moving_average.rs
 ```text
 MaInput {
   trade_date,
-  close_price
+  close_price,
+  volume
 }
 
 MaOutput {
   trade_date,
-  ma_3,
+  price_ma_3,
   ...
-  avg_ma_3_6_12_24,
-  avg_ma_14_28_57_114,
-  ema1_10_state,
-  ema2_10
+  price_avg_ma_3_6_12_24,
+  price_avg_ma_14_28_57_114,
+  price_ema1_10_state,
+  price_ema2_10,
+  price_ema2_10_state,
+  volume_ma_5,
+  volume_ma_10,
+  volume_ma_20,
+  volume_ma_60
 }
 
 MaParams {
-  ma_windows,
+  price_ma_windows,
+  volume_ma_windows,
   ema_window
 }
 
 MaState {
-  ema1_10,
-  ema2_10
+  price_ema1_10,
+  price_ema2_10
 }
 ```
 
 实现要求：
 
 1. 单证券 API 输入必须按 `trade_date` 严格升序。
-2. MA、EMA 都只消费有效 `close_price_forward_adj`。
-3. 当前行 close 为空时，所有指标输出 `None`，且 EMA 状态不推进。
-4. `ema2_10` 使用 `ema1_10` 的非空序列作为输入。
-5. 组合均线只在组成 MA 全部非空时输出。
-6. 输出字段必须使用 `ma_57` 和 `avg_ma_14_28_57_114`，不得出现 `47` 字段。
-7. `avg_ma_3_6_12_24` 和 `avg_ma_14_28_57_114` 不做额外 rounding；任一组成 MA 为 `None` 时组合均线为 `None`。
-8. `ema2_10` 首个非空值应出现在同一证券第 19 个有效 close 对应的交易日；第 19 个有效 close 之前的 `ema2_10` 必须为 `None`。
+2. `price_ma_*`、价格组合均线和 `price_ema2_10` 只消费有效 `close_price_forward_adj`。
+3. `volume_ma_*` 只消费有效 `volume`；`volume = 0` 是有效成交量，必须进入均量窗口。
+4. 当前行 close 为空时，所有 `price_*` 输出 `None`，且价格 EMA 状态不推进。
+5. 当前行 volume 为空时，所有 `volume_ma_*` 输出 `None`，且均量窗口不推进。
+6. `price_ema2_10` 使用 `price_ema1_10` 的非空序列作为输入。
+7. 价格组合均线只在组成 `price_ma_*` 全部非空时输出。
+8. 输出字段必须使用 `price_ma_57` 和 `price_avg_ma_14_28_57_114`，不得出现 `47` 字段。
+9. `price_avg_ma_3_6_12_24` 和 `price_avg_ma_14_28_57_114` 不做额外 rounding；任一组成价格 MA 为 `None` 时组合均线为 `None`。
+10. `price_ema2_10` 首个非空值应出现在同一证券第 19 个有效 close 对应的交易日；第 19 个有效 close 之前的 `price_ema2_10` 必须为 `None`。
+11. `volume_ma_5`、`volume_ma_10`、`volume_ma_20`、`volume_ma_60` 分别在第 5、10、20、60 个有效 volume 对应交易日首次非空。
 
 ### 5.3 EMA 状态方案
 
@@ -267,35 +311,35 @@ MaState {
 物理表可包含 dbt wrapper 不暴露的内部字段：
 
 ```text
-ema1_10_state Nullable(Float64)
-ema2_10_state Nullable(Float64)
+price_ema1_10_state Nullable(Float64)
+price_ema2_10_state Nullable(Float64)
 ```
 
 说明：
 
-1. `ema1_10_state` 用于后续增量继续计算 `EMA(close, 10)`。
-2. `ema2_10_state` 用于后续增量继续计算 `EMA(EMA(close, 10), 10)`。
-3. `ema2_10_state` 在数值上等于该行业务字段 `ema2_10`，但语义上是 calculation 层内部状态；保留独立字段是为了让后续若状态扩展时不改变业务字段契约。
-4. dbt `int_stock_ma_daily` 默认只暴露业务字段 `ema2_10`，不暴露内部状态。
+1. `price_ema1_10_state` 用于后续增量继续计算 `EMA(close, 10)`。
+2. `price_ema2_10_state` 用于后续增量继续计算 `EMA(EMA(close, 10), 10)`。
+3. `price_ema2_10_state` 在数值上等于该行业务字段 `price_ema2_10`，但语义上是 calculation 层内部状态；保留独立字段是为了让后续若状态扩展时不改变业务字段契约。
+4. dbt `int_stock_ma_daily` 默认只暴露业务字段 `price_ema2_10`，不暴露内部状态。
 5. 日常增量读取目标区间前最近一条两项状态都可用的记录作为 previous state。
 6. 历史回填和复权修正使用 `replace-cascade`，从请求起点级联到受影响证券最新输入交易日。
-7. 对于新证券或历史早期区间，如果目标区间前不存在完整 `ema1_10_state` / `ema2_10_state`，不能只用空状态从请求日期启动；必须回读该证券足够早的历史输入，从首个有效 close 或可证明等价的起点重新推导 SMA 启动窗口。
-8. 如果实施选择只保存 `ema1_10_state` / `ema2_10_state` 两个值，则 partial-start 阶段的增量必须走历史推导路径；不得用不完整状态近似。
+7. 对于新证券或历史早期区间，如果目标区间前不存在完整 `price_ema1_10_state` / `price_ema2_10_state`，不能只用空状态从请求日期启动；必须回读该证券足够早的历史输入，从首个有效 close 或可证明等价的起点重新推导 SMA 启动窗口。
+8. 如果实施选择只保存 `price_ema1_10_state` / `price_ema2_10_state` 两个值，则 partial-start 阶段的增量必须走历史推导路径；不得用不完整状态近似。
 
 状态列输出语义：
 
-1. 当前行 `close_price_forward_adj IS NULL` 时，`ema1_10_state`、`ema2_10_state` 和 `ema2_10` 均输出 `NULL`，且内存中的上一条 EMA 状态不推进。
-2. `EMA(close, 10)` 未启动前，`ema1_10_state` 为 `NULL`。
-3. `EMA(close, 10)` 启动后，`ema1_10_state` 输出当前行最新 `ema1_10`。
-4. `EMA(EMA(close, 10), 10)` 未启动前，`ema2_10_state` 和业务字段 `ema2_10` 均为 `NULL`。
-5. `EMA(EMA(close, 10), 10)` 启动后，`ema2_10_state` 和业务字段 `ema2_10` 输出同一数值。
-6. 读取 previous state 时，只能使用目标区间前最近一条 `ema1_10_state IS NOT NULL AND ema2_10_state IS NOT NULL` 的记录；不能从 close 为空行或 partial-start 行读取完整状态。
+1. 当前行 `close_price_forward_adj IS NULL` 时，`price_ema1_10_state`、`price_ema2_10_state` 和 `price_ema2_10` 均输出 `NULL`，且内存中的上一条 EMA 状态不推进。
+2. `EMA(close, 10)` 未启动前，`price_ema1_10_state` 为 `NULL`。
+3. `EMA(close, 10)` 启动后，`price_ema1_10_state` 输出当前行最新 `price_ema1_10`。
+4. `EMA(EMA(close, 10), 10)` 未启动前，`price_ema2_10_state` 和业务字段 `price_ema2_10` 均为 `NULL`。
+5. `EMA(EMA(close, 10), 10)` 启动后，`price_ema2_10_state` 和业务字段 `price_ema2_10` 输出同一数值。
+6. 读取 previous state 时，只能使用目标区间前最近一条 `price_ema1_10_state IS NOT NULL AND price_ema2_10_state IS NOT NULL` 的记录；不能从 close 为空行或 partial-start 行读取完整状态。
 
 如果实施中发现同表状态列会明显增加 wrapper 或替换复杂度，可以改为单独状态表；但必须在代码实施前更新 RFC/plan，并保留无截断误差证明。
 
 ### 5.4 运行区间和 lookback 口径
 
-MA 和 EMA 的输入读取起点必须按证券实际有效 close 推导，不按自然日简单回退。
+价格 MA 和 EMA 的输入读取起点必须按证券实际有效 close 推导，均量 MA 的输入读取起点必须按证券实际有效 volume 推导，不按自然日简单回退。
 
 运行区间定义：
 
@@ -311,11 +355,12 @@ input_to = effective_output_to
 
 `input_from` 选择规则：
 
-1. MA 需要请求区间前至少 249 个有效 close，以支持 `MA(close, 250)`。
-2. 如果存在完整 `ema1_10_state` 和 `ema2_10_state`，且该状态交易日在 `request_from` 之前，则 EMA 可以从 previous state 延续；`input_from` 仍必须满足 MA 的 249 个有效 close lookback。
-3. 如果不存在完整 EMA previous state，或 previous state 在目标证券上不可用，则该证券必须从首个有效 close 或可证明等价的历史起点重新推导 EMA。
-4. 多证券运行时，可以先解析证券集合，再按证券确定各自需要的 `input_from`；第一版也可以取所有受影响证券中最早的 `input_from` 作为一次性读取起点，以复用现有 KDJ 批量读取路径。
-5. summary 中的 `input_from` 记录本次实际读取的最早日期；如果各证券 lookback 不同，记录全局最早读取日期，并在 `ema_state_source` 或报告中说明状态来源。
+1. 价格 MA 需要请求区间前至少 249 个有效 close，以支持 `MA(close, 250)`。
+2. 均量 MA 需要请求区间前至少 59 个有效 volume，以支持 `MA(volume, 60)`；如果价格 lookback 更早，则复用更早的 `input_from`。
+3. 如果存在完整 `price_ema1_10_state` 和 `price_ema2_10_state`，且该状态交易日在 `request_from` 之前，则 EMA 可以从 previous state 延续；`input_from` 仍必须满足价格 MA 的 249 个有效 close lookback 和均量 MA 的 59 个有效 volume lookback。
+4. 如果不存在完整 EMA previous state，或 previous state 在目标证券上不可用，则该证券必须从首个有效 close 或可证明等价的历史起点重新推导 EMA。
+5. 多证券运行时，可以先解析证券集合，再按证券确定各自需要的 `input_from`；第一版也可以取所有受影响证券中最早的 `input_from` 作为一次性读取起点，以复用现有 KDJ 批量读取路径。
+6. summary 中的 `input_from` 记录本次实际读取的最早日期；如果各证券 lookback 不同，记录全局最早读取日期，并在 `ema_state_source` 或报告中说明状态来源。
 
 状态来源枚举：
 
@@ -327,8 +372,8 @@ input_to = effective_output_to
 
 `replace-cascade` 级联规则：
 
-1. 历史 close 修正会影响后续所有 MA 窗口内结果和所有后续 EMA 结果。
-2. 生产写入的 `replace-cascade` 必须将 `effective_output_to` 扩展到受影响证券的最新输入交易日。
+1. 历史 close 修正会影响后续所有 `price_ma_*` 窗口内结果和所有后续 `price_ema*` 结果；历史 volume 修正会影响后续 `volume_ma_*` 窗口内结果。
+2. 第一版生产写入的 `replace-cascade` 统一将 `effective_output_to` 扩展到受影响证券的最新输入交易日，先保证价格 EMA 和均量修正语义一致；后续如需只对 volume 修正做有限窗口级联，应另立优化计划并补齐证明。
 3. staging 保留旧行时，只保留未受影响证券，或受影响证券中不在 `effective_output_from..effective_output_to` 的旧行。
 4. staging validation 必须按 `(security_code, trade_date)` 检查重复 key，且覆盖所有受影响年度分区。
 
@@ -345,24 +390,28 @@ fleur_calculation.calc_stock_ma_daily
 ```text
 security_code String
 trade_date Date
-ma_3 Nullable(Float64)
-ma_5 Nullable(Float64)
-ma_6 Nullable(Float64)
-ma_10 Nullable(Float64)
-ma_12 Nullable(Float64)
-ma_14 Nullable(Float64)
-ma_20 Nullable(Float64)
-ma_24 Nullable(Float64)
-ma_28 Nullable(Float64)
-ma_57 Nullable(Float64)
-ma_60 Nullable(Float64)
-ma_114 Nullable(Float64)
-ma_250 Nullable(Float64)
-avg_ma_3_6_12_24 Nullable(Float64)
-avg_ma_14_28_57_114 Nullable(Float64)
-ema1_10_state Nullable(Float64)
-ema2_10 Nullable(Float64)
-ema2_10_state Nullable(Float64)
+price_ma_3 Nullable(Float64)
+price_ma_5 Nullable(Float64)
+price_ma_6 Nullable(Float64)
+price_ma_10 Nullable(Float64)
+price_ma_12 Nullable(Float64)
+price_ma_14 Nullable(Float64)
+price_ma_20 Nullable(Float64)
+price_ma_24 Nullable(Float64)
+price_ma_28 Nullable(Float64)
+price_ma_57 Nullable(Float64)
+price_ma_60 Nullable(Float64)
+price_ma_114 Nullable(Float64)
+price_ma_250 Nullable(Float64)
+price_avg_ma_3_6_12_24 Nullable(Float64)
+price_avg_ma_14_28_57_114 Nullable(Float64)
+price_ema1_10_state Nullable(Float64)
+price_ema2_10 Nullable(Float64)
+price_ema2_10_state Nullable(Float64)
+volume_ma_5 Nullable(Float64)
+volume_ma_10 Nullable(Float64)
+volume_ma_20 Nullable(Float64)
+volume_ma_60 Nullable(Float64)
 ```
 
 Engine 和排序：
@@ -444,25 +493,27 @@ ClickHouse RowBinary input
 
 1. 新增 `furnace-core::indicators::moving_average`。
 2. 提供单证券纯计算 API。
-3. 使用公共算子组合出所有 RFC 字段。
+3. 使用公共算子组合出价格 MA、价格组合均线、价格双重 EMA 和均量字段。
 
 实现要点：
 
-- 固定 canonical MA 窗口集合：`[3, 5, 6, 10, 12, 14, 20, 24, 28, 57, 60, 114, 250]`。
-- `avg_ma_3_6_12_24` 和 `avg_ma_14_28_57_114` 用输出 MA 字段组合，不重复计算窗口。
-- `ema1_10` 作为内部状态参与计算，业务输出只保留 `ema2_10`。
+- 固定 canonical 价格 MA 窗口集合：`[3, 5, 6, 10, 12, 14, 20, 24, 28, 57, 60, 114, 250]`。
+- 固定 canonical 均量窗口集合：`[5, 10, 20, 60]`。
+- `price_avg_ma_3_6_12_24` 和 `price_avg_ma_14_28_57_114` 用输出价格 MA 字段组合，不重复计算窗口。
+- `price_ema1_10` 作为内部状态参与计算，业务输出只保留 `price_ema2_10`。
 - 输入日期必须严格递增，沿用 KDJ 的校验风格。
 
 测试覆盖：
 
 1. 空输入返回空输出。
 2. 非递增 trade_date 返回错误。
-3. close 为空行所有指标为 `None`。
-4. MA 窗口不足输出 `None`。
-5. 多窗口 MA 固定样本 golden test。
-6. 组合均线任一组成 MA 为空时输出 `None`。
-7. `ema2_10` 首个非空值出现在第 19 个有效 close。
-8. 历史状态启动与全历史推导一致。
+3. close 为空行所有 `price_*` 为 `None`，但有效 volume 可推进 `volume_ma_*`。
+4. volume 为空行所有 `volume_ma_*` 为 `None`，但有效 close 可推进 `price_*`。
+5. 价格 MA 和均量 MA 窗口不足输出 `None`。
+6. 多窗口价格 MA、均量 MA 固定样本 golden test。
+7. 价格组合均线任一组成 MA 为空时输出 `None`。
+8. `price_ema2_10` 首个非空值出现在第 19 个有效 close。
+9. 历史状态启动与全历史推导一致。
 
 ### 阶段 3：`furnace-io` MA 运行路径
 
@@ -491,20 +542,24 @@ replace_ma_partition_sql
 
 ```sql
 SELECT
-    security_code,
-    trade_date,
-    close_price_forward_adj
-FROM fleur_intermediate.int_stock_quotes_daily_adj
-WHERE trade_date >= {input_from}
-  AND trade_date <= {input_to}
+    adj.security_code,
+    adj.trade_date,
+    adj.close_price_forward_adj,
+    unadj.volume
+FROM fleur_intermediate.int_stock_quotes_daily_adj AS adj
+LEFT JOIN fleur_intermediate.int_stock_quotes_daily_unadj AS unadj
+  ON adj.security_code = unadj.security_code
+ AND adj.trade_date = unadj.trade_date
+WHERE adj.trade_date >= {input_from}
+  AND adj.trade_date <= {input_to}
   AND {optional symbols filter}
-ORDER BY security_code, trade_date
+ORDER BY adj.security_code, adj.trade_date
 FORMAT RowBinary
 ```
 
 状态读取：
 
-1. `append-latest` 读取目标区间前最近有效 `ema1_10_state`、`ema2_10_state`。
+1. `append-latest` 读取目标区间前最近有效 `price_ema1_10_state`、`price_ema2_10_state`。
 2. `replace-cascade` 根据请求区间和受影响证券级联到最新输入日期；状态来源记录为 `previous-state`、`full-history` 或 `mixed`。
 3. 如果没有可用完整历史状态，或证券仍处于 EMA SMA 启动窗口阶段，从该证券首个有效 close 或足够早的历史输入重新推导启动。
 
@@ -519,13 +574,16 @@ mode
 symbols_count
 input_rows
 output_rows
+valid_close_rows
+valid_volume_rows
 null_indicator_rows
 affected_years
 retained_rows
 staging_table
 staging_validation
 partition_replace
-ma_windows
+price_ma_windows
+volume_ma_windows
 ema_state_source
 run_id
 writes_applied
@@ -547,29 +605,34 @@ cargo run --release -p furnace -- ma \
   --to 2026-01-31 \
   --mode dry-run \
   --input-table fleur_intermediate.int_stock_quotes_daily_adj \
+  --volume-input-table fleur_intermediate.int_stock_quotes_daily_unadj \
   --output-table fleur_calculation.calc_stock_ma_daily \
   --price-column close_price_forward_adj \
+  --volume-column volume \
   --insert-batch-size 10000 \
   --output-format json
 ```
 
-第一版可以只实现 RFC 中固定 `input-table`、`output-table` 和 `price-column` 默认值；如果提供参数，必须校验不偏离 canonical 口径，或在 summary 中明确记录。
+第一版可以只实现 RFC 中固定 `input-table`、`volume-input-table`、`output-table`、`price-column` 和 `volume-column` 默认值；如果提供参数，必须校验不偏离 canonical 口径，或在 summary 中明确记录。
 
 CLI 参数口径：
 
 1. `--input-table` 默认 `fleur_intermediate.int_stock_quotes_daily_adj`。
-2. `--output-table` 默认 `fleur_calculation.calc_stock_ma_daily`；全量验收如果使用隔离 database，必须允许通过该参数指向隔离表。
-3. `--price-column` 默认且生产只允许 `close_price_forward_adj`。
-4. 写入模式下，如果 `--input-table` 或 `--price-column` 偏离 canonical 口径，必须拒绝；隔离验收只允许改变 `--output-table`。
+2. `--volume-input-table` 默认 `fleur_intermediate.int_stock_quotes_daily_unadj`。
+3. `--output-table` 默认 `fleur_calculation.calc_stock_ma_daily`；全量验收如果使用隔离 database，必须允许通过该参数指向隔离表。
+4. `--price-column` 默认且生产只允许 `close_price_forward_adj`。
+5. `--volume-column` 默认且生产只允许 `volume`。
+6. 写入模式下，如果 `--input-table`、`--volume-input-table`、`--price-column` 或 `--volume-column` 偏离 canonical 口径，必须拒绝；隔离验收只允许改变 `--output-table`。
 
 CLI 测试：
 
 1. `ma --mode dry-run --output-format json` 返回 JSON object。
 2. 未知 mode 返回非 0。
 3. 非 canonical price column 在写入模式下拒绝。
-4. `--symbols` 解析与 KDJ 保持一致。
-5. 省略 `--symbols` 等价全市场；如果支持 `--symbols all`，必须测试其等价全市场。
-6. 写入模式允许自定义 `--output-table` 到隔离表，但不允许改变 canonical input table 和 price column。
+4. 非 canonical volume input table 或 volume column 在写入模式下拒绝。
+5. `--symbols` 解析与 KDJ 保持一致。
+6. 省略 `--symbols` 等价全市场；如果支持 `--symbols all`，必须测试其等价全市场。
+7. 写入模式允许自定义 `--output-table` 到隔离表，但不允许改变 canonical input table、volume input table、price column 和 volume column。
 
 ### 阶段 5：dbt 接入
 
@@ -584,17 +647,33 @@ dbt wrapper 只 select 业务字段：
 ```text
 security_code
 trade_date
-ma_3
-...
-avg_ma_14_28_57_114
-ema2_10
+price_ma_3
+price_ma_5
+price_ma_6
+price_ma_10
+price_ma_12
+price_ma_14
+price_ma_20
+price_ma_24
+price_ma_28
+price_ma_57
+price_ma_60
+price_ma_114
+price_ma_250
+price_avg_ma_3_6_12_24
+price_avg_ma_14_28_57_114
+price_ema2_10
+volume_ma_5
+volume_ma_10
+volume_ma_20
+volume_ma_60
 ```
 
 不暴露：
 
 ```text
-ema1_10_state
-ema2_10_state
+price_ema1_10_state
+price_ema2_10_state
 ```
 
 dbt tests：
@@ -602,7 +681,8 @@ dbt tests：
 1. `security_code` not null + A 股代码格式。
 2. `trade_date` not null。
 3. `security_code + trade_date` 唯一。
-4. 字段名中不出现 `ma_47` 或 `avg_ma_14_28_47_114`。
+4. 字段名中不出现精确裸字段名 `ma_*`、`avg_ma_*`、`ema2_10`、`ma_47` 或 `avg_ma_14_28_47_114`。
+5. 字段名中不出现 `price_ma5`、`volume_ma5` 这类紧凑窗口写法，也不出现 `price_ema_2_10` 这类把 EMA 重数误当窗口参数的写法。
 
 ### 阶段 6：Dagster 接入
 
@@ -624,6 +704,7 @@ AssetKey(["fleur_calculation", "calc_stock_ma_daily"])
 
 ```text
 AssetKey(["int_stock_quotes_daily_adj"])
+AssetKey(["int_stock_quotes_daily_unadj"])
 ```
 
 metadata 至少包含：
@@ -636,10 +717,13 @@ mode
 symbols_count
 input_rows
 output_rows
+valid_close_rows
+valid_volume_rows
 null_indicator_rows
 affected_years
 retained_rows
-ma_windows
+price_ma_windows
+volume_ma_windows
 ema_state_source
 staging_validation
 partition_replace
@@ -672,18 +756,22 @@ docs/jobs/reports/<date>-furnace-ma-full-market-parallel-validation.md
 
 ```sql
 SELECT
-    min(trade_date),
-    max(trade_date),
+    min(adj.trade_date),
+    max(adj.trade_date),
     count() AS input_rows,
-    countIf(close_price_forward_adj IS NOT NULL) AS valid_close_rows,
-    uniqExact(security_code) AS symbols
-FROM fleur_intermediate.int_stock_quotes_daily_adj
+    countIf(adj.close_price_forward_adj IS NOT NULL) AS valid_close_rows,
+    countIf(unadj.volume IS NOT NULL) AS valid_volume_rows,
+    uniqExact(adj.security_code) AS symbols
+FROM fleur_intermediate.int_stock_quotes_daily_adj AS adj
+LEFT JOIN fleur_intermediate.int_stock_quotes_daily_unadj AS unadj
+  ON adj.security_code = unadj.security_code
+ AND adj.trade_date = unadj.trade_date
 ```
 
 全市场口径：
 
 1. 全量 dry-run 和 replace-cascade 命令默认省略 `--symbols`，表示全市场。
-2. 验收报告必须记录 summary 中的 `symbols_count`，并与输入表 `uniqExact(security_code)` 对齐；如果有停牌或无有效 close 的证券差异，必须说明。
+2. 验收报告必须记录 summary 中的 `symbols_count`，并与价格输入表 `uniqExact(security_code)` 对齐；如果有停牌、无有效 close 或无有效 volume 的证券差异，必须说明。
 3. 不允许用少量证券列表替代全市场验收。
 
 推荐命令模板：
@@ -719,8 +807,9 @@ RAYON_NUM_THREADS=8 cargo run --release -p furnace -- ma \
 4. `performance_metrics` 完整内容。
 5. `calc_stock_ma_daily` 行数和唯一键检查。
 6. 年度分区替换结果和 part 数量检查。
-7. 至少 3 只证券的 spot check：MA、组合均线、`ema2_10` 与固定样本或独立脚本结果一致。
+7. 至少 3 只证券的 spot check：`price_ma_*`、价格组合均线、`price_ema2_10`、`volume_ma_*` 与固定样本或独立脚本结果一致。
 8. 至少 1 只上市早期或有效 close 少于 19 条的证券/区间检查，证明 partial-start 增量不会错误推进 EMA 状态。
+9. 至少 1 只 volume 含 0 的证券/区间检查，证明 `volume = 0` 会进入均量窗口，而不是被当作缺失。
 
 ## 7. 测试和质量门禁
 
@@ -779,15 +868,15 @@ Dagster 测试必须覆盖：
 2. MA summary metadata 映射正确。
 3. MA asset key、upstream dependency、group、tags 和 owners 符合 KDJ 模式。
 
-## 8. 验收条件
+## 8. 新验收标准
 
 实施完成必须同时满足以下条件：
 
-1. `docs/RFC/0017-furnace-moving-average-technical-indicators.md` 的字段、公式、价格口径和公共算子边界均被实现。
+1. `docs/RFC/0017-furnace-moving-average-technical-indicators.md` 和 `docs/ADR/0010-technical-indicator-field-naming.md` 的字段、公式、价格口径、成交量口径和公共算子边界均被实现；如 RFC 0017 仍保留旧字段名，必须以本 plan 和 ADR 的命名修订为准。
 2. `furnace-core` 存在公共 `operators` 模块，MA/EMA 指标计算复用该模块。
 3. `furnace-core` 不依赖 ClickHouse、Dagster、dbt、Rayon、CLI 参数或环境变量。
 4. `furnace ma` 支持 `dry-run`、`append-latest`、`replace-cascade`。
-5. `furnace ma` summary 包含 `indicator="ma"`、`ma_windows`、`ema_state_source` 和 `performance_metrics`。
+5. `furnace ma` summary 包含 `indicator="ma"`、`price_ma_windows`、`volume_ma_windows`、`ema_state_source`、`valid_close_rows`、`valid_volume_rows` 和 `performance_metrics`。
 6. `calc_stock_ma_daily` 可以被自动创建，并使用 RowBinary 批量写入。
 7. `replace-cascade` 使用 staging + 年度分区替换，且 staging validation 无重复 `(security_code, trade_date)`。
 8. `int_stock_ma_daily` dbt wrapper 只 select Furnace 输出，不重写公式。
@@ -796,32 +885,40 @@ Dagster 测试必须覆盖：
 11. 全市场、全历史 dry-run 并行计算成功完成，`performance_metrics.parallelism = "rayon"`，`worker_threads >= 2`。
 12. 全市场、全历史 replace-cascade 写入验收成功完成；如果目标环境不允许写生产表，必须在同等数据量的隔离 ClickHouse database 中完成，并在报告中说明 database、表名和隔离方式。
 13. 全量验收的 `symbols_count` 必须与输入表证券数对齐；不允许用显式少量证券列表代替全市场。
-14. 全量验收后，`calc_stock_ma_daily` 或隔离输出表满足每证券、交易日唯一，输出行数与请求日期范围内输入行情行数的预期一致；缺少有效 close 的行允许指标为空，但不能破坏唯一键。
-15. 固定样本、spot check 和全量运行未发现 `ma_47` 或 `avg_ma_14_28_47_114` 字段。
-16. 生成 `docs/jobs/reports/<date>-furnace-ma-full-market-parallel-validation.md`，报告包含命令、summary、性能、行数、唯一性、分区替换和 spot check 结果。
+14. 全量验收后，`calc_stock_ma_daily` 或隔离输出表满足每证券、交易日唯一，输出行数与请求日期范围内价格输入行情行数的预期一致；缺少有效 close 或有效 volume 的行允许对应口径指标为空，但不能破坏唯一键。
+15. calculation source 和 dbt wrapper 业务字段包含 `price_ma_3`、`price_ma_5`、`price_ma_57`、`price_avg_ma_3_6_12_24`、`price_avg_ma_14_28_57_114`、`price_ema2_10`、`volume_ma_5`、`volume_ma_10`、`volume_ma_20`、`volume_ma_60`。
+16. 固定样本、spot check 和全量运行未发现精确裸字段名 `ma_*`、`avg_ma_*`、`ema2_10`、`ma_47`、`avg_ma_14_28_47_114`，也未发现 `price_ma5`、`volume_ma5` 或 `price_ema_2_10` 字段。
+17. Spot check 证明 `price_ma_5` 的 `5` 是 MA 窗口参数，`price_ema2_10` 的 `2` 是二重 EMA、`10` 是 EMA 窗口参数；测试名和字段文档必须体现该差异。
+18. Spot check 证明 `volume_ma_5` / `volume_ma_10` / `volume_ma_20` / `volume_ma_60` 使用 `int_stock_quotes_daily_unadj.volume`，且 0 成交量作为有效值进入窗口。
+19. 生成 `docs/jobs/reports/<date>-furnace-ma-full-market-parallel-validation.md`，报告包含命令、summary、性能、行数、唯一性、分区替换和 spot check 结果。
 
 ## 9. 风险和缓解
 
 | 风险 | 影响 | 缓解 |
 |------|------|------|
 | EMA 状态列设计不足 | 增量结果与全历史不一致 | 核心测试必须覆盖 previous state 与全历史一致；全量验收做 spot check |
+| MA/EMA 字段命名混淆 | 把 `ma_5` 的窗口参数误写成 `ma5`，或把 `ema2_10` 的二重 EMA 误解为窗口 2 | ADR 0010 固化命名；dbt/Rust tests 检查紧凑字段名和裸字段名不存在 |
+| 成交量输入来自未复权行情表 | 输入 SQL 需要 join 两张 intermediate 表，存在漏行或 volume 缺失解释成本 | 输出 grain 以复权价格表为准，LEFT JOIN 未复权行情；summary 和报告记录 `valid_volume_rows` |
 | 复制 KDJ I/O 代码过多 | 后续维护两套逻辑 | 优先抽取 staging、timing、JSON helper、RowBinary helper 的稳定重复片段 |
 | 全量 replace-cascade 写入耗时过长 | 验收阻塞或 ClickHouse part 压力过大 | 先 dry-run 量级评估；写入使用 release binary、RowBinary、合理 batch 和 part 健康检查 |
-| Nullable 指标字段过多 | 下游误解为空含义 | dbt YAML 明确说明窗口不足、缺价和状态未启动时为空 |
+| Nullable 指标字段过多 | 下游误解为空含义 | dbt YAML 明确说明窗口不足、缺价、缺 volume 和状态未启动时为空 |
 | 上游日期过滤无法充分利用排序键 | 全量读取慢 | 验收报告记录输入 SQL、读取耗时和吞吐；必要时另立输入读取优化计划 |
 | 公共算子抽象过度 | 实施复杂、影响 KDJ | 第一版只抽 SMA/EMA 必需 API，不同步重构 KDJ |
 
-## 10. 推荐实施顺序
+## 10. 改造 checklist
 
-1. 完成 `furnace-core::operators` 和测试。
-2. 完成 `furnace-core::indicators::moving_average` 和 golden tests。
-3. 在 `furnace-io` 复用 KDJ 路径实现 `run_ma` dry-run。
-4. 扩展 `furnace` CLI，先打通 dry-run JSON summary。
-5. 实现 MA output DDL、RowBinary 写入、append-latest 和 replace-cascade。
-6. 增加并行一致性测试和性能 metrics。
-7. 增加 dbt source/wrapper/tests。
-8. 增加 Dagster resource、asset、jobs 和 metadata。
-9. 跑 Rust/dbt/Dagster 质量门禁。
-10. 跑全市场全历史 dry-run 并行验收。
-11. 跑全市场全历史 replace-cascade 写入验收。
-12. 编写全量验收报告，并根据报告修复遗留问题。
+1. 新增 ADR 0010，固化 `price_ma_5` / `volume_ma_5` 与 `price_ema2_10` 的命名差异。
+2. 更新 RFC 0017 或在实施 PR 中明确 Plan 0029 + ADR 0010 覆盖旧裸字段名，避免 `ma_5` 和 `price_ma_5` 契约并存。
+3. 完成 `furnace-core::operators` 和测试。
+4. 完成 `furnace-core::indicators::moving_average` 输入类型扩展：`close_price` + `volume`，并输出 `price_*` / `volume_*` canonical 字段。
+5. 为价格 MA、价格组合均线、价格双重 EMA、均量 MA、缺 close、缺 volume、0 成交量和字段命名补 golden tests。
+6. 在 `furnace-io` 复用 KDJ 路径实现 `run_ma` dry-run，输入 SQL LEFT JOIN `int_stock_quotes_daily_unadj.volume`。
+7. 扩展 `furnace` CLI，支持 canonical `--volume-input-table` 和 `--volume-column`，先打通 dry-run JSON summary。
+8. 实现 MA output DDL、RowBinary 读写、append-latest 和 replace-cascade；DDL 字段必须使用 `price_ma_5` / `volume_ma_5` 风格。
+9. 增加并行一致性测试和性能 metrics，summary 增加 `valid_volume_rows` 和 `volume_ma_windows`。
+10. 增加 dbt source/wrapper/tests，wrapper 只暴露业务字段，不暴露 `price_ema*_state`。
+11. 增加 Dagster resource、asset、jobs 和 metadata，asset 上游包含 `int_stock_quotes_daily_adj` 与 `int_stock_quotes_daily_unadj`。
+12. 跑 Rust/dbt/Dagster 质量门禁。
+13. 跑全市场全历史 dry-run 并行验收。
+14. 跑全市场全历史 replace-cascade 写入验收。
+15. 编写全量验收报告，并根据报告修复遗留问题。
