@@ -1,7 +1,7 @@
 # mono-fleur Rust Engines 文档地图
 
 `engines/` 是 mono-fleur 的 Rust / Cargo workspace，用于承载高性能后端计算引擎。
-当前主要实现是 `furnace`：由 Dagster 调度的金融技术指标计算 CLI，第一阶段计算日频 RSV/KDJ。
+当前主要实现是 `furnace`：由 Dagster 调度的金融技术指标计算 CLI，支持日频 KDJ、MA、RSI 和 BOLL 多指标计算。
 
 ## Workspace
 
@@ -21,8 +21,8 @@ engines/
 
 | Crate | 类型 | 当前职责 |
 |-------|------|----------|
-| `furnace` | binary | 解析 `furnace kdj` CLI 参数，校验运行请求，调用 I/O 层并输出 JSON summary |
-| `furnace-core` | library | 提供 KDJ 参数、输入/输出模型、单证券 RSV/KDJ 纯计算和固定样本测试；不依赖 ClickHouse、Dagster、dbt、Rayon 或环境变量 |
+| `furnace` | binary | 解析 `furnace kdj/ma/rsi/boll` CLI 参数，校验运行请求，调用 I/O 层并输出 JSON summary |
+| `furnace-core` | library | 提供 KDJ、MA、RSI、BOLL 的参数、输入/输出模型、状态和单证券纯计算；不依赖 ClickHouse、Dagster、dbt、Rayon 或环境变量 |
 | `furnace-io` | library | 负责 ClickHouse 表名、DDL、SQL、`clickhouse-client` 执行、RowBinary 读写、按证券并行调度、staging/partition replace 和运行摘要 |
 
 核心边界：
@@ -31,7 +31,7 @@ engines/
 - ClickHouse、RowBinary、Rayon 并行、staging 和分区替换只放在 `furnace-io`。
 - Dagster 只通过 Python resource 调用 CLI、传参并读取 JSON summary；不要在 Python asset 或 dbt SQL 中重写指标公式。
 
-## 当前 Furnace KDJ 流程
+## 当前 Furnace 指标流程
 
 ```text
 dbt intermediate
@@ -41,18 +41,18 @@ furnace-io
   按 security_code 分组，按证券维度 Rayon 并行
       ↓
 furnace-core
-  单证券按 trade_date 串行递推 RSV/K/D/J
+  单证券按 trade_date 串行计算 KDJ、MA、RSI 或 BOLL
       ↓
 furnace-io
   RowBinary 批量写入 staging 或生产表
       ↓
 ClickHouse calculation
-  fleur_calculation.calc_stock_kdj_daily
+  fleur_calculation.calc_stock_<indicator>_daily
       ↓ dbt wrapper
-  fleur_intermediate.int_stock_kdj_daily
+  fleur_intermediate.int_stock_<indicator>_daily
 ```
 
-生产写入只允许 canonical 参数 `KDJ(9,3,3)`。历史修正使用 `replace-cascade`，会从请求起点级联到受影响证券的最新输入交易日，并通过年度分区替换实现幂等。
+生产写入只允许各指标的 canonical 参数。历史修正使用 `replace-cascade`，会从请求起点按指标 lookback 或 previous state 规则级联到受影响证券的最新输入交易日，并通过年度分区替换实现幂等。
 
 ## CLI
 
@@ -67,6 +67,13 @@ cargo run -p furnace -- kdj \
   --mode dry-run \
   --output-format json
 ```
+
+可用指标命令：
+
+- `kdj`：RSV/K/D/J，生产 canonical 参数为 `KDJ(9,3,3)`。
+- `ma`：价格均线、成交量均线和 EMA 派生指标。
+- `rsi`：多窗口 RSI 和递推状态。
+- `boll`：多窗口 Bollinger Bands。
 
 生产模式：
 
