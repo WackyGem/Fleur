@@ -6,8 +6,10 @@ import dagster as dg
 
 from scheduler.defs.furnace.assets import (
     FURNACE_ASSETS,
+    FURNACE_BOLL_ASSET_KEY,
     FURNACE_KDJ_ASSET_KEY,
     FURNACE_MA_ASSET_KEY,
+    FURNACE_RSI_ASSET_KEY,
 )
 from scheduler.defs.resources.furnace import FurnaceCliResource
 
@@ -36,6 +38,18 @@ def build_furnace_defs(
                 cron_schedule=daily_cron_schedule,
                 run_config_fn=_ma_daily_run_config,
             ),
+            dg.ScheduleDefinition(
+                name="furnace__rsi_daily_schedule",
+                job=jobs[6],
+                cron_schedule=daily_cron_schedule,
+                run_config_fn=_rsi_daily_run_config,
+            ),
+            dg.ScheduleDefinition(
+                name="furnace__boll_daily_schedule",
+                job=jobs[9],
+                cron_schedule=daily_cron_schedule,
+                run_config_fn=_boll_daily_run_config,
+            ),
         ],
         resources={
             "furnace_cli": FurnaceCliResource(
@@ -50,6 +64,8 @@ def build_furnace_defs(
 def build_furnace_jobs() -> tuple[dg.UnresolvedAssetJobDefinition, ...]:
     kdj_selection = dg.AssetSelection.assets(FURNACE_KDJ_ASSET_KEY)
     ma_selection = dg.AssetSelection.assets(FURNACE_MA_ASSET_KEY)
+    rsi_selection = dg.AssetSelection.assets(FURNACE_RSI_ASSET_KEY)
+    boll_selection = dg.AssetSelection.assets(FURNACE_BOLL_ASSET_KEY)
     return (
         dg.define_asset_job(name="furnace__kdj_daily_job", selection=kdj_selection),
         dg.define_asset_job(name="furnace__kdj_backfill_job", selection=kdj_selection),
@@ -57,6 +73,12 @@ def build_furnace_jobs() -> tuple[dg.UnresolvedAssetJobDefinition, ...]:
         dg.define_asset_job(name="furnace__ma_daily_job", selection=ma_selection),
         dg.define_asset_job(name="furnace__ma_backfill_job", selection=ma_selection),
         dg.define_asset_job(name="furnace__ma_dry_run_job", selection=ma_selection),
+        dg.define_asset_job(name="furnace__rsi_daily_job", selection=rsi_selection),
+        dg.define_asset_job(name="furnace__rsi_backfill_job", selection=rsi_selection),
+        dg.define_asset_job(name="furnace__rsi_dry_run_job", selection=rsi_selection),
+        dg.define_asset_job(name="furnace__boll_daily_job", selection=boll_selection),
+        dg.define_asset_job(name="furnace__boll_backfill_job", selection=boll_selection),
+        dg.define_asset_job(name="furnace__boll_dry_run_job", selection=boll_selection),
     )
 
 
@@ -68,7 +90,7 @@ def _kdj_daily_run_config(context: dg.ScheduleEvaluationContext) -> dict[str, ob
     trade_date = scheduled_time.date().isoformat()
     return {
         "ops": {
-            "furnace__calc_stock_kdj_daily": {
+            "fleur_calculation__calc_stock_kdj_daily": {
                 "config": {
                     "request_from": trade_date,
                     "request_to": trade_date,
@@ -92,14 +114,64 @@ def _ma_daily_run_config(context: dg.ScheduleEvaluationContext) -> dict[str, obj
     trade_date = scheduled_time.date().isoformat()
     return {
         "ops": {
-            "furnace__calc_stock_ma_daily": {
+            "fleur_calculation__calc_stock_ma_daily": {
                 "config": {
                     "request_from": trade_date,
                     "request_to": trade_date,
                     "mode": "append-latest",
                     "symbols": [],
                     "input_table": "fleur_intermediate.int_stock_quotes_daily_adj",
+                    "volume_input_table": "fleur_intermediate.int_stock_quotes_daily_unadj",
                     "output_table": "fleur_calculation.calc_stock_ma_daily",
+                    "price_column": "close_price_forward_adj",
+                    "volume_column": "volume",
+                    "insert_batch_size": 10_000,
+                }
+            }
+        }
+    }
+
+
+def _rsi_daily_run_config(context: dg.ScheduleEvaluationContext) -> dict[str, object]:
+    try:
+        scheduled_time = context.scheduled_execution_time
+    except Exception:
+        scheduled_time = datetime.now(tz=UTC)
+    trade_date = scheduled_time.date().isoformat()
+    return {
+        "ops": {
+            "furnace__calc_stock_rsi_daily": {
+                "config": {
+                    "request_from": trade_date,
+                    "request_to": trade_date,
+                    "mode": "append-latest",
+                    "symbols": [],
+                    "input_table": "fleur_intermediate.int_stock_quotes_daily_adj",
+                    "output_table": "fleur_calculation.calc_stock_rsi_daily",
+                    "price_column": "close_price_forward_adj",
+                    "insert_batch_size": 10_000,
+                }
+            }
+        }
+    }
+
+
+def _boll_daily_run_config(context: dg.ScheduleEvaluationContext) -> dict[str, object]:
+    try:
+        scheduled_time = context.scheduled_execution_time
+    except Exception:
+        scheduled_time = datetime.now(tz=UTC)
+    trade_date = scheduled_time.date().isoformat()
+    return {
+        "ops": {
+            "furnace__calc_stock_boll_daily": {
+                "config": {
+                    "request_from": trade_date,
+                    "request_to": trade_date,
+                    "mode": "append-latest",
+                    "symbols": [],
+                    "input_table": "fleur_intermediate.int_stock_quotes_daily_adj",
+                    "output_table": "fleur_calculation.calc_stock_boll_daily",
                     "price_column": "close_price_forward_adj",
                     "insert_batch_size": 10_000,
                 }

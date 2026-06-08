@@ -12,6 +12,8 @@ fleur_intermediate.int_stock_ma_daily
 
 本文档只冻结需求和边界，不创建实现代码。后续可拆分为实施 plan、Rust crate 设计、Dagster asset 变更和 dbt 模型变更。
 
+实施修订：`docs/plans/0029-furnace-moving-average-technical-indicators-implementation-plan.md` 与 `docs/ADR/0010-technical-indicator-field-naming.md` 已覆盖本文档中的早期裸字段命名。当前实现使用 `price_ma_*`、`price_avg_ma_*`、`price_ema2_10` 和 `volume_ma_*` canonical 字段；`ma_*`、`avg_ma_*`、`ema2_10` 仅作为本文档的历史需求表述，不作为实现或下游消费契约。
+
 ## 背景
 
 当前 Furnace 已按以下模式承载日频 KDJ 计算：
