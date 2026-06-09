@@ -135,6 +135,14 @@ models:
         description: ROE，按最近 report_date <= trade_date 的财报期估值 as-of 取值；比率口径，不乘以 100。
         data_type: Nullable(Float64)
 
+      - name: roa
+        description: ROA，按最近 report_date <= trade_date 的财报期估值 as-of 取值；比率口径，不乘以 100。
+        data_type: Nullable(Float64)
+
+      - name: roaa
+        description: ROAA，按最近 report_date <= trade_date 的财报期估值 as-of 取值；比率口径，不乘以 100。
+        data_type: Nullable(Float64)
+
       - name: roae
         description: ROAE，按最近 report_date <= trade_date 的财报期估值 as-of 取值；比率口径，不乘以 100。
         data_type: Nullable(Float64)

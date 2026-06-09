@@ -15,7 +15,7 @@
 
 ## 1. 模型定位
 
-财报期末估值 intermediate 模型。模型以 `security_code` + `report_date` 为粒度，基于财报期末对应的最近交易日收盘价、报告期 as-of 股本、利润表和资产负债表，输出静态市盈率、TTM 市盈率、动态市盈率、MRQ 市净率、每股净资产、ROE 和 ROAE。
+财报期末估值 intermediate 模型。模型以 `security_code` + `report_date` 为粒度，基于财报期末对应的最近交易日收盘价、报告期 as-of 股本、利润表和资产负债表，输出静态市盈率、TTM 市盈率、动态市盈率、MRQ 市净率、每股净资产、ROE、ROA、ROAA 和 ROAE。
 
 本模型服务于财报期维度的基本面估值分析，不是日频估值事实表。日频市值、日频 PE/PB、公告日可投资口径和交易日展开应放到后续日频 valuation 模型。
 
@@ -33,6 +33,8 @@
 | `pb_mrq` | `Nullable(Float64)` | MRQ 市净率，使用当前报告期或最近季度归母权益。 |
 | `book_value_per_share` | `Nullable(Float64)` | 每股净资产，使用最近资产负债表的归属于母公司股东权益合计除以实收资本。 |
 | `roe` | `Nullable(Float64)` | ROE，使用归母净利润除以期末归母净资产。 |
+| `roa` | `Nullable(Float64)` | ROA，使用归母净利润除以期末资产总计。 |
+| `roaa` | `Nullable(Float64)` | ROAA，使用归母净利润除以平均资产总计。 |
 | `roae` | `Nullable(Float64)` | ROAE，使用归母净利润除以平均归母净资产。 |
 
 候选键：`security_code`, `report_date`。
@@ -55,9 +57,11 @@
 
 资产负债表：
 
+- `stg_eastmoney__balance.total_assets`：资产总计。
 - `stg_eastmoney__balance.total_parent_equity`：归属于母公司股东权益合计。
 - `stg_eastmoney__balance.share_capital`：实收资本（股本）。
-- `pb_mrq`、`book_value_per_share` 和 `roe` 使用同一证券 `balance.report_date <= current report_date` 的最近一条资产负债表记录。
+- `pb_mrq`、`book_value_per_share`、`roe` 和 `roa` 使用同一证券 `balance.report_date <= current report_date` 的最近一条资产负债表记录。
+- `roaa` 使用期初和期末资产总计的平均值。第一版按自然财年口径取期初资产：同一证券上一年度年报 `report_date = toDate(concat(toString(toYear(current report_date) - 1), '-12-31'))` 的 `total_assets`。
 - `roae` 使用期初和期末归母净资产的平均值。第一版按自然财年口径取期初净资产：同一证券上一年度年报 `report_date = toDate(concat(toString(toYear(current report_date) - 1), '-12-31'))` 的 `total_parent_equity`。
 
 报告期集合：
@@ -72,7 +76,7 @@
 - 分母为 `NULL`、`0` 或小于 `0` 时，对应估值输出 `NULL`。
 - 价格或总股本为 `NULL`、`0` 或小于 `0` 时，所有估值输出 `NULL`。
 - 不输出负 PE/PB。负利润或负权益在估值语义上不可比，保留给后续质量诊断模型处理。
-- `roe` 和 `roae` 是盈利能力指标，不套用“非空必须大于 0”的估值规则；归母净利润为负时允许输出负值。
+- `roe`、`roa`、`roaa` 和 `roae` 是盈利能力指标，不套用“非空必须大于 0”的估值规则；归母净利润为负时允许输出负值。
 
 静态市盈率：
 
@@ -152,6 +156,28 @@ roe =
     / latest_total_parent_equity_as_of_report_date
 ```
 
+ROA：
+
+```text
+roa =
+    latest_ytd_parent_netprofit
+    / latest_total_assets_as_of_report_date
+```
+
+ROAA：
+
+```text
+average_total_assets =
+    (
+        beginning_total_assets_for_report_year
+        + latest_total_assets_as_of_report_date
+    ) / 2
+
+roaa =
+    latest_ytd_parent_netprofit
+    / average_total_assets
+```
+
 ROAE：
 
 ```text
@@ -169,10 +195,14 @@ roae =
 规则：
 
 - `latest_ytd_parent_netprofit` 来自当前报告期 `stg_eastmoney__income_ytd.parent_netprofit`。
+- `latest_total_assets_as_of_report_date` 来自当前报告期 as-of 最近资产负债表的 `total_assets`。
 - `latest_total_parent_equity_as_of_report_date` 来自当前报告期 as-of 最近资产负债表的 `total_parent_equity`。
+- `beginning_total_assets_for_report_year` 来自上一年度年报资产负债表的 `total_assets`。
 - `beginning_total_parent_equity_for_report_year` 来自上一年度年报资产负债表的 `total_parent_equity`。
-- `roe` 和 `roae` 使用比率口径，不乘以 `100`；`0.12` 表示 `12%`。
-- 当归母净利润为 `NULL` 时，`roe` 和 `roae` 输出 `NULL`。
+- `roe`、`roa`、`roaa` 和 `roae` 使用比率口径，不乘以 `100`；`0.12` 表示 `12%`。
+- 当归母净利润为 `NULL` 时，`roe`、`roa`、`roaa` 和 `roae` 输出 `NULL`。
+- 当期末资产总计为 `NULL`、`0` 或小于 `0` 时，`roa` 输出 `NULL`。
+- 当期初资产总计、期末资产总计或平均资产总计为 `NULL`、`0` 或小于 `0` 时，`roaa` 输出 `NULL`。
 - 当期末归母净资产为 `NULL`、`0` 或小于 `0` 时，`roe` 输出 `NULL`。
 - 当期初归母净资产、期末归母净资产或平均归母净资产为 `NULL`、`0` 或小于 `0` 时，`roae` 输出 `NULL`。
 
@@ -238,10 +268,10 @@ market_cap as (
 1. `latest_annual_income`：按 `report_type = '年报'` as-of 取最近年度 `parent_netprofit`。
 2. `ttm_income`：从 `stg_eastmoney__income_sq` 对当前报告期向前取最近四个季度并求和。
 3. `forecast_income`：从 `stg_eastmoney__income_ytd` 取当前报告期 `parent_netprofit`，按 `report_type` 映射季度数后计算 `parent_netprofit * (4 / quarter_count)`；年报的季度数为 4。
-4. `latest_mrq_equity`：资产负债表 as-of 最近 `total_parent_equity` 和 `share_capital`。
-5. `beginning_parent_equity`：按当前 `report_date` 所属自然财年，取上一年度年报 `total_parent_equity`。
-6. `profitability_ratios`：使用当前报告期 YTD 归母净利润、期末归母净资产和平均归母净资产计算 `roe`、`roae`。
-7. 最终 select 只输出九个字段。
+4. `latest_mrq_equity`：资产负债表 as-of 最近 `total_assets`、`total_parent_equity` 和 `share_capital`。
+5. `beginning_balance_sheet`：按当前 `report_date` 所属自然财年，取上一年度年报 `total_assets` 和 `total_parent_equity`。
+6. `profitability_ratios`：使用当前报告期 YTD 归母净利润、期末资产总计、平均资产总计、期末归母净资产和平均归母净资产计算 `roe`、`roa`、`roaa`、`roae`。
+7. 最终 select 只输出十一个字段。
 
 估值除法建议封装为局部表达式：
 
@@ -261,7 +291,7 @@ if(
 - 模型级组合唯一：`security_code`, `report_date`。
 - `security_code`: `not_null`, `cn_security_code_format`。
 - `report_date`: `not_null`。
-- `pe_static`, `pe_ttm`, `pe_forecast`, `pb_mrq`, `book_value_per_share`, `roe`, `roae`: 可空，不做 `not_null`。
+- `pe_static`, `pe_ttm`, `pe_forecast`, `pb_mrq`, `book_value_per_share`, `roe`, `roa`, `roaa`, `roae`: 可空，不做 `not_null`。
 - 增加定向数据测试：
   - 输出每个 `security_code + report_date` 最多一行。
   - 非空 `pe_static`, `pe_ttm`, `pe_forecast`, `pb_mrq`, `book_value_per_share` 必须大于 `0`。
@@ -270,8 +300,10 @@ if(
   - `pb_mrq` 使用的最近权益日期不得大于当前 `report_date`。
   - `book_value_per_share` 使用的最近资产负债表日期不得大于当前 `report_date`，且非空值必须大于 `0`。
   - `roe` 使用的期末资产负债表日期不得大于当前 `report_date`。
+  - `roa` 使用的期末资产负债表日期不得大于当前 `report_date`。
+  - `roaa` 使用的期初资产负债表日期应等于上一年度年报日期，期末资产负债表日期不得大于当前 `report_date`。
   - `roae` 使用的期初资产负债表日期应等于上一年度年报日期，期末资产负债表日期不得大于当前 `report_date`。
-  - `roe` 和 `roae` 允许为负值；非空时只要求分母大于 `0`。
+  - `roe`、`roa`、`roaa` 和 `roae` 允许为负值；非空时只要求分母大于 `0`。
 
 ## 7. 边界与延后事项
 

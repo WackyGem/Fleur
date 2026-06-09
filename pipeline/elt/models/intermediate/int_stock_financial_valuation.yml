@@ -2,7 +2,7 @@ version: 2
 
 models:
   - name: int_stock_financial_valuation
-    description: 财报期末估值 intermediate 模型；以证券和报告期为粒度，基于报告期最近交易日收盘价、as-of 股本、利润表和资产负债表输出 PE、PB、每股净资产、ROE 和 ROAE。
+    description: 财报期末估值 intermediate 模型；以证券和报告期为粒度，基于报告期最近交易日收盘价、as-of 股本、利润表和资产负债表输出 PE、PB、每股净资产、ROE、ROA、ROAA 和 ROAE。
     config:
       meta:
         grain_zh: 每证券、财报报告期一行。
@@ -10,7 +10,7 @@ models:
           - 报告期集合来自 YTD 利润表与资产负债表的证券报告期并集。
           - 价格使用报告期当日或之前最近交易日未复权收盘价。
           - TTM 利润使用当前及之前连续四个单季度归母净利润。
-          - 估值分母非正或缺失时输出 NULL；ROE 和 ROAE 允许负利润带来的负值。
+          - 估值分母非正或缺失时输出 NULL；ROE、ROA、ROAA 和 ROAE 允许负利润带来的负值。
     data_tests:
       - unique_combination_of_columns:
           arguments:
@@ -52,9 +52,17 @@ models:
         data_type: Nullable(Float64)
 
       - name: roe
-        description: ROE，使用当前报告期 YTD 归母净利润除以期末归母权益。
+        description: ROE，使用当前报告期 YTD 归母净利润除以期末归母权益；比率口径，不乘以 100。
+        data_type: Nullable(Float64)
+
+      - name: roa
+        description: ROA，使用当前报告期 YTD 归母净利润除以期末资产总计；比率口径，不乘以 100。
+        data_type: Nullable(Float64)
+
+      - name: roaa
+        description: ROAA，使用当前报告期 YTD 归母净利润除以期初和期末资产总计平均值；比率口径，不乘以 100。
         data_type: Nullable(Float64)
 
       - name: roae
-        description: ROAE，使用当前报告期 YTD 归母净利润除以期初和期末归母权益平均值。
+        description: ROAE，使用当前报告期 YTD 归母净利润除以期初和期末归母权益平均值；比率口径，不乘以 100。
         data_type: Nullable(Float64)

@@ -8,6 +8,8 @@ with expected as (
         valuation.pb_mrq as expected_pb_mrq,
         valuation.book_value_per_share as expected_book_value_per_share,
         valuation.roe as expected_roe,
+        valuation.roa as expected_roa,
+        valuation.roaa as expected_roaa,
         valuation.roae as expected_roae
     from {{ ref('mart_stock_quotes_daily') }} as mart
     asof left join {{ ref('int_stock_financial_valuation') }} as valuation
@@ -29,5 +31,7 @@ where not (
     and mart.book_value_per_share is not distinct
         from expected.expected_book_value_per_share
     and mart.roe is not distinct from expected.expected_roe
+    and mart.roa is not distinct from expected.expected_roa
+    and mart.roaa is not distinct from expected.expected_roaa
     and mart.roae is not distinct from expected.expected_roae
 )

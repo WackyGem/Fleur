@@ -179,6 +179,7 @@ balance_history as (
         security_code,
         report_date,
         toNullable(report_date) as balance_report_date,
+        toNullable(total_assets) as total_assets,
         toNullable(total_parent_equity) as total_parent_equity,
         toNullable(share_capital) as share_capital
     from {{ ref('stg_eastmoney__balance') }}
@@ -189,6 +190,7 @@ latest_mrq_equity as (
         periods.security_code,
         periods.report_date,
         balances.balance_report_date,
+        balances.total_assets,
         balances.total_parent_equity,
         balances.share_capital
     from report_periods as periods
@@ -205,10 +207,11 @@ report_periods_with_beginning as (
     from report_periods
 ),
 
-beginning_parent_equity as (
+beginning_balance_sheet as (
     select
         periods.security_code,
         periods.report_date,
+        balances.total_assets as beginning_total_assets,
         balances.total_parent_equity as beginning_total_parent_equity
     from report_periods_with_beginning as periods
     left any join balance_history as balances
@@ -225,9 +228,11 @@ valuation_inputs as (
         ttm_values.ttm_parent_netprofit,
         forecast_values.forecast_full_year_parent_netprofit,
         forecast_values.ytd_parent_netprofit,
+        equity_values.total_assets,
         equity_values.total_parent_equity,
         equity_values.share_capital,
-        beginning_equity_values.beginning_total_parent_equity
+        beginning_balance_values.beginning_total_assets,
+        beginning_balance_values.beginning_total_parent_equity
     from report_periods as periods
     left any join market_cap as market_cap_values
         using (security_code, report_date)
@@ -239,7 +244,7 @@ valuation_inputs as (
         using (security_code, report_date)
     left any join latest_mrq_equity as equity_values
         using (security_code, report_date)
-    left any join beginning_parent_equity as beginning_equity_values
+    left any join beginning_balance_sheet as beginning_balance_values
         using (security_code, report_date)
 )
 
@@ -293,6 +298,23 @@ select
         cast(null, 'Nullable(Float64)'),
         ytd_parent_netprofit / total_parent_equity
     ) as roe,
+    if(
+        ytd_parent_netprofit is null
+        or total_assets is null
+        or total_assets <= 0,
+        cast(null, 'Nullable(Float64)'),
+        ytd_parent_netprofit / total_assets
+    ) as roa,
+    if(
+        ytd_parent_netprofit is null
+        or beginning_total_assets is null
+        or beginning_total_assets <= 0
+        or total_assets is null
+        or total_assets <= 0
+        or (beginning_total_assets + total_assets) / 2 <= 0,
+        cast(null, 'Nullable(Float64)'),
+        ytd_parent_netprofit / ((beginning_total_assets + total_assets) / 2)
+    ) as roaa,
     if(
         ytd_parent_netprofit is null
         or beginning_total_parent_equity is null
