@@ -24,3 +24,12 @@ pub fn replace_rsi_partition_sql(output_table: &str, staging_table: &str, year: 
 pub fn replace_boll_partition_sql(output_table: &str, staging_table: &str, year: u16) -> String {
     replace_partition_sql(output_table, staging_table, year)
 }
+
+/// 构造将单个年份分区从 Price Pattern staging 表替换到目标表的 SQL。
+pub fn replace_price_pattern_partition_sql(
+    output_table: &str,
+    staging_table: &str,
+    year: u16,
+) -> String {
+    replace_partition_sql(output_table, staging_table, year)
+}

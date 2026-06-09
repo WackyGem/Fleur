@@ -37,6 +37,11 @@ pub use indicators::moving_average::{
     MaOutput, MaParams, MaPreviousState, MaState, calculate_ma_series,
     calculate_ma_series_from_previous_state,
 };
+pub use indicators::price_pattern::{
+    DEFAULT_N_STRUCTURE_WINDOW, PricePatternError, PricePatternInput, PricePatternOutput,
+    PricePatternParams, PricePatternPreviousState, PricePatternState, StructurePriceBar,
+    calculate_price_pattern_series,
+};
 pub use indicators::rsi::{
     DEFAULT_RSI_WINDOWS, RsiError, RsiInput, RsiOutput, RsiParams, RsiPreviousState, RsiState,
     RsiWindowState, calculate_rsi_series, calculate_rsi_series_from_previous_state,

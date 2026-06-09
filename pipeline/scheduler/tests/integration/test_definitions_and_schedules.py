@@ -56,7 +56,8 @@ def test_registered_definitions_match_source_bundles() -> None:
     assert "fleur_calculation/calc_stock_ma_daily" in registered_asset_keys
     assert "fleur_calculation/calc_stock_rsi_daily" in registered_asset_keys
     assert "fleur_calculation/calc_stock_boll_daily" in registered_asset_keys
-    assert len(registered_asset_keys) == len(expected_assets | expected_clickhouse_assets) + 33
+    assert "fleur_calculation/calc_stock_price_pattern_daily" in registered_asset_keys
+    assert len(registered_asset_keys) == len(expected_assets | expected_clickhouse_assets) + 35
     assert {job.name for job in loaded_defs.jobs or []} == (
         expected_jobs | expected_clickhouse_jobs | expected_dbt_jobs | expected_furnace_jobs
     )
@@ -68,6 +69,7 @@ def test_registered_definitions_match_source_bundles() -> None:
             "furnace__ma_daily_schedule",
             "furnace__rsi_daily_schedule",
             "furnace__boll_daily_schedule",
+            "furnace__price_pattern_daily_schedule",
         }
     )
     assert {sensor.name for sensor in loaded_defs.sensors or []} == {"slack_asset_failure_sensor"}
@@ -106,22 +108,25 @@ def test_dbt_assets_are_registered_with_raw_lineage_and_checks() -> None:
     int_ma_key = dg.AssetKey("int_stock_ma_daily")
     int_rsi_key = dg.AssetKey("int_stock_rsi_daily")
     int_boll_key = dg.AssetKey("int_stock_boll_daily")
+    int_price_pattern_key = dg.AssetKey("int_stock_price_pattern_daily")
     mart_key = dg.AssetKey("mart_stock_quotes_daily")
     dbt_asset_def = next(asset for asset in loaded_defs.assets or [] if stg_ths_key in asset.keys)
 
-    assert len(dbt_asset_def.keys) == 29
-    assert len(dbt_asset_def.check_keys) == 222
+    assert len(dbt_asset_def.keys) == 30
+    assert len(dbt_asset_def.check_keys) == 227
     assert "stg_ths__limit_up_pool_compacted" in loaded_asset_keys
     assert "int_stock_kdj_daily" in loaded_asset_keys
     assert "int_stock_ma_daily" in loaded_asset_keys
     assert "int_stock_rsi_daily" in loaded_asset_keys
     assert "int_stock_boll_daily" in loaded_asset_keys
+    assert "int_stock_price_pattern_daily" in loaded_asset_keys
     assert "mart_stock_quotes_daily" in loaded_asset_keys
     assert dbt_asset_def.specs_by_key[stg_ths_key].group_name == "dbt_staging"
     assert dbt_asset_def.specs_by_key[int_kdj_key].group_name == "dbt_intermediate"
     assert dbt_asset_def.specs_by_key[int_ma_key].group_name == "dbt_intermediate"
     assert dbt_asset_def.specs_by_key[int_rsi_key].group_name == "dbt_intermediate"
     assert dbt_asset_def.specs_by_key[int_boll_key].group_name == "dbt_intermediate"
+    assert dbt_asset_def.specs_by_key[int_price_pattern_key].group_name == "dbt_intermediate"
     assert dbt_asset_def.specs_by_key[mart_key].group_name == "dbt_marts"
     assert (
         dbt_asset_def.tags_by_key[stg_ths_key].items()
@@ -145,6 +150,9 @@ def test_dbt_assets_are_registered_with_raw_lineage_and_checks() -> None:
     }
     assert {key.to_user_string() for key in dbt_asset_def.asset_deps[int_boll_key]} == {
         "fleur_calculation/calc_stock_boll_daily"
+    }
+    assert {key.to_user_string() for key in dbt_asset_def.asset_deps[int_price_pattern_key]} == {
+        "fleur_calculation/calc_stock_price_pattern_daily"
     }
     assert {job.name for job in DBT_JOBS} == {
         "dbt__daily_build_job",

@@ -175,14 +175,22 @@ where
     if rows.is_empty() {
         return Ok(());
     }
-    for batch in rows.chunks(batch_size) {
-        let mut row_binary = Vec::with_capacity(batch.len().saturating_mul(estimated_row_bytes));
-        for row in batch {
-            write_row(row, &mut row_binary)?;
+    executor.insert_bytes_stream(insert_sql, |writer| {
+        for batch in rows.chunks(batch_size) {
+            let mut row_binary =
+                Vec::with_capacity(batch.len().saturating_mul(estimated_row_bytes));
+            for row in batch {
+                write_row(row, &mut row_binary)?;
+            }
+            writer
+                .write_all(&row_binary)
+                .map_err(|source| FurnaceIoError::ClickHouseCommand {
+                    message: "failed to write RowBinary batch to clickhouse-client".to_string(),
+                    source: Some(source.to_string()),
+                })?;
         }
-        executor.insert_bytes(insert_sql, &row_binary)?;
-    }
-    Ok(())
+        Ok(())
+    })
 }
 
 pub(in crate::runners) fn validate_staging<E: ClickHouseExecutor>(

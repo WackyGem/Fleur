@@ -1,7 +1,7 @@
 # mono-fleur Rust Engines 文档地图
 
 `engines/` 是 mono-fleur 的 Rust / Cargo workspace，用于承载高性能后端计算引擎。
-当前主要实现是 `furnace`：由 Dagster 调度的金融技术指标计算 CLI，支持日频 KDJ、MA、RSI 和 BOLL 多指标计算。
+当前主要实现是 `furnace`：由 Dagster 调度的金融技术指标计算 CLI，支持日频 KDJ、MA、RSI、BOLL 和价格行为结构指标计算。
 
 ## Workspace
 
@@ -21,8 +21,8 @@ engines/
 
 | Crate | 类型 | 当前职责 |
 |-------|------|----------|
-| `furnace` | binary | 解析 `furnace kdj/ma/rsi/boll` CLI 参数，校验运行请求，调用 I/O 层并输出 JSON summary |
-| `furnace-core` | library | 提供 KDJ、MA、RSI、BOLL 的参数、输入/输出模型、状态和单证券纯计算；不依赖 ClickHouse、Dagster、dbt、Rayon 或环境变量 |
+| `furnace` | binary | 解析 `furnace kdj/ma/rsi/boll/price-pattern` CLI 参数，校验运行请求，调用 I/O 层并输出 JSON summary |
+| `furnace-core` | library | 提供 KDJ、MA、RSI、BOLL、价格行为结构的参数、输入/输出模型、状态和单证券纯计算；不依赖 ClickHouse、Dagster、dbt、Rayon 或环境变量 |
 | `furnace-io` | library | 负责 ClickHouse 表名、DDL、SQL、`clickhouse-client` 执行、RowBinary 读写、按证券并行调度、staging/partition replace 和运行摘要 |
 
 核心边界：
@@ -41,7 +41,7 @@ furnace-io
   按 security_code 分组，按证券维度 Rayon 并行
       ↓
 furnace-core
-  单证券按 trade_date 串行计算 KDJ、MA、RSI 或 BOLL
+  单证券按 trade_date 串行计算 KDJ、MA、RSI、BOLL 或 price-pattern
       ↓
 furnace-io
   RowBinary 批量写入 staging 或生产表
@@ -74,6 +74,7 @@ cargo run -p furnace -- kdj \
 - `ma`：价格均线、成交量均线和 EMA 派生指标。
 - `rsi`：多窗口 RSI 和递推状态。
 - `boll`：多窗口 Bollinger Bands。
+- `price-pattern`：连阳/连阴和最近 20 根有效 high/low 内的前低-次低结构字段。
 
 生产模式：
 
@@ -130,6 +131,7 @@ uv run pytest scheduler/tests/unit/furnace/test_furnace_definitions.py scheduler
 | `docs/jobs/reports/2026-06-07-furnace-kdj-smoke-run.md` | 单证券 dry-run、append-latest、replace-cascade 冒烟记录 |
 | `docs/jobs/reports/2026-06-07-furnace-kdj-performance-baseline.md` | KDJ 性能基线记录 |
 | `docs/jobs/reports/2026-06-07-furnace-kdj-parallel-optimization.md` | RowBinary、Rayon 和 full-range replace-cascade 优化记录 |
+| `docs/jobs/reports/2026-06-09-furnace-price-pattern-full-market-validation.md` | 价格行为结构指标全市场写入、性能优化和验收记录 |
 | `pipeline/scheduler/src/scheduler/defs/furnace/` | Dagster Furnace asset、job 和 schedule 定义 |
 | `pipeline/scheduler/src/scheduler/defs/resources/furnace.py` | Python 侧 Furnace CLI resource |
 

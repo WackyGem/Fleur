@@ -45,6 +45,11 @@ pub fn boll_staging_table_name(output_table: &str, run_id: &str) -> String {
     staging_table_name(output_table, run_id)
 }
 
+/// 根据运行 ID 构造 Price Pattern staging 表名。
+pub fn price_pattern_staging_table_name(output_table: &str, run_id: &str) -> String {
+    staging_table_name(output_table, run_id)
+}
+
 /// 构造 staging 表创建 SQL，表结构与目标表一致。
 pub fn create_staging_table_sql(output_table: &str, staging_table: &str) -> String {
     format!(
@@ -77,6 +82,11 @@ pub fn create_boll_staging_table_sql(output_table: &str, staging_table: &str) ->
     create_staging_table_sql(output_table, staging_table)
 }
 
+/// 构造 Price Pattern staging 表创建 SQL，表结构与目标表一致。
+pub fn create_price_pattern_staging_table_sql(output_table: &str, staging_table: &str) -> String {
+    create_staging_table_sql(output_table, staging_table)
+}
+
 /// 构造删除临时 staging 表的 SQL。
 pub fn drop_staging_table_sql(staging_table: &str) -> String {
     format!("DROP TABLE IF EXISTS {staging_table}")
@@ -99,5 +109,10 @@ pub fn drop_rsi_staging_table_sql(staging_table: &str) -> String {
 
 /// 构造删除 Bollinger Bands 临时 staging 表的 SQL。
 pub fn drop_boll_staging_table_sql(staging_table: &str) -> String {
+    drop_staging_table_sql(staging_table)
+}
+
+/// 构造删除 Price Pattern 临时 staging 表的 SQL。
+pub fn drop_price_pattern_staging_table_sql(staging_table: &str) -> String {
     drop_staging_table_sql(staging_table)
 }

@@ -10,6 +10,7 @@ from scheduler.defs.resources.furnace import (
     FurnaceCliResource,
     FurnaceKdjCliRequest,
     FurnaceMaCliRequest,
+    FurnacePricePatternCliRequest,
     FurnaceRsiCliRequest,
 )
 
@@ -22,10 +23,16 @@ FURNACE_RSI_ASSET_KEY = dg.AssetKey(["fleur_calculation", "calc_stock_rsi_daily"
 FURNACE_RSI_UPSTREAM_ASSET_KEY = dg.AssetKey(["int_stock_quotes_daily_adj"])
 FURNACE_BOLL_ASSET_KEY = dg.AssetKey(["fleur_calculation", "calc_stock_boll_daily"])
 FURNACE_BOLL_UPSTREAM_ASSET_KEY = dg.AssetKey(["int_stock_quotes_daily_adj"])
+FURNACE_PRICE_PATTERN_ASSET_KEY = dg.AssetKey(
+    ["fleur_calculation", "calc_stock_price_pattern_daily"]
+)
+FURNACE_PRICE_PATTERN_STRUCTURE_UPSTREAM_ASSET_KEY = dg.AssetKey(["int_stock_quotes_daily_adj"])
+FURNACE_PRICE_PATTERN_STREAK_UPSTREAM_ASSET_KEY = dg.AssetKey(["int_stock_quotes_daily_unadj"])
 FURNACE_KDJ_GROUP = "calculation"
 FURNACE_MA_GROUP = "calculation"
 FURNACE_RSI_GROUP = "calculation"
 FURNACE_BOLL_GROUP = "calculation"
+FURNACE_PRICE_PATTERN_GROUP = "calculation"
 
 
 class FurnaceKdjRunConfig(dg.Config):
@@ -135,6 +142,41 @@ class FurnaceBollRunConfig(dg.Config):
             input_table=self.input_table,
             output_table=self.output_table,
             price_column=self.price_column,
+            insert_batch_size=self.insert_batch_size,
+            run_id=run_id,
+        )
+
+
+class FurnacePricePatternRunConfig(dg.Config):
+    request_from: str
+    request_to: str
+    mode: str = "dry-run"
+    symbols: list[str] = Field(default_factory=list)
+    structure_input_table: str = "fleur_intermediate.int_stock_quotes_daily_adj"
+    streak_input_table: str = "fleur_intermediate.int_stock_quotes_daily_unadj"
+    output_table: str = "fleur_calculation.calc_stock_price_pattern_daily"
+    high_column: str = "high_price_forward_adj"
+    low_column: str = "low_price_forward_adj"
+    close_column: str = "close_price"
+    prev_close_column: str = "prev_close_price"
+    insert_batch_size: int = 10_000
+
+    def to_cli_request(self, *, run_id: str) -> FurnacePricePatternCliRequest:
+        if self.mode not in {"dry-run", "append-latest", "replace-cascade"}:
+            msg = f"Unsupported Furnace Price Pattern mode: {self.mode}"
+            raise ValueError(msg)
+        return FurnacePricePatternCliRequest(
+            request_from=self.request_from,
+            request_to=self.request_to,
+            mode=self.mode,
+            symbols=tuple(self.symbols),
+            structure_input_table=self.structure_input_table,
+            streak_input_table=self.streak_input_table,
+            output_table=self.output_table,
+            high_column=self.high_column,
+            low_column=self.low_column,
+            close_column=self.close_column,
+            prev_close_column=self.prev_close_column,
             insert_batch_size=self.insert_batch_size,
             run_id=run_id,
         )
@@ -265,6 +307,42 @@ def build_furnace_boll_asset() -> dg.AssetsDefinition:
     )(furnace__calc_stock_boll_daily)
 
 
+def build_furnace_price_pattern_asset() -> dg.AssetsDefinition:
+    def furnace__calc_stock_price_pattern_daily(
+        context: dg.AssetExecutionContext,
+        config: FurnacePricePatternRunConfig,
+        furnace_cli: FurnaceCliResource,
+    ) -> dg.MaterializeResult:
+        result = furnace_cli.run_price_pattern(config.to_cli_request(run_id=context.run_id))
+        return dg.MaterializeResult(metadata=_metadata_from_summary(result.summary))
+
+    return dg.asset(
+        key=FURNACE_PRICE_PATTERN_ASSET_KEY,
+        deps=[
+            FURNACE_PRICE_PATTERN_STRUCTURE_UPSTREAM_ASSET_KEY,
+            FURNACE_PRICE_PATTERN_STREAK_UPSTREAM_ASSET_KEY,
+        ],
+        group_name=FURNACE_PRICE_PATTERN_GROUP,
+        owners=[DEFAULT_OWNER],
+        kinds={"rust", "clickhouse"},
+        tags={
+            "owner": "furnace",
+            "layer": "calculation",
+            "storage": "clickhouse",
+            "modality": "batch",
+        },
+        metadata={
+            "database": "fleur_calculation",
+            "table": "calc_stock_price_pattern_daily",
+            "indicator": "price_pattern",
+            "structure_input_table": "fleur_intermediate.int_stock_quotes_daily_adj",
+            "streak_input_table": "fleur_intermediate.int_stock_quotes_daily_unadj",
+            "structure_price_adjustment": "forward",
+            "streak_price_adjustment": "unadjusted",
+        },
+    )(furnace__calc_stock_price_pattern_daily)
+
+
 def _metadata_from_summary(summary: Mapping[str, Any]) -> Mapping[str, Any]:
     return {
         "indicator": summary.get("indicator"),
@@ -304,6 +382,13 @@ def _metadata_from_summary(summary: Mapping[str, Any]) -> Mapping[str, Any]:
         "max_window": summary.get("max_window"),
         "stddev_ddof": summary.get("stddev_ddof"),
         "state_source": summary.get("state_source"),
+        "input_valid_streak_rows": summary.get("input_valid_streak_rows", 0),
+        "input_valid_structure_bar_rows": summary.get("input_valid_structure_bar_rows", 0),
+        "valid_streak_rows": summary.get("valid_streak_rows", 0),
+        "valid_structure_bar_rows": summary.get("valid_structure_bar_rows", 0),
+        "null_streak_rows": summary.get("null_streak_rows", 0),
+        "null_second_low_rows": summary.get("null_second_low_rows", 0),
+        "n_structure_window": summary.get("n_structure_window"),
         "staging_validation": summary.get("staging_validation", {}),
         "partition_replace": summary.get("partition_replace", {}),
         "performance_metrics": summary.get("performance_metrics", {}),
@@ -316,6 +401,13 @@ FURNACE_KDJ_ASSETS: tuple[dg.AssetsDefinition, ...] = (build_furnace_kdj_asset()
 FURNACE_MA_ASSETS: tuple[dg.AssetsDefinition, ...] = (build_furnace_ma_asset(),)
 FURNACE_RSI_ASSETS: tuple[dg.AssetsDefinition, ...] = (build_furnace_rsi_asset(),)
 FURNACE_BOLL_ASSETS: tuple[dg.AssetsDefinition, ...] = (build_furnace_boll_asset(),)
+FURNACE_PRICE_PATTERN_ASSETS: tuple[dg.AssetsDefinition, ...] = (
+    build_furnace_price_pattern_asset(),
+)
 FURNACE_ASSETS: tuple[dg.AssetsDefinition, ...] = (
-    FURNACE_KDJ_ASSETS + FURNACE_MA_ASSETS + FURNACE_RSI_ASSETS + FURNACE_BOLL_ASSETS
+    FURNACE_KDJ_ASSETS
+    + FURNACE_MA_ASSETS
+    + FURNACE_RSI_ASSETS
+    + FURNACE_BOLL_ASSETS
+    + FURNACE_PRICE_PATTERN_ASSETS
 )

@@ -4,6 +4,14 @@ pub(super) type RowBinaryInputFixture<'a> =
 pub(super) type MaRowBinaryInputFixture<'a> = (&'a str, &'a str, Option<f64>, Option<f64>);
 pub(super) type RsiRowBinaryInputFixture<'a> = (&'a str, &'a str, Option<f64>);
 pub(super) type BollRowBinaryInputFixture<'a> = (&'a str, &'a str, Option<f64>);
+pub(super) type PricePatternRowBinaryInputFixture<'a> = (
+    &'a str,
+    &'a str,
+    Option<f64>,
+    Option<f64>,
+    Option<f64>,
+    Option<f64>,
+);
 
 #[derive(Debug, Default)]
 pub(super) struct FakeExecutor {
@@ -105,6 +113,21 @@ pub(super) fn boll_rowbinary_input_rows(rows: &[BollRowBinaryInputFixture<'_>]) 
         write_rowbinary_string(&mut bytes, security_code);
         write_rowbinary_string(&mut bytes, trade_date);
         write_rowbinary_nullable_f64(&mut bytes, *close_price);
+    }
+    bytes
+}
+
+pub(super) fn price_pattern_rowbinary_input_rows(
+    rows: &[PricePatternRowBinaryInputFixture<'_>],
+) -> Vec<u8> {
+    let mut bytes = Vec::new();
+    for (security_code, trade_date, high_price, low_price, close_price, prev_close_price) in rows {
+        write_rowbinary_string(&mut bytes, security_code);
+        write_rowbinary_string(&mut bytes, trade_date);
+        write_rowbinary_nullable_f64(&mut bytes, *high_price);
+        write_rowbinary_nullable_f64(&mut bytes, *low_price);
+        write_rowbinary_nullable_f64(&mut bytes, *close_price);
+        write_rowbinary_nullable_f64(&mut bytes, *prev_close_price);
     }
     bytes
 }
