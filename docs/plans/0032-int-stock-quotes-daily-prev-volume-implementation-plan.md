@@ -2,7 +2,16 @@
 
 日期：2026-06-09
 
-状态：Draft
+状态：Completed
+
+完成日期：2026-06-09
+
+实际验证：
+
+- `uv run dbt parse --project-dir elt --profiles-dir elt`
+- `uv run dbt build --project-dir elt --profiles-dir elt --select int_stock_quotes_daily_unadj mart_stock_quotes_daily`
+- `uv run python elt/scripts/validate_field_glossary.py`
+- `git diff --check`
 
 关联文档：
 

@@ -20,7 +20,7 @@
 
 A 股股票日频行情 intermediate 模型。模型从 BaoStock 未复权日频 K 线 staging 中取行情事实，并通过股票基础信息快照 intermediate 限定股票 universe，输出只包含股票代码且交易日大于 `1995-01-01` 的未复权日频行情记录。
 
-本模型负责把 source-local 未复权日 K 数据收敛为“股票未复权日行情”事实，并补充一个明确语义的未复权前一交易日收盘价字段：`prev_close_price_unadj`。在此基础上，本模型按日频粒度派生换手率、涨跌幅、振幅、涨跌停价、A 股市值、A 股股本和股息率字段，供 mart 层直接复用。停牌布尔字段 `is_suspend` 由上游 staging 从 BaoStock `trade_status` 派生后透传。
+本模型负责把 source-local 未复权日 K 数据收敛为“股票未复权日行情”事实，并补充明确语义的前一交易日字段：`prev_close_price_unadj` 和 `prev_volume`。在此基础上，本模型按日频粒度派生换手率、涨跌幅、振幅、涨跌停价、A 股市值、A 股股本和股息率字段，供 mart 层直接复用。停牌布尔字段 `is_suspend` 由上游 staging 从 BaoStock `trade_status` 派生后透传。
 
 本模型不做复权价格计算、行情异常修正、跨源停牌口径裁决、跨源行情对账、财报估值计算或证券主数据最终裁决。`is_suspend` 仅表达上游 BaoStock staging 的 source-local 停牌语义。
 
@@ -51,21 +51,23 @@ A 股股票日频行情 intermediate 模型。模型从 BaoStock 未复权日频
 - 只保留 `trade_date > '1995-01-01'` 的 K 线行情。
 - `1995-01-01` 是 A 股恢复 T+1 交易制度的日期。本模型第一版聚焦恢复 T+1 后的行情，避免把早期 T+0 制度时期行情混入统一日行情事实。
 
-## 3. `prev_close_price_unadj` 设计判断
+## 3. 前一交易日字段设计判断
 
-需要依赖 `int_trade_calendar` 获取 `prev_close_price_unadj`。
+需要依赖 `int_trade_calendar` 获取 `prev_close_price_unadj` 和 `prev_volume`。
 
 原因：
 
 - `prev_close_price_unadj` 的字段含义是“当前 A 股交易日的前一个交易日，该证券的未复权收盘价”。
+- `prev_volume` 的字段含义是“当前 A 股交易日的前一个交易日，该证券的成交量”，与 `prev_close_price_unadj` 使用同一交易日历口径。
 - `stg_baostock__query_history_k_data_plus_daily.prev_close_price` 来自 BaoStock 原始 `preclose` 字段，属于 source-local 的“前收盘价”口径。该字段可用于保留供应商原始口径，但不能替代本模型要表达的“前一个交易日的实际收盘价”。
 - 如果只对单只证券按 `trade_date` 做 `lag(close_price)`，得到的是“该证券上一条可见行情记录的收盘价”。当 source 缺行、上市首日前后、停牌记录缺失或后续接入其他行情源时，它不一定等于 A 股交易日历中的前一个交易日。
-- 因此本模型应以 `int_trade_calendar.prev_trade_date` 定义“前一个交易日”，再按 `security_code` + `prev_trade_date` 自连接行情表取 `close_price`。
+- 因此本模型应以 `int_trade_calendar.prev_trade_date` 定义“前一个交易日”，再按 `security_code` + `prev_trade_date` 自连接行情表取 `close_price` 和 `volume`。
 
 NULL 语义：
 
 - 该证券首个交易日没有可用前一交易日行情时，`prev_close_price_unadj` 为 `NULL`。
-- 如果 `int_trade_calendar.prev_trade_date` 存在，但该证券在前一交易日没有行情行，`prev_close_price_unadj` 为 `NULL`，用于显式暴露 source 缺口或证券未上市等情况。
+- 如果 `int_trade_calendar.prev_trade_date` 存在，但该证券在前一交易日没有行情行，`prev_close_price_unadj` 和 `prev_volume` 为 `NULL`，用于显式暴露 source 缺口或证券未上市等情况。
+- 如果前一交易日行情行存在且 `volume = 0`，`prev_volume` 保留 `0`，不转换为 `NULL`。
 - 不用 `prev_close_price` 回填 `prev_close_price_unadj`，避免混淆供应商“前收盘价”和“前一交易日收盘价”两个口径。
 
 ## 4. 字段设计
@@ -80,6 +82,7 @@ NULL 语义：
 | `close_price` | `stg_baostock__query_history_k_data_plus_daily.close_price` | `Nullable(Float64)` | 交易日收盘价，上游 BaoStock staging 已限定未复权口径。 |
 | `prev_close_price` | `stg_baostock__query_history_k_data_plus_daily.prev_close_price` | `Nullable(Float64)` | BaoStock 原始 `preclose` 口径的前收盘价，保留用于对账和源口径追踪。 |
 | `prev_close_price_unadj` | 前一交易日行情自连接 `close_price` | `Nullable(Float64)` | 当前证券在 `int_trade_calendar.prev_trade_date` 对应日期的未复权收盘价。 |
+| `prev_volume` | 前一交易日行情自连接 `volume` | `Nullable(Int64)` | 当前证券在 `int_trade_calendar.prev_trade_date` 对应日期的成交量，0 值保留。 |
 | `volume` | `stg_baostock__query_history_k_data_plus_daily.volume` | `Nullable(Int64)` | 交易日成交量，0 值保留。 |
 | `amount` | `stg_baostock__query_history_k_data_plus_daily.amount` | `Nullable(Float64)` | 交易日成交金额，单位沿用 source-local 口径。 |
 | `turnover_rate` | `volume / a_float_shares * 100` | `Nullable(Float64)` | 换手率，百分数口径，`1.23` 表示 `1.23%`。 |
@@ -103,7 +106,7 @@ NULL 语义：
 
 1. 主键字段：`security_code`, `trade_date`
 2. OHLC 价格字段：`open_price`, `high_price`, `low_price`, `close_price`
-3. 前收盘价字段：`prev_close_price`, `prev_close_price_unadj`
+3. 前收盘价和前成交量字段：`prev_close_price`, `prev_close_price_unadj`, `prev_volume`
 4. 成交与日频交易指标：`volume`, `amount`, `turnover_rate`, `turnover_rate_actual`, `pct_amplitude`, `pct_change`
 5. 涨跌停价：`limit_up_price`, `limit_down_price`
 6. 市值与股本：`a_market_cap`, `a_float_market_cap`, `a_free_float_market_cap`, `a_shares`, `a_float_shares`, `a_free_float_shares`
@@ -266,6 +269,7 @@ quotes_with_prev_close_unadj as (
         current_quotes.close_price,
         current_quotes.prev_close_price,
         previous_quotes.close_price as prev_close_price_unadj,
+        previous_quotes.volume as prev_volume,
         current_quotes.volume,
         current_quotes.amount,
         current_quotes.is_suspend,
@@ -287,6 +291,7 @@ quotes_with_shares as (
         quotes_with_prev_close_unadj.close_price,
         quotes_with_prev_close_unadj.prev_close_price,
         quotes_with_prev_close_unadj.prev_close_price_unadj,
+        quotes_with_prev_close_unadj.prev_volume,
         quotes_with_prev_close_unadj.volume,
         quotes_with_prev_close_unadj.amount,
         quotes_with_prev_close_unadj.is_suspend,
@@ -376,6 +381,7 @@ quotes_with_metrics as (
         quotes_with_shares.close_price,
         quotes_with_shares.prev_close_price,
         quotes_with_shares.prev_close_price_unadj,
+        quotes_with_shares.prev_volume,
         quotes_with_shares.volume,
         quotes_with_shares.amount,
         if(
@@ -512,6 +518,7 @@ select
     close_price,
     prev_close_price,
     prev_close_price_unadj,
+    prev_volume,
     volume,
     amount,
     turnover_rate,
@@ -551,7 +558,7 @@ from quotes_with_metrics
 - `security_code`: `not_null`，`cn_security_code_format`。
 - `trade_date`: `not_null`。
 - `is_suspend`: `not_null`。
-- `prev_close_price_unadj`: 不加 `not_null`，因为首个交易日、证券前一交易日无行情、source 缺口都应允许为 `NULL`。
+- `prev_close_price_unadj` 和 `prev_volume`: 不加 `not_null`，因为首个交易日、证券前一交易日无行情、source 缺口都应允许为 `NULL`。
 - `turnover_rate`, `turnover_rate_actual`, `pct_amplitude`, `dy_static`, `dy_ttm`: 可空；非空时应大于等于 `0`。
 - `pct_change`: 可空；允许为负值。
 - `limit_up_price`, `limit_down_price`: 可空；非空时应大于 `0`，且 `limit_up_price >= limit_down_price`。
@@ -563,6 +570,7 @@ from quotes_with_metrics
   - `trade_date` 必须大于 `1995-01-01`。
   - `is_suspend` 由上游 staging 保证与源 `trade_status` 映射一致：`trade_status = 0` 时为 `true`，`trade_status = 1` 时为 `false`。
   - 除 `int_trade_calendar.prev_trade_date is null` 或前一交易日缺行情外，`prev_close_price_unadj` 应等于同一证券前一交易日的 `close_price`。
+  - 除 `int_trade_calendar.prev_trade_date is null` 或前一交易日缺行情外，`prev_volume` 应等于同一证券前一交易日的 `volume`，且 `0` 成交量应保留。
   - `prev_close_price_unadj` 与 `prev_close_price` 不要求一致；两者口径不同，不能用相等性测试约束。
   - 当 `a_float_shares > 0` 且 `volume` 非空时，`turnover_rate = volume / a_float_shares * 100`。
   - 当 `a_free_float_shares > 0` 且 `volume` 非空时，`turnover_rate_actual = volume / a_free_float_shares * 100`。

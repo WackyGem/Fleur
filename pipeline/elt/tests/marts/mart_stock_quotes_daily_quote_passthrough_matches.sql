@@ -11,6 +11,7 @@ where not (
     and mart.close_price is not distinct from quotes.close_price
     and mart.prev_close_price is not distinct from quotes.prev_close_price
     and mart.prev_close_price_unadj is not distinct from quotes.prev_close_price_unadj
+    and mart.prev_volume is not distinct from quotes.prev_volume
     and mart.volume is not distinct from quotes.volume
     and mart.amount is not distinct from quotes.amount
     and mart.turnover_rate is not distinct from quotes.turnover_rate

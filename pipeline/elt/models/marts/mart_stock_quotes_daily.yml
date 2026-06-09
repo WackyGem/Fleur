@@ -55,6 +55,10 @@ models:
         description: 当前证券在前一 A 股交易日的未复权收盘价；首个交易日、前一交易日无行情或 source 缺口时为 NULL。
         data_type: Nullable(Float64)
 
+      - name: prev_volume
+        description: 当前证券在前一 A 股交易日的成交量，来自 int_stock_quotes_daily_unadj；首个交易日、前一交易日无行情或 source 缺口时为 NULL，0 值保留。
+        data_type: Nullable(Int64)
+
       - name: volume
         description: 交易日成交量，0 值保留。
         data_type: Nullable(Int64)
