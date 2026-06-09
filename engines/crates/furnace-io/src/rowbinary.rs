@@ -99,6 +99,20 @@ pub(crate) fn push_rowbinary_date(bytes: &mut Vec<u8>, value: &str) -> Result<()
     Ok(())
 }
 
+pub(crate) fn push_rowbinary_nullable_date(
+    bytes: &mut Vec<u8>,
+    value: Option<&str>,
+) -> Result<(), FurnaceIoError> {
+    match value {
+        Some(value) => {
+            bytes.push(0);
+            push_rowbinary_date(bytes, value)?;
+        }
+        None => bytes.push(1),
+    }
+    Ok(())
+}
+
 pub(crate) fn push_rowbinary_nullable_f64(bytes: &mut Vec<u8>, value: Option<f64>) {
     match value {
         Some(value) => {
@@ -107,4 +121,32 @@ pub(crate) fn push_rowbinary_nullable_f64(bytes: &mut Vec<u8>, value: Option<f64
         }
         None => bytes.push(1),
     }
+}
+
+pub(crate) fn push_rowbinary_nullable_i8(bytes: &mut Vec<u8>, value: Option<i8>) {
+    match value {
+        Some(value) => {
+            bytes.push(0);
+            bytes.extend_from_slice(&value.to_le_bytes());
+        }
+        None => bytes.push(1),
+    }
+}
+
+pub(crate) fn push_rowbinary_nullable_u16(bytes: &mut Vec<u8>, value: Option<u16>) {
+    match value {
+        Some(value) => {
+            bytes.push(0);
+            bytes.extend_from_slice(&value.to_le_bytes());
+        }
+        None => bytes.push(1),
+    }
+}
+
+pub(crate) fn push_rowbinary_u16(bytes: &mut Vec<u8>, value: u16) {
+    bytes.extend_from_slice(&value.to_le_bytes());
+}
+
+pub(crate) fn push_rowbinary_bool(bytes: &mut Vec<u8>, value: bool) {
+    bytes.push(u8::from(value));
 }

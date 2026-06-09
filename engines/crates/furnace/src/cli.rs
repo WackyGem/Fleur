@@ -1,9 +1,15 @@
 use std::error::Error;
 use std::fmt;
 
-use furnace_io::{ClickHouseCliExecutor, ClickHouseExecutor, run_boll, run_kdj, run_ma, run_rsi};
+use furnace_io::{
+    ClickHouseCliExecutor, ClickHouseExecutor, run_boll, run_kdj, run_ma, run_price_pattern,
+    run_rsi,
+};
 
-use crate::commands::{BollCommandConfig, KdjCommandConfig, MaCommandConfig, RsiCommandConfig};
+use crate::commands::{
+    BollCommandConfig, KdjCommandConfig, MaCommandConfig, PricePatternCommandConfig,
+    RsiCommandConfig,
+};
 use crate::output::print_help;
 
 pub(crate) fn run(args: impl IntoIterator<Item = String>) -> Result<String, CliError> {
@@ -46,6 +52,13 @@ fn run_with_executor<E: ClickHouseExecutor>(
             let config = BollCommandConfig::parse(args)?;
             config.validate()?;
             let summary = run_boll(executor, &config.to_request())
+                .map_err(|error| CliError::Runtime(error.to_string()))?;
+            Ok(summary.to_json())
+        }
+        "price-pattern" => {
+            let config = PricePatternCommandConfig::parse(args)?;
+            config.validate()?;
+            let summary = run_price_pattern(executor, &config.to_request())
                 .map_err(|error| CliError::Runtime(error.to_string()))?;
             Ok(summary.to_json())
         }

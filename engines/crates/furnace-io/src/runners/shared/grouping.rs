@@ -1,10 +1,11 @@
-use furnace_core::{BollInput, KdjInput, MaInput, RsiInput};
+use furnace_core::{BollInput, KdjInput, MaInput, PricePatternInput, RsiInput};
 
 use crate::FurnaceIoError;
 use crate::rowbinary::{read_rowbinary_nullable_f64, read_rowbinary_string};
 use crate::rows::{
     BollGroupedInput, BollInputGroups, KdjGroupedInput, KdjInputGroups, MaGroupedInput,
-    MaInputGroups, RsiGroupedInput, RsiInputGroups,
+    MaInputGroups, PricePatternGroupedInput, PricePatternInputGroups, RsiGroupedInput,
+    RsiInputGroups,
 };
 
 pub(in crate::runners) fn group_input_rows(
@@ -200,4 +201,74 @@ pub(in crate::runners) fn group_boll_input_rows(
         input_rows,
         input_valid_close_rows,
     })
+}
+
+pub(in crate::runners) fn group_price_pattern_input_rows(
+    input_bytes: &[u8],
+) -> Result<PricePatternInputGroups, FurnaceIoError> {
+    let mut groups = Vec::new();
+    let mut current_security_code = None;
+    let mut current_inputs = Vec::new();
+    let mut input_rows = 0;
+    let mut input_valid_streak_rows = 0;
+    let mut input_valid_structure_bar_rows = 0;
+    let mut cursor = 0;
+
+    while cursor < input_bytes.len() {
+        let security_code = read_rowbinary_string(input_bytes, &mut cursor)?;
+        let trade_date = read_rowbinary_string(input_bytes, &mut cursor)?;
+        let high_price = read_rowbinary_nullable_f64(input_bytes, &mut cursor)?;
+        let low_price = read_rowbinary_nullable_f64(input_bytes, &mut cursor)?;
+        let close_price = read_rowbinary_nullable_f64(input_bytes, &mut cursor)?;
+        let prev_close_price = read_rowbinary_nullable_f64(input_bytes, &mut cursor)?;
+        if close_price.is_some() && prev_close_price.is_some() {
+            input_valid_streak_rows += 1;
+        }
+        if is_valid_price_pattern_structure_bar(high_price, low_price) {
+            input_valid_structure_bar_rows += 1;
+        }
+
+        if current_security_code.as_deref() != Some(security_code) {
+            let previous_security_code = current_security_code.replace(security_code.to_string());
+            if let Some(security_code) = previous_security_code {
+                groups.push(PricePatternGroupedInput {
+                    security_code,
+                    inputs: std::mem::take(&mut current_inputs),
+                });
+            }
+        }
+
+        current_inputs.push(PricePatternInput::new(
+            trade_date.to_string(),
+            high_price,
+            low_price,
+            close_price,
+            prev_close_price,
+        ));
+        input_rows += 1;
+    }
+
+    if let Some(security_code) = current_security_code {
+        groups.push(PricePatternGroupedInput {
+            security_code,
+            inputs: current_inputs,
+        });
+    }
+
+    Ok(PricePatternInputGroups {
+        groups,
+        input_rows,
+        input_valid_streak_rows,
+        input_valid_structure_bar_rows,
+    })
+}
+
+pub(in crate::runners) fn is_valid_price_pattern_structure_bar(
+    high_price: Option<f64>,
+    low_price: Option<f64>,
+) -> bool {
+    matches!(
+        (high_price, low_price),
+        (Some(high), Some(low)) if high.is_finite() && low.is_finite() && low > 0.0 && high >= low
+    )
 }

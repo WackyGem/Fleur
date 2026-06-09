@@ -3,12 +3,13 @@ use furnace_core::{
     DEFAULT_PRICE_MA_WINDOWS, DEFAULT_RSI_WINDOWS, DEFAULT_VOLUME_MA_WINDOWS, KdjParams,
 };
 
-use crate::{BollWriteMode, KdjWriteMode, MaWriteMode, RsiWriteMode};
+use crate::{BollWriteMode, KdjWriteMode, MaWriteMode, PricePatternWriteMode, RsiWriteMode};
 
 mod boll;
 mod common;
 mod kdj;
 mod ma;
+mod price_pattern;
 mod rsi;
 
 use common::*;
@@ -17,6 +18,7 @@ pub use boll::BollRunSummary;
 pub use common::{PartitionReplaceSummary, PerformanceMetrics, ValidationSummary};
 pub use kdj::KdjRunSummary;
 pub use ma::MaRunSummary;
+pub use price_pattern::PricePatternRunSummary;
 pub use rsi::RsiRunSummary;
 
 pub(crate) use common::{PerformanceTimings, time_result};

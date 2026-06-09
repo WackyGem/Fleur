@@ -82,6 +82,28 @@ fn boll_rowbinary_input_rows(rows: &[(&str, &str, f64)]) -> Vec<u8> {
     close_rowbinary_input_rows(rows)
 }
 
+type PricePatternFixtureRow<'a> = (
+    &'a str,
+    &'a str,
+    Option<f64>,
+    Option<f64>,
+    Option<f64>,
+    Option<f64>,
+);
+
+fn price_pattern_rowbinary_input_rows(rows: &[PricePatternFixtureRow<'_>]) -> Vec<u8> {
+    let mut bytes = Vec::new();
+    for (security_code, trade_date, high_price, low_price, close_price, prev_close_price) in rows {
+        write_rowbinary_string(&mut bytes, security_code);
+        write_rowbinary_string(&mut bytes, trade_date);
+        write_rowbinary_nullable_f64(&mut bytes, *high_price);
+        write_rowbinary_nullable_f64(&mut bytes, *low_price);
+        write_rowbinary_nullable_f64(&mut bytes, *close_price);
+        write_rowbinary_nullable_f64(&mut bytes, *prev_close_price);
+    }
+    bytes
+}
+
 fn close_rowbinary_input_rows(rows: &[(&str, &str, f64)]) -> Vec<u8> {
     let mut bytes = Vec::new();
     for (security_code, trade_date, close_price) in rows {
@@ -263,6 +285,61 @@ fn run_boll_returns_json_summary_for_dry_run() {
 }
 
 #[test]
+fn run_price_pattern_returns_json_summary_for_dry_run() {
+    let responses = ["sh.600000\n", "2026-01-01\n"];
+    let input_rows = price_pattern_rowbinary_input_rows(&[
+        (
+            "sh.600000",
+            "2026-01-01",
+            Some(10.0),
+            Some(5.0),
+            Some(11.0),
+            Some(10.0),
+        ),
+        (
+            "sh.600000",
+            "2026-01-02",
+            Some(15.0),
+            Some(7.0),
+            Some(12.0),
+            Some(11.0),
+        ),
+        (
+            "sh.600000",
+            "2026-01-03",
+            Some(12.0),
+            Some(8.0),
+            Some(13.0),
+            Some(12.0),
+        ),
+    ]);
+    let mut executor = FakeExecutor::with_responses_and_bytes(&responses, vec![input_rows]);
+
+    let output = run_with_executor(
+        args(&[
+            "price-pattern",
+            "--from",
+            "2026-01-01",
+            "--to",
+            "2026-01-03",
+            "--symbols",
+            "sh.600000",
+            "--run-id",
+            "price-pattern-run-1",
+        ]),
+        &mut executor,
+    )
+    .unwrap();
+
+    assert!(output.contains("\"indicator\":\"price_pattern\""));
+    assert!(output.contains("\"symbols_count\":1"));
+    assert!(output.contains("\"mode\":\"dry-run\""));
+    assert!(output.contains("\"run_id\":\"price-pattern-run-1\""));
+    assert!(output.contains("\"valid_streak_rows\":3"));
+    assert!(output.contains("\"n_structure_window\":20"));
+}
+
+#[test]
 fn run_kdj_rejects_non_canonical_write_parameters() {
     let mut executor = FakeExecutor::with_responses(&[]);
 
@@ -355,6 +432,27 @@ fn run_boll_rejects_unknown_output_format() {
     let error = run_with_executor(
         args(&[
             "boll",
+            "--from",
+            "2026-01-01",
+            "--to",
+            "2026-01-02",
+            "--output-format",
+            "text",
+        ]),
+        &mut executor,
+    )
+    .unwrap_err();
+
+    assert!(matches!(error, CliError::Usage(_)));
+}
+
+#[test]
+fn run_price_pattern_rejects_unknown_output_format() {
+    let mut executor = FakeExecutor::with_responses(&[]);
+
+    let error = run_with_executor(
+        args(&[
+            "price-pattern",
             "--from",
             "2026-01-01",
             "--to",
@@ -476,6 +574,29 @@ fn run_rsi_rejects_non_canonical_write_price_column() {
             "append-latest",
             "--price-column",
             "close_price",
+        ]),
+        &mut executor,
+    )
+    .unwrap_err();
+
+    assert!(matches!(error, CliError::Runtime(_)));
+}
+
+#[test]
+fn run_price_pattern_rejects_non_canonical_write_close_column() {
+    let mut executor = FakeExecutor::with_responses(&[]);
+
+    let error = run_with_executor(
+        args(&[
+            "price-pattern",
+            "--from",
+            "2026-01-01",
+            "--to",
+            "2026-01-02",
+            "--mode",
+            "append-latest",
+            "--close-column",
+            "close_price_forward_adj",
         ]),
         &mut executor,
     )

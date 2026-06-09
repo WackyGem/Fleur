@@ -15,12 +15,17 @@ from scheduler.defs.furnace.assets import (
     FURNACE_MA_GROUP,
     FURNACE_MA_UPSTREAM_ASSET_KEY,
     FURNACE_MA_VOLUME_UPSTREAM_ASSET_KEY,
+    FURNACE_PRICE_PATTERN_ASSET_KEY,
+    FURNACE_PRICE_PATTERN_GROUP,
+    FURNACE_PRICE_PATTERN_STREAK_UPSTREAM_ASSET_KEY,
+    FURNACE_PRICE_PATTERN_STRUCTURE_UPSTREAM_ASSET_KEY,
     FURNACE_RSI_ASSET_KEY,
     FURNACE_RSI_GROUP,
     FURNACE_RSI_UPSTREAM_ASSET_KEY,
     FurnaceBollRunConfig,
     FurnaceKdjRunConfig,
     FurnaceMaRunConfig,
+    FurnacePricePatternRunConfig,
     FurnaceRsiRunConfig,
     _metadata_from_summary,
 )
@@ -46,6 +51,14 @@ def test_furnace_assets_set_key_group_deps_and_tags() -> None:
         ),
         (FURNACE_RSI_ASSET_KEY, FURNACE_RSI_GROUP, {FURNACE_RSI_UPSTREAM_ASSET_KEY}),
         (FURNACE_BOLL_ASSET_KEY, FURNACE_BOLL_GROUP, {FURNACE_BOLL_UPSTREAM_ASSET_KEY}),
+        (
+            FURNACE_PRICE_PATTERN_ASSET_KEY,
+            FURNACE_PRICE_PATTERN_GROUP,
+            {
+                FURNACE_PRICE_PATTERN_STRUCTURE_UPSTREAM_ASSET_KEY,
+                FURNACE_PRICE_PATTERN_STREAK_UPSTREAM_ASSET_KEY,
+            },
+        ),
     ]
 
     for key, group, deps in cases:
@@ -81,6 +94,9 @@ def test_furnace_jobs_select_expected_assets() -> None:
         "furnace__boll_daily_job",
         "furnace__boll_backfill_job",
         "furnace__boll_dry_run_job",
+        "furnace__price_pattern_daily_job",
+        "furnace__price_pattern_backfill_job",
+        "furnace__price_pattern_dry_run_job",
     }
     selections_by_name = {job.name: str(job.selection) for job in jobs}
     assert selections_by_name["furnace__kdj_daily_job"] == (
@@ -94,6 +110,9 @@ def test_furnace_jobs_select_expected_assets() -> None:
     )
     assert selections_by_name["furnace__boll_daily_job"] == (
         'key:"fleur_calculation/calc_stock_boll_daily"'
+    )
+    assert selections_by_name["furnace__price_pattern_daily_job"] == (
+        'key:"fleur_calculation/calc_stock_price_pattern_daily"'
     )
 
 
@@ -141,6 +160,31 @@ def test_furnace_daily_schedules_use_append_latest_config() -> None:
     assert boll_config["price_column"] == "close_price_forward_adj"
     assert boll_config["insert_batch_size"] == 10_000
 
+    price_pattern_tick = schedules["furnace__price_pattern_daily_schedule"].evaluate_tick(
+        dg.build_schedule_context()
+    )
+    assert price_pattern_tick.run_requests is not None
+    price_pattern_config = price_pattern_tick.run_requests[0].run_config["ops"][
+        "furnace__calc_stock_price_pattern_daily"
+    ]["config"]
+    assert price_pattern_config["mode"] == "append-latest"
+    assert (
+        price_pattern_config["structure_input_table"]
+        == "fleur_intermediate.int_stock_quotes_daily_adj"
+    )
+    assert (
+        price_pattern_config["streak_input_table"]
+        == "fleur_intermediate.int_stock_quotes_daily_unadj"
+    )
+    assert price_pattern_config["output_table"] == (
+        "fleur_calculation.calc_stock_price_pattern_daily"
+    )
+    assert price_pattern_config["high_column"] == "high_price_forward_adj"
+    assert price_pattern_config["low_column"] == "low_price_forward_adj"
+    assert price_pattern_config["close_column"] == "close_price"
+    assert price_pattern_config["prev_close_column"] == "prev_close_price"
+    assert price_pattern_config["insert_batch_size"] == 10_000
+
 
 def test_furnace_configs_reject_unknown_mode() -> None:
     cases = [
@@ -165,6 +209,12 @@ def test_furnace_configs_reject_unknown_mode() -> None:
                 request_from="2026-01-01", request_to="2026-01-02", mode="bad-mode"
             ),
             "BOLL",
+        ),
+        (
+            FurnacePricePatternRunConfig(
+                request_from="2026-01-01", request_to="2026-01-02", mode="bad-mode"
+            ),
+            "Price Pattern",
         ),
     ]
 
@@ -312,3 +362,43 @@ def test_furnace_metadata_maps_boll_summary_to_materialization_metadata() -> Non
     assert metadata["max_window"] == 50
     assert metadata["stddev_ddof"] == 0
     assert metadata["boll_configs"][0]["field_suffix"] == "20_2"
+
+
+def test_furnace_metadata_maps_price_pattern_summary_to_materialization_metadata() -> None:
+    metadata = _metadata_from_summary(
+        {
+            "indicator": "price_pattern",
+            "request_from": "2026-01-01",
+            "request_to": "2026-01-02",
+            "effective_output_from": "2026-01-01",
+            "effective_output_to": "2026-01-02",
+            "input_from": "1990-12-19",
+            "input_to": "2026-01-02",
+            "mode": "dry-run",
+            "symbols_count": 2,
+            "input_rows": 100,
+            "output_rows": 20,
+            "input_valid_streak_rows": 95,
+            "input_valid_structure_bar_rows": 96,
+            "valid_streak_rows": 18,
+            "valid_structure_bar_rows": 19,
+            "null_streak_rows": 2,
+            "null_second_low_rows": 4,
+            "affected_years": [2026],
+            "retained_rows": 80,
+            "state_source": "full-history",
+            "n_structure_window": 20,
+            "staging_validation": {"status": "passed"},
+            "partition_replace": {"status": "not_applied"},
+            "performance_metrics": {"parallelism": "rayon", "compute_ms": 12},
+            "writes_applied": False,
+        }
+    )
+
+    assert metadata["indicator"] == "price_pattern"
+    assert metadata["valid_streak_rows"] == 18
+    assert metadata["valid_structure_bar_rows"] == 19
+    assert metadata["null_streak_rows"] == 2
+    assert metadata["null_second_low_rows"] == 4
+    assert metadata["state_source"] == "full-history"
+    assert metadata["n_structure_window"] == 20

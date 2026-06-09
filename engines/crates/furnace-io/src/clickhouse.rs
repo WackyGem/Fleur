@@ -39,6 +39,23 @@ pub trait ClickHouseExecutor {
     /// 当 ClickHouse 执行失败时，返回 [`FurnaceIoError`]。
     fn insert_bytes(&mut self, sql: &str, bytes: &[u8]) -> Result<(), FurnaceIoError>;
 
+    /// 执行 INSERT 语句，并允许调用方向同一个 stdin 流式写入多批原始字节。
+    ///
+    /// 默认实现会聚合到内存后调用 [`ClickHouseExecutor::insert_bytes`]。CLI 执行器覆盖
+    /// 该方法以避免大规模 RowBinary 写入时为每个 batch 启动一个子进程。
+    ///
+    /// # 错误
+    ///
+    /// 当 ClickHouse 执行失败时，返回 [`FurnaceIoError`]。
+    fn insert_bytes_stream<F>(&mut self, sql: &str, write_body: F) -> Result<(), FurnaceIoError>
+    where
+        F: FnOnce(&mut dyn IoWrite) -> Result<(), FurnaceIoError>,
+    {
+        let mut bytes = Vec::new();
+        write_body(&mut bytes)?;
+        self.insert_bytes(sql, &bytes)
+    }
+
     /// 执行语句并忽略其标准输出。
     ///
     /// # 错误
@@ -199,6 +216,48 @@ impl ClickHouseExecutor for ClickHouseCliExecutor {
                 message: "failed to write insert bytes to clickhouse-client".to_string(),
                 source: Some(source.to_string()),
             })?;
+
+        let output =
+            child
+                .wait_with_output()
+                .map_err(|source| FurnaceIoError::ClickHouseCommand {
+                    message: format!("failed to wait for {}", self.command),
+                    source: Some(source.to_string()),
+                })?;
+        if !output.status.success() {
+            return Err(FurnaceIoError::ClickHouseCommand {
+                message: format!("clickhouse-client exited with {}", output.status),
+                source: Some(String::from_utf8_lossy(&output.stderr).trim().to_string()),
+            });
+        }
+        Ok(())
+    }
+
+    fn insert_bytes_stream<F>(&mut self, sql: &str, write_body: F) -> Result<(), FurnaceIoError>
+    where
+        F: FnOnce(&mut dyn IoWrite) -> Result<(), FurnaceIoError>,
+    {
+        let mut child = self
+            .base_command()
+            .arg("--query")
+            .arg(sql)
+            .stdin(Stdio::piped())
+            .stdout(Stdio::piped())
+            .stderr(Stdio::piped())
+            .spawn()
+            .map_err(|source| FurnaceIoError::ClickHouseCommand {
+                message: format!("failed to run {}", self.command),
+                source: Some(source.to_string()),
+            })?;
+
+        let Some(mut stdin) = child.stdin.take() else {
+            return Err(FurnaceIoError::ClickHouseCommand {
+                message: "failed to open clickhouse-client stdin".to_string(),
+                source: None,
+            });
+        };
+        write_body(&mut stdin)?;
+        drop(stdin);
 
         let output =
             child

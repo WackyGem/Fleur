@@ -9,6 +9,7 @@ from scheduler.defs.resources.furnace import (
     FurnaceCliResource,
     FurnaceKdjCliRequest,
     FurnaceMaCliRequest,
+    FurnacePricePatternCliRequest,
     FurnaceRsiCliRequest,
 )
 
@@ -169,6 +170,52 @@ def test_furnace_cli_resource_builds_stable_boll_command() -> None:
     ]
 
 
+def test_furnace_cli_resource_builds_stable_price_pattern_command() -> None:
+    resource = FurnaceCliResource(binary_path="/bin/furnace", working_dir="/tmp")
+    request = FurnacePricePatternCliRequest(
+        request_from="2026-01-01",
+        request_to="2026-01-02",
+        mode="dry-run",
+        symbols=("sh.600000", "sz.000001"),
+        run_id="run-1",
+    )
+
+    command = resource.command_for_price_pattern_request(request)
+
+    assert command == [
+        "/bin/furnace",
+        "price-pattern",
+        "--from",
+        "2026-01-01",
+        "--to",
+        "2026-01-02",
+        "--mode",
+        "dry-run",
+        "--structure-input-table",
+        "fleur_intermediate.int_stock_quotes_daily_adj",
+        "--streak-input-table",
+        "fleur_intermediate.int_stock_quotes_daily_unadj",
+        "--output-table",
+        "fleur_calculation.calc_stock_price_pattern_daily",
+        "--high-column",
+        "high_price_forward_adj",
+        "--low-column",
+        "low_price_forward_adj",
+        "--close-column",
+        "close_price",
+        "--prev-close-column",
+        "prev_close_price",
+        "--insert-batch-size",
+        "10000",
+        "--output-format",
+        "json",
+        "--symbols",
+        "sh.600000,sz.000001",
+        "--run-id",
+        "run-1",
+    ]
+
+
 def test_furnace_cli_resource_parses_json_summary(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -253,6 +300,28 @@ def test_furnace_cli_resource_parses_boll_json_summary(
     )
 
     assert result.summary["indicator"] == "boll"
+    assert result.summary["output_rows"] == 10
+
+
+def test_furnace_cli_resource_parses_price_pattern_json_summary(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    def fake_run(*args: Any, **kwargs: Any) -> subprocess.CompletedProcess[str]:
+        return subprocess.CompletedProcess(
+            args=args[0],
+            returncode=0,
+            stdout='{"indicator":"price_pattern","request_from":"2026-01-01","output_rows":10}',
+            stderr="",
+        )
+
+    monkeypatch.setattr("scheduler.defs.resources.furnace.subprocess.run", fake_run)
+    resource = FurnaceCliResource(binary_path="/bin/furnace", working_dir="/tmp")
+
+    result = resource.run_price_pattern(
+        FurnacePricePatternCliRequest(request_from="2026-01-01", request_to="2026-01-02")
+    )
+
+    assert result.summary["indicator"] == "price_pattern"
     assert result.summary["output_rows"] == 10
 
 

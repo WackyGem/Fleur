@@ -16,6 +16,10 @@ pub const DEFAULT_RSI_OUTPUT_TABLE: &str = "fleur_calculation.calc_stock_rsi_dai
 /// Furnace 负责写入的日频 Bollinger Bands 计算结果表。
 pub const DEFAULT_BOLL_OUTPUT_TABLE: &str = "fleur_calculation.calc_stock_boll_daily";
 
+/// Furnace 负责写入的日频价格行为和结构计算结果表。
+pub const DEFAULT_PRICE_PATTERN_OUTPUT_TABLE: &str =
+    "fleur_calculation.calc_stock_price_pattern_daily";
+
 /// Moving Average 第一版使用的 canonical 前复权收盘价字段。
 pub const DEFAULT_MA_PRICE_COLUMN: &str = "close_price_forward_adj";
 
@@ -27,6 +31,26 @@ pub const DEFAULT_RSI_PRICE_COLUMN: &str = "close_price_forward_adj";
 
 /// Bollinger Bands 第一版使用的 canonical 前复权收盘价字段。
 pub const DEFAULT_BOLL_PRICE_COLUMN: &str = "close_price_forward_adj";
+
+/// Price Pattern 第一版结构检测使用的 canonical 前复权输入表。
+pub const DEFAULT_PRICE_PATTERN_STRUCTURE_INPUT_TABLE: &str =
+    "fleur_intermediate.int_stock_quotes_daily_adj";
+
+/// Price Pattern 第一版连阳/连阴使用的 canonical 未复权输入表。
+pub const DEFAULT_PRICE_PATTERN_STREAK_INPUT_TABLE: &str =
+    "fleur_intermediate.int_stock_quotes_daily_unadj";
+
+/// Price Pattern 第一版结构检测使用的 canonical high 字段。
+pub const DEFAULT_PRICE_PATTERN_HIGH_COLUMN: &str = "high_price_forward_adj";
+
+/// Price Pattern 第一版结构检测使用的 canonical low 字段。
+pub const DEFAULT_PRICE_PATTERN_LOW_COLUMN: &str = "low_price_forward_adj";
+
+/// Price Pattern 第一版连阳/连阴使用的 canonical close 字段。
+pub const DEFAULT_PRICE_PATTERN_CLOSE_COLUMN: &str = "close_price";
+
+/// Price Pattern 第一版连阳/连阴使用的 canonical previous close 字段。
+pub const DEFAULT_PRICE_PATTERN_PREV_CLOSE_COLUMN: &str = "prev_close_price";
 
 /// ClickHouse 单批插入的默认目标行数。
 pub const DEFAULT_INSERT_BATCH_SIZE: usize = 10_000;
@@ -159,6 +183,33 @@ CREATE TABLE IF NOT EXISTS {output_table}
     boll_mid_50_2p5 Nullable(Float64),
     boll_up_50_2p5 Nullable(Float64),
     boll_dn_50_2p5 Nullable(Float64)
+)
+ENGINE = MergeTree()
+PARTITION BY toYear(trade_date)
+ORDER BY (trade_date, security_code)"
+    )
+}
+
+/// 返回 Price Pattern 结果表的 ClickHouse DDL。
+pub fn create_price_pattern_output_table_sql(output_table: &str) -> String {
+    format!(
+        "\
+CREATE TABLE IF NOT EXISTS {output_table}
+(
+    security_code String,
+    trade_date Date,
+    close_direction Nullable(Int8),
+    close_up_streak_days Nullable(UInt16),
+    close_down_streak_days Nullable(UInt16),
+    n_structure_20_valid_bars UInt16,
+    n_structure_20_high_date Nullable(Date),
+    n_structure_20_high_price Nullable(Float64),
+    n_structure_20_low_date Nullable(Date),
+    n_structure_20_low_price Nullable(Float64),
+    n_structure_20_second_low_date Nullable(Date),
+    n_structure_20_second_low_price Nullable(Float64),
+    n_structure_20_second_low_ratio Nullable(Float64),
+    n_structure_20_is_valid Bool
 )
 ENGINE = MergeTree()
 PARTITION BY toYear(trade_date)
