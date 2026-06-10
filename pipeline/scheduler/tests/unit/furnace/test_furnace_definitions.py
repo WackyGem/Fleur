@@ -4,6 +4,7 @@ from typing import cast
 
 import dagster as dg
 import pytest
+from scheduler.defs.dbt_jobs import STOCK_JOBS, TRANSFORMATION_SCHEDULES
 from scheduler.defs.furnace.assets import (
     FURNACE_BOLL_ASSET_KEY,
     FURNACE_BOLL_GROUP,
@@ -29,7 +30,7 @@ from scheduler.defs.furnace.assets import (
     FurnaceRsiRunConfig,
     _metadata_from_summary,
 )
-from scheduler.defs.furnace.definitions import build_furnace_defs, build_furnace_jobs
+from scheduler.defs.furnace.definitions import build_furnace_defs
 
 
 def _asset_for_key(loaded_defs: dg.Definitions, key: dg.AssetKey) -> dg.AssetsDefinition:
@@ -78,95 +79,52 @@ def test_furnace_assets_set_key_group_deps_and_tags() -> None:
         assert asset.partitions_def is None
 
 
-def test_furnace_jobs_select_expected_assets() -> None:
-    jobs = build_furnace_jobs()
-
-    assert {job.name for job in jobs} == {
-        "furnace__kdj_daily_job",
-        "furnace__kdj_backfill_job",
-        "furnace__kdj_dry_run_job",
-        "furnace__ma_daily_job",
-        "furnace__ma_backfill_job",
-        "furnace__ma_dry_run_job",
-        "furnace__rsi_daily_job",
-        "furnace__rsi_backfill_job",
-        "furnace__rsi_dry_run_job",
-        "furnace__boll_daily_job",
-        "furnace__boll_backfill_job",
-        "furnace__boll_dry_run_job",
-        "furnace__price_pattern_daily_job",
-        "furnace__price_pattern_backfill_job",
-        "furnace__price_pattern_dry_run_job",
-    }
-    selections_by_name = {job.name: str(job.selection) for job in jobs}
-    assert selections_by_name["furnace__kdj_daily_job"] == (
-        'key:"fleur_calculation/calc_stock_kdj_daily"'
-    )
-    assert selections_by_name["furnace__ma_daily_job"] == (
-        'key:"fleur_calculation/calc_stock_ma_daily"'
-    )
-    assert selections_by_name["furnace__rsi_daily_job"] == (
-        'key:"fleur_calculation/calc_stock_rsi_daily"'
-    )
-    assert selections_by_name["furnace__boll_daily_job"] == (
-        'key:"fleur_calculation/calc_stock_boll_daily"'
-    )
-    assert selections_by_name["furnace__price_pattern_daily_job"] == (
-        'key:"fleur_calculation/calc_stock_price_pattern_daily"'
-    )
-
-
-def test_furnace_daily_schedules_use_append_latest_config() -> None:
+def test_furnace_defs_only_register_assets_and_resource() -> None:
     loaded_defs = build_furnace_defs()
-    schedules = {
-        schedule.name: cast("dg.ScheduleDefinition", schedule)
-        for schedule in loaded_defs.schedules or []
-    }
 
-    kdj_tick = schedules["furnace__kdj_daily_schedule"].evaluate_tick(dg.build_schedule_context())
-    assert kdj_tick.run_requests is not None
+    assert loaded_defs.jobs is None
+    assert loaded_defs.schedules is None
+    assert set(loaded_defs.resources) == {"furnace_cli"}
+
+
+def test_stock_daily_job_selects_dbt_calculation_and_mart_assets() -> None:
+    assert {job.name for job in STOCK_JOBS} == {"stock__daily_build_job"}
+    selection = str(STOCK_JOBS[0].selection)
+
+    assert 'group:"dbt_staging"' in selection
+    assert 'group:"dbt_intermediate"' in selection
+    assert 'group:"calculation"' in selection
+    assert 'group:"dbt_marts"' in selection
+
+
+def test_stock_daily_schedule_uses_append_latest_furnace_config() -> None:
+    schedules = {schedule.name: schedule for schedule in TRANSFORMATION_SCHEDULES}
+
+    tick = schedules["stock__daily_build_schedule"].evaluate_tick(dg.build_schedule_context())
+    assert tick.run_requests is not None
+    run_config = tick.run_requests[0].run_config
     assert (
-        kdj_tick.run_requests[0].run_config["ops"]["fleur_calculation__calc_stock_kdj_daily"][
-            "config"
-        ]["mode"]
+        run_config["ops"]["fleur_calculation__calc_stock_kdj_daily"]["config"]["mode"]
         == "append-latest"
     )
 
-    ma_tick = schedules["furnace__ma_daily_schedule"].evaluate_tick(dg.build_schedule_context())
-    assert ma_tick.run_requests is not None
-    ma_config = ma_tick.run_requests[0].run_config["ops"]["fleur_calculation__calc_stock_ma_daily"][
-        "config"
-    ]
+    ma_config = run_config["ops"]["fleur_calculation__calc_stock_ma_daily"]["config"]
     assert ma_config["mode"] == "append-latest"
     assert ma_config["volume_input_table"] == "fleur_intermediate.int_stock_quotes_daily_unadj"
     assert ma_config["price_column"] == "close_price_forward_adj"
     assert ma_config["volume_column"] == "volume"
 
-    rsi_tick = schedules["furnace__rsi_daily_schedule"].evaluate_tick(dg.build_schedule_context())
-    assert rsi_tick.run_requests is not None
-    rsi_config = rsi_tick.run_requests[0].run_config["ops"]["furnace__calc_stock_rsi_daily"][
-        "config"
-    ]
+    rsi_config = run_config["ops"]["furnace__calc_stock_rsi_daily"]["config"]
     assert rsi_config["mode"] == "append-latest"
     assert rsi_config["price_column"] == "close_price_forward_adj"
 
-    boll_tick = schedules["furnace__boll_daily_schedule"].evaluate_tick(dg.build_schedule_context())
-    assert boll_tick.run_requests is not None
-    boll_config = boll_tick.run_requests[0].run_config["ops"]["furnace__calc_stock_boll_daily"][
-        "config"
-    ]
+    boll_config = run_config["ops"]["furnace__calc_stock_boll_daily"]["config"]
     assert boll_config["mode"] == "append-latest"
     assert boll_config["output_table"] == "fleur_calculation.calc_stock_boll_daily"
     assert boll_config["price_column"] == "close_price_forward_adj"
     assert boll_config["insert_batch_size"] == 10_000
 
-    price_pattern_tick = schedules["furnace__price_pattern_daily_schedule"].evaluate_tick(
-        dg.build_schedule_context()
-    )
-    assert price_pattern_tick.run_requests is not None
-    price_pattern_config = price_pattern_tick.run_requests[0].run_config["ops"][
-        "furnace__calc_stock_price_pattern_daily"
-    ]["config"]
+    price_pattern_config = run_config["ops"]["furnace__calc_stock_price_pattern_daily"]["config"]
     assert price_pattern_config["mode"] == "append-latest"
     assert (
         price_pattern_config["structure_input_table"]

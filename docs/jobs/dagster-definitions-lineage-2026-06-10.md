@@ -10,8 +10,8 @@
 
 ```bash
 set -a; . ./.env; set +a
-cd pipeline
-uv run dg list defs --target-path scheduler --json
+cd pipeline/scheduler
+uv run dg list defs --json
 ```
 
 关键源码入口：
@@ -31,17 +31,17 @@ uv run dg list defs --target-path scheduler --json
 
 - Source bundles：`sina`、`jiuyan`、`ths`、`baostock`、`eastmoney`
 - Base assets：source bundle assets + `CLICKHOUSE_RAW_ASSETS`
-- Base jobs：source bundle jobs + `CLICKHOUSE_RAW_JOBS` + `DBT_JOBS`
-- Base schedules：source bundle schedules + `DBT_SCHEDULES`
+- Base jobs：source bundle jobs + `CLICKHOUSE_RAW_JOBS` + `TRANSFORMATION_JOBS`
+- Base schedules：source bundle schedules + `TRANSFORMATION_SCHEDULES`
 - Component definitions：`dbt` component + `furnace` component
 
 当前注册计数：
 
 | Type | Count | Notes |
 |---|---:|---|
-| Assets | 89 | 71 executable, 18 non-executable dbt relation handles |
-| Jobs | 34 | Source, ClickHouse raw sync, dbt, Furnace |
-| Schedules | 13 | Source daily/yearly schedules, dbt daily build, Furnace daily jobs |
+| Assets | 71 | All registered assets are executable |
+| Jobs | 19 | Source, ClickHouse raw sync, dbt manual jobs, unified stock daily build |
+| Schedules | 8 | Source daily/yearly schedules + unified stock daily build |
 | Sensors | 2 | Automation condition sensor + Slack asset failure sensor |
 | Resources | 10 | S3, HTTP, BaoStock, ClickHouse, OCR, Slack, Furnace CLI |
 
@@ -55,7 +55,6 @@ uv run dg list defs --target-path scheduler --json
 | `dbt_intermediate` | 13 | 13 | dbt intermediate 和 Furnace 输出 wrapper |
 | `calculation` | 5 | 5 | Rust Furnace 写入 `fleur_calculation` 的指标表 |
 | `dbt_marts` | 1 | 1 | dbt mart 输出 |
-| `default` | 18 | 0 | dagster-dbt 暴露的非执行 relation handle，当前无直接 job target |
 
 ## High-Level Lineage
 
@@ -90,7 +89,7 @@ flowchart LR
 - 市场事件日分区资产先落 S3，再压缩成年分区：`jiuyan__action_field -> jiuyan__action_field_compacted`、`ths__limit_up_pool -> ths__limit_up_pool_compacted`。只有 compacted 资产进入 ClickHouse raw sync。
 - ClickHouse raw sync 的 enabled specs 当前共 16 个，来自 `pipeline/contracts` 生成的 scheduler specs。
 - dbt staging 从 `clickhouse/raw/*` 读取；dbt intermediate/marts 由 dbt manifest 暴露。
-- Furnace 资产从 `int_stock_quotes_daily_adj` 和部分 `int_stock_quotes_daily_unadj` 读取，写 `fleur_calculation.calc_stock_*`；对应 dbt wrapper 再把计算结果接回 `dbt_intermediate`。
+- `stock__daily_build_job` 统一编排 `dbt_staging -> dbt_intermediate / calculation -> dbt_marts`。Furnace 资产从 `int_stock_quotes_daily_adj` 和部分 `int_stock_quotes_daily_unadj` 读取，写 `fleur_calculation.calc_stock_*`；对应 dbt wrapper 再把计算结果接回 `dbt_intermediate`。
 
 ## Source Bundle Lineage
 
@@ -125,7 +124,7 @@ flowchart LR
 
 ## dbt and Furnace Lineage
 
-The `FleurDbtProjectComponent` rewrites executable dbt model asset keys to bare model names and groups them by model layer. `dg list defs` also reports non-executable relation handles such as `fleur_staging/stg_*` and `fleur_intermediate/int_*`; current Dagster dependencies reference those handles for some dbt-to-dbt edges.
+The `FleurDbtProjectComponent` rewrites executable dbt model asset keys to bare model names and rewrites dbt-to-dbt dependencies to those same flat keys. This prevents duplicate non-executable `default` relation handles such as `fleur_staging/stg_*` and `fleur_intermediate/int_*`.
 
 | Asset | Upstream assets reported by Dagster |
 |---|---|
@@ -145,14 +144,14 @@ The `FleurDbtProjectComponent` rewrites executable dbt model asset keys to bare 
 | `stg_jiuyan__industry_ocr_snapshot` | `clickhouse/raw/jiuyan__industry_ocr_snapshot` |
 | `stg_sina__trade_calendar` | `clickhouse/raw/sina__trade_calendar` |
 | `stg_ths__limit_up_pool_compacted` | `clickhouse/raw/ths__limit_up_pool_compacted` |
-| `int_trade_calendar` | `fleur_staging/stg_sina__trade_calendar` |
-| `int_stock_basic_snapshot` | `fleur_staging/stg_baostock__query_stock_basic` |
-| `int_stock_shares_history` | `fleur_staging/stg_eastmoney__equity_history`, `fleur_staging/stg_eastmoney__freeholders` |
-| `int_stock_exrights_event` | `fleur_staging/stg_eastmoney__dividend_allotment`, `fleur_staging/stg_eastmoney__dividend_main` |
-| `int_stock_quotes_daily_unadj` | `fleur_intermediate/int_stock_basic_snapshot`, `fleur_intermediate/int_stock_exrights_event`, `fleur_intermediate/int_stock_shares_history`, `fleur_intermediate/int_trade_calendar`, `fleur_staging/stg_baostock__query_history_k_data_plus_daily` |
-| `int_stock_adjustment_factor` | `fleur_intermediate/int_stock_quotes_daily_unadj` |
-| `int_stock_quotes_daily_adj` | `fleur_intermediate/int_stock_adjustment_factor`, `fleur_intermediate/int_stock_quotes_daily_unadj` |
-| `int_stock_financial_valuation` | `fleur_intermediate/int_stock_quotes_daily_unadj`, `fleur_intermediate/int_stock_shares_history`, `fleur_staging/stg_eastmoney__balance`, `fleur_staging/stg_eastmoney__income_sq`, `fleur_staging/stg_eastmoney__income_ytd` |
+| `int_trade_calendar` | `stg_sina__trade_calendar` |
+| `int_stock_basic_snapshot` | `stg_baostock__query_stock_basic` |
+| `int_stock_shares_history` | `stg_eastmoney__equity_history`, `stg_eastmoney__freeholders` |
+| `int_stock_exrights_event` | `stg_eastmoney__dividend_allotment`, `stg_eastmoney__dividend_main` |
+| `int_stock_quotes_daily_unadj` | `int_stock_basic_snapshot`, `int_stock_exrights_event`, `int_stock_shares_history`, `int_trade_calendar`, `stg_baostock__query_history_k_data_plus_daily` |
+| `int_stock_adjustment_factor` | `int_stock_quotes_daily_unadj` |
+| `int_stock_quotes_daily_adj` | `int_stock_adjustment_factor`, `int_stock_quotes_daily_unadj` |
+| `int_stock_financial_valuation` | `int_stock_quotes_daily_unadj`, `int_stock_shares_history`, `stg_eastmoney__balance`, `stg_eastmoney__income_sq`, `stg_eastmoney__income_ytd` |
 | `fleur_calculation/calc_stock_kdj_daily` | `int_stock_quotes_daily_adj` |
 | `fleur_calculation/calc_stock_ma_daily` | `int_stock_quotes_daily_adj`, `int_stock_quotes_daily_unadj` |
 | `fleur_calculation/calc_stock_rsi_daily` | `int_stock_quotes_daily_adj` |
@@ -163,7 +162,7 @@ The `FleurDbtProjectComponent` rewrites executable dbt model asset keys to bare 
 | `int_stock_rsi_daily` | `fleur_calculation/calc_stock_rsi_daily` |
 | `int_stock_boll_daily` | `fleur_calculation/calc_stock_boll_daily` |
 | `int_stock_price_pattern_daily` | `fleur_calculation/calc_stock_price_pattern_daily` |
-| `mart_stock_quotes_daily` | `fleur_intermediate/int_stock_financial_valuation`, `fleur_intermediate/int_stock_kdj_daily`, `fleur_intermediate/int_stock_quotes_daily_unadj` |
+| `mart_stock_quotes_daily` | `int_stock_financial_valuation`, `int_stock_kdj_daily`, `int_stock_quotes_daily_unadj` |
 
 ## Jobs and Schedules
 
@@ -172,7 +171,7 @@ Source schedule factory notes:
 - `build_schedule()` defaults to `Asia/Shanghai`.
 - `build_trade_date_schedule()` reads the S3 Sina calendar and skips non-trading days.
 - `build_year_refresh_schedule()` emits the execution year as partition key and passes a refresh cutoff date into each op.
-- dbt and Furnace schedules are declared directly with `dg.ScheduleDefinition`; no explicit `execution_timezone` is set in the current code.
+- The unified stock daily schedule is declared directly with `dg.ScheduleDefinition`; no explicit `execution_timezone` is set in the current code.
 
 | Job | Asset selection | Schedule | Cron | Notes |
 |---|---|---|---|---|
@@ -194,26 +193,11 @@ Source schedule factory notes:
 | `clickhouse__raw_sync_ths_market_event_job` | `clickhouse/raw/ths__limit_up_pool_compacted` | - | - | 手动 THS market-event raw sync |
 | `dbt__staging_build_job` | `group:dbt_staging` | - | - | 手动 staging build |
 | `dbt__marts_build_job` | `group:dbt_staging | group:dbt_intermediate | group:dbt_marts` | - | - | 手动 marts/full dbt build |
-| `dbt__daily_build_job` | `group:dbt_staging | group:dbt_intermediate | group:dbt_marts` | `dbt__daily_build_schedule` | `30 18 * * *` | 每日 dbt build |
-| `furnace__kdj_daily_job` | `fleur_calculation/calc_stock_kdj_daily` | `furnace__kdj_daily_schedule` | `45 18 * * *` | KDJ 每日 `append-latest` |
-| `furnace__kdj_backfill_job` | `fleur_calculation/calc_stock_kdj_daily` | - | - | KDJ backfill |
-| `furnace__kdj_dry_run_job` | `fleur_calculation/calc_stock_kdj_daily` | - | - | KDJ dry-run |
-| `furnace__ma_daily_job` | `fleur_calculation/calc_stock_ma_daily` | `furnace__ma_daily_schedule` | `45 18 * * *` | MA 每日 `append-latest` |
-| `furnace__ma_backfill_job` | `fleur_calculation/calc_stock_ma_daily` | - | - | MA backfill |
-| `furnace__ma_dry_run_job` | `fleur_calculation/calc_stock_ma_daily` | - | - | MA dry-run |
-| `furnace__rsi_daily_job` | `fleur_calculation/calc_stock_rsi_daily` | `furnace__rsi_daily_schedule` | `45 18 * * *` | RSI 每日 `append-latest` |
-| `furnace__rsi_backfill_job` | `fleur_calculation/calc_stock_rsi_daily` | - | - | RSI backfill |
-| `furnace__rsi_dry_run_job` | `fleur_calculation/calc_stock_rsi_daily` | - | - | RSI dry-run |
-| `furnace__boll_daily_job` | `fleur_calculation/calc_stock_boll_daily` | `furnace__boll_daily_schedule` | `45 18 * * *` | BOLL 每日 `append-latest` |
-| `furnace__boll_backfill_job` | `fleur_calculation/calc_stock_boll_daily` | - | - | BOLL backfill |
-| `furnace__boll_dry_run_job` | `fleur_calculation/calc_stock_boll_daily` | - | - | BOLL dry-run |
-| `furnace__price_pattern_daily_job` | `fleur_calculation/calc_stock_price_pattern_daily` | `furnace__price_pattern_daily_schedule` | `45 18 * * *` | Price pattern 每日 `append-latest` |
-| `furnace__price_pattern_backfill_job` | `fleur_calculation/calc_stock_price_pattern_daily` | - | - | Price pattern backfill |
-| `furnace__price_pattern_dry_run_job` | `fleur_calculation/calc_stock_price_pattern_daily` | - | - | Price pattern dry-run |
+| `stock__daily_build_job` | `group:dbt_staging | group:dbt_intermediate | group:calculation | group:dbt_marts` | `stock__daily_build_schedule` | `30 18 * * *` | 每日统一编排 stg、int、Furnace calculation 和 mart；schedule 注入全部 Furnace `append-latest` run config |
 
 ## Complete Asset Inventory
 
-This table is generated from `dg list defs --target-path scheduler --json` and sorted by group and key.
+This table is generated from `dg list defs --json` and sorted by group and key.
 
 | Asset key | Group | Exec | Kinds | Dependencies |
 |---|---:|---:|---|---|
@@ -238,20 +222,20 @@ This table is generated from `dg list defs --target-path scheduler --json` and s
 | `clickhouse/raw/jiuyan__industry_ocr_snapshot` | `clickhouse_raw` | yes | clickhouse, raw | `source/jiuyan__industry_ocr_snapshot` |
 | `clickhouse/raw/sina__trade_calendar` | `clickhouse_raw` | yes | clickhouse, raw | `source/sina__trade_calendar` |
 | `clickhouse/raw/ths__limit_up_pool_compacted` | `clickhouse_raw` | yes | clickhouse, raw | `source/ths__limit_up_pool_compacted` |
-| `int_stock_adjustment_factor` | `dbt_intermediate` | yes | clickhouse, dbt | `fleur_intermediate/int_stock_quotes_daily_unadj` |
-| `int_stock_basic_snapshot` | `dbt_intermediate` | yes | clickhouse, dbt | `fleur_staging/stg_baostock__query_stock_basic` |
+| `int_stock_adjustment_factor` | `dbt_intermediate` | yes | clickhouse, dbt | `int_stock_quotes_daily_unadj` |
+| `int_stock_basic_snapshot` | `dbt_intermediate` | yes | clickhouse, dbt | `stg_baostock__query_stock_basic` |
 | `int_stock_boll_daily` | `dbt_intermediate` | yes | clickhouse, dbt | `fleur_calculation/calc_stock_boll_daily` |
-| `int_stock_exrights_event` | `dbt_intermediate` | yes | clickhouse, dbt | `fleur_staging/stg_eastmoney__dividend_allotment`, `fleur_staging/stg_eastmoney__dividend_main` |
-| `int_stock_financial_valuation` | `dbt_intermediate` | yes | clickhouse, dbt | `fleur_intermediate/int_stock_quotes_daily_unadj`, `fleur_intermediate/int_stock_shares_history`, `fleur_staging/stg_eastmoney__balance`, `fleur_staging/stg_eastmoney__income_sq`, `fleur_staging/stg_eastmoney__income_ytd` |
+| `int_stock_exrights_event` | `dbt_intermediate` | yes | clickhouse, dbt | `stg_eastmoney__dividend_allotment`, `stg_eastmoney__dividend_main` |
+| `int_stock_financial_valuation` | `dbt_intermediate` | yes | clickhouse, dbt | `int_stock_quotes_daily_unadj`, `int_stock_shares_history`, `stg_eastmoney__balance`, `stg_eastmoney__income_sq`, `stg_eastmoney__income_ytd` |
 | `int_stock_kdj_daily` | `dbt_intermediate` | yes | clickhouse, dbt | `fleur_calculation/calc_stock_kdj_daily` |
 | `int_stock_ma_daily` | `dbt_intermediate` | yes | clickhouse, dbt | `fleur_calculation/calc_stock_ma_daily` |
 | `int_stock_price_pattern_daily` | `dbt_intermediate` | yes | clickhouse, dbt | `fleur_calculation/calc_stock_price_pattern_daily` |
-| `int_stock_quotes_daily_adj` | `dbt_intermediate` | yes | clickhouse, dbt | `fleur_intermediate/int_stock_adjustment_factor`, `fleur_intermediate/int_stock_quotes_daily_unadj` |
-| `int_stock_quotes_daily_unadj` | `dbt_intermediate` | yes | clickhouse, dbt | `fleur_intermediate/int_stock_basic_snapshot`, `fleur_intermediate/int_stock_exrights_event`, `fleur_intermediate/int_stock_shares_history`, `fleur_intermediate/int_trade_calendar`, `fleur_staging/stg_baostock__query_history_k_data_plus_daily` |
+| `int_stock_quotes_daily_adj` | `dbt_intermediate` | yes | clickhouse, dbt | `int_stock_adjustment_factor`, `int_stock_quotes_daily_unadj` |
+| `int_stock_quotes_daily_unadj` | `dbt_intermediate` | yes | clickhouse, dbt | `int_stock_basic_snapshot`, `int_stock_exrights_event`, `int_stock_shares_history`, `int_trade_calendar`, `stg_baostock__query_history_k_data_plus_daily` |
 | `int_stock_rsi_daily` | `dbt_intermediate` | yes | clickhouse, dbt | `fleur_calculation/calc_stock_rsi_daily` |
-| `int_stock_shares_history` | `dbt_intermediate` | yes | clickhouse, dbt | `fleur_staging/stg_eastmoney__equity_history`, `fleur_staging/stg_eastmoney__freeholders` |
-| `int_trade_calendar` | `dbt_intermediate` | yes | clickhouse, dbt | `fleur_staging/stg_sina__trade_calendar` |
-| `mart_stock_quotes_daily` | `dbt_marts` | yes | clickhouse, dbt | `fleur_intermediate/int_stock_financial_valuation`, `fleur_intermediate/int_stock_kdj_daily`, `fleur_intermediate/int_stock_quotes_daily_unadj` |
+| `int_stock_shares_history` | `dbt_intermediate` | yes | clickhouse, dbt | `stg_eastmoney__equity_history`, `stg_eastmoney__freeholders` |
+| `int_trade_calendar` | `dbt_intermediate` | yes | clickhouse, dbt | `stg_sina__trade_calendar` |
+| `mart_stock_quotes_daily` | `dbt_marts` | yes | clickhouse, dbt | `int_stock_financial_valuation`, `int_stock_kdj_daily`, `int_stock_quotes_daily_unadj` |
 | `stg_baostock__query_history_k_data_plus_daily` | `dbt_staging` | yes | clickhouse, dbt | `clickhouse/raw/baostock__query_history_k_data_plus_daily` |
 | `stg_baostock__query_stock_basic` | `dbt_staging` | yes | clickhouse, dbt | `clickhouse/raw/baostock__query_stock_basic` |
 | `stg_eastmoney__balance` | `dbt_staging` | yes | clickhouse, dbt | `clickhouse/raw/eastmoney__balance` |
@@ -268,24 +252,6 @@ This table is generated from `dg list defs --target-path scheduler --json` and s
 | `stg_jiuyan__industry_ocr_snapshot` | `dbt_staging` | yes | clickhouse, dbt | `clickhouse/raw/jiuyan__industry_ocr_snapshot` |
 | `stg_sina__trade_calendar` | `dbt_staging` | yes | clickhouse, dbt | `clickhouse/raw/sina__trade_calendar` |
 | `stg_ths__limit_up_pool_compacted` | `dbt_staging` | yes | clickhouse, dbt | `clickhouse/raw/ths__limit_up_pool_compacted` |
-| `fleur_intermediate/int_stock_adjustment_factor` | `default` | no | - | - |
-| `fleur_intermediate/int_stock_basic_snapshot` | `default` | no | - | - |
-| `fleur_intermediate/int_stock_exrights_event` | `default` | no | - | - |
-| `fleur_intermediate/int_stock_financial_valuation` | `default` | no | - | - |
-| `fleur_intermediate/int_stock_kdj_daily` | `default` | no | - | - |
-| `fleur_intermediate/int_stock_quotes_daily_unadj` | `default` | no | - | - |
-| `fleur_intermediate/int_stock_shares_history` | `default` | no | - | - |
-| `fleur_intermediate/int_trade_calendar` | `default` | no | - | - |
-| `fleur_staging/stg_baostock__query_history_k_data_plus_daily` | `default` | no | - | - |
-| `fleur_staging/stg_baostock__query_stock_basic` | `default` | no | - | - |
-| `fleur_staging/stg_eastmoney__balance` | `default` | no | - | - |
-| `fleur_staging/stg_eastmoney__dividend_allotment` | `default` | no | - | - |
-| `fleur_staging/stg_eastmoney__dividend_main` | `default` | no | - | - |
-| `fleur_staging/stg_eastmoney__equity_history` | `default` | no | - | - |
-| `fleur_staging/stg_eastmoney__freeholders` | `default` | no | - | - |
-| `fleur_staging/stg_eastmoney__income_sq` | `default` | no | - | - |
-| `fleur_staging/stg_eastmoney__income_ytd` | `default` | no | - | - |
-| `fleur_staging/stg_sina__trade_calendar` | `default` | no | - | - |
 | `source/baostock__query_history_k_data_plus_daily` | `s3_sources` | yes | parquet, s3, tcp | `source/baostock__query_stock_basic`, `source/sina__trade_calendar` |
 | `source/baostock__query_stock_basic` | `s3_sources` | yes | parquet, s3, tcp | - |
 | `source/eastmoney__balance` | `s3_sources` | yes | http, parquet, s3 | `source/baostock__query_stock_basic` |
@@ -333,9 +299,9 @@ When Dagster definitions change, refresh this document with:
 
 ```bash
 set -a; . ./.env; set +a
-cd pipeline
-uv run dg list defs --target-path scheduler --json
-uv run dg check defs --target-path scheduler
-cd ..
+cd pipeline/scheduler
+uv run dg list defs --json
+uv run dg check defs
+cd ../..
 git diff --check
 ```
