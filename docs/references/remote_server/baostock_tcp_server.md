@@ -507,11 +507,11 @@ class DecodedResponse:
     records: List[List[str]]
     field_names: List[str]
     params: List[str]
-    
+
     @property
     def record_count(self) -> int:
         return len(self.records)
-    
+
     @property
     def has_next_page(self) -> bool:
         return self.record_count > 0 and self.record_count == self.page_size
@@ -533,12 +533,12 @@ def encode_request(
         parts = [api_name, user_id, str(page), str(page_size)]
     parts.extend(params)
     body = SEPARATOR.join(parts)
-    
+
     # 构建完整消息
     body_length = str(len(body)).zfill(10)
     message = SEPARATOR.join([CLIENT_VERSION, request_code, body_length + body])
     message_bytes = message.encode('utf-8')
-    
+
     # 添加 CRC 和结束符
     crc = str(zlib.crc32(message_bytes)).encode('utf-8')
     return message_bytes + BYTE_SEPARATOR + crc + b'\n'
@@ -561,13 +561,13 @@ def decode_response(data: bytes) -> DecodedResponse:
     # 移除结束标记
     if data.endswith(END_MARKER):
         data = data[:-len(END_MARKER)]
-    
+
     # 解压（如果需要）
     data = _decompress_if_needed(data)
-    
+
     # 解析字段
     parts = data.decode('utf-8').split(SEPARATOR)
-    
+
     server_version = parts[0]
     response_code = parts[1]
     body_length = parts[2][:10]
@@ -578,13 +578,13 @@ def decode_response(data: bytes) -> DecodedResponse:
     page = int(parts[6]) if len(parts) > 6 else 1
     page_size = int(parts[7]) if len(parts) > 7 else DEFAULT_PAGE_SIZE
     result_data = parts[8] if len(parts) > 8 else ''
-    
+
     # 解析参数和字段名
     params, field_names = _parse_params_and_fields(parts[9:-1], response_code)
-    
+
     # 解析记录
     records = _parse_records(result_data, field_names)
-    
+
     return DecodedResponse(
         server_version=server_version,
         response_code=response_code,
@@ -605,19 +605,19 @@ def _decompress_if_needed(data: bytes) -> bytes:
     """解压数据（响应编码 96）"""
     if b'\x0196\x01' not in data[7:11]:
         return data
-        
+
     parts = data.split(BYTE_SEPARATOR, 2)
     server_version = parts[0]
     response_code = parts[1]
     length_and_body = parts[2]
-    
+
     body_length = int(length_and_body[:10])
     compressed_body = length_and_body[10:10 + body_length]
     remaining = length_and_body[10 + body_length:]
-    
+
     decompressed = zlib.decompress(compressed_body)
     new_length = str(len(decompressed)).zfill(10).encode('utf-8')
-    
+
     return server_version + BYTE_SEPARATOR + response_code + BYTE_SEPARATOR + new_length + decompressed + remaining
 
 
@@ -626,7 +626,7 @@ def _parse_params_and_fields(parts: List[str], response_code: str) -> tuple[List
     """解析参数和字段名"""
     params = []
     field_names = []
-    
+
     for part in parts:
         if part and ',' in part:
             field_names = [s.strip() for s in part.split(',')]
@@ -634,7 +634,7 @@ def _parse_params_and_fields(parts: List[str], response_code: str) -> tuple[List
                 params.append(part)
         else:
             params.append(part)
-    
+
     return params, field_names
 
 
@@ -642,17 +642,17 @@ def _parse_records(result_data: str, field_names: List[str]) -> List[List[str]]:
     """解析记录数据"""
     if not result_data or not result_data.startswith('{'):
         return []
-    
+
     data = json.loads(result_data)
     records = data.get('record', [])
-    
+
     # 转换 time 字段格式
     if field_names and 'time' in field_names:
         time_idx = field_names.index('time')
         for record in records:
             if len(record) > time_idx and record[time_idx]:
                 record[time_idx] = _format_time(record[time_idx])
-    
+
     return records
 
 

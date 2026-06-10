@@ -2,11 +2,15 @@
 
 日期：2026-06-07
 
-状态：Implemented through full-range benchmark; best measured local full backfill is RowBinary input/output, 8 Rayon threads, single full-range historical batch, single-query staging validation, and multi-query partition replacement. Safer historical batch setting remains 4,000,000 rows with part and memory checks.
+状态：Archived
+
+归档日期：2026-06-10
+
+归档原因：Completed
 
 关联文档：
 
-- `docs/plans/0027-furnace-rsv-kdj-technical-indicators-implementation-plan.md`
+- `docs/plans/archive/0027-furnace-rsv-kdj-technical-indicators-implementation-plan.md`
 - `docs/RFC/0016-rust-furnace-compute-engine.md`
 - `docs/ADR/0009-clickhouse-layered-database-migration.md`
 - `docs/jobs/reports/2026-06-07-furnace-kdj-smoke-run.md`

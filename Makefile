@@ -2,8 +2,6 @@ COMPOSE_FILE := deploy/docker-compose.yml
 PIPELINE_DIR := pipeline
 SCHEDULER_TARGET := scheduler
 TRADE_CALENDAR_ASSET := sina__trade_calendar
-BAOSTOCK_RUN_POOL := baostock_run_pool
-EASTMONEY_RUN_POOL := eastmoney_run_pool
 DAGSTER_WEBUI_HOST ?= 127.0.0.1
 DAGSTER_WEBUI_PORT ?= 3000
 RUST_DOC_HOST ?= 127.0.0.1
@@ -13,21 +11,27 @@ RUST_DOC_CRATE ?= furnace_core
 ifneq ("$(wildcard .env)","")
 include .env
 export
-else
-$(error Missing .env; DAGSTER_HOME must be defined there)
 endif
-ifeq ($(origin DAGSTER_HOME),undefined)
-$(error DAGSTER_HOME must be defined in .env)
-endif
-ifneq ($(origin DAGSTER_HOME),file)
-$(error DAGSTER_HOME must come from .env, not $(origin DAGSTER_HOME))
-endif
-export DAGSTER_HOME
 
-.PHONY: help dev-up dev-down dev-logs wait-rustfs dagster-home check-defs materialize-trade-calendar dev-materialize-trade-calendar webui rust-doc rust-doc-open rust-doc-serve
+define require-env-file
+	@if [ ! -f .env ]; then \
+		printf '%s\n' 'Missing .env; this target requires local environment configuration.' >&2; \
+		exit 1; \
+	fi
+endef
+
+define require-dagster-home
+	@if [ "$(origin DAGSTER_HOME)" != "file" ]; then \
+		printf '%s\n' 'DAGSTER_HOME must be defined in .env for this target.' >&2; \
+		exit 1; \
+	fi
+endef
+
+.PHONY: help dev-up dev-down dev-logs wait-rustfs dagster-home docs-check check-defs materialize-trade-calendar dev-materialize-trade-calendar webui rust-doc rust-doc-open rust-doc-serve
 
 help:
 	@printf '%s\n' 'Available targets:'
+	@printf '  %-34s %s\n' 'docs-check' 'Validate docs governance rules'
 	@printf '  %-34s %s\n' 'dev-up' 'Start deploy/docker-compose.yml dev services'
 	@printf '  %-34s %s\n' 'dev-down' 'Stop dev services'
 	@printf '  %-34s %s\n' 'dev-logs' 'Tail dev service logs'
@@ -40,15 +44,19 @@ help:
 	@printf '  %-34s %s\n' 'rust-doc-serve' 'Serve Rust API docs over http://127.0.0.1:8000'
 
 dev-up:
+	$(require-env-file)
 	docker compose --env-file .env -f $(COMPOSE_FILE) up -d
 
 dev-down:
+	$(require-env-file)
 	docker compose --env-file .env -f $(COMPOSE_FILE) down
 
 dev-logs:
+	$(require-env-file)
 	docker compose --env-file .env -f $(COMPOSE_FILE) logs -f
 
 wait-rustfs:
+	$(require-env-file)
 	@printf 'Waiting for RustFS at %s\n' '$(RUSTFS_ENDPOINT)'
 	@for attempt in $$(seq 1 60); do \
 		if curl -fsS '$(RUSTFS_ENDPOINT)/health' >/dev/null; then \
@@ -61,6 +69,7 @@ wait-rustfs:
 	exit 1
 
 dagster-home:
+	$(require-dagster-home)
 	@mkdir -p '$(DAGSTER_HOME)'
 	@if [ ! -s '$(DAGSTER_HOME)/dagster.yaml' ]; then \
 		printf '%s\n' \
@@ -69,11 +78,9 @@ dagster-home:
 			'    granularity: run' \
 			> '$(DAGSTER_HOME)/dagster.yaml'; \
 	fi
-	cd $(PIPELINE_DIR) && uv run dagster instance concurrency set $(BAOSTOCK_RUN_POOL) 1
-	cd $(PIPELINE_DIR) && uv run dagster instance concurrency set $(EASTMONEY_RUN_POOL) 3
-	@for pool_name in $$(cd $(PIPELINE_DIR) && uv run python -m scheduler.defs.clickhouse.pools); do \
-		(cd $(PIPELINE_DIR) && uv run dagster instance concurrency set "$$pool_name" 1); \
-	done
+
+docs-check:
+	python3 scripts/validate_docs_governance.py
 
 check-defs:
 	cd $(PIPELINE_DIR) && uv run dg check defs --target-path $(SCHEDULER_TARGET)

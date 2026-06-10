@@ -90,7 +90,7 @@ mono-fleur 已经有 raw contract、generated source catalog、dbt field glossar
 - `docs/ADR/0007-dbt-staging-cleaning-boundary.md`
 - `docs/RFC/0013-raw-source-profiling-before-dbt-staging.md`
 - `docs/RFC/0012-dbt-field-glossary-and-raw-source-governance.md`
-- `docs/plans/0024-dbt-field-glossary-and-raw-source-governance-implementation-plan.md`
+- `docs/plans/archive/0024-dbt-field-glossary-and-raw-source-governance-implementation-plan.md`
 - `pipeline/elt/models/sources.yml`
 - `pipeline/elt/metadata/field_glossary.yml`
 - `pipeline/elt/scripts/validate_field_glossary.py`

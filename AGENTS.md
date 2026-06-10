@@ -23,13 +23,15 @@ mono-fleur/
 
 ## 文档入口
 
+- 文档总入口：`docs/README.md`
 - 架构总览：`docs/architecture/scheduler-architecture.md`
 - 模块边界：`docs/architecture/scheduler-module-boundaries.md`
 - 长期决策：`docs/ADR/`
 - 方案与历史设计：`docs/RFC/`
-- 执行计划：`docs/plans/`
+- 执行计划：`docs/plans/README.md`
 - 质量优化：`docs/optimize/`
 - 运行报告：`docs/jobs/reports/`
+- dbt 模型设计：`docs/design/`
 - 接口、数据字典和样例：`docs/references/`
 - 项目 skills：`docs/skills/`
 - Rust engines 文档地图：`engines/README.md`
@@ -62,7 +64,7 @@ uv sync --all-packages --all-groups
 - 所有 Rust / Cargo 命令在 `engines/` 目录下执行。
 - engines 文档地图：`engines/README.md`
 - Furnace 设计入口：`docs/RFC/0016-rust-furnace-compute-engine.md`
-- Furnace KDJ 实施与性能计划：`docs/plans/0027-furnace-rsv-kdj-technical-indicators-implementation-plan.md`、`docs/plans/0028-furnace-kdj-parallel-performance-implementation-plan.md`
+- Furnace KDJ 历史实施与性能计划：`docs/plans/archive/0027-furnace-rsv-kdj-technical-indicators-implementation-plan.md`、`docs/plans/archive/0028-furnace-kdj-parallel-performance-implementation-plan.md`
 - Furnace 运行报告：`docs/jobs/reports/2026-06-07-furnace-kdj-smoke-run.md`、`docs/jobs/reports/2026-06-07-furnace-kdj-performance-baseline.md`、`docs/jobs/reports/2026-06-07-furnace-kdj-parallel-optimization.md`
 - 当前 crates：
 
@@ -108,7 +110,7 @@ make rust-doc-serve
 - 初始 `models/example` 内容已移除，保留空目录结构
 - dbt canonical 字段治理入口：`pipeline/elt/metadata/field_glossary.yml`
 - dbt staging 清洗边界：`docs/ADR/0007-dbt-staging-cleaning-boundary.md`
-- dbt staging 前置 raw profiling：`docs/ADR/0008-raw-source-profiling-before-dbt-staging.md`、`docs/RFC/0013-raw-source-profiling-before-dbt-staging.md`、`docs/plans/0025-raw-source-profiling-before-dbt-staging-implementation-plan.md`
+- dbt staging 前置 raw profiling：`docs/ADR/0008-raw-source-profiling-before-dbt-staging.md`、`docs/RFC/archive/0013-raw-source-profiling-before-dbt-staging.md`、`docs/plans/archive/0025-raw-source-profiling-before-dbt-staging-implementation-plan.md`
 - 新增或重写 staging model 前先使用 `docs/skills/stg-model-readiness/SKILL.md`，并维护 `docs/references/raw_profile/<dataset>.md`
 - 修改 staging model 后运行：`uv run dbt parse --project-dir elt --profiles-dir elt`、`uv run python elt/scripts/validate_staging_readiness.py` 和 `uv run python elt/scripts/validate_field_glossary.py`
 
@@ -140,6 +142,13 @@ uv run alembic upgrade head
 ## 质量门禁
 
 提交代码前必须通过以下检查：
+
+文档-only 变更至少运行：
+
+```bash
+make docs-check
+git diff --check
+```
 
 ```bash
 cd pipeline

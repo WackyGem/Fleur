@@ -159,7 +159,7 @@ sina__trade_calendar
 baostock__query_stock_basic
   输出：证券基础信息快照
   分区：不分区
-  调度：当前交易日 17:35 
+  调度：当前交易日 17:35
 
 baostock__query_history_k_data_plus_daily
   输出：日频不复权 K 线 raw parquet

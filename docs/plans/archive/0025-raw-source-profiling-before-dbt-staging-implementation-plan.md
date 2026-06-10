@@ -2,7 +2,11 @@
 
 日期：2026-06-02
 
-状态：Completed
+状态：Archived
+
+归档日期：2026-06-10
+
+归档原因：Completed
 
 完成日期：2026-06-02
 
@@ -12,7 +16,7 @@
 - `docs/ADR/0007-dbt-staging-cleaning-boundary.md`
 - `docs/ADR/0008-raw-source-profiling-before-dbt-staging.md`
 - `docs/RFC/0012-dbt-field-glossary-and-raw-source-governance.md`
-- `docs/plans/0024-dbt-field-glossary-and-raw-source-governance-implementation-plan.md`
+- `docs/plans/archive/0024-dbt-field-glossary-and-raw-source-governance-implementation-plan.md`
 - `pipeline/elt/README.md`
 - `pipeline/elt/models/sources.yml`
 - `pipeline/elt/metadata/field_glossary.yml`

@@ -6,7 +6,7 @@ Updated: 2026-06-08
 
 Scope:
 
-- Implement `docs/plans/0028-furnace-kdj-parallel-performance-implementation-plan.md` first pass.
+- Implement `docs/plans/archive/0028-furnace-kdj-parallel-performance-implementation-plan.md` first pass.
 - Optimize all-market daily KDJ calculation for Furnace.
 - Validate compute parallelism, ClickHouse read path, full-range storage writes, and target part health.
 

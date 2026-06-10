@@ -6,7 +6,7 @@ Updated: 2026-06-08
 
 Scope:
 
-- Establish the first measured baseline required by `docs/plans/0028-furnace-kdj-parallel-performance-implementation-plan.md`.
+- Establish the first measured baseline required by `docs/plans/archive/0028-furnace-kdj-parallel-performance-implementation-plan.md`.
 - Record the baseline bottleneck before the later RowBinary output, large historical batch, single-query validation, and multi-query partition replacement optimizations.
 - Keep the detailed optimization comparison in `docs/jobs/reports/2026-06-07-furnace-kdj-parallel-optimization.md`.
 

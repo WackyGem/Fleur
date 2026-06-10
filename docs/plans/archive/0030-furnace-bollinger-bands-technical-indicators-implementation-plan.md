@@ -2,14 +2,18 @@
 
 日期：2026-06-08
 
-状态：Draft
+状态：Archived
+
+归档日期：2026-06-10
+
+归档原因：Completed
 
 关联文档：
 
-- `docs/plans/0029-furnace-moving-average-technical-indicators-implementation-plan.md`
+- `docs/plans/archive/0029-furnace-moving-average-technical-indicators-implementation-plan.md`
 - `docs/RFC/0016-rust-furnace-compute-engine.md`
-- `docs/plans/0027-furnace-rsv-kdj-technical-indicators-implementation-plan.md`
-- `docs/plans/0028-furnace-kdj-parallel-performance-implementation-plan.md`
+- `docs/plans/archive/0027-furnace-rsv-kdj-technical-indicators-implementation-plan.md`
+- `docs/plans/archive/0028-furnace-kdj-parallel-performance-implementation-plan.md`
 - `engines/README.md`
 - `engines/crates/furnace-core/src/operators/sma.rs`
 - `engines/crates/furnace-core/src/operators/ema.rs`

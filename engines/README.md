@@ -126,8 +126,8 @@ uv run pytest scheduler/tests/unit/furnace/test_furnace_definitions.py scheduler
 | 文档 | 用途 |
 |------|------|
 | `docs/RFC/0016-rust-furnace-compute-engine.md` | Furnace Rust 计算引擎原始需求和长期边界 |
-| `docs/plans/0027-furnace-rsv-kdj-technical-indicators-implementation-plan.md` | RSV/KDJ 第一版实施方案和 Dagster/dbt/ClickHouse 边界 |
-| `docs/plans/0028-furnace-kdj-parallel-performance-implementation-plan.md` | 全市场 KDJ 并行计算、RowBinary 和性能观测方案 |
+| `docs/plans/archive/0027-furnace-rsv-kdj-technical-indicators-implementation-plan.md` | RSV/KDJ 第一版实施方案和 Dagster/dbt/ClickHouse 边界 |
+| `docs/plans/archive/0028-furnace-kdj-parallel-performance-implementation-plan.md` | 全市场 KDJ 并行计算、RowBinary 和性能观测方案 |
 | `docs/jobs/reports/2026-06-07-furnace-kdj-smoke-run.md` | 单证券 dry-run、append-latest、replace-cascade 冒烟记录 |
 | `docs/jobs/reports/2026-06-07-furnace-kdj-performance-baseline.md` | KDJ 性能基线记录 |
 | `docs/jobs/reports/2026-06-07-furnace-kdj-parallel-optimization.md` | RowBinary、Rayon 和 full-range replace-cascade 优化记录 |

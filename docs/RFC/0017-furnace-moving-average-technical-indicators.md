@@ -12,7 +12,7 @@ fleur_intermediate.int_stock_ma_daily
 
 本文档只冻结需求和边界，不创建实现代码。后续可拆分为实施 plan、Rust crate 设计、Dagster asset 变更和 dbt 模型变更。
 
-实施修订：`docs/plans/0029-furnace-moving-average-technical-indicators-implementation-plan.md` 与 `docs/ADR/0010-technical-indicator-field-naming.md` 已覆盖本文档中的早期裸字段命名。当前实现使用 `price_ma_*`、`price_avg_ma_*`、`price_ema2_10` 和 `volume_ma_*` canonical 字段；`ma_*`、`avg_ma_*`、`ema2_10` 仅作为本文档的历史需求表述，不作为实现或下游消费契约。
+实施修订：`docs/plans/archive/0029-furnace-moving-average-technical-indicators-implementation-plan.md` 与 `docs/ADR/0010-technical-indicator-field-naming.md` 已覆盖本文档中的早期裸字段命名。当前实现使用 `price_ma_*`、`price_avg_ma_*`、`price_ema2_10` 和 `volume_ma_*` canonical 字段；`ma_*`、`avg_ma_*`、`ema2_10` 仅作为本文档的历史需求表述，不作为实现或下游消费契约。
 
 ## 背景
 
@@ -513,8 +513,8 @@ RFC 后续实施完成时应满足：
 ## 相关文档
 
 - `docs/RFC/0016-rust-furnace-compute-engine.md`
-- `docs/plans/0027-furnace-rsv-kdj-technical-indicators-implementation-plan.md`
-- `docs/plans/0028-furnace-kdj-parallel-performance-implementation-plan.md`
+- `docs/plans/archive/0027-furnace-rsv-kdj-technical-indicators-implementation-plan.md`
+- `docs/plans/archive/0028-furnace-kdj-parallel-performance-implementation-plan.md`
 - `engines/README.md`
 - `pipeline/elt/models/intermediate/int_stock_quotes_daily_adj.sql`
 - `pipeline/elt/models/intermediate/int_stock_quotes_daily_adj.yml`
