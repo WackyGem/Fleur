@@ -16,6 +16,9 @@ from scheduler.defs.furnace.assets import (
     FURNACE_MA_GROUP,
     FURNACE_MA_UPSTREAM_ASSET_KEY,
     FURNACE_MA_VOLUME_UPSTREAM_ASSET_KEY,
+    FURNACE_MACD_ASSET_KEY,
+    FURNACE_MACD_GROUP,
+    FURNACE_MACD_UPSTREAM_ASSET_KEY,
     FURNACE_PRICE_PATTERN_ASSET_KEY,
     FURNACE_PRICE_PATTERN_GROUP,
     FURNACE_PRICE_PATTERN_STREAK_UPSTREAM_ASSET_KEY,
@@ -25,6 +28,7 @@ from scheduler.defs.furnace.assets import (
     FURNACE_RSI_UPSTREAM_ASSET_KEY,
     FurnaceBollRunConfig,
     FurnaceKdjRunConfig,
+    FurnaceMacdRunConfig,
     FurnaceMaRunConfig,
     FurnacePricePatternRunConfig,
     FurnaceRsiRunConfig,
@@ -52,6 +56,11 @@ def test_furnace_assets_set_key_group_deps_and_tags() -> None:
         ),
         (FURNACE_RSI_ASSET_KEY, FURNACE_RSI_GROUP, {FURNACE_RSI_UPSTREAM_ASSET_KEY}),
         (FURNACE_BOLL_ASSET_KEY, FURNACE_BOLL_GROUP, {FURNACE_BOLL_UPSTREAM_ASSET_KEY}),
+        (
+            FURNACE_MACD_ASSET_KEY,
+            FURNACE_MACD_GROUP,
+            {FURNACE_MACD_UPSTREAM_ASSET_KEY},
+        ),
         (
             FURNACE_PRICE_PATTERN_ASSET_KEY,
             FURNACE_PRICE_PATTERN_GROUP,
@@ -84,6 +93,7 @@ def test_furnace_defs_only_register_assets_and_resource() -> None:
 
     assert loaded_defs.jobs is None
     assert loaded_defs.schedules is None
+    assert loaded_defs.resources is not None
     assert set(loaded_defs.resources) == {"furnace_cli"}
 
 
@@ -123,6 +133,13 @@ def test_stock_daily_schedule_uses_append_latest_furnace_config() -> None:
     assert boll_config["output_table"] == "fleur_calculation.calc_stock_boll_daily"
     assert boll_config["price_column"] == "close_price_forward_adj"
     assert boll_config["insert_batch_size"] == 10_000
+
+    macd_config = run_config["ops"]["fleur_calculation__calc_stock_macd_daily"]["config"]
+    assert macd_config["mode"] == "append-latest"
+    assert macd_config["input_table"] == "fleur_intermediate.int_stock_quotes_daily_adj"
+    assert macd_config["output_table"] == "fleur_calculation.calc_stock_macd_daily"
+    assert macd_config["price_column"] == "close_price_forward_adj"
+    assert macd_config["insert_batch_size"] == 10_000
 
     price_pattern_config = run_config["ops"]["furnace__calc_stock_price_pattern_daily"]["config"]
     assert price_pattern_config["mode"] == "append-latest"
@@ -167,6 +184,12 @@ def test_furnace_configs_reject_unknown_mode() -> None:
                 request_from="2026-01-01", request_to="2026-01-02", mode="bad-mode"
             ),
             "BOLL",
+        ),
+        (
+            FurnaceMacdRunConfig(
+                request_from="2026-01-01", request_to="2026-01-02", mode="bad-mode"
+            ),
+            "MACD",
         ),
         (
             FurnacePricePatternRunConfig(
@@ -320,6 +343,46 @@ def test_furnace_metadata_maps_boll_summary_to_materialization_metadata() -> Non
     assert metadata["max_window"] == 50
     assert metadata["stddev_ddof"] == 0
     assert metadata["boll_configs"][0]["field_suffix"] == "20_2"
+
+
+def test_furnace_metadata_maps_macd_summary_to_materialization_metadata() -> None:
+    metadata = _metadata_from_summary(
+        {
+            "indicator": "macd",
+            "request_from": "2026-01-01",
+            "request_to": "2026-01-02",
+            "effective_output_from": "2026-01-01",
+            "effective_output_to": "2026-01-02",
+            "input_from": "1990-12-19",
+            "input_to": "2026-01-02",
+            "mode": "dry-run",
+            "symbols_count": 2,
+            "input_rows": 100,
+            "output_rows": 20,
+            "valid_close_rows": 18,
+            "null_indicator_rows": 4,
+            "affected_years": [2026],
+            "retained_rows": 80,
+            "macd_params": {"fast_window": 12, "slow_window": 26, "signal_window": 9},
+            "histogram_mode": "DIF - DEA",
+            "macd_state_source": "full-history",
+            "incomplete_state_symbols_count": 1,
+            "gap_symbols_count": 0,
+            "gap_fill_from": None,
+            "staging_validation": {"status": "passed"},
+            "partition_replace": {"status": "not_applied"},
+            "performance_metrics": {"parallelism": "rayon", "compute_ms": 12},
+            "writes_applied": False,
+        }
+    )
+
+    assert metadata["indicator"] == "macd"
+    assert metadata["valid_close_rows"] == 18
+    assert metadata["macd_params"] == {"fast_window": 12, "slow_window": 26, "signal_window": 9}
+    assert metadata["histogram_mode"] == "DIF - DEA"
+    assert metadata["macd_state_source"] == "full-history"
+    assert metadata["incomplete_state_symbols_count"] == 1
+    assert metadata["gap_symbols_count"] == 0
 
 
 def test_furnace_metadata_maps_price_pattern_summary_to_materialization_metadata() -> None:

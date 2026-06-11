@@ -82,6 +82,10 @@ fn boll_rowbinary_input_rows(rows: &[(&str, &str, f64)]) -> Vec<u8> {
     close_rowbinary_input_rows(rows)
 }
 
+fn macd_rowbinary_input_rows(rows: &[(&str, &str, f64)]) -> Vec<u8> {
+    close_rowbinary_input_rows(rows)
+}
+
 type PricePatternFixtureRow<'a> = (
     &'a str,
     &'a str,
@@ -285,6 +289,42 @@ fn run_boll_returns_json_summary_for_dry_run() {
 }
 
 #[test]
+fn run_macd_returns_json_summary_for_dry_run() {
+    let responses = ["sh.600000\n", "2026-01-01\n", "0\n", "0\t\\N\n"];
+    let rows = (1..=40)
+        .map(|day| ("sh.600000", format!("2026-01-{day:02}"), day as f64))
+        .collect::<Vec<_>>();
+    let row_refs = rows
+        .iter()
+        .map(|(security_code, trade_date, close)| (*security_code, trade_date.as_str(), *close))
+        .collect::<Vec<_>>();
+    let input_rows = macd_rowbinary_input_rows(&row_refs);
+    let mut executor = FakeExecutor::with_responses_and_bytes(&responses, vec![input_rows]);
+
+    let output = run_with_executor(
+        args(&[
+            "macd",
+            "--from",
+            "2026-01-01",
+            "--to",
+            "2026-01-40",
+            "--symbols",
+            "sh.600000",
+            "--run-id",
+            "macd-run-1",
+        ]),
+        &mut executor,
+    )
+    .unwrap();
+
+    assert!(output.contains("\"indicator\":\"macd\""));
+    assert!(output.contains("\"symbols_count\":1"));
+    assert!(output.contains("\"mode\":\"dry-run\""));
+    assert!(output.contains("\"histogram_mode\":\"DIF - DEA\""));
+    assert!(output.contains("\"run_id\":\"macd-run-1\""));
+}
+
+#[test]
 fn run_price_pattern_returns_json_summary_for_dry_run() {
     let responses = ["sh.600000\n", "2026-01-01\n"];
     let input_rows = price_pattern_rowbinary_input_rows(&[
@@ -411,6 +451,27 @@ fn run_rsi_rejects_unknown_output_format() {
     let error = run_with_executor(
         args(&[
             "rsi",
+            "--from",
+            "2026-01-01",
+            "--to",
+            "2026-01-02",
+            "--output-format",
+            "text",
+        ]),
+        &mut executor,
+    )
+    .unwrap_err();
+
+    assert!(matches!(error, CliError::Usage(_)));
+}
+
+#[test]
+fn run_macd_rejects_unknown_output_format() {
+    let mut executor = FakeExecutor::with_responses(&[]);
+
+    let error = run_with_executor(
+        args(&[
+            "macd",
             "--from",
             "2026-01-01",
             "--to",

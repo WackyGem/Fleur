@@ -6,7 +6,6 @@ from typing import Any
 import dagster as dg
 from dagster_dbt import DbtProject, DbtProjectComponent
 
-
 DBT_MODEL_RESOURCE_TYPES = {"model"}
 
 

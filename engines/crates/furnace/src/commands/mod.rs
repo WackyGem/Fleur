@@ -2,6 +2,7 @@ mod boll;
 mod common;
 mod kdj;
 mod ma;
+mod macd;
 mod price_pattern;
 mod rsi;
 
@@ -12,5 +13,6 @@ pub(crate) use common::{
 };
 pub(crate) use kdj::KdjCommandConfig;
 pub(crate) use ma::MaCommandConfig;
+pub(crate) use macd::MacdCommandConfig;
 pub(crate) use price_pattern::PricePatternCommandConfig;
 pub(crate) use rsi::RsiCommandConfig;

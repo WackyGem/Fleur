@@ -59,8 +59,9 @@ def test_registered_definitions_match_source_bundles() -> None:
     assert "fleur_calculation/calc_stock_ma_daily" in registered_asset_keys
     assert "fleur_calculation/calc_stock_rsi_daily" in registered_asset_keys
     assert "fleur_calculation/calc_stock_boll_daily" in registered_asset_keys
+    assert "fleur_calculation/calc_stock_macd_daily" in registered_asset_keys
     assert "fleur_calculation/calc_stock_price_pattern_daily" in registered_asset_keys
-    assert len(registered_asset_keys) == len(expected_assets | expected_clickhouse_assets) + 35
+    assert len(registered_asset_keys) == len(expected_assets | expected_clickhouse_assets) + 40
     assert {job.name for job in loaded_defs.jobs or []} == (
         expected_jobs | expected_clickhouse_jobs | expected_transformation_jobs
     )
@@ -103,26 +104,38 @@ def test_dbt_assets_are_registered_with_raw_lineage_and_checks() -> None:
     int_ma_key = dg.AssetKey("int_stock_ma_daily")
     int_rsi_key = dg.AssetKey("int_stock_rsi_daily")
     int_boll_key = dg.AssetKey("int_stock_boll_daily")
+    int_macd_key = dg.AssetKey("int_stock_macd_daily")
     int_price_pattern_key = dg.AssetKey("int_stock_price_pattern_daily")
     mart_key = dg.AssetKey("mart_stock_quotes_daily")
+    mart_trend_key = dg.AssetKey("mart_stock_trend_indicator")
+    mart_momentum_key = dg.AssetKey("mart_stock_momentum_indicator")
+    mart_volume_key = dg.AssetKey("mart_stock_volume_indicator")
     dbt_asset_def = next(asset for asset in loaded_defs.assets or [] if stg_ths_key in asset.keys)
 
-    assert len(dbt_asset_def.keys) == 30
-    assert len(dbt_asset_def.check_keys) == 227
+    assert len(dbt_asset_def.keys) == 34
+    assert len(dbt_asset_def.check_keys) == 248
     assert "stg_ths__limit_up_pool_compacted" in loaded_asset_keys
     assert "int_stock_kdj_daily" in loaded_asset_keys
     assert "int_stock_ma_daily" in loaded_asset_keys
     assert "int_stock_rsi_daily" in loaded_asset_keys
     assert "int_stock_boll_daily" in loaded_asset_keys
+    assert "int_stock_macd_daily" in loaded_asset_keys
     assert "int_stock_price_pattern_daily" in loaded_asset_keys
     assert "mart_stock_quotes_daily" in loaded_asset_keys
+    assert "mart_stock_trend_indicator" in loaded_asset_keys
+    assert "mart_stock_momentum_indicator" in loaded_asset_keys
+    assert "mart_stock_volume_indicator" in loaded_asset_keys
     assert dbt_asset_def.specs_by_key[stg_ths_key].group_name == "dbt_staging"
     assert dbt_asset_def.specs_by_key[int_kdj_key].group_name == "dbt_intermediate"
     assert dbt_asset_def.specs_by_key[int_ma_key].group_name == "dbt_intermediate"
     assert dbt_asset_def.specs_by_key[int_rsi_key].group_name == "dbt_intermediate"
     assert dbt_asset_def.specs_by_key[int_boll_key].group_name == "dbt_intermediate"
+    assert dbt_asset_def.specs_by_key[int_macd_key].group_name == "dbt_intermediate"
     assert dbt_asset_def.specs_by_key[int_price_pattern_key].group_name == "dbt_intermediate"
     assert dbt_asset_def.specs_by_key[mart_key].group_name == "dbt_marts"
+    assert dbt_asset_def.specs_by_key[mart_trend_key].group_name == "dbt_marts"
+    assert dbt_asset_def.specs_by_key[mart_momentum_key].group_name == "dbt_marts"
+    assert dbt_asset_def.specs_by_key[mart_volume_key].group_name == "dbt_marts"
     assert (
         dbt_asset_def.tags_by_key[stg_ths_key].items()
         >= {
@@ -143,6 +156,18 @@ def test_dbt_assets_are_registered_with_raw_lineage_and_checks() -> None:
         "int_stock_kdj_daily",
         "int_stock_quotes_daily_unadj",
     }
+    assert {key.to_user_string() for key in dbt_asset_def.asset_deps[mart_trend_key]} == {
+        "int_stock_boll_daily",
+        "int_stock_ma_daily",
+        "int_stock_macd_daily",
+    }
+    assert {key.to_user_string() for key in dbt_asset_def.asset_deps[mart_momentum_key]} == {
+        "int_stock_kdj_daily",
+        "int_stock_rsi_daily",
+    }
+    assert {key.to_user_string() for key in dbt_asset_def.asset_deps[mart_volume_key]} == {
+        "int_stock_ma_daily",
+    }
     assert not {
         dep_key.to_user_string()
         for deps in dbt_asset_def.asset_deps.values()
@@ -160,6 +185,9 @@ def test_dbt_assets_are_registered_with_raw_lineage_and_checks() -> None:
     }
     assert {key.to_user_string() for key in dbt_asset_def.asset_deps[int_boll_key]} == {
         "fleur_calculation/calc_stock_boll_daily"
+    }
+    assert {key.to_user_string() for key in dbt_asset_def.asset_deps[int_macd_key]} == {
+        "fleur_calculation/calc_stock_macd_daily"
     }
     assert {key.to_user_string() for key in dbt_asset_def.asset_deps[int_price_pattern_key]} == {
         "fleur_calculation/calc_stock_price_pattern_daily"
@@ -183,6 +211,7 @@ def test_stock_daily_job_splits_dbt_around_furnace_assets() -> None:
         "fleur_calculation__calc_stock_ma_daily",
         "fleur_calculation__calc_stock_rsi_daily",
         "fleur_calculation__calc_stock_boll_daily",
+        "fleur_calculation__calc_stock_macd_daily",
         "fleur_calculation__calc_stock_price_pattern_daily",
     }
 

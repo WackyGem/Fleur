@@ -82,3 +82,37 @@ fn create_boll_output_table_sql_uses_canonical_fields() {
     assert!(!sql.contains("boll_mid_n20_k2"));
     assert!(sql.contains("ORDER BY (trade_date, security_code)"));
 }
+
+#[test]
+fn create_macd_output_table_sql_uses_canonical_fields() {
+    let sql = create_macd_output_table_sql(DEFAULT_MACD_OUTPUT_TABLE);
+
+    assert!(sql.contains("ema_fast_state_12 Nullable(Float64)"));
+    assert!(sql.contains("ema_slow_state_26 Nullable(Float64)"));
+    assert!(sql.contains("macd_dif Nullable(Float64)"));
+    assert!(sql.contains("macd_dea Nullable(Float64)"));
+    assert!(sql.contains("macd_dea_state Nullable(Float64)"));
+    assert!(sql.contains("macd_histogram Nullable(Float64)"));
+    assert!(sql.contains("PARTITION BY toYear(trade_date)"));
+    assert!(sql.contains("ORDER BY (trade_date, security_code)"));
+}
+
+#[test]
+fn macd_staging_table_name_normalizes_run_id() {
+    let table_name = macd_staging_table_name(DEFAULT_MACD_OUTPUT_TABLE, "RUN/2026-01-01");
+
+    assert_eq!(
+        table_name,
+        "fleur_calculation.calc_stock_macd_daily__staging__run_2026_01_01"
+    );
+}
+
+#[test]
+fn replace_macd_partition_sql_uses_configurable_output_table() {
+    let sql = replace_macd_partition_sql("db.calc_macd", "db.stage", 2026);
+
+    assert_eq!(
+        sql,
+        "ALTER TABLE db.calc_macd REPLACE PARTITION 2026 FROM db.stage"
+    );
+}

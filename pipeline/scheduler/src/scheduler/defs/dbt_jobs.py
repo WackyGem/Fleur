@@ -93,6 +93,18 @@ def stock_daily_run_config(context: dg.ScheduleEvaluationContext) -> dict[str, o
                     "insert_batch_size": 10_000,
                 }
             },
+            "fleur_calculation__calc_stock_macd_daily": {
+                "config": {
+                    "request_from": trade_date,
+                    "request_to": trade_date,
+                    "mode": "append-latest",
+                    "symbols": [],
+                    "input_table": "fleur_intermediate.int_stock_quotes_daily_adj",
+                    "output_table": "fleur_calculation.calc_stock_macd_daily",
+                    "price_column": "close_price_forward_adj",
+                    "insert_batch_size": 10_000,
+                }
+            },
             "furnace__calc_stock_price_pattern_daily": {
                 "config": {
                     "request_from": trade_date,

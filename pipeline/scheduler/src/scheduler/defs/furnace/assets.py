@@ -9,6 +9,7 @@ from scheduler.defs.resources.furnace import (
     FurnaceBollCliRequest,
     FurnaceCliResource,
     FurnaceKdjCliRequest,
+    FurnaceMacdCliRequest,
     FurnaceMaCliRequest,
     FurnacePricePatternCliRequest,
     FurnaceRsiCliRequest,
@@ -23,6 +24,8 @@ FURNACE_RSI_ASSET_KEY = dg.AssetKey(["fleur_calculation", "calc_stock_rsi_daily"
 FURNACE_RSI_UPSTREAM_ASSET_KEY = dg.AssetKey(["int_stock_quotes_daily_adj"])
 FURNACE_BOLL_ASSET_KEY = dg.AssetKey(["fleur_calculation", "calc_stock_boll_daily"])
 FURNACE_BOLL_UPSTREAM_ASSET_KEY = dg.AssetKey(["int_stock_quotes_daily_adj"])
+FURNACE_MACD_ASSET_KEY = dg.AssetKey(["fleur_calculation", "calc_stock_macd_daily"])
+FURNACE_MACD_UPSTREAM_ASSET_KEY = dg.AssetKey(["int_stock_quotes_daily_adj"])
 FURNACE_PRICE_PATTERN_ASSET_KEY = dg.AssetKey(
     ["fleur_calculation", "calc_stock_price_pattern_daily"]
 )
@@ -32,6 +35,7 @@ FURNACE_KDJ_GROUP = "calculation"
 FURNACE_MA_GROUP = "calculation"
 FURNACE_RSI_GROUP = "calculation"
 FURNACE_BOLL_GROUP = "calculation"
+FURNACE_MACD_GROUP = "calculation"
 FURNACE_PRICE_PATTERN_GROUP = "calculation"
 
 
@@ -135,6 +139,33 @@ class FurnaceBollRunConfig(dg.Config):
             msg = f"Unsupported Furnace BOLL mode: {self.mode}"
             raise ValueError(msg)
         return FurnaceBollCliRequest(
+            request_from=self.request_from,
+            request_to=self.request_to,
+            mode=self.mode,
+            symbols=tuple(self.symbols),
+            input_table=self.input_table,
+            output_table=self.output_table,
+            price_column=self.price_column,
+            insert_batch_size=self.insert_batch_size,
+            run_id=run_id,
+        )
+
+
+class FurnaceMacdRunConfig(dg.Config):
+    request_from: str
+    request_to: str
+    mode: str = "dry-run"
+    symbols: list[str] = Field(default_factory=list)
+    input_table: str = "fleur_intermediate.int_stock_quotes_daily_adj"
+    output_table: str = "fleur_calculation.calc_stock_macd_daily"
+    price_column: str = "close_price_forward_adj"
+    insert_batch_size: int = 10_000
+
+    def to_cli_request(self, *, run_id: str) -> FurnaceMacdCliRequest:
+        if self.mode not in {"dry-run", "append-latest", "replace-cascade"}:
+            msg = f"Unsupported Furnace MACD mode: {self.mode}"
+            raise ValueError(msg)
+        return FurnaceMacdCliRequest(
             request_from=self.request_from,
             request_to=self.request_to,
             mode=self.mode,
@@ -307,6 +338,39 @@ def build_furnace_boll_asset() -> dg.AssetsDefinition:
     )(furnace__calc_stock_boll_daily)
 
 
+def build_furnace_macd_asset() -> dg.AssetsDefinition:
+    def furnace__calc_stock_macd_daily(
+        context: dg.AssetExecutionContext,
+        config: FurnaceMacdRunConfig,
+        furnace_cli: FurnaceCliResource,
+    ) -> dg.MaterializeResult:
+        result = furnace_cli.run_macd(config.to_cli_request(run_id=context.run_id))
+        return dg.MaterializeResult(metadata=_metadata_from_summary(result.summary))
+
+    return dg.asset(
+        key=FURNACE_MACD_ASSET_KEY,
+        deps=[FURNACE_MACD_UPSTREAM_ASSET_KEY],
+        group_name=FURNACE_MACD_GROUP,
+        owners=[DEFAULT_OWNER],
+        kinds={"rust", "clickhouse"},
+        tags={
+            "owner": "furnace",
+            "layer": "calculation",
+            "storage": "clickhouse",
+            "modality": "batch",
+        },
+        metadata={
+            "database": "fleur_calculation",
+            "table": "calc_stock_macd_daily",
+            "indicator": "macd",
+            "price_adjustment": "forward",
+            "price_column": "close_price_forward_adj",
+            "macd_params": {"fast_window": 12, "slow_window": 26, "signal_window": 9},
+            "histogram": "DIF - DEA",
+        },
+    )(furnace__calc_stock_macd_daily)
+
+
 def build_furnace_price_pattern_asset() -> dg.AssetsDefinition:
     def furnace__calc_stock_price_pattern_daily(
         context: dg.AssetExecutionContext,
@@ -381,6 +445,10 @@ def _metadata_from_summary(summary: Mapping[str, Any]) -> Mapping[str, Any]:
         "boll_configs": summary.get("boll_configs", []),
         "max_window": summary.get("max_window"),
         "stddev_ddof": summary.get("stddev_ddof"),
+        "macd_params": summary.get("macd_params", {}),
+        "histogram_mode": summary.get("histogram_mode"),
+        "macd_state_source": summary.get("macd_state_source"),
+        "incomplete_state_symbols_count": summary.get("incomplete_state_symbols_count", 0),
         "state_source": summary.get("state_source"),
         "input_valid_streak_rows": summary.get("input_valid_streak_rows", 0),
         "input_valid_structure_bar_rows": summary.get("input_valid_structure_bar_rows", 0),
@@ -401,6 +469,7 @@ FURNACE_KDJ_ASSETS: tuple[dg.AssetsDefinition, ...] = (build_furnace_kdj_asset()
 FURNACE_MA_ASSETS: tuple[dg.AssetsDefinition, ...] = (build_furnace_ma_asset(),)
 FURNACE_RSI_ASSETS: tuple[dg.AssetsDefinition, ...] = (build_furnace_rsi_asset(),)
 FURNACE_BOLL_ASSETS: tuple[dg.AssetsDefinition, ...] = (build_furnace_boll_asset(),)
+FURNACE_MACD_ASSETS: tuple[dg.AssetsDefinition, ...] = (build_furnace_macd_asset(),)
 FURNACE_PRICE_PATTERN_ASSETS: tuple[dg.AssetsDefinition, ...] = (
     build_furnace_price_pattern_asset(),
 )
@@ -409,5 +478,6 @@ FURNACE_ASSETS: tuple[dg.AssetsDefinition, ...] = (
     + FURNACE_MA_ASSETS
     + FURNACE_RSI_ASSETS
     + FURNACE_BOLL_ASSETS
+    + FURNACE_MACD_ASSETS
     + FURNACE_PRICE_PATTERN_ASSETS
 )

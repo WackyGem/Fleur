@@ -2,13 +2,13 @@ use std::error::Error;
 use std::fmt;
 
 use furnace_io::{
-    ClickHouseCliExecutor, ClickHouseExecutor, run_boll, run_kdj, run_ma, run_price_pattern,
-    run_rsi,
+    ClickHouseCliExecutor, ClickHouseExecutor, run_boll, run_kdj, run_ma, run_macd,
+    run_price_pattern, run_rsi,
 };
 
 use crate::commands::{
-    BollCommandConfig, KdjCommandConfig, MaCommandConfig, PricePatternCommandConfig,
-    RsiCommandConfig,
+    BollCommandConfig, KdjCommandConfig, MaCommandConfig, MacdCommandConfig,
+    PricePatternCommandConfig, RsiCommandConfig,
 };
 use crate::output::print_help;
 
@@ -52,6 +52,13 @@ fn run_with_executor<E: ClickHouseExecutor>(
             let config = BollCommandConfig::parse(args)?;
             config.validate()?;
             let summary = run_boll(executor, &config.to_request())
+                .map_err(|error| CliError::Runtime(error.to_string()))?;
+            Ok(summary.to_json())
+        }
+        "macd" => {
+            let config = MacdCommandConfig::parse(args)?;
+            config.validate()?;
+            let summary = run_macd(executor, &config.to_request())
                 .map_err(|error| CliError::Runtime(error.to_string()))?;
             Ok(summary.to_json())
         }

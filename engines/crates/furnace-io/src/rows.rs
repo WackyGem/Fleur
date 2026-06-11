@@ -1,6 +1,7 @@
 mod boll;
 mod kdj;
 mod ma;
+mod macd;
 mod price_pattern;
 mod rsi;
 
@@ -13,6 +14,10 @@ pub(crate) use kdj::{
 };
 pub(crate) use ma::{
     MaCalculationResult, MaGroupedInput, MaInputGroups, MaResultRow, MaSecurityCalculation,
+};
+pub(crate) use macd::{
+    MacdCalculationResult, MacdGroupedInput, MacdInputGroups, MacdResultRow,
+    MacdSecurityCalculation,
 };
 pub(crate) use price_pattern::{
     PricePatternCalculationResult, PricePatternGroupedInput, PricePatternInputGroups,

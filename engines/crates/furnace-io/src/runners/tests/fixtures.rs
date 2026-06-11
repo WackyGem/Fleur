@@ -4,6 +4,7 @@ pub(super) type RowBinaryInputFixture<'a> =
 pub(super) type MaRowBinaryInputFixture<'a> = (&'a str, &'a str, Option<f64>, Option<f64>);
 pub(super) type RsiRowBinaryInputFixture<'a> = (&'a str, &'a str, Option<f64>);
 pub(super) type BollRowBinaryInputFixture<'a> = (&'a str, &'a str, Option<f64>);
+pub(super) type MacdRowBinaryInputFixture<'a> = (&'a str, &'a str, Option<f64>);
 pub(super) type PricePatternRowBinaryInputFixture<'a> = (
     &'a str,
     &'a str,
@@ -108,6 +109,16 @@ pub(super) fn rsi_rowbinary_input_rows(rows: &[RsiRowBinaryInputFixture<'_>]) ->
 }
 
 pub(super) fn boll_rowbinary_input_rows(rows: &[BollRowBinaryInputFixture<'_>]) -> Vec<u8> {
+    let mut bytes = Vec::new();
+    for (security_code, trade_date, close_price) in rows {
+        write_rowbinary_string(&mut bytes, security_code);
+        write_rowbinary_string(&mut bytes, trade_date);
+        write_rowbinary_nullable_f64(&mut bytes, *close_price);
+    }
+    bytes
+}
+
+pub(super) fn macd_rowbinary_input_rows(rows: &[MacdRowBinaryInputFixture<'_>]) -> Vec<u8> {
     let mut bytes = Vec::new();
     for (security_code, trade_date, close_price) in rows {
         write_rowbinary_string(&mut bytes, security_code);

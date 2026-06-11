@@ -2,7 +2,11 @@
 
 日期：2026-06-10
 
-状态：Proposed
+状态：Archived
+
+归档日期：2026-06-10
+
+归档原因：Completed
 
 关联文档：
 
@@ -10,13 +14,14 @@
 - `docs/design/dbt_layer/fleur_marts/mart_stock_quotes_daily.md`
 - `docs/Q&A/int-layer-indicators-2026-06-10.md`
 - `docs/RFC/0016-rust-furnace-compute-engine.md`
-- `docs/plans/0034-furnace-macd-technical-indicator-implementation-plan.md`
+- `docs/plans/archive/0034-furnace-macd-technical-indicator-implementation-plan.md`
 - `docs/plans/archive/0027-furnace-rsv-kdj-technical-indicators-implementation-plan.md`
 - `docs/plans/archive/0029-furnace-moving-average-technical-indicators-implementation-plan.md`
 - `docs/plans/archive/0030-furnace-bollinger-bands-technical-indicators-implementation-plan.md`
 - `docs/plans/archive/0030-furnace-rsi-technical-indicators-implementation-plan.md`
 - `pipeline/elt/models/intermediate/int_stock_ma_daily.sql`
 - `pipeline/elt/models/intermediate/int_stock_boll_daily.sql`
+- `pipeline/elt/models/intermediate/int_stock_macd_daily.sql`
 - `pipeline/elt/models/intermediate/int_stock_rsi_daily.sql`
 - `pipeline/elt/models/intermediate/int_stock_kdj_daily.sql`
 - `pipeline/elt/models/marts/mart_stock_quotes_daily.sql`
@@ -44,7 +49,7 @@
 2. 三个 mart 都只从 dbt intermediate wrapper 读取指标字段，不在 mart SQL 中重写 MA、MACD、BOLL、RSI、KDJ 或均量公式。
 3. mart 主键均为 `(security_code, trade_date)`，与当前日频指标 wrapper 保持一致。
 4. 指标字段保留上游口径：MA/BOLL/RSI/KDJ 当前均基于 `close_price_forward_adj`，KDJ 固定 canonical `KDJ(9,3,3)`。
-5. MACD 目前没有 calculation/source/intermediate 实现；必须先完成 `docs/plans/0034-furnace-macd-technical-indicator-implementation-plan.md`，再把 MACD 纳入趋势指标 mart。
+5. MACD 已由 `docs/plans/archive/0034-furnace-macd-technical-indicator-implementation-plan.md` 补齐 calculation/source/intermediate 实现；趋势指标 mart 必须通过 `{{ ref('int_stock_macd_daily') }}` 消费 MACD 字段。
 6. 均量字段归属 `mart_stock_volume_indicator`，不放入 `mart_stock_trend_indicator`。
 7. 为三个 mart 建立 SQL、YAML、字段文档、模型设计文档和最小数据测试。
 
@@ -89,22 +94,23 @@ mart_stock_quotes_daily
 | `int_stock_rsi_daily` | `fleur_calculation.calc_stock_rsi_daily` | `rsi_6`、`rsi_12`、`rsi_14`、`rsi_24`、`rsi_25`、`rsi_50` |
 | `int_stock_kdj_daily` | `fleur_calculation.calc_stock_kdj_daily` | `rsv_window`、`k_smoothing`、`d_smoothing`、`rsv`、`k_value`、`d_value`、`j_value` |
 
-### 3.3 MACD 缺口
+### 3.3 MACD 上游
 
-当前仓库未发现 `macd` / `MACD` 相关 calculation 表、Furnace 指标模块或 dbt intermediate model。`docs/Q&A/int-layer-indicators-2026-06-10.md` 也明确记录 MACD 当前没有 int 模型。
+MACD 上游已按 `docs/plans/archive/0034-furnace-macd-technical-indicator-implementation-plan.md` 完成，包含 Furnace calculation 表、Dagster asset 和 dbt intermediate wrapper。
 
-因此 `mart_stock_trend_indicator` 不能在第一阶段直接完整上线。需要先按 `docs/plans/0034-furnace-macd-technical-indicator-implementation-plan.md` 新增：
+趋势指标 mart 直接引用：
 
 ```text
-fleur_calculation.calc_stock_macd_daily
 fleur_intermediate.int_stock_macd_daily
 ```
 
-再由 mart 引用：
+对应物理上游为：
 
 ```text
-{{ ref('int_stock_macd_daily') }}
+fleur_calculation.calc_stock_macd_daily
 ```
+
+字段口径固定为 canonical `MACD(12,26,9)`，基于 `close_price_forward_adj`，且 `macd_histogram = macd_dif - macd_dea`。
 
 ## 4. 目标输出草案
 
@@ -129,7 +135,7 @@ partition_by='toYear(trade_date)'
 | MA 价格均线 | `price_ma_3`, `price_ma_5`, `price_ma_6`, `price_ma_10`, `price_ma_12`, `price_ma_14`, `price_ma_20`, `price_ma_24`, `price_ma_28`, `price_ma_57`, `price_ma_60`, `price_ma_114`, `price_ma_250` |
 | MA 组合和 EMA | `price_avg_ma_3_6_12_24`, `price_avg_ma_14_28_57_114`, `price_ema2_10` |
 | BOLL | `boll_mid_10_1p5`, `boll_up_10_1p5`, `boll_dn_10_1p5`, `boll_mid_20_2`, `boll_up_20_2`, `boll_dn_20_2`, `boll_mid_50_2p5`, `boll_up_50_2p5`, `boll_dn_50_2p5` |
-| MACD | `macd_dif`, `macd_dea`, `macd_histogram` 或实施 MACD 上游时确定的 canonical 字段名 |
+| MACD | `macd_dif`, `macd_dea`, `macd_histogram` |
 
 基准左表建议使用 `int_stock_ma_daily`，但只选择价格 MA、MA 组合和 EMA 字段，不选择 `volume_ma_*`。BOLL 和 MACD 通过 `(security_code, trade_date)` 左连接，以避免因某类指标缺口丢失已有 MA 行。
 
@@ -186,10 +192,10 @@ partition_by='toYear(trade_date)'
 
 ### 阶段 1：完成 MACD 上游前置计划
 
-前置计划：
+前置计划已完成并归档：
 
 ```text
-docs/plans/0034-furnace-macd-technical-indicator-implementation-plan.md
+docs/plans/archive/0034-furnace-macd-technical-indicator-implementation-plan.md
 ```
 
 实施范围以 `0034` 为准，包括：
@@ -206,7 +212,7 @@ docs/plans/0034-furnace-macd-technical-indicator-implementation-plan.md
 - MACD 公式没有出现在 dbt SQL、Dagster Python 或 ClickHouse SQL 中。
 - `int_stock_macd_daily` 与其他技术指标 wrapper 一样，每证券、交易日一行。
 - MACD 字段文档明确输入价格口径、参数、SMA 启动阶段 NULL 语义和 histogram 口径。
-- `uv run dbt build --project-dir elt --profiles-dir elt --select int_stock_macd_daily` 已通过；否则不得开始 `mart_stock_trend_indicator` 实施。
+- `uv run dbt build --project-dir elt --profiles-dir elt --select int_stock_macd_daily` 已通过；`mart_stock_trend_indicator` 可直接消费 `int_stock_macd_daily`。
 
 ### 阶段 2：新增三个 mart 设计文档
 
@@ -225,7 +231,7 @@ docs/design/dbt_layer/fleur_marts/mart_stock_volume_indicator.md
 3. 上游模型与 join 方式。
 4. 字段分组和字段来源。
 5. NULL 语义和指标可用性说明。
-6. 与 0034 的依赖关系：`mart_stock_trend_indicator` 必须等待 `int_stock_macd_daily` 可用。
+6. 与 0034 的依赖关系：`int_stock_macd_daily` 已可用，`mart_stock_trend_indicator` 必须通过该 wrapper 消费 MACD。
 7. 验证命令。
 
 完成标准：
@@ -423,4 +429,4 @@ uv run dbt build --project-dir elt --profiles-dir elt --select int_stock_macd_da
 6. 三个 mart 均通过定向 `dbt build`。
 7. 运行报告记录行数、证券数、交易日范围、关键 NULL 分布和验证命令结果。
 8. 完成后将本计划移入 `docs/plans/archive/`，状态改为 `Archived`，并更新 `docs/plans/README.md`。
-9. `docs/plans/0034-furnace-macd-technical-indicator-implementation-plan.md` 已完成或归档；若未完成，本计划状态不得进入 `Completed`。
+9. `docs/plans/archive/0034-furnace-macd-technical-indicator-implementation-plan.md` 已归档；本计划实施时不得重新引入 mart 层 MACD 公式。

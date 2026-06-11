@@ -1,11 +1,11 @@
-use furnace_core::{BollInput, KdjInput, MaInput, PricePatternInput, RsiInput};
+use furnace_core::{BollInput, KdjInput, MaInput, MacdInput, PricePatternInput, RsiInput};
 
 use crate::FurnaceIoError;
 use crate::rowbinary::{read_rowbinary_nullable_f64, read_rowbinary_string};
 use crate::rows::{
     BollGroupedInput, BollInputGroups, KdjGroupedInput, KdjInputGroups, MaGroupedInput,
-    MaInputGroups, PricePatternGroupedInput, PricePatternInputGroups, RsiGroupedInput,
-    RsiInputGroups,
+    MaInputGroups, MacdGroupedInput, MacdInputGroups, PricePatternGroupedInput,
+    PricePatternInputGroups, RsiGroupedInput, RsiInputGroups,
 };
 
 pub(in crate::runners) fn group_input_rows(
@@ -200,6 +200,58 @@ pub(in crate::runners) fn group_boll_input_rows(
         groups,
         input_rows,
         input_valid_close_rows,
+    })
+}
+
+pub(in crate::runners) fn group_macd_input_rows(
+    input_bytes: &[u8],
+) -> Result<MacdInputGroups, FurnaceIoError> {
+    let mut groups = Vec::new();
+    let mut current_security_code = None;
+    let mut current_inputs = Vec::new();
+    let mut input_rows = 0;
+    let mut valid_close_rows = 0;
+    let mut input_from = None::<String>;
+    let mut cursor = 0;
+
+    while cursor < input_bytes.len() {
+        let security_code = read_rowbinary_string(input_bytes, &mut cursor)?;
+        let trade_date = read_rowbinary_string(input_bytes, &mut cursor)?;
+        let close_price = read_rowbinary_nullable_f64(input_bytes, &mut cursor)?;
+        input_from = match input_from {
+            Some(current) if current.as_str() <= trade_date => Some(current),
+            _ => Some(trade_date.to_string()),
+        };
+        if close_price.is_some() {
+            valid_close_rows += 1;
+        }
+
+        if current_security_code.as_deref() != Some(security_code) {
+            let previous_security_code = current_security_code.replace(security_code.to_string());
+            if let Some(security_code) = previous_security_code {
+                groups.push(MacdGroupedInput {
+                    security_code,
+                    inputs: std::mem::take(&mut current_inputs),
+                });
+            }
+        }
+
+        current_inputs.push(MacdInput::new(trade_date.to_string(), close_price));
+        input_rows += 1;
+    }
+
+    if let Some(security_code) = current_security_code {
+        groups.push(MacdGroupedInput {
+            security_code,
+            inputs: current_inputs,
+        });
+    }
+
+    Ok(MacdInputGroups {
+        groups,
+        input_rows,
+        valid_close_rows,
+        input_from,
     })
 }
 

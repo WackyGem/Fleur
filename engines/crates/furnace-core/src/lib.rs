@@ -32,6 +32,12 @@ pub use indicators::kdj::{
     DEFAULT_RSV_WINDOW, KdjError, KdjInput, KdjOutput, KdjParams, KdjState, PriceBar,
     calculate_kdj_next, calculate_kdj_series,
 };
+pub use indicators::macd::{
+    DEFAULT_MACD_FAST_WINDOW, DEFAULT_MACD_SIGNAL_WINDOW, DEFAULT_MACD_SLOW_WINDOW, MacdError,
+    MacdInput, MacdOutput, MacdOutputValues, MacdParams, MacdPreviousState, MacdState,
+    calculate_macd, calculate_macd_series, calculate_macd_series_from_previous_state,
+    visit_macd_series_from_previous_state,
+};
 pub use indicators::moving_average::{
     DEFAULT_EMA_WINDOW, DEFAULT_PRICE_MA_WINDOWS, DEFAULT_VOLUME_MA_WINDOWS, MaError, MaInput,
     MaOutput, MaParams, MaPreviousState, MaState, calculate_ma_series,

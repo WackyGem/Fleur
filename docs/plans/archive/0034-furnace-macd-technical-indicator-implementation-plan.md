@@ -2,14 +2,18 @@
 
 日期：2026-06-10
 
-状态：Proposed
+状态：Archived
 
-0035 前置任务：本计划完成后，`docs/plans/0035-stock-technical-indicator-marts-implementation-plan.md` 才能把 MACD 纳入 `mart_stock_trend_indicator`。
+归档日期：2026-06-10
+
+归档原因：Completed
+
+0035 前置任务：本计划已完成，`docs/plans/archive/0035-stock-technical-indicator-marts-implementation-plan.md` 已通过 `int_stock_macd_daily` 把 MACD 纳入 `mart_stock_trend_indicator`。
 
 关联文档：
 
 - `docs/RFC/0016-rust-furnace-compute-engine.md`
-- `docs/plans/0035-stock-technical-indicator-marts-implementation-plan.md`
+- `docs/plans/archive/0035-stock-technical-indicator-marts-implementation-plan.md`
 - `docs/plans/archive/0027-furnace-rsv-kdj-technical-indicators-implementation-plan.md`
 - `docs/plans/archive/0028-furnace-kdj-parallel-performance-implementation-plan.md`
 - `docs/plans/archive/0029-furnace-moving-average-technical-indicators-implementation-plan.md`

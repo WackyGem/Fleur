@@ -16,6 +16,9 @@ pub const DEFAULT_RSI_OUTPUT_TABLE: &str = "fleur_calculation.calc_stock_rsi_dai
 /// Furnace 负责写入的日频 Bollinger Bands 计算结果表。
 pub const DEFAULT_BOLL_OUTPUT_TABLE: &str = "fleur_calculation.calc_stock_boll_daily";
 
+/// Furnace 负责写入的日频 MACD 计算结果表。
+pub const DEFAULT_MACD_OUTPUT_TABLE: &str = "fleur_calculation.calc_stock_macd_daily";
+
 /// Furnace 负责写入的日频价格行为和结构计算结果表。
 pub const DEFAULT_PRICE_PATTERN_OUTPUT_TABLE: &str =
     "fleur_calculation.calc_stock_price_pattern_daily";
@@ -31,6 +34,9 @@ pub const DEFAULT_RSI_PRICE_COLUMN: &str = "close_price_forward_adj";
 
 /// Bollinger Bands 第一版使用的 canonical 前复权收盘价字段。
 pub const DEFAULT_BOLL_PRICE_COLUMN: &str = "close_price_forward_adj";
+
+/// MACD 第一版使用的 canonical 前复权收盘价字段。
+pub const DEFAULT_MACD_PRICE_COLUMN: &str = "close_price_forward_adj";
 
 /// Price Pattern 第一版结构检测使用的 canonical 前复权输入表。
 pub const DEFAULT_PRICE_PATTERN_STRUCTURE_INPUT_TABLE: &str =
@@ -183,6 +189,27 @@ CREATE TABLE IF NOT EXISTS {output_table}
     boll_mid_50_2p5 Nullable(Float64),
     boll_up_50_2p5 Nullable(Float64),
     boll_dn_50_2p5 Nullable(Float64)
+)
+ENGINE = MergeTree()
+PARTITION BY toYear(trade_date)
+ORDER BY (trade_date, security_code)"
+    )
+}
+
+/// 返回 MACD 结果表的 ClickHouse DDL。
+pub fn create_macd_output_table_sql(output_table: &str) -> String {
+    format!(
+        "\
+CREATE TABLE IF NOT EXISTS {output_table}
+(
+    security_code String,
+    trade_date Date,
+    ema_fast_state_12 Nullable(Float64),
+    ema_slow_state_26 Nullable(Float64),
+    macd_dif Nullable(Float64),
+    macd_dea Nullable(Float64),
+    macd_dea_state Nullable(Float64),
+    macd_histogram Nullable(Float64)
 )
 ENGINE = MergeTree()
 PARTITION BY toYear(trade_date)

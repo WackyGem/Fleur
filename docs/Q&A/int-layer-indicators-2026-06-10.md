@@ -9,7 +9,7 @@
 
 ## 总览
 
-当前 int 层共有 13 个模型：
+当前 int 层共有 14 个模型：
 
 | 模型 | 粒度 | 定位 |
 |---|---|---|
@@ -18,6 +18,7 @@
 | `int_stock_quotes_daily_adj` | 每证券、交易日一行 | 前复权/后复权 OHLC 与昨收价格 |
 | `int_stock_ma_daily` | 每证券、交易日一行 | MA、EMA、均量指标 wrapper |
 | `int_stock_boll_daily` | 每证券、交易日一行 | BOLL 指标 wrapper |
+| `int_stock_macd_daily` | 每证券、交易日一行 | MACD 指标 wrapper |
 | `int_stock_rsi_daily` | 每证券、交易日一行 | RSI 指标 wrapper |
 | `int_stock_kdj_daily` | 每证券、交易日一行 | RSV/KDJ 指标 wrapper |
 | `int_stock_price_pattern_daily` | 每证券、交易日一行 | 价格方向、连涨连跌和 20-bar N 型结构 |
@@ -66,6 +67,7 @@
 | `int_stock_boll_daily` | `boll_mid_10_1p5`, `boll_up_10_1p5`, `boll_dn_10_1p5` | BOLL(10, 1.5)，基于前复权收盘价；STD 为总体标准差 `ddof=0` |
 | `int_stock_boll_daily` | `boll_mid_20_2`, `boll_up_20_2`, `boll_dn_20_2` | BOLL(20, 2)，基于前复权收盘价 |
 | `int_stock_boll_daily` | `boll_mid_50_2p5`, `boll_up_50_2p5`, `boll_dn_50_2p5` | BOLL(50, 2.5)，基于前复权收盘价 |
+| `int_stock_macd_daily` | `macd_dif`, `macd_dea`, `macd_histogram` | MACD(12,26,9)，基于前复权收盘价；EMA(12)、EMA(26) 和 DEA(9) 均使用 SMA 启动；`macd_histogram = macd_dif - macd_dea`，不是 2 倍柱状图 |
 | `int_stock_rsi_daily` | `rsi_6`, `rsi_12`, `rsi_14`, `rsi_24`, `rsi_25`, `rsi_50` | 基于前复权收盘价，使用 Wilder smoothing；非空值应在 `[0, 100]` |
 | `int_stock_kdj_daily` | `rsv_window`, `k_smoothing`, `d_smoothing`, `rsv`, `k_value`, `d_value`, `j_value` | canonical KDJ(9,3,3)，固定使用前复权价格口径 |
 | `int_stock_price_pattern_daily` | `close_direction`, `close_up_streak_days`, `close_down_streak_days` | 未复权收盘价与 BaoStock preclose 逐行比较；方向为空会打断连续性 |
@@ -107,7 +109,7 @@
 ## 当前未覆盖或需下游补充
 
 - 日频 PE/PB 尚未在 int 层直接输出；当前 PE/PB 在 `int_stock_financial_valuation` 中按财报报告期输出。
-- MACD、WR、CCI、ATR、OBV 等常见技术指标当前没有 int 模型。
+- WR、CCI、ATR、OBV 等常见技术指标当前没有 int 模型。
 - 涨跌停只提供理论价，未提供全市场涨停/跌停事件事实。
 - 盘口、逐笔、内外盘、主动买卖方向等 intraday/level-2 指标当前没有输入和 int 模型。
 
@@ -118,6 +120,7 @@
 - `pipeline/elt/models/intermediate/int_stock_quotes_daily_adj.sql`
 - `pipeline/elt/models/intermediate/int_stock_ma_daily.sql`
 - `pipeline/elt/models/intermediate/int_stock_boll_daily.sql`
+- `pipeline/elt/models/intermediate/int_stock_macd_daily.sql`
 - `pipeline/elt/models/intermediate/int_stock_rsi_daily.sql`
 - `pipeline/elt/models/intermediate/int_stock_kdj_daily.sql`
 - `pipeline/elt/models/intermediate/int_stock_price_pattern_daily.sql`

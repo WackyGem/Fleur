@@ -313,6 +313,51 @@ sources:
             description: BOLL(50, 2.5) lower band; MID - 2.5 * population STD(close_price_forward_adj, 50), ddof=0.
             data_type: Nullable(Float64)
 
+      - name: calc_stock_macd_daily
+        description: Furnace/Dagster materialized daily MACD technical indicator table.
+        config:
+          meta:
+            dagster:
+              asset_key:
+                - fleur_calculation
+                - calc_stock_macd_daily
+        columns:
+          - name: security_code
+            description: "{{ doc('field_security_code') }}"
+            data_type: String
+            data_tests:
+              - not_null
+
+          - name: trade_date
+            description: "{{ doc('field_trade_date') }}"
+            data_type: Date
+            data_tests:
+              - not_null
+
+          - name: ema_fast_state_12
+            description: Internal EMA(12) state based on close_price_forward_adj and SMA startup; used by Furnace for exact MACD continuation.
+            data_type: Nullable(Float64)
+
+          - name: ema_slow_state_26
+            description: Internal EMA(26) state based on close_price_forward_adj and SMA startup; used by Furnace for exact MACD continuation.
+            data_type: Nullable(Float64)
+
+          - name: macd_dif
+            description: MACD DIF fast line, EMA(12) minus EMA(26), based on close_price_forward_adj. NULL until both EMA states are available or when current close is NULL.
+            data_type: Nullable(Float64)
+
+          - name: macd_dea
+            description: MACD DEA signal line, EMA(DIF, 9) with SMA startup. NULL until 9 valid DIF values are available or when current DIF is NULL.
+            data_type: Nullable(Float64)
+
+          - name: macd_dea_state
+            description: Internal DEA(9) state used by Furnace for exact MACD continuation; downstream models should not consume directly.
+            data_type: Nullable(Float64)
+
+          - name: macd_histogram
+            description: Standard MACD histogram, macd_dif - macd_dea. This is not the doubled 2 * (DIF - DEA) variant.
+            data_type: Nullable(Float64)
+
       - name: calc_stock_price_pattern_daily
         description: Furnace/Dagster materialized daily price action and previous-low/second-low structure indicator table.
         config:
