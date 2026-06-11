@@ -10,7 +10,7 @@
 - Raw asset：`clickhouse/raw/baostock__query_history_k_data_plus_daily`
 - ClickHouse raw：`fleur_raw.baostock__query_history_k_data_plus_daily`
 - 分区策略：`year`
-- ORDER BY：`(code, date)`
+- ORDER BY：`(date, code)`
 
 ## 字段链路
 

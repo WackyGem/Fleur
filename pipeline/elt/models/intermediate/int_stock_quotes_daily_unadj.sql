@@ -1,7 +1,7 @@
 {{ config(
     materialized='table',
     engine='MergeTree()',
-    order_by='(security_code, trade_date)',
+    order_by='(trade_date, security_code)',
     partition_by='toYear(trade_date)'
 ) }}
 

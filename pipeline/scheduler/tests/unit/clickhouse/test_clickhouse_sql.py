@@ -17,7 +17,7 @@ def test_raw_table_ddl_uses_merge_tree_year_partition_and_order_by() -> None:
     assert "`year` UInt16" in ddl
     assert "ENGINE = MergeTree" in ddl
     assert "PARTITION BY `year`" in ddl
-    assert "ORDER BY (`code`, `date`)" in ddl
+    assert "ORDER BY (`date`, `code`)" in ddl
 
 
 def test_staging_insert_reads_s3_parquet_and_injects_year_partition() -> None:

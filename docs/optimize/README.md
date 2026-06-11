@@ -13,4 +13,5 @@
 
 | 文档 | 用途 |
 |---|---|
+| [0001-clickhouse-date-first-order-by-optimization.md](0001-clickhouse-date-first-order-by-optimization.md) | ClickHouse 证券日频表 date-first `ORDER BY` 优化清单、范围和验收标准 |
 | [docs-governance-inventory-2026-06-10.md](docs-governance-inventory-2026-06-10.md) | Plan 0033 执行时的 docs inventory 和治理基线 |

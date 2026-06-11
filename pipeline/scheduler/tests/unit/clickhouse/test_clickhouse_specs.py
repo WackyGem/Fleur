@@ -32,7 +32,7 @@ def test_baostock_spec_uses_year_partition_and_query_driven_order_by() -> None:
     assert spec.storage_mode == "partitioned"
     assert spec.source_partition_key_name == "year"
     assert spec.partition_strategy == "year"
-    assert spec.order_by == ("code", "date")
+    assert spec.order_by == ("date", "code")
     assert spec.partition_column is not None
     assert spec.partition_column.clickhouse_type == "UInt16"
 

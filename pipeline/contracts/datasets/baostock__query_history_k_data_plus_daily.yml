@@ -126,8 +126,8 @@ clickhouse_raw:
   engine: MergeTree
   partition_by: '`year`'
   order_by:
-  - code
   - date
+  - code
   allow_empty: false
   sync_enabled: true
   fields:
