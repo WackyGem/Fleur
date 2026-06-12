@@ -7,7 +7,6 @@
 | Plan | 状态 | 说明 |
 |---|---|---|
 | [0023](0023-contract-driven-parquet-schema-adapter-backfill-test-plan.md) | Proposed | Contract-driven Parquet schema adapter 合入后的 dev 环境重置、小批量回填和全量回填准入计划 |
-| [0036](0036-rust-rearview-stock-screening-service-implementation-plan.md) | Proposed | Rust Rearview 规则选股 HTTP 服务、PostgreSQL rearview 库、metric catalog 和 ClickHouse runtime join 的第一版实施计划 |
 
 ## 规则
 

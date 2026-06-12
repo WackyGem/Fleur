@@ -558,10 +558,11 @@ output_metrics:
 | `POST` | `/rearview/rule-sets/{rule_set_id}/versions` | 创建不可变规则版本 |
 | `POST` | `/rearview/runs` | 发起区间选股运行 |
 | `GET` | `/rearview/runs/{run_id}` | 查询运行状态和汇总 |
+| `GET` | `/rearview/runs/{run_id}/chunks` | 查询 chunk 日期范围、状态、ClickHouse query id 和耗时 |
 | `GET` | `/rearview/runs/{run_id}/days` | 查询每日股票池数量、信号数量和日状态 |
 | `GET` | `/rearview/runs/{run_id}/pool?trade_date=...` | 查询某日股票池 |
 | `GET` | `/rearview/runs/{run_id}/signals?trade_date=...` | 查询某日 TopN 买入信号 |
-| `POST` | `/rearview/explain` | 只编译和解释规则，不写结果 |
+| `POST` | `/rearview/explain` | 只编译和解释规则，不写结果；请求带日期区间时返回 chunk plan |
 
 `POST /rearview/runs` 请求草案：
 
@@ -595,8 +596,9 @@ output_metrics:
 
 1. 服务校验规则版本和 metric catalog。
 2. 服务将日期区间解析为运行范围。第一版可从 anchor mart 的 `trade_date` 推导实际交易日集合；如果后续需要完整交易所日历，应新增 mart 层交易日历消费接口。
-3. 服务编译 ClickHouse 查询，对区间内每个交易日使用同一过滤规则生成股票池。
-4. 服务把每个交易日的入池证券写入 `pool_member`，并更新 `run_day.pool_count`。
+3. 服务为 anchor mart 中覆盖到的每个实际交易日创建 `run_day` 占位；即使某日没有任何证券入池，也必须保留 `run_day` 并把 `pool_count` / `signal_count` 记为 0。
+4. 服务编译 ClickHouse 查询，对区间内每个交易日使用同一过滤规则生成股票池。
+5. 服务把每个交易日的入池证券写入 `pool_member`，并更新 `run_day.pool_count`。
 
 输出：
 
@@ -709,7 +711,7 @@ RuleDraft
 | 10. 写入买入信号 | ranked pool rows 中 `signal_rank <= top_n` 的 rows | 按日保存 TopN 买入信号、rank、score、score breakdown 和运行时 `selected_metrics` | `buy_signal` rows；每日 `signal_count` | PostgreSQL |
 | 11. 汇总运行 | `run_day`、pool rows、signal rows、query stats | 汇总总交易日数、总股票池行数、总信号行数、耗时和失败日 | `run` 终态 `succeeded` 或 `failed_*` | PostgreSQL |
 | 12. 查询结果 | HTTP `GET /rearview/runs/{run_id}`、`/days`、`/pool`、`/signals` | 从 PostgreSQL 读取运行摘要、日状态、股票池和买入信号 | API response DTO | HTTP response，不作为新事实源 |
-| 13. Explain | HTTP `POST /rearview/explain` 请求、规则草案或规则版本 | 只做校验、计划编译和可选 ClickHouse `EXPLAIN indexes = 1`，不写股票池和信号 | explain report、required marts、compiled SQL、index usage summary | HTTP response；可选写审计日志 |
+| 13. Explain | HTTP `POST /rearview/explain` 请求、规则草案或规则版本；可选 `start_date`、`end_date`、`top_n` | 只做校验、计划编译、chunk plan 和可选 ClickHouse `EXPLAIN indexes = 1`，不写股票池和信号 | explain report、required marts、compiled SQL、chunk plan、index usage summary | HTTP response；可选写审计日志 |
 
 ### 核心产物定义
 
@@ -1089,7 +1091,7 @@ PostgreSQL database `rearview`: table `metric_catalog`
 7. 支持日期区间运行，逻辑上对每个交易日独立过滤；多年区间默认按自然年 chunk 执行。
 8. 支持 `AND` 规则、数值比较、布尔比较、字段间比较、字段乘常数表达式、`weighted_sum`、`conditional_points`、clamp 和每日 TopN。
 9. 运行股票池和买入信号写 PostgreSQL `rearview` database。
-10. 提供 `explain` 模式，输出编译 SQL、所需 mart、输出列和 ClickHouse `EXPLAIN indexes = 1` 摘要。
+10. 提供 `explain` 模式，输出编译 SQL、所需 mart、输出列、日期区间 chunk plan 和 ClickHouse `EXPLAIN indexes = 1` 摘要。
 
 第二阶段再评估：
 

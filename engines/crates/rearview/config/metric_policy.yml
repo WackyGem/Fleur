@@ -1,0 +1,145 @@
+metrics:
+  - logical_metric: close_price
+    source:
+      mart_table: mart_stock_quotes_daily
+      column_name: close_price
+    value_kind: numeric
+    allow_filter: true
+    allow_scoring: true
+    allowed_ops: [lt, lte, gt, gte, between, eq, ne, is_null]
+    null_policy: no_match
+    default_output: true
+
+  - logical_metric: prev_volume
+    source:
+      mart_table: mart_stock_quotes_daily
+      column_name: prev_volume
+    value_kind: numeric
+    allow_filter: true
+    allow_scoring: true
+    allowed_ops: [lt, lte, gt, gte, between, eq, ne, is_null]
+    null_policy: no_match
+
+  - logical_metric: volume
+    source:
+      mart_table: mart_stock_quotes_daily
+      column_name: volume
+    value_kind: numeric
+    allow_filter: true
+    allow_scoring: true
+    allowed_ops: [lt, lte, gt, gte, between, eq, ne, is_null]
+    null_policy: no_match
+    default_output: true
+
+  - logical_metric: kdj_j_value
+    source:
+      mart_table: mart_stock_momentum_indicator
+      column_name: kdj_j_value
+    value_kind: numeric
+    allow_filter: true
+    allow_scoring: true
+    allowed_ops: [lt, lte, gt, gte, between, eq, ne, is_null]
+    null_policy: no_match
+    default_output: true
+
+  - logical_metric: rsi_6
+    source:
+      mart_table: mart_stock_momentum_indicator
+      column_name: rsi_6
+    value_kind: numeric
+    allow_filter: true
+    allow_scoring: true
+    allowed_ops: [lt, lte, gt, gte, between, eq, ne, is_null]
+    null_policy: no_match
+    default_output: true
+
+  - logical_metric: price_ema2_10
+    source:
+      mart_table: mart_stock_trend_indicator
+      column_name: price_ema2_10
+    value_kind: numeric
+    allow_filter: true
+    allow_scoring: true
+    allowed_ops: [lt, lte, gt, gte, between, eq, ne, is_null]
+    null_policy: no_match
+
+  - logical_metric: price_avg_ma_14_28_57_114
+    source:
+      mart_table: mart_stock_trend_indicator
+      column_name: price_avg_ma_14_28_57_114
+    value_kind: numeric
+    allow_filter: true
+    allow_scoring: true
+    allowed_ops: [lt, lte, gt, gte, between, eq, ne, is_null]
+    null_policy: no_match
+
+  - logical_metric: price_avg_ma_3_6_12_24
+    source:
+      mart_table: mart_stock_trend_indicator
+      column_name: price_avg_ma_3_6_12_24
+    value_kind: numeric
+    allow_filter: true
+    allow_scoring: true
+    allowed_ops: [lt, lte, gt, gte, between, eq, ne, is_null]
+    null_policy: no_match
+
+  - logical_metric: price_ma_20
+    source:
+      mart_table: mart_stock_trend_indicator
+      column_name: price_ma_20
+    value_kind: numeric
+    allow_filter: true
+    allow_scoring: true
+    allowed_ops: [lt, lte, gt, gte, between, eq, ne, is_null]
+    null_policy: no_match
+
+  - logical_metric: price_ma_60
+    source:
+      mart_table: mart_stock_trend_indicator
+      column_name: price_ma_60
+    value_kind: numeric
+    allow_filter: true
+    allow_scoring: true
+    allowed_ops: [lt, lte, gt, gte, between, eq, ne, is_null]
+    null_policy: no_match
+
+  - logical_metric: boll_dn_20_2
+    source:
+      mart_table: mart_stock_trend_indicator
+      column_name: boll_dn_20_2
+    value_kind: numeric
+    allow_filter: true
+    allow_scoring: true
+    allowed_ops: [lt, lte, gt, gte, between, eq, ne, is_null]
+    null_policy: no_match
+
+  - logical_metric: volume_ma_5
+    source:
+      mart_table: mart_stock_volume_indicator
+      column_name: volume_ma_5
+    value_kind: numeric
+    allow_filter: true
+    allow_scoring: true
+    allowed_ops: [lt, lte, gt, gte, between, eq, ne, is_null]
+    null_policy: no_match
+
+  - logical_metric: close_down_streak_days
+    source:
+      mart_table: mart_stock_price_pattern_daily
+      column_name: close_down_streak_days
+    value_kind: numeric
+    allow_filter: true
+    allow_scoring: true
+    allowed_ops: [lt, lte, gt, gte, between, eq, ne, is_null]
+    null_policy: no_match
+
+  - logical_metric: n_structure_20_is_valid
+    source:
+      mart_table: mart_stock_price_pattern_daily
+      column_name: n_structure_20_is_valid
+    value_kind: boolean
+    allow_filter: true
+    allow_scoring: true
+    allowed_ops: [eq, ne, is_null]
+    null_policy: no_match
+    default_output: true

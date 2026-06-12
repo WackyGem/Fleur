@@ -1,7 +1,10 @@
 # mono-fleur Rust Engines 文档地图
 
-`engines/` 是 mono-fleur 的 Rust / Cargo workspace，用于承载高性能后端计算引擎。
-当前主要实现是 `furnace`：由 Dagster 调度的金融技术指标计算 CLI，支持日频 KDJ、MA、RSI、BOLL 和价格行为结构指标计算。
+`engines/` 是 mono-fleur 的 Rust / Cargo workspace，用于承载高性能后端计算引擎和应用服务。
+当前主要实现包括：
+
+- `furnace`：由 Dagster 调度的金融技术指标计算 CLI，支持日频 KDJ、MA、RSI、BOLL 和价格行为结构指标计算。
+- `rearview`：规则选股 HTTP 服务，消费 ClickHouse `fleur_marts` 指标 mart，并把规则、运行、股票池和买入信号写入 PostgreSQL `rearview` database。
 
 ## Workspace
 
@@ -12,7 +15,8 @@ engines/
 └── crates/
     ├── furnace/       # CLI 入口
     ├── furnace-core/  # 纯指标计算核心
-    └── furnace-io/    # ClickHouse I/O、批量写入和运行摘要
+    ├── furnace-io/    # ClickHouse I/O、批量写入和运行摘要
+    └── rearview/      # 规则选股 HTTP 服务
 ```
 
 所有 Rust / Cargo 命令都应在 `engines/` 目录下执行；不要把 Rust crate 放入 `pipeline/` 的 uv workspace。
@@ -24,6 +28,7 @@ engines/
 | `furnace` | binary | 解析 `furnace kdj/ma/rsi/boll/price-pattern` CLI 参数，校验运行请求，调用 I/O 层并输出 JSON summary |
 | `furnace-core` | library | 提供 KDJ、MA、RSI、BOLL、价格行为结构的参数、输入/输出模型、状态和单证券纯计算；不依赖 ClickHouse、Dagster、dbt、Rayon 或环境变量 |
 | `furnace-io` | library | 负责 ClickHouse 表名、DDL、SQL、`clickhouse-client` 执行、RowBinary 读写、按证券并行调度、staging/partition replace 和运行摘要 |
+| `rearview` | binary + library | 提供规则选股 HTTP API、metric catalog 校验、规则 AST 校验、ClickHouse runtime join 查询规划、PostgreSQL 运行状态和结果写入 |
 
 核心边界：
 
@@ -95,6 +100,62 @@ ClickHouse CLI 环境变量：
 | `CLICKHOUSE_CONNECT_TIMEOUT_SECONDS` | 连接超时 |
 | `CLICKHOUSE_QUERY_TIMEOUT_SECONDS` | 查询收发超时 |
 | `RAYON_NUM_THREADS` | 可选 Rayon worker 数；Dagster resource 默认注入 8，外部已设置时尊重外部值 |
+
+## Rearview HTTP 服务
+
+Rearview 第一版是单 crate 服务：`engines/crates/rearview/`。包内按 `domain`、`api`、`planner`、`clickhouse`、`postgres` 和 `service` 分模块；当前没有跨项目复用需求，不拆成多个 crate。
+
+本地开发复用根目录 `.env` 和 `deploy/docker-compose.yml` 中的 PostgreSQL / ClickHouse：
+
+```bash
+docker compose --env-file .env -f deploy/docker-compose.yml up -d postgres clickhouse
+
+cd pipeline
+uv run alembic -c migrate/alembic.ini -x target=pipeline upgrade head
+uv run alembic -c migrate/alembic.ini -x target=rearview upgrade head
+
+cd ../engines
+cargo run -p rearview -- catalog check
+cargo run -p rearview -- catalog sync
+cargo run -p rearview -- serve
+```
+
+常用 HTTP API：
+
+| Method | Path | 用途 |
+|---|---|---|
+| `GET` | `/healthz` | 服务健康检查 |
+| `POST` | `/rearview/rule-sets` | 创建规则集 |
+| `POST` | `/rearview/rule-sets/{rule_set_id}/versions` | 创建不可变规则版本 |
+| `POST` | `/rearview/runs` | 发起区间选股运行 |
+| `GET` | `/rearview/runs/{run_id}` | 查询运行状态和 summary |
+| `GET` | `/rearview/runs/{run_id}/chunks` | 查询 chunk 状态、ClickHouse query id 和耗时 |
+| `GET` | `/rearview/runs/{run_id}/days` | 查询日粒度股票池和信号数量 |
+| `GET` | `/rearview/runs/{run_id}/pool?trade_date=YYYY-MM-DD` | 查询某日股票池 |
+| `GET` | `/rearview/runs/{run_id}/signals?trade_date=YYYY-MM-DD` | 查询某日 TopN 买入信号 |
+| `POST` | `/rearview/explain` | 校验规则并返回所需 mart、列、SQL hash；带日期时返回 chunk plan |
+
+Rearview 环境变量：
+
+| 变量 | 用途 |
+|------|------|
+| `REARVIEW_DATABASE_URL` | PostgreSQL `rearview` database 连接 |
+| `REARVIEW_HTTP_BIND` | HTTP bind 地址，默认 `127.0.0.1:34057` |
+| `REARVIEW_MAX_CONCURRENT_RUNS` | 并发运行上限 |
+| `REARVIEW_CHUNK_SMALL_RANGE_TRADING_DAYS` | 小区间单次 range query 阈值，默认 90 |
+| `REARVIEW_CLICKHOUSE_MARTS_DATABASE` | ClickHouse mart database，默认 `fleur_marts` |
+| `REARVIEW_CLICKHOUSE_MAX_EXECUTION_TIME_SECONDS` | ClickHouse 单查询执行时间上限 |
+| `REARVIEW_CLICKHOUSE_MAX_ROWS_TO_READ` | ClickHouse 单查询扫描行数上限 |
+| `REARVIEW_CLICKHOUSE_MAX_BYTES_TO_READ` | ClickHouse 单查询扫描字节上限 |
+| `CLICKHOUSE_HOST` / `CLICKHOUSE_PORT` | ClickHouse HTTP 连接地址 |
+| `CLICKHOUSE_USER` / `CLICKHOUSE_PASSWORD` | ClickHouse 认证 |
+
+生成代表性规则样例：
+
+```bash
+cd engines
+cargo run -p rearview -- sample-rule
+```
 
 ## 质量门禁
 

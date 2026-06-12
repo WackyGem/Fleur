@@ -8,7 +8,7 @@ Create Date: 2026-05-28
 from __future__ import annotations
 
 import sqlalchemy as sa
-from alembic import op
+from alembic import context, op
 
 revision = "0001_jiuyan_industry_images"
 down_revision = None
@@ -16,7 +16,14 @@ branch_labels = None
 depends_on = None
 
 
+def _is_active_target() -> bool:
+    return context.config.attributes.get("target", "pipeline") == "pipeline"
+
+
 def upgrade() -> None:
+    if not _is_active_target():
+        return
+
     op.create_table(
         "jiuyan_industry_images",
         sa.Column("image_filename", sa.Text(), primary_key=True),
@@ -73,6 +80,9 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
+    if not _is_active_target():
+        return
+
     op.drop_index(
         "idx_jiuyan_industry_images_ocr_claim",
         table_name="jiuyan_industry_images",
