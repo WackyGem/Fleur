@@ -1,0 +1,86 @@
+version: 2
+
+models:
+  - name: mart_stock_price_pattern_daily
+    description: A 股股票日频价格行为与前低-次低结构 mart；基于 int_stock_price_pattern_daily 提供消费层稳定接口，不在 mart 层重写价格形态公式。
+    config:
+      meta:
+        grain_zh: 每证券、交易日一行。
+        business_logic_zh:
+          - 以 int_stock_price_pattern_daily 为唯一上游，保留价格方向、连阳连阴和 20 根窗口前低-次低结构字段。
+          - 连阳和连阴使用未复权 close_price 与 BaoStock prev_close_price 的 Furnace 计算结果。
+          - 前低-次低结构使用前复权 high_price_forward_adj 与 low_price_forward_adj 的 Furnace 计算结果。
+          - mart 层只负责消费层物化、字段文档和质量测试，不读取 fleur_calculation 物理表，也不重写指标公式。
+    data_tests:
+      - unique_combination_of_columns:
+          arguments:
+            combination_of_columns:
+              - security_code
+              - trade_date
+    columns:
+      - name: security_code
+        description: "{{ doc('field_security_code') }}"
+        data_type: String
+        data_tests:
+          - not_null
+          - cn_security_code_format
+
+      - name: trade_date
+        description: "{{ doc('field_trade_date') }}"
+        data_type: Date
+        data_tests:
+          - not_null
+
+      - name: close_direction
+        description: Direction of unadjusted close_price versus BaoStock prev_close_price; 1 means up, -1 means down, 0 means flat, NULL means either close input is missing.
+        data_type: Nullable(Int8)
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: [-1, 0, 1]
+              config:
+                where: close_direction is not null
+
+      - name: close_up_streak_days
+        description: Consecutive valid up days through the current row; NULL when close_direction is NULL, 0 when current direction is flat or down.
+        data_type: Nullable(UInt16)
+
+      - name: close_down_streak_days
+        description: Consecutive valid down days through the current row; NULL when close_direction is NULL, 0 when current direction is flat or up.
+        data_type: Nullable(UInt16)
+
+      - name: n_structure_20_valid_bars
+        description: Count of recent valid forward-adjusted high/low bars used by the 20-bar structure window.
+        data_type: UInt16
+
+      - name: n_structure_20_high_date
+        description: Trade date of the first highest high_price_forward_adj in the recent 20 valid high/low bars.
+        data_type: Nullable(Date)
+
+      - name: n_structure_20_high_price
+        description: Highest high_price_forward_adj in the recent 20 valid high/low bars.
+        data_type: Nullable(Float64)
+
+      - name: n_structure_20_low_date
+        description: Trade date of the first lowest low_price_forward_adj on the left side of the structure window, including the high bar.
+        data_type: Nullable(Date)
+
+      - name: n_structure_20_low_price
+        description: Lowest low_price_forward_adj on the left side of the structure window, including the high bar.
+        data_type: Nullable(Float64)
+
+      - name: n_structure_20_second_low_date
+        description: Trade date of the first lowest low_price_forward_adj on the right side after the high bar.
+        data_type: Nullable(Date)
+
+      - name: n_structure_20_second_low_price
+        description: Lowest low_price_forward_adj on the right side after the high bar.
+        data_type: Nullable(Float64)
+
+      - name: n_structure_20_second_low_ratio
+        description: n_structure_20_second_low_price divided by n_structure_20_low_price; NULL when the second low is unavailable.
+        data_type: Nullable(Float64)
+
+      - name: n_structure_20_is_valid
+        description: True when n_structure_20_second_low_ratio is strictly greater than 1.0; false when ratio is NULL or not greater than 1.0.
+        data_type: Bool

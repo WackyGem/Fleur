@@ -1,9 +1,12 @@
 COMPOSE_FILE := deploy/docker-compose.yml
 PIPELINE_DIR := pipeline
 SCHEDULER_TARGET := scheduler
+ELT_TARGET := elt
 TRADE_CALENDAR_ASSET := sina__trade_calendar
 DAGSTER_WEBUI_HOST ?= 127.0.0.1
 DAGSTER_WEBUI_PORT ?= 3000
+DBT_DOCS_HOST ?= 127.0.0.1
+DBT_DOCS_PORT ?= 8580
 RUST_DOC_HOST ?= 127.0.0.1
 RUST_DOC_PORT ?= 8000
 RUST_DOC_CRATE ?= furnace_core
@@ -27,7 +30,7 @@ define require-dagster-home
 	fi
 endef
 
-.PHONY: help dev-up dev-down dev-logs wait-rustfs dagster-home docs-check check-defs materialize-trade-calendar dev-materialize-trade-calendar webui rust-doc rust-doc-open rust-doc-serve
+.PHONY: help dev-up dev-down dev-logs wait-rustfs dagster-home docs-check check-defs materialize-trade-calendar dev-materialize-trade-calendar webui dbt-docs dbt-docs-serve rust-doc rust-doc-open rust-doc-serve
 
 help:
 	@printf '%s\n' 'Available targets:'
@@ -39,6 +42,8 @@ help:
 	@printf '  %-34s %s\n' 'materialize-trade-calendar' 'Materialize sina__trade_calendar'
 	@printf '  %-34s %s\n' 'dev-materialize-trade-calendar' 'Start dev services, wait for RustFS, then materialize the calendar'
 	@printf '  %-34s %s\n' 'webui' 'Start Dagster Web UI for the local dev instance'
+	@printf '  %-34s %s\n' 'dbt-docs' 'Generate dbt docs under pipeline/elt/target'
+	@printf '  %-34s %s\n' 'dbt-docs-serve' 'Generate and serve dbt docs over http://127.0.0.1:8580'
 	@printf '  %-34s %s\n' 'rust-doc' 'Generate Rust API docs under engines/target/doc'
 	@printf '  %-34s %s\n' 'rust-doc-open' 'Generate and open Furnace core Rust API docs'
 	@printf '  %-34s %s\n' 'rust-doc-serve' 'Serve Rust API docs over http://127.0.0.1:8000'
@@ -93,6 +98,16 @@ dev-materialize-trade-calendar: dev-up wait-rustfs materialize-trade-calendar
 webui: dagster-home
 	@printf 'Starting Dagster Web UI at http://%s:%s\n' '$(DAGSTER_WEBUI_HOST)' '$(DAGSTER_WEBUI_PORT)'
 	cd $(PIPELINE_DIR)/$(SCHEDULER_TARGET) && uv run dg dev --host $(DAGSTER_WEBUI_HOST) --port $(DAGSTER_WEBUI_PORT)
+
+dbt-docs:
+	$(require-env-file)
+	cd $(PIPELINE_DIR) && uv run dbt docs generate --project-dir $(ELT_TARGET) --profiles-dir $(ELT_TARGET) --static
+	@printf 'dbt docs generated at %s\n' '$(PIPELINE_DIR)/$(ELT_TARGET)/target/index.html'
+	@printf 'Static dbt docs generated at %s\n' '$(PIPELINE_DIR)/$(ELT_TARGET)/target/static_index.html'
+
+dbt-docs-serve: dbt-docs
+	@printf 'Serving dbt docs at http://%s:%s\n' '$(DBT_DOCS_HOST)' '$(DBT_DOCS_PORT)'
+	cd $(PIPELINE_DIR) && uv run dbt docs serve --project-dir $(ELT_TARGET) --profiles-dir $(ELT_TARGET) --host $(DBT_DOCS_HOST) --port $(DBT_DOCS_PORT) --no-browser
 
 rust-doc:
 	cd engines && cargo doc --workspace --no-deps
