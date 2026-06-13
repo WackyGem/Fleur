@@ -19,24 +19,21 @@
 1. 不实现 Rearview 规则编译、ClickHouse 查询、PostgreSQL 写入或业务状态机。
 2. 不直接访问 ClickHouse 或 PostgreSQL。
 3. 第一版不实现交易、下单、风控、组合调仓或完整回测。
-4. 第一版不在没有后端鉴权设计的情况下自行定义用户隔离协议。
+4. 第一版不引入登录入口、认证/鉴权、用户隔离或权限系统。
 
 ## 技术栈
 
-| 类别 | 选型 |
-|---|---|
-| 构建工具 | Vite |
-| 前端框架 | React |
-| 开发语言 | TypeScript |
-| CSS 风格与样式体系 | Tailwind CSS v4（`@tailwindcss/vite`）+ CSS Variables |
-| UI 组件体系 | shadcn/ui（style: `base-nova`）+ Base UI（`@base-ui/react`） |
-| 图标 | Hugeicons（`@hugeicons/react`） |
-| 类名与变体工具 | `clsx` + `tailwind-merge` + `class-variance-authority` |
-| 代码规范 | ESLint Flat Config + `typescript-eslint` + `react-hooks` + `react-refresh` |
-| 路由 | React Router |
-| 服务端状态 | TanStack Query |
-| 客户端状态 | Zustand |
-| 图表 | TradingView Lightweight Charts |
+技术栈和工程边界以 [ADR 0011](../ADR/0011-racingline-frontend-technology-stack.md) 为权威来源。当前摘要：Vite + React + TypeScript，Tailwind CSS v4 + CSS Variables，shadcn/ui（`base-nova`）+ Base UI，Hugeicons，React Router，TanStack Query，Zustand 和 TradingView Lightweight Charts。
+
+## 工程管理
+
+第一版采用单独 package 管理：只在 `app/racingline/` 维护 `package.json`、lockfile、Vite 配置和 npm scripts；暂不在 `app/` 顶层引入 npm/pnpm/yarn workspace 管理器。
+
+前端运行时配置使用 `app/racingline/.env` 约定。Vite 客户端变量必须使用 `VITE_` 前缀，第一版 API base URL 变量为：
+
+```text
+VITE_REARVIEW_API_BASE_URL=http://127.0.0.1:34057
+```
 
 ## 后端依赖
 
@@ -78,11 +75,13 @@ npm run build
 | 文档 | 用途 |
 |---|---|
 | [../RFC/0019-racingline-rearview-frontend-workbench.md](../RFC/0019-racingline-rearview-frontend-workbench.md) | Racingline 前端 RFC |
+| [../ADR/0011-racingline-frontend-technology-stack.md](../ADR/0011-racingline-frontend-technology-stack.md) | Racingline 前端技术栈和工程边界 |
+| [../plans/0037-racingline-frontend-implementation-plan.md](../plans/0037-racingline-frontend-implementation-plan.md) | Racingline 前端第一版实施计划 |
 | [../RFC/0018-rust-stock-screening-service.md](../RFC/0018-rust-stock-screening-service.md) | Rearview 后端服务 RFC |
 | [rearview.md](rearview.md) | Rearview 当前系统地图 |
 
-## 待决问题
+## 已决事项
 
-1. `app/` 是否需要顶层 workspace 管理器，还是 `app/racingline/` 先作为单独 package 管理。
-2. API base URL、CORS 和本地开发环境变量如何约定。
-3. 是否在第一版引入登录入口，还是等待 Rearview 鉴权设计统一处理。
+1. `app/racingline/` 第一版按单独 package 管理。
+2. API base URL 使用 `app/racingline/.env` 中的 `VITE_REARVIEW_API_BASE_URL`。
+3. 第一版不引入登录入口、认证/鉴权、用户隔离或权限系统。

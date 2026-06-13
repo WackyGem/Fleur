@@ -22,3 +22,4 @@
 | [0008](0008-raw-source-profiling-before-dbt-staging.md) | Accepted | dbt staging 前置 raw source profiling |
 | [0009](0009-clickhouse-layered-databases.md) | Accepted | ClickHouse 按 dbt 建模层分库 |
 | [0010](0010-technical-indicator-field-naming.md) | Accepted | 技术指标字段命名区分窗口参数和算子重数 |
+| [0011](0011-racingline-frontend-technology-stack.md) | Accepted | Racingline 前端技术栈和工程边界 |
