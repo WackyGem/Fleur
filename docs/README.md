@@ -1,10 +1,22 @@
 # mono-fleur Docs
 
-本目录是项目记录系统。阅读顺序是先按系统找当前事实，再看决策和计划，最后追溯历史材料。
+本目录是项目记录系统。新需求先走领域 intake，再按系统地图确认当前事实，最后进入决策、计划或历史材料。
 
 ## 快速入口
 
-### 按系统
+### 按需求投递
+
+| 需要投递 | 入口 |
+|---|---|
+| 需求分流总入口 | [intake/README.md](intake/README.md) |
+| 数据平台需求 | [intake/data-platform.md](intake/data-platform.md) |
+| 数据治理需求 | [intake/data-governance.md](intake/data-governance.md) |
+| Furnace 计算引擎需求 | [intake/furnace.md](intake/furnace.md) |
+| Rearview 后端需求 | [intake/rearview.md](intake/rearview.md) |
+| Racingline 前端需求 | [intake/racingline.md](intake/racingline.md) |
+| 部署和运行需求 | [intake/deploy-ops.md](intake/deploy-ops.md) |
+
+### 按系统查事实
 
 | 需要了解 | 入口 |
 |---|---|
@@ -34,6 +46,7 @@
 
 | 目录 | 角色 | 当前性 |
 |---|---|---|
+| `intake/` | 按领域分流新需求，并决定是否进入 RFC、plan、ADR、systems、jobs 或 references | 当前需求入口 |
 | `systems/` | 按系统和产品线组织当前事实、代码根、运行入口和质量门禁 | 当前事实入口 |
 | `architecture/` | 当前架构和边界 | 当前事实 |
 | `ADR/` | 长期决策 | 当前或明确标注状态 |
@@ -59,7 +72,7 @@
 - `Superseded`：被新文档替代。
 - `Archived`：历史参考。
 
-历史文档不要作为当前事实引用。引用历史方案时，同时链接当前系统地图、代码、ADR、architecture 文档或运行报告作为证据。
+历史文档不要作为当前事实引用。引用历史方案时，同时链接当前 intake、系统地图、代码、ADR、architecture 文档或运行报告作为证据。
 
 ## 最小校验
 
