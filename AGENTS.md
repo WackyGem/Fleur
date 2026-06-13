@@ -15,7 +15,7 @@ mono-fleur/
 │   ├── docker-compose.yml
 │   ├── postgres/       # PostgreSQL 配置
 │   └── jiuyan_industry_ocr.dev.yaml
-├── app/                # 预留应用目录
+├── app/                # 前端应用工作区（racingline 规划中）
 ├── docs/               # 项目文档与计划
 ├── .env                # 环境变量（不提交）
 └── .env.example        # 环境变量模板
@@ -24,7 +24,14 @@ mono-fleur/
 ## 文档入口
 
 - 文档总入口：`docs/README.md`
-- 架构总览：`docs/architecture/scheduler-architecture.md`
+- 多工程系统地图：`docs/systems/README.md`
+- 数据平台地图：`docs/systems/data-platform.md`
+- 数据治理地图：`docs/systems/data-governance.md`
+- Furnace 计算引擎地图：`docs/systems/furnace.md`
+- Rearview 后端服务地图：`docs/systems/rearview.md`
+- Racingline 前端工作台地图：`docs/systems/racingline.md`
+- 部署与运行地图：`docs/systems/deploy-ops.md`
+- 架构边界：`docs/architecture/`
 - 模块边界：`docs/architecture/scheduler-module-boundaries.md`
 - 长期决策：`docs/ADR/`
 - 方案与历史设计：`docs/RFC/`
@@ -139,6 +146,18 @@ cd pipeline/migrate
 uv run alembic upgrade head
 ```
 
+## 前端与浏览器调试
+
+- `racingline` 前端规划路径：`app/racingline/`
+- 前端系统地图：`docs/systems/racingline.md`
+- Playwright CLI 使用全局安装的 `@playwright/cli`，命令为 `playwright-cli`
+- 当前浏览器调试环境通过 Docker `vnc-mini-desktop` 暴露 Chromium CDP 端口，默认 `PLAYWRIGHT_CDP_ENDPOINT=http://127.0.0.1:9222`
+- CDP 连通性检查：
+
+```bash
+node scripts/check_playwright_cdp.mjs
+```
+
 ## 质量门禁
 
 提交代码前必须通过以下检查：
@@ -215,6 +234,7 @@ cargo test --workspace
 | `fleur-contract-data-dictionary` | 维护数据契约、字段 glossary、中文字段描述、dbt YAML 和 data_dict 生成/校验工作流 |
 | `fleur-harness` | 维护项目 harness、agent 可读性、docs/skills 路由、架构约束、长期计划、文档治理和质量闭环 |
 | `fleur-worktree` | 管理 mono-fleur 的 Git worktree、多分支、多 agent 并行任务、隔离验证、合并和清理流程 |
+| `playwright-cdp-frontend-debug` | 使用全局 `playwright-cli` 通过 `vnc-mini-desktop` 暴露的 CDP 端点调试 `app/` 前端，检查截图、DOM、console、network 和响应式布局 |
 | `chdb-sql` | 在本地文件（parquet/csv/json）、URL、S3 路径或远程数据库（Postgres、MySQL、MongoDB、ClickHouse Cloud）上跑分析 SQL，无需启动服务器。替代 MCP 做 ClickHouse 查询 |
 | `chdb-datastore` | pandas DataFrame + ClickHouse 引擎加速，处理 tabular 数据的 filter/group/aggregate/join，也支持跨数据源 DataFrame 联合查询 |
 | `clickhouse-best-practices` | 审查 ClickHouse schema、查询或配置时使用，包含 31 条规则，必须在提供建议前检查 |

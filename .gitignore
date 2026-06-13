@@ -30,3 +30,12 @@ env
 #  cache
 .pytest_cache/
 .ruff_cache/
+
+# Node / frontend
+node_modules/
+**/node_modules/
+dist/
+**/dist/
+playwright-report/
+test-results/
+.playwright-cli/

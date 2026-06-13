@@ -1,14 +1,28 @@
 # mono-fleur Docs
 
-本目录是项目记录系统。阅读顺序是先找当前事实，再看决策和计划，最后追溯历史材料。
+本目录是项目记录系统。阅读顺序是先按系统找当前事实，再看决策和计划，最后追溯历史材料。
 
 ## 快速入口
 
+### 按系统
+
 | 需要了解 | 入口 |
 |---|---|
-| 当前 scheduler 架构 | [architecture/scheduler-architecture.md](architecture/scheduler-architecture.md) |
-| 当前模块边界和禁止模式 | [architecture/scheduler-module-boundaries.md](architecture/scheduler-module-boundaries.md) |
+| 多工程系统地图 | [systems/README.md](systems/README.md) |
+| 数据平台：Dagster、dbt、ClickHouse raw/marts | [systems/data-platform.md](systems/data-platform.md) |
+| 数据治理：contracts、field glossary、data dictionary | [systems/data-governance.md](systems/data-governance.md) |
+| Furnace Rust 技术指标计算引擎 | [systems/furnace.md](systems/furnace.md) |
+| Rearview Rust 规则选股后端服务 | [systems/rearview.md](systems/rearview.md) |
+| Racingline Rearview 前端工作台 | [systems/racingline.md](systems/racingline.md) |
+| 部署、迁移和运行记录 | [systems/deploy-ops.md](systems/deploy-ops.md) |
+
+### 按文档类型
+
+| 需要了解 | 入口 |
+|---|---|
+| 当前架构边界 | [architecture/](architecture/) |
 | 长期架构决策 | [ADR/README.md](ADR/README.md) |
+| 方案讨论和历史设计 | [RFC/](RFC/) |
 | 活跃执行计划 | [plans/README.md](plans/README.md) |
 | Dagster 回填、运行和 lineage 记录 | [jobs/README.md](jobs/README.md) |
 | dbt 模型设计 | [design/README.md](design/README.md) |
@@ -20,6 +34,7 @@
 
 | 目录 | 角色 | 当前性 |
 |---|---|---|
+| `systems/` | 按系统和产品线组织当前事实、代码根、运行入口和质量门禁 | 当前事实入口 |
 | `architecture/` | 当前架构和边界 | 当前事实 |
 | `ADR/` | 长期决策 | 当前或明确标注状态 |
 | `RFC/` | 设计讨论和历史方案 | 活跃 RFC 在顶层，历史进 `archive/` |
@@ -44,7 +59,7 @@
 - `Superseded`：被新文档替代。
 - `Archived`：历史参考。
 
-历史文档不要作为当前事实引用。引用历史方案时，同时链接当前代码、ADR、architecture 文档或运行报告作为证据。
+历史文档不要作为当前事实引用。引用历史方案时，同时链接当前系统地图、代码、ADR、architecture 文档或运行报告作为证据。
 
 ## 最小校验
 
