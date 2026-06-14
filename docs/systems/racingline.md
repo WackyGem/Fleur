@@ -1,10 +1,10 @@
 # System: Racingline
 
-状态：规划中（2026-06-13）
+状态：第一版已验收（2026-06-13）
 
 ## 代码根
 
-`racingline` 规划放在 `app/racingline/`，作为 `app/` 目录下的独立前端工作区。当前代码尚未创建；需求和边界以 [RFC 0019](../RFC/0019-racingline-rearview-frontend-workbench.md) 为准。
+`racingline` 位于 `app/racingline/`，作为 `app/` 目录下的独立前端工作区。页面需求以 [RFC 0019](../RFC/0019-racingline-rearview-frontend-workbench.md) 为准；工程边界以 [ADR 0011](../ADR/0011-racingline-frontend-technology-stack.md) 为准。
 
 ## 职责
 
@@ -29,11 +29,20 @@
 
 第一版采用单独 package 管理：只在 `app/racingline/` 维护 `package.json`、lockfile、Vite 配置和 npm scripts；暂不在 `app/` 顶层引入 npm/pnpm/yarn workspace 管理器。
 
-前端运行时配置使用 `app/racingline/.env` 约定。Vite 客户端变量必须使用 `VITE_` 前缀，第一版 API base URL 变量为：
+前端运行时配置只使用仓库根目录 `.env` 和 `.env.example`。`app/racingline/` 不创建 `.env`、`.env.local`、`.env.example` 或其他 `.env*` 文件；Vite 通过 `envDir` 从仓库根目录读取配置。Vite 客户端变量必须使用 `VITE_` 前缀，第一版 API base URL 变量为：
 
 ```text
 VITE_REARVIEW_API_BASE_URL=http://127.0.0.1:34057
 ```
+
+本地开发入口：
+
+```bash
+cd app/racingline
+npm run dev -- --host 127.0.0.1
+```
+
+默认 URL：`http://127.0.0.1:5173/`。
 
 ## 后端依赖
 
@@ -59,15 +68,25 @@ playwright-cli attach --cdp="${PLAYWRIGHT_CDP_ENDPOINT:-http://127.0.0.1:9222}"
 
 具体 agent 调试流程见 [../skills/playwright-cdp-frontend-debug/SKILL.md](../skills/playwright-cdp-frontend-debug/SKILL.md)。官方 Playwright CLI skill 可通过 `playwright-cli install --skills agents` 安装到本地 `.agents/skills/playwright-cli`。
 
-## 实现后质量门禁
+## 质量门禁
 
-`app/racingline/` 创建后必须提供可重复执行的 lint、typecheck 和 build 命令，并在本文档中记录实际命令。建议第一版至少具备：
+`app/racingline/` 提供可重复执行的 lint、typecheck、test 和 build 命令：
 
 ```bash
 cd app/racingline
 npm run lint
 npm run typecheck
+npm run test
 npm run build
+```
+
+涉及 Rearview 后端 API 变更时追加：
+
+```bash
+cd engines
+cargo fmt --check
+cargo clippy --workspace --all-targets --all-features -- -D warnings
+cargo test --workspace
 ```
 
 ## 相关文档
@@ -76,12 +95,16 @@ npm run build
 |---|---|
 | [../RFC/0019-racingline-rearview-frontend-workbench.md](../RFC/0019-racingline-rearview-frontend-workbench.md) | Racingline 前端 RFC |
 | [../ADR/0011-racingline-frontend-technology-stack.md](../ADR/0011-racingline-frontend-technology-stack.md) | Racingline 前端技术栈和工程边界 |
-| [../plans/0037-racingline-frontend-implementation-plan.md](../plans/0037-racingline-frontend-implementation-plan.md) | Racingline 前端第一版实施计划 |
+| [../plans/archive/0037-racingline-frontend-implementation-plan.md](../plans/archive/0037-racingline-frontend-implementation-plan.md) | Racingline 前端第一版实施计划归档 |
+| [../jobs/reports/2026-06-13-racingline-frontend-skeleton.md](../jobs/reports/2026-06-13-racingline-frontend-skeleton.md) | 前端骨架和工程门禁报告 |
+| [../jobs/reports/2026-06-13-racingline-rearview-api-integration.md](../jobs/reports/2026-06-13-racingline-rearview-api-integration.md) | Rearview API 联调报告 |
+| [../jobs/reports/2026-06-13-racingline-playwright-cdp-acceptance.md](../jobs/reports/2026-06-13-racingline-playwright-cdp-acceptance.md) | Playwright CDP 验收报告 |
 | [../RFC/0018-rust-stock-screening-service.md](../RFC/0018-rust-stock-screening-service.md) | Rearview 后端服务 RFC |
 | [rearview.md](rearview.md) | Rearview 当前系统地图 |
 
 ## 已决事项
 
 1. `app/racingline/` 第一版按单独 package 管理。
-2. API base URL 使用 `app/racingline/.env` 中的 `VITE_REARVIEW_API_BASE_URL`。
-3. 第一版不引入登录入口、认证/鉴权、用户隔离或权限系统。
+2. API base URL 使用仓库根目录 `.env` 或 `.env.example` 中的 `VITE_REARVIEW_API_BASE_URL`。
+3. 不得改写 shadcn/ui 官方 CLI 生成的默认 UI 组件文件；业务组件必须在独立业务目录中组合引用这些默认组件。
+4. 第一版不引入登录入口、认证/鉴权、用户隔离或权限系统。

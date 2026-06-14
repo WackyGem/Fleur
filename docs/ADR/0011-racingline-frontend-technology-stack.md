@@ -44,15 +44,16 @@ app/racingline/
 3. Tailwind CSS v4 通过 `@tailwindcss/vite` 接入；主题颜色、间距、圆角、语义色等长期令牌通过 CSS Variables 表达。
 4. shadcn/ui 是组件组合的主入口，采用 `base-nova` style。需要无障碍 primitive 或更底层交互能力时使用 Base UI，不另行引入 Radix 作为默认 primitive 层。
 5. 新增 shadcn/ui 组件时使用官方 CLI；agent 参与组件开发时应使用官方 shadcn skill 辅助。优先组合已有组件，不直接复制不受控的第三方组件实现。
-6. 图标统一使用 Hugeicons；只有 Hugeicons 缺少明确语义图标时，才允许在局部封装自定义图标。
-7. 类名组合统一通过 `clsx`、`tailwind-merge` 和 `class-variance-authority`，避免在组件内堆叠不可复用的字符串拼接。
-8. 服务端请求、缓存、轮询、错误和重试策略默认由 TanStack Query 承担；Zustand 只保存跨页面 UI 状态、草稿状态和不属于服务端事实的客户端状态。
-9. 股票、指标或运行趋势图使用 TradingView Lightweight Charts；表格和状态面板不为图表库让渡基础布局职责。
-10. `app/racingline/` 创建后必须提供可重复执行的 `lint`、`typecheck` 和 `build` scripts。
+6. 不得改写 shadcn/ui 官方 CLI 生成的默认 UI 组件文件（例如 `src/components/ui/*`）。业务 UI、领域组合、布局和交互封装必须放在独立业务组件目录中，并通过依赖引用这些默认组件完成组合；如默认组件需要更新，使用 shadcn/ui 官方 CLI 重新生成或升级，不手工改写其实现。
+7. 图标统一使用 Hugeicons；只有 Hugeicons 缺少明确语义图标时，才允许在局部封装自定义图标。
+8. 类名组合统一通过 `clsx`、`tailwind-merge` 和 `class-variance-authority`，避免在组件内堆叠不可复用的字符串拼接。
+9. 服务端请求、缓存、轮询、错误和重试策略默认由 TanStack Query 承担；Zustand 只保存跨页面 UI 状态、草稿状态和不属于服务端事实的客户端状态。
+10. 股票、指标或运行趋势图使用 TradingView Lightweight Charts；表格和状态面板不为图表库让渡基础布局职责。
+11. `app/racingline/` 创建后必须提供可重复执行的 `lint`、`typecheck` 和 `build` scripts。
 
 ## 环境配置
 
-第一版使用 Vite 项目内 `.env` 约定管理前端运行时配置。`app/racingline/` 创建后必须提供 `app/racingline/.env.example`。
+第一版使用仓库根目录 `.env` 和 `.env.example` 作为唯一环境变量控制入口。`app/racingline/` 不创建 `.env`、`.env.local`、`.env.example` 或其他 `.env*` 文件；Vite 项目通过 `vite.config.ts` 的 `envDir` 指向仓库根目录读取这些文件。
 
 Rearview API base URL 使用 Vite 客户端变量：
 
@@ -60,7 +61,7 @@ Rearview API base URL 使用 Vite 客户端变量：
 VITE_REARVIEW_API_BASE_URL=http://127.0.0.1:34057
 ```
 
-前端代码只能通过 `import.meta.env.VITE_REARVIEW_API_BASE_URL` 读取 Rearview API base URL。不得把非公开密钥、数据库连接串或服务端 token 放入 `VITE_` 变量。
+前端代码只能通过 `import.meta.env.VITE_REARVIEW_API_BASE_URL` 读取 Rearview API base URL。不得把非公开密钥、数据库连接串或服务端 token 放入 `VITE_` 变量，也不得在项目代码子路径另行创建环境变量入口。
 
 ## 后果
 

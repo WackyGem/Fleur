@@ -7,7 +7,6 @@
 | Plan | 状态 | 说明 |
 |---|---|---|
 | [0023](0023-contract-driven-parquet-schema-adapter-backfill-test-plan.md) | Proposed | Contract-driven Parquet schema adapter 合入后的 dev 环境重置、小批量回填和全量回填准入计划 |
-| [0037](0037-racingline-frontend-implementation-plan.md) | Proposed | Racingline 前端第一版骨架搭建、工程设计、Rearview 联调、交互调试和验收报告计划 |
 
 ## 规则
 

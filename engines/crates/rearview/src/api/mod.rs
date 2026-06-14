@@ -4,29 +4,39 @@ use axum::routing::{get, post};
 use axum::{Json, Router};
 use chrono::NaiveDate;
 use serde::{Deserialize, Serialize};
+use tower_http::cors::CorsLayer;
 
 use crate::domain::RuleVersionSpec;
+use crate::domain::metric::{MetricDefinition, ValueKind};
 use crate::error::{RearviewError, RearviewResult};
 use crate::planner::{CompiledQuery, QueryPlanner, QuerySettings};
-use crate::postgres::{NewRuleSet, NewRuleVersion, NewRun, PlannedChunk, plan_date_chunks};
+use crate::postgres::{
+    NewRuleSet, NewRuleVersion, NewRun, Page, PlannedChunk, ResultRowsFilter, ResultRowsSort,
+    RuleSetListFilter, RuleVersionListFilter, RunListFilter, plan_date_chunks,
+};
 use crate::service::AppState;
 use crate::service::runner::execute_run;
 
 pub fn routes() -> Router<AppState> {
     Router::new()
         .route("/healthz", get(healthz))
-        .route("/rearview/rule-sets", post(create_rule_set))
+        .route("/rearview/metrics", get(list_metrics))
+        .route(
+            "/rearview/rule-sets",
+            get(list_rule_sets).post(create_rule_set),
+        )
         .route(
             "/rearview/rule-sets/{rule_set_id}/versions",
-            post(create_rule_version),
+            get(list_rule_versions).post(create_rule_version),
         )
-        .route("/rearview/runs", post(create_run))
+        .route("/rearview/runs", get(list_runs).post(create_run))
         .route("/rearview/runs/{run_id}", get(get_run))
         .route("/rearview/runs/{run_id}/chunks", get(list_run_chunks))
         .route("/rearview/runs/{run_id}/days", get(list_run_days))
         .route("/rearview/runs/{run_id}/pool", get(list_pool_members))
         .route("/rearview/runs/{run_id}/signals", get(list_buy_signals))
         .route("/rearview/explain", post(explain_rule))
+        .layer(CorsLayer::permissive())
 }
 
 async fn healthz() -> Json<HealthResponse> {
@@ -54,6 +64,22 @@ async fn create_rule_set(
     Ok((StatusCode::CREATED, Json(record)))
 }
 
+async fn list_rule_sets(
+    State(state): State<AppState>,
+    Query(query): Query<ListRuleSetsQuery>,
+) -> RearviewResult<Json<impl Serialize>> {
+    Ok(Json(
+        state
+            .postgres
+            .list_rule_sets(RuleSetListFilter {
+                status: query.status,
+                keyword: non_empty(query.keyword),
+                page: page(query.limit, query.offset)?,
+            })
+            .await?,
+    ))
+}
+
 async fn create_rule_version(
     State(state): State<AppState>,
     Path(rule_set_id): Path<String>,
@@ -72,6 +98,23 @@ async fn create_rule_version(
         })
         .await?;
     Ok((StatusCode::CREATED, Json(record)))
+}
+
+async fn list_rule_versions(
+    State(state): State<AppState>,
+    Path(rule_set_id): Path<String>,
+    Query(query): Query<ListRuleVersionsQuery>,
+) -> RearviewResult<Json<impl Serialize>> {
+    Ok(Json(
+        state
+            .postgres
+            .list_rule_versions(RuleVersionListFilter {
+                rule_set_id,
+                status: query.status,
+                page: page(query.limit, query.offset)?,
+            })
+            .await?,
+    ))
 }
 
 async fn create_run(
@@ -120,6 +163,25 @@ async fn create_run(
     Ok((StatusCode::ACCEPTED, Json(record)))
 }
 
+async fn list_runs(
+    State(state): State<AppState>,
+    Query(query): Query<ListRunsQuery>,
+) -> RearviewResult<Json<impl Serialize>> {
+    Ok(Json(
+        state
+            .postgres
+            .list_runs(RunListFilter {
+                status: query.status,
+                rule_set_id: query.rule_set_id,
+                start_date: query.start_date,
+                end_date: query.end_date,
+                keyword: non_empty(query.keyword),
+                page: page(query.limit, query.offset)?,
+            })
+            .await?,
+    ))
+}
+
 async fn get_run(
     State(state): State<AppState>,
     Path(run_id): Path<String>,
@@ -144,12 +206,21 @@ async fn list_run_chunks(
 async fn list_pool_members(
     State(state): State<AppState>,
     Path(run_id): Path<String>,
-    Query(query): Query<TradeDateQuery>,
+    Query(query): Query<ResultRowsQuery>,
 ) -> RearviewResult<Json<impl Serialize>> {
+    let sort = query.pool_sort()?;
     Ok(Json(
         state
             .postgres
-            .list_pool_members(&run_id, query.trade_date)
+            .list_pool_members(
+                &run_id,
+                ResultRowsFilter {
+                    trade_date: query.trade_date,
+                    security_code: non_empty(query.security_code),
+                    sort,
+                    page: page(query.limit, query.offset)?,
+                },
+            )
             .await?,
     ))
 }
@@ -157,14 +228,38 @@ async fn list_pool_members(
 async fn list_buy_signals(
     State(state): State<AppState>,
     Path(run_id): Path<String>,
-    Query(query): Query<TradeDateQuery>,
+    Query(query): Query<ResultRowsQuery>,
 ) -> RearviewResult<Json<impl Serialize>> {
+    let sort = query.signal_sort()?;
     Ok(Json(
         state
             .postgres
-            .list_buy_signals(&run_id, query.trade_date)
+            .list_buy_signals(
+                &run_id,
+                ResultRowsFilter {
+                    trade_date: query.trade_date,
+                    security_code: non_empty(query.security_code),
+                    sort,
+                    page: page(query.limit, query.offset)?,
+                },
+            )
             .await?,
     ))
+}
+
+async fn list_metrics(
+    State(state): State<AppState>,
+    Query(query): Query<ListMetricsQuery>,
+) -> RearviewResult<Json<impl Serialize>> {
+    let keyword = query.keyword.as_deref().map(str::to_lowercase);
+    let mut items = state
+        .catalog
+        .iter()
+        .filter(|metric| metric_matches_query(metric, &query, keyword.as_deref()))
+        .cloned()
+        .collect::<Vec<_>>();
+    items.sort_by(|left, right| left.logical_metric.cmp(&right.logical_metric));
+    Ok(Json(items))
 }
 
 async fn explain_rule(
@@ -242,8 +337,80 @@ struct CreateRunRequest {
 }
 
 #[derive(Debug, Deserialize)]
-struct TradeDateQuery {
+struct ListRuleSetsQuery {
+    #[serde(default)]
+    status: Option<String>,
+    #[serde(default)]
+    keyword: Option<String>,
+    #[serde(default)]
+    limit: Option<u32>,
+    #[serde(default)]
+    offset: Option<u32>,
+}
+
+#[derive(Debug, Deserialize)]
+struct ListRuleVersionsQuery {
+    #[serde(default)]
+    status: Option<String>,
+    #[serde(default)]
+    limit: Option<u32>,
+    #[serde(default)]
+    offset: Option<u32>,
+}
+
+#[derive(Debug, Deserialize)]
+struct ListRunsQuery {
+    #[serde(default)]
+    status: Option<String>,
+    #[serde(default)]
+    rule_set_id: Option<String>,
+    #[serde(default)]
+    start_date: Option<NaiveDate>,
+    #[serde(default)]
+    end_date: Option<NaiveDate>,
+    #[serde(default)]
+    keyword: Option<String>,
+    #[serde(default)]
+    limit: Option<u32>,
+    #[serde(default)]
+    offset: Option<u32>,
+}
+
+#[derive(Debug, Deserialize)]
+struct ListMetricsQuery {
+    #[serde(default)]
+    mart_table: Option<String>,
+    #[serde(default)]
+    value_kind: Option<ValueKind>,
+    #[serde(default)]
+    allow_filter: Option<bool>,
+    #[serde(default)]
+    allow_scoring: Option<bool>,
+    #[serde(default)]
+    keyword: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+struct ResultRowsQuery {
     trade_date: NaiveDate,
+    #[serde(default)]
+    limit: Option<u32>,
+    #[serde(default)]
+    offset: Option<u32>,
+    #[serde(default)]
+    security_code: Option<String>,
+    #[serde(default)]
+    sort: Option<String>,
+}
+
+impl ResultRowsQuery {
+    fn pool_sort(&self) -> RearviewResult<ResultRowsSort> {
+        ResultRowsSort::pool(self.sort.as_deref())
+    }
+
+    fn signal_sort(&self) -> RearviewResult<ResultRowsSort> {
+        ResultRowsSort::signals(self.sort.as_deref())
+    }
 }
 
 #[derive(Debug, Deserialize)]
@@ -303,4 +470,121 @@ struct ExplainResponse {
     compiled: CompiledQuery,
     #[serde(skip_serializing_if = "Option::is_none")]
     chunk_plan: Option<Vec<PlannedChunk>>,
+}
+
+fn page(limit: Option<u32>, offset: Option<u32>) -> RearviewResult<Page> {
+    const DEFAULT_LIMIT: u32 = 50;
+    const MAX_LIMIT: u32 = 500;
+    let limit = limit.unwrap_or(DEFAULT_LIMIT);
+    if limit == 0 || limit > MAX_LIMIT {
+        return Err(RearviewError::Validation(format!(
+            "limit must be between 1 and {MAX_LIMIT}"
+        )));
+    }
+    Ok(Page {
+        limit: i64::from(limit),
+        offset: i64::from(offset.unwrap_or(0)),
+    })
+}
+
+fn non_empty(value: Option<String>) -> Option<String> {
+    value.and_then(|value| {
+        let trimmed = value.trim();
+        if trimmed.is_empty() {
+            None
+        } else {
+            Some(trimmed.to_string())
+        }
+    })
+}
+
+fn metric_matches_query(
+    metric: &MetricDefinition,
+    query: &ListMetricsQuery,
+    keyword: Option<&str>,
+) -> bool {
+    if query
+        .mart_table
+        .as_ref()
+        .is_some_and(|mart_table| metric.mart_table != *mart_table)
+    {
+        return false;
+    }
+    if query
+        .value_kind
+        .is_some_and(|value_kind| metric.value_kind != value_kind)
+    {
+        return false;
+    }
+    if query
+        .allow_filter
+        .is_some_and(|allow_filter| metric.allow_filter != allow_filter)
+    {
+        return false;
+    }
+    if query
+        .allow_scoring
+        .is_some_and(|allow_scoring| metric.allow_scoring != allow_scoring)
+    {
+        return false;
+    }
+    if let Some(keyword) = keyword {
+        let description = metric.description.as_deref().unwrap_or_default();
+        return metric.logical_metric.to_lowercase().contains(keyword)
+            || metric.column_name.to_lowercase().contains(keyword)
+            || description.to_lowercase().contains(keyword);
+    }
+    true
+}
+
+impl ResultRowsSort {
+    fn pool(value: Option<&str>) -> RearviewResult<Self> {
+        match value.unwrap_or("signal_rank_asc") {
+            "signal_rank_asc" => Ok(Self::PoolSignalRankAsc),
+            "score_desc" => Ok(Self::PoolScoreDesc),
+            "score_asc" => Ok(Self::PoolScoreAsc),
+            "security_code_asc" => Ok(Self::SecurityCodeAsc),
+            other => Err(RearviewError::Validation(format!(
+                "unsupported pool sort: {other}"
+            ))),
+        }
+    }
+
+    fn signals(value: Option<&str>) -> RearviewResult<Self> {
+        match value.unwrap_or("rank_asc") {
+            "rank_asc" => Ok(Self::SignalRankAsc),
+            "score_desc" => Ok(Self::SignalScoreDesc),
+            "security_code_asc" => Ok(Self::SecurityCodeAsc),
+            other => Err(RearviewError::Validation(format!(
+                "unsupported signals sort: {other}"
+            ))),
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn page_should_default_limit_and_offset() {
+        let page = page(None, None).unwrap();
+
+        assert_eq!(page.limit, 50);
+        assert_eq!(page.offset, 0);
+    }
+
+    #[test]
+    fn page_should_reject_zero_limit() {
+        let error = page(Some(0), None).unwrap_err();
+
+        assert!(matches!(error, RearviewError::Validation(_)));
+    }
+
+    #[test]
+    fn result_rows_sort_should_reject_unknown_signal_sort() {
+        let error = ResultRowsSort::signals(Some("rank_desc")).unwrap_err();
+
+        assert!(matches!(error, RearviewError::Validation(_)));
+    }
 }

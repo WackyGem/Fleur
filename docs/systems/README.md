@@ -19,7 +19,7 @@
 | 数据治理 | `pipeline/contracts/`、`pipeline/contract_tools/` | [../intake/data-governance.md](../intake/data-governance.md) | [data-governance.md](data-governance.md) | raw 数据契约、字段字典、contract 生成与校验 |
 | Furnace | `engines/crates/furnace*` | [../intake/furnace.md](../intake/furnace.md) | [furnace.md](furnace.md) | Rust 技术指标计算 CLI 和高性能写入路径 |
 | Rearview | `engines/crates/rearview/` | [../intake/rearview.md](../intake/rearview.md) | [rearview.md](rearview.md) | Rust 规则选股 HTTP 服务 |
-| Racingline | `app/racingline/`（规划中） | [../intake/racingline.md](../intake/racingline.md) | [racingline.md](racingline.md) | Rearview 前端选股工作台 |
+| Racingline | `app/racingline/` | [../intake/racingline.md](../intake/racingline.md) | [racingline.md](racingline.md) | Rearview 前端选股工作台 |
 | 部署与运行 | `deploy/`、`pipeline/migrate/` | [../intake/deploy-ops.md](../intake/deploy-ops.md) | [deploy-ops.md](deploy-ops.md) | 本地基础设施、环境变量、迁移和运行记录入口 |
 
 ## 地图边界

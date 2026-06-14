@@ -167,6 +167,41 @@ impl RearviewPg {
         rule_set_from_row(&row)
     }
 
+    pub async fn list_rule_sets(
+        &self,
+        filter: RuleSetListFilter,
+    ) -> RearviewResult<ListResult<RuleSetRecord>> {
+        let rows = sqlx::query(
+            r#"
+            select rule_set_id, name, description, owner, status, tags, current_version_id
+            from rule_set
+            where ($1::text is null or status = $1)
+              and (
+                $2::text is null
+                or rule_set_id ilike '%' || $2 || '%'
+                or name ilike '%' || $2 || '%'
+                or coalesce(owner, '') ilike '%' || $2 || '%'
+              )
+            order by updated_at desc, created_at desc, rule_set_id
+            limit $3
+            offset $4
+            "#,
+        )
+        .bind(filter.status)
+        .bind(filter.keyword)
+        .bind(filter.page.fetch_limit())
+        .bind(filter.page.offset)
+        .fetch_all(&self.pool)
+        .await?;
+
+        Ok(ListResult::from_rows(
+            rows.into_iter()
+                .map(|row| rule_set_from_row(&row))
+                .collect::<RearviewResult<Vec<_>>>()?,
+            filter.page,
+        ))
+    }
+
     pub async fn create_rule_version(
         &self,
         input: NewRuleVersion,
@@ -267,6 +302,34 @@ impl RearviewPg {
             top_n_default: row.get("top_n_default"),
             rule_hash: row.get("rule_hash"),
         })
+    }
+
+    pub async fn list_rule_versions(
+        &self,
+        filter: RuleVersionListFilter,
+    ) -> RearviewResult<ListResult<RuleVersionRecord>> {
+        let rows = sqlx::query(
+            r#"
+            select rule_version_id, rule_set_id, version_no, status, top_n_default, rule_hash
+            from rule_version
+            where rule_set_id = $1
+              and ($2::text is null or status = $2)
+            order by version_no desc
+            limit $3
+            offset $4
+            "#,
+        )
+        .bind(filter.rule_set_id)
+        .bind(filter.status)
+        .bind(filter.page.fetch_limit())
+        .bind(filter.page.offset)
+        .fetch_all(&self.pool)
+        .await?;
+
+        Ok(ListResult::from_rows(
+            rows.into_iter().map(rule_version_from_row).collect(),
+            filter.page,
+        ))
     }
 
     pub async fn resolve_current_rule_version(
@@ -381,29 +444,65 @@ impl RearviewPg {
     pub async fn get_run(&self, run_id: &str) -> RearviewResult<RunRecord> {
         let row = sqlx::query(
             r#"
-            select run_id, rule_version_id, rule_hash, start_date, end_date, top_n,
-                   status, compiled_sql_hash, summary, error_type, error_message
-            from "run"
-            where run_id = $1
+            select r.run_id, r.rule_version_id, rv.rule_set_id, rs.name as rule_set_name,
+                   r.rule_hash, r.start_date, r.end_date, r.top_n, r.status,
+                   r.compiled_sql_hash, r.summary, r.error_type, r.error_message
+            from "run" r
+            left join rule_version rv on rv.rule_version_id = r.rule_version_id
+            left join rule_set rs on rs.rule_set_id = rv.rule_set_id
+            where r.run_id = $1
             "#,
         )
         .bind(run_id)
         .fetch_optional(&self.pool)
         .await?
         .ok_or_else(|| RearviewError::Validation(format!("run not found: {run_id}")))?;
-        Ok(RunRecord {
-            run_id: row.get("run_id"),
-            rule_version_id: row.get("rule_version_id"),
-            rule_hash: row.get("rule_hash"),
-            start_date: row.get("start_date"),
-            end_date: row.get("end_date"),
-            top_n: row.get("top_n"),
-            status: row.get("status"),
-            compiled_sql_hash: row.get("compiled_sql_hash"),
-            summary: row.get("summary"),
-            error_type: row.get("error_type"),
-            error_message: row.get("error_message"),
-        })
+        Ok(run_from_row(&row))
+    }
+
+    pub async fn list_runs(&self, filter: RunListFilter) -> RearviewResult<ListResult<RunRecord>> {
+        let rows = sqlx::query(
+            r#"
+            select r.run_id, r.rule_version_id, rv.rule_set_id, rs.name as rule_set_name,
+                   r.rule_hash, r.start_date, r.end_date, r.top_n, r.status,
+                   r.compiled_sql_hash, r.summary, r.error_type, r.error_message
+            from "run" r
+            left join rule_version rv on rv.rule_version_id = r.rule_version_id
+            left join rule_set rs on rs.rule_set_id = rv.rule_set_id
+            where (
+                $1::text is null
+                or ($1 = 'failed' and r.status like 'failed_%')
+                or r.status = $1
+              )
+              and ($2::text is null or rv.rule_set_id = $2)
+              and ($3::date is null or r.start_date >= $3)
+              and ($4::date is null or r.end_date <= $4)
+              and (
+                $5::text is null
+                or r.run_id ilike '%' || $5 || '%'
+                or r.rule_version_id ilike '%' || $5 || '%'
+                or r.rule_hash ilike '%' || $5 || '%'
+                or coalesce(rs.name, '') ilike '%' || $5 || '%'
+              )
+            order by r.created_at desc, r.run_id
+            limit $6
+            offset $7
+            "#,
+        )
+        .bind(filter.status)
+        .bind(filter.rule_set_id)
+        .bind(filter.start_date)
+        .bind(filter.end_date)
+        .bind(filter.keyword)
+        .bind(filter.page.fetch_limit())
+        .bind(filter.page.offset)
+        .fetch_all(&self.pool)
+        .await?;
+
+        Ok(ListResult::from_rows(
+            rows.into_iter().map(|row| run_from_row(&row)).collect(),
+            filter.page,
+        ))
     }
 
     pub async fn list_run_chunks(&self, run_id: &str) -> RearviewResult<Vec<RunChunkRecord>> {
@@ -768,65 +867,169 @@ impl RearviewPg {
     pub async fn list_pool_members(
         &self,
         run_id: &str,
-        trade_date: NaiveDate,
-    ) -> RearviewResult<Vec<PoolMemberRecord>> {
-        let rows = sqlx::query(
+        filter: ResultRowsFilter,
+    ) -> RearviewResult<ListResult<PoolMemberRecord>> {
+        let sql = format!(
             r#"
             select run_id, trade_date, security_code, score::float8 as score,
                    signal_rank, selected_metrics, filter_snapshot
             from pool_member
-            where run_id = $1 and trade_date = $2
-            order by signal_rank nulls last, security_code
+            where run_id = $1
+              and trade_date = $2
+              and ($3::text is null or security_code ilike '%' || $3 || '%')
+            order by {}
+            limit $4
+            offset $5
             "#,
-        )
-        .bind(run_id)
-        .bind(trade_date)
-        .fetch_all(&self.pool)
-        .await?;
-        Ok(rows
-            .into_iter()
-            .map(|row| PoolMemberRecord {
-                run_id: row.get("run_id"),
-                trade_date: row.get("trade_date"),
-                security_code: row.get("security_code"),
-                score: row.get("score"),
-                signal_rank: row.get("signal_rank"),
-                selected_metrics: row.get("selected_metrics"),
-                filter_snapshot: row.get("filter_snapshot"),
-            })
-            .collect())
+            filter.sort.pool_order_by()?,
+        );
+        let rows = sqlx::query(&sql)
+            .bind(run_id)
+            .bind(filter.trade_date)
+            .bind(filter.security_code)
+            .bind(filter.page.fetch_limit())
+            .bind(filter.page.offset)
+            .fetch_all(&self.pool)
+            .await?;
+        Ok(ListResult::from_rows(
+            rows.into_iter().map(pool_member_from_row).collect(),
+            filter.page,
+        ))
     }
 
     pub async fn list_buy_signals(
         &self,
         run_id: &str,
-        trade_date: NaiveDate,
-    ) -> RearviewResult<Vec<BuySignalRecord>> {
-        let rows = sqlx::query(
+        filter: ResultRowsFilter,
+    ) -> RearviewResult<ListResult<BuySignalRecord>> {
+        let sql = format!(
             r#"
             select run_id, trade_date, security_code, rank, score::float8 as score,
                    score_breakdown, selected_metrics
             from buy_signal
-            where run_id = $1 and trade_date = $2
-            order by rank
+            where run_id = $1
+              and trade_date = $2
+              and ($3::text is null or security_code ilike '%' || $3 || '%')
+            order by {}
+            limit $4
+            offset $5
             "#,
-        )
-        .bind(run_id)
-        .bind(trade_date)
-        .fetch_all(&self.pool)
-        .await?;
-        Ok(rows
-            .into_iter()
-            .map(|row| BuySignalRecord {
-                run_id: row.get("run_id"),
-                trade_date: row.get("trade_date"),
-                security_code: row.get("security_code"),
-                rank: row.get("rank"),
-                score: row.get("score"),
-                score_breakdown: row.get("score_breakdown"),
-                selected_metrics: row.get("selected_metrics"),
-            })
-            .collect())
+            filter.sort.signal_order_by()?,
+        );
+        let rows = sqlx::query(&sql)
+            .bind(run_id)
+            .bind(filter.trade_date)
+            .bind(filter.security_code)
+            .bind(filter.page.fetch_limit())
+            .bind(filter.page.offset)
+            .fetch_all(&self.pool)
+            .await?;
+        Ok(ListResult::from_rows(
+            rows.into_iter().map(buy_signal_from_row).collect(),
+            filter.page,
+        ))
+    }
+}
+
+#[derive(Debug, Clone, Copy)]
+pub struct Page {
+    pub limit: i64,
+    pub offset: i64,
+}
+
+impl Page {
+    fn fetch_limit(self) -> i64 {
+        self.limit + 1
+    }
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct ListResult<T> {
+    pub items: Vec<T>,
+    pub limit: i64,
+    pub offset: i64,
+    pub has_more: bool,
+}
+
+impl<T> ListResult<T> {
+    fn from_rows(mut rows: Vec<T>, page: Page) -> Self {
+        let has_more = rows.len() > page.limit as usize;
+        if has_more {
+            rows.truncate(page.limit as usize);
+        }
+        Self {
+            items: rows,
+            limit: page.limit,
+            offset: page.offset,
+            has_more,
+        }
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct RuleSetListFilter {
+    pub status: Option<String>,
+    pub keyword: Option<String>,
+    pub page: Page,
+}
+
+#[derive(Debug, Clone)]
+pub struct RuleVersionListFilter {
+    pub rule_set_id: String,
+    pub status: Option<String>,
+    pub page: Page,
+}
+
+#[derive(Debug, Clone)]
+pub struct RunListFilter {
+    pub status: Option<String>,
+    pub rule_set_id: Option<String>,
+    pub start_date: Option<NaiveDate>,
+    pub end_date: Option<NaiveDate>,
+    pub keyword: Option<String>,
+    pub page: Page,
+}
+
+#[derive(Debug, Clone)]
+pub struct ResultRowsFilter {
+    pub trade_date: NaiveDate,
+    pub security_code: Option<String>,
+    pub sort: ResultRowsSort,
+    pub page: Page,
+}
+
+#[derive(Debug, Clone, Copy)]
+pub enum ResultRowsSort {
+    PoolSignalRankAsc,
+    PoolScoreDesc,
+    PoolScoreAsc,
+    SignalRankAsc,
+    SignalScoreDesc,
+    SecurityCodeAsc,
+}
+
+impl ResultRowsSort {
+    fn pool_order_by(self) -> RearviewResult<&'static str> {
+        match self {
+            Self::PoolSignalRankAsc => Ok("signal_rank nulls last, security_code"),
+            Self::PoolScoreDesc => Ok("score desc nulls last, security_code"),
+            Self::PoolScoreAsc => Ok("score asc nulls last, security_code"),
+            Self::SecurityCodeAsc => Ok("security_code"),
+            Self::SignalRankAsc | Self::SignalScoreDesc => Err(RearviewError::Validation(
+                "signal sort cannot be used for pool members".to_string(),
+            )),
+        }
+    }
+
+    fn signal_order_by(self) -> RearviewResult<&'static str> {
+        match self {
+            Self::SignalRankAsc => Ok("rank, security_code"),
+            Self::SignalScoreDesc => Ok("score desc, rank"),
+            Self::SecurityCodeAsc => Ok("security_code"),
+            Self::PoolSignalRankAsc | Self::PoolScoreAsc | Self::PoolScoreDesc => Err(
+                RearviewError::Validation("pool sort cannot be used for buy signals".to_string()),
+            ),
+        }
     }
 }
 
@@ -882,6 +1085,8 @@ pub struct RuleVersionRecord {
 pub struct RunRecord {
     pub run_id: String,
     pub rule_version_id: String,
+    pub rule_set_id: Option<String>,
+    pub rule_set_name: Option<String>,
     pub rule_hash: String,
     pub start_date: NaiveDate,
     pub end_date: NaiveDate,
@@ -963,6 +1168,59 @@ fn rule_set_from_row(row: &sqlx::postgres::PgRow) -> RearviewResult<RuleSetRecor
         tags: row.get("tags"),
         current_version_id: row.get("current_version_id"),
     })
+}
+
+fn rule_version_from_row(row: sqlx::postgres::PgRow) -> RuleVersionRecord {
+    RuleVersionRecord {
+        rule_version_id: row.get("rule_version_id"),
+        rule_set_id: row.get("rule_set_id"),
+        version_no: row.get("version_no"),
+        status: row.get("status"),
+        top_n_default: row.get("top_n_default"),
+        rule_hash: row.get("rule_hash"),
+    }
+}
+
+fn run_from_row(row: &sqlx::postgres::PgRow) -> RunRecord {
+    RunRecord {
+        run_id: row.get("run_id"),
+        rule_version_id: row.get("rule_version_id"),
+        rule_set_id: row.get("rule_set_id"),
+        rule_set_name: row.get("rule_set_name"),
+        rule_hash: row.get("rule_hash"),
+        start_date: row.get("start_date"),
+        end_date: row.get("end_date"),
+        top_n: row.get("top_n"),
+        status: row.get("status"),
+        compiled_sql_hash: row.get("compiled_sql_hash"),
+        summary: row.get("summary"),
+        error_type: row.get("error_type"),
+        error_message: row.get("error_message"),
+    }
+}
+
+fn pool_member_from_row(row: sqlx::postgres::PgRow) -> PoolMemberRecord {
+    PoolMemberRecord {
+        run_id: row.get("run_id"),
+        trade_date: row.get("trade_date"),
+        security_code: row.get("security_code"),
+        score: row.get("score"),
+        signal_rank: row.get("signal_rank"),
+        selected_metrics: row.get("selected_metrics"),
+        filter_snapshot: row.get("filter_snapshot"),
+    }
+}
+
+fn buy_signal_from_row(row: sqlx::postgres::PgRow) -> BuySignalRecord {
+    BuySignalRecord {
+        run_id: row.get("run_id"),
+        trade_date: row.get("trade_date"),
+        security_code: row.get("security_code"),
+        rank: row.get("rank"),
+        score: row.get("score"),
+        score_breakdown: row.get("score_breakdown"),
+        selected_metrics: row.get("selected_metrics"),
+    }
 }
 
 pub fn plan_date_chunks(

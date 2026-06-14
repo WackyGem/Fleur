@@ -1,6 +1,6 @@
 # RFC 0019: Racingline Rearview 前端工作台
 
-状态：草案 / 构想（2026-06-13）
+状态：Completed（2026-06-13）
 
 ## 摘要
 
@@ -19,7 +19,11 @@
 
 关联实施计划：
 
-- `docs/plans/0037-racingline-frontend-implementation-plan.md`
+- `docs/plans/archive/0037-racingline-frontend-implementation-plan.md`
+
+验收报告：
+
+- `docs/jobs/reports/2026-06-13-racingline-playwright-cdp-acceptance.md`
 
 ## 目标
 
@@ -54,11 +58,11 @@ app/racingline/
 
 ## 技术选型
 
-Racingline 第一版前端技术栈和工程边界由 [ADR 0011](../ADR/0011-racingline-frontend-technology-stack.md) 固化。本文档只描述第一版页面、接口和交互范围；后续如果技术栈、包管理、环境变量或组件体系变化，应先更新 ADR。
+Racingline 第一版前端技术栈和工程边界由 [ADR 0011](../ADR/0011-racingline-frontend-technology-stack.md) 固化。本文档只描述第一版页面、接口和交互范围；后续如果技术栈、包管理、环境变量、shadcn/ui 默认组件维护规则或组件体系变化，应先更新 ADR。
 
 ## 环境配置
 
-第一版使用 Vite 项目内 `.env` 约定管理前端运行时配置。`app/racingline/` 创建后应提供 `app/racingline/.env.example`，并使用 Vite 默认暴露规则：只有 `VITE_` 前缀变量可以在客户端代码中通过 `import.meta.env` 读取。
+第一版使用仓库根目录 `.env` 和 `.env.example` 作为唯一前端运行时配置入口。`app/racingline/` 不创建 `.env`、`.env.local`、`.env.example` 或其他 `.env*` 文件；Vite 通过 `envDir` 从仓库根目录读取配置，并保持默认暴露规则：只有 `VITE_` 前缀变量可以在客户端代码中通过 `import.meta.env` 读取。
 
 第一版至少定义：
 
@@ -66,7 +70,7 @@ Racingline 第一版前端技术栈和工程边界由 [ADR 0011](../ADR/0011-rac
 VITE_REARVIEW_API_BASE_URL=http://127.0.0.1:34057
 ```
 
-前端代码只读取 `import.meta.env.VITE_REARVIEW_API_BASE_URL` 作为 Rearview API base URL。不要把非公开密钥、数据库连接串或服务端 token 放入 `VITE_` 变量。
+前端代码只读取 `import.meta.env.VITE_REARVIEW_API_BASE_URL` 作为 Rearview API base URL。不要把非公开密钥、数据库连接串或服务端 token 放入 `VITE_` 变量，也不要在项目代码子路径另行创建环境变量入口。
 
 ## 第一版页面范围
 
@@ -314,5 +318,5 @@ VITE_REARVIEW_API_BASE_URL=http://127.0.0.1:34057
 ## 已决事项
 
 1. 第一版采用 `app/racingline/` 单独 package 管理，不引入 `app/` 顶层 workspace 管理器。
-2. 前端开发环境 API base URL 使用 `app/racingline/.env` 约定，变量名为 `VITE_REARVIEW_API_BASE_URL`。
+2. 前端开发环境 API base URL 使用仓库根目录 `.env` 或 `.env.example` 约定，变量名为 `VITE_REARVIEW_API_BASE_URL`。
 3. 第一版不引入登录入口、认证/鉴权、用户隔离或权限系统。

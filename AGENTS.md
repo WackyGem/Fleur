@@ -15,7 +15,7 @@ mono-fleur/
 │   ├── docker-compose.yml
 │   ├── postgres/       # PostgreSQL 配置
 │   └── jiuyan_industry_ocr.dev.yaml
-├── app/                # 前端应用工作区（racingline 规划中）
+├── app/                # 前端应用工作区（racingline）
 ├── docs/               # 项目文档与计划
 ├── .env                # 环境变量（不提交）
 └── .env.example        # 环境变量模板
@@ -148,7 +148,7 @@ uv run alembic upgrade head
 
 ## 前端与浏览器调试
 
-- `racingline` 前端规划路径：`app/racingline/`
+- `racingline` 前端路径：`app/racingline/`
 - 前端系统地图：`docs/systems/racingline.md`
 - Playwright CLI 使用全局安装的 `@playwright/cli`，命令为 `playwright-cli`
 - 当前浏览器调试环境通过 Docker `vnc-mini-desktop` 暴露 Chromium CDP 端口，默认 `PLAYWRIGHT_CDP_ENDPOINT=http://127.0.0.1:9222`

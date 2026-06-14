@@ -9,7 +9,7 @@
 - Racingline 前端页面、路由、布局、交互和工作流。
 - React/TypeScript/Tailwind/shadcn/Base UI/Hugeicons 组件体系。
 - TanStack Query、Zustand、TradingView Lightweight Charts 状态和图表需求。
-- `app/racingline/` 单独 package 管理、Vite `.env` 和 `VITE_REARVIEW_API_BASE_URL` 配置。
+- `app/racingline/` 单独 package 管理、根目录 `.env` / `.env.example` 和 `VITE_REARVIEW_API_BASE_URL` 配置。
 - Playwright CDP 调试、截图、DOM、console、network 和响应式验收。
 - 由前端驱动的 Rearview API 补齐需求。
 
@@ -24,7 +24,7 @@
 1. 目标用户工作流和首屏/页面入口。
 2. 目标页面、路由、关键组件、表格/图表/详情抽屉需求。
 3. 依赖的 Rearview API、缺失接口和请求/响应草案。
-4. API base URL、`.env` 变量和本地开发端口约定。
+4. API base URL、根目录 `.env` / `.env.example` 变量和本地开发端口约定。
 5. 视觉约束、响应式断点和可访问性/可用性要求。
 6. Playwright CDP 验收步骤和截图要求。
 

@@ -2,7 +2,7 @@
 
 日期：2026-06-13
 
-状态：Proposed
+状态：Completed
 
 领域：racingline
 
@@ -12,10 +12,16 @@
 
 需求入口：`docs/intake/racingline.md`
 
+完成报告：
+
+- [../../jobs/reports/2026-06-13-racingline-frontend-skeleton.md](../../jobs/reports/2026-06-13-racingline-frontend-skeleton.md)
+- [../../jobs/reports/2026-06-13-racingline-rearview-api-integration.md](../../jobs/reports/2026-06-13-racingline-rearview-api-integration.md)
+- [../../jobs/reports/2026-06-13-racingline-playwright-cdp-acceptance.md](../../jobs/reports/2026-06-13-racingline-playwright-cdp-acceptance.md)
+
 ## 目标
 
-1. 按 [ADR 0011](../ADR/0011-racingline-frontend-technology-stack.md) 搭建 `app/racingline/` 独立前端 package，不引入 `app/` 顶层 workspace 管理器。
-2. 实现 [RFC 0019](../RFC/0019-racingline-rearview-frontend-workbench.md) 定义的第一版页面：运行看板、运行详情与结果页、规则工作台和指标目录。
+1. 按 [ADR 0011](../../ADR/0011-racingline-frontend-technology-stack.md) 搭建 `app/racingline/` 独立前端 package，不引入 `app/` 顶层 workspace 管理器。
+2. 实现 [RFC 0019](../../RFC/0019-racingline-rearview-frontend-workbench.md) 定义的第一版页面：运行看板、运行详情与结果页、规则工作台和指标目录。
 3. 建立可维护的前端工程分层：API client、类型模型、query hooks、路由、页面、feature components、设计令牌、状态管理和错误处理。
 4. 完成 Rearview API 联调，覆盖已存在接口、需增强接口和需补齐接口的验收边界。
 5. 以 Playwright CDP 浏览器环境作为第一版验收主证据链，记录交互过程、截图、console、network 和响应式结果。
@@ -33,9 +39,11 @@
 ## 当前事实基线
 
 1. `app/racingline/` 尚未创建；当前只有文档规划。
-2. Racingline 技术栈、独立 package、`.env` 和 `VITE_REARVIEW_API_BASE_URL` 约束已由 ADR 0011 接受。
-3. Racingline 第一版页面、接口矩阵、数据约定和交互流程已由 RFC 0019 定义。
-4. Rearview 当前已存在接口：
+2. Racingline 技术栈、独立 package 和 `VITE_REARVIEW_API_BASE_URL` 变量名已由 ADR 0011 接受。
+3. 本计划将前端环境变量入口收敛为仓库根目录 `.env` 和 `.env.example`；`app/racingline/` 下不另行创建 `.env`、`.env.local`、`.env.example` 或其他 `.env*` 文件。
+4. ADR 0011、RFC 0019 或系统地图中仍指向 `app/racingline/.env*` 的旧表述，应在实现 PR 或同一文档调整中同步改为根目录 env 入口。
+5. Racingline 第一版页面、接口矩阵、数据约定和交互流程已由 RFC 0019 定义。
+6. Rearview 当前已存在接口：
    - `GET /healthz`
    - `POST /rearview/explain`
    - `POST /rearview/rule-sets`
@@ -46,15 +54,15 @@
    - `GET /rearview/runs/{run_id}/days`
    - `GET /rearview/runs/{run_id}/pool?trade_date=...`
    - `GET /rearview/runs/{run_id}/signals?trade_date=...`
-5. 第一版前端闭环仍依赖 Rearview 补齐：
+7. 第一版前端闭环仍依赖 Rearview 补齐：
    - `GET /rearview/runs`
    - `GET /rearview/rule-sets`
    - `GET /rearview/rule-sets/{rule_set_id}/versions`
    - `GET /rearview/metrics`
    - pool/signals 分页、排序、证券代码过滤
    - 统一错误响应和 CORS
-6. 浏览器调试环境使用 Docker `vnc-mini-desktop` 暴露的 Chromium CDP 端点，默认 `http://127.0.0.1:9222`。
-7. shadcn/ui skill 已放在 `.agents/skills/shadcn`，Racingline 组件开发时应按 AGENTS.md 路由使用。
+8. 浏览器调试环境使用 Docker `vnc-mini-desktop` 暴露的 Chromium CDP 端点，默认 `http://127.0.0.1:9222`。
+9. shadcn/ui skill 已放在 `.agents/skills/shadcn`，Racingline 组件开发时应按 AGENTS.md 路由使用。
 
 ## 实施和验收口径
 
@@ -99,26 +107,34 @@
 
 1. 确认 `app/racingline/` 使用独立 package，不在 `app/` 顶层创建 workspace 配置。
 2. 确认 package manager 和 lockfile 类型，并在 `app/racingline/package.json` 的 `packageManager` 字段中记录。
-3. 确认 Rearview 本地服务端口和 `VITE_REARVIEW_API_BASE_URL` 默认值。
+3. 确认 Rearview 本地服务端口、根目录 `.env.example` 中的 `VITE_REARVIEW_API_BASE_URL` 默认值，以及根目录 `.env` 的本地覆盖方式。
 4. 将 RFC 0019 的接口矩阵转为 implementation checklist，标记每个接口为 `ready`、`needs-backend` 或 `needs-enhancement`。
 5. 确认后端优先补齐顺序：先列表类接口，再 pool/signals 查询增强，再错误响应和 CORS。
 6. 确认验收报告落点为 `docs/jobs/reports/`。
 
 完成标准：
 
-1. 代码实现前没有未决的 package/workspace/API base URL 决策。
+1. 代码实现前没有未决的 package/workspace/API base URL/env 读取目录决策。
 2. 后端缺口以 checklist 形式记录在实现 PR 或实施报告中。
 3. 若后端接口未准备好，前端实现明确标注哪些页面只能用 fixture 进入开发态，不能计入最终验收。
 4. 验收报告模板先明确 CDP 证据链字段，避免实现后只补命令输出。
 
 ### Phase 1: 项目骨架搭建
 
-目标：创建可运行、可 lint、可 typecheck、可 build 的 Vite + React + TypeScript 前端骨架。
+目标：使用 shadcn/ui 官方脚手架创建可运行、可 lint、可 typecheck、可 build 的 Vite + React + TypeScript 前端骨架，避免手写模板导致工程实现漂移。
 
 任务：
 
-1. 在 `app/racingline/` 创建 Vite React TypeScript 项目。
-2. 安装并配置 ADR 0011 规定的依赖：
+1. 从 `app/` 目录运行 shadcn/ui 官方脚手架创建工程；npm 场景使用：
+
+```bash
+cd app
+npx shadcn@latest init --name racingline --template vite --preset base-nova
+```
+
+   如 Phase 0 已决定使用 pnpm 或 bun，应改用对应的官方 package runner（例如 `pnpm dlx shadcn@latest ...` 或 `bunx --bun shadcn@latest ...`），但仍必须使用 `shadcn@latest init --name racingline --template vite --preset base-nova` 这一官方创建路径。
+2. 不使用 `create-vite` 后再手工拼接 shadcn/ui，也不复制自定义模板重建骨架；脚手架生成的 `components.json`、Tailwind 入口、CSS Variables 和 shadcn 配置作为项目初始基线。
+3. 核对并补齐 ADR 0011 规定的依赖；脚手架已生成的依赖不重复替换：
    - Vite、React、TypeScript
    - Tailwind CSS v4 和 `@tailwindcss/vite`
    - shadcn/ui（style: `base-nova`）和 `@base-ui/react`
@@ -129,19 +145,21 @@
    - `zustand`
    - `lightweight-charts`
    - ESLint Flat Config、`typescript-eslint`、`react-hooks`、`react-refresh`
-3. 创建 `app/racingline/.env.example`，至少包含：
+4. 维护仓库根目录 `.env.example`，至少包含：
 
 ```text
 VITE_REARVIEW_API_BASE_URL=http://127.0.0.1:34057
 ```
 
-4. 创建基础 scripts：
+   本地覆盖只写入仓库根目录 `.env`。不要在 `app/racingline/` 下创建 `.env`、`.env.local`、`.env.example` 或其他 `.env*` 文件。
+5. 在 `app/racingline/vite.config.ts` 配置 Vite 从仓库根目录读取 env 文件，例如 `envDir: '../..'`。前端代码仍只通过 `import.meta.env.VITE_REARVIEW_API_BASE_URL` 读取 API base URL，且不得扩大客户端 env 暴露前缀。
+6. 创建基础 scripts：
    - `dev`
    - `lint`
    - `typecheck`
    - `build`
    - 如引入预览命令，命名为 `preview`
-5. 建立基础目录结构：
+7. 建立基础目录结构：
 
 ```text
 app/racingline/
@@ -163,16 +181,17 @@ app/racingline/
 └── vite.config.ts
 ```
 
-6. 配置 alias、Tailwind 入口、CSS Variables 设计令牌和 shadcn/ui 工具函数。
-7. 移除模板示例页面，根路由直接进入 `/runs`。
+8. 仅在脚手架基线上按 ADR 0011 调整 alias、Tailwind 入口、CSS Variables 设计令牌和 shadcn/ui 工具函数；不得绕过官方脚手架重写同等配置。
+9. 移除模板示例页面，根路由直接进入 `/runs`。
 
 完成标准：
 
 1. `cd app/racingline && npm run lint` 通过。
 2. `cd app/racingline && npm run typecheck` 通过。
 3. `cd app/racingline && npm run build` 通过。
-4. `app/racingline/.env.example` 不包含任何非公开密钥。
-5. 如果 Phase 1 未新增可测试纯逻辑，不为骨架阶段补低价值单元测试。
+4. 仓库根目录 `.env.example` 包含 `VITE_REARVIEW_API_BASE_URL` 且不包含任何非公开密钥；`app/racingline/` 下不存在 `.env*` 文件。
+5. `app/racingline/vite.config.ts` 明确从仓库根目录读取 env 文件，`import.meta.env.VITE_REARVIEW_API_BASE_URL` 在 dev/build 中可用。
+6. 如果 Phase 1 未新增可测试纯逻辑，不为骨架阶段补低价值单元测试。
 
 ### Phase 2: 工程详细设计
 
@@ -365,7 +384,7 @@ app/racingline/
 任务：
 
 1. 启动 Rearview 本地服务，并确认 `GET /healthz`。
-2. 用 `.env` 配置 `VITE_REARVIEW_API_BASE_URL`。
+2. 用仓库根目录 `.env` 配置 `VITE_REARVIEW_API_BASE_URL`，并确认 Vite 通过 `envDir` 从根目录读取；`app/racingline/` 下不得存在额外 `.env*` 文件。
 3. 逐项验证已存在接口：
    - explain 成功和失败
    - 创建 rule set
@@ -472,7 +491,7 @@ playwright-cli attach --cdp="${PLAYWRIGHT_CDP_ENDPOINT:-http://127.0.0.1:9222}"
 
 1. `app/racingline/package.json`
 2. `app/racingline/package-lock.json` 或等价 lockfile
-3. `app/racingline/.env.example`
+3. 仓库根目录 `.env.example` 的 `VITE_REARVIEW_API_BASE_URL` 条目
 4. `app/racingline/vite.config.ts`
 5. `app/racingline/components.json`
 6. `app/racingline/src/` 前端源码
@@ -542,15 +561,17 @@ cargo test --workspace
 ## 禁止模式
 
 1. 在 `app/` 顶层引入 workspace 管理器但不更新 ADR 0011。
-2. 前端直接访问 ClickHouse 或 PostgreSQL。
-3. 页面用 fixture 数据通过最终验收。
-4. 规则编辑器要求用户直接手写完整 JSON。
-5. 在前端重写 Rearview 规则编译或指标校验逻辑。
-6. 把当前 mart 查询值混入运行时快照字段。
-7. 复制一套与 Rearview record 不同名的前端 API 模型。
-8. 组件开发绕过 shadcn/ui、Base UI 和项目设计令牌，直接堆叠临时样式。
-9. 用单元测试、组件测试或 mock 后端的 Playwright test suite 替代真实 CDP 交互验收。
-10. 为追求覆盖率添加大量低价值测试，导致计划偏离第一版联调和体验验收。
+2. 绕过 shadcn/ui 官方脚手架，用 `create-vite` 或手写模板创建/重建第一版工程骨架。
+3. 在 `app/racingline/` 或其他项目代码子路径创建 `.env`、`.env.local`、`.env.example` 或其他 `.env*` 文件；仓库根目录 `.env` 和 `.env.example` 是唯一环境变量控制入口。
+4. 前端直接访问 ClickHouse 或 PostgreSQL。
+5. 页面用 fixture 数据通过最终验收。
+6. 规则编辑器要求用户直接手写完整 JSON。
+7. 在前端重写 Rearview 规则编译或指标校验逻辑。
+8. 把当前 mart 查询值混入运行时快照字段。
+9. 复制一套与 Rearview record 不同名的前端 API 模型。
+10. 组件开发绕过 shadcn/ui、Base UI 和项目设计令牌，直接堆叠临时样式。
+11. 用单元测试、组件测试或 mock 后端的 Playwright test suite 替代真实 CDP 交互验收。
+12. 为追求覆盖率添加大量低价值测试，导致计划偏离第一版联调和体验验收。
 
 ## 风险和处理
 
@@ -560,16 +581,19 @@ cargo test --workspace
 | pool/signals 大结果集无分页 | 结果页卡顿或请求过大 | 后端补分页、排序和证券代码过滤后再验收结果表 |
 | metric catalog 字段变化 | 规则工作台选择器和校验漂移 | 前端类型以后端返回为准，变化时同步 RFC 0019 |
 | 错误响应不统一 | 表单无法字段级定位 | 后端统一 `error_type`、`message`、`field_path` 后再关闭联调项 |
+| 手写脚手架导致工程漂移 | Tailwind、shadcn/base 配置和目录结构与官方基线不一致 | 使用 `shadcn@latest init --name racingline --template vite --preset base-nova` 创建骨架，并只在生成基线上做必要调整 |
+| 子路径 env 文件再次出现 | 前端配置入口分裂，联调和部署难以复盘 | 根目录 `.env` 和 `.env.example` 作为唯一入口，Vite 用 `envDir` 指向仓库根目录 |
 | shadcn/base 组件组合不一致 | UI 维护成本上升 | 使用 shadcn skill 和 ADR 0011 约束审查组件实现 |
 | CDP 浏览器不可达 | 无法完成截图和交互验收 | 先运行 `node scripts/check_playwright_cdp.mjs`，记录阻塞原因 |
 | 测试口径过重 | 实现周期被低价值组件测试拖慢 | 保留 lint、typecheck、build 和少量纯逻辑测试，验收主轴回到 CDP 证据链 |
 
 ## 完成标准
 
-1. `app/racingline/` 工程存在，且符合 ADR 0011。
+1. `app/racingline/` 工程存在，由 shadcn/ui 官方脚手架创建，且符合 ADR 0011。
 2. RFC 0019 的四个页面可通过真实 Rearview API 完成主要工作流。
 3. 第一版后端缺口全部补齐；若确需延期，必须先更新 RFC 0019 缩小第一版范围，不能用前端降级说明替代。
 4. lint、typecheck、build 全部通过；只有实际新增纯逻辑时才要求定向单元测试通过。
 5. Playwright CDP 验收覆盖桌面和移动视口，关键交互步骤、截图、console/network 结论记录在 job report。
-6. `docs/systems/racingline.md` 更新为实现后的当前事实。
-7. 本 plan 移入 `docs/plans/archive/`，`docs/plans/README.md` 同步移除 active entry。
+6. 仓库根目录 `.env` 和 `.env.example` 是唯一环境变量控制入口；`app/racingline/vite.config.ts` 通过 `envDir` 读取根目录 env，项目代码子路径没有 `.env*` 文件。
+7. `docs/systems/racingline.md` 更新为实现后的当前事实。
+8. 本 plan 移入 `docs/plans/archive/`，`docs/plans/README.md` 同步移除 active entry。
