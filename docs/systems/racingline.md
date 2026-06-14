@@ -38,11 +38,20 @@ VITE_REARVIEW_API_BASE_URL=http://127.0.0.1:34057
 本地开发入口：
 
 ```bash
-cd app/racingline
-npm run dev -- --host 127.0.0.1
+make racingline-dev
 ```
 
-默认 URL：`http://127.0.0.1:5173/`。
+该命令会先按端口清理已启动的 Rearview 和 Racingline dev 进程，再启动 Docker dev 依赖服务、等待 PostgreSQL/ClickHouse、执行 PostgreSQL migrations、同步 Rearview metric catalog，最后同时启动后端 `http://127.0.0.1:34057` 与前端 `http://127.0.0.1:5173/`。
+
+单独启动或清理：
+
+```bash
+make rearview-dev
+make racingline-frontend-dev
+make racingline-dev-stop
+```
+
+`make racingline-dev-stop` 只清理前后端 dev server 端口，不停止 Docker 依赖服务；停止依赖服务仍使用 `make dev-down`。
 
 ## 后端依赖
 

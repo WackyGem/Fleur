@@ -35,7 +35,21 @@
 
 ## 运行入口
 
-本地开发复用根目录 `.env` 和 `deploy/docker-compose.yml`：
+本地开发复用根目录 `.env` 和 `deploy/docker-compose.yml`。快速启动 Rearview + Racingline：
+
+```bash
+make racingline-dev
+```
+
+该命令会先清理 `REARVIEW_HTTP_BIND` 和 Racingline Vite 端口上的既有监听进程，再启动 Docker dev 依赖服务、等待 PostgreSQL/ClickHouse、执行 PostgreSQL migrations、同步 Rearview metric catalog，最后启动 Rearview HTTP 服务和前端 dev server。只启动 Rearview：
+
+```bash
+make rearview-dev
+```
+
+`make racingline-dev-stop` 只清理前后端 dev server 端口；停止 Docker 依赖服务仍使用 `make dev-down`。
+
+手动展开步骤：
 
 ```bash
 docker compose --env-file .env -f deploy/docker-compose.yml up -d postgres clickhouse
