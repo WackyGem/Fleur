@@ -417,8 +417,11 @@ impl MetricDefinition {
 
 pub fn representative_rule() -> RuleVersionSpec {
     let kdj_j = Operand::metric("kdj_j_value");
-    let close_price = Operand::metric("close_price");
+    let forward_close = Operand::metric("close_price_forward_adj");
     let price_avg_ma_3_6_12_24 = Operand::metric("price_avg_ma_3_6_12_24");
+    let price_ma_60 = Operand::metric("price_ma_60");
+    let price_ma_114 = Operand::metric("price_ma_114");
+    let price_ma_250 = Operand::metric("price_ma_250");
 
     RuleVersionSpec {
         universe: UniverseSpec {
@@ -430,7 +433,22 @@ pub fn representative_rule() -> RuleVersionSpec {
         },
         pool_filters: FilterExpr::All {
             conditions: vec![
-                compare(kdj_j.clone(), Operator::Lt, Operand::number(-10.0)),
+                compare(kdj_j.clone(), Operator::Lt, Operand::number(13.0)),
+                compare(
+                    Operand::metric("pct_amplitude"),
+                    Operator::Lt,
+                    Operand::number(4.0),
+                ),
+                compare(
+                    Operand::metric("pct_change"),
+                    Operator::Gt,
+                    Operand::number(-2.0),
+                ),
+                compare(
+                    Operand::metric("pct_change"),
+                    Operator::Lt,
+                    Operand::number(2.0),
+                ),
                 compare(
                     Operand::metric("close_down_streak_days"),
                     Operator::Lt,
@@ -442,41 +460,25 @@ pub fn representative_rule() -> RuleVersionSpec {
                     Operand::metric("price_avg_ma_14_28_57_114"),
                 ),
                 compare(
-                    Operand::metric("volume"),
+                    forward_close.clone(),
                     Operator::Gt,
-                    Operand::multiply(Operand::metric("prev_volume"), Operand::number(0.8)),
+                    price_avg_ma_3_6_12_24.clone(),
                 ),
+                compare(price_ma_60.clone(), Operator::Gt, price_ma_114.clone()),
+                compare(price_ma_114, Operator::Gt, price_ma_250),
                 compare(
-                    Operand::metric("n_structure_20_is_valid"),
-                    Operator::Eq,
-                    Operand::bool(true),
+                    Operand::metric("volume"),
+                    Operator::Lt,
+                    Operand::multiply(Operand::metric("prev_volume"), Operand::number(0.8)),
                 ),
             ],
         },
         scoring: ScoringSpec {
             rules: vec![
                 points(
-                    "near_boll_dn",
-                    compare(
-                        close_price.clone(),
-                        Operator::Lte,
-                        Operand::multiply(Operand::metric("boll_dn_20_2"), Operand::number(1.02)),
-                    ),
-                    0.25,
-                ),
-                points(
-                    "rsi_6_low",
-                    compare(
-                        Operand::metric("rsi_6"),
-                        Operator::Lt,
-                        Operand::number(25.0),
-                    ),
-                    10.0,
-                ),
-                points(
                     "kdj_j_below_minus_15",
                     compare(kdj_j.clone(), Operator::Lt, Operand::number(-15.0)),
-                    35.0,
+                    25.0,
                 ),
                 points(
                     "kdj_j_between_minus_15_and_minus_10",
@@ -486,24 +488,20 @@ pub fn representative_rule() -> RuleVersionSpec {
                             compare(kdj_j, Operator::Lt, Operand::number(-10.0)),
                         ],
                     },
-                    25.0,
+                    15.0,
                 ),
                 points(
                     "volume_dry_up",
                     compare(
                         Operand::metric("volume"),
                         Operator::Lt,
-                        Operand::multiply(Operand::metric("volume_ma_5"), Operand::number(0.5)),
+                        Operand::multiply(Operand::metric("volume_ma_5"), Operand::number(0.6)),
                     ),
                     20.0,
                 ),
                 points(
                     "below_short_average",
-                    compare(
-                        close_price.clone(),
-                        Operator::Lt,
-                        price_avg_ma_3_6_12_24.clone(),
-                    ),
+                    compare(forward_close.clone(), Operator::Lt, price_avg_ma_3_6_12_24),
                     15.0,
                 ),
                 points(
@@ -513,25 +511,35 @@ pub fn representative_rule() -> RuleVersionSpec {
                             compare(
                                 Operand::metric("price_ma_20"),
                                 Operator::Lt,
-                                close_price.clone(),
+                                forward_close.clone(),
                             ),
-                            compare(
-                                close_price.clone(),
-                                Operator::Lt,
-                                Operand::metric("price_ma_60"),
-                            ),
+                            compare(forward_close.clone(), Operator::Lt, price_ma_60),
                         ],
                     },
                     15.0,
                 ),
                 points(
-                    "overextended",
+                    "n_structure_20_second_low_ratio_above_1",
                     compare(
-                        close_price,
+                        Operand::metric("n_structure_20_second_low_ratio"),
                         Operator::Gt,
-                        Operand::multiply(price_avg_ma_3_6_12_24, Operand::number(1.05)),
+                        Operand::number(1.0),
                     ),
-                    -15.0,
+                    15.0,
+                ),
+                points(
+                    "below_boll_dn_20_2",
+                    compare(forward_close, Operator::Lt, Operand::metric("boll_dn_20_2")),
+                    15.0,
+                ),
+                points(
+                    "rsi_6_below_25",
+                    compare(
+                        Operand::metric("rsi_6"),
+                        Operator::Lt,
+                        Operand::number(25.0),
+                    ),
+                    5.0,
                 ),
             ],
             clamp: ScoreClamp {
@@ -541,11 +549,24 @@ pub fn representative_rule() -> RuleVersionSpec {
         },
         top_n_default: 10,
         output_metrics: vec![
-            "close_price".to_string(),
+            "close_price_forward_adj".to_string(),
             "kdj_j_value".to_string(),
+            "pct_amplitude".to_string(),
+            "pct_change".to_string(),
             "rsi_6".to_string(),
             "volume".to_string(),
-            "n_structure_20_is_valid".to_string(),
+            "prev_volume".to_string(),
+            "volume_ma_5".to_string(),
+            "price_ema2_10".to_string(),
+            "price_avg_ma_14_28_57_114".to_string(),
+            "price_avg_ma_3_6_12_24".to_string(),
+            "price_ma_20".to_string(),
+            "price_ma_60".to_string(),
+            "price_ma_114".to_string(),
+            "price_ma_250".to_string(),
+            "boll_dn_20_2".to_string(),
+            "close_down_streak_days".to_string(),
+            "n_structure_20_second_low_ratio".to_string(),
         ],
     }
 }
@@ -654,7 +675,38 @@ mod tests {
         let catalog = representative_catalog();
         let report = representative_rule().validate(&catalog).unwrap();
 
-        assert_eq!(report.dependencies.metrics.len(), 14);
+        assert_eq!(report.dependencies.metrics.len(), 18);
+    }
+
+    #[test]
+    fn representative_rule_should_use_low_reversal_filters_and_clamp() {
+        let rule = representative_rule();
+
+        assert_eq!(
+            rule.scoring.clamp,
+            ScoreClamp {
+                min: 0.0,
+                max: 99.0
+            }
+        );
+        assert_eq!(rule.scoring.rules.len(), 8);
+        assert_eq!(
+            match &rule.pool_filters {
+                FilterExpr::All { conditions } => conditions.len(),
+                _ => 0,
+            },
+            10
+        );
+        assert!(
+            rule.output_metrics
+                .contains(&"close_price_forward_adj".to_string())
+        );
+        assert!(
+            rule.output_metrics
+                .contains(&"n_structure_20_second_low_ratio".to_string())
+        );
+        assert!(rule.output_metrics.contains(&"price_ma_114".to_string()));
+        assert!(rule.output_metrics.contains(&"price_ma_250".to_string()));
     }
 
     #[test]
@@ -685,9 +737,11 @@ mod tests {
     fn representative_catalog() -> MetricCatalog {
         let mut metrics = Vec::new();
         for name in [
-            "close_price",
+            "close_price_forward_adj",
             "prev_volume",
             "volume",
+            "pct_amplitude",
+            "pct_change",
             "kdj_j_value",
             "rsi_6",
             "price_ema2_10",
@@ -695,13 +749,15 @@ mod tests {
             "price_avg_ma_3_6_12_24",
             "price_ma_20",
             "price_ma_60",
+            "price_ma_114",
+            "price_ma_250",
             "boll_dn_20_2",
             "volume_ma_5",
             "close_down_streak_days",
+            "n_structure_20_second_low_ratio",
         ] {
             metrics.push(metric(name, ValueKind::Numeric));
         }
-        metrics.push(metric("n_structure_20_is_valid", ValueKind::Boolean));
         MetricCatalog::new(metrics).unwrap()
     }
 

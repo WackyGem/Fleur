@@ -22,14 +22,36 @@ import type {
 } from "lightweight-charts"
 
 import { MissingBackendState } from "@/components/racingline/data-state"
+import type { PriceOverlayKey } from "@/features/analysis/security-analysis"
 import type { ChartSeriesRow } from "@/types/rearview"
+
+const PRICE_OVERLAY_CONFIG: Array<{
+  key: PriceOverlayKey
+  title: string
+  legend: string
+}> = [
+  { key: "price_ma_5", title: "MA5", legend: "MA5" },
+  { key: "price_ma_10", title: "MA10", legend: "MA10" },
+  { key: "price_ma_30", title: "MA30", legend: "MA30" },
+  { key: "price_ema2_10", title: "EMA2-10", legend: "EMA2-10" },
+  {
+    key: "price_avg_ma_3_6_12_24",
+    title: "AVG 3/6/12/24",
+    legend: "AVG 3/6/12/24",
+  },
+  {
+    key: "price_avg_ma_14_28_57_114",
+    title: "AVG 14/28/57/114",
+    legend: "AVG 14/28/57/114",
+  },
+]
 
 type SecurityAnalysisChartProps = {
   rows: ChartSeriesRow[]
   signalDate: string
   selectedDate: string
-  visibleMaWindows: number[]
-  maAvailableWindows: number[]
+  availablePriceOverlays: PriceOverlayKey[]
+  visiblePriceOverlays: PriceOverlayKey[]
   onSelectedDateChange: (tradeDate: string) => void
 }
 
@@ -46,6 +68,9 @@ type ChartColors = {
   ma5: string
   ma10: string
   ma30: string
+  ema2_10: string
+  avgMaShort: string
+  avgMaLong: string
   k: string
   d: string
   j: string
@@ -65,15 +90,18 @@ const FALLBACK_COLORS: ChartColors = {
   background: "#ffffff",
   text: "#525252",
   grid: "#e5e5e5",
-  up: "#15803d",
-  down: "#b91c1c",
-  volumeUp: "rgba(21, 128, 61, 0.28)",
-  volumeDown: "rgba(185, 28, 28, 0.28)",
+  up: "#dc2626",
+  down: "#16a34a",
+  volumeUp: "rgba(220, 38, 38, 0.28)",
+  volumeDown: "rgba(22, 163, 74, 0.28)",
   signal: "#111827",
   selected: "#2563eb",
   ma5: "#2563eb",
   ma10: "#d97706",
   ma30: "#7c3aed",
+  ema2_10: "#0891b2",
+  avgMaShort: "#a16207",
+  avgMaLong: "#be123c",
   k: "#2563eb",
   d: "#d97706",
   j: "#7c3aed",
@@ -91,8 +119,10 @@ const FALLBACK_COLORS: ChartColors = {
 
 type ChartData = {
   candles: Array<CandlestickData<Time> | WhitespaceData<Time>>
-  volume: Array<HistogramData<Time> | WhitespaceData<Time>>
-  ma: Record<number, Array<LineData<Time> | WhitespaceData<Time>>>
+  priceOverlays: Record<
+    PriceOverlayKey,
+    Array<LineData<Time> | WhitespaceData<Time>>
+  >
   kdjK: Array<LineData<Time> | WhitespaceData<Time>>
   kdjD: Array<LineData<Time> | WhitespaceData<Time>>
   kdjJ: Array<LineData<Time> | WhitespaceData<Time>>
@@ -113,8 +143,8 @@ export function SecurityAnalysisChart({
   rows,
   signalDate,
   selectedDate,
-  visibleMaWindows,
-  maAvailableWindows,
+  availablePriceOverlays,
+  visiblePriceOverlays,
   onSelectedDateChange,
 }: SecurityAnalysisChartProps) {
   const containerRef = useRef<HTMLDivElement | null>(null)
@@ -123,9 +153,9 @@ export function SecurityAnalysisChart({
   const markersRef = useRef<ISeriesMarkersPluginApi<Time> | null>(null)
 
   const data = useMemo(() => buildChartData(rows), [rows])
-  const availableMaSet = useMemo(
-    () => new Set(maAvailableWindows),
-    [maAvailableWindows],
+  const availableOverlaySet = useMemo(
+    () => new Set(availablePriceOverlays),
+    [availablePriceOverlays],
   )
 
   useEffect(() => {
@@ -195,24 +225,20 @@ export function SecurityAnalysisChart({
     volumeSeries.priceScale().applyOptions({
       scaleMargins: { top: 0.82, bottom: 0 },
     })
-    volumeSeries.setData(data.volume)
+    volumeSeries.setData(volumeData(rows, colors))
 
-    for (const window of visibleMaWindows) {
-      if (!availableMaSet.has(window)) {
+    for (const key of visiblePriceOverlays) {
+      if (!availableOverlaySet.has(key)) {
         continue
       }
-      const series = chart.addSeries(
-        LineSeries,
-        {
-          color: maColor(colors, window),
-          lastValueVisible: false,
-          lineWidth: 1,
-          priceLineVisible: false,
-          title: `MA${window}`,
-        },
+      const config = PRICE_OVERLAY_CONFIG.find((overlay) => overlay.key === key)
+      addLine(
+        chart,
+        data.priceOverlays[key] ?? [],
+        priceOverlayColor(colors, key),
+        config?.title ?? key,
         0,
       )
-      series.setData(data.ma[window] ?? [])
     }
 
     addLine(chart, data.kdjK, colors.k, "K", 1)
@@ -264,11 +290,12 @@ export function SecurityAnalysisChart({
       markersRef.current = null
     }
   }, [
-    availableMaSet,
+    availableOverlaySet,
     data,
     onSelectedDateChange,
     rows.length,
-    visibleMaWindows,
+    rows,
+    visiblePriceOverlays,
   ])
 
   useEffect(() => {
@@ -313,7 +340,11 @@ export function SecurityAnalysisChart({
   return (
     <div className="min-w-0 rounded-md border bg-background">
       <div ref={containerRef} className="h-190 min-w-0" />
-      <div className="grid gap-2 border-t px-3 py-2 text-xs text-muted-foreground sm:grid-cols-4">
+      <div className="grid gap-2 border-t px-3 py-2 text-xs text-muted-foreground sm:grid-cols-5">
+        <PanelLegend
+          title="Price overlays"
+          values={PRICE_OVERLAY_CONFIG.map((overlay) => overlay.legend)}
+        />
         <PanelLegend title="KDJ" values={["K", "D", "J"]} />
         <PanelLegend title="RSI" values={["6", "12", "24"]} />
         <PanelLegend title="MACD" values={["DIF", "DEA", "histogram"]} />
@@ -351,24 +382,23 @@ function buildChartData(rows: ChartSeriesRow[]): ChartData {
         time,
       }
     }),
-    volume: rows.map((row) => {
-      const value = finiteNumber(row.volume)
-      if (value === null) {
-        return { time: row.trade_date as Time }
-      }
-      return {
-        color:
-          row.ohlc && row.ohlc.close >= row.ohlc.open
-            ? FALLBACK_COLORS.volumeUp
-            : FALLBACK_COLORS.volumeDown,
-        time: row.trade_date as Time,
-        value,
-      }
-    }),
-    ma: {
-      5: lineData(rows, (row) => row.ma["5"]),
-      10: lineData(rows, (row) => row.ma["10"]),
-      30: lineData(rows, (row) => row.ma["30"]),
+    priceOverlays: {
+      price_ma_5: lineData(rows, (row) => priceOverlayValue(row, "price_ma_5")),
+      price_ma_10: lineData(rows, (row) =>
+        priceOverlayValue(row, "price_ma_10"),
+      ),
+      price_ma_30: lineData(rows, (row) =>
+        priceOverlayValue(row, "price_ma_30"),
+      ),
+      price_ema2_10: lineData(rows, (row) =>
+        priceOverlayValue(row, "price_ema2_10"),
+      ),
+      price_avg_ma_3_6_12_24: lineData(rows, (row) =>
+        priceOverlayValue(row, "price_avg_ma_3_6_12_24"),
+      ),
+      price_avg_ma_14_28_57_114: lineData(rows, (row) =>
+        priceOverlayValue(row, "price_avg_ma_14_28_57_114"),
+      ),
     },
     kdjK: lineData(rows, (row) => row.kdj.k),
     kdjD: lineData(rows, (row) => row.kdj.d),
@@ -385,6 +415,43 @@ function buildChartData(rows: ChartSeriesRow[]): ChartData {
     candleCloseByDate,
     dates,
   }
+}
+
+function priceOverlayValue(row: ChartSeriesRow, key: PriceOverlayKey) {
+  const overlayValue = row.price_overlays?.[key]
+  if (overlayValue !== undefined) {
+    return overlayValue
+  }
+  if (key === "price_ma_5") {
+    return row.ma["5"]
+  }
+  if (key === "price_ma_10") {
+    return row.ma["10"]
+  }
+  if (key === "price_ma_30") {
+    return row.ma["30"]
+  }
+  return null
+}
+
+function volumeData(
+  rows: ChartSeriesRow[],
+  colors: ChartColors,
+): Array<HistogramData<Time> | WhitespaceData<Time>> {
+  return rows.map((row) => {
+    const value = finiteNumber(row.volume)
+    if (value === null) {
+      return { time: row.trade_date as Time }
+    }
+    return {
+      color:
+        row.ohlc && row.ohlc.close >= row.ohlc.open
+          ? colors.volumeUp
+          : colors.volumeDown,
+      time: row.trade_date as Time,
+      value,
+    }
+  })
 }
 
 function lineData(
@@ -500,6 +567,15 @@ function readChartColors(element: HTMLElement): ChartColors {
     ma5: read("--racingline-chart-ma-5", FALLBACK_COLORS.ma5),
     ma10: read("--racingline-chart-ma-10", FALLBACK_COLORS.ma10),
     ma30: read("--racingline-chart-ma-30", FALLBACK_COLORS.ma30),
+    ema2_10: read("--racingline-chart-ema2-10", FALLBACK_COLORS.ema2_10),
+    avgMaShort: read(
+      "--racingline-chart-avg-ma-short",
+      FALLBACK_COLORS.avgMaShort,
+    ),
+    avgMaLong: read(
+      "--racingline-chart-avg-ma-long",
+      FALLBACK_COLORS.avgMaLong,
+    ),
     k: read("--racingline-chart-k", FALLBACK_COLORS.k),
     d: read("--racingline-chart-d", FALLBACK_COLORS.d),
     j: read("--racingline-chart-j", FALLBACK_COLORS.j),
@@ -522,14 +598,23 @@ function readChartColors(element: HTMLElement): ChartColors {
   }
 }
 
-function maColor(colors: ChartColors, window: number) {
-  if (window === 5) {
+function priceOverlayColor(colors: ChartColors, key: PriceOverlayKey) {
+  if (key === "price_ma_5") {
     return colors.ma5
   }
-  if (window === 10) {
+  if (key === "price_ma_10") {
     return colors.ma10
   }
-  return colors.ma30
+  if (key === "price_ma_30") {
+    return colors.ma30
+  }
+  if (key === "price_ema2_10") {
+    return colors.ema2_10
+  }
+  if (key === "price_avg_ma_3_6_12_24") {
+    return colors.avgMaShort
+  }
+  return colors.avgMaLong
 }
 
 function timeToTradeDate(time: Time | undefined) {

@@ -51,10 +51,12 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import {
+  buildLowReversalRuleVersionSpec,
   buildRuleVersionSpec,
   splitCsv,
   useWorkbenchStore,
 } from "@/store/workbench"
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
 import type { MetricDefinition, Operator, RuleVersionRecord } from "@/types/rearview"
 
 const operatorOptions: Array<{ label: string; value: Operator }> = [
@@ -74,6 +76,7 @@ export function RuleWorkbench() {
   const setDraft = useWorkbenchStore((state) => state.setDraft)
   const [manualRuleSetId, setManualRuleSetId] = useState("")
   const [manualVersionId, setManualVersionId] = useState("")
+  const [ruleMode, setRuleMode] = useState<"preset" | "simple">("preset")
 
   const ruleSetsQuery = useRuleSetsQuery({ limit: 100, offset: 0 })
   const selectedRuleSetId =
@@ -118,7 +121,13 @@ export function RuleWorkbench() {
     ],
     [scoringMetrics],
   )
-  const ruleSpec = useMemo(() => buildRuleVersionSpec(draft), [draft])
+  const ruleSpec = useMemo(
+    () =>
+      ruleMode === "preset"
+        ? buildLowReversalRuleVersionSpec(draft)
+        : buildRuleVersionSpec(draft),
+    [draft, ruleMode],
+  )
   const selectedVersion = versionItems.find(
     (version) => version.rule_version_id === selectedVersionId,
   )
@@ -252,8 +261,31 @@ export function RuleWorkbench() {
           <CardHeader>
             <CardTitle>Rule draft</CardTitle>
             <CardDescription>
-              {metrics.length} catalog metrics available
+              {ruleMode === "preset"
+                ? "Low reversal preset"
+                : `${metrics.length} catalog metrics available`}
             </CardDescription>
+            <CardAction>
+              <ToggleGroup
+                onValueChange={(nextValue) => {
+                  const nextMode = nextValue[0]
+                  if (nextMode === "preset" || nextMode === "simple") {
+                    setRuleMode(nextMode)
+                  }
+                }}
+                size="sm"
+                spacing={0}
+                value={[ruleMode]}
+                variant="outline"
+              >
+                <ToggleGroupItem aria-label="Preset rule" value="preset">
+                  Preset
+                </ToggleGroupItem>
+                <ToggleGroupItem aria-label="Simple rule" value="simple">
+                  Simple
+                </ToggleGroupItem>
+              </ToggleGroup>
+            </CardAction>
           </CardHeader>
           <CardContent>
             {metricsQuery.isError ? (
@@ -530,7 +562,10 @@ export function RuleWorkbench() {
             <CardAction>
               <div className="flex gap-2">
                 <Button
-                  disabled={explainMutation.isPending || !draft.filterMetric}
+                  disabled={
+                    explainMutation.isPending ||
+                    (ruleMode === "simple" && !draft.filterMetric)
+                  }
                   onClick={() => void explain()}
                   size="sm"
                   variant="outline"

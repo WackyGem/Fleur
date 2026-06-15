@@ -113,7 +113,8 @@ scored AS (
     SELECT
         security_code,
         trade_date,
-        greatest(0, least(99, raw_score)) AS score,
+        raw_score,
+        greatest({clamp_min}, least({clamp_max}, raw_score)) AS score,
         score_breakdown,
         selected_metrics,
         raw_values
@@ -123,6 +124,7 @@ ranked AS (
     SELECT
         security_code,
         trade_date,
+        raw_score,
         score,
         row_number() OVER (PARTITION BY trade_date ORDER BY score DESC, security_code ASC) AS signal_rank,
         score_breakdown,
@@ -133,6 +135,7 @@ ranked AS (
 SELECT
     security_code,
     trade_date,
+    raw_score,
     score,
     signal_rank,
     signal_rank <= {top_n} AS is_buy_signal,
@@ -150,6 +153,8 @@ SETTINGS
             max_execution_time = settings.max_execution_time_seconds,
             max_rows_to_read = settings.max_rows_to_read,
             max_bytes_to_read = settings.max_bytes_to_read,
+            clamp_min = rule.scoring.clamp.min,
+            clamp_max = rule.scoring.clamp.max,
         );
         let sql_hash = sql_hash(&sql);
         Ok(CompiledQuery {
@@ -583,6 +588,21 @@ mod tests {
         let compiled = planner.compile_explain(&representative_rule()).unwrap();
 
         assert!(compiled.sql.contains("max_rows_to_read"));
+    }
+
+    #[test]
+    fn compile_should_use_rule_score_clamp() {
+        let catalog = test_catalog();
+        let planner = QueryPlanner::new(catalog);
+        let mut rule = representative_rule();
+        rule.scoring.clamp.max = 50.0;
+        let compiled = planner.compile_explain(&rule).unwrap();
+
+        assert!(
+            compiled
+                .sql
+                .contains("greatest(0, least(50, raw_score)) AS score")
+        );
     }
 
     fn test_catalog() -> MetricCatalog {

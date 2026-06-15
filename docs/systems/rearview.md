@@ -93,6 +93,7 @@ uv run alembic upgrade head
 | [../plans/archive/0036-rust-rearview-stock-screening-service-implementation-plan.md](../plans/archive/0036-rust-rearview-stock-screening-service-implementation-plan.md) | Rearview 后端历史实施计划 |
 | [../plans/archive/0039-racingline-run-result-security-analysis-page-implementation-plan.md](../plans/archive/0039-racingline-run-result-security-analysis-page-implementation-plan.md) | Rearview analysis API 和 Racingline 个股分析页实施计划 |
 | [../jobs/reports/2026-06-12-rearview-n-structure-low-reversal-smoke-run.md](../jobs/reports/2026-06-12-rearview-n-structure-low-reversal-smoke-run.md) | 代表性规则 smoke run 记录 |
+| [../jobs/reports/2026-06-15-rearview-low-reversal-ma-chain-run.md](../jobs/reports/2026-06-15-rearview-low-reversal-ma-chain-run.md) | 低位反转追加 MA 链过滤后的区间运行记录 |
 | [../jobs/reports/2026-06-15-racingline-security-analysis-page.md](../jobs/reports/2026-06-15-racingline-security-analysis-page.md) | 个股 analysis API、图表和 UI 验收报告 |
 
 ## 待决问题

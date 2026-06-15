@@ -14,6 +14,7 @@ struct TradeDateRow {
 pub struct ScreeningRow {
     pub security_code: String,
     pub trade_date: NaiveDate,
+    pub raw_score: f64,
     pub score: f64,
     pub signal_rank: u32,
     #[serde(deserialize_with = "deserialize_clickhouse_bool")]
@@ -142,7 +143,17 @@ pub struct TrendIndicatorRow {
     #[serde(default, deserialize_with = "deserialize_optional_f64")]
     pub price_ma_10: Option<f64>,
     #[serde(default, deserialize_with = "deserialize_optional_f64")]
+    pub price_ma_20: Option<f64>,
+    #[serde(default, deserialize_with = "deserialize_optional_f64")]
     pub price_ma_30: Option<f64>,
+    #[serde(default, deserialize_with = "deserialize_optional_f64")]
+    pub price_ma_60: Option<f64>,
+    #[serde(default, deserialize_with = "deserialize_optional_f64")]
+    pub price_avg_ma_3_6_12_24: Option<f64>,
+    #[serde(default, deserialize_with = "deserialize_optional_f64")]
+    pub price_avg_ma_14_28_57_114: Option<f64>,
+    #[serde(default, deserialize_with = "deserialize_optional_f64")]
+    pub price_ema2_10: Option<f64>,
     #[serde(default, deserialize_with = "deserialize_optional_f64")]
     pub boll_mid_20_2: Option<f64>,
     #[serde(default, deserialize_with = "deserialize_optional_f64")]
@@ -334,7 +345,12 @@ SELECT
     trade_date,
     price_ma_5,
     price_ma_10,
+    price_ma_20,
     price_ma_30,
+    price_ma_60,
+    price_avg_ma_3_6_12_24,
+    price_avg_ma_14_28_57_114,
+    price_ema2_10,
     boll_mid_20_2,
     boll_up_20_2,
     boll_dn_20_2,
@@ -734,6 +750,7 @@ mod tests {
             r#"{{
                 "security_code": "000001.SZ",
                 "trade_date": "2026-05-20",
+                "raw_score": 42.5,
                 "score": 42.5,
                 "signal_rank": 1,
                 "is_buy_signal": {is_buy_signal},
@@ -750,6 +767,7 @@ mod tests {
             .expect("integer true should deserialize");
 
         assert!(row.is_buy_signal);
+        assert_eq!(row.raw_score, 42.5);
     }
 
     #[test]

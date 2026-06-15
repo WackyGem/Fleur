@@ -334,6 +334,7 @@ export type ChartSeriesRow = {
   ohlc?: ChartOhlc | null
   volume?: number | null
   ma: Record<string, number | null | undefined>
+  price_overlays?: Record<string, number | null | undefined>
   kdj: KdjSeries
   rsi: RsiSeries
   macd: MacdSeries
@@ -348,8 +349,16 @@ export type ChartMaMetadata = {
   status: "available" | "forward_adjusted_only" | string
 }
 
+export type ChartPriceOverlayMetadata = {
+  default_visible_keys: string[]
+  available_keys: string[]
+  adjustment: PriceAdjustment
+  status: "available" | "forward_adjusted_only" | string
+}
+
 export type ChartPayload = {
   ma: ChartMaMetadata
+  price_overlays?: ChartPriceOverlayMetadata
   indicator_panels: string[]
   series: ChartSeriesRow[]
 }

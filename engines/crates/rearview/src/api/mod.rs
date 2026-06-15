@@ -670,6 +670,7 @@ struct ChartWindow {
 #[derive(Debug, Serialize)]
 struct ChartPayload {
     ma: ChartMaMetadata,
+    price_overlays: ChartPriceOverlayMetadata,
     indicator_panels: [&'static str; 4],
     series: Vec<ChartSeriesRow>,
 }
@@ -684,11 +685,20 @@ struct ChartMaMetadata {
 }
 
 #[derive(Debug, Serialize)]
+struct ChartPriceOverlayMetadata {
+    default_visible_keys: Vec<&'static str>,
+    available_keys: Vec<&'static str>,
+    adjustment: Adjustment,
+    status: &'static str,
+}
+
+#[derive(Debug, Serialize)]
 struct ChartSeriesRow {
     trade_date: NaiveDate,
     ohlc: Option<ChartOhlc>,
     volume: Option<f64>,
     ma: BTreeMap<String, Option<f64>>,
+    price_overlays: BTreeMap<&'static str, Option<f64>>,
     kdj: KdjSeries,
     rsi: RsiSeries,
     macd: MacdSeries,
@@ -872,6 +882,7 @@ fn build_security_analysis_response(
                 ohlc: ohlc_for_adjustment(quote, input.adjustment),
                 volume: quote.volume,
                 ma: ma_values(trend, &input.ma_windows, input.adjustment),
+                price_overlays: price_overlay_values(trend, input.adjustment),
                 kdj: kdj_values(momentum, quote),
                 rsi: rsi_values(momentum),
                 macd: macd_values(trend),
@@ -937,6 +948,20 @@ fn build_security_analysis_response(
                     "forward_adjusted_only"
                 },
             },
+            price_overlays: ChartPriceOverlayMetadata {
+                default_visible_keys: vec!["price_ma_5", "price_ma_10", "price_ma_30"],
+                available_keys: if ma_supported {
+                    PRICE_OVERLAY_KEYS.to_vec()
+                } else {
+                    Vec::new()
+                },
+                adjustment: Adjustment::ForwardAdjusted,
+                status: if ma_supported {
+                    "available"
+                } else {
+                    "forward_adjusted_only"
+                },
+            },
             indicator_panels: ["kdj", "rsi", "macd", "boll"],
             series,
         },
@@ -974,6 +999,15 @@ fn ohlc_for_adjustment(row: &QuoteMartRow, adjustment: Adjustment) -> Option<Cha
     })
 }
 
+const PRICE_OVERLAY_KEYS: [&str; 6] = [
+    "price_ma_5",
+    "price_ma_10",
+    "price_ma_30",
+    "price_ema2_10",
+    "price_avg_ma_3_6_12_24",
+    "price_avg_ma_14_28_57_114",
+];
+
 fn ma_values(
     trend: Option<&TrendIndicatorRow>,
     ma_windows: &[u32],
@@ -991,6 +1025,29 @@ fn ma_values(
             _ => None,
         });
         values.insert(window.to_string(), value);
+    }
+    values
+}
+
+fn price_overlay_values(
+    trend: Option<&TrendIndicatorRow>,
+    adjustment: Adjustment,
+) -> BTreeMap<&'static str, Option<f64>> {
+    if adjustment != Adjustment::ForwardAdjusted {
+        return BTreeMap::new();
+    }
+    let mut values = BTreeMap::new();
+    for key in PRICE_OVERLAY_KEYS {
+        let value = trend.and_then(|trend| match key {
+            "price_ma_5" => trend.price_ma_5,
+            "price_ma_10" => trend.price_ma_10,
+            "price_ma_30" => trend.price_ma_30,
+            "price_ema2_10" => trend.price_ema2_10,
+            "price_avg_ma_3_6_12_24" => trend.price_avg_ma_3_6_12_24,
+            "price_avg_ma_14_28_57_114" => trend.price_avg_ma_14_28_57_114,
+            _ => None,
+        });
+        values.insert(key, value);
     }
     values
 }

@@ -709,6 +709,8 @@ impl RearviewPg {
             let score_breakdown_points: Value = serde_json::from_str(&row.score_breakdown)?;
             let score_breakdown = serde_json::json!({
                 "points": score_breakdown_points,
+                "raw_score": row.raw_score,
+                "score": row.score,
                 "raw_values": raw_values,
             });
             let counts = by_day.entry(row.trade_date).or_default();

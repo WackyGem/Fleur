@@ -108,10 +108,12 @@ cargo test --workspace
 | [../ADR/0011-racingline-frontend-technology-stack.md](../ADR/0011-racingline-frontend-technology-stack.md) | Racingline 前端技术栈和工程边界 |
 | [../plans/archive/0037-racingline-frontend-implementation-plan.md](../plans/archive/0037-racingline-frontend-implementation-plan.md) | Racingline 前端第一版实施计划归档 |
 | [../plans/archive/0039-racingline-run-result-security-analysis-page-implementation-plan.md](../plans/archive/0039-racingline-run-result-security-analysis-page-implementation-plan.md) | Run result 个股分析页实施计划归档 |
+| [../plans/archive/0040-racingline-security-analysis-optimization-plan.md](../plans/archive/0040-racingline-security-analysis-optimization-plan.md) | 个股分析页交互、趋势叠加线和新选股规则适配计划归档 |
 | [../jobs/reports/2026-06-13-racingline-frontend-skeleton.md](../jobs/reports/2026-06-13-racingline-frontend-skeleton.md) | 前端骨架和工程门禁报告 |
 | [../jobs/reports/2026-06-13-racingline-rearview-api-integration.md](../jobs/reports/2026-06-13-racingline-rearview-api-integration.md) | Rearview API 联调报告 |
 | [../jobs/reports/2026-06-13-racingline-playwright-cdp-acceptance.md](../jobs/reports/2026-06-13-racingline-playwright-cdp-acceptance.md) | Playwright CDP 验收报告 |
 | [../jobs/reports/2026-06-15-racingline-security-analysis-page.md](../jobs/reports/2026-06-15-racingline-security-analysis-page.md) | 个股分析页 API、桌面/移动和交互验收报告 |
+| [../jobs/reports/2026-06-15-racingline-security-analysis-optimization.md](../jobs/reports/2026-06-15-racingline-security-analysis-optimization.md) | 个股分析页优化、规则适配和评分 clamp 验收报告 |
 | [../RFC/0018-rust-stock-screening-service.md](../RFC/0018-rust-stock-screening-service.md) | Rearview 后端服务 RFC |
 | [rearview.md](rearview.md) | Rearview 当前系统地图 |
 

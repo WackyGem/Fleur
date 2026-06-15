@@ -10,6 +10,17 @@ metrics:
     null_policy: no_match
     default_output: true
 
+  - logical_metric: close_price_forward_adj
+    source:
+      mart_table: mart_stock_quotes_daily
+      column_name: close_price_forward_adj
+    value_kind: numeric
+    allow_filter: true
+    allow_scoring: true
+    allowed_ops: [lt, lte, gt, gte, between, eq, ne, is_null]
+    null_policy: no_match
+    default_output: true
+
   - logical_metric: prev_volume
     source:
       mart_table: mart_stock_quotes_daily
@@ -30,6 +41,26 @@ metrics:
     allowed_ops: [lt, lte, gt, gte, between, eq, ne, is_null]
     null_policy: no_match
     default_output: true
+
+  - logical_metric: pct_amplitude
+    source:
+      mart_table: mart_stock_quotes_daily
+      column_name: pct_amplitude
+    value_kind: numeric
+    allow_filter: true
+    allow_scoring: true
+    allowed_ops: [lt, lte, gt, gte, between, eq, ne, is_null]
+    null_policy: no_match
+
+  - logical_metric: pct_change
+    source:
+      mart_table: mart_stock_quotes_daily
+      column_name: pct_change
+    value_kind: numeric
+    allow_filter: true
+    allow_scoring: true
+    allowed_ops: [lt, lte, gt, gte, between, eq, ne, is_null]
+    null_policy: no_match
 
   - logical_metric: kdj_j_value
     source:
@@ -113,6 +144,26 @@ metrics:
     allowed_ops: [lt, lte, gt, gte, between, eq, ne, is_null]
     null_policy: no_match
 
+  - logical_metric: price_ma_114
+    source:
+      mart_table: mart_stock_trend_indicator
+      column_name: price_ma_114
+    value_kind: numeric
+    allow_filter: true
+    allow_scoring: true
+    allowed_ops: [lt, lte, gt, gte, between, eq, ne, is_null]
+    null_policy: no_match
+
+  - logical_metric: price_ma_250
+    source:
+      mart_table: mart_stock_trend_indicator
+      column_name: price_ma_250
+    value_kind: numeric
+    allow_filter: true
+    allow_scoring: true
+    allowed_ops: [lt, lte, gt, gte, between, eq, ne, is_null]
+    null_policy: no_match
+
   - logical_metric: boll_dn_20_2
     source:
       mart_table: mart_stock_trend_indicator
@@ -151,5 +202,16 @@ metrics:
     allow_filter: true
     allow_scoring: true
     allowed_ops: [eq, ne, is_null]
+    null_policy: no_match
+    default_output: true
+
+  - logical_metric: n_structure_20_second_low_ratio
+    source:
+      mart_table: mart_stock_price_pattern_daily
+      column_name: n_structure_20_second_low_ratio
+    value_kind: numeric
+    allow_filter: true
+    allow_scoring: true
+    allowed_ops: [lt, lte, gt, gte, between, eq, ne, is_null]
     null_policy: no_match
     default_output: true

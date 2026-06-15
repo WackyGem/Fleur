@@ -25,19 +25,19 @@ import {
   MissingBackendState,
   TableSkeleton,
 } from "@/components/racingline/data-state"
-import { FilterSelect } from "@/components/racingline/filter-select"
 import { RacinglineIcon } from "@/components/racingline/icon"
 import { SecurityAnalysisChart } from "@/features/analysis/components/security-analysis-chart"
 import {
   DEFAULT_ANALYSIS_SOURCE,
-  DEFAULT_MA_WINDOWS,
+  DEFAULT_PRICE_OVERLAYS,
+  PRICE_OVERLAY_KEYS,
   buildRunDetailPath,
   buildSecurityAnalysisPath,
   buildSecurityAnalysisQuery,
-  nextMaWindows,
   parseAnalysisSource,
   parsePriceAdjustment,
   quoteForTradeDate,
+  type PriceOverlayKey,
 } from "@/features/analysis/security-analysis"
 import {
   displayJsonValue,
@@ -51,13 +51,6 @@ import {
 import { cn } from "@/lib/utils"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Checkbox } from "@/components/ui/checkbox"
-import {
-  Field,
-  FieldContent,
-  FieldGroup,
-  FieldLabel,
-} from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
 import { Separator } from "@/components/ui/separator"
 import { Skeleton } from "@/components/ui/skeleton"
@@ -67,6 +60,7 @@ import {
   TabsList,
   TabsTrigger,
 } from "@/components/ui/tabs"
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
 import type {
   AnalysisSource,
   BuySignalRecord,
@@ -87,9 +81,27 @@ const SOURCE_LABELS: Record<AnalysisSource, string> = {
 }
 
 const ADJUSTMENT_OPTIONS = [
-  { label: "Forward adjusted", value: "forward_adjusted" },
-  { label: "Backward adjusted", value: "backward_adjusted" },
+  { label: "Forward", value: "forward_adjusted" },
+  { label: "Backward", value: "backward_adjusted" },
   { label: "Unadjusted", value: "unadjusted" },
+] as const
+
+const PRICE_OVERLAY_LABELS: Record<PriceOverlayKey, string> = {
+  price_ma_5: "MA5",
+  price_ma_10: "MA10",
+  price_ma_30: "MA30",
+  price_ema2_10: "EMA2-10",
+  price_avg_ma_3_6_12_24: "AVG 3/6/12/24",
+  price_avg_ma_14_28_57_114: "AVG 14/28/57/114",
+}
+
+const METRIC_PREVIEW_PRIORITY = [
+  "kdj_j_value",
+  "close_price_forward_adj",
+  "pct_change",
+  "pct_amplitude",
+  "volume",
+  "volume_ma_5",
 ]
 
 type ResultRow = BuySignalRecord | PoolMemberRecord
@@ -193,8 +205,10 @@ export function SecurityAnalysisPage() {
     selectedQuoteState.scope === selectedQuoteScope
       ? selectedQuoteState.tradeDate
       : tradeDate
-  const [visibleMaWindows, setVisibleMaWindows] = useState<number[]>([
-    ...DEFAULT_MA_WINDOWS,
+  const [visiblePriceOverlays, setVisiblePriceOverlays] = useState<
+    PriceOverlayKey[]
+  >([
+    ...DEFAULT_PRICE_OVERLAYS,
   ])
   const isDesktop = useMediaQuery("(min-width: 1024px)")
 
@@ -354,9 +368,9 @@ export function SecurityAnalysisPage() {
         onAdjustmentChange={setAdjustment}
         onRetry={() => void analysisQuery.refetch()}
         onSelectedDateChange={setSelectedDate}
-        onVisibleMaWindowsChange={setVisibleMaWindows}
+        onVisiblePriceOverlaysChange={setVisiblePriceOverlays}
         selectedQuoteDate={selectedQuoteDate}
-        visibleMaWindows={visibleMaWindows}
+        visiblePriceOverlays={visiblePriceOverlays}
       />
       <IndicatorRail
         analysis={analysis}
@@ -436,9 +450,9 @@ export function SecurityAnalysisPage() {
               onAdjustmentChange={setAdjustment}
               onRetry={() => void analysisQuery.refetch()}
               onSelectedDateChange={setSelectedDate}
-              onVisibleMaWindowsChange={setVisibleMaWindows}
+              onVisiblePriceOverlaysChange={setVisiblePriceOverlays}
               selectedQuoteDate={selectedQuoteDate}
-              visibleMaWindows={visibleMaWindows}
+              visiblePriceOverlays={visiblePriceOverlays}
             />
           </TabsContent>
           <TabsContent value="indicators">
@@ -648,7 +662,16 @@ function CurrentSecuritySummary({
 }
 
 function MetricPreview({ metrics }: { metrics: JsonRecord }) {
-  const entries = jsonEntries(metrics).slice(0, 3)
+  const allEntries = jsonEntries(metrics)
+  const prioritizedKeys = METRIC_PREVIEW_PRIORITY.filter((key) =>
+    Object.prototype.hasOwnProperty.call(metrics, key),
+  )
+  const remainingKeys = allEntries
+    .map(([key]) => key)
+    .filter((key) => !prioritizedKeys.includes(key))
+  const entries = [...prioritizedKeys, ...remainingKeys]
+    .slice(0, 5)
+    .map((key) => [key, metrics[key]] as [string, JsonValue])
   if (entries.length === 0) {
     return null
   }
@@ -676,9 +699,9 @@ function ChartWorkspace({
   onAdjustmentChange,
   onRetry,
   onSelectedDateChange,
-  onVisibleMaWindowsChange,
+  onVisiblePriceOverlaysChange,
   selectedQuoteDate,
-  visibleMaWindows,
+  visiblePriceOverlays,
 }: {
   adjustment: PriceAdjustment
   analysis?: SecurityAnalysisResponse
@@ -689,69 +712,39 @@ function ChartWorkspace({
   onAdjustmentChange: (adjustment: PriceAdjustment) => void
   onRetry: () => void
   onSelectedDateChange: (tradeDate: string) => void
-  onVisibleMaWindowsChange: (windows: number[]) => void
+  onVisiblePriceOverlaysChange: (keys: PriceOverlayKey[]) => void
   selectedQuoteDate: string
-  visibleMaWindows: number[]
+  visiblePriceOverlays: PriceOverlayKey[]
 }) {
-  const maStatus = analysis?.chart.ma.status
-  const maAvailableWindows = analysis?.chart.ma.available_windows ?? []
-  const maAvailable = maStatus === "available"
+  const priceOverlayStatus =
+    analysis?.chart.price_overlays?.status ?? analysis?.chart.ma.status
+  const availablePriceOverlays = (analysis?.chart.price_overlays
+    ?.available_keys ?? []) as PriceOverlayKey[]
+  const overlayAvailable = priceOverlayStatus === "available"
 
   return (
     <main className="flex min-w-0 flex-col gap-3">
       <div className="rounded-md border bg-background">
         <div className="flex flex-col gap-3 p-3">
-          <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
-            <div className="flex flex-wrap items-center gap-2">
-              <FilterSelect
-                className="w-44"
-                onValueChange={(value) =>
-                  onAdjustmentChange(parsePriceAdjustment(value))
+          <div className="flex flex-col gap-2 xl:flex-row xl:items-center xl:justify-between">
+            <PriceChartToolbar
+              adjustment={adjustment}
+              availablePriceOverlays={availablePriceOverlays}
+              disabled={!analysis}
+              onAdjustmentChange={onAdjustmentChange}
+              onSelectedDateChange={() => {
+                if (analysis) {
+                  onSelectedDateChange(analysis.trade_date)
                 }
-                options={ADJUSTMENT_OPTIONS}
-                value={adjustment}
-              />
-              <FieldGroup className="flex flex-row flex-wrap gap-3">
-                {DEFAULT_MA_WINDOWS.map((window) => (
-                  <Field key={window} orientation="horizontal">
-                    <Checkbox
-                      checked={visibleMaWindows.includes(window)}
-                      disabled={!maAvailable || !maAvailableWindows.includes(window)}
-                      id={`ma-${window}`}
-                      onCheckedChange={(checked) =>
-                        onVisibleMaWindowsChange(
-                          nextMaWindows(visibleMaWindows, window, checked),
-                        )
-                      }
-                    />
-                    <FieldContent>
-                      <FieldLabel htmlFor={`ma-${window}`}>
-                        MA{window}
-                      </FieldLabel>
-                    </FieldContent>
-                  </Field>
-                ))}
-              </FieldGroup>
-              <Button
-                disabled={!analysis || selectedQuoteDate === analysis.trade_date}
-                onClick={() => {
-                  if (analysis) {
-                    onSelectedDateChange(analysis.trade_date)
-                  }
-                }}
-                size="sm"
-                variant="outline"
-              >
-                Signal day
-              </Button>
-            </div>
+              }}
+              onVisiblePriceOverlaysChange={onVisiblePriceOverlaysChange}
+              selectedQuoteDate={selectedQuoteDate}
+              signalDate={analysis?.trade_date}
+              visiblePriceOverlays={visiblePriceOverlays}
+            />
             <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-              <Badge variant="outline">current mart query</Badge>
-              <Badge variant="outline">
-                indicators {analysis?.sources.trend.adjustment ?? "forward_adjusted"}
-              </Badge>
-              {maAvailable ? null : (
-                <Badge variant="secondary">MA forward-adjusted only</Badge>
+              {overlayAvailable ? null : (
+                <Badge variant="secondary">Forward-adjusted overlays</Badge>
               )}
               {isFetching ? <Badge variant="outline">loading</Badge> : null}
             </div>
@@ -785,15 +778,100 @@ function ChartWorkspace({
       ) : null}
       {analysis ? (
         <SecurityAnalysisChart
-          maAvailableWindows={maAvailableWindows}
+          availablePriceOverlays={availablePriceOverlays}
           onSelectedDateChange={onSelectedDateChange}
           rows={analysis.chart.series}
           selectedDate={selectedQuoteDate || analysis.trade_date}
           signalDate={analysis.trade_date}
-          visibleMaWindows={visibleMaWindows}
+          visiblePriceOverlays={visiblePriceOverlays}
         />
       ) : null}
     </main>
+  )
+}
+
+function PriceChartToolbar({
+  adjustment,
+  availablePriceOverlays,
+  disabled,
+  onAdjustmentChange,
+  onSelectedDateChange,
+  onVisiblePriceOverlaysChange,
+  selectedQuoteDate,
+  signalDate,
+  visiblePriceOverlays,
+}: {
+  adjustment: PriceAdjustment
+  availablePriceOverlays: PriceOverlayKey[]
+  disabled: boolean
+  onAdjustmentChange: (adjustment: PriceAdjustment) => void
+  onSelectedDateChange: () => void
+  onVisiblePriceOverlaysChange: (keys: PriceOverlayKey[]) => void
+  selectedQuoteDate: string
+  signalDate?: string
+  visiblePriceOverlays: PriceOverlayKey[]
+}) {
+  const availableOverlaySet = new Set(availablePriceOverlays)
+
+  return (
+    <div className="min-w-0 overflow-x-auto pb-1">
+      <div className="flex w-max items-center gap-2">
+        <ToggleGroup
+          onValueChange={(nextValue) => {
+            const nextAdjustment = nextValue[0]
+            if (nextAdjustment) {
+              onAdjustmentChange(parsePriceAdjustment(nextAdjustment))
+            }
+          }}
+          size="sm"
+          spacing={0}
+          value={[adjustment]}
+          variant="outline"
+        >
+          {ADJUSTMENT_OPTIONS.map((option) => (
+            <ToggleGroupItem
+              aria-label={option.label}
+              key={option.value}
+              value={option.value}
+            >
+              {option.label}
+            </ToggleGroupItem>
+          ))}
+        </ToggleGroup>
+        <ToggleGroup
+          multiple
+          onValueChange={(nextValue) => {
+            const nextKeys = PRICE_OVERLAY_KEYS.filter((key) =>
+              nextValue.includes(key),
+            )
+            onVisiblePriceOverlaysChange(nextKeys)
+          }}
+          size="sm"
+          spacing={1}
+          value={visiblePriceOverlays}
+          variant="outline"
+        >
+          {PRICE_OVERLAY_KEYS.map((key) => (
+            <ToggleGroupItem
+              aria-label={PRICE_OVERLAY_LABELS[key]}
+              disabled={!availableOverlaySet.has(key)}
+              key={key}
+              value={key}
+            >
+              {PRICE_OVERLAY_LABELS[key]}
+            </ToggleGroupItem>
+          ))}
+        </ToggleGroup>
+        <Button
+          disabled={disabled || !signalDate || selectedQuoteDate === signalDate}
+          onClick={onSelectedDateChange}
+          size="sm"
+          variant="outline"
+        >
+          Signal day
+        </Button>
+      </div>
+    </div>
   )
 }
 
@@ -816,7 +894,6 @@ function IndicatorRail({
               {analysis?.security_code ?? "-"}
             </div>
           </div>
-          <Badge variant="outline">current mart query</Badge>
         </div>
         <div className="grid gap-2 text-xs">
           <DateChip label="Signal day" value={analysis?.trade_date ?? "-"} />

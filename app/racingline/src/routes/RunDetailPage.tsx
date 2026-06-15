@@ -60,7 +60,7 @@ const EMPTY_DAYS: RunDayRecord[] = []
 
 export function RunDetailPage() {
   const { runId } = useParams()
-  const [searchParams] = useSearchParams()
+  const [searchParams, setSearchParams] = useSearchParams()
   const initialSource = searchParams.get("source")
   const returnTradeDate = searchParams.get("trade_date") ?? ""
   const [tab, setTab] = useState(initialSource === "pool" ? "pool" : "signals")
@@ -108,6 +108,25 @@ export function RunDetailPage() {
     selectedTradeDate,
     setSelectedTradeDate,
   ])
+
+  function selectTradeDate(nextTradeDate: string) {
+    if (!runId || !nextTradeDate) {
+      return
+    }
+
+    setSelectedTradeDate(runId, nextTradeDate)
+    setSearchParams(
+      (current) => {
+        const next = new URLSearchParams(current)
+        next.set("trade_date", nextTradeDate)
+        if (!next.get("source")) {
+          next.set("source", tab === "pool" ? "pool" : "signals")
+        }
+        return next
+      },
+      { replace: false },
+    )
+  }
 
   function refreshAll() {
     void Promise.all([
@@ -251,7 +270,7 @@ export function RunDetailPage() {
               className="w-56"
               onValueChange={(value) => {
                 if (value) {
-                  setSelectedTradeDate(runId, value)
+                  selectTradeDate(value)
                 }
               }}
               options={tradeDateOptions}
@@ -298,7 +317,7 @@ export function RunDetailPage() {
               <RunDaysTable
                 days={days}
                 selectedTradeDate={tradeDate}
-                onSelect={(value) => setSelectedTradeDate(runId, value)}
+                onSelect={selectTradeDate}
               />
             </TabsContent>
             <TabsContent value="chunks">

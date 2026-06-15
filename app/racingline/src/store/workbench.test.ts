@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest"
 
 import {
+  buildLowReversalRuleVersionSpec,
   buildRuleVersionSpec,
   defaultRuleDraft,
   splitCsv,
@@ -71,5 +72,24 @@ describe("workbench draft helpers", () => {
       ],
       type: "all",
     })
+  })
+
+  it("builds the low reversal preset rule", () => {
+    const spec = buildLowReversalRuleVersionSpec({
+      ...defaultRuleDraft,
+      topNDefault: "10",
+    })
+
+    expect(spec.pool_filters.type).toBe("all")
+    expect(
+      spec.pool_filters.type === "all" ? spec.pool_filters.conditions.length : 0,
+    ).toBe(10)
+    expect(spec.scoring.rules).toHaveLength(8)
+    expect(spec.scoring.clamp).toEqual({ min: 0, max: 99 })
+    expect(spec.output_metrics).toContain("close_price_forward_adj")
+    expect(spec.output_metrics).toContain("n_structure_20_second_low_ratio")
+    expect(spec.output_metrics).toContain("price_ma_114")
+    expect(spec.output_metrics).toContain("price_ma_250")
+    expect(spec.output_metrics).not.toContain("kdj_j")
   })
 })

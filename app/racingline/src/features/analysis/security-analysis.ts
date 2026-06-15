@@ -8,6 +8,21 @@ import type {
 export const DEFAULT_PRICE_ADJUSTMENT: PriceAdjustment = "forward_adjusted"
 export const DEFAULT_ANALYSIS_SOURCE: AnalysisSource = "signals"
 export const DEFAULT_MA_WINDOWS = [5, 10, 30] as const
+export const PRICE_OVERLAY_KEYS = [
+  "price_ma_5",
+  "price_ma_10",
+  "price_ma_30",
+  "price_ema2_10",
+  "price_avg_ma_3_6_12_24",
+  "price_avg_ma_14_28_57_114",
+] as const
+export const DEFAULT_PRICE_OVERLAYS = [
+  "price_ma_5",
+  "price_ma_10",
+  "price_ma_30",
+] as const
+
+export type PriceOverlayKey = (typeof PRICE_OVERLAY_KEYS)[number]
 
 const analysisSources = ["signals", "pool"] as const
 const priceAdjustments = [
@@ -100,4 +115,18 @@ export function nextMaWindows(
     next.delete(window)
   }
   return DEFAULT_MA_WINDOWS.filter((candidate) => next.has(candidate))
+}
+
+export function nextPriceOverlays(
+  currentKeys: PriceOverlayKey[],
+  key: PriceOverlayKey,
+  checked: boolean,
+) {
+  const next = new Set(currentKeys)
+  if (checked) {
+    next.add(key)
+  } else {
+    next.delete(key)
+  }
+  return PRICE_OVERLAY_KEYS.filter((candidate) => next.has(candidate))
 }
