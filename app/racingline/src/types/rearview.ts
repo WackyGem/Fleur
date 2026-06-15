@@ -244,6 +244,187 @@ export type ResultRowsQuery = {
   sort?: string
 }
 
+export type AnalysisSource = "signals" | "pool"
+
+export type PriceAdjustment =
+  | "forward_adjusted"
+  | "backward_adjusted"
+  | "unadjusted"
+
+export type SecurityAnalysisQuery = {
+  trade_date: string
+  source: AnalysisSource
+  adjustment?: PriceAdjustment
+  quote_end_date?: string
+  lookback_trading_days?: number
+  quote_start_date?: string
+  ma_windows?: string
+}
+
+export type ResultSnapshot = {
+  rank?: number | null
+  signal_rank?: number | null
+  score?: number | null
+  score_breakdown?: JsonValue
+  selected_metrics: JsonRecord
+  filter_snapshot?: JsonValue
+}
+
+export type SourceMetadata = {
+  database: string
+  table: string
+  value_semantics: "current_mart_query" | string
+  adjustment?: PriceAdjustment | null
+}
+
+export type AdjustedQuoteSourceMetadata = {
+  database: string
+  table: string
+  value_semantics: "current_mart_query" | string
+  adjustment_fields: PriceAdjustment[]
+}
+
+export type AnalysisSources = {
+  quote: SourceMetadata
+  adjusted_quote: AdjustedQuoteSourceMetadata
+  trend: SourceMetadata
+  momentum: SourceMetadata
+}
+
+export type ChartWindow = {
+  start_date: string
+  end_date: string
+  lookback_trading_days: number
+}
+
+export type ChartOhlc = {
+  open: number
+  high: number
+  low: number
+  close: number
+}
+
+export type KdjSeries = {
+  k?: number | null
+  d?: number | null
+  j?: number | null
+  rsv?: number | null
+}
+
+export type RsiSeries = {
+  "6"?: number | null
+  "12"?: number | null
+  "24"?: number | null
+}
+
+export type MacdSeries = {
+  dif?: number | null
+  dea?: number | null
+  histogram?: number | null
+}
+
+export type BollSeries = {
+  mid_20_2?: number | null
+  up_20_2?: number | null
+  dn_20_2?: number | null
+}
+
+export type ChartSeriesRow = {
+  trade_date: string
+  ohlc?: ChartOhlc | null
+  volume?: number | null
+  ma: Record<string, number | null | undefined>
+  kdj: KdjSeries
+  rsi: RsiSeries
+  macd: MacdSeries
+  boll: BollSeries
+}
+
+export type ChartMaMetadata = {
+  requested_windows: number[]
+  default_visible_windows: number[]
+  available_windows: number[]
+  adjustment: PriceAdjustment
+  status: "available" | "forward_adjusted_only" | string
+}
+
+export type ChartPayload = {
+  ma: ChartMaMetadata
+  indicator_panels: string[]
+  series: ChartSeriesRow[]
+}
+
+export type QuoteMartRow = {
+  security_code: string
+  trade_date: string
+  open_price?: number | null
+  high_price?: number | null
+  low_price?: number | null
+  close_price?: number | null
+  prev_close_price?: number | null
+  prev_close_price_unadj?: number | null
+  open_price_forward_adj?: number | null
+  high_price_forward_adj?: number | null
+  low_price_forward_adj?: number | null
+  close_price_forward_adj?: number | null
+  prev_close_price_forward_adj?: number | null
+  open_price_backward_adj?: number | null
+  high_price_backward_adj?: number | null
+  low_price_backward_adj?: number | null
+  close_price_backward_adj?: number | null
+  prev_close_price_backward_adj?: number | null
+  forward_adjustment_factor?: number | null
+  forward_adjustment_ratio?: number | null
+  backward_adjustment_factor?: number | null
+  backward_adjustment_ratio?: number | null
+  prev_volume?: number | null
+  volume?: number | null
+  amount?: number | null
+  turnover_rate?: number | null
+  turnover_rate_actual?: number | null
+  pct_amplitude?: number | null
+  pct_change?: number | null
+  limit_up_price?: number | null
+  limit_down_price?: number | null
+  a_market_cap?: number | null
+  a_float_market_cap?: number | null
+  a_free_float_market_cap?: number | null
+  a_shares?: number | null
+  a_float_shares?: number | null
+  a_free_float_shares?: number | null
+  pe_static?: number | null
+  pe_ttm?: number | null
+  pe_forecast?: number | null
+  pb_mrq?: number | null
+  book_value_per_share?: number | null
+  roe?: number | null
+  roa?: number | null
+  roaa?: number | null
+  roae?: number | null
+  dy_static?: number | null
+  dy_ttm?: number | null
+  is_suspend?: boolean | null
+  is_st?: boolean | null
+  kdj_rsv?: number | null
+  kdj_k_value?: number | null
+  kdj_d_value?: number | null
+  kdj_j_value?: number | null
+}
+
+export type SecurityAnalysisResponse = {
+  run_id: string
+  trade_date: string
+  security_code: string
+  source: AnalysisSource
+  adjustment: PriceAdjustment
+  result_snapshot: ResultSnapshot
+  sources: AnalysisSources
+  chart_window: ChartWindow
+  chart: ChartPayload
+  quote_rows: QuoteMartRow[]
+  selected_quote?: QuoteMartRow | null
+}
+
 export type CreateRuleSetRequest = {
   name: string
   description?: string

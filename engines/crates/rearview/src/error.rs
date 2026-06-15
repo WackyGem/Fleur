@@ -9,6 +9,8 @@ pub type RearviewResult<T> = Result<T, RearviewError>;
 pub enum RearviewError {
     #[error("configuration error: {0}")]
     Config(String),
+    #[error("not found: {0}")]
+    NotFound(String),
     #[error("validation error: {0}")]
     Validation(String),
     #[error("metric catalog error: {0}")]
@@ -38,6 +40,7 @@ struct ErrorResponse {
 impl RearviewError {
     pub fn status_code(&self) -> StatusCode {
         match self {
+            Self::NotFound(_) => StatusCode::NOT_FOUND,
             Self::Config(_)
             | Self::Postgres(_)
             | Self::ClickHouse(_)
@@ -53,6 +56,7 @@ impl RearviewError {
     pub fn error_type(&self) -> &'static str {
         match self {
             Self::Config(_) => "config",
+            Self::NotFound(_) => "not_found",
             Self::Validation(_) => "validation",
             Self::MetricCatalog(_) => "metric_catalog",
             Self::Planner(_) => "planner",

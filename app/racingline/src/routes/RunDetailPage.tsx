@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react"
-import { Link, useParams } from "react-router-dom"
+import { Link, useParams, useSearchParams } from "react-router-dom"
 import {
   ArrowLeft01Icon,
   ArrowReloadHorizontalIcon,
@@ -60,7 +60,10 @@ const EMPTY_DAYS: RunDayRecord[] = []
 
 export function RunDetailPage() {
   const { runId } = useParams()
-  const [tab, setTab] = useState("signals")
+  const [searchParams] = useSearchParams()
+  const initialSource = searchParams.get("source")
+  const returnTradeDate = searchParams.get("trade_date") ?? ""
+  const [tab, setTab] = useState(initialSource === "pool" ? "pool" : "signals")
   const selectedTradeDate = useWorkbenchStore((state) =>
     runId ? state.selectedTradeDateByRun[runId] : "",
   )
@@ -91,10 +94,20 @@ export function RunDetailPage() {
   )
 
   useEffect(() => {
+    if (runId && returnTradeDate && selectedTradeDate !== returnTradeDate) {
+      setSelectedTradeDate(runId, returnTradeDate)
+      return
+    }
     if (runId && defaultTradeDate && !selectedTradeDate) {
       setSelectedTradeDate(runId, defaultTradeDate)
     }
-  }, [defaultTradeDate, runId, selectedTradeDate, setSelectedTradeDate])
+  }, [
+    defaultTradeDate,
+    returnTradeDate,
+    runId,
+    selectedTradeDate,
+    setSelectedTradeDate,
+  ])
 
   function refreshAll() {
     void Promise.all([

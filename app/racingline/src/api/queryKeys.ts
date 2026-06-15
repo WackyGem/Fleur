@@ -4,6 +4,7 @@ import type {
   RuleSetsQuery,
   RuleVersionsQuery,
   RunsQuery,
+  SecurityAnalysisQuery,
 } from "@/types/rearview"
 
 export const queryKeys = {
@@ -20,4 +21,9 @@ export const queryKeys = {
     ["runs", runId, "pool", query] as const,
   signals: (runId: string, query: ResultRowsQuery) =>
     ["runs", runId, "signals", query] as const,
+  securityAnalysis: (
+    runId: string,
+    securityCode: string,
+    query: SecurityAnalysisQuery,
+  ) => ["runs", runId, "securities", securityCode, "analysis", query] as const,
 }

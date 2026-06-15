@@ -897,6 +897,31 @@ impl RearviewPg {
         ))
     }
 
+    pub async fn get_pool_member(
+        &self,
+        run_id: &str,
+        trade_date: NaiveDate,
+        security_code: &str,
+    ) -> RearviewResult<Option<PoolMemberRecord>> {
+        let row = sqlx::query(
+            r#"
+            select run_id, trade_date, security_code, score::float8 as score,
+                   signal_rank, selected_metrics, filter_snapshot
+            from pool_member
+            where run_id = $1
+              and trade_date = $2
+              and security_code = $3
+            "#,
+        )
+        .bind(run_id)
+        .bind(trade_date)
+        .bind(security_code)
+        .fetch_optional(&self.pool)
+        .await?;
+
+        Ok(row.map(pool_member_from_row))
+    }
+
     pub async fn list_buy_signals(
         &self,
         run_id: &str,
@@ -928,6 +953,31 @@ impl RearviewPg {
             rows.into_iter().map(buy_signal_from_row).collect(),
             filter.page,
         ))
+    }
+
+    pub async fn get_buy_signal(
+        &self,
+        run_id: &str,
+        trade_date: NaiveDate,
+        security_code: &str,
+    ) -> RearviewResult<Option<BuySignalRecord>> {
+        let row = sqlx::query(
+            r#"
+            select run_id, trade_date, security_code, rank, score::float8 as score,
+                   score_breakdown, selected_metrics
+            from buy_signal
+            where run_id = $1
+              and trade_date = $2
+              and security_code = $3
+            "#,
+        )
+        .bind(run_id)
+        .bind(trade_date)
+        .bind(security_code)
+        .fetch_optional(&self.pool)
+        .await?;
+
+        Ok(row.map(buy_signal_from_row))
     }
 }
 

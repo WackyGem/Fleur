@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react"
+import { Link } from "react-router-dom"
 import {
   ArrowLeft01Icon,
   ArrowRight01Icon,
@@ -11,13 +12,12 @@ import {
 } from "@/api/hooks"
 import { MissingBackendState, TableSkeleton } from "@/components/racingline/data-state"
 import { RacinglineIcon } from "@/components/racingline/icon"
-import { SignalDetailSheet } from "@/features/runs/components/signal-detail-sheet"
+import { buildSecurityAnalysisPath } from "@/features/analysis/security-analysis"
 import {
   displayJsonValue,
   formatScore,
   metricColumns,
 } from "@/lib/format"
-import { useWorkbenchStore } from "@/store/workbench"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import {
@@ -42,13 +42,6 @@ const EMPTY_POOL: never[] = []
 export function SignalsTab({ runId, tradeDate }: ResultTabProps) {
   const [offset, setOffset] = useState(0)
   const [securityCode, setSecurityCode] = useState("")
-  const [selectedSignal, setSelectedSignal] = useState<BuySignalRecord | null>(
-    null,
-  )
-  const signalDetailOpen = useWorkbenchStore((state) => state.signalDetailOpen)
-  const setSignalDetailOpen = useWorkbenchStore(
-    (state) => state.setSignalDetailOpen,
-  )
 
   const query = useBuySignalsQuery(runId, {
     limit: PAGE_SIZE,
@@ -116,10 +109,17 @@ export function SignalsTab({ runId, tradeDate }: ResultTabProps) {
                 <TableCell>
                   <div className="flex justify-end">
                     <Button
-                      onClick={() => {
-                        setSelectedSignal(row)
-                        setSignalDetailOpen(true)
-                      }}
+                      nativeButton={false}
+                      render={
+                        <Link
+                          to={securityAnalysisPath({
+                            runId,
+                            securityCode: row.security_code,
+                            source: "signals",
+                            tradeDate,
+                          })}
+                        />
+                      }
                       size="sm"
                       variant="outline"
                     >
@@ -133,11 +133,6 @@ export function SignalsTab({ runId, tradeDate }: ResultTabProps) {
           </TableBody>
         </Table>
       ) : null}
-      <SignalDetailSheet
-        onOpenChange={setSignalDetailOpen}
-        open={signalDetailOpen}
-        signal={selectedSignal}
-      />
     </div>
   )
 }
@@ -192,6 +187,7 @@ export function PoolTab({ runId, tradeDate }: ResultTabProps) {
               {columns.map((column) => (
                 <TableHead key={column}>{column}</TableHead>
               ))}
+              <TableHead className="text-right">detail</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -207,6 +203,28 @@ export function PoolTab({ runId, tradeDate }: ResultTabProps) {
                     {displayJsonValue(row.selected_metrics[column])}
                   </TableCell>
                 ))}
+                <TableCell>
+                  <div className="flex justify-end">
+                    <Button
+                      nativeButton={false}
+                      render={
+                        <Link
+                          to={securityAnalysisPath({
+                            runId,
+                            securityCode: row.security_code,
+                            source: "pool",
+                            tradeDate,
+                          })}
+                        />
+                      }
+                      size="sm"
+                      variant="outline"
+                    >
+                      <RacinglineIcon icon={EyeIcon} inline="start" />
+                      Open
+                    </Button>
+                  </div>
+                </TableCell>
               </TableRow>
             ))}
           </TableBody>
@@ -214,6 +232,25 @@ export function PoolTab({ runId, tradeDate }: ResultTabProps) {
       ) : null}
     </div>
   )
+}
+
+function securityAnalysisPath({
+  runId,
+  securityCode,
+  source,
+  tradeDate,
+}: {
+  runId: string
+  securityCode: string
+  source: "signals" | "pool"
+  tradeDate: string
+}) {
+  return buildSecurityAnalysisPath({
+    runId,
+    securityCode,
+    source,
+    tradeDate,
+  })
 }
 
 function ResultToolbar({

@@ -12,6 +12,7 @@ import {
   explainRule,
   getHealth,
   getRun,
+  getSecurityAnalysis,
   listBuySignals,
   listMetrics,
   listPoolMembers,
@@ -32,6 +33,7 @@ import type {
   RuleVersionSpec,
   RuleVersionsQuery,
   RunsQuery,
+  SecurityAnalysisQuery,
 } from "@/types/rearview"
 
 export function useHealthQuery() {
@@ -144,6 +146,28 @@ export function useBuySignalsQuery(
       : queryKeys.signals(runId ?? "", { trade_date: "" }),
     queryFn: () => listBuySignals(runId ?? "", query ?? { trade_date: "" }),
     enabled: Boolean(runId && query?.trade_date),
+    retry: 1,
+  })
+}
+
+export function useSecurityAnalysisQuery(
+  runId: string | undefined,
+  securityCode: string | undefined,
+  query: SecurityAnalysisQuery | undefined,
+) {
+  return useQuery({
+    queryKey: query
+      ? queryKeys.securityAnalysis(runId ?? "", securityCode ?? "", query)
+      : queryKeys.securityAnalysis(runId ?? "", securityCode ?? "", {
+          trade_date: "",
+          source: "signals",
+        }),
+    queryFn: () =>
+      getSecurityAnalysis(runId ?? "", securityCode ?? "", query ?? {
+        trade_date: "",
+        source: "signals",
+      }),
+    enabled: Boolean(runId && securityCode && query?.trade_date && query.source),
     retry: 1,
   })
 }

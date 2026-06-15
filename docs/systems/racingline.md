@@ -1,6 +1,6 @@
 # System: Racingline
 
-状态：第一版已验收（2026-06-13）
+状态：个股分析页已验收（2026-06-15）
 
 ## 代码根
 
@@ -13,6 +13,7 @@
 3. 展示 run、chunk 和 day 粒度进度。
 4. 按交易日展示股票池、TopN 买入信号、score breakdown 和 selected metrics。
 5. 用 UI 明确区分运行时结果快照和当前 mart 查询值。
+6. 从 run result 的 `Open` 进入 `/runs/:runId/securities/:securityCode` 个股分析页，提供结果列表、日 K 线、MA5/MA10/MA30、KDJ/RSI/MACD/BOLL 和右侧 mart 指标面板。
 
 ## 非职责
 
@@ -57,7 +58,7 @@ make racingline-dev-stop
 
 | 系统 | 依赖 |
 |---|---|
-| [Rearview](rearview.md) | 规则集、规则版本、运行、股票池、买入信号和 explain API |
+| [Rearview](rearview.md) | 规则集、规则版本、运行、股票池、买入信号、explain API 和个股 analysis API |
 | Furnace/dbt marts | 通过 Rearview 间接消费 mart 指标，不由前端直接访问 |
 
 ## 浏览器调试
@@ -103,12 +104,14 @@ cargo test --workspace
 | 文档 | 用途 |
 |---|---|
 | [../RFC/0019-racingline-rearview-frontend-workbench.md](../RFC/0019-racingline-rearview-frontend-workbench.md) | Racingline 前端 RFC |
-| [../RFC/0020-racingline-run-result-security-analysis-page.md](../RFC/0020-racingline-run-result-security-analysis-page.md) | Run result 个股分析页 Proposed RFC |
+| [../RFC/0020-racingline-run-result-security-analysis-page.md](../RFC/0020-racingline-run-result-security-analysis-page.md) | Run result 个股分析页已实现 RFC |
 | [../ADR/0011-racingline-frontend-technology-stack.md](../ADR/0011-racingline-frontend-technology-stack.md) | Racingline 前端技术栈和工程边界 |
 | [../plans/archive/0037-racingline-frontend-implementation-plan.md](../plans/archive/0037-racingline-frontend-implementation-plan.md) | Racingline 前端第一版实施计划归档 |
+| [../plans/archive/0039-racingline-run-result-security-analysis-page-implementation-plan.md](../plans/archive/0039-racingline-run-result-security-analysis-page-implementation-plan.md) | Run result 个股分析页实施计划归档 |
 | [../jobs/reports/2026-06-13-racingline-frontend-skeleton.md](../jobs/reports/2026-06-13-racingline-frontend-skeleton.md) | 前端骨架和工程门禁报告 |
 | [../jobs/reports/2026-06-13-racingline-rearview-api-integration.md](../jobs/reports/2026-06-13-racingline-rearview-api-integration.md) | Rearview API 联调报告 |
 | [../jobs/reports/2026-06-13-racingline-playwright-cdp-acceptance.md](../jobs/reports/2026-06-13-racingline-playwright-cdp-acceptance.md) | Playwright CDP 验收报告 |
+| [../jobs/reports/2026-06-15-racingline-security-analysis-page.md](../jobs/reports/2026-06-15-racingline-security-analysis-page.md) | 个股分析页 API、桌面/移动和交互验收报告 |
 | [../RFC/0018-rust-stock-screening-service.md](../RFC/0018-rust-stock-screening-service.md) | Rearview 后端服务 RFC |
 | [rearview.md](rearview.md) | Rearview 当前系统地图 |
 

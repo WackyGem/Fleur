@@ -161,6 +161,7 @@ fn combined_hash(parts: &[String]) -> String {
 
 fn failed_status(error: &RearviewError) -> &'static str {
     match error {
+        RearviewError::NotFound(_) => "failed_validation",
         RearviewError::Validation(_) => "failed_validation",
         RearviewError::Planner(_) => "failed_compile",
         RearviewError::ClickHouse(_) | RearviewError::Http(_) => "failed_clickhouse",

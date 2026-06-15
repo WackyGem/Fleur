@@ -1,6 +1,6 @@
 # System: Rearview
 
-状态：当前事实入口（2026-06-13）
+状态：当前事实入口（2026-06-15）
 
 ## 代码根
 
@@ -16,6 +16,7 @@
 2. 校验规则 AST 和 metric catalog，编译受控 ClickHouse 查询。
 3. 消费 ClickHouse `fleur_marts` 指标 mart，并把运行状态、股票池和买入信号写入 PostgreSQL `rearview` database。
 4. 保存 rule hash、compiled SQL hash、ClickHouse query id、chunk 状态和结果解释快照。
+5. 提供 `GET /rearview/runs/{run_id}/securities/{security_code}/analysis`，在校验 run result membership 后组合 PostgreSQL result snapshot 与 ClickHouse mart 当前查询值。
 
 ## 非职责
 
@@ -23,6 +24,7 @@
 2. 不绕过 mart 层读取 raw、staging、intermediate 或 calculation 表。
 3. 不提供前端交互；Racingline 承担 UI 工作台。
 4. 不自动执行 PostgreSQL DDL migration；迁移由 `pipeline/migrate` 管理。
+5. 不把当前 mart 查询值写回 PostgreSQL run snapshot。
 
 ## 主要依赖
 
@@ -87,12 +89,14 @@ uv run alembic upgrade head
 | [../../engines/README.md](../../engines/README.md) | Rust engines 工作区地图和 Rearview HTTP API 入口 |
 | [../RFC/0018-rust-stock-screening-service.md](../RFC/0018-rust-stock-screening-service.md) | Rearview 后端服务设计 |
 | [../RFC/0019-racingline-rearview-frontend-workbench.md](../RFC/0019-racingline-rearview-frontend-workbench.md) | Racingline 前端工作台设计 |
-| [../RFC/0020-racingline-run-result-security-analysis-page.md](../RFC/0020-racingline-run-result-security-analysis-page.md) | Run result 个股分析页 Proposed RFC |
+| [../RFC/0020-racingline-run-result-security-analysis-page.md](../RFC/0020-racingline-run-result-security-analysis-page.md) | Run result 个股分析页已实现 RFC |
 | [../plans/archive/0036-rust-rearview-stock-screening-service-implementation-plan.md](../plans/archive/0036-rust-rearview-stock-screening-service-implementation-plan.md) | Rearview 后端历史实施计划 |
+| [../plans/archive/0039-racingline-run-result-security-analysis-page-implementation-plan.md](../plans/archive/0039-racingline-run-result-security-analysis-page-implementation-plan.md) | Rearview analysis API 和 Racingline 个股分析页实施计划 |
 | [../jobs/reports/2026-06-12-rearview-n-structure-low-reversal-smoke-run.md](../jobs/reports/2026-06-12-rearview-n-structure-low-reversal-smoke-run.md) | 代表性规则 smoke run 记录 |
+| [../jobs/reports/2026-06-15-racingline-security-analysis-page.md](../jobs/reports/2026-06-15-racingline-security-analysis-page.md) | 个股 analysis API、图表和 UI 验收报告 |
 
 ## 待决问题
 
-1. UI 友好接口何时进入后端实施：`GET /rearview/runs`、`GET /rearview/rule-sets`、`GET /rearview/metrics` 等。
-2. Rearview 鉴权、用户隔离和 API 错误响应结构是否应上升为 ADR。
-3. 是否新增 `mart_stock_rearview_metric_daily` 作为选股专用宽表。
+1. Rearview 鉴权、用户隔离和 API 错误响应结构是否应上升为 ADR。
+2. 是否新增 `mart_stock_rearview_metric_daily` 作为选股专用宽表。
+3. `mart_stock_trend_indicator` 和 `mart_stock_momentum_indicator` 当前排序键以 `trade_date` 优先；个股 analysis API 第一版用日期窗口约束查询，后续如响应变慢再评估专用 chart mart。

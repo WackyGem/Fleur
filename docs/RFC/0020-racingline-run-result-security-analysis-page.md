@@ -1,6 +1,6 @@
 # RFC 0020: Racingline Run Result 个股分析页
 
-状态：Proposed（2026-06-14）
+状态：Completed（2026-06-15）
 
 ## 摘要
 
@@ -154,7 +154,22 @@
 - `Chart`
 - `Indicators`
 
-页面仍保留同一路由。切换证券或图表日期时，三个视图共享同一个 selected security 和 selected quote date。
+页面仍保留同一路由。三个视图共享当前 selected security 和 selected quote date；图表日期选择会同步到三个视图，证券切换时 selected quote date 按 UX 交互原则重置为 signal day。
+
+## UX 交互原则
+
+本页面是 run result 的分析延伸，不是通用行情终端。交互优先级必须符合用户从“结果列表发现信号”到“检查个股结构和信号日指标”的自然顺序：
+
+1. 用户的主线任务是：确认当前 run 和交易日、在结果列表中选择证券、查看信号日前的 K 线结构、检查信号日 quote/mart 指标、再切换相邻证券比较。
+2. URL `trade_date` 是 run result 的信号日锚点，不等同于图表 crosshair 的临时选中日期。UI 文案和标签必须区分 `Signal day` / `Selected day`，避免用户误以为右侧指标永远是信号日。
+3. 切换证券时，默认把图表选中日期重置为 URL `trade_date`，便于比较不同证券在同一信号日的指标；第一版不提供“锁定选中日期跨证券比较”能力。
+4. 图表上选择其他日期只改变本地 selected quote date 和右侧指标，不改变 URL，不改变 run result 归属，也不改变左侧列表。
+5. 切换 `adjustment` 是价格口径切换，必须更新 URL 并重新请求 analysis payload；切换后仍保留同一证券、同一信号日和同一图表窗口。
+6. 左侧列表是比较和导航工具，不是完整数据表。默认展示字段应少而稳定，优先展示 rank/signal_rank、security_code、score 和 1 到 3 个 selected metric 摘要。
+7. 中间图表是页面主工作区，应占据最大视觉权重；右侧指标是当前选中日期的详情补充，不应压缩主 K 线可读性。
+8. 操作控件应贴近被控制对象：价格口径、MA 开关和回到信号日操作放在图表工具栏；列表分页和搜索放在左栏；字段折叠和复制放在右栏。
+9. 加载和错误反馈不能打断用户上下文：切换证券或口径时保留页面框架和当前列表，高亮目标证券，在图表区域显示局部 loading/error。
+10. 页面不使用营销式 hero、大面积装饰背景、漂浮 section card 或嵌套卡片；视觉风格应是密集、克制、可扫描的分析工作台。
 
 ## 左侧结果列表
 
@@ -186,8 +201,12 @@
 
 1. 当前证券高亮。
 2. 点击其他证券时，仅替换 `:securityCode` 并保留 `runId`、`trade_date` 和 `source`。
-3. 列表支持分页或无限滚动；第一版可沿用现有 `limit` / `offset`。
-4. 列表为空时，页面保留图表和指标区域的空状态，不自动切换来源。
+3. 切换证券后，图表选中日期重置为信号日 `trade_date`，MA 开关保留用户当前选择。
+4. 列表支持分页或无限滚动；第一版可沿用现有 `limit` / `offset`。
+5. 当前证券不在当前分页时，左栏应提供明确的当前证券摘要或自动请求包含该证券的页，避免用户看到图表但列表没有高亮上下文。
+6. 搜索、分页和当前来源标签应保持在左栏顶部，不随结果滚动消失。
+7. 列表为空时，页面保留图表和指标区域的空状态，不自动切换来源。
+8. 列表行应支持键盘 focus 和 Enter 打开/切换；表格行、`Open` 按钮和高亮状态不能产生互相矛盾的选中反馈。
 
 ## 中间图表区
 
@@ -218,6 +237,10 @@
 4. 用户切换 `adjustment` 时，主 K 线 OHLC 必须切换到对应价格口径，并保持同一证券、同一日期窗口和同一选中日期。
 5. 用户在图表上选择其他日期时，右侧指标面板切换到该日期的 `mart_stock_quotes_daily` 行，图表下方指标面板也同步 crosshair。
 6. 如果用户主动扩展到信号日之后的日期，UI 必须标记这些值是“当前 mart 查询值”，不是 run 发起时已知信息。
+7. 图表工具栏至少包含价格口径切换、MA5/MA10/MA30 开关、回到信号日按钮和数据口径标签；控件顺序应从左到右对应“价格口径 -> 叠加层 -> 当前日期动作 -> 数据来源”。
+8. `Signal day` 标记应稳定可见，和 hover/crosshair 的 `Selected day` 标记使用不同视觉样式。
+9. 当 crosshair 移出图表时，右侧指标保持最近一次点击或默认信号日，不因为 hover 结束而清空。
+10. 主图和指标面板的 y 轴、legend 和 tooltip 不应遮挡 K 线实体、MA 线或指标柱。
 
 ### MA 叠加
 
@@ -232,7 +255,7 @@
 约束：
 
 1. MA 线应与当前 K 线的价格口径一致；不得在未标记的情况下把前复权 MA 叠加到不复权或后复权 K 线上。
-2. 当前 `mart_stock_trend_indicator` 已有 `price_ma_5` 和 `price_ma_10`，但没有 `price_ma_30`；实现前必须补齐 MA30。
+2. 当前 `mart_stock_trend_indicator` 已有 `price_ma_5`、`price_ma_10` 和 `price_ma_30`；这些 MA 不是 `price_ma_28` 或其他窗口的别名。
 3. 如果第一阶段只具备前复权 MA，则 MA 开关仅在 `adjustment=forward_adjusted` 时可用；切换到其他价格口径时应禁用或隐藏 MA 叠加，并说明该口径暂无同口径 MA 数据。
 4. 不允许用 `price_ma_28` 或其他近似窗口替代 MA30。
 
@@ -281,6 +304,14 @@ K 线下方按共享时间轴展示四个指标面板。第一版不在前端重
 
 右侧面板不替代下方技术指标面板。右侧只展示当前选中日期的一行 quote mart 字段；KDJ、RSI、MACD 和 BOLL 的历史序列仍在中间图表区渲染。
 
+右侧交互约束：
+
+1. 右侧顶部应固定显示当前 `security_code`、`Signal day`、`Selected day` 和数据语义标签。
+2. `score_breakdown` 和 `selected_metrics` 允许折叠展开，默认不展开长 JSON，避免挤压 quote 指标。
+3. quote 字段按分组展示，组内字段使用稳定顺序；空值显示为空状态或短横线，不显示 `null` 字符串。
+4. 关键数值应右对齐或使用一致的数字排版，便于比较；布尔状态如 `is_st`、`is_suspend` 应使用状态标签。
+5. 如果 selected date 不等于 signal day，右侧必须同时显示信号日锚点，避免用户误把 selected day 当作 run result 日期。
+
 ## 数据边界
 
 本页面有两类事实源：run snapshot 和当前 mart 查询值。当前 mart 查询值又分为行情、复权价格和技术指标序列。
@@ -289,7 +320,7 @@ K 线下方按共享时间轴展示四个指标面板。第一版不在前端重
 |---|---|---|
 | `buy_signal`、`pool_member`、`score_breakdown`、`selected_metrics` | PostgreSQL `rearview` database | run 执行时保存的结果快照 |
 | 不复权 K 线、成交量和右侧 quote 字段 | ClickHouse `fleur_marts.mart_stock_quotes_daily`，经 Rearview API 查询 | 当前 mart 查询值 |
-| 前复权和后复权 K 线 | ClickHouse mart 层复权行情消费接口，具体表待数据平台补齐 | 当前 mart 查询值 |
+| 前复权和后复权 K 线 | ClickHouse `fleur_marts.mart_stock_quotes_daily` 中的 `*_forward_adj` 和 `*_backward_adj` 字段，经 Rearview API 查询 | 当前 mart 查询值 |
 | MA、BOLL、MACD | ClickHouse `fleur_marts.mart_stock_trend_indicator`，经 Rearview API 查询 | 当前 mart 查询值，当前主要为前复权指标口径 |
 | RSI、KDJ | ClickHouse `fleur_marts.mart_stock_momentum_indicator`，经 Rearview API 查询 | 当前 mart 查询值，当前主要为复权指标口径 |
 
@@ -299,7 +330,7 @@ K 线下方按共享时间轴展示四个指标面板。第一版不在前端重
 2. 当前 mart 值只用于行情上下文和补充分析，不能覆盖 `selected_metrics`。
 3. 页面上必须明确标记当前 mart 值，避免用户误认为这些字段是 run 当时写入的快照。
 4. 后端 API 响应应包含 `source_database`、`source_table`、`adjustment` 和 `value_semantics` 或等价 metadata，便于前端展示来源和价格口径。
-5. Rearview 不应为了本页面绕过 mart 层直接读取 raw、staging、intermediate 或 calculation 表；复权 OHLC 和缺失 MA30 需要先在数据平台补齐 mart 消费边界。
+5. Rearview 不应为了本页面绕过 mart 层直接读取 raw、staging、intermediate 或 calculation 表；未来如出现缺失字段，应先补齐 mart 消费边界，再进入本页面实现。
 
 ## 后端 API 草案
 
@@ -345,9 +376,9 @@ Query：
     },
     "adjusted_quote": {
       "database": "fleur_marts",
-      "table": "mart_stock_quotes_adjusted_daily",
+      "table": "mart_stock_quotes_daily",
       "value_semantics": "current_mart_query",
-      "status": "required_before_implementation"
+      "adjustment_fields": ["forward_adjusted", "backward_adjusted"]
     },
     "trend": {
       "database": "fleur_marts",
@@ -488,6 +519,9 @@ GET /rearview/runs/{run_id}/result-securities?trade_date=YYYY-MM-DD&source=signa
 5. `source` 不应在页面内自动从 `signals` 切到 `pool`；用户从哪个结果 tab 进入，就保留哪个结果来源。
 6. 如果 `source=signals` 但该证券不是买入信号，应显示明确错误，不自动回退到 pool。
 7. 页面刷新时必须能重新加载主数据，不依赖从上一页传入的 React state。
+8. 证券切换后本地 selected quote date 重置为 URL `trade_date`；调整价格口径不重置 selected quote date。
+9. 左侧分页、筛选和 MA 开关属于本地 UI 状态；它们不得改变 run result 语义，也不得写回 URL。
+10. 页面内返回动作应回到 `/runs/:runId` 并保留或恢复用户进入时的 `trade_date` 和 `source` 语境。
 
 ## 空状态与错误状态
 
@@ -510,6 +544,11 @@ GET /rearview/runs/{run_id}/result-securities?trade_date=YYYY-MM-DD&source=signa
 3. 主 K 线、成交量和四个下方指标面板必须有稳定尺寸，加载、空状态、hover、MA 开关和 resize 不应造成布局跳动。
 4. 移动端使用 tabs 或分段控件，不强行三栏展示。
 5. `Open` 行为应使用导航，不再打开抽屉；如果保留详情抽屉，应作为页面内的辅助入口，而不是 `Open` 的主行为。
+6. 移动端从 `Open` 进入时默认展示 `Chart` 视图，因为用户已经在上一页完成列表选择；`Results` 和 `Indicators` 仍可一键切换。
+7. 移动端顶部应保留紧凑的证券、信号日和价格口径上下文，tab 切换后不丢失。
+8. 所有按钮、分段控件、图例、tooltip 和表格单元格不得发生文字溢出或相互遮挡；长字段应截断并提供复制或展开。
+9. 颜色用于表达涨跌、选中和状态时必须有第二通道，例如标签、线型、图例或文本；不要只依赖颜色。
+10. 页面配色应遵循 Racingline 现有工作台风格，避免单一色相大面积铺满、过度渐变、装饰性背景和嵌套卡片。
 
 ## 验收标准
 
@@ -522,7 +561,10 @@ GET /rearview/runs/{run_id}/result-securities?trade_date=YYYY-MM-DD&source=signa
 7. 右侧指标面板展示 `mart_stock_quotes_daily` 的分组字段，并标记为当前 mart 查询值。
 8. 页面同时展示当前证券的 run snapshot，并与当前 mart 查询值区分。
 9. 前端不直接访问 ClickHouse 或 PostgreSQL，不在浏览器内重算 MA、KDJ、RSI、MACD 或 BOLL。
-10. 桌面和移动端 Playwright CDP 截图确认图表非空、三栏或 tabs 布局无重叠。
+10. 证券切换后 selected quote date 回到信号日，价格口径切换后 selected quote date 保持不变。
+11. 用户点击图表其他日期后，右侧指标切换到 selected day，页面仍清楚显示 signal day。
+12. 移动端从 `Open` 进入默认展示 Chart tab，并能切换到 Results 和 Indicators。
+13. 桌面和移动端 Playwright CDP 截图确认图表非空、三栏或 tabs 布局无重叠、控件不溢出、页面视觉上是可扫描的分析工作台。
 
 ## 最小验证
 
@@ -557,6 +599,8 @@ node scripts/check_playwright_cdp.mjs
 - `/runs/:runId/securities/:securityCode?...` 桌面截图
 - 同一路由移动端截图
 - 图表 canvas 或 SVG 内容非空
+- 证券切换、价格口径切换、MA 开关和图表日期选择的交互录屏或步骤记录
+- selected day 与 signal day 同时可识别
 - console 无前端错误
 - network 中 Rearview analysis API 返回 200
 

@@ -25,6 +25,8 @@ import type {
   RunDayRecord,
   RunRecord,
   RunsQuery,
+  SecurityAnalysisQuery,
+  SecurityAnalysisResponse,
 } from "@/types/rearview"
 
 export function getHealth() {
@@ -133,4 +135,17 @@ export async function listBuySignals(
     BuySignalRecord[] | Partial<ListResult<BuySignalRecord>>
   >(buildPath(`/rearview/runs/${runId}/signals`, query))
   return normalizeList(value, query.limit)
+}
+
+export function getSecurityAnalysis(
+  runId: string,
+  securityCode: string,
+  query: SecurityAnalysisQuery,
+) {
+  return requestJson<SecurityAnalysisResponse>(
+    buildPath(
+      `/rearview/runs/${runId}/securities/${securityCode}/analysis`,
+      query,
+    ),
+  )
 }
