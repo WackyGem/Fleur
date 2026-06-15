@@ -166,6 +166,7 @@ pub(super) fn calculate_ma_security_outputs(
                 price_ma_20: output.price_ma(20),
                 price_ma_24: output.price_ma(24),
                 price_ma_28: output.price_ma(28),
+                price_ma_30: output.price_ma(30),
                 price_ma_57: output.price_ma(57),
                 price_ma_60: output.price_ma(60),
                 price_ma_114: output.price_ma(114),

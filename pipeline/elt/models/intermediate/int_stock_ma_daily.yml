@@ -68,6 +68,10 @@ models:
         description: 28-valid-close simple moving average based on close_price_forward_adj.
         data_type: Nullable(Float64)
 
+      - name: price_ma_30
+        description: 30-valid-close simple moving average based on close_price_forward_adj.
+        data_type: Nullable(Float64)
+
       - name: price_ma_57
         description: 57-valid-close simple moving average based on close_price_forward_adj.
         data_type: Nullable(Float64)

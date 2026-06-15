@@ -12,6 +12,7 @@ select
     price_ma_20,
     price_ma_24,
     price_ma_28,
+    price_ma_30,
     price_ma_57,
     price_ma_60,
     price_ma_114,

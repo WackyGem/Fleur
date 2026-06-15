@@ -37,6 +37,27 @@ with quotes as (
     from {{ ref('int_stock_quotes_daily_unadj') }}
 ),
 
+adjusted_quotes as (
+    select
+        security_code,
+        trade_date,
+        open_price_forward_adj,
+        high_price_forward_adj,
+        low_price_forward_adj,
+        close_price_forward_adj,
+        prev_close_price_forward_adj,
+        open_price_backward_adj,
+        high_price_backward_adj,
+        low_price_backward_adj,
+        close_price_backward_adj,
+        prev_close_price_backward_adj,
+        toNullable(forward_adjustment_factor) as forward_adjustment_factor,
+        toNullable(forward_adjustment_ratio) as forward_adjustment_ratio,
+        toNullable(backward_adjustment_factor) as backward_adjustment_factor,
+        toNullable(backward_adjustment_ratio) as backward_adjustment_ratio
+    from {{ ref('int_stock_quotes_daily_adj') }}
+),
+
 financial_valuation as (
     select
         security_code,
@@ -74,6 +95,20 @@ quotes_with_financial_valuation as (
         quotes.close_price as close_price,
         quotes.prev_close_price as prev_close_price,
         quotes.prev_close_price_unadj as prev_close_price_unadj,
+        adjusted_quotes.open_price_forward_adj as open_price_forward_adj,
+        adjusted_quotes.high_price_forward_adj as high_price_forward_adj,
+        adjusted_quotes.low_price_forward_adj as low_price_forward_adj,
+        adjusted_quotes.close_price_forward_adj as close_price_forward_adj,
+        adjusted_quotes.prev_close_price_forward_adj as prev_close_price_forward_adj,
+        adjusted_quotes.open_price_backward_adj as open_price_backward_adj,
+        adjusted_quotes.high_price_backward_adj as high_price_backward_adj,
+        adjusted_quotes.low_price_backward_adj as low_price_backward_adj,
+        adjusted_quotes.close_price_backward_adj as close_price_backward_adj,
+        adjusted_quotes.prev_close_price_backward_adj as prev_close_price_backward_adj,
+        adjusted_quotes.forward_adjustment_factor as forward_adjustment_factor,
+        adjusted_quotes.forward_adjustment_ratio as forward_adjustment_ratio,
+        adjusted_quotes.backward_adjustment_factor as backward_adjustment_factor,
+        adjusted_quotes.backward_adjustment_ratio as backward_adjustment_ratio,
         quotes.prev_volume as prev_volume,
         quotes.volume as volume,
         quotes.amount as amount,
@@ -110,6 +145,9 @@ quotes_with_financial_valuation as (
     asof left join financial_valuation
         on quotes.security_code = financial_valuation.security_code
         and quotes.trade_date >= financial_valuation.report_date
+    left any join adjusted_quotes
+        on quotes.security_code = adjusted_quotes.security_code
+        and quotes.trade_date = adjusted_quotes.trade_date
     left join kdj
         on quotes.security_code = kdj.security_code
         and quotes.trade_date = kdj.trade_date
@@ -124,6 +162,20 @@ select
     close_price,
     prev_close_price,
     prev_close_price_unadj,
+    open_price_forward_adj,
+    high_price_forward_adj,
+    low_price_forward_adj,
+    close_price_forward_adj,
+    prev_close_price_forward_adj,
+    open_price_backward_adj,
+    high_price_backward_adj,
+    low_price_backward_adj,
+    close_price_backward_adj,
+    prev_close_price_backward_adj,
+    forward_adjustment_factor,
+    forward_adjustment_ratio,
+    backward_adjustment_factor,
+    backward_adjustment_ratio,
     prev_volume,
     volume,
     amount,

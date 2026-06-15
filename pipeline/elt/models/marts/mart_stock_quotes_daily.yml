@@ -2,13 +2,14 @@ version: 2
 
 models:
   - name: mart_stock_quotes_daily
-    description: A 股股票日频行情 mart 宽表；以未复权日行情为主事实表，透传交易、市值、股本和股息率字段，并按交易日 as-of 补充最近财报期估值指标。
+    description: A 股股票日频行情 mart 宽表；以未复权日行情为主事实表，同时透传前复权和后复权 OHLC、复权前收、交易、市值、股本和股息率字段，并按交易日 as-of 补充最近财报期估值指标。
     config:
       meta:
         grain_zh: 每证券、交易日一行。
         business_logic_zh:
           - 以 int_stock_quotes_daily_unadj 为左表，保留其完整主键集合和交易日粒度。
           - 交易指标、市值、股本和股息率字段只从 int_stock_quotes_daily_unadj 透传，不在 mart 层重算。
+          - 前复权和后复权价格字段只从 int_stock_quotes_daily_adj 透传，不在 mart 层重算复权因子或复权价格。
           - 财报期估值字段按 security_code 和最近 report_date <= trade_date 从 int_stock_financial_valuation as-of 取值。
           - RSV/KDJ 指标通过 int_stock_kdj_daily wrapper 左连接，不直接读取 fleur_calculation 物理表。
     data_tests:
@@ -53,6 +54,62 @@ models:
 
       - name: prev_close_price_unadj
         description: 当前证券在前一 A 股交易日的未复权收盘价；首个交易日、前一交易日无行情或 source 缺口时为 NULL。
+        data_type: Nullable(Float64)
+
+      - name: open_price_forward_adj
+        description: 交易日前复权开盘价，来自 int_stock_quotes_daily_adj。
+        data_type: Nullable(Float64)
+
+      - name: high_price_forward_adj
+        description: 交易日前复权最高价，来自 int_stock_quotes_daily_adj。
+        data_type: Nullable(Float64)
+
+      - name: low_price_forward_adj
+        description: 交易日前复权最低价，来自 int_stock_quotes_daily_adj。
+        data_type: Nullable(Float64)
+
+      - name: close_price_forward_adj
+        description: 交易日前复权收盘价，来自 int_stock_quotes_daily_adj。
+        data_type: Nullable(Float64)
+
+      - name: prev_close_price_forward_adj
+        description: BaoStock 原始 preclose 口径前收盘价在前复权尺度下的值，来自 int_stock_quotes_daily_adj。
+        data_type: Nullable(Float64)
+
+      - name: open_price_backward_adj
+        description: 交易日后复权开盘价，来自 int_stock_quotes_daily_adj。
+        data_type: Nullable(Float64)
+
+      - name: high_price_backward_adj
+        description: 交易日后复权最高价，来自 int_stock_quotes_daily_adj。
+        data_type: Nullable(Float64)
+
+      - name: low_price_backward_adj
+        description: 交易日后复权最低价，来自 int_stock_quotes_daily_adj。
+        data_type: Nullable(Float64)
+
+      - name: close_price_backward_adj
+        description: 交易日后复权收盘价，来自 int_stock_quotes_daily_adj。
+        data_type: Nullable(Float64)
+
+      - name: prev_close_price_backward_adj
+        description: BaoStock 原始 preclose 口径前收盘价在后复权尺度下的值，来自 int_stock_quotes_daily_adj。
+        data_type: Nullable(Float64)
+
+      - name: forward_adjustment_factor
+        description: 前复权累计因子，来自 int_stock_quotes_daily_adj；用于解释前复权价格口径，不在 mart 层重算。
+        data_type: Nullable(Float64)
+
+      - name: forward_adjustment_ratio
+        description: 前复权单步比例，来自 int_stock_quotes_daily_adj；用于解释当日除权除息影响，不在 mart 层重算。
+        data_type: Nullable(Float64)
+
+      - name: backward_adjustment_factor
+        description: 后复权累计因子，来自 int_stock_quotes_daily_adj；用于解释后复权价格口径，不在 mart 层重算。
+        data_type: Nullable(Float64)
+
+      - name: backward_adjustment_ratio
+        description: 后复权单步比例，来自 int_stock_quotes_daily_adj；用于解释当日除权除息影响，不在 mart 层重算。
         data_type: Nullable(Float64)
 
       - name: prev_volume

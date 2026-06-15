@@ -31,6 +31,7 @@ fn replace_kdj_partition_sql_replaces_year_partition_from_staging() {
 fn create_ma_output_table_sql_uses_canonical_fields() {
     let sql = create_ma_output_table_sql(DEFAULT_MA_OUTPUT_TABLE);
 
+    assert!(sql.contains("price_ma_30 Nullable(Float64)"));
     assert!(sql.contains("price_ma_57 Nullable(Float64)"));
     assert!(sql.contains("price_avg_ma_14_28_57_114 Nullable(Float64)"));
     assert!(sql.contains("volume_ma_5 Nullable(Float64)"));

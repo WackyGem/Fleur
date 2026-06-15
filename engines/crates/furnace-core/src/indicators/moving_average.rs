@@ -6,8 +6,8 @@ use std::fmt;
 use crate::operators::{RollingSma, SmaSeededEma};
 
 /// 第一版生产价格 MA 窗口集合。
-pub const DEFAULT_PRICE_MA_WINDOWS: [usize; 13] =
-    [3, 5, 6, 10, 12, 14, 20, 24, 28, 57, 60, 114, 250];
+pub const DEFAULT_PRICE_MA_WINDOWS: [usize; 14] =
+    [3, 5, 6, 10, 12, 14, 20, 24, 28, 30, 57, 60, 114, 250];
 
 /// 第一版生产均量 MA 窗口集合。
 pub const DEFAULT_VOLUME_MA_WINDOWS: [usize; 4] = [5, 10, 20, 60];
@@ -174,6 +174,8 @@ pub struct MaOutput {
     pub price_ma_24: Option<f64>,
     /// 28-valid-close simple moving average.
     pub price_ma_28: Option<f64>,
+    /// 30-valid-close simple moving average.
+    pub price_ma_30: Option<f64>,
     /// 57-valid-close simple moving average.
     pub price_ma_57: Option<f64>,
     /// 60-valid-close simple moving average.
@@ -215,6 +217,7 @@ impl MaOutput {
             price_ma_20: None,
             price_ma_24: None,
             price_ma_28: None,
+            price_ma_30: None,
             price_ma_57: None,
             price_ma_60: None,
             price_ma_114: None,
@@ -243,6 +246,7 @@ impl MaOutput {
             self.price_ma_20,
             self.price_ma_24,
             self.price_ma_28,
+            self.price_ma_30,
             self.price_ma_57,
             self.price_ma_60,
             self.price_ma_114,
@@ -271,6 +275,7 @@ impl MaOutput {
             20 => self.price_ma_20,
             24 => self.price_ma_24,
             28 => self.price_ma_28,
+            30 => self.price_ma_30,
             57 => self.price_ma_57,
             60 => self.price_ma_60,
             114 => self.price_ma_114,
@@ -451,6 +456,7 @@ impl MaOutput {
             20 => self.price_ma_20 = value,
             24 => self.price_ma_24 = value,
             28 => self.price_ma_28 = value,
+            30 => self.price_ma_30 = value,
             57 => self.price_ma_57 = value,
             60 => self.price_ma_60 = value,
             114 => self.price_ma_114 = value,
@@ -540,6 +546,26 @@ mod tests {
             (23.0 + 21.5 + 18.5 + 12.5) / 4.0,
         );
         assert!(day_24.price_avg_ma_14_28_57_114.is_none());
+    }
+
+    #[test]
+    fn ma30_first_non_null_occurs_on_30th_valid_close() {
+        let values = (1..=30).map(|value| Some(value as f64)).collect::<Vec<_>>();
+        let outputs = calculate_ma_series(&inputs(&values), &MaParams::default(), None).unwrap();
+
+        assert!(outputs[28].price_ma(30).is_none());
+        assert_close(outputs[29].price_ma(30).unwrap(), 15.5);
+    }
+
+    #[test]
+    fn ma30_ignores_null_close_when_counting_valid_window() {
+        let mut values = (1..=29).map(|value| Some(value as f64)).collect::<Vec<_>>();
+        values.push(None);
+        values.push(Some(30.0));
+        let outputs = calculate_ma_series(&inputs(&values), &MaParams::default(), None).unwrap();
+
+        assert!(outputs[29].price_ma(30).is_none());
+        assert_close(outputs[30].price_ma(30).unwrap(), 15.5);
     }
 
     #[test]

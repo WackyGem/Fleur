@@ -44,6 +44,11 @@ fn run_ma_dry_run_reads_close_inputs_and_computes_summary() {
             .to_json()
             .contains("\"volume_ma_windows\":[5,10,20,60]")
     );
+    assert!(
+        summary
+            .to_json()
+            .contains("\"price_ma_windows\":[3,5,6,10,12,14,20,24,28,30,57,60,114,250]")
+    );
     assert!(executor.queries.iter().any(|query| {
         query.contains("close_price_forward_adj")
             && query.contains("CAST(unadj.volume, 'Nullable(Float64)')")
@@ -197,8 +202,12 @@ fn run_ma_append_latest_inserts_result_rows() {
     let summary = run_ma(&mut executor, &request).unwrap();
 
     assert!(summary.writes_applied);
+    assert!(executor.queries.iter().any(|query| query.contains(
+        "ALTER TABLE fleur_calculation.calc_stock_ma_daily ADD COLUMN IF NOT EXISTS price_ma_30"
+    )));
     assert_eq!(executor.byte_inserts.len(), 1);
     assert!(executor.byte_inserts[0].0.contains("calc_stock_ma_daily"));
+    assert!(executor.byte_inserts[0].0.contains("price_ma_30"));
     assert!(executor.byte_inserts[0].0.contains("price_ema2_10_state"));
     assert!(executor.byte_inserts[0].0.contains("volume_ma_5"));
     assert!(executor.byte_inserts[0].1.starts_with(b"\tsh.600000"));
@@ -218,6 +227,7 @@ fn ma_result_row_writes_clickhouse_rowbinary_encoding() {
         price_ma_20: None,
         price_ma_24: None,
         price_ma_28: None,
+        price_ma_30: None,
         price_ma_57: Some(57.0),
         price_ma_60: None,
         price_ma_114: None,
@@ -250,7 +260,7 @@ fn ma_result_row_writes_clickhouse_rowbinary_encoding() {
         read_rowbinary_nullable_f64(&bytes, &mut cursor).unwrap(),
         None
     );
-    for _ in 0..7 {
+    for _ in 0..8 {
         assert_eq!(
             read_rowbinary_nullable_f64(&bytes, &mut cursor).unwrap(),
             None

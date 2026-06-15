@@ -93,6 +93,16 @@ metrics:
     allowed_ops: [lt, lte, gt, gte, between, eq, ne, is_null]
     null_policy: no_match
 
+  - logical_metric: price_ma_30
+    source:
+      mart_table: mart_stock_trend_indicator
+      column_name: price_ma_30
+    value_kind: numeric
+    allow_filter: true
+    allow_scoring: true
+    allowed_ops: [lt, lte, gt, gte, between, eq, ne, is_null]
+    null_policy: no_match
+
   - logical_metric: price_ma_60
     source:
       mart_table: mart_stock_trend_indicator

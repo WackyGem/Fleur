@@ -119,6 +119,7 @@ CREATE TABLE IF NOT EXISTS {output_table}
     price_ma_20 Nullable(Float64),
     price_ma_24 Nullable(Float64),
     price_ma_28 Nullable(Float64),
+    price_ma_30 Nullable(Float64),
     price_ma_57 Nullable(Float64),
     price_ma_60 Nullable(Float64),
     price_ma_114 Nullable(Float64),

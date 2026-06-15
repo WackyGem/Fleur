@@ -35,7 +35,7 @@ A 股股票日频趋势指标 mart。模型整合价格 MA、组合 MA、双重 
 | 字段组 | 来源 | 字段 |
 |---|---|---|
 | 主键 | `int_stock_ma_daily` | `security_code`, `trade_date` |
-| 价格 MA | `int_stock_ma_daily` | `price_ma_3`, `price_ma_5`, `price_ma_6`, `price_ma_10`, `price_ma_12`, `price_ma_14`, `price_ma_20`, `price_ma_24`, `price_ma_28`, `price_ma_57`, `price_ma_60`, `price_ma_114`, `price_ma_250` |
+| 价格 MA | `int_stock_ma_daily` | `price_ma_3`, `price_ma_5`, `price_ma_6`, `price_ma_10`, `price_ma_12`, `price_ma_14`, `price_ma_20`, `price_ma_24`, `price_ma_28`, `price_ma_30`, `price_ma_57`, `price_ma_60`, `price_ma_114`, `price_ma_250` |
 | MA 组合和 EMA | `int_stock_ma_daily` | `price_avg_ma_3_6_12_24`, `price_avg_ma_14_28_57_114`, `price_ema2_10` |
 | BOLL | `int_stock_boll_daily` | `boll_mid_10_1p5`, `boll_up_10_1p5`, `boll_dn_10_1p5`, `boll_mid_20_2`, `boll_up_20_2`, `boll_dn_20_2`, `boll_mid_50_2p5`, `boll_up_50_2p5`, `boll_dn_50_2p5` |
 | MACD | `int_stock_macd_daily` | `macd_dif`, `macd_dea`, `macd_histogram` |

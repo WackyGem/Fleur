@@ -18,6 +18,7 @@ pub(crate) struct MaResultRow {
     pub(crate) price_ma_20: Option<f64>,
     pub(crate) price_ma_24: Option<f64>,
     pub(crate) price_ma_28: Option<f64>,
+    pub(crate) price_ma_30: Option<f64>,
     pub(crate) price_ma_57: Option<f64>,
     pub(crate) price_ma_60: Option<f64>,
     pub(crate) price_ma_114: Option<f64>,
@@ -81,6 +82,7 @@ impl MaResultRow {
         push_rowbinary_nullable_f64(bytes, self.price_ma_20);
         push_rowbinary_nullable_f64(bytes, self.price_ma_24);
         push_rowbinary_nullable_f64(bytes, self.price_ma_28);
+        push_rowbinary_nullable_f64(bytes, self.price_ma_30);
         push_rowbinary_nullable_f64(bytes, self.price_ma_57);
         push_rowbinary_nullable_f64(bytes, self.price_ma_60);
         push_rowbinary_nullable_f64(bytes, self.price_ma_114);

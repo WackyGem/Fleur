@@ -43,7 +43,7 @@ pub fn run_ma<E: ClickHouseExecutor>(
     request.validate()?;
 
     if request.mode.writes_applied() {
-        ensure_output_schema(executor, &create_ma_output_table_sql(&request.output_table))?;
+        ensure_ma_output_schema(executor, &request.output_table)?;
     }
 
     let all_symbols_requested = request.symbols.is_empty();
@@ -231,4 +231,14 @@ pub fn run_ma<E: ClickHouseExecutor>(
         writes_applied: request.mode.writes_applied(),
         performance_metrics,
     })
+}
+
+fn ensure_ma_output_schema<E: ClickHouseExecutor>(
+    executor: &mut E,
+    output_table: &str,
+) -> Result<(), FurnaceIoError> {
+    ensure_output_schema(executor, &create_ma_output_table_sql(output_table))?;
+    executor.execute(&format!(
+        "ALTER TABLE {output_table} ADD COLUMN IF NOT EXISTS price_ma_30 Nullable(Float64) AFTER price_ma_28"
+    ))
 }
