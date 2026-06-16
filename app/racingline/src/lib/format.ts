@@ -27,6 +27,28 @@ export function formatScore(value?: number | null) {
   })
 }
 
+export function formatMoney(value?: number | null) {
+  if (value === undefined || value === null || Number.isNaN(value)) {
+    return "-"
+  }
+  return value.toLocaleString(undefined, {
+    maximumFractionDigits: 2,
+    minimumFractionDigits: 2,
+  })
+}
+
+export function formatPct(value?: number | null) {
+  if (value === undefined || value === null || Number.isNaN(value)) {
+    return "-"
+  }
+  return (
+    (value * 100).toLocaleString(undefined, {
+      maximumFractionDigits: 2,
+      minimumFractionDigits: 2,
+    }) + "%"
+  )
+}
+
 export function describeError(error: unknown) {
   if (error instanceof ApiError) {
     return [
@@ -50,13 +72,13 @@ export function jsonPreview(value: JsonValue | Record<string, JsonValue>) {
 
 export function jsonEntries(value?: Record<string, JsonValue> | null) {
   return Object.entries(value ?? {}).sort(([left], [right]) =>
-    left.localeCompare(right),
+    left.localeCompare(right)
   )
 }
 
 export function metricColumns(
   rows: Array<BuySignalRecord | PoolMemberRecord>,
-  preferred: string[] = [],
+  preferred: string[] = []
 ) {
   const seen = new Set<string>()
   const columns: string[] = []

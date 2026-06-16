@@ -1,33 +1,51 @@
-import {
-  useMutation,
-  useQuery,
-  useQueryClient,
-} from "@tanstack/react-query"
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 
 import { queryKeys } from "@/api/queryKeys"
 import {
+  createAccountTemplate,
+  createPortfolioRun,
   createRuleSet,
   createRuleVersion,
   createRun,
   explainRule,
+  getDefaultMarketFeeTemplate,
   getHealth,
+  getPortfolioRun,
   getRun,
   getSecurityAnalysis,
   listBuySignals,
+  listAccountTemplates,
   listMetrics,
   listPoolMembers,
+  listPortfolioEvents,
+  listPortfolioNav,
+  listPortfolioOrders,
+  listPortfolioPositions,
+  listPortfolioRuns,
+  listPortfolioTargets,
+  listPortfolioTrades,
   listRuleSets,
   listRuleVersions,
   listRunChunks,
   listRunDays,
   listRuns,
+  updateAccountTemplate,
 } from "@/api/rearview"
-import { isRunActiveStatus } from "@/lib/status"
+import { isPortfolioActiveStatus, isRunActiveStatus } from "@/lib/status"
 import type {
+  CreateAccountTemplateRequest,
+  CreatePortfolioRunRequest,
   CreateRuleSetRequest,
   CreateRuleVersionRequest,
   CreateRunRequest,
   MetricsQuery,
+  PatchAccountTemplateRequest,
+  PortfolioEventQuery,
+  PortfolioOrderQuery,
+  PortfolioPositionQuery,
+  PortfolioRunsQuery,
+  PortfolioTargetQuery,
+  PortfolioTradeQuery,
   ResultRowsQuery,
   RuleSetsQuery,
   RuleVersionSpec,
@@ -63,7 +81,7 @@ export function useRuleSetsQuery(query: RuleSetsQuery = {}) {
 
 export function useRuleVersionsQuery(
   ruleSetId: string | undefined,
-  query: RuleVersionsQuery = {},
+  query: RuleVersionsQuery = {}
 ) {
   return useQuery({
     queryKey: queryKeys.ruleVersions(ruleSetId ?? "", query),
@@ -85,6 +103,121 @@ export function useRunsQuery(query: RunsQuery = {}) {
   })
 }
 
+export function useDefaultMarketFeeTemplateQuery(market = "CN_A_SHARE") {
+  return useQuery({
+    queryKey: queryKeys.defaultMarketFeeTemplate(market),
+    queryFn: () => getDefaultMarketFeeTemplate(market),
+    retry: 1,
+  })
+}
+
+export function useAccountTemplatesQuery(ruleSetId: string | undefined) {
+  return useQuery({
+    queryKey: queryKeys.accountTemplates(ruleSetId ?? ""),
+    queryFn: () => listAccountTemplates(ruleSetId ?? ""),
+    enabled: Boolean(ruleSetId),
+    retry: 1,
+  })
+}
+
+export function usePortfolioRunsQuery(query: PortfolioRunsQuery = {}) {
+  return useQuery({
+    queryKey: queryKeys.portfolioRuns(query),
+    queryFn: () => listPortfolioRuns(query),
+    retry: 1,
+    refetchInterval: (queryState) => {
+      const runs = queryState.state.data?.items ?? []
+      return runs.some((run) => isPortfolioActiveStatus(run.status))
+        ? 3_000
+        : false
+    },
+  })
+}
+
+export function usePortfolioRunQuery(portfolioRunId: string | undefined) {
+  return useQuery({
+    queryKey: queryKeys.portfolioRun(portfolioRunId ?? ""),
+    queryFn: () => getPortfolioRun(portfolioRunId ?? ""),
+    enabled: Boolean(portfolioRunId),
+    retry: 1,
+    refetchInterval: (queryState) =>
+      isPortfolioActiveStatus(queryState.state.data?.status) ? 3_000 : false,
+  })
+}
+
+export function usePortfolioNavQuery(
+  portfolioRunId: string | undefined,
+  runStatus?: string
+) {
+  return useQuery({
+    queryKey: queryKeys.portfolioNav(portfolioRunId ?? ""),
+    queryFn: () => listPortfolioNav(portfolioRunId ?? ""),
+    enabled: Boolean(portfolioRunId),
+    retry: 1,
+    refetchInterval: () => (isPortfolioActiveStatus(runStatus) ? 3_000 : false),
+  })
+}
+
+export function usePortfolioTargetsQuery(
+  portfolioRunId: string | undefined,
+  query: PortfolioTargetQuery = {}
+) {
+  return useQuery({
+    queryKey: queryKeys.portfolioTargets(portfolioRunId ?? "", query),
+    queryFn: () => listPortfolioTargets(portfolioRunId ?? "", query),
+    enabled: Boolean(portfolioRunId),
+    retry: 1,
+  })
+}
+
+export function usePortfolioOrdersQuery(
+  portfolioRunId: string | undefined,
+  query: PortfolioOrderQuery = {}
+) {
+  return useQuery({
+    queryKey: queryKeys.portfolioOrders(portfolioRunId ?? "", query),
+    queryFn: () => listPortfolioOrders(portfolioRunId ?? "", query),
+    enabled: Boolean(portfolioRunId),
+    retry: 1,
+  })
+}
+
+export function usePortfolioTradesQuery(
+  portfolioRunId: string | undefined,
+  query: PortfolioTradeQuery = {}
+) {
+  return useQuery({
+    queryKey: queryKeys.portfolioTrades(portfolioRunId ?? "", query),
+    queryFn: () => listPortfolioTrades(portfolioRunId ?? "", query),
+    enabled: Boolean(portfolioRunId),
+    retry: 1,
+  })
+}
+
+export function usePortfolioPositionsQuery(
+  portfolioRunId: string | undefined,
+  query: PortfolioPositionQuery = {}
+) {
+  return useQuery({
+    queryKey: queryKeys.portfolioPositions(portfolioRunId ?? "", query),
+    queryFn: () => listPortfolioPositions(portfolioRunId ?? "", query),
+    enabled: Boolean(portfolioRunId),
+    retry: 1,
+  })
+}
+
+export function usePortfolioEventsQuery(
+  portfolioRunId: string | undefined,
+  query: PortfolioEventQuery = {}
+) {
+  return useQuery({
+    queryKey: queryKeys.portfolioEvents(portfolioRunId ?? "", query),
+    queryFn: () => listPortfolioEvents(portfolioRunId ?? "", query),
+    enabled: Boolean(portfolioRunId),
+    retry: 1,
+  })
+}
+
 export function useRunQuery(runId: string | undefined) {
   return useQuery({
     queryKey: queryKeys.run(runId ?? ""),
@@ -98,7 +231,7 @@ export function useRunQuery(runId: string | undefined) {
 
 export function useRunChunksQuery(
   runId: string | undefined,
-  runStatus?: string,
+  runStatus?: string
 ) {
   return useQuery({
     queryKey: queryKeys.runChunks(runId ?? ""),
@@ -109,10 +242,7 @@ export function useRunChunksQuery(
   })
 }
 
-export function useRunDaysQuery(
-  runId: string | undefined,
-  runStatus?: string,
-) {
+export function useRunDaysQuery(runId: string | undefined, runStatus?: string) {
   return useQuery({
     queryKey: queryKeys.runDays(runId ?? ""),
     queryFn: () => listRunDays(runId ?? ""),
@@ -124,7 +254,7 @@ export function useRunDaysQuery(
 
 export function usePoolMembersQuery(
   runId: string | undefined,
-  query: ResultRowsQuery | undefined,
+  query: ResultRowsQuery | undefined
 ) {
   return useQuery({
     queryKey: query
@@ -138,7 +268,7 @@ export function usePoolMembersQuery(
 
 export function useBuySignalsQuery(
   runId: string | undefined,
-  query: ResultRowsQuery | undefined,
+  query: ResultRowsQuery | undefined
 ) {
   return useQuery({
     queryKey: query
@@ -153,7 +283,7 @@ export function useBuySignalsQuery(
 export function useSecurityAnalysisQuery(
   runId: string | undefined,
   securityCode: string | undefined,
-  query: SecurityAnalysisQuery | undefined,
+  query: SecurityAnalysisQuery | undefined
 ) {
   return useQuery({
     queryKey: query
@@ -163,11 +293,17 @@ export function useSecurityAnalysisQuery(
           source: "signals",
         }),
     queryFn: () =>
-      getSecurityAnalysis(runId ?? "", securityCode ?? "", query ?? {
-        trade_date: "",
-        source: "signals",
-      }),
-    enabled: Boolean(runId && securityCode && query?.trade_date && query.source),
+      getSecurityAnalysis(
+        runId ?? "",
+        securityCode ?? "",
+        query ?? {
+          trade_date: "",
+          source: "signals",
+        }
+      ),
+    enabled: Boolean(
+      runId && securityCode && query?.trade_date && query.source
+    ),
     retry: 1,
   })
 }
@@ -226,6 +362,67 @@ export function useCreateRunMutation() {
     mutationFn: (request: CreateRunRequest) => createRun(request),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ["runs"] })
+    },
+  })
+}
+
+export function useCreateAccountTemplateMutation(ruleSetId?: string) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({
+      targetRuleSetId,
+      request,
+    }: {
+      targetRuleSetId: string
+      request: CreateAccountTemplateRequest
+    }) => createAccountTemplate(targetRuleSetId, request),
+    onSuccess: async (_, variables) => {
+      await queryClient.invalidateQueries({
+        queryKey: queryKeys.accountTemplates(variables.targetRuleSetId),
+      })
+      if (ruleSetId && ruleSetId !== variables.targetRuleSetId) {
+        await queryClient.invalidateQueries({
+          queryKey: queryKeys.accountTemplates(ruleSetId),
+        })
+      }
+    },
+  })
+}
+
+export function useUpdateAccountTemplateMutation(ruleSetId?: string) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({
+      accountTemplateId,
+      request,
+    }: {
+      accountTemplateId: string
+      request: PatchAccountTemplateRequest
+    }) => updateAccountTemplate(accountTemplateId, request),
+    onSuccess: async () => {
+      if (ruleSetId) {
+        await queryClient.invalidateQueries({
+          queryKey: queryKeys.accountTemplates(ruleSetId),
+        })
+      } else {
+        await queryClient.invalidateQueries({ queryKey: ["rule-sets"] })
+      }
+    },
+  })
+}
+
+export function useCreatePortfolioRunMutation() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (request: CreatePortfolioRunRequest) =>
+      createPortfolioRun(request),
+    onSuccess: async (portfolioRun) => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["portfolio-runs"] }),
+        queryClient.invalidateQueries({
+          queryKey: ["portfolio-runs", portfolioRun.portfolio_run_id],
+        }),
+      ])
     },
   })
 }

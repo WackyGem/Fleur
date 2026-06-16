@@ -111,7 +111,7 @@ help:
 	@printf '  %-34s %s\n' 'rearview-catalog-sync' 'Sync Rearview metric catalog into PostgreSQL'
 	@printf '  %-34s %s\n' 'rearview-dev' 'Start Docker dev services + Rearview after clearing its port'
 	@printf '  %-34s %s\n' 'racingline-frontend-dev' 'Start Racingline Vite dev server after clearing its port'
-	@printf '  %-34s %s\n' 'racingline-dev' 'Start Docker dev services + Rearview + Racingline after clearing ports'
+	@printf '  %-34s %s\n' 'racingline-dev' 'Start Docker dev services + Rearview server/worker + Racingline after clearing ports'
 	@printf '  %-34s %s\n' 'racingline-dev-stop' 'Stop Rearview/Racingline dev servers by listening port'
 
 dev-up:
@@ -193,7 +193,7 @@ rearview-migrate: wait-postgres
 
 rearview-catalog-sync: rearview-migrate
 	$(require-env-file)
-	cd engines && cargo run -p rearview -- catalog sync
+	cd engines && cargo run -p rearview-server -- catalog sync
 
 rearview-prepare:
 	$(require-env-file)
@@ -206,7 +206,7 @@ rearview-dev:
 	$(call stop-listening-port,$(REARVIEW_DEV_PORT),Rearview dev server)
 	$(MAKE) --no-print-directory rearview-prepare
 	@printf 'Starting Rearview dev server at http://%s\n' '$(REARVIEW_HTTP_BIND)'
-	cd engines && cargo run -p rearview -- serve
+	cd engines && cargo run -p rearview-server -- serve
 
 racingline-frontend-dev:
 	$(call stop-listening-port,$(RACINGLINE_DEV_PORT),Racingline frontend dev server)
@@ -223,6 +223,7 @@ racingline-dev:
 	$(MAKE) --no-print-directory rearview-prepare
 	@set -euo pipefail; \
 		backend_pid=''; \
+		worker_pid=''; \
 		frontend_pid=''; \
 		cleanup() { \
 			status=$$?; \
@@ -235,12 +236,16 @@ racingline-dev:
 				printf 'Stopping Rearview dev server (pid %s)\n' "$$backend_pid"; \
 				kill "$$backend_pid" 2>/dev/null || true; \
 			fi; \
-			wait "$${frontend_pid:-}" "$${backend_pid:-}" 2>/dev/null || true; \
+			if [ -n "$${worker_pid:-}" ] && kill -0 "$$worker_pid" 2>/dev/null; then \
+				printf 'Stopping Rearview portfolio worker (pid %s)\n' "$$worker_pid"; \
+				kill "$$worker_pid" 2>/dev/null || true; \
+			fi; \
+			wait "$${frontend_pid:-}" "$${backend_pid:-}" "$${worker_pid:-}" 2>/dev/null || true; \
 			exit "$$status"; \
 		}; \
 		trap cleanup INT TERM EXIT; \
 		printf 'Starting Rearview dev server at http://%s\n' '$(REARVIEW_HTTP_BIND)'; \
-		(cd engines && cargo run -p rearview -- serve) & \
+		(cd engines && cargo run -p rearview-server -- serve) & \
 		backend_pid=$$!; \
 		sleep 2; \
 		if ! kill -0 "$$backend_pid" 2>/dev/null; then \
@@ -248,11 +253,20 @@ racingline-dev:
 			wait "$$backend_pid"; \
 			exit 1; \
 		fi; \
+		printf 'Starting Rearview portfolio worker\n'; \
+		(cd engines && cargo run -p rearview-portfolio-worker -- run) & \
+		worker_pid=$$!; \
+		sleep 2; \
+		if ! kill -0 "$$worker_pid" 2>/dev/null; then \
+			printf 'Rearview portfolio worker failed to start\n' >&2; \
+			wait "$$worker_pid"; \
+			exit 1; \
+		fi; \
 		printf 'Starting Racingline frontend at http://%s:%s\n' '$(RACINGLINE_DEV_HOST)' '$(RACINGLINE_DEV_PORT)'; \
 		(cd app/racingline && npm run dev -- --host $(RACINGLINE_DEV_HOST) --port $(RACINGLINE_DEV_PORT)) & \
 		frontend_pid=$$!; \
 		set +e; \
-		wait -n "$$backend_pid" "$$frontend_pid"; \
+		wait -n "$$backend_pid" "$$worker_pid" "$$frontend_pid"; \
 		status=$$?; \
 		set -e; \
 		exit "$$status"

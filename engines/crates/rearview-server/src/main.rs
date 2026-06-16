@@ -1,14 +1,18 @@
 use std::path::{Path, PathBuf};
 
-use rearview::api;
-use rearview::clickhouse::ClickHouseClient;
-use rearview::config::{AppConfig, load_dotenv_if_present};
-use rearview::postgres::RearviewPg;
-use rearview::service::AppState;
-use rearview::service::catalog::load_catalog_from_policy;
-use rearview::{RearviewError, RearviewResult};
+use rearview_core::api;
+use rearview_core::clickhouse::ClickHouseClient;
+use rearview_core::config::{AppConfig, load_dotenv_if_present};
+use rearview_core::nats::{
+    PortfolioTaskMessage, connect_jetstream, ensure_portfolio_stream, publish_portfolio_task,
+};
+use rearview_core::postgres::RearviewPg;
+use rearview_core::service::AppState;
+use rearview_core::service::catalog::load_catalog_from_policy;
+use rearview_core::{RearviewError, RearviewResult};
 use tokio::net::TcpListener;
-use tracing::info;
+use tokio::time::{Duration, sleep};
+use tracing::{error, info};
 use tracing_subscriber::EnvFilter;
 
 #[tokio::main]
@@ -46,6 +50,11 @@ async fn serve() -> RearviewResult<()> {
     postgres.check_schema_readiness().await?;
     let clickhouse = ClickHouseClient::new(config.clickhouse.clone())?;
     clickhouse.check_readiness().await?;
+    let dispatcher_postgres = postgres.clone();
+    let dispatcher_nats = config.nats.clone();
+    tokio::spawn(async move {
+        run_outbox_dispatcher(dispatcher_postgres, dispatcher_nats).await;
+    });
     let state = AppState::new(config, postgres, catalog, clickhouse);
     let app = api::routes().with_state(state);
     let listener = TcpListener::bind(bind).await?;
@@ -54,10 +63,69 @@ async fn serve() -> RearviewResult<()> {
     Ok(())
 }
 
+async fn run_outbox_dispatcher(
+    postgres: RearviewPg,
+    nats_config: rearview_core::config::NatsConfig,
+) {
+    loop {
+        match dispatch_outbox_once(&postgres, &nats_config).await {
+            Ok(dispatched) => {
+                if dispatched == 0 {
+                    sleep(Duration::from_secs(2)).await;
+                }
+            }
+            Err(error) => {
+                error!(error = %error, "portfolio outbox dispatcher iteration failed");
+                sleep(Duration::from_secs(5)).await;
+            }
+        }
+    }
+}
+
+async fn dispatch_outbox_once(
+    postgres: &RearviewPg,
+    nats_config: &rearview_core::config::NatsConfig,
+) -> RearviewResult<usize> {
+    let jetstream = connect_jetstream(nats_config).await?;
+    ensure_portfolio_stream(&jetstream, nats_config).await?;
+    let records = postgres.list_pending_portfolio_outbox(50).await?;
+    let mut dispatched = 0;
+    for record in records {
+        let message = PortfolioTaskMessage {
+            portfolio_run_id: record.portfolio_run_id.clone(),
+            source_run_id: record.source_run_id.clone(),
+        };
+        match publish_portfolio_task(&jetstream, nats_config, &message).await {
+            Ok(sequence) => {
+                postgres
+                    .mark_portfolio_outbox_published(
+                        &record.outbox_id,
+                        &record.portfolio_run_id,
+                        i64::try_from(sequence).map_err(|error| {
+                            RearviewError::Nats(format!("stream sequence out of range: {error}"))
+                        })?,
+                    )
+                    .await?;
+                dispatched += 1;
+            }
+            Err(error) => {
+                postgres
+                    .mark_portfolio_outbox_failed(
+                        &record.outbox_id,
+                        &record.portfolio_run_id,
+                        &error.to_string(),
+                    )
+                    .await?;
+            }
+        }
+    }
+    Ok(dispatched)
+}
+
 fn sample_rule() -> RearviewResult<()> {
     println!(
         "{}",
-        serde_json::to_string_pretty(&rearview::domain::representative_rule())?
+        serde_json::to_string_pretty(&rearview_core::domain::representative_rule())?
     );
     Ok(())
 }
@@ -81,9 +149,9 @@ async fn catalog_sync() -> RearviewResult<()> {
     Ok(())
 }
 
-fn load_default_catalog() -> RearviewResult<(rearview::domain::MetricCatalog, usize)> {
+fn load_default_catalog() -> RearviewResult<(rearview_core::domain::MetricCatalog, usize)> {
     let repo_root = find_repo_root()?;
-    let policy_path = repo_root.join("engines/crates/rearview/config/metric_policy.yml");
+    let policy_path = repo_root.join("engines/crates/rearview-core/config/metric_policy.yml");
     let dbt_marts_dir = repo_root.join("pipeline/elt/models/marts");
     let marts_database = std::env::var("REARVIEW_CLICKHOUSE_MARTS_DATABASE")
         .unwrap_or_else(|_| "fleur_marts".to_string());
@@ -127,6 +195,6 @@ fn is_repo_root(path: &Path) -> bool {
 
 fn print_help() {
     println!(
-        "rearview\n\nUSAGE:\n  rearview serve\n  rearview catalog check\n  rearview catalog sync\n  rearview sample-rule\n\nENV:\n  REARVIEW_DATABASE_URL\n  REARVIEW_HTTP_BIND\n  CLICKHOUSE_HOST / CLICKHOUSE_PORT / CLICKHOUSE_USER / CLICKHOUSE_PASSWORD"
+        "rearview-server\n\nUSAGE:\n  rearview-server serve\n  rearview-server catalog check\n  rearview-server catalog sync\n  rearview-server sample-rule\n\nENV:\n  REARVIEW_DATABASE_URL\n  REARVIEW_HTTP_BIND\n  CLICKHOUSE_HOST / CLICKHOUSE_PORT / CLICKHOUSE_USER / CLICKHOUSE_PASSWORD"
     );
 }

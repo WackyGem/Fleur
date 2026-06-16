@@ -18,6 +18,17 @@ const TERMINAL_RUN_STATUSES = new Set([
 
 const ACTIVE_CHUNK_STATUSES = new Set(["created", "running"])
 
+const ACTIVE_PORTFOLIO_STATUSES = new Set([
+  "created",
+  "dispatching",
+  "queued",
+  "validating",
+  "loading_signals",
+  "building_targets",
+  "calculating_nav",
+  "writing_results",
+])
+
 export function isRunActiveStatus(status?: string | null) {
   return status ? ACTIVE_RUN_STATUSES.has(status) : false
 }
@@ -28,6 +39,10 @@ export function isRunTerminalStatus(status?: string | null) {
 
 export function isChunkActiveStatus(status?: string | null) {
   return status ? ACTIVE_CHUNK_STATUSES.has(status) : false
+}
+
+export function isPortfolioActiveStatus(status?: string | null) {
+  return status ? ACTIVE_PORTFOLIO_STATUSES.has(status) : false
 }
 
 export function isFailureStatus(status?: string | null) {

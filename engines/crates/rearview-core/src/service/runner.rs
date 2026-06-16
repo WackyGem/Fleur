@@ -165,6 +165,7 @@ fn failed_status(error: &RearviewError) -> &'static str {
         RearviewError::Validation(_) => "failed_validation",
         RearviewError::Planner(_) => "failed_compile",
         RearviewError::ClickHouse(_) | RearviewError::Http(_) => "failed_clickhouse",
+        RearviewError::Nats(_) => "failed_write",
         RearviewError::Postgres(_) => "failed_write",
         RearviewError::Config(_)
         | RearviewError::Io(_)

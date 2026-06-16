@@ -1,11 +1,13 @@
 import { useEffect, useMemo, useState } from "react"
-import { Link, useParams, useSearchParams } from "react-router-dom"
+import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom"
 import {
   ArrowLeft01Icon,
   ArrowReloadHorizontalIcon,
+  ChartLineData01Icon,
 } from "@hugeicons/core-free-icons"
 
 import {
+  useCreatePortfolioRunMutation,
   useRunChunksQuery,
   useRunDaysQuery,
   useRunQuery,
@@ -18,6 +20,7 @@ import {
 import { FilterSelect } from "@/components/racingline/filter-select"
 import { RacinglineIcon } from "@/components/racingline/icon"
 import { StatusBadge } from "@/components/racingline/status-badge"
+import { AccountTemplateCard } from "@/features/portfolio/components/account-template-card"
 import { RunProgressChart } from "@/features/runs/components/run-progress-chart"
 import { PoolTab, SignalsTab } from "@/features/runs/components/run-results"
 import {
@@ -48,33 +51,30 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from "@/components/ui/tabs"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import type { RunChunkRecord, RunDayRecord } from "@/types/rearview"
 
 const EMPTY_DAYS: RunDayRecord[] = []
 
 export function RunDetailPage() {
   const { runId } = useParams()
+  const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
   const initialSource = searchParams.get("source")
   const returnTradeDate = searchParams.get("trade_date") ?? ""
   const [tab, setTab] = useState(initialSource === "pool" ? "pool" : "signals")
   const selectedTradeDate = useWorkbenchStore((state) =>
-    runId ? state.selectedTradeDateByRun[runId] : "",
+    runId ? state.selectedTradeDateByRun[runId] : ""
   )
   const setSelectedTradeDate = useWorkbenchStore(
-    (state) => state.setSelectedTradeDate,
+    (state) => state.setSelectedTradeDate
   )
 
   const runQuery = useRunQuery(runId)
   const run = runQuery.data
   const chunksQuery = useRunChunksQuery(runId, run?.status)
   const daysQuery = useRunDaysQuery(runId, run?.status)
+  const createPortfolioRunMutation = useCreatePortfolioRunMutation()
   const days = daysQuery.data ?? EMPTY_DAYS
 
   const defaultTradeDate = useMemo(() => selectDefaultTradeDate(days), [days])
@@ -90,7 +90,7 @@ export function RunDetailPage() {
           value: day.trade_date,
         })),
     ],
-    [days],
+    [days]
   )
 
   useEffect(() => {
@@ -124,7 +124,7 @@ export function RunDetailPage() {
         }
         return next
       },
-      { replace: false },
+      { replace: false }
     )
   }
 
@@ -134,6 +134,16 @@ export function RunDetailPage() {
       chunksQuery.refetch(),
       daysQuery.refetch(),
     ])
+  }
+
+  async function createPortfolioRun() {
+    if (!runId) {
+      return
+    }
+    const portfolioRun = await createPortfolioRunMutation.mutateAsync({
+      source_run_id: runId,
+    })
+    navigate(`/portfolios/${portfolioRun.portfolio_run_id}`)
   }
 
   if (!runId) {
@@ -192,6 +202,25 @@ export function RunDetailPage() {
           <StatusBadge status={run.status} />
           <Button
             disabled={
+              run.status !== "succeeded" || createPortfolioRunMutation.isPending
+            }
+            onClick={() => void createPortfolioRun()}
+            size="sm"
+            variant="outline"
+          >
+            <RacinglineIcon icon={ChartLineData01Icon} inline="start" />
+            Portfolio
+          </Button>
+          <Button
+            nativeButton={false}
+            render={<Link to={`/portfolios?source_run_id=${run.run_id}`} />}
+            size="sm"
+            variant="ghost"
+          >
+            Portfolios
+          </Button>
+          <Button
+            disabled={
               runQuery.isFetching ||
               chunksQuery.isFetching ||
               daysQuery.isFetching
@@ -215,6 +244,17 @@ export function RunDetailPage() {
         </Alert>
       ) : null}
 
+      {createPortfolioRunMutation.isError ? (
+        <ErrorState
+          error={createPortfolioRunMutation.error}
+          title="Portfolio run creation failed"
+        />
+      ) : null}
+
+      {run.rule_set_id ? (
+        <AccountTemplateCard ruleSetId={run.rule_set_id} topN={run.top_n} />
+      ) : null}
+
       <div className="grid gap-3 lg:grid-cols-[1fr_20rem]">
         <Card>
           <CardHeader>
@@ -227,7 +267,10 @@ export function RunDetailPage() {
           </CardHeader>
           <CardContent>
             <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
-              <SummaryItem label="rule_version_id" value={run.rule_version_id} />
+              <SummaryItem
+                label="rule_version_id"
+                value={run.rule_version_id}
+              />
               <SummaryItem label="rule_hash" value={run.rule_hash} />
               <SummaryItem
                 label="compiled_sql_hash"
@@ -253,7 +296,9 @@ export function RunDetailPage() {
         <Card>
           <CardHeader>
             <CardTitle>Signals by day</CardTitle>
-            <CardDescription>Runtime daily signal_count snapshot.</CardDescription>
+            <CardDescription>
+              Runtime daily signal_count snapshot.
+            </CardDescription>
           </CardHeader>
           <CardContent>
             <RunProgressChart days={days} />
@@ -264,7 +309,9 @@ export function RunDetailPage() {
       <Card>
         <CardHeader>
           <CardTitle>Results</CardTitle>
-          <CardDescription>Selected trade date: {tradeDate || "-"}</CardDescription>
+          <CardDescription>
+            Selected trade date: {tradeDate || "-"}
+          </CardDescription>
           <CardAction>
             <FilterSelect
               className="w-56"
@@ -381,7 +428,7 @@ function RunDaysTable({
           <TableRow
             key={day.trade_date}
             className={cn(
-              selectedTradeDate === day.trade_date ? "bg-muted/50" : "",
+              selectedTradeDate === day.trade_date ? "bg-muted/50" : ""
             )}
           >
             <TableCell>

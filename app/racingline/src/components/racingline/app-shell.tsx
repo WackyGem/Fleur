@@ -18,6 +18,7 @@ import { cn } from "@/lib/utils"
 
 const navItems = [
   { to: "/runs", label: "Runs", icon: DashboardSquare03Icon },
+  { to: "/portfolios", label: "Portfolios", icon: ChartLineData01Icon },
   { to: "/rules", label: "Rules", icon: ActivityCircleIcon },
   { to: "/metrics", label: "Metrics", icon: ChartLineData01Icon },
 ]
@@ -51,7 +52,7 @@ export function AppShell() {
                     buttonVariants({
                       size: "sm",
                       variant: isActive ? "default" : "ghost",
-                    }),
+                    })
                   )
                 }
               >

@@ -4,6 +4,7 @@ use serde::{Deserialize, Deserializer, Serialize};
 
 use crate::config::ClickHouseConfig;
 use crate::error::{RearviewError, RearviewResult};
+use crate::portfolio::PriceBar;
 
 #[derive(Debug, Clone, Deserialize)]
 struct TradeDateRow {
@@ -398,6 +399,48 @@ FORMAT JSONEachRow"#
         );
         let body = self.execute_text(&sql, query_id).await?;
         parse_json_each_row::<MomentumIndicatorRow>(&body)
+    }
+
+    pub async fn query_portfolio_price_bars(
+        &self,
+        security_codes: &[String],
+        start_date: NaiveDate,
+        end_date: NaiveDate,
+        query_id: &str,
+    ) -> RearviewResult<Vec<PriceBar>> {
+        validate_identifier(&self.config.marts_database)?;
+        if start_date > end_date {
+            return Err(RearviewError::Validation(
+                "start_date must be <= end_date".to_string(),
+            ));
+        }
+        if security_codes.is_empty() {
+            return Ok(Vec::new());
+        }
+        for security_code in security_codes {
+            validate_security_code(security_code)?;
+        }
+        let database = quote_identifier(&self.config.marts_database);
+        let securities = security_codes
+            .iter()
+            .map(|security_code| quote_string_literal(security_code))
+            .collect::<Vec<_>>()
+            .join(", ");
+        let sql = format!(
+            r#"
+SELECT
+    security_code,
+    trade_date,
+    open_price_backward_adj,
+    close_price_backward_adj
+FROM {database}.`mart_stock_quotes_daily`
+WHERE trade_date BETWEEN toDate('{start_date}') AND toDate('{end_date}')
+  AND security_code IN ({securities})
+ORDER BY trade_date ASC, security_code ASC
+FORMAT JSONEachRow"#
+        );
+        let body = self.execute_text(&sql, query_id).await?;
+        parse_json_each_row::<PriceBar>(&body)
     }
 
     async fn execute_text(&self, sql: &str, query_id: &str) -> RearviewResult<String> {

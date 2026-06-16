@@ -4,7 +4,7 @@
 当前主要实现包括：
 
 - `furnace`：由 Dagster 调度的金融技术指标计算 CLI，支持日频 KDJ、MA、RSI、BOLL 和价格行为结构指标计算。
-- `rearview`：规则选股 HTTP 服务，消费 ClickHouse `fleur_marts` 指标 mart，并把规则、运行、股票池和买入信号写入 PostgreSQL `rearview` database。
+- `rearview-core`、`rearview-server`、`rearview-portfolio-worker`：规则选股 HTTP 服务、共享核心库和组合净值异步 worker。
 
 ## Workspace
 
@@ -13,10 +13,12 @@ engines/
 ├── Cargo.toml
 ├── Cargo.lock
 └── crates/
-    ├── furnace/       # CLI 入口
-    ├── furnace-core/  # 纯指标计算核心
-    ├── furnace-io/    # ClickHouse I/O、批量写入和运行摘要
-    └── rearview/      # 规则选股 HTTP 服务
+    ├── furnace/                    # CLI 入口
+    ├── furnace-core/               # 纯指标计算核心
+    ├── furnace-io/                 # ClickHouse I/O、批量写入和运行摘要
+    ├── rearview-core/              # Rearview 共享 domain、repository、API、ClickHouse 和组合计算
+    ├── rearview-server/            # Rearview HTTP server binary
+    └── rearview-portfolio-worker/  # 组合净值 NATS worker binary
 ```
 
 所有 Rust / Cargo 命令都应在 `engines/` 目录下执行；不要把 Rust crate 放入 `pipeline/` 的 uv workspace。
@@ -28,7 +30,9 @@ engines/
 | `furnace` | binary | 解析 `furnace kdj/ma/rsi/boll/price-pattern` CLI 参数，校验运行请求，调用 I/O 层并输出 JSON summary |
 | `furnace-core` | library | 提供 KDJ、MA、RSI、BOLL、价格行为结构的参数、输入/输出模型、状态和单证券纯计算；不依赖 ClickHouse、Dagster、dbt、Rayon 或环境变量 |
 | `furnace-io` | library | 负责 ClickHouse 表名、DDL、SQL、`clickhouse-client` 执行、RowBinary 读写、按证券并行调度、staging/partition replace 和运行摘要 |
-| `rearview` | binary + library | 提供规则选股 HTTP API、metric catalog 校验、规则 AST 校验、ClickHouse runtime join 查询规划、PostgreSQL 运行状态和结果写入 |
+| `rearview-core` | library | 提供 Rearview config、domain、API router、PostgreSQL repository、ClickHouse client、metric catalog、规则运行服务和组合净值纯计算 |
+| `rearview-server` | binary | 提供 Rearview HTTP server、catalog CLI 和 portfolio outbox dispatcher |
+| `rearview-portfolio-worker` | binary | 消费 NATS JetStream portfolio 任务，读取 PostgreSQL 快照和 ClickHouse 后复权行情，写回组合明细账本和净值 |
 
 核心边界：
 
@@ -101,23 +105,24 @@ ClickHouse CLI 环境变量：
 | `CLICKHOUSE_QUERY_TIMEOUT_SECONDS` | 查询收发超时 |
 | `RAYON_NUM_THREADS` | 可选 Rayon worker 数；Dagster resource 默认注入 8，外部已设置时尊重外部值 |
 
-## Rearview HTTP 服务
+## Rearview HTTP 服务和组合 worker
 
-Rearview 第一版是单 crate 服务：`engines/crates/rearview/`。包内按 `domain`、`api`、`planner`、`clickhouse`、`postgres` 和 `service` 分模块；当前没有跨项目复用需求，不拆成多个 crate。
+Rearview 当前拆分为三个 crate：`rearview-core`、`rearview-server` 和 `rearview-portfolio-worker`。`rearview-server` 和 `rearview-portfolio-worker` 只依赖 `rearview-core`，二者不互相依赖。旧 `rearview` package 不再作为 workspace 入口。
 
 本地开发复用根目录 `.env` 和 `deploy/docker-compose.yml` 中的 PostgreSQL / ClickHouse：
 
 ```bash
-docker compose --env-file .env -f deploy/docker-compose.yml up -d postgres clickhouse
+docker compose --env-file .env -f deploy/docker-compose.yml up -d postgres clickhouse nats
 
 cd pipeline
 uv run alembic -c migrate/alembic.ini -x target=pipeline upgrade head
 uv run alembic -c migrate/alembic.ini -x target=rearview upgrade head
 
 cd ../engines
-cargo run -p rearview -- catalog check
-cargo run -p rearview -- catalog sync
-cargo run -p rearview -- serve
+cargo run -p rearview-server -- catalog check
+cargo run -p rearview-server -- catalog sync
+cargo run -p rearview-server -- serve
+cargo run -p rearview-portfolio-worker -- run
 ```
 
 常用 HTTP API：
@@ -134,6 +139,19 @@ cargo run -p rearview -- serve
 | `GET` | `/rearview/runs/{run_id}/pool?trade_date=YYYY-MM-DD` | 查询某日股票池 |
 | `GET` | `/rearview/runs/{run_id}/signals?trade_date=YYYY-MM-DD` | 查询某日 TopN 买入信号 |
 | `POST` | `/rearview/explain` | 校验规则并返回所需 mart、列、SQL hash；带日期时返回 chunk plan |
+| `GET` | `/rearview/market-fee-templates/default?market=CN_A_SHARE` | 查询默认市场费率和滑点模板 |
+| `GET` | `/rearview/rule-sets/{rule_set_id}/account-templates` | 查询策略虚拟账户模板 |
+| `POST` | `/rearview/rule-sets/{rule_set_id}/account-templates` | 创建策略虚拟账户模板 |
+| `PATCH` | `/rearview/account-templates/{account_template_id}` | 更新策略虚拟账户模板 |
+| `POST` | `/rearview/portfolio-runs` | 从成功选股 run 创建组合运行并写入 outbox |
+| `GET` | `/rearview/portfolio-runs` | 查询组合运行列表 |
+| `GET` | `/rearview/portfolio-runs/{portfolio_run_id}` | 查询组合运行状态、dispatch 状态和 summary |
+| `GET` | `/rearview/portfolio-runs/{portfolio_run_id}/nav` | 查询组合净值曲线 |
+| `GET` | `/rearview/portfolio-runs/{portfolio_run_id}/targets` | 查询调仓目标 |
+| `GET` | `/rearview/portfolio-runs/{portfolio_run_id}/orders` | 查询虚拟订单 |
+| `GET` | `/rearview/portfolio-runs/{portfolio_run_id}/trades` | 查询虚拟成交 |
+| `GET` | `/rearview/portfolio-runs/{portfolio_run_id}/positions` | 查询每日或最新持仓 |
+| `GET` | `/rearview/portfolio-runs/{portfolio_run_id}/events` | 查询组合 warning 和审计事件 |
 
 Rearview 环境变量：
 
@@ -147,6 +165,11 @@ Rearview 环境变量：
 | `REARVIEW_CLICKHOUSE_MAX_EXECUTION_TIME_SECONDS` | ClickHouse 单查询执行时间上限 |
 | `REARVIEW_CLICKHOUSE_MAX_ROWS_TO_READ` | ClickHouse 单查询扫描行数上限 |
 | `REARVIEW_CLICKHOUSE_MAX_BYTES_TO_READ` | ClickHouse 单查询扫描字节上限 |
+| `REARVIEW_NATS_URL` | NATS 连接地址 |
+| `REARVIEW_PORTFOLIO_STREAM` | portfolio JetStream stream 名称 |
+| `REARVIEW_PORTFOLIO_REQUEST_SUBJECT` | portfolio 任务 subject |
+| `REARVIEW_PORTFOLIO_WORKER_DURABLE` | portfolio worker durable consumer |
+| `REARVIEW_PORTFOLIO_WORKER_QUEUE` | portfolio worker queue group |
 | `CLICKHOUSE_HOST` / `CLICKHOUSE_PORT` | ClickHouse HTTP 连接地址 |
 | `CLICKHOUSE_USER` / `CLICKHOUSE_PASSWORD` | ClickHouse 认证 |
 
@@ -154,7 +177,7 @@ Rearview 环境变量：
 
 ```bash
 cd engines
-cargo run -p rearview -- sample-rule
+cargo run -p rearview-server -- sample-rule
 ```
 
 ## 质量门禁

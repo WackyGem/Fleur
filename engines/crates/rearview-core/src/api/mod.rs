@@ -2,7 +2,7 @@ use std::collections::BTreeMap;
 
 use axum::extract::{Path, Query, State};
 use axum::http::StatusCode;
-use axum::routing::{get, post};
+use axum::routing::{get, patch, post};
 use axum::{Json, Router};
 use chrono::NaiveDate;
 use serde::{Deserialize, Serialize};
@@ -14,9 +14,11 @@ use crate::domain::metric::{MetricDefinition, ValueKind};
 use crate::error::{RearviewError, RearviewResult};
 use crate::planner::{CompiledQuery, QueryPlanner, QuerySettings};
 use crate::postgres::{
-    BuySignalRecord, NewRuleSet, NewRuleVersion, NewRun, Page, PlannedChunk, PoolMemberRecord,
-    ResultRowsFilter, ResultRowsSort, RuleSetListFilter, RuleVersionListFilter, RunListFilter,
-    plan_date_chunks,
+    BuySignalRecord, NewAccountTemplate, NewPortfolioRun, NewRuleSet, NewRuleVersion, NewRun, Page,
+    PatchAccountTemplate, PlannedChunk, PoolMemberRecord, PortfolioEventFilter,
+    PortfolioOrderFilter, PortfolioPositionFilter, PortfolioRunListFilter, PortfolioTargetFilter,
+    PortfolioTradeFilter, ResultRowsFilter, ResultRowsSort, RuleSetListFilter,
+    RuleVersionListFilter, RunListFilter, plan_date_chunks,
 };
 use crate::service::AppState;
 use crate::service::runner::execute_run;
@@ -30,8 +32,52 @@ pub fn routes() -> Router<AppState> {
             get(list_rule_sets).post(create_rule_set),
         )
         .route(
+            "/rearview/market-fee-templates/default",
+            get(get_default_market_fee_template),
+        )
+        .route(
+            "/rearview/rule-sets/{rule_set_id}/account-templates",
+            get(list_account_templates).post(create_account_template),
+        )
+        .route(
+            "/rearview/account-templates/{account_template_id}",
+            patch(update_account_template),
+        )
+        .route(
             "/rearview/rule-sets/{rule_set_id}/versions",
             get(list_rule_versions).post(create_rule_version),
+        )
+        .route(
+            "/rearview/portfolio-runs",
+            get(list_portfolio_runs).post(create_portfolio_run),
+        )
+        .route(
+            "/rearview/portfolio-runs/{portfolio_run_id}",
+            get(get_portfolio_run),
+        )
+        .route(
+            "/rearview/portfolio-runs/{portfolio_run_id}/nav",
+            get(list_portfolio_nav),
+        )
+        .route(
+            "/rearview/portfolio-runs/{portfolio_run_id}/targets",
+            get(list_portfolio_targets),
+        )
+        .route(
+            "/rearview/portfolio-runs/{portfolio_run_id}/orders",
+            get(list_portfolio_orders),
+        )
+        .route(
+            "/rearview/portfolio-runs/{portfolio_run_id}/trades",
+            get(list_portfolio_trades),
+        )
+        .route(
+            "/rearview/portfolio-runs/{portfolio_run_id}/positions",
+            get(list_portfolio_positions),
+        )
+        .route(
+            "/rearview/portfolio-runs/{portfolio_run_id}/events",
+            get(list_portfolio_events),
         )
         .route("/rearview/runs", get(list_runs).post(create_run))
         .route("/rearview/runs/{run_id}", get(get_run))
@@ -83,6 +129,90 @@ async fn list_rule_sets(
                 status: query.status,
                 keyword: non_empty(query.keyword),
                 page: page(query.limit, query.offset)?,
+            })
+            .await?,
+    ))
+}
+
+async fn get_default_market_fee_template(
+    State(state): State<AppState>,
+    Query(query): Query<DefaultMarketFeeTemplateQuery>,
+) -> RearviewResult<Json<impl Serialize>> {
+    let market = query.market.unwrap_or_else(default_market);
+    Ok(Json(
+        state
+            .postgres
+            .get_default_market_fee_template(&market)
+            .await?,
+    ))
+}
+
+async fn list_account_templates(
+    State(state): State<AppState>,
+    Path(rule_set_id): Path<String>,
+) -> RearviewResult<Json<impl Serialize>> {
+    Ok(Json(
+        state.postgres.list_account_templates(&rule_set_id).await?,
+    ))
+}
+
+async fn create_account_template(
+    State(state): State<AppState>,
+    Path(rule_set_id): Path<String>,
+    Json(request): Json<CreateAccountTemplateRequest>,
+) -> RearviewResult<(StatusCode, Json<impl Serialize>)> {
+    let market = request.market.unwrap_or_else(default_market);
+    let market_template = state
+        .postgres
+        .get_default_market_fee_template(&market)
+        .await?;
+    let record = state
+        .postgres
+        .create_account_template(NewAccountTemplate {
+            rule_set_id,
+            market_fee_template_id: request
+                .market_fee_template_id
+                .or(Some(market_template.market_fee_template_id)),
+            name: request
+                .name
+                .unwrap_or_else(|| "Default research account".to_string()),
+            initial_cash: request.initial_cash.unwrap_or(1_000_000.0),
+            currency: request.currency.unwrap_or(market_template.currency),
+            fee_profile: request.fee_profile.unwrap_or(market_template.fee_profile),
+            slippage_profile: request
+                .slippage_profile
+                .unwrap_or(market_template.slippage_profile),
+            rebalance_policy: request
+                .rebalance_policy
+                .unwrap_or_else(default_rebalance_policy),
+            risk_exit_policy: request
+                .risk_exit_policy
+                .unwrap_or_else(default_risk_exit_policy),
+            is_default: request.is_default.unwrap_or(false),
+        })
+        .await?;
+    Ok((StatusCode::CREATED, Json(record)))
+}
+
+async fn update_account_template(
+    State(state): State<AppState>,
+    Path(account_template_id): Path<String>,
+    Json(request): Json<PatchAccountTemplateRequest>,
+) -> RearviewResult<Json<impl Serialize>> {
+    Ok(Json(
+        state
+            .postgres
+            .update_account_template(PatchAccountTemplate {
+                account_template_id,
+                name: request.name,
+                initial_cash: request.initial_cash,
+                currency: request.currency,
+                fee_profile: request.fee_profile,
+                slippage_profile: request.slippage_profile,
+                rebalance_policy: request.rebalance_policy,
+                risk_exit_policy: request.risk_exit_policy,
+                is_default: request.is_default,
+                status: request.status,
             })
             .await?,
     ))
@@ -169,6 +299,145 @@ async fn create_run(
         execute_run(state, run_id).await;
     });
     Ok((StatusCode::ACCEPTED, Json(record)))
+}
+
+async fn create_portfolio_run(
+    State(state): State<AppState>,
+    Json(request): Json<CreatePortfolioRunRequest>,
+) -> RearviewResult<(StatusCode, Json<impl Serialize>)> {
+    let record = state
+        .postgres
+        .create_portfolio_run(NewPortfolioRun {
+            source_run_id: request.source_run_id,
+            account_template_id: request.account_template_id,
+            subject: state.config.nats.portfolio_request_subject.clone(),
+        })
+        .await?;
+    Ok((StatusCode::ACCEPTED, Json(record)))
+}
+
+async fn list_portfolio_runs(
+    State(state): State<AppState>,
+    Query(query): Query<ListPortfolioRunsQuery>,
+) -> RearviewResult<Json<impl Serialize>> {
+    Ok(Json(
+        state
+            .postgres
+            .list_portfolio_runs(PortfolioRunListFilter {
+                source_run_id: query.source_run_id,
+                status: query.status,
+                dispatch_status: query.dispatch_status,
+                page: page(query.limit, query.offset)?,
+            })
+            .await?,
+    ))
+}
+
+async fn get_portfolio_run(
+    State(state): State<AppState>,
+    Path(portfolio_run_id): Path<String>,
+) -> RearviewResult<Json<impl Serialize>> {
+    Ok(Json(
+        state.postgres.get_portfolio_run(&portfolio_run_id).await?,
+    ))
+}
+
+async fn list_portfolio_nav(
+    State(state): State<AppState>,
+    Path(portfolio_run_id): Path<String>,
+) -> RearviewResult<Json<impl Serialize>> {
+    Ok(Json(
+        state.postgres.list_portfolio_nav(&portfolio_run_id).await?,
+    ))
+}
+
+async fn list_portfolio_targets(
+    State(state): State<AppState>,
+    Path(portfolio_run_id): Path<String>,
+    Query(query): Query<PortfolioTargetQuery>,
+) -> RearviewResult<Json<impl Serialize>> {
+    Ok(Json(
+        state
+            .postgres
+            .list_portfolio_targets(PortfolioTargetFilter {
+                portfolio_run_id,
+                signal_date: query.signal_date,
+                page: page(query.limit, query.offset)?,
+            })
+            .await?,
+    ))
+}
+
+async fn list_portfolio_orders(
+    State(state): State<AppState>,
+    Path(portfolio_run_id): Path<String>,
+    Query(query): Query<PortfolioOrderQuery>,
+) -> RearviewResult<Json<impl Serialize>> {
+    Ok(Json(
+        state
+            .postgres
+            .list_portfolio_orders(PortfolioOrderFilter {
+                portfolio_run_id,
+                execution_date: query.execution_date,
+                security_code: non_empty(query.security_code),
+                page: page(query.limit, query.offset)?,
+            })
+            .await?,
+    ))
+}
+
+async fn list_portfolio_trades(
+    State(state): State<AppState>,
+    Path(portfolio_run_id): Path<String>,
+    Query(query): Query<PortfolioTradeQuery>,
+) -> RearviewResult<Json<impl Serialize>> {
+    Ok(Json(
+        state
+            .postgres
+            .list_portfolio_trades(PortfolioTradeFilter {
+                portfolio_run_id,
+                trade_date: query.trade_date,
+                security_code: non_empty(query.security_code),
+                page: page(query.limit, query.offset)?,
+            })
+            .await?,
+    ))
+}
+
+async fn list_portfolio_positions(
+    State(state): State<AppState>,
+    Path(portfolio_run_id): Path<String>,
+    Query(query): Query<PortfolioPositionQuery>,
+) -> RearviewResult<Json<impl Serialize>> {
+    Ok(Json(
+        state
+            .postgres
+            .list_portfolio_positions(PortfolioPositionFilter {
+                portfolio_run_id,
+                trade_date: query.trade_date,
+                security_code: non_empty(query.security_code),
+                page: page(query.limit, query.offset)?,
+            })
+            .await?,
+    ))
+}
+
+async fn list_portfolio_events(
+    State(state): State<AppState>,
+    Path(portfolio_run_id): Path<String>,
+    Query(query): Query<PortfolioEventQuery>,
+) -> RearviewResult<Json<impl Serialize>> {
+    Ok(Json(
+        state
+            .postgres
+            .list_portfolio_events(PortfolioEventFilter {
+                portfolio_run_id,
+                trade_date: query.trade_date,
+                event_type: non_empty(query.event_type),
+                page: page(query.limit, query.offset)?,
+            })
+            .await?,
+    ))
 }
 
 async fn list_runs(
@@ -449,6 +718,65 @@ struct CreateRunRequest {
 }
 
 #[derive(Debug, Deserialize)]
+struct CreatePortfolioRunRequest {
+    source_run_id: String,
+    #[serde(default)]
+    account_template_id: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+struct DefaultMarketFeeTemplateQuery {
+    #[serde(default)]
+    market: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+struct CreateAccountTemplateRequest {
+    #[serde(default)]
+    market: Option<String>,
+    #[serde(default)]
+    market_fee_template_id: Option<String>,
+    #[serde(default)]
+    name: Option<String>,
+    #[serde(default)]
+    initial_cash: Option<f64>,
+    #[serde(default)]
+    currency: Option<String>,
+    #[serde(default)]
+    fee_profile: Option<serde_json::Value>,
+    #[serde(default)]
+    slippage_profile: Option<serde_json::Value>,
+    #[serde(default)]
+    rebalance_policy: Option<serde_json::Value>,
+    #[serde(default)]
+    risk_exit_policy: Option<serde_json::Value>,
+    #[serde(default)]
+    is_default: Option<bool>,
+}
+
+#[derive(Debug, Deserialize)]
+struct PatchAccountTemplateRequest {
+    #[serde(default)]
+    name: Option<String>,
+    #[serde(default)]
+    initial_cash: Option<f64>,
+    #[serde(default)]
+    currency: Option<String>,
+    #[serde(default)]
+    fee_profile: Option<serde_json::Value>,
+    #[serde(default)]
+    slippage_profile: Option<serde_json::Value>,
+    #[serde(default)]
+    rebalance_policy: Option<serde_json::Value>,
+    #[serde(default)]
+    risk_exit_policy: Option<serde_json::Value>,
+    #[serde(default)]
+    is_default: Option<bool>,
+    #[serde(default)]
+    status: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
 struct ListRuleSetsQuery {
     #[serde(default)]
     status: Option<String>,
@@ -482,6 +810,78 @@ struct ListRunsQuery {
     end_date: Option<NaiveDate>,
     #[serde(default)]
     keyword: Option<String>,
+    #[serde(default)]
+    limit: Option<u32>,
+    #[serde(default)]
+    offset: Option<u32>,
+}
+
+#[derive(Debug, Deserialize)]
+struct ListPortfolioRunsQuery {
+    #[serde(default)]
+    source_run_id: Option<String>,
+    #[serde(default)]
+    status: Option<String>,
+    #[serde(default)]
+    dispatch_status: Option<String>,
+    #[serde(default)]
+    limit: Option<u32>,
+    #[serde(default)]
+    offset: Option<u32>,
+}
+
+#[derive(Debug, Deserialize)]
+struct PortfolioTargetQuery {
+    #[serde(default)]
+    signal_date: Option<NaiveDate>,
+    #[serde(default)]
+    limit: Option<u32>,
+    #[serde(default)]
+    offset: Option<u32>,
+}
+
+#[derive(Debug, Deserialize)]
+struct PortfolioOrderQuery {
+    #[serde(default)]
+    execution_date: Option<NaiveDate>,
+    #[serde(default)]
+    security_code: Option<String>,
+    #[serde(default)]
+    limit: Option<u32>,
+    #[serde(default)]
+    offset: Option<u32>,
+}
+
+#[derive(Debug, Deserialize)]
+struct PortfolioTradeQuery {
+    #[serde(default)]
+    trade_date: Option<NaiveDate>,
+    #[serde(default)]
+    security_code: Option<String>,
+    #[serde(default)]
+    limit: Option<u32>,
+    #[serde(default)]
+    offset: Option<u32>,
+}
+
+#[derive(Debug, Deserialize)]
+struct PortfolioPositionQuery {
+    #[serde(default)]
+    trade_date: Option<NaiveDate>,
+    #[serde(default)]
+    security_code: Option<String>,
+    #[serde(default)]
+    limit: Option<u32>,
+    #[serde(default)]
+    offset: Option<u32>,
+}
+
+#[derive(Debug, Deserialize)]
+struct PortfolioEventQuery {
+    #[serde(default)]
+    trade_date: Option<NaiveDate>,
+    #[serde(default)]
+    event_type: Option<String>,
     #[serde(default)]
     limit: Option<u32>,
     #[serde(default)]
@@ -849,6 +1249,29 @@ fn non_empty(value: Option<String>) -> Option<String> {
         } else {
             Some(trimmed.to_string())
         }
+    })
+}
+
+fn default_market() -> String {
+    "CN_A_SHARE".to_string()
+}
+
+fn default_rebalance_policy() -> serde_json::Value {
+    serde_json::json!({
+        "frequency": "signal_day",
+        "target_weighting": "equal_weight",
+        "max_positions": 10,
+        "lot_size": 100,
+        "min_trade_lots": 1,
+        "cash_reserve_pct": 0,
+        "empty_signal_action": "hold"
+    })
+}
+
+fn default_risk_exit_policy() -> serde_json::Value {
+    serde_json::json!({
+        "trigger_timing": "close_confirm_next_open",
+        "exit_rules": []
     })
 }
 

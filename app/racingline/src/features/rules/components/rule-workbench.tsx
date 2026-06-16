@@ -20,6 +20,7 @@ import { ErrorState, MissingBackendState, TableSkeleton } from "@/components/rac
 import { FilterSelect } from "@/components/racingline/filter-select"
 import { RacinglineIcon } from "@/components/racingline/icon"
 import { StatusBadge } from "@/components/racingline/status-badge"
+import { AccountTemplateCard } from "@/features/portfolio/components/account-template-card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import {
@@ -550,6 +551,13 @@ export function RuleWorkbench() {
             </div>
           </CardContent>
         </Card>
+
+        {selectedRuleSetId ? (
+          <AccountTemplateCard
+            ruleSetId={selectedRuleSetId}
+            topN={Number(draft.topNDefault || draft.runTopN || 20)}
+          />
+        ) : null}
 
         <Card>
           <CardHeader>

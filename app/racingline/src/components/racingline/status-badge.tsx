@@ -1,5 +1,9 @@
 import { Badge } from "@/components/ui/badge"
-import { isFailureStatus, isRunActiveStatus } from "@/lib/status"
+import {
+  isFailureStatus,
+  isPortfolioActiveStatus,
+  isRunActiveStatus,
+} from "@/lib/status"
 
 type StatusBadgeProps = {
   status?: string | null
@@ -14,7 +18,11 @@ export function StatusBadge({ status }: StatusBadgeProps) {
     return <Badge variant="destructive">{status}</Badge>
   }
 
-  if (isRunActiveStatus(status) || status === "running") {
+  if (
+    isRunActiveStatus(status) ||
+    isPortfolioActiveStatus(status) ||
+    status === "running"
+  ) {
     return <Badge>{status}</Badge>
   }
 

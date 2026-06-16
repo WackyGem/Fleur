@@ -21,6 +21,8 @@ pub enum RearviewError {
     Postgres(#[from] sqlx::Error),
     #[error("clickhouse error: {0}")]
     ClickHouse(String),
+    #[error("nats error: {0}")]
+    Nats(String),
     #[error("http client error: {0}")]
     Http(#[from] reqwest::Error),
     #[error("io error: {0}")]
@@ -44,6 +46,7 @@ impl RearviewError {
             Self::Config(_)
             | Self::Postgres(_)
             | Self::ClickHouse(_)
+            | Self::Nats(_)
             | Self::Http(_)
             | Self::Io(_) => StatusCode::INTERNAL_SERVER_ERROR,
             Self::Validation(_) | Self::MetricCatalog(_) | Self::Planner(_) => {
@@ -62,6 +65,7 @@ impl RearviewError {
             Self::Planner(_) => "planner",
             Self::Postgres(_) => "postgres",
             Self::ClickHouse(_) => "clickhouse",
+            Self::Nats(_) => "nats",
             Self::Http(_) => "http",
             Self::Io(_) => "io",
             Self::Json(_) => "json",

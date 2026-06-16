@@ -8,7 +8,9 @@ pub mod clickhouse;
 pub mod config;
 pub mod domain;
 pub mod error;
+pub mod nats;
 pub mod planner;
+pub mod portfolio;
 pub mod postgres;
 pub mod service;
 

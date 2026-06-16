@@ -1,19 +1,32 @@
-import {
-  buildPath,
-  jsonBody,
-  normalizeList,
-  requestJson,
-} from "@/api/client"
+import { buildPath, jsonBody, normalizeList, requestJson } from "@/api/client"
 import type {
+  AccountTemplateRecord,
   BuySignalRecord,
+  CreateAccountTemplateRequest,
+  CreatePortfolioRunRequest,
   CreateRuleSetRequest,
   CreateRuleVersionRequest,
   CreateRunRequest,
   ExplainResponse,
   HealthResponse,
   ListResult,
+  MarketFeeTemplateRecord,
   MetricDefinition,
   MetricsQuery,
+  PortfolioEventQuery,
+  PortfolioEventRecord,
+  PortfolioNavRecord,
+  PortfolioOrderQuery,
+  PortfolioOrderRecord,
+  PortfolioPositionQuery,
+  PortfolioPositionRecord,
+  PortfolioRunRecord,
+  PortfolioRunsQuery,
+  PortfolioTargetQuery,
+  PortfolioTargetRecord,
+  PortfolioTradeQuery,
+  PortfolioTradeRecord,
+  PatchAccountTemplateRequest,
   PoolMemberRecord,
   ResultRowsQuery,
   RuleSetRecord,
@@ -34,16 +47,16 @@ export function getHealth() {
 }
 
 export async function listMetrics(
-  query: MetricsQuery = {},
+  query: MetricsQuery = {}
 ): Promise<MetricDefinition[]> {
-  const value = await requestJson<MetricDefinition[] | { items: MetricDefinition[] }>(
-    buildPath("/rearview/metrics", query),
-  )
+  const value = await requestJson<
+    MetricDefinition[] | { items: MetricDefinition[] }
+  >(buildPath("/rearview/metrics", query))
   return Array.isArray(value) ? value : value.items
 }
 
 export async function listRuleSets(
-  query: RuleSetsQuery = {},
+  query: RuleSetsQuery = {}
 ): Promise<ListResult<RuleSetRecord>> {
   const value = await requestJson<
     RuleSetRecord[] | Partial<ListResult<RuleSetRecord>>
@@ -57,13 +70,13 @@ export function createRuleSet(request: CreateRuleSetRequest) {
     jsonBody({
       ...request,
       tags: request.tags ?? [],
-    }),
+    })
   )
 }
 
 export async function listRuleVersions(
   ruleSetId: string,
-  query: RuleVersionsQuery = {},
+  query: RuleVersionsQuery = {}
 ): Promise<ListResult<RuleVersionRecord>> {
   const value = await requestJson<
     RuleVersionRecord[] | Partial<ListResult<RuleVersionRecord>>
@@ -73,36 +86,146 @@ export async function listRuleVersions(
 
 export function createRuleVersion(
   ruleSetId: string,
-  request: CreateRuleVersionRequest,
+  request: CreateRuleVersionRequest
 ) {
   return requestJson<RuleVersionRecord>(
     `/rearview/rule-sets/${ruleSetId}/versions`,
-    jsonBody(request),
+    jsonBody(request)
   )
 }
 
 export function explainRule(
   rule: RuleVersionSpec,
-  range?: { start_date?: string; end_date?: string; top_n?: number },
+  range?: { start_date?: string; end_date?: string; top_n?: number }
 ) {
-  const body =
-    range?.start_date && range.end_date
-      ? { rule, ...range }
-      : rule
+  const body = range?.start_date && range.end_date ? { rule, ...range } : rule
   return requestJson<ExplainResponse>("/rearview/explain", jsonBody(body))
 }
 
 export async function listRuns(
-  query: RunsQuery = {},
+  query: RunsQuery = {}
 ): Promise<ListResult<RunRecord>> {
   const value = await requestJson<RunRecord[] | Partial<ListResult<RunRecord>>>(
-    buildPath("/rearview/runs", query),
+    buildPath("/rearview/runs", query)
   )
   return normalizeList(value, query.limit)
 }
 
 export function createRun(request: CreateRunRequest) {
   return requestJson<RunRecord>("/rearview/runs", jsonBody(request))
+}
+
+export function getDefaultMarketFeeTemplate(market = "CN_A_SHARE") {
+  return requestJson<MarketFeeTemplateRecord>(
+    buildPath("/rearview/market-fee-templates/default", { market })
+  )
+}
+
+export function listAccountTemplates(ruleSetId: string) {
+  return requestJson<AccountTemplateRecord[]>(
+    `/rearview/rule-sets/${ruleSetId}/account-templates`
+  )
+}
+
+export function createAccountTemplate(
+  ruleSetId: string,
+  request: CreateAccountTemplateRequest
+) {
+  return requestJson<AccountTemplateRecord>(
+    `/rearview/rule-sets/${ruleSetId}/account-templates`,
+    jsonBody(request)
+  )
+}
+
+export function updateAccountTemplate(
+  accountTemplateId: string,
+  request: PatchAccountTemplateRequest
+) {
+  return requestJson<AccountTemplateRecord>(
+    `/rearview/account-templates/${accountTemplateId}`,
+    {
+      ...jsonBody(request),
+      method: "PATCH",
+    }
+  )
+}
+
+export async function listPortfolioRuns(
+  query: PortfolioRunsQuery = {}
+): Promise<ListResult<PortfolioRunRecord>> {
+  const value = await requestJson<
+    PortfolioRunRecord[] | Partial<ListResult<PortfolioRunRecord>>
+  >(buildPath("/rearview/portfolio-runs", query))
+  return normalizeList(value, query.limit)
+}
+
+export function createPortfolioRun(request: CreatePortfolioRunRequest) {
+  return requestJson<PortfolioRunRecord>(
+    "/rearview/portfolio-runs",
+    jsonBody(request)
+  )
+}
+
+export function getPortfolioRun(portfolioRunId: string) {
+  return requestJson<PortfolioRunRecord>(
+    `/rearview/portfolio-runs/${portfolioRunId}`
+  )
+}
+
+export function listPortfolioNav(portfolioRunId: string) {
+  return requestJson<PortfolioNavRecord[]>(
+    `/rearview/portfolio-runs/${portfolioRunId}/nav`
+  )
+}
+
+export async function listPortfolioTargets(
+  portfolioRunId: string,
+  query: PortfolioTargetQuery = {}
+): Promise<ListResult<PortfolioTargetRecord>> {
+  const value = await requestJson<
+    PortfolioTargetRecord[] | Partial<ListResult<PortfolioTargetRecord>>
+  >(buildPath(`/rearview/portfolio-runs/${portfolioRunId}/targets`, query))
+  return normalizeList(value, query.limit)
+}
+
+export async function listPortfolioOrders(
+  portfolioRunId: string,
+  query: PortfolioOrderQuery = {}
+): Promise<ListResult<PortfolioOrderRecord>> {
+  const value = await requestJson<
+    PortfolioOrderRecord[] | Partial<ListResult<PortfolioOrderRecord>>
+  >(buildPath(`/rearview/portfolio-runs/${portfolioRunId}/orders`, query))
+  return normalizeList(value, query.limit)
+}
+
+export async function listPortfolioTrades(
+  portfolioRunId: string,
+  query: PortfolioTradeQuery = {}
+): Promise<ListResult<PortfolioTradeRecord>> {
+  const value = await requestJson<
+    PortfolioTradeRecord[] | Partial<ListResult<PortfolioTradeRecord>>
+  >(buildPath(`/rearview/portfolio-runs/${portfolioRunId}/trades`, query))
+  return normalizeList(value, query.limit)
+}
+
+export async function listPortfolioPositions(
+  portfolioRunId: string,
+  query: PortfolioPositionQuery = {}
+): Promise<ListResult<PortfolioPositionRecord>> {
+  const value = await requestJson<
+    PortfolioPositionRecord[] | Partial<ListResult<PortfolioPositionRecord>>
+  >(buildPath(`/rearview/portfolio-runs/${portfolioRunId}/positions`, query))
+  return normalizeList(value, query.limit)
+}
+
+export async function listPortfolioEvents(
+  portfolioRunId: string,
+  query: PortfolioEventQuery = {}
+): Promise<ListResult<PortfolioEventRecord>> {
+  const value = await requestJson<
+    PortfolioEventRecord[] | Partial<ListResult<PortfolioEventRecord>>
+  >(buildPath(`/rearview/portfolio-runs/${portfolioRunId}/events`, query))
+  return normalizeList(value, query.limit)
 }
 
 export function getRun(runId: string) {
@@ -119,7 +242,7 @@ export function listRunDays(runId: string) {
 
 export async function listPoolMembers(
   runId: string,
-  query: ResultRowsQuery,
+  query: ResultRowsQuery
 ): Promise<ListResult<PoolMemberRecord>> {
   const value = await requestJson<
     PoolMemberRecord[] | Partial<ListResult<PoolMemberRecord>>
@@ -129,7 +252,7 @@ export async function listPoolMembers(
 
 export async function listBuySignals(
   runId: string,
-  query: ResultRowsQuery,
+  query: ResultRowsQuery
 ): Promise<ListResult<BuySignalRecord>> {
   const value = await requestJson<
     BuySignalRecord[] | Partial<ListResult<BuySignalRecord>>
@@ -140,12 +263,12 @@ export async function listBuySignals(
 export function getSecurityAnalysis(
   runId: string,
   securityCode: string,
-  query: SecurityAnalysisQuery,
+  query: SecurityAnalysisQuery
 ) {
   return requestJson<SecurityAnalysisResponse>(
     buildPath(
       `/rearview/runs/${runId}/securities/${securityCode}/analysis`,
-      query,
-    ),
+      query
+    )
   )
 }

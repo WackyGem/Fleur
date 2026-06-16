@@ -12,6 +12,7 @@ pub struct AppConfig {
     pub max_concurrent_runs: usize,
     pub chunk_small_range_trading_days: u32,
     pub clickhouse: ClickHouseConfig,
+    pub nats: NatsConfig,
 }
 
 #[derive(Debug, Clone)]
@@ -27,6 +28,15 @@ pub struct ClickHouseConfig {
     pub max_execution_time_seconds: u64,
     pub max_rows_to_read: u64,
     pub max_bytes_to_read: u64,
+}
+
+#[derive(Debug, Clone)]
+pub struct NatsConfig {
+    pub url: String,
+    pub portfolio_stream: String,
+    pub portfolio_request_subject: String,
+    pub portfolio_worker_durable: String,
+    pub portfolio_worker_queue: String,
 }
 
 impl AppConfig {
@@ -46,7 +56,29 @@ impl AppConfig {
                 "90",
             )?,
             clickhouse: ClickHouseConfig::from_env()?,
+            nats: NatsConfig::from_env(),
         })
+    }
+}
+
+impl NatsConfig {
+    pub fn from_env() -> Self {
+        Self {
+            url: env_with_default("REARVIEW_NATS_URL", "nats://127.0.0.1:34055"),
+            portfolio_stream: env_with_default("REARVIEW_PORTFOLIO_STREAM", "REARVIEW_PORTFOLIO"),
+            portfolio_request_subject: env_with_default(
+                "REARVIEW_PORTFOLIO_REQUEST_SUBJECT",
+                "rearview.portfolio_run.requested",
+            ),
+            portfolio_worker_durable: env_with_default(
+                "REARVIEW_PORTFOLIO_WORKER_DURABLE",
+                "rearview-portfolio-worker",
+            ),
+            portfolio_worker_queue: env_with_default(
+                "REARVIEW_PORTFOLIO_WORKER_QUEUE",
+                "rearview-portfolio-workers",
+            ),
+        }
     }
 }
 

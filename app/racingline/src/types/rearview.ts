@@ -52,6 +52,171 @@ export type RunRecord = {
   error_message?: string | null
 }
 
+export type FeeProfile = {
+  commission_rate: number
+  commission_rate_max: number
+  min_commission: number
+  stamp_duty_rate_sell: number
+  transfer_fee_rate: number
+  [key: string]: JsonValue
+}
+
+export type SlippageProfile = {
+  mode?: string
+  buy_bps: number
+  sell_bps: number
+  [key: string]: JsonValue | undefined
+}
+
+export type MarketFeeTemplateRecord = {
+  market_fee_template_id: string
+  market: string
+  name: string
+  currency: string
+  fee_profile: FeeProfile
+  slippage_profile: SlippageProfile
+  is_default: boolean
+  status: string
+}
+
+export type AccountTemplateRecord = {
+  account_template_id: string
+  rule_set_id: string
+  market_fee_template_id?: string | null
+  name: string
+  initial_cash: number
+  currency: string
+  fee_profile: FeeProfile
+  slippage_profile: SlippageProfile
+  rebalance_policy: JsonRecord
+  risk_exit_policy: JsonRecord
+  is_default: boolean
+  status: string
+}
+
+export type PortfolioSummary = {
+  initial_cash?: number
+  ending_equity?: number
+  total_return?: number
+  max_drawdown?: number
+  trade_count?: number
+  total_fee?: number
+  warning_count?: number
+  [key: string]: JsonValue | undefined
+}
+
+export type PortfolioRunRecord = {
+  portfolio_run_id: string
+  source_run_id: string
+  rule_version_id: string
+  rule_hash: string
+  account_template_id?: string | null
+  account_snapshot: JsonRecord
+  execution_snapshot: JsonRecord
+  price_basis: "backward_adjusted"
+  start_date: string
+  end_date: string
+  status: string
+  dispatch_status: string
+  nats_stream_sequence?: number | null
+  summary: PortfolioSummary
+  error_type?: string | null
+  error_message?: string | null
+}
+
+export type PortfolioNavRecord = {
+  portfolio_run_id: string
+  trade_date: string
+  cash_balance: number
+  position_market_value: number
+  total_equity: number
+  nav: number
+  daily_return?: number | null
+  drawdown: number
+  gross_exposure: number
+  position_count: number
+  turnover: number
+  fee_amount: number
+  warning_count: number
+}
+
+export type PortfolioTargetRecord = {
+  portfolio_run_id: string
+  signal_date: string
+  execution_date: string
+  security_code: string
+  source_rank?: number | null
+  source_score?: number | null
+  target_weight: number
+  target_amount: number
+  target_quantity?: number | null
+  target_reason: string
+}
+
+export type PortfolioOrderRecord = {
+  portfolio_order_id: string
+  portfolio_run_id: string
+  order_seq: number
+  signal_date?: string | null
+  execution_date: string
+  security_code: string
+  side: string
+  order_quantity: number
+  order_amount: number
+  reference_price?: number | null
+  reason: string
+  status: string
+  event_ref?: string | null
+}
+
+export type PortfolioTradeRecord = {
+  portfolio_trade_id: string
+  portfolio_run_id: string
+  trade_seq: number
+  portfolio_order_id?: string | null
+  trade_date: string
+  signal_date?: string | null
+  security_code: string
+  side: string
+  quantity: number
+  reference_price: number
+  execution_price: number
+  gross_amount: number
+  commission: number
+  stamp_duty: number
+  transfer_fee: number
+  total_fee: number
+  slippage_cost: number
+  reason: string
+}
+
+export type PortfolioPositionRecord = {
+  portfolio_run_id: string
+  trade_date: string
+  security_code: string
+  quantity: number
+  cost_basis: number
+  average_entry_price: number
+  close_price: number
+  market_value: number
+  unrealized_pnl: number
+  unrealized_return: number
+  holding_days: number
+  is_stale_price: boolean
+}
+
+export type PortfolioEventRecord = {
+  portfolio_event_id: string
+  portfolio_run_id: string
+  event_seq: number
+  trade_date?: string | null
+  security_code?: string | null
+  event_type: string
+  severity: string
+  message: string
+  payload: JsonRecord
+}
+
 export type RunChunkRecord = {
   run_id: string
   chunk_no: number
@@ -211,6 +376,48 @@ export type RunsQuery = {
   start_date?: string
   end_date?: string
   keyword?: string
+  limit?: number
+  offset?: number
+}
+
+export type PortfolioRunsQuery = {
+  source_run_id?: string
+  status?: string
+  dispatch_status?: string
+  limit?: number
+  offset?: number
+}
+
+export type PortfolioTargetQuery = {
+  signal_date?: string
+  limit?: number
+  offset?: number
+}
+
+export type PortfolioOrderQuery = {
+  execution_date?: string
+  security_code?: string
+  limit?: number
+  offset?: number
+}
+
+export type PortfolioTradeQuery = {
+  trade_date?: string
+  security_code?: string
+  limit?: number
+  offset?: number
+}
+
+export type PortfolioPositionQuery = {
+  trade_date?: string
+  security_code?: string
+  limit?: number
+  offset?: number
+}
+
+export type PortfolioEventQuery = {
+  trade_date?: string
+  event_type?: string
   limit?: number
   offset?: number
 }
@@ -454,4 +661,33 @@ export type CreateRunRequest = {
   end_date: string
   top_n?: number
   universe_snapshot?: JsonValue
+}
+
+export type CreatePortfolioRunRequest = {
+  source_run_id: string
+  account_template_id?: string
+}
+
+export type CreateAccountTemplateRequest = {
+  market?: string
+  name?: string
+  initial_cash?: number
+  currency?: string
+  fee_profile?: FeeProfile
+  slippage_profile?: SlippageProfile
+  rebalance_policy?: JsonRecord
+  risk_exit_policy?: JsonRecord
+  is_default?: boolean
+}
+
+export type PatchAccountTemplateRequest = {
+  name?: string
+  initial_cash?: number
+  currency?: string
+  fee_profile?: FeeProfile
+  slippage_profile?: SlippageProfile
+  rebalance_policy?: JsonRecord
+  risk_exit_policy?: JsonRecord
+  is_default?: boolean
+  status?: string
 }

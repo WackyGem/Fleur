@@ -1,6 +1,6 @@
 # System: Racingline
 
-状态：个股分析页已验收（2026-06-15）
+状态：组合净值第一版实施中（2026-06-16）
 
 ## 代码根
 
@@ -14,12 +14,14 @@
 4. 按交易日展示股票池、TopN 买入信号、score breakdown 和 selected metrics。
 5. 用 UI 明确区分运行时结果快照和当前 mart 查询值。
 6. 从 run result 的 `Open` 进入 `/runs/:runId/securities/:securityCode` 个股分析页，提供结果列表、日 K 线、MA5/MA10/MA30、KDJ/RSI/MACD/BOLL 和右侧 mart 指标面板。
+7. 提供虚拟账户模板表单，使用 Rearview 默认市场费率模板预填初始资金、费率、滑点和卖出规则。
+8. 提供 `/portfolios` 和 `/portfolios/:portfolioRunId`，展示组合运行状态、净值曲线、summary、参数、持仓、成交、订单、调仓目标和事件。
 
 ## 非职责
 
 1. 不实现 Rearview 规则编译、ClickHouse 查询、PostgreSQL 写入或业务状态机。
 2. 不直接访问 ClickHouse 或 PostgreSQL。
-3. 第一版不实现交易、下单、风控、组合调仓或完整回测。
+3. 不在浏览器内计算权威成交、持仓、费用、滑点或净值；组合账本以 Rearview PostgreSQL API 为准。
 4. 第一版不引入登录入口、认证/鉴权、用户隔离或权限系统。
 
 ## 技术栈
@@ -42,7 +44,7 @@ VITE_REARVIEW_API_BASE_URL=http://127.0.0.1:34057
 make racingline-dev
 ```
 
-该命令会先按端口清理已启动的 Rearview 和 Racingline dev 进程，再启动 Docker dev 依赖服务、等待 PostgreSQL/ClickHouse、执行 PostgreSQL migrations、同步 Rearview metric catalog，最后同时启动后端 `http://127.0.0.1:34057` 与前端 `http://127.0.0.1:5173/`。
+该命令会先按端口清理已启动的 Rearview 和 Racingline dev 进程，再启动 Docker dev 依赖服务、等待 PostgreSQL/ClickHouse、执行 PostgreSQL migrations、同步 Rearview metric catalog，最后同时启动 Rearview server `http://127.0.0.1:34057`、Rearview portfolio worker 与前端 `http://127.0.0.1:5173/`。
 
 单独启动或清理：
 
@@ -58,7 +60,7 @@ make racingline-dev-stop
 
 | 系统 | 依赖 |
 |---|---|
-| [Rearview](rearview.md) | 规则集、规则版本、运行、股票池、买入信号、explain API 和个股 analysis API |
+| [Rearview](rearview.md) | 规则集、规则版本、运行、股票池、买入信号、explain、个股 analysis、虚拟账户模板和组合运行 API |
 | Furnace/dbt marts | 通过 Rearview 间接消费 mart 指标，不由前端直接访问 |
 
 ## 浏览器调试
@@ -105,6 +107,8 @@ cargo test --workspace
 |---|---|
 | [../RFC/0019-racingline-rearview-frontend-workbench.md](../RFC/0019-racingline-rearview-frontend-workbench.md) | Racingline 前端 RFC |
 | [../RFC/0020-racingline-run-result-security-analysis-page.md](../RFC/0020-racingline-run-result-security-analysis-page.md) | Run result 个股分析页已实现 RFC |
+| [../RFC/0021-racingline-virtual-account-portfolio-rebalancing.md](../RFC/0021-racingline-virtual-account-portfolio-rebalancing.md) | 虚拟账户、交易费率、止盈止损和组合调仓净值 Proposed RFC |
+| [../plans/0041-racingline-virtual-account-portfolio-rebalancing-implementation-plan.md](../plans/0041-racingline-virtual-account-portfolio-rebalancing-implementation-plan.md) | 虚拟账户、组合运行、NATS worker 和组合页面当前实施计划 |
 | [../ADR/0011-racingline-frontend-technology-stack.md](../ADR/0011-racingline-frontend-technology-stack.md) | Racingline 前端技术栈和工程边界 |
 | [../plans/archive/0037-racingline-frontend-implementation-plan.md](../plans/archive/0037-racingline-frontend-implementation-plan.md) | Racingline 前端第一版实施计划归档 |
 | [../plans/archive/0039-racingline-run-result-security-analysis-page-implementation-plan.md](../plans/archive/0039-racingline-run-result-security-analysis-page-implementation-plan.md) | Run result 个股分析页实施计划归档 |
@@ -114,6 +118,7 @@ cargo test --workspace
 | [../jobs/reports/2026-06-13-racingline-playwright-cdp-acceptance.md](../jobs/reports/2026-06-13-racingline-playwright-cdp-acceptance.md) | Playwright CDP 验收报告 |
 | [../jobs/reports/2026-06-15-racingline-security-analysis-page.md](../jobs/reports/2026-06-15-racingline-security-analysis-page.md) | 个股分析页 API、桌面/移动和交互验收报告 |
 | [../jobs/reports/2026-06-15-racingline-security-analysis-optimization.md](../jobs/reports/2026-06-15-racingline-security-analysis-optimization.md) | 个股分析页优化、规则适配和评分 clamp 验收报告 |
+| [../jobs/reports/2026-06-16-racingline-portfolio-nav.md](../jobs/reports/2026-06-16-racingline-portfolio-nav.md) | 组合净值、明细 API、列表页和详情页 smoke 验收报告 |
 | [../RFC/0018-rust-stock-screening-service.md](../RFC/0018-rust-stock-screening-service.md) | Rearview 后端服务 RFC |
 | [rearview.md](rearview.md) | Rearview 当前系统地图 |
 
