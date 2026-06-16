@@ -39,6 +39,7 @@
 | Dagster 回填、运行和 lineage 记录 | [jobs/README.md](jobs/README.md) |
 | dbt 模型设计 | [design/README.md](design/README.md) |
 | 接口、数据字典和 raw profiling | [references/README.md](references/README.md) |
+| 设计问答和讨论记录 | [Q&A/](Q&A/) |
 | 质量审计和治理建议 | [optimize/README.md](optimize/README.md) |
 | agent 操作手册 | [skills/](skills/) |
 
@@ -57,6 +58,7 @@
 | `jobs/reports/` | 实际运行事实 | 历史事实 |
 | `design/` | dbt 模型设计和字段语义 | 当前事实 |
 | `references/` | 外部接口、raw profile、data dict | 可查事实 |
+| `Q&A/` | 设计问答、临时讨论和待升级为 RFC/ADR 的架构判断 | Proposed 或 Temporary |
 | `optimize/` | 质量扫描和治理建议 | 建议或审计结果 |
 | `skills/` | 可复用 agent 操作流程 | 当前 runbook |
 
