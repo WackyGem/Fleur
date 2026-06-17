@@ -122,7 +122,7 @@
 | `portfolio_position_day` | `portfolio_run_id`, `result_attempt_id`, `trade_date`, `security_code`, `quantity`, `market_value`, `cost_basis`, `unrealized_pnl`, `unrealized_return`, `holding_days` |
 | `portfolio_trade` | `portfolio_run_id`, `result_attempt_id`, `trade_seq`, `trade_date`, `security_code`, `side`, `quantity`, `execution_price`, `gross_amount`, `total_fee`, `slippage_cost`, `reason` |
 | `portfolio_run_snapshot` | `portfolio_run_id`, `result_attempt_id`, `source_run_id`, `rule_version_id`, `rule_hash`, `start_date`, `end_date`, `initial_cash`, `price_basis`, `created_at` |
-| `portfolio_performance_metric` | `portfolio_run_id`, `result_attempt_id`, `benchmark_code`, `window_start`, `window_end`, `metric_name` 或宽表指标列、`computed_at`, `metric_config_hash` |
+| `fleur_calculation.calc_portfolio_performance_metric` | `portfolio_run_id`, `result_attempt_id`, `security_code`, `window_key`, `window_start`, `window_end`, 12 个核心指标宽表列、`computed_at`, `config_hash` |
 
 `result_attempt_id` 是关键字段。没有它，重算、口径变更和历史审计会混在同一个 `portfolio_run_id` 下。
 
@@ -212,7 +212,7 @@ Alpha、Beta、信息比率和相对收益都需要 benchmark 日频收益率。
 - risk-free 非交易日是否前值填充到最近交易日。
 - 年化交易日数用固定 252，还是用当年实际交易日数。
 
-这些规则应写入 `metric_config`，并随 `portfolio_performance_metric` 保存配置 hash。
+这些规则应写入 `metric_config`，并随 `fleur_calculation.calc_portfolio_performance_metric` 保存配置 hash。
 
 ## 第一阶段最小可交付
 
@@ -222,7 +222,7 @@ Alpha、Beta、信息比率和相对收益都需要 benchmark 日频收益率。
 2. 新增 `portfolio_run_snapshot`，把 run 维度和 `result_attempt_id` 带入 ClickHouse。
 3. 新增一个 benchmark 日频收益率表，先支持一个默认 benchmark，例如沪深300。
 4. 新增 risk-free rate 配置或日频表，第一版允许固定年化值，但必须显式保存。
-5. 新增 `metric_config` 和 `portfolio_performance_metric`。
+5. 新增 `metric_config` 和 `fleur_calculation.calc_portfolio_performance_metric`。
 
 完成后可权威计算：
 
@@ -281,7 +281,7 @@ sharpe_ratio = (annualized_return - annual_risk_free_rate) / annualized_volatili
 
 ```text
 downside_deviation =
-  sqrt(avg(pow(least(portfolio_daily_return - mar_daily, 0), 2))) * sqrt(annualization_days)
+  sqrt(sum(pow(least(portfolio_daily_return - mar_daily, 0), 2)) / (n - 1)) * sqrt(annualization_days)
 
 sortino_ratio = (annualized_return - annual_risk_free_rate) / downside_deviation
 ```
@@ -290,8 +290,8 @@ sortino_ratio = (annualized_return - annual_risk_free_rate) / downside_deviation
 
 ```text
 drawdown = nav / running_max(nav) - 1
-max_drawdown = min(drawdown)
-calmar_ratio = annualized_return / abs(max_drawdown)
+max_drawdown = abs(min(drawdown))
+calmar_ratio = annualized_return / max_drawdown
 ```
 
 ### 信息比率

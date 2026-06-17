@@ -1,0 +1,33 @@
+version: 2
+
+sources:
+  - name: fleur_portfolio
+    schema: fleur_portfolio
+    description: Worker-authored portfolio run result facts in ClickHouse.
+    tables:
+      - name: portfolio_run_snapshot
+        description: Complete result-attempt marker written last by the portfolio worker.
+        columns:
+          - name: portfolio_run_id
+            description: Portfolio run identifier.
+            data_type: String
+            data_tests:
+              - not_null
+
+          - name: result_attempt_id
+            description: Append-only result attempt identifier.
+            data_type: String
+            data_tests:
+              - not_null
+
+          - name: source_run_id
+            description: Screening source run that produced the portfolio inputs.
+            data_type: String
+
+          - name: start_date
+            description: Portfolio simulation start date.
+            data_type: Date
+
+          - name: end_date
+            description: Portfolio simulation end date.
+            data_type: Date

@@ -1,0 +1,46 @@
+version: 2
+
+models:
+  - name: mart_risk_free_rate_daily
+    description: 组合绩效无风险利率日频 mart 薄封装；作为 worker 和 dbt wrapper 读取 risk-free daily rate 的稳定入口。
+    config:
+      meta:
+        grain_zh: 每个 A 股交易日、每个无风险利率期限一行。
+        business_logic_zh:
+          - 仅从 int_risk_free_rate_daily 选择稳定 contract 字段。
+          - 不重新实现期限选择、forward-fill、单位转换或日频折算。
+          - 第一版 source_tenor 固定为 1y，后续扩展多期限时受控新增。
+    data_tests:
+      - unique_combination_of_columns:
+          arguments:
+            combination_of_columns:
+              - trade_date
+              - source_tenor
+    columns:
+      - name: trade_date
+        description: "{{ doc('field_trade_date') }}"
+        data_type: Date
+        data_tests:
+          - not_null
+
+      - name: source_date
+        description: 实际使用的 ChinaBond 国债收益率曲线日期；当交易日早于第一条来源数据时为 NULL。
+        data_type: Nullable(Date)
+
+      - name: source_tenor
+        description: 无风险利率来源期限；第一版固定为 1y。
+        data_type: String
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values:
+                  - 1y
+
+      - name: annual_rate
+        description: 年化无风险利率，小数比例口径。
+        data_type: Nullable(Float64)
+
+      - name: daily_rate
+        description: 日频无风险收益率。
+        data_type: Nullable(Float64)

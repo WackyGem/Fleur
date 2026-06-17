@@ -1,0 +1,48 @@
+version: 2
+
+models:
+  - name: int_risk_free_rate_daily
+    description: 组合绩效无风险利率日频 intermediate 模型；一行代表一个交易日和期限档位的 worker-ready 日频无风险收益。
+    config:
+      meta:
+        grain_zh: 每个 A 股交易日、每个无风险利率期限一行。
+        business_logic_zh:
+          - 第一版仅支持 source_tenor = 1y，来源为 int_government_bond_yields_daily.one_year_yield_pct。
+          - 上游 ChinaBond 收益率字段为百分比点口径，本模型转换为小数比例 annual_rate。
+          - 使用交易日栅格，只 forward-fill source_date <= trade_date 的历史值，不使用未来值。
+          - daily_rate 使用 compound 口径：(1 + annual_rate) ^ (1 / 252) - 1。
+          - annualization_days、day_count_basis、daily_method 和 fill_strategy 是模型口径，不作为行字段重复存储。
+    data_tests:
+      - unique_combination_of_columns:
+          arguments:
+            combination_of_columns:
+              - trade_date
+              - source_tenor
+    columns:
+      - name: trade_date
+        description: "{{ doc('field_trade_date') }}"
+        data_type: Date
+        data_tests:
+          - not_null
+
+      - name: source_date
+        description: 实际使用的 ChinaBond 国债收益率曲线日期；当交易日早于第一条来源数据时为 NULL。
+        data_type: Nullable(Date)
+
+      - name: source_tenor
+        description: 无风险利率来源期限；第一版固定为 1y。
+        data_type: String
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values:
+                  - 1y
+
+      - name: annual_rate
+        description: 年化无风险利率，小数比例口径，由 one_year_yield_pct / 100 转换。
+        data_type: Nullable(Float64)
+
+      - name: daily_rate
+        description: 日频无风险收益率，默认按 252 交易日复利折算；annual_rate 缺失时为 NULL。
+        data_type: Nullable(Float64)

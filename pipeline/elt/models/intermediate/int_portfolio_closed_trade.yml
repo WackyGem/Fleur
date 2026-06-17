@@ -1,0 +1,38 @@
+version: 2
+
+models:
+  - name: int_portfolio_closed_trade
+    description: Closed trade ledger thin wrapper over worker-authored FIFO lot matching rows.
+    config:
+      meta:
+        grain_zh: 每个 closed_trade_id 一行。
+        business_logic_zh:
+          - 上游 closed trade ledger 由 Rust worker 输出，不由 dbt 从成交流水倒推。
+          - 本模型只派生 total_fee 和 realized_return，不重建 lot 配对逻辑。
+    data_tests:
+      - unique_combination_of_columns:
+          arguments:
+            combination_of_columns:
+              - closed_trade_id
+    columns:
+      - name: closed_trade_id
+        description: Stable closed trade row identifier.
+        data_type: String
+        data_tests:
+          - not_null
+
+      - name: portfolio_run_id
+        description: Portfolio run identifier.
+        data_type: String
+        data_tests:
+          - not_null
+
+      - name: result_attempt_id
+        description: Append-only result attempt identifier.
+        data_type: String
+        data_tests:
+          - not_null
+
+      - name: realized_return
+        description: Realized trade return, realized_pnl divided by entry_gross_amount plus entry_fee; NULL when denominator is zero.
+        data_type: Nullable(Float64)

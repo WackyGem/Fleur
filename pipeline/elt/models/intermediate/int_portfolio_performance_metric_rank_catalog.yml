@@ -1,0 +1,40 @@
+version: 2
+
+models:
+  - name: int_portfolio_performance_metric_rank_catalog
+    description: Ranking direction catalog for portfolio performance metrics.
+    config:
+      meta:
+        grain_zh: 每个 metric_name 一行。
+        business_logic_zh:
+          - beta 第一版 rank_direction = none，不参与优劣排名。
+          - 排名模型只消费本 catalog，不在多个 SQL 中分散指标方向。
+    data_tests:
+      - unique_combination_of_columns:
+          arguments:
+            combination_of_columns:
+              - metric_name
+    columns:
+      - name: metric_name
+        description: Performance metric field name.
+        data_type: String
+        data_tests:
+          - not_null
+
+      - name: rank_direction
+        description: Ranking direction; none means the metric is display/filter only.
+        data_type: String
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [asc, desc, none]
+
+      - name: null_policy
+        description: NULL handling policy for ranking.
+        data_type: String
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [exclude]

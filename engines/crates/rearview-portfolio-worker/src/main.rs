@@ -1,6 +1,7 @@
 use chrono::{Days, NaiveDate};
 use futures_util::StreamExt;
 use rearview_core::clickhouse::ClickHouseClient;
+use rearview_core::clickhouse::calculation_write::CalculationWriteBatch;
 use rearview_core::config::{AppConfig, load_dotenv_if_present};
 use rearview_core::nats::{
     PortfolioTaskMessage, connect_jetstream, ensure_portfolio_consumer, ensure_portfolio_stream,
@@ -8,6 +9,8 @@ use rearview_core::nats::{
 use rearview_core::portfolio::{
     ExitRule, FeeProfile, PortfolioSimulationInput, SlippageProfile, simulate_portfolio,
 };
+use rearview_core::portfolio_performance::{PerformanceMetricConfig, compute_performance_metric};
+use rearview_core::portfolio_trade_metrics::compute_trade_calculation_outputs;
 use rearview_core::postgres::{PortfolioRunRecord, RearviewPg};
 use rearview_core::{RearviewError, RearviewResult};
 use serde::Deserialize;
@@ -123,14 +126,59 @@ async fn process_run(
     let output = simulate_portfolio(&input)?;
 
     let result_attempt_id = ulid::Ulid::new().to_string();
+    let metric_config =
+        PerformanceMetricConfig::default_full_period(&run.portfolio_run_id, &result_attempt_id);
+    let benchmark_returns = clickhouse
+        .query_mart_benchmark_returns(
+            &metric_config.security_code,
+            run.start_date,
+            run.end_date,
+            &format!("portfolio-{result_attempt_id}-benchmark"),
+        )
+        .await?;
+    let risk_free_rates = clickhouse
+        .query_mart_risk_free_rates(
+            &metric_config.risk_free_tenor,
+            run.start_date,
+            run.end_date,
+            &format!("portfolio-{result_attempt_id}-risk-free"),
+        )
+        .await?;
+    let (performance_metric, performance_metric_statuses) = compute_performance_metric(
+        &metric_config,
+        &output.nav,
+        &benchmark_returns,
+        &risk_free_rates,
+    );
+    let (closed_trades, trade_metrics) =
+        compute_trade_calculation_outputs(&run.portfolio_run_id, &result_attempt_id, &output);
+    let calculation_batch = CalculationWriteBatch {
+        performance_metrics: vec![performance_metric],
+        performance_metric_statuses,
+        closed_trades,
+        trade_metrics,
+    };
 
-    // Write results to ClickHouse. Write failures must be "failed_write",
+    // Write results to ClickHouse/PostgreSQL. Write failures must be "failed_write",
     // not "failed_market_data" (which is for read failures), so we handle
     // the error here rather than relying on portfolio_failure_status.
-    if let Err(error) = clickhouse
-        .write_portfolio_results(run, &result_attempt_id, &output)
-        .await
-    {
+    let write_result: RearviewResult<()> = async {
+        let batch = clickhouse
+            .write_portfolio_result_facts(run, &result_attempt_id, &output)
+            .await?;
+        postgres
+            .insert_portfolio_metric_config(&metric_config)
+            .await?;
+        clickhouse
+            .write_portfolio_calculation_outputs(&result_attempt_id, &calculation_batch)
+            .await?;
+        clickhouse
+            .write_portfolio_run_snapshot(&result_attempt_id, &batch.run_snapshot)
+            .await?;
+        Ok(())
+    }
+    .await;
+    if let Err(error) = write_result {
         error!(
             portfolio_run_id = run.portfolio_run_id,
             result_attempt_id = result_attempt_id,

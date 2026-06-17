@@ -1,0 +1,74 @@
+version: 2
+
+models:
+  - name: int_portfolio_performance_metric_status
+    description: Metric-level status wrapper explaining NULL values in int_portfolio_performance_metric.
+    config:
+      meta:
+        grain_zh: 每个 portfolio run、attempt、benchmark、window、metric_name 一行。
+        business_logic_zh:
+          - 上游状态由 Rust portfolio worker 写入 fleur_calculation.calc_portfolio_performance_metric_status。
+          - 本模型只过滤完整 result attempt，不重算或推断指标状态。
+    data_tests:
+      - unique_combination_of_columns:
+          arguments:
+            combination_of_columns:
+              - portfolio_run_id
+              - result_attempt_id
+              - security_code
+              - window_key
+              - metric_name
+    columns:
+      - name: portfolio_run_id
+        description: Portfolio run identifier.
+        data_type: String
+        data_tests:
+          - not_null
+
+      - name: result_attempt_id
+        description: Append-only result attempt identifier.
+        data_type: String
+        data_tests:
+          - not_null
+
+      - name: metric_name
+        description: Performance metric field name.
+        data_type: String
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values:
+                  - holding_period_return
+                  - annualized_return
+                  - annualized_volatility
+                  - max_drawdown
+                  - calmar_ratio
+                  - downside_deviation
+                  - sortino_ratio
+                  - sharpe_ratio
+                  - information_ratio
+                  - beta
+                  - alpha
+                  - treynor_ratio
+
+      - name: metric_status
+        description: Metric-level calculation status.
+        data_type: String
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values:
+                  - succeeded
+                  - insufficient_observations
+                  - missing_benchmark
+                  - missing_risk_free_rate
+                  - zero_division
+                  - invalid_input
+
+      - name: reason_code
+        description: Reason code for the metric status.
+        data_type: String
+        data_tests:
+          - not_null

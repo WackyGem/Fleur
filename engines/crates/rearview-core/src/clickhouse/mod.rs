@@ -5,7 +5,10 @@ use serde::{Deserialize, Deserializer, Serialize};
 use crate::config::ClickHouseConfig;
 use crate::error::{RearviewError, RearviewResult};
 use crate::portfolio::PriceBar;
+use crate::portfolio_performance::{BenchmarkReturn, RiskFreeRate};
 
+pub mod calculation_schema;
+pub mod calculation_write;
 pub mod portfolio_schema;
 pub mod portfolio_write;
 
@@ -15,6 +18,20 @@ use portfolio_write::WriteBatch;
 #[derive(Debug, Clone, Deserialize)]
 struct TradeDateRow {
     trade_date: NaiveDate,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+struct BenchmarkReturnRow {
+    trade_date: NaiveDate,
+    #[serde(default, deserialize_with = "deserialize_optional_f64")]
+    return_daily: Option<f64>,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+struct RiskFreeRateRow {
+    trade_date: NaiveDate,
+    #[serde(default, deserialize_with = "deserialize_optional_f64")]
+    daily_rate: Option<f64>,
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -251,6 +268,15 @@ impl ClickHouseClient {
             self.execute_text(&table_sql, "rearview-portfolio-schema-table")
                 .await?;
         }
+        let calculation_database = &self.config.calculation_database;
+        validate_identifier(calculation_database)?;
+        let db_sql = calculation_schema::create_database_sql(calculation_database);
+        self.execute_text(&db_sql, "rearview-calculation-schema-db")
+            .await?;
+        for table_sql in calculation_schema::all_table_sqls(calculation_database) {
+            self.execute_text(&table_sql, "rearview-calculation-schema-table")
+                .await?;
+        }
         Ok(())
     }
 
@@ -263,12 +289,25 @@ impl ClickHouseClient {
         result_attempt_id: &str,
         output: &crate::portfolio::PortfolioSimulationOutput,
     ) -> RearviewResult<()> {
+        let batch = self
+            .write_portfolio_result_facts(run, result_attempt_id, output)
+            .await?;
+        self.write_portfolio_run_snapshot(result_attempt_id, &batch.run_snapshot)
+            .await?;
+        Ok(())
+    }
+
+    pub async fn write_portfolio_result_facts(
+        &self,
+        run: &crate::postgres::PortfolioRunRecord,
+        result_attempt_id: &str,
+        output: &crate::portfolio::PortfolioSimulationOutput,
+    ) -> RearviewResult<WriteBatch> {
         let database = &self.config.portfolio_database;
         validate_identifier(database)?;
         let batch = WriteBatch::from_output(run, result_attempt_id, output);
         let query_id = format!("rearview-portfolio-write-{result_attempt_id}");
 
-        // Write in dependency order; snapshot last.
         self.insert_rows(database, "portfolio_target", &batch.targets, &query_id)
             .await?;
         self.insert_rows(database, "portfolio_order", &batch.orders, &query_id)
@@ -286,10 +325,115 @@ impl ClickHouseClient {
             .await?;
         self.insert_rows(database, "portfolio_event", &batch.events, &query_id)
             .await?;
-        self.insert_single(
+        Ok(batch)
+    }
+
+    pub async fn write_portfolio_run_snapshot(
+        &self,
+        result_attempt_id: &str,
+        run_snapshot: &portfolio_write::RunSnapshotRow,
+    ) -> RearviewResult<()> {
+        let database = &self.config.portfolio_database;
+        validate_identifier(database)?;
+        let query_id = format!("rearview-portfolio-write-{result_attempt_id}");
+        self.insert_single(database, "portfolio_run_snapshot", run_snapshot, &query_id)
+            .await?;
+        Ok(())
+    }
+
+    pub async fn query_mart_benchmark_returns(
+        &self,
+        security_code: &str,
+        start_date: NaiveDate,
+        end_date: NaiveDate,
+        query_id: &str,
+    ) -> RearviewResult<Vec<BenchmarkReturn>> {
+        validate_identifier(&self.config.marts_database)?;
+        validate_security_code(security_code)?;
+        let database = quote_identifier(&self.config.marts_database);
+        let security_code = quote_string_literal(security_code);
+        let sql = format!(
+            r#"
+SELECT trade_date, return_daily
+FROM {database}.`mart_benchmark_returns_daily`
+WHERE security_code = {security_code}
+  AND trade_date BETWEEN toDate('{start_date}') AND toDate('{end_date}')
+ORDER BY trade_date ASC
+FORMAT JSONEachRow"#
+        );
+        let body = self.execute_text(&sql, query_id).await?;
+        Ok(parse_json_each_row::<BenchmarkReturnRow>(&body)?
+            .into_iter()
+            .map(|row| BenchmarkReturn {
+                trade_date: row.trade_date,
+                return_daily: row.return_daily,
+            })
+            .collect())
+    }
+
+    pub async fn query_mart_risk_free_rates(
+        &self,
+        source_tenor: &str,
+        start_date: NaiveDate,
+        end_date: NaiveDate,
+        query_id: &str,
+    ) -> RearviewResult<Vec<RiskFreeRate>> {
+        validate_identifier(&self.config.marts_database)?;
+        validate_source_tenor(source_tenor)?;
+        let database = quote_identifier(&self.config.marts_database);
+        let source_tenor = quote_string_literal(source_tenor);
+        let sql = format!(
+            r#"
+SELECT trade_date, daily_rate
+FROM {database}.`mart_risk_free_rate_daily`
+WHERE source_tenor = {source_tenor}
+  AND trade_date BETWEEN toDate('{start_date}') AND toDate('{end_date}')
+ORDER BY trade_date ASC
+FORMAT JSONEachRow"#
+        );
+        let body = self.execute_text(&sql, query_id).await?;
+        Ok(parse_json_each_row::<RiskFreeRateRow>(&body)?
+            .into_iter()
+            .map(|row| RiskFreeRate {
+                trade_date: row.trade_date,
+                daily_rate: row.daily_rate,
+            })
+            .collect())
+    }
+
+    pub async fn write_portfolio_calculation_outputs(
+        &self,
+        result_attempt_id: &str,
+        batch: &calculation_write::CalculationWriteBatch,
+    ) -> RearviewResult<()> {
+        let database = &self.config.calculation_database;
+        validate_identifier(database)?;
+        let query_id = format!("rearview-portfolio-calculation-write-{result_attempt_id}");
+        self.insert_rows(
             database,
-            "portfolio_run_snapshot",
-            &batch.run_snapshot,
+            "calc_portfolio_performance_metric",
+            &batch.performance_metrics,
+            &query_id,
+        )
+        .await?;
+        self.insert_rows(
+            database,
+            "calc_portfolio_performance_metric_status",
+            &batch.performance_metric_statuses,
+            &query_id,
+        )
+        .await?;
+        self.insert_rows(
+            database,
+            "calc_portfolio_closed_trade",
+            &batch.closed_trades,
+            &query_id,
+        )
+        .await?;
+        self.insert_rows(
+            database,
+            "calc_portfolio_trade_metric",
+            &batch.trade_metrics,
             &query_id,
         )
         .await?;
@@ -891,6 +1035,24 @@ fn validate_security_code(security_code: &str) -> RearviewResult<()> {
     Ok(())
 }
 
+fn validate_source_tenor(source_tenor: &str) -> RearviewResult<()> {
+    let trimmed = source_tenor.trim();
+    if trimmed.is_empty() || trimmed.len() > 16 {
+        return Err(RearviewError::Validation(format!(
+            "invalid source_tenor: {source_tenor}"
+        )));
+    }
+    if !trimmed
+        .chars()
+        .all(|char| char.is_ascii_alphanumeric() || matches!(char, '_' | '-'))
+    {
+        return Err(RearviewError::Validation(format!(
+            "invalid source_tenor: {source_tenor}"
+        )));
+    }
+    Ok(())
+}
+
 fn quote_identifier(identifier: &str) -> String {
     format!("`{identifier}`")
 }
@@ -1176,7 +1338,7 @@ where
 
 #[cfg(test)]
 mod tests {
-    use super::{QuoteMartRow, ScreeningRow, validate_security_code};
+    use super::{QuoteMartRow, ScreeningRow, validate_security_code, validate_source_tenor};
 
     fn row_json(is_buy_signal: &str) -> String {
         format!(
@@ -1251,6 +1413,13 @@ mod tests {
     #[test]
     fn validate_security_code_rejects_sql_metacharacters() {
         let result = validate_security_code("sh.600000'; drop table x; --");
+
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn validate_source_tenor_rejects_sql_metacharacters() {
+        let result = validate_source_tenor("1y'; drop table x; --");
 
         assert!(result.is_err());
     }

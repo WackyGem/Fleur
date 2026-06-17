@@ -1,0 +1,42 @@
+version: 2
+
+models:
+  - name: mart_portfolio_performance_metric_rank
+    description: Cross-run portfolio performance metric ranking in long format; compares only matching config, benchmark, window, and metric.
+    config:
+      meta:
+        grain_zh: 每个 run、attempt、benchmark、window、metric_name 一行排名结果。
+        business_logic_zh:
+          - 只纳入 metric-level status = succeeded 且 metric_value 非 NULL 的指标。
+          - 按 config_hash、security_code、window_key、metric_name 分组排名，避免不同口径混排。
+          - beta 在 catalog 中 rank_direction = none，第一版不产出排名。
+    data_tests:
+      - unique_combination_of_columns:
+          arguments:
+            combination_of_columns:
+              - portfolio_run_id
+              - result_attempt_id
+              - security_code
+              - window_key
+              - metric_name
+    columns:
+      - name: metric_rank
+        description: Dense rank within config_hash, benchmark, window, and metric group.
+        data_type: UInt64
+        data_tests:
+          - not_null
+
+      - name: metric_name
+        description: Performance metric field name.
+        data_type: String
+        data_tests:
+          - not_null
+
+      - name: rank_direction
+        description: Ranking direction from int_portfolio_performance_metric_rank_catalog.
+        data_type: String
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [asc, desc]

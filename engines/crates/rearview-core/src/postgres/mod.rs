@@ -9,6 +9,7 @@ use crate::clickhouse::ScreeningRow;
 use crate::domain::{MetricCatalog, RuleDependencySnapshot, RuleHash, RuleVersionSpec};
 use crate::error::{RearviewError, RearviewResult};
 use crate::portfolio::BuySignalInput;
+use crate::portfolio_performance::PerformanceMetricConfig;
 
 #[derive(Clone)]
 pub struct RearviewPg {
@@ -33,7 +34,7 @@ impl RearviewPg {
             sqlx::query_scalar("select version_num from alembic_version limit 1")
                 .fetch_optional(&self.pool)
                 .await?;
-        if version.as_deref() != Some("0005_drop_portfolio_pg_facts") {
+        if version.as_deref() != Some("0006_portfolio_metric_config") {
             return Err(RearviewError::Config(format!(
                 "rearview schema version is not compatible: {:?}",
                 version
@@ -51,6 +52,7 @@ impl RearviewPg {
             "market_fee_template",
             "virtual_account_template",
             "portfolio_run",
+            "portfolio_metric_config",
             "portfolio_task_outbox",
         ];
         let rows = sqlx::query(
@@ -612,6 +614,79 @@ impl RearviewPg {
         .bind(portfolio_run_id)
         .bind(result_attempt_id)
         .bind(summary_json)
+        .execute(&self.pool)
+        .await?;
+        Ok(())
+    }
+
+    pub async fn insert_portfolio_metric_config(
+        &self,
+        config: &PerformanceMetricConfig,
+    ) -> RearviewResult<()> {
+        let annualization_days = i32::try_from(config.annualization_days).map_err(|error| {
+            RearviewError::Validation(format!("annualization_days is out of range: {error}"))
+        })?;
+        let min_observations = i32::try_from(config.min_observations).map_err(|error| {
+            RearviewError::Validation(format!("min_observations is out of range: {error}"))
+        })?;
+        let config_version = i32::try_from(config.config_version).map_err(|error| {
+            RearviewError::Validation(format!("config_version is out of range: {error}"))
+        })?;
+
+        sqlx::query(
+            r#"
+            insert into portfolio_metric_config (
+                portfolio_run_id,
+                result_attempt_id,
+                security_code,
+                window_key,
+                window_start,
+                window_end,
+                annualization_days,
+                min_observations,
+                portfolio_return_basis,
+                benchmark_return_basis,
+                risk_free_tenor,
+                risk_free_daily_method,
+                risk_free_fill_strategy,
+                benchmark_fill_strategy,
+                mar,
+                mar_basis,
+                alignment_strategy,
+                first_day_return_handling,
+                zero_division_policy,
+                config_version,
+                config_hash
+            )
+            values (
+                $1, $2, $3, $4, $5, $6, $7, $8, $9, $10,
+                $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21
+            )
+            on conflict (portfolio_run_id, result_attempt_id, security_code, window_key)
+            do nothing
+            "#,
+        )
+        .bind(&config.portfolio_run_id)
+        .bind(&config.result_attempt_id)
+        .bind(&config.security_code)
+        .bind(&config.window_key)
+        .bind(config.window_start)
+        .bind(config.window_end)
+        .bind(annualization_days)
+        .bind(min_observations)
+        .bind(&config.portfolio_return_basis)
+        .bind(&config.benchmark_return_basis)
+        .bind(&config.risk_free_tenor)
+        .bind(&config.risk_free_daily_method)
+        .bind(&config.risk_free_fill_strategy)
+        .bind(&config.benchmark_fill_strategy)
+        .bind(config.mar)
+        .bind(&config.mar_basis)
+        .bind(&config.alignment_strategy)
+        .bind(&config.first_day_return_handling)
+        .bind(&config.zero_division_policy)
+        .bind(config_version)
+        .bind(&config.config_hash)
         .execute(&self.pool)
         .await?;
         Ok(())

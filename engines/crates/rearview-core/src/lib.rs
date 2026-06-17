@@ -11,6 +11,8 @@ pub mod error;
 pub mod nats;
 pub mod planner;
 pub mod portfolio;
+pub mod portfolio_performance;
+pub mod portfolio_trade_metrics;
 pub mod postgres;
 pub mod service;
 

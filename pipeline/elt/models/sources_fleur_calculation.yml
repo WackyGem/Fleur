@@ -430,3 +430,105 @@ sources:
           - name: n_structure_20_is_valid
             description: True when n_structure_20_second_low_ratio is strictly greater than 1.0; false when ratio is NULL or not greater than 1.0.
             data_type: Bool
+
+      - name: calc_portfolio_performance_metric
+        description: Portfolio performance metric wide rows authored by the Rust portfolio worker.
+        columns:
+          - name: portfolio_run_id
+            description: Portfolio run identifier.
+            data_type: String
+            data_tests:
+              - not_null
+
+          - name: result_attempt_id
+            description: Append-only result attempt identifier.
+            data_type: String
+            data_tests:
+              - not_null
+
+          - name: security_code
+            description: Benchmark security code used for relative metrics.
+            data_type: String
+            data_tests:
+              - not_null
+
+          - name: window_key
+            description: Metric window key; first version uses full_period.
+            data_type: String
+            data_tests:
+              - not_null
+
+          - name: metric_status
+            description: Row-level input status for this performance metric row.
+            data_type: String
+
+      - name: calc_portfolio_performance_metric_status
+        description: Metric-level status rows explaining NULL portfolio performance metrics.
+        columns:
+          - name: portfolio_run_id
+            description: Portfolio run identifier.
+            data_type: String
+            data_tests:
+              - not_null
+
+          - name: result_attempt_id
+            description: Append-only result attempt identifier.
+            data_type: String
+            data_tests:
+              - not_null
+
+          - name: metric_name
+            description: Performance metric field name.
+            data_type: String
+            data_tests:
+              - not_null
+
+          - name: metric_status
+            description: Metric-level calculation status.
+            data_type: String
+
+          - name: reason_code
+            description: Reason code for the metric status.
+            data_type: String
+
+      - name: calc_portfolio_closed_trade
+        description: Worker-authored closed trade ledger with FIFO lot pairing.
+        columns:
+          - name: portfolio_run_id
+            description: Portfolio run identifier.
+            data_type: String
+            data_tests:
+              - not_null
+
+          - name: result_attempt_id
+            description: Append-only result attempt identifier.
+            data_type: String
+            data_tests:
+              - not_null
+
+          - name: closed_trade_id
+            description: Stable closed trade row identifier.
+            data_type: String
+            data_tests:
+              - not_null
+
+      - name: calc_portfolio_trade_metric
+        description: Worker-authored trade quality metrics derived from closed trade ledger rows.
+        columns:
+          - name: portfolio_run_id
+            description: Portfolio run identifier.
+            data_type: String
+            data_tests:
+              - not_null
+
+          - name: result_attempt_id
+            description: Append-only result attempt identifier.
+            data_type: String
+            data_tests:
+              - not_null
+
+          - name: window_key
+            description: Metric window key; first version uses full_period.
+            data_type: String
+            data_tests:
+              - not_null

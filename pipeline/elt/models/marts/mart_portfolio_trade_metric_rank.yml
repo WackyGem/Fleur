@@ -1,0 +1,40 @@
+version: 2
+
+models:
+  - name: mart_portfolio_trade_metric_rank
+    description: Cross-run trade quality metric ranking in long format.
+    config:
+      meta:
+        grain_zh: 每个 run、attempt、window、metric_name 一行排名结果。
+        business_logic_zh:
+          - 输入来自 int_portfolio_trade_metric，dbt 不重建 closed trade ledger。
+          - NULL 指标不参与排名。
+    data_tests:
+      - unique_combination_of_columns:
+          arguments:
+            combination_of_columns:
+              - portfolio_run_id
+              - result_attempt_id
+              - window_key
+              - metric_name
+    columns:
+      - name: metric_rank
+        description: Dense rank within window and trade metric group.
+        data_type: UInt64
+        data_tests:
+          - not_null
+
+      - name: metric_name
+        description: Trade quality metric field name.
+        data_type: String
+        data_tests:
+          - not_null
+
+      - name: rank_direction
+        description: Ranking direction.
+        data_type: String
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [asc, desc]
