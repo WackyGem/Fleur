@@ -32,9 +32,9 @@
 | 14 | `turnover_rate` | `number` | `double` | `turnover_rate` | `Float64` | 当日换手率。 |
 | 15 | `reason_type` | `string` | `string` | `reason_type` | `String` | 涨停原因类型。 |
 | 16 | `order_amount` | `number` | `double` | `order_amount` | `Float64` | 涨停封单金额。 |
-| 17 | `high_days` | `string` | `string` | `high_days` | `LowCardinality(String)` | 连板或高度天数文本。 |
+| 17 | `high_days` | `string` | `string` | `high_days` | `LowCardinality(Nullable(String))` | 连板或高度天数文本。 |
 | 18 | `name` | `string` | `string` | `name` | `LowCardinality(String)` | 股票名称。 |
-| 19 | `high_days_value` | `integer` | `int64` | `high_days_value` | `Int64` | 连板或高度天数数值。 |
+| 19 | `high_days_value` | `integer` | `int64` | `high_days_value` | `Nullable(Int64)` | 连板或高度天数数值。 |
 | 20 | `change_tag` | `string` | `string` | `change_tag` | `LowCardinality(String)` | 涨跌幅标签。 |
 | 21 | `market_type` | `string` | `string` | `market_type` | `LowCardinality(String)` | 市场类型。 |
 | 22 | `latest` | `number` | `double` | `latest` | `Float64` | 最新成交价格。 |

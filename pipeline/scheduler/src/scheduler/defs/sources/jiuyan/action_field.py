@@ -1,4 +1,5 @@
 import asyncio
+import hashlib
 import time
 from collections.abc import Mapping
 from datetime import date
@@ -15,7 +16,7 @@ from scheduler.defs.asset_contracts import (
 from scheduler.defs.common.async_boundary import run_async_boundary
 from scheduler.defs.common.metadata import RawMetadataValue, http_stats_metadata
 from scheduler.defs.common.strings import required_string
-from scheduler.defs.config.env import JIUYAN_COOKIE, JIUYAN_TOKEN
+from scheduler.defs.config.env import JIUYAN_COOKIE
 from scheduler.defs.http.client import (
     HeaderFactory,
     HttpRequest,
@@ -40,6 +41,7 @@ from scheduler.defs.resources.http import HttpClientFactoryResource
 from scheduler.defs.resources.s3 import S3SettingsResource
 
 JIUYAN_ACTION_FIELD_URL = "https://app.jiuyangongshe.com/jystock-app/api/v1/action/field"
+JIUYAN_TOKEN_SEED = "Uu0KfOB8iUP69d3c"
 JIUYAN_RATE_LIMIT_ERR_CODE = "9"
 JIUYAN_RATE_LIMIT_MAX_RETRIES = 5
 JIUYAN_RATE_LIMIT_BASE_DELAY = 1.0
@@ -50,23 +52,27 @@ class MarketEventBackfillConfig(dg.Config):
     request_delay: float = 0.0
 
 
+def jiuyan_token_for_timestamp(timestamp_ms: int) -> str:
+    return hashlib.md5(  # noqa: S324 - Jiuyan API requires this MD5 signing algorithm.
+        f"{JIUYAN_TOKEN_SEED}:{timestamp_ms}".encode(),
+        usedforsecurity=False,
+    ).hexdigest()
+
+
 def jiuyan_header_factory() -> HeaderFactory:
-    token = JIUYAN_TOKEN.get_value()
     cookie = JIUYAN_COOKIE.get_value()
-    if not token:
-        msg = "JIUYAN_TOKEN is required"
-        raise RuntimeError(msg)
     if not cookie:
         msg = "JIUYAN_COOKIE is required"
         raise RuntimeError(msg)
 
     def headers() -> Mapping[str, str]:
+        timestamp_ms = int(time.time() * 1000)
         return {
             **browser_json_headers(),
-            "token": token,
+            "token": jiuyan_token_for_timestamp(timestamp_ms),
             "cookie": cookie,
             "platform": "3",
-            "timestamp": str(int(time.time() * 1000)),
+            "timestamp": str(timestamp_ms),
         }
 
     return headers

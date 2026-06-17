@@ -16090,8 +16090,8 @@ sources:
           - ths__limit_up_pool_compacted
         clickhouse_raw_table: fleur_raw.ths__limit_up_pool_compacted
         source_schema_hash: 7e75e676f5c3c3c1b48a81bd4c7415eb474c3a4cfbdcf3158387ab35e1df8892
-        parquet_schema_hash: 13dc4f4c0499db962ecc81359b733b0931a721d2c05c5611612fbacde31bbb2f
-        clickhouse_schema_hash: c623a2e701cf9f10e600e00f3937fe12f3f3c338c7f989123eae5b191a5a1ce1
+        parquet_schema_hash: 8fcbe8f5ba27eab6ea21174bef2c79dd57571d0f112324fe594f0990ca976327
+        clickhouse_schema_hash: 1e46a55df1d83ea501c0c16bacedd87fb570b3659b2d5a568d0c73c4f105199c
     columns:
     - name: date
       description: Raw source column from `ths` field `date`. 原始字段说明：同花顺涨停池对应的交易日期。
@@ -16239,7 +16239,7 @@ sources:
           external_description_zh: 涨停封单金额。
     - name: high_days
       description: Raw source column from `ths` field `high_days`. 原始字段说明：连板或高度天数文本。
-      data_type: LowCardinality(String)
+      data_type: LowCardinality(Nullable(String))
       config:
         meta:
           source_field: high_days
@@ -16257,7 +16257,7 @@ sources:
           external_description_zh: 股票名称。
     - name: high_days_value
       description: Raw source column from `ths` field `high_days_value`. 原始字段说明：连板或高度天数数值。
-      data_type: Int64
+      data_type: Nullable(Int64)
       config:
         meta:
           source_field: high_days_value

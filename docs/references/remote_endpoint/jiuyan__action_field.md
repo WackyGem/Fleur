@@ -18,7 +18,7 @@
 
 | Header | 必填 | 示例值 | 说明 |
 |:-------|:-----|:-------|:-----|
-| `token` | Y | `<your_token>` | APP 级别密钥，从环境变量 `JIUYAN_TOKEN` 读取 |
+| `token` | Y | `md5("Uu0KfOB8iUP69d3c:{timestamp_ms}")` | APP 签名 token，按请求的 Unix 毫秒时间戳动态计算 |
 | `cookie` | Y | `SESSION=<your_session_id>` | 服务端 SESSION ID，从环境变量 `JIUYAN_COOKIE` 读取 |
 | `platform` | Y | `3` | 平台标识（3 = Android） |
 | `timestamp` | Y | `1778309697000` | 当前 Unix 毫秒时间戳，请求发送时动态计算，例如 `str(int(time.time() * 1000))`；不要写死固定值 |
@@ -272,5 +272,5 @@
 - 板块列表**动态变化**，不同日期的板块名称、数量可能不同
 - `reason` 为板块级题材摘要；`expound` 为个股级详细异动解析（多行文本）
 - `num`/`day`/`edition` 在非连板股中为 `null`
-- token 和 SESSION cookie 可能过期，需定期更新
+- token 必须使用当前请求的 `timestamp` 动态计算；SESSION cookie 可能过期，需定期更新
 - `简图` 行为固定占位行，`action_field_id` 为空，无股票列表

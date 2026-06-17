@@ -31,6 +31,7 @@ from scheduler.defs.http.schemas import (
 from scheduler.defs.sources.jiuyan.action_field import (
     fetch_action_field_table_with_client,
     jiuyan_header_factory,
+    jiuyan_token_for_timestamp,
 )
 from scheduler.defs.sources.jiuyan.industry_list import (
     fetch_industry_list_table_with_client,
@@ -54,11 +55,11 @@ def fake_s3_config(bucket: str) -> S3Config:
 
 
 class JiuYanHeaderTest(unittest.TestCase):
-    def test_header_factory_reads_credentials_and_generates_dynamic_timestamp(self) -> None:
+    def test_header_factory_reads_cookie_and_generates_dynamic_token(self) -> None:
         with (
             patch.dict(
                 os.environ,
-                {"JIUYAN_TOKEN": "token-value", "JIUYAN_COOKIE": "SESSION=session-value"},
+                {"JIUYAN_COOKIE": "SESSION=session-value"},
             ),
             patch("time.time", side_effect=[1778309697.0, 1778309698.0]),
         ):
@@ -66,14 +67,18 @@ class JiuYanHeaderTest(unittest.TestCase):
             first = headers()
             second = headers()
 
-        self.assertEqual(first["token"], "token-value")
+        self.assertEqual(first["token"], jiuyan_token_for_timestamp(1778309697000))
         self.assertEqual(first["cookie"], "SESSION=session-value")
         self.assertEqual(first["platform"], "3")
         self.assertEqual(first["timestamp"], "1778309697000")
+        self.assertEqual(second["token"], jiuyan_token_for_timestamp(1778309698000))
         self.assertEqual(second["timestamp"], "1778309698000")
 
-    def test_header_factory_requires_jiuyan_credentials(self) -> None:
-        with patch.dict(os.environ, {}, clear=True), self.assertRaises(RuntimeError):
+    def test_header_factory_requires_jiuyan_cookie(self) -> None:
+        with (
+            patch.dict(os.environ, {}, clear=True),
+            self.assertRaisesRegex(RuntimeError, "JIUYAN_COOKIE is required"),
+        ):
             jiuyan_header_factory()
 
 
@@ -205,6 +210,46 @@ class MarketEventSchemaTest(unittest.TestCase):
         self.assertNotIn("status_msg", table.column_names)
         self.assertEqual(table["date"].to_pylist(), [date(2026, 5, 8)])
         self.assertEqual(table["latest"].to_pylist(), [10.1])
+
+    def test_ths_table_accepts_missing_high_days_fields(self) -> None:
+        table = ths_limit_up_pool_to_table(
+            [
+                {
+                    "date": "20260615",
+                    "info": [
+                        {
+                            "open_num": 1,
+                            "first_limit_up_time": "1781487360",
+                            "last_limit_up_time": "1781506380",
+                            "code": "301373",
+                            "limit_up_type": "换手板",
+                            "order_volume": 1000,
+                            "is_new": False,
+                            "limit_up_suc_rate": 0.5,
+                            "currency_value": 1000000,
+                            "market_id": 33,
+                            "is_again_limit": True,
+                            "change_rate": 20.0,
+                            "turnover_rate": 10.0,
+                            "reason_type": "样例",
+                            "order_amount": 100000,
+                            "high_days": None,
+                            "name": "凌玮科技",
+                            "high_days_value": None,
+                            "change_tag": "LIMIT_BACK",
+                            "market_type": "GEM",
+                            "latest": 25.0,
+                        }
+                    ],
+                }
+            ]
+        ).table
+
+        self.assertEqual(table.num_rows, 1)
+        self.assertTrue(table.schema.field("high_days").nullable)
+        self.assertTrue(table.schema.field("high_days_value").nullable)
+        self.assertEqual(table["high_days"].to_pylist(), [None])
+        self.assertEqual(table["high_days_value"].to_pylist(), [None])
 
     def test_industry_table_keeps_only_result_rows_and_imgs_string(self) -> None:
         table = jiuyan_industry_list_to_table(

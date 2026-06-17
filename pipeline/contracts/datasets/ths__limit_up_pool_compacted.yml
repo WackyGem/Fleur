@@ -83,7 +83,7 @@ source:
     external_description_zh: 涨停封单金额。
   - name: high_days
     type: string
-    required: true
+    required: false
     external_description_zh: 连板或高度天数文本。
   - name: name
     type: string
@@ -91,7 +91,7 @@ source:
     external_description_zh: 股票名称。
   - name: high_days_value
     type: integer
-    required: true
+    required: false
     external_description_zh: 连板或高度天数数值。
   - name: change_tag
     type: string
@@ -159,13 +159,13 @@ parquet:
     nullable: false
   - name: high_days
     type: string
-    nullable: false
+    nullable: true
   - name: name
     type: string
     nullable: false
   - name: high_days_value
     type: int64
-    nullable: false
+    nullable: true
   - name: change_tag
     type: string
     nullable: false
@@ -256,7 +256,7 @@ clickhouse_raw:
   - name: high_days
     type: LowCardinality(String)
     from: high_days
-    nullable: false
+    nullable: true
     reason: expected_low_cardinality_dimension
   - name: name
     type: LowCardinality(String)
@@ -266,7 +266,7 @@ clickhouse_raw:
   - name: high_days_value
     type: Int64
     from: high_days_value
-    nullable: false
+    nullable: true
   - name: change_tag
     type: LowCardinality(String)
     from: change_tag
