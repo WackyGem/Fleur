@@ -2,42 +2,24 @@ version: 2
 
 models:
   - name: int_benchmark_basic_snapshot
-    description: 组合绩效 benchmark 基础信息 intermediate 模型；一行代表一个当前允许的 benchmark 选中指数代码。
-    data_tests:
-      - unique_combination_of_columns:
-          arguments:
-            combination_of_columns:
-              - benchmark_key
-              - security_code
+    description: 组合绩效 benchmark 基础信息 intermediate 模型；一行代表一个当前允许作为 benchmark 的指数代码。
     columns:
-      - name: benchmark_key
-        description: 稳定 benchmark 业务 key，用于组合绩效配置和下游分析。
-        data_type: String
-        data_tests:
-          - not_null
-          - unique
-          - accepted_values:
-              arguments:
-                values:
-                  - csi_a100
-                  - csi_300
-                  - csi_500
-                  - csi_800
-                  - csi_1000
-                  - cnindex_1000
-
-      - name: benchmark_name
-        description: benchmark 中文名称，用于展示和指标 metadata。
-        data_type: String
-        data_tests:
-          - not_null
-
       - name: security_code
         description: "{{ doc('field_security_code') }}"
         data_type: String
         data_tests:
           - not_null
+          - unique
           - cn_security_code_format
+          - accepted_values:
+              arguments:
+                values:
+                  - 000903.SH
+                  - 000300.SH
+                  - 000905.SH
+                  - 000906.SH
+                  - 000852.SH
+                  - 399311.SZ
           - relationships:
               arguments:
                 to: ref('int_index_basic_snapshot')
@@ -62,7 +44,7 @@ models:
                   - BJ
 
       - name: index_name
-        description: BaoStock 当前快照中的指数名称。
+        description: BaoStock 当前快照中的指数名称，作为 benchmark 显示名。
         data_type: String
         data_tests:
           - not_null

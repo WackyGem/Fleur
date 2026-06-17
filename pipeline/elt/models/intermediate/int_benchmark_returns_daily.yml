@@ -2,36 +2,14 @@ version: 2
 
 models:
   - name: int_benchmark_returns_daily
-    description: 组合绩效 benchmark 日收益 intermediate 模型；一行代表一个 benchmark 选中指数在一个交易日的价格指数日收益。
+    description: 组合绩效 benchmark 日收益 intermediate 模型；一行代表一个 benchmark 指数在一个交易日的价格指数日收益。
     data_tests:
       - unique_combination_of_columns:
           arguments:
             combination_of_columns:
-              - benchmark_key
               - security_code
               - trade_date
     columns:
-      - name: benchmark_key
-        description: 稳定 benchmark 业务 key，用于组合绩效配置和下游分析。
-        data_type: String
-        data_tests:
-          - not_null
-          - accepted_values:
-              arguments:
-                values:
-                  - csi_a100
-                  - csi_300
-                  - csi_500
-                  - csi_800
-                  - csi_1000
-                  - cnindex_1000
-
-      - name: benchmark_name
-        description: benchmark 中文名称，用于展示和指标 metadata。
-        data_type: String
-        data_tests:
-          - not_null
-
       - name: security_code
         description: "{{ doc('field_security_code') }}"
         data_type: String

@@ -202,7 +202,9 @@ def upgrade() -> None:
             name="ck_portfolio_run_dispatch_status",
         ),
     )
-    op.create_index("idx_portfolio_run_source_run_created", "portfolio_run", ["source_run_id", "created_at"])
+    op.create_index(
+        "idx_portfolio_run_source_run_created", "portfolio_run", ["source_run_id", "created_at"]
+    )
     op.create_index("idx_portfolio_run_status_created", "portfolio_run", ["status", "created_at"])
     op.create_index(
         "idx_portfolio_run_dispatch_status_created",
