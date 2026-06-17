@@ -25,7 +25,7 @@ def asset_keys(asset: dg.AssetsDefinition) -> set[str]:
 
 def test_source_bundles_have_unique_names_and_defs() -> None:
     bundle_names = [bundle.name for bundle in SOURCE_BUNDLES]
-    assert bundle_names == ["sina", "jiuyan", "ths", "baostock", "eastmoney"]
+    assert bundle_names == ["sina", "jiuyan", "ths", "baostock", "eastmoney", "chinabond"]
     assert len(bundle_names) == len(set(bundle_names))
 
     asset_keys = [asset_key(asset) for bundle in SOURCE_BUNDLES for asset in bundle.assets]
@@ -61,7 +61,7 @@ def test_registered_definitions_match_source_bundles() -> None:
     assert "fleur_calculation/calc_stock_boll_daily" in registered_asset_keys
     assert "fleur_calculation/calc_stock_macd_daily" in registered_asset_keys
     assert "fleur_calculation/calc_stock_price_pattern_daily" in registered_asset_keys
-    assert len(registered_asset_keys) == len(expected_assets | expected_clickhouse_assets) + 40
+    assert len(registered_asset_keys) == len(expected_assets | expected_clickhouse_assets) + 41
     assert {job.name for job in loaded_defs.jobs or []} == (
         expected_jobs | expected_clickhouse_jobs | expected_transformation_jobs
     )
@@ -92,7 +92,7 @@ def test_clickhouse_raw_sync_all_job_is_registered_and_covers_enabled_assets() -
     registered_asset_keys = {asset_key(asset) for asset in CLICKHOUSE_RAW_ASSETS}
 
     assert "clickhouse__raw_sync_all_job" in job_names
-    assert len(enabled_asset_keys) == 16
+    assert len(enabled_asset_keys) == 17
     assert enabled_asset_keys == registered_asset_keys
 
 
@@ -112,8 +112,8 @@ def test_dbt_assets_are_registered_with_raw_lineage_and_checks() -> None:
     mart_volume_key = dg.AssetKey("mart_stock_volume_indicator")
     dbt_asset_def = next(asset for asset in loaded_defs.assets or [] if stg_ths_key in asset.keys)
 
-    assert len(dbt_asset_def.keys) == 34
-    assert len(dbt_asset_def.check_keys) == 248
+    assert len(dbt_asset_def.keys) == 35
+    assert len(dbt_asset_def.check_keys) == 253
     assert "stg_ths__limit_up_pool_compacted" in loaded_asset_keys
     assert "int_stock_kdj_daily" in loaded_asset_keys
     assert "int_stock_ma_daily" in loaded_asset_keys
@@ -154,6 +154,7 @@ def test_dbt_assets_are_registered_with_raw_lineage_and_checks() -> None:
     assert {key.to_user_string() for key in dbt_asset_def.asset_deps[mart_key]} == {
         "int_stock_financial_valuation",
         "int_stock_kdj_daily",
+        "int_stock_quotes_daily_adj",
         "int_stock_quotes_daily_unadj",
     }
     assert {key.to_user_string() for key in dbt_asset_def.asset_deps[mart_trend_key]} == {
@@ -293,6 +294,11 @@ def test_source_bundle_contracts_are_stable() -> None:
         "source/eastmoney__income_sq",
         "source/eastmoney__income_ytd",
     ]
+    assert bundle_contracts["chinabond"] == {
+        "assets": ["source/chinabond__government_bond"],
+        "jobs": ["chinabond__government_bond_job"],
+        "schedules": ["chinabond__government_bond_schedule"],
+    }
 
 
 def test_jiuyan_ocr_pipeline_includes_snapshot_and_schedule_limits_ocr_batch() -> None:

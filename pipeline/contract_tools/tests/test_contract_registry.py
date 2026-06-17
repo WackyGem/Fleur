@@ -26,8 +26,8 @@ def test_contract_registry_loads_raw_and_source_only_datasets() -> None:
         dataset for dataset in registry.datasets if dataset.clickhouse_raw is None
     ]
 
-    assert len(registry.datasets) == 19
-    assert len(raw_datasets) == 16
+    assert len(registry.datasets) == 20
+    assert len(raw_datasets) == 17
     assert {dataset.dataset for dataset in source_only_datasets} == {
         "jiuyan__action_field",
         "jiuyan__industry_ocr",

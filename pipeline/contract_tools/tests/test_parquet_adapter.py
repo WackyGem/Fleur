@@ -23,7 +23,7 @@ def test_parquet_adapter_loads_all_contract_datasets() -> None:
     contracts = parquet_schema_contracts(registry.datasets)
     schemas = pyarrow_schema_by_dataset(registry.datasets)
 
-    assert len(contracts) == 19
+    assert len(contracts) == 20
     assert set(schemas) == {contract.dataset for contract in registry.datasets}
 
 

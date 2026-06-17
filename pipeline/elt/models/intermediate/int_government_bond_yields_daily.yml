@@ -1,0 +1,81 @@
+version: 2
+
+models:
+  - name: int_government_bond_yields_daily
+    description: ChinaBond 国债收益率曲线日频 intermediate 模型，透传 staging 层完整期限收益率字段。
+    config:
+      meta:
+        grain_zh: 每个 ChinaBond 国债收益率曲线日期一行。
+        business_logic_zh:
+          - 直接透传 stg_chinabond__government_bond，不做期限结构派生、插值或单位换算。
+          - 收益率字段保留百分比点口径，不转换为小数比例。
+          - 15 年和 20 年期限当前上游全为空，保留 nullable 字段供后续数据补齐。
+    columns:
+      - name: trade_date
+        description: ChinaBond 国债收益率曲线日期。
+        data_type: Date
+        data_tests:
+          - not_null
+          - unique
+
+      - name: three_month_yield_pct
+        description: 3 个月国债收益率，单位为百分比点。
+        data_type: Nullable(Float64)
+        data_tests:
+          - not_null
+
+      - name: six_month_yield_pct
+        description: 6 个月国债收益率，单位为百分比点。
+        data_type: Nullable(Float64)
+        data_tests:
+          - not_null
+
+      - name: one_year_yield_pct
+        description: 1 年国债收益率，单位为百分比点。
+        data_type: Nullable(Float64)
+        data_tests:
+          - not_null
+
+      - name: two_year_yield_pct
+        description: 2 年国债收益率，单位为百分比点。
+        data_type: Nullable(Float64)
+        data_tests:
+          - not_null
+
+      - name: three_year_yield_pct
+        description: 3 年国债收益率，单位为百分比点。
+        data_type: Nullable(Float64)
+        data_tests:
+          - not_null
+
+      - name: five_year_yield_pct
+        description: 5 年国债收益率，单位为百分比点。
+        data_type: Nullable(Float64)
+        data_tests:
+          - not_null
+
+      - name: seven_year_yield_pct
+        description: 7 年国债收益率，单位为百分比点。
+        data_type: Nullable(Float64)
+        data_tests:
+          - not_null
+
+      - name: ten_year_yield_pct
+        description: 10 年国债收益率，单位为百分比点。
+        data_type: Nullable(Float64)
+        data_tests:
+          - not_null
+
+      - name: fifteen_year_yield_pct
+        description: 15 年国债收益率，单位为百分比点；当前上游数据全为空。
+        data_type: Nullable(Float64)
+
+      - name: twenty_year_yield_pct
+        description: 20 年国债收益率，单位为百分比点；当前上游数据全为空。
+        data_type: Nullable(Float64)
+
+      - name: thirty_year_yield_pct
+        description: 30 年国债收益率，单位为百分比点。
+        data_type: Nullable(Float64)
+        data_tests:
+          - not_null

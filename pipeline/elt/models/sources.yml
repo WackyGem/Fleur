@@ -224,6 +224,153 @@ sources:
           parquet_field: status
           clickhouse_raw_field: status
           external_description_zh: 证券上市状态。
+  - name: chinabond__government_bond
+    description: chinabond__government_bond
+    config:
+      meta:
+        contract_dataset: chinabond__government_bond
+        contract_version: 1
+        upstream_raw_asset: clickhouse/raw/chinabond__government_bond
+        dagster:
+          asset_key:
+          - clickhouse
+          - raw
+          - chinabond__government_bond
+        clickhouse_raw_table: fleur_raw.chinabond__government_bond
+        source_schema_hash: cfad1d28e259f360f1ccb6539a9544fa856d36198151dd39c69df2e59d5e4ec5
+        parquet_schema_hash: eb6112c387cb56bdb33cf90afb366fb29f197ebf4617c7d382aba0cb8c685d99
+        clickhouse_schema_hash: 8b61df4a900a56d42c3926de04e6d887cd649e4e86921b8131429529020594a6
+    columns:
+    - name: work_date
+      description: Raw source column from `chinabond` field `work_date`. 原始字段说明：中债曲线日期，来自原始
+        JSON 字段 workTime，格式为 YYYY-MM-DD。
+      data_type: Date
+      config:
+        meta:
+          source_field: work_date
+          parquet_field: work_date
+          clickhouse_raw_field: work_date
+          external_description_zh: 中债曲线日期，来自原始 JSON 字段 workTime，格式为 YYYY-MM-DD。
+    - name: curve_name
+      description: Raw source column from `chinabond` field `curve_name`. 原始字段说明：曲线名称，来自原始
+        JSON 字段 qxmc。
+      data_type: LowCardinality(String)
+      config:
+        meta:
+          source_field: curve_name
+          parquet_field: curve_name
+          clickhouse_raw_field: curve_name
+          external_description_zh: 曲线名称，来自原始 JSON 字段 qxmc。
+    - name: three_month_yield_pct
+      description: Raw source column from `chinabond` field `three_month_yield_pct`.
+        原始字段说明：3 个月收益率，来自原始 JSON 字段 threeMonth，单位为百分比点。
+      data_type: Nullable(Float64)
+      config:
+        meta:
+          source_field: three_month_yield_pct
+          parquet_field: three_month_yield_pct
+          clickhouse_raw_field: three_month_yield_pct
+          external_description_zh: 3 个月收益率，来自原始 JSON 字段 threeMonth，单位为百分比点。
+    - name: six_month_yield_pct
+      description: Raw source column from `chinabond` field `six_month_yield_pct`.
+        原始字段说明：6 个月收益率，来自原始 JSON 字段 sixMonth，单位为百分比点。
+      data_type: Nullable(Float64)
+      config:
+        meta:
+          source_field: six_month_yield_pct
+          parquet_field: six_month_yield_pct
+          clickhouse_raw_field: six_month_yield_pct
+          external_description_zh: 6 个月收益率，来自原始 JSON 字段 sixMonth，单位为百分比点。
+    - name: one_year_yield_pct
+      description: Raw source column from `chinabond` field `one_year_yield_pct`.
+        原始字段说明：1 年收益率，来自原始 JSON 字段 oneYear，单位为百分比点。
+      data_type: Nullable(Float64)
+      config:
+        meta:
+          source_field: one_year_yield_pct
+          parquet_field: one_year_yield_pct
+          clickhouse_raw_field: one_year_yield_pct
+          external_description_zh: 1 年收益率，来自原始 JSON 字段 oneYear，单位为百分比点。
+    - name: two_year_yield_pct
+      description: Raw source column from `chinabond` field `two_year_yield_pct`.
+        原始字段说明：2 年收益率，来自原始 JSON 字段 twoYear，单位为百分比点。
+      data_type: Nullable(Float64)
+      config:
+        meta:
+          source_field: two_year_yield_pct
+          parquet_field: two_year_yield_pct
+          clickhouse_raw_field: two_year_yield_pct
+          external_description_zh: 2 年收益率，来自原始 JSON 字段 twoYear，单位为百分比点。
+    - name: three_year_yield_pct
+      description: Raw source column from `chinabond` field `three_year_yield_pct`.
+        原始字段说明：3 年收益率，来自原始 JSON 字段 threeYear，单位为百分比点。
+      data_type: Nullable(Float64)
+      config:
+        meta:
+          source_field: three_year_yield_pct
+          parquet_field: three_year_yield_pct
+          clickhouse_raw_field: three_year_yield_pct
+          external_description_zh: 3 年收益率，来自原始 JSON 字段 threeYear，单位为百分比点。
+    - name: five_year_yield_pct
+      description: Raw source column from `chinabond` field `five_year_yield_pct`.
+        原始字段说明：5 年收益率，来自原始 JSON 字段 fiveYear，单位为百分比点。
+      data_type: Nullable(Float64)
+      config:
+        meta:
+          source_field: five_year_yield_pct
+          parquet_field: five_year_yield_pct
+          clickhouse_raw_field: five_year_yield_pct
+          external_description_zh: 5 年收益率，来自原始 JSON 字段 fiveYear，单位为百分比点。
+    - name: seven_year_yield_pct
+      description: Raw source column from `chinabond` field `seven_year_yield_pct`.
+        原始字段说明：7 年收益率，来自原始 JSON 字段 sevenYear，单位为百分比点。
+      data_type: Nullable(Float64)
+      config:
+        meta:
+          source_field: seven_year_yield_pct
+          parquet_field: seven_year_yield_pct
+          clickhouse_raw_field: seven_year_yield_pct
+          external_description_zh: 7 年收益率，来自原始 JSON 字段 sevenYear，单位为百分比点。
+    - name: ten_year_yield_pct
+      description: Raw source column from `chinabond` field `ten_year_yield_pct`.
+        原始字段说明：10 年收益率，来自原始 JSON 字段 tenYear，单位为百分比点。
+      data_type: Nullable(Float64)
+      config:
+        meta:
+          source_field: ten_year_yield_pct
+          parquet_field: ten_year_yield_pct
+          clickhouse_raw_field: ten_year_yield_pct
+          external_description_zh: 10 年收益率，来自原始 JSON 字段 tenYear，单位为百分比点。
+    - name: fifteen_year_yield_pct
+      description: Raw source column from `chinabond` field `fifteen_year_yield_pct`.
+        原始字段说明：15 年收益率，来自原始 JSON 字段 fifteenYear，单位为百分比点。
+      data_type: Nullable(Float64)
+      config:
+        meta:
+          source_field: fifteen_year_yield_pct
+          parquet_field: fifteen_year_yield_pct
+          clickhouse_raw_field: fifteen_year_yield_pct
+          external_description_zh: 15 年收益率，来自原始 JSON 字段 fifteenYear，单位为百分比点。
+    - name: twenty_year_yield_pct
+      description: Raw source column from `chinabond` field `twenty_year_yield_pct`.
+        原始字段说明：20 年收益率，来自原始 JSON 字段 twentyYear，单位为百分比点。
+      data_type: Nullable(Float64)
+      config:
+        meta:
+          source_field: twenty_year_yield_pct
+          parquet_field: twenty_year_yield_pct
+          clickhouse_raw_field: twenty_year_yield_pct
+          external_description_zh: 20 年收益率，来自原始 JSON 字段 twentyYear，单位为百分比点。
+    - name: thirty_year_yield_pct
+      description: Raw source column from `chinabond` field `thirty_year_yield_pct`.
+        原始字段说明：30 年收益率，来自原始 JSON 字段 thirtyYear，单位为百分比点。
+      data_type: Nullable(Float64)
+      config:
+        meta:
+          source_field: thirty_year_yield_pct
+          parquet_field: thirty_year_yield_pct
+          clickhouse_raw_field: thirty_year_yield_pct
+          external_description_zh: 30 年收益率，来自原始 JSON 字段 thirtyYear，单位为百分比点。
   - name: eastmoney__balance
     description: EastMoney balance sheet F10 rows by natural-year raw partition.
     config:
