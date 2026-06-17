@@ -210,11 +210,6 @@ export function buildLowReversalRuleVersionSpec(
           20,
         ),
         points(
-          "below_short_average",
-          compare(forwardClose, "lt", metric("price_avg_ma_3_6_12_24")),
-          15,
-        ),
-        points(
           "between_ma_20_and_ma_60",
           all([
             compare(metric("price_ma_20"), "lt", forwardClose),

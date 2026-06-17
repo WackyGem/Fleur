@@ -345,9 +345,19 @@ async fn get_portfolio_run(
 async fn list_portfolio_nav(
     State(state): State<AppState>,
     Path(portfolio_run_id): Path<String>,
+    Query(query): Query<PortfolioNavQuery>,
 ) -> RearviewResult<Json<impl Serialize>> {
+    let attempt_id = resolve_result_attempt(
+        &state,
+        &portfolio_run_id,
+        query.result_attempt_id.as_deref(),
+    )
+    .await?;
     Ok(Json(
-        state.postgres.list_portfolio_nav(&portfolio_run_id).await?,
+        state
+            .clickhouse
+            .query_portfolio_nav(&portfolio_run_id, &attempt_id)
+            .await?,
     ))
 }
 
@@ -356,14 +366,23 @@ async fn list_portfolio_targets(
     Path(portfolio_run_id): Path<String>,
     Query(query): Query<PortfolioTargetQuery>,
 ) -> RearviewResult<Json<impl Serialize>> {
+    let attempt_id = resolve_result_attempt(
+        &state,
+        &portfolio_run_id,
+        query.result_attempt_id.as_deref(),
+    )
+    .await?;
     Ok(Json(
         state
-            .postgres
-            .list_portfolio_targets(PortfolioTargetFilter {
-                portfolio_run_id,
-                signal_date: query.signal_date,
-                page: page(query.limit, query.offset)?,
-            })
+            .clickhouse
+            .query_portfolio_targets(
+                &PortfolioTargetFilter {
+                    portfolio_run_id,
+                    signal_date: query.signal_date,
+                    page: page(query.limit, query.offset)?,
+                },
+                &attempt_id,
+            )
             .await?,
     ))
 }
@@ -373,15 +392,24 @@ async fn list_portfolio_orders(
     Path(portfolio_run_id): Path<String>,
     Query(query): Query<PortfolioOrderQuery>,
 ) -> RearviewResult<Json<impl Serialize>> {
+    let attempt_id = resolve_result_attempt(
+        &state,
+        &portfolio_run_id,
+        query.result_attempt_id.as_deref(),
+    )
+    .await?;
     Ok(Json(
         state
-            .postgres
-            .list_portfolio_orders(PortfolioOrderFilter {
-                portfolio_run_id,
-                execution_date: query.execution_date,
-                security_code: non_empty(query.security_code),
-                page: page(query.limit, query.offset)?,
-            })
+            .clickhouse
+            .query_portfolio_orders(
+                &PortfolioOrderFilter {
+                    portfolio_run_id,
+                    execution_date: query.execution_date,
+                    security_code: non_empty(query.security_code),
+                    page: page(query.limit, query.offset)?,
+                },
+                &attempt_id,
+            )
             .await?,
     ))
 }
@@ -391,15 +419,24 @@ async fn list_portfolio_trades(
     Path(portfolio_run_id): Path<String>,
     Query(query): Query<PortfolioTradeQuery>,
 ) -> RearviewResult<Json<impl Serialize>> {
+    let attempt_id = resolve_result_attempt(
+        &state,
+        &portfolio_run_id,
+        query.result_attempt_id.as_deref(),
+    )
+    .await?;
     Ok(Json(
         state
-            .postgres
-            .list_portfolio_trades(PortfolioTradeFilter {
-                portfolio_run_id,
-                trade_date: query.trade_date,
-                security_code: non_empty(query.security_code),
-                page: page(query.limit, query.offset)?,
-            })
+            .clickhouse
+            .query_portfolio_trades(
+                &PortfolioTradeFilter {
+                    portfolio_run_id,
+                    trade_date: query.trade_date,
+                    security_code: non_empty(query.security_code),
+                    page: page(query.limit, query.offset)?,
+                },
+                &attempt_id,
+            )
             .await?,
     ))
 }
@@ -409,15 +446,24 @@ async fn list_portfolio_positions(
     Path(portfolio_run_id): Path<String>,
     Query(query): Query<PortfolioPositionQuery>,
 ) -> RearviewResult<Json<impl Serialize>> {
+    let attempt_id = resolve_result_attempt(
+        &state,
+        &portfolio_run_id,
+        query.result_attempt_id.as_deref(),
+    )
+    .await?;
     Ok(Json(
         state
-            .postgres
-            .list_portfolio_positions(PortfolioPositionFilter {
-                portfolio_run_id,
-                trade_date: query.trade_date,
-                security_code: non_empty(query.security_code),
-                page: page(query.limit, query.offset)?,
-            })
+            .clickhouse
+            .query_portfolio_positions(
+                &PortfolioPositionFilter {
+                    portfolio_run_id,
+                    trade_date: query.trade_date,
+                    security_code: non_empty(query.security_code),
+                    page: page(query.limit, query.offset)?,
+                },
+                &attempt_id,
+            )
             .await?,
     ))
 }
@@ -427,15 +473,24 @@ async fn list_portfolio_events(
     Path(portfolio_run_id): Path<String>,
     Query(query): Query<PortfolioEventQuery>,
 ) -> RearviewResult<Json<impl Serialize>> {
+    let attempt_id = resolve_result_attempt(
+        &state,
+        &portfolio_run_id,
+        query.result_attempt_id.as_deref(),
+    )
+    .await?;
     Ok(Json(
         state
-            .postgres
-            .list_portfolio_events(PortfolioEventFilter {
-                portfolio_run_id,
-                trade_date: query.trade_date,
-                event_type: non_empty(query.event_type),
-                page: page(query.limit, query.offset)?,
-            })
+            .clickhouse
+            .query_portfolio_events(
+                &PortfolioEventFilter {
+                    portfolio_run_id,
+                    trade_date: query.trade_date,
+                    event_type: non_empty(query.event_type),
+                    page: page(query.limit, query.offset)?,
+                },
+                &attempt_id,
+            )
             .await?,
     ))
 }
@@ -831,7 +886,15 @@ struct ListPortfolioRunsQuery {
 }
 
 #[derive(Debug, Deserialize)]
+struct PortfolioNavQuery {
+    #[serde(default)]
+    result_attempt_id: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
 struct PortfolioTargetQuery {
+    #[serde(default)]
+    result_attempt_id: Option<String>,
     #[serde(default)]
     signal_date: Option<NaiveDate>,
     #[serde(default)]
@@ -842,6 +905,8 @@ struct PortfolioTargetQuery {
 
 #[derive(Debug, Deserialize)]
 struct PortfolioOrderQuery {
+    #[serde(default)]
+    result_attempt_id: Option<String>,
     #[serde(default)]
     execution_date: Option<NaiveDate>,
     #[serde(default)]
@@ -855,6 +920,8 @@ struct PortfolioOrderQuery {
 #[derive(Debug, Deserialize)]
 struct PortfolioTradeQuery {
     #[serde(default)]
+    result_attempt_id: Option<String>,
+    #[serde(default)]
     trade_date: Option<NaiveDate>,
     #[serde(default)]
     security_code: Option<String>,
@@ -867,6 +934,8 @@ struct PortfolioTradeQuery {
 #[derive(Debug, Deserialize)]
 struct PortfolioPositionQuery {
     #[serde(default)]
+    result_attempt_id: Option<String>,
+    #[serde(default)]
     trade_date: Option<NaiveDate>,
     #[serde(default)]
     security_code: Option<String>,
@@ -878,6 +947,8 @@ struct PortfolioPositionQuery {
 
 #[derive(Debug, Deserialize)]
 struct PortfolioEventQuery {
+    #[serde(default)]
+    result_attempt_id: Option<String>,
     #[serde(default)]
     trade_date: Option<NaiveDate>,
     #[serde(default)]
@@ -1617,6 +1688,25 @@ impl ResultRowsSort {
             ))),
         }
     }
+}
+
+async fn resolve_result_attempt(
+    state: &AppState,
+    portfolio_run_id: &str,
+    override_attempt: Option<&str>,
+) -> RearviewResult<String> {
+    if let Some(attempt) = override_attempt {
+        return Ok(attempt.to_string());
+    }
+    state
+        .postgres
+        .get_current_result_attempt_id(portfolio_run_id)
+        .await?
+        .ok_or_else(|| {
+            RearviewError::NotFound(format!(
+                "no result attempt for portfolio run: {portfolio_run_id}"
+            ))
+        })
 }
 
 #[cfg(test)]

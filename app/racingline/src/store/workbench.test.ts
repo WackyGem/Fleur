@@ -84,7 +84,7 @@ describe("workbench draft helpers", () => {
     expect(
       spec.pool_filters.type === "all" ? spec.pool_filters.conditions.length : 0,
     ).toBe(10)
-    expect(spec.scoring.rules).toHaveLength(8)
+    expect(spec.scoring.rules).toHaveLength(7)
     expect(spec.scoring.clamp).toEqual({ min: 0, max: 99 })
     expect(spec.output_metrics).toContain("close_price_forward_adj")
     expect(spec.output_metrics).toContain("n_structure_20_second_low_ratio")

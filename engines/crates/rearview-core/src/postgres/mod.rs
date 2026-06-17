@@ -1,5 +1,5 @@
 use chrono::{Datelike, NaiveDate};
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use sqlx::postgres::PgPoolOptions;
 use sqlx::{PgPool, Row};
@@ -8,10 +8,7 @@ use uuid::Uuid;
 use crate::clickhouse::ScreeningRow;
 use crate::domain::{MetricCatalog, RuleDependencySnapshot, RuleHash, RuleVersionSpec};
 use crate::error::{RearviewError, RearviewResult};
-use crate::portfolio::{
-    BuySignalInput, OrderReason, OrderSide, OrderStatus, PortfolioEventType,
-    PortfolioSimulationOutput, TargetReason,
-};
+use crate::portfolio::BuySignalInput;
 
 #[derive(Clone)]
 pub struct RearviewPg {
@@ -36,7 +33,7 @@ impl RearviewPg {
             sqlx::query_scalar("select version_num from alembic_version limit 1")
                 .fetch_optional(&self.pool)
                 .await?;
-        if version.as_deref() != Some("0003_rearview_portfolio") {
+        if version.as_deref() != Some("0005_drop_portfolio_pg_facts") {
             return Err(RearviewError::Config(format!(
                 "rearview schema version is not compatible: {:?}",
                 version
@@ -55,12 +52,6 @@ impl RearviewPg {
             "virtual_account_template",
             "portfolio_run",
             "portfolio_task_outbox",
-            "portfolio_target",
-            "portfolio_order",
-            "portfolio_trade",
-            "portfolio_position_day",
-            "portfolio_nav",
-            "portfolio_event",
         ];
         let rows = sqlx::query(
             r#"
@@ -514,7 +505,8 @@ impl RearviewPg {
             select portfolio_run_id, source_run_id, rule_version_id, rule_hash,
                    account_template_id, account_snapshot, execution_snapshot, price_basis,
                    start_date, end_date, status, dispatch_status, nats_stream_sequence,
-                   summary, error_type, error_message
+                   summary, error_type, error_message,
+                   current_result_attempt_id
             from portfolio_run
             where portfolio_run_id = $1
             "#,
@@ -537,7 +529,8 @@ impl RearviewPg {
             select portfolio_run_id, source_run_id, rule_version_id, rule_hash,
                    account_template_id, account_snapshot, execution_snapshot, price_basis,
                    start_date, end_date, status, dispatch_status, nats_stream_sequence,
-                   summary, error_type, error_message
+                   summary, error_type, error_message,
+                   current_result_attempt_id
             from portfolio_run
             where ($1::text is null or source_run_id = $1)
               and (
@@ -563,204 +556,6 @@ impl RearviewPg {
             rows.into_iter()
                 .map(|row| portfolio_run_from_row(&row))
                 .collect(),
-            filter.page,
-        ))
-    }
-
-    pub async fn list_portfolio_nav(
-        &self,
-        portfolio_run_id: &str,
-    ) -> RearviewResult<Vec<PortfolioNavRecord>> {
-        let rows = sqlx::query(
-            r#"
-            select portfolio_run_id, trade_date, cash_balance::float8 as cash_balance,
-                   position_market_value::float8 as position_market_value,
-                   total_equity::float8 as total_equity, nav::float8 as nav,
-                   daily_return::float8 as daily_return, drawdown::float8 as drawdown,
-                   gross_exposure::float8 as gross_exposure, position_count,
-                   turnover::float8 as turnover, fee_amount::float8 as fee_amount,
-                   warning_count
-            from portfolio_nav
-            where portfolio_run_id = $1
-            order by trade_date
-            "#,
-        )
-        .bind(portfolio_run_id)
-        .fetch_all(&self.pool)
-        .await?;
-        Ok(rows.into_iter().map(portfolio_nav_from_row).collect())
-    }
-
-    pub async fn list_portfolio_targets(
-        &self,
-        filter: PortfolioTargetFilter,
-    ) -> RearviewResult<ListResult<PortfolioTargetRecord>> {
-        let rows = sqlx::query(
-            r#"
-            select portfolio_run_id, signal_date, execution_date, security_code,
-                   source_rank, source_score::float8 as source_score,
-                   target_weight::float8 as target_weight,
-                   target_amount::float8 as target_amount,
-                   target_quantity::float8 as target_quantity, target_reason
-            from portfolio_target
-            where portfolio_run_id = $1
-              and ($2::date is null or signal_date = $2)
-            order by signal_date, source_rank nulls last, security_code
-            limit $3
-            offset $4
-            "#,
-        )
-        .bind(filter.portfolio_run_id)
-        .bind(filter.signal_date)
-        .bind(filter.page.fetch_limit())
-        .bind(filter.page.offset)
-        .fetch_all(&self.pool)
-        .await?;
-        Ok(ListResult::from_rows(
-            rows.into_iter().map(portfolio_target_from_row).collect(),
-            filter.page,
-        ))
-    }
-
-    pub async fn list_portfolio_orders(
-        &self,
-        filter: PortfolioOrderFilter,
-    ) -> RearviewResult<ListResult<PortfolioOrderRecord>> {
-        let rows = sqlx::query(
-            r#"
-            select portfolio_order_id, portfolio_run_id, order_seq, signal_date,
-                   execution_date, security_code, side,
-                   order_quantity::float8 as order_quantity,
-                   order_amount::float8 as order_amount,
-                   reference_price::float8 as reference_price, reason, status, event_ref
-            from portfolio_order
-            where portfolio_run_id = $1
-              and ($2::date is null or execution_date = $2)
-              and ($3::text is null or security_code = $3)
-            order by execution_date, order_seq
-            limit $4
-            offset $5
-            "#,
-        )
-        .bind(filter.portfolio_run_id)
-        .bind(filter.execution_date)
-        .bind(filter.security_code)
-        .bind(filter.page.fetch_limit())
-        .bind(filter.page.offset)
-        .fetch_all(&self.pool)
-        .await?;
-        Ok(ListResult::from_rows(
-            rows.into_iter().map(portfolio_order_from_row).collect(),
-            filter.page,
-        ))
-    }
-
-    pub async fn list_portfolio_trades(
-        &self,
-        filter: PortfolioTradeFilter,
-    ) -> RearviewResult<ListResult<PortfolioTradeRecord>> {
-        let rows = sqlx::query(
-            r#"
-            select portfolio_trade_id, portfolio_run_id, trade_seq, portfolio_order_id,
-                   trade_date, signal_date, security_code, side,
-                   quantity::float8 as quantity, reference_price::float8 as reference_price,
-                   execution_price::float8 as execution_price,
-                   gross_amount::float8 as gross_amount, commission::float8 as commission,
-                   stamp_duty::float8 as stamp_duty, transfer_fee::float8 as transfer_fee,
-                   total_fee::float8 as total_fee, slippage_cost::float8 as slippage_cost,
-                   reason
-            from portfolio_trade
-            where portfolio_run_id = $1
-              and ($2::date is null or trade_date = $2)
-              and ($3::text is null or security_code = $3)
-            order by trade_date, trade_seq
-            limit $4
-            offset $5
-            "#,
-        )
-        .bind(filter.portfolio_run_id)
-        .bind(filter.trade_date)
-        .bind(filter.security_code)
-        .bind(filter.page.fetch_limit())
-        .bind(filter.page.offset)
-        .fetch_all(&self.pool)
-        .await?;
-        Ok(ListResult::from_rows(
-            rows.into_iter().map(portfolio_trade_from_row).collect(),
-            filter.page,
-        ))
-    }
-
-    pub async fn list_portfolio_positions(
-        &self,
-        filter: PortfolioPositionFilter,
-    ) -> RearviewResult<ListResult<PortfolioPositionRecord>> {
-        let trade_date = match filter.trade_date {
-            Some(trade_date) => Some(trade_date),
-            None => sqlx::query_scalar(
-                "select max(trade_date) from portfolio_position_day where portfolio_run_id = $1",
-            )
-            .bind(&filter.portfolio_run_id)
-            .fetch_one(&self.pool)
-            .await?,
-        };
-        let rows = sqlx::query(
-            r#"
-            select portfolio_run_id, trade_date, security_code, quantity::float8 as quantity,
-                   cost_basis::float8 as cost_basis,
-                   average_entry_price::float8 as average_entry_price,
-                   close_price::float8 as close_price, market_value::float8 as market_value,
-                   unrealized_pnl::float8 as unrealized_pnl,
-                   unrealized_return::float8 as unrealized_return,
-                   holding_days, is_stale_price
-            from portfolio_position_day
-            where portfolio_run_id = $1
-              and ($2::date is null or trade_date = $2)
-              and ($3::text is null or security_code = $3)
-            order by trade_date, security_code
-            limit $4
-            offset $5
-            "#,
-        )
-        .bind(filter.portfolio_run_id)
-        .bind(trade_date)
-        .bind(filter.security_code)
-        .bind(filter.page.fetch_limit())
-        .bind(filter.page.offset)
-        .fetch_all(&self.pool)
-        .await?;
-        Ok(ListResult::from_rows(
-            rows.into_iter().map(portfolio_position_from_row).collect(),
-            filter.page,
-        ))
-    }
-
-    pub async fn list_portfolio_events(
-        &self,
-        filter: PortfolioEventFilter,
-    ) -> RearviewResult<ListResult<PortfolioEventRecord>> {
-        let rows = sqlx::query(
-            r#"
-            select portfolio_event_id, portfolio_run_id, event_seq, trade_date, security_code,
-                   event_type, severity, message, payload
-            from portfolio_event
-            where portfolio_run_id = $1
-              and ($2::date is null or trade_date = $2)
-              and ($3::text is null or event_type = $3)
-            order by event_seq
-            limit $4
-            offset $5
-            "#,
-        )
-        .bind(filter.portfolio_run_id)
-        .bind(filter.trade_date)
-        .bind(filter.event_type)
-        .bind(filter.page.fetch_limit())
-        .bind(filter.page.offset)
-        .fetch_all(&self.pool)
-        .await?;
-        Ok(ListResult::from_rows(
-            rows.into_iter().map(portfolio_event_from_row).collect(),
             filter.page,
         ))
     }
@@ -792,212 +587,21 @@ impl RearviewPg {
             .collect())
     }
 
-    pub async fn write_portfolio_results(
+    /// Finalize a portfolio run after ClickHouse results are written.
+    /// Updates status to succeeded, sets current_result_attempt_id, and stores summary.
+    pub async fn finalize_portfolio_run_to_clickhouse(
         &self,
         portfolio_run_id: &str,
-        output: &PortfolioSimulationOutput,
+        result_attempt_id: &str,
+        summary: &crate::portfolio::PortfolioSummary,
     ) -> RearviewResult<()> {
-        let mut transaction = self.pool.begin().await?;
-        for table in [
-            "portfolio_event",
-            "portfolio_nav",
-            "portfolio_position_day",
-            "portfolio_trade",
-            "portfolio_order",
-            "portfolio_target",
-        ] {
-            let sql = format!("delete from {table} where portfolio_run_id = $1");
-            sqlx::query(&sql)
-                .bind(portfolio_run_id)
-                .execute(&mut *transaction)
-                .await?;
-        }
-
-        for target in &output.targets {
-            sqlx::query(
-                r#"
-                insert into portfolio_target (
-                    portfolio_run_id, signal_date, execution_date, security_code, source_rank,
-                    source_score, target_weight, target_amount, target_quantity, target_reason
-                )
-                values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
-                "#,
-            )
-            .bind(portfolio_run_id)
-            .bind(target.signal_date)
-            .bind(target.execution_date)
-            .bind(&target.security_code)
-            .bind(i32::try_from(target.source_rank).map_err(|error| {
-                RearviewError::Validation(format!("source_rank is out of range: {error}"))
-            })?)
-            .bind(target.source_score)
-            .bind(target.target_weight)
-            .bind(target.target_amount)
-            .bind(target.target_quantity)
-            .bind(target_reason_str(target.target_reason))
-            .execute(&mut *transaction)
-            .await?;
-        }
-
-        let mut order_ids = std::collections::BTreeMap::new();
-        for order in &output.orders {
-            let portfolio_order_id = Uuid::new_v4().to_string();
-            order_ids.insert(order.order_seq, portfolio_order_id.clone());
-            sqlx::query(
-                r#"
-                insert into portfolio_order (
-                    portfolio_order_id, portfolio_run_id, order_seq, signal_date,
-                    execution_date, security_code, side, order_quantity, order_amount,
-                    reference_price, reason, status
-                )
-                values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
-                "#,
-            )
-            .bind(&portfolio_order_id)
-            .bind(portfolio_run_id)
-            .bind(i32::try_from(order.order_seq).map_err(|error| {
-                RearviewError::Validation(format!("order_seq is out of range: {error}"))
-            })?)
-            .bind(order.signal_date)
-            .bind(order.execution_date)
-            .bind(&order.security_code)
-            .bind(order_side_str(order.side))
-            .bind(order.order_quantity)
-            .bind(order.order_amount)
-            .bind(order.reference_price)
-            .bind(order_reason_str(order.reason))
-            .bind(order_status_str(order.status))
-            .execute(&mut *transaction)
-            .await?;
-        }
-
-        for trade in &output.trades {
-            sqlx::query(
-                r#"
-                insert into portfolio_trade (
-                    portfolio_trade_id, portfolio_run_id, trade_seq, portfolio_order_id,
-                    trade_date, signal_date, security_code, side, quantity, reference_price,
-                    execution_price, gross_amount, commission, stamp_duty, transfer_fee,
-                    total_fee, slippage_cost, reason
-                )
-                values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15,
-                        $16, $17, $18)
-                "#,
-            )
-            .bind(Uuid::new_v4().to_string())
-            .bind(portfolio_run_id)
-            .bind(i32::try_from(trade.trade_seq).map_err(|error| {
-                RearviewError::Validation(format!("trade_seq is out of range: {error}"))
-            })?)
-            .bind(order_ids.get(&trade.order_seq))
-            .bind(trade.trade_date)
-            .bind(trade.signal_date)
-            .bind(&trade.security_code)
-            .bind(order_side_str(trade.side))
-            .bind(trade.quantity)
-            .bind(trade.reference_price)
-            .bind(trade.execution_price)
-            .bind(trade.gross_amount)
-            .bind(trade.commission)
-            .bind(trade.stamp_duty)
-            .bind(trade.transfer_fee)
-            .bind(trade.total_fee)
-            .bind(trade.slippage_cost)
-            .bind(order_reason_str(trade.reason))
-            .execute(&mut *transaction)
-            .await?;
-        }
-
-        for position in &output.positions {
-            sqlx::query(
-                r#"
-                insert into portfolio_position_day (
-                    portfolio_run_id, trade_date, security_code, quantity, cost_basis,
-                    average_entry_price, close_price, market_value, unrealized_pnl,
-                    unrealized_return, holding_days, is_stale_price
-                )
-                values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
-                "#,
-            )
-            .bind(portfolio_run_id)
-            .bind(position.trade_date)
-            .bind(&position.security_code)
-            .bind(position.quantity)
-            .bind(position.cost_basis)
-            .bind(position.average_entry_price)
-            .bind(position.close_price)
-            .bind(position.market_value)
-            .bind(position.unrealized_pnl)
-            .bind(position.unrealized_return)
-            .bind(i32::try_from(position.holding_days).map_err(|error| {
-                RearviewError::Validation(format!("holding_days is out of range: {error}"))
-            })?)
-            .bind(position.is_stale_price)
-            .execute(&mut *transaction)
-            .await?;
-        }
-
-        for nav in &output.nav {
-            sqlx::query(
-                r#"
-                insert into portfolio_nav (
-                    portfolio_run_id, trade_date, cash_balance, position_market_value,
-                    total_equity, nav, daily_return, drawdown, gross_exposure, position_count,
-                    turnover, fee_amount, warning_count
-                )
-                values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
-                "#,
-            )
-            .bind(portfolio_run_id)
-            .bind(nav.trade_date)
-            .bind(nav.cash_balance)
-            .bind(nav.position_market_value)
-            .bind(nav.total_equity)
-            .bind(nav.nav)
-            .bind(nav.daily_return)
-            .bind(nav.drawdown)
-            .bind(nav.gross_exposure)
-            .bind(i32::try_from(nav.position_count).map_err(|error| {
-                RearviewError::Validation(format!("position_count is out of range: {error}"))
-            })?)
-            .bind(nav.turnover)
-            .bind(nav.fee_amount)
-            .bind(i32::try_from(nav.warning_count).map_err(|error| {
-                RearviewError::Validation(format!("warning_count is out of range: {error}"))
-            })?)
-            .execute(&mut *transaction)
-            .await?;
-        }
-
-        for event in &output.events {
-            sqlx::query(
-                r#"
-                insert into portfolio_event (
-                    portfolio_event_id, portfolio_run_id, event_seq, trade_date, security_code,
-                    event_type, severity, message, payload
-                )
-                values ($1, $2, $3, $4, $5, $6, 'warning', $7, '{}'::jsonb)
-                "#,
-            )
-            .bind(Uuid::new_v4().to_string())
-            .bind(portfolio_run_id)
-            .bind(i32::try_from(event.event_seq).map_err(|error| {
-                RearviewError::Validation(format!("event_seq is out of range: {error}"))
-            })?)
-            .bind(event.trade_date)
-            .bind(&event.security_code)
-            .bind(portfolio_event_type_str(event.event_type))
-            .bind(&event.message)
-            .execute(&mut *transaction)
-            .await?;
-        }
-
-        let summary = serde_json::to_value(&output.summary)?;
+        let summary_json = serde_json::to_value(summary)?;
         sqlx::query(
             r#"
             update portfolio_run
             set status = 'succeeded',
-                summary = $2::jsonb,
+                current_result_attempt_id = $2,
+                summary = $3::jsonb,
                 error_type = null,
                 error_message = null,
                 completed_at = now(),
@@ -1006,11 +610,25 @@ impl RearviewPg {
             "#,
         )
         .bind(portfolio_run_id)
-        .bind(summary)
-        .execute(&mut *transaction)
+        .bind(result_attempt_id)
+        .bind(summary_json)
+        .execute(&self.pool)
         .await?;
-        transaction.commit().await?;
         Ok(())
+    }
+
+    /// Get the current_result_attempt_id for a portfolio run.
+    pub async fn get_current_result_attempt_id(
+        &self,
+        portfolio_run_id: &str,
+    ) -> RearviewResult<Option<String>> {
+        let row: Option<(Option<String>,)> = sqlx::query_as(
+            "select current_result_attempt_id from portfolio_run where portfolio_run_id = $1",
+        )
+        .bind(portfolio_run_id)
+        .fetch_optional(&self.pool)
+        .await?;
+        Ok(row.and_then(|(v,)| v))
     }
 
     pub async fn set_portfolio_run_status(
@@ -1066,7 +684,8 @@ impl RearviewPg {
             returning portfolio_run_id, source_run_id, rule_version_id, rule_hash,
                       account_template_id, account_snapshot, execution_snapshot, price_basis,
                       start_date, end_date, status, dispatch_status, nats_stream_sequence,
-                      summary, error_type, error_message
+                      summary, error_type, error_message,
+                      current_result_attempt_id
             "#,
         )
         .bind(portfolio_run_id)
@@ -2040,7 +1659,7 @@ pub struct Page {
 }
 
 impl Page {
-    fn fetch_limit(self) -> i64 {
+    pub(crate) fn fetch_limit(self) -> i64 {
         self.limit + 1
     }
 }
@@ -2054,7 +1673,7 @@ pub struct ListResult<T> {
 }
 
 impl<T> ListResult<T> {
-    fn from_rows(mut rows: Vec<T>, page: Page) -> Self {
+    pub(crate) fn from_rows(mut rows: Vec<T>, page: Page) -> Self {
         let has_more = rows.len() > page.limit as usize;
         if has_more {
             rows.truncate(page.limit as usize);
@@ -2290,9 +1909,10 @@ pub struct PortfolioRunRecord {
     pub summary: Value,
     pub error_type: Option<String>,
     pub error_message: Option<String>,
+    pub current_result_attempt_id: Option<String>,
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PortfolioTargetRecord {
     pub portfolio_run_id: String,
     pub signal_date: NaiveDate,
@@ -2306,7 +1926,7 @@ pub struct PortfolioTargetRecord {
     pub target_reason: String,
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PortfolioOrderRecord {
     pub portfolio_order_id: String,
     pub portfolio_run_id: String,
@@ -2323,7 +1943,7 @@ pub struct PortfolioOrderRecord {
     pub event_ref: Option<String>,
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PortfolioTradeRecord {
     pub portfolio_trade_id: String,
     pub portfolio_run_id: String,
@@ -2345,7 +1965,7 @@ pub struct PortfolioTradeRecord {
     pub reason: String,
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PortfolioPositionRecord {
     pub portfolio_run_id: String,
     pub trade_date: NaiveDate,
@@ -2361,7 +1981,7 @@ pub struct PortfolioPositionRecord {
     pub is_stale_price: bool,
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PortfolioNavRecord {
     pub portfolio_run_id: String,
     pub trade_date: NaiveDate,
@@ -2378,7 +1998,7 @@ pub struct PortfolioNavRecord {
     pub warning_count: i32,
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PortfolioEventRecord {
     pub portfolio_event_id: String,
     pub portfolio_run_id: String,
@@ -2583,150 +2203,7 @@ fn portfolio_run_from_row(row: &sqlx::postgres::PgRow) -> PortfolioRunRecord {
         summary: row.get("summary"),
         error_type: row.get("error_type"),
         error_message: row.get("error_message"),
-    }
-}
-
-fn portfolio_target_from_row(row: sqlx::postgres::PgRow) -> PortfolioTargetRecord {
-    PortfolioTargetRecord {
-        portfolio_run_id: row.get("portfolio_run_id"),
-        signal_date: row.get("signal_date"),
-        execution_date: row.get("execution_date"),
-        security_code: row.get("security_code"),
-        source_rank: row.get("source_rank"),
-        source_score: row.get("source_score"),
-        target_weight: row.get("target_weight"),
-        target_amount: row.get("target_amount"),
-        target_quantity: row.get("target_quantity"),
-        target_reason: row.get("target_reason"),
-    }
-}
-
-fn portfolio_order_from_row(row: sqlx::postgres::PgRow) -> PortfolioOrderRecord {
-    PortfolioOrderRecord {
-        portfolio_order_id: row.get("portfolio_order_id"),
-        portfolio_run_id: row.get("portfolio_run_id"),
-        order_seq: row.get("order_seq"),
-        signal_date: row.get("signal_date"),
-        execution_date: row.get("execution_date"),
-        security_code: row.get("security_code"),
-        side: row.get("side"),
-        order_quantity: row.get("order_quantity"),
-        order_amount: row.get("order_amount"),
-        reference_price: row.get("reference_price"),
-        reason: row.get("reason"),
-        status: row.get("status"),
-        event_ref: row.get("event_ref"),
-    }
-}
-
-fn portfolio_trade_from_row(row: sqlx::postgres::PgRow) -> PortfolioTradeRecord {
-    PortfolioTradeRecord {
-        portfolio_trade_id: row.get("portfolio_trade_id"),
-        portfolio_run_id: row.get("portfolio_run_id"),
-        trade_seq: row.get("trade_seq"),
-        portfolio_order_id: row.get("portfolio_order_id"),
-        trade_date: row.get("trade_date"),
-        signal_date: row.get("signal_date"),
-        security_code: row.get("security_code"),
-        side: row.get("side"),
-        quantity: row.get("quantity"),
-        reference_price: row.get("reference_price"),
-        execution_price: row.get("execution_price"),
-        gross_amount: row.get("gross_amount"),
-        commission: row.get("commission"),
-        stamp_duty: row.get("stamp_duty"),
-        transfer_fee: row.get("transfer_fee"),
-        total_fee: row.get("total_fee"),
-        slippage_cost: row.get("slippage_cost"),
-        reason: row.get("reason"),
-    }
-}
-
-fn portfolio_position_from_row(row: sqlx::postgres::PgRow) -> PortfolioPositionRecord {
-    PortfolioPositionRecord {
-        portfolio_run_id: row.get("portfolio_run_id"),
-        trade_date: row.get("trade_date"),
-        security_code: row.get("security_code"),
-        quantity: row.get("quantity"),
-        cost_basis: row.get("cost_basis"),
-        average_entry_price: row.get("average_entry_price"),
-        close_price: row.get("close_price"),
-        market_value: row.get("market_value"),
-        unrealized_pnl: row.get("unrealized_pnl"),
-        unrealized_return: row.get("unrealized_return"),
-        holding_days: row.get("holding_days"),
-        is_stale_price: row.get("is_stale_price"),
-    }
-}
-
-fn portfolio_nav_from_row(row: sqlx::postgres::PgRow) -> PortfolioNavRecord {
-    PortfolioNavRecord {
-        portfolio_run_id: row.get("portfolio_run_id"),
-        trade_date: row.get("trade_date"),
-        cash_balance: row.get("cash_balance"),
-        position_market_value: row.get("position_market_value"),
-        total_equity: row.get("total_equity"),
-        nav: row.get("nav"),
-        daily_return: row.get("daily_return"),
-        drawdown: row.get("drawdown"),
-        gross_exposure: row.get("gross_exposure"),
-        position_count: row.get("position_count"),
-        turnover: row.get("turnover"),
-        fee_amount: row.get("fee_amount"),
-        warning_count: row.get("warning_count"),
-    }
-}
-
-fn portfolio_event_from_row(row: sqlx::postgres::PgRow) -> PortfolioEventRecord {
-    PortfolioEventRecord {
-        portfolio_event_id: row.get("portfolio_event_id"),
-        portfolio_run_id: row.get("portfolio_run_id"),
-        event_seq: row.get("event_seq"),
-        trade_date: row.get("trade_date"),
-        security_code: row.get("security_code"),
-        event_type: row.get("event_type"),
-        severity: row.get("severity"),
-        message: row.get("message"),
-        payload: row.get("payload"),
-    }
-}
-
-fn target_reason_str(reason: TargetReason) -> &'static str {
-    match reason {
-        TargetReason::BuySignal => "buy_signal",
-    }
-}
-
-fn order_side_str(side: OrderSide) -> &'static str {
-    match side {
-        OrderSide::Buy => "buy",
-        OrderSide::Sell => "sell",
-    }
-}
-
-fn order_reason_str(reason: OrderReason) -> &'static str {
-    match reason {
-        OrderReason::Rebalance => "rebalance",
-        OrderReason::FixedStopLoss => "fixed_stop_loss",
-        OrderReason::TakeProfit => "take_profit",
-        OrderReason::TimeStopLoss => "time_stop_loss",
-    }
-}
-
-fn order_status_str(status: OrderStatus) -> &'static str {
-    match status {
-        OrderStatus::Filled => "filled",
-        OrderStatus::SkippedPriceMissing => "skipped_price_missing",
-        OrderStatus::SkippedCashInsufficient => "skipped_cash_insufficient",
-        OrderStatus::SkippedBelowMinLot => "skipped_below_min_lot",
-    }
-}
-
-fn portfolio_event_type_str(event_type: PortfolioEventType) -> &'static str {
-    match event_type {
-        PortfolioEventType::PriceMissing => "price_missing",
-        PortfolioEventType::CashInsufficientForMinLot => "cash_insufficient_for_min_lot",
-        PortfolioEventType::TargetAmountBelowMinLot => "target_amount_below_min_lot",
+        current_result_attempt_id: row.get("current_result_attempt_id"),
     }
 }
 

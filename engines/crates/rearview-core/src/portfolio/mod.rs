@@ -232,6 +232,45 @@ struct FeeBreakdown {
     total: f64,
 }
 
+pub fn target_reason_str(reason: TargetReason) -> &'static str {
+    match reason {
+        TargetReason::BuySignal => "buy_signal",
+    }
+}
+
+pub fn order_side_str(side: OrderSide) -> &'static str {
+    match side {
+        OrderSide::Buy => "buy",
+        OrderSide::Sell => "sell",
+    }
+}
+
+pub fn order_reason_str(reason: OrderReason) -> &'static str {
+    match reason {
+        OrderReason::Rebalance => "rebalance",
+        OrderReason::FixedStopLoss => "fixed_stop_loss",
+        OrderReason::TakeProfit => "take_profit",
+        OrderReason::TimeStopLoss => "time_stop_loss",
+    }
+}
+
+pub fn order_status_str(status: OrderStatus) -> &'static str {
+    match status {
+        OrderStatus::Filled => "filled",
+        OrderStatus::SkippedPriceMissing => "skipped_price_missing",
+        OrderStatus::SkippedCashInsufficient => "skipped_cash_insufficient",
+        OrderStatus::SkippedBelowMinLot => "skipped_below_min_lot",
+    }
+}
+
+pub fn portfolio_event_type_str(event_type: PortfolioEventType) -> &'static str {
+    match event_type {
+        PortfolioEventType::PriceMissing => "price_missing",
+        PortfolioEventType::CashInsufficientForMinLot => "cash_insufficient_for_min_lot",
+        PortfolioEventType::TargetAmountBelowMinLot => "target_amount_below_min_lot",
+    }
+}
+
 pub fn simulate_portfolio(
     input: &PortfolioSimulationInput,
 ) -> RearviewResult<PortfolioSimulationOutput> {

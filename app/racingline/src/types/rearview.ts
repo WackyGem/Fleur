@@ -122,6 +122,7 @@ export type PortfolioRunRecord = {
   summary: PortfolioSummary
   error_type?: string | null
   error_message?: string | null
+  current_result_attempt_id?: string | null
 }
 
 export type PortfolioNavRecord = {

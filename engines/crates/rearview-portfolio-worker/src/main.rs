@@ -40,6 +40,7 @@ async fn run() -> RearviewResult<()> {
     let config = AppConfig::from_env()?;
     let postgres = RearviewPg::connect(&config.rearview_database_url).await?;
     let clickhouse = ClickHouseClient::new(config.clickhouse.clone())?;
+    clickhouse.ensure_portfolio_schema().await?;
     let jetstream = connect_jetstream(&config.nats).await?;
     let stream = ensure_portfolio_stream(&jetstream, &config.nats).await?;
     let consumer = ensure_portfolio_consumer(&stream, &config.nats).await?;
@@ -120,11 +121,39 @@ async fn process_run(
 ) -> RearviewResult<()> {
     let input = build_simulation_input(postgres, clickhouse, run).await?;
     let output = simulate_portfolio(&input)?;
+
+    let result_attempt_id = ulid::Ulid::new().to_string();
+
+    // Write results to ClickHouse. Write failures must be "failed_write",
+    // not "failed_market_data" (which is for read failures), so we handle
+    // the error here rather than relying on portfolio_failure_status.
+    if let Err(error) = clickhouse
+        .write_portfolio_results(run, &result_attempt_id, &output)
+        .await
+    {
+        error!(
+            portfolio_run_id = run.portfolio_run_id,
+            result_attempt_id = result_attempt_id,
+            error = %error,
+            "clickhouse write failed"
+        );
+        postgres
+            .set_portfolio_run_status(&run.portfolio_run_id, "failed_write", Some(&error))
+            .await?;
+        return Ok(());
+    }
+
     postgres
-        .write_portfolio_results(&run.portfolio_run_id, &output)
+        .finalize_portfolio_run_to_clickhouse(
+            &run.portfolio_run_id,
+            &result_attempt_id,
+            &output.summary,
+        )
         .await?;
+
     info!(
         portfolio_run_id = run.portfolio_run_id,
+        result_attempt_id = result_attempt_id,
         nav_points = output.nav.len(),
         trades = output.trades.len(),
         "portfolio run succeeded"

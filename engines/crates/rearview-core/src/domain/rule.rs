@@ -459,11 +459,7 @@ pub fn representative_rule() -> RuleVersionSpec {
                     Operator::Gt,
                     Operand::metric("price_avg_ma_14_28_57_114"),
                 ),
-                compare(
-                    forward_close.clone(),
-                    Operator::Gt,
-                    price_avg_ma_3_6_12_24.clone(),
-                ),
+                compare(forward_close.clone(), Operator::Gt, price_avg_ma_3_6_12_24),
                 compare(price_ma_60.clone(), Operator::Gt, price_ma_114.clone()),
                 compare(price_ma_114, Operator::Gt, price_ma_250),
                 compare(
@@ -498,11 +494,6 @@ pub fn representative_rule() -> RuleVersionSpec {
                         Operand::multiply(Operand::metric("volume_ma_5"), Operand::number(0.6)),
                     ),
                     20.0,
-                ),
-                points(
-                    "below_short_average",
-                    compare(forward_close.clone(), Operator::Lt, price_avg_ma_3_6_12_24),
-                    15.0,
                 ),
                 points(
                     "between_ma_20_and_ma_60",
@@ -689,7 +680,7 @@ mod tests {
                 max: 99.0
             }
         );
-        assert_eq!(rule.scoring.rules.len(), 8);
+        assert_eq!(rule.scoring.rules.len(), 7);
         assert_eq!(
             match &rule.pool_filters {
                 FilterExpr::All { conditions } => conditions.len(),

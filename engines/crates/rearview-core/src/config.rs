@@ -23,6 +23,7 @@ pub struct ClickHouseConfig {
     pub password: String,
     pub secure: bool,
     pub marts_database: String,
+    pub portfolio_database: String,
     pub connect_timeout: Duration,
     pub query_timeout: Duration,
     pub max_execution_time_seconds: u64,
@@ -91,6 +92,10 @@ impl ClickHouseConfig {
             password: env_with_default("CLICKHOUSE_PASSWORD", ""),
             secure: parse_env("CLICKHOUSE_SECURE", "false")?,
             marts_database: env_with_default("REARVIEW_CLICKHOUSE_MARTS_DATABASE", "fleur_marts"),
+            portfolio_database: env_with_default(
+                "REARVIEW_CLICKHOUSE_PORTFOLIO_DATABASE",
+                "fleur_portfolio",
+            ),
             connect_timeout: Duration::from_secs(parse_env(
                 "CLICKHOUSE_CONNECT_TIMEOUT_SECONDS",
                 "10",
@@ -160,6 +165,7 @@ mod tests {
             password: String::new(),
             secure: false,
             marts_database: "fleur_marts".to_string(),
+            portfolio_database: "fleur_portfolio".to_string(),
             connect_timeout: Duration::from_secs(1),
             query_timeout: Duration::from_secs(1),
             max_execution_time_seconds: 30,
