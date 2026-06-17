@@ -1,0 +1,180 @@
+version: 2
+
+models:
+  - name: stg_chinabond__government_bond
+    description: ChinaBond 国债收益率曲线 staging 模型。
+    columns:
+      - name: trade_date
+        description: ChinaBond 国债收益率曲线日期，来自 raw `work_date`。
+        data_type: Date
+        data_tests:
+          - not_null
+          - unique
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: chinabond__government_bond
+                column: work_date
+
+      - name: three_month_yield_pct
+        description: 3 个月国债收益率，单位为百分比点。
+        data_type: Nullable(Float64)
+        data_tests:
+          - not_null
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: chinabond__government_bond
+                column: three_month_yield_pct
+            unit: percent
+            scale: percent_value_not_fraction
+
+      - name: six_month_yield_pct
+        description: 6 个月国债收益率，单位为百分比点。
+        data_type: Nullable(Float64)
+        data_tests:
+          - not_null
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: chinabond__government_bond
+                column: six_month_yield_pct
+            unit: percent
+            scale: percent_value_not_fraction
+
+      - name: one_year_yield_pct
+        description: 1 年国债收益率，单位为百分比点。
+        data_type: Nullable(Float64)
+        data_tests:
+          - not_null
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: chinabond__government_bond
+                column: one_year_yield_pct
+            unit: percent
+            scale: percent_value_not_fraction
+
+      - name: two_year_yield_pct
+        description: 2 年国债收益率，单位为百分比点。
+        data_type: Nullable(Float64)
+        data_tests:
+          - not_null
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: chinabond__government_bond
+                column: two_year_yield_pct
+            unit: percent
+            scale: percent_value_not_fraction
+
+      - name: three_year_yield_pct
+        description: 3 年国债收益率，单位为百分比点。
+        data_type: Nullable(Float64)
+        data_tests:
+          - not_null
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: chinabond__government_bond
+                column: three_year_yield_pct
+            unit: percent
+            scale: percent_value_not_fraction
+
+      - name: five_year_yield_pct
+        description: 5 年国债收益率，单位为百分比点。
+        data_type: Nullable(Float64)
+        data_tests:
+          - not_null
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: chinabond__government_bond
+                column: five_year_yield_pct
+            unit: percent
+            scale: percent_value_not_fraction
+
+      - name: seven_year_yield_pct
+        description: 7 年国债收益率，单位为百分比点。
+        data_type: Nullable(Float64)
+        data_tests:
+          - not_null
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: chinabond__government_bond
+                column: seven_year_yield_pct
+            unit: percent
+            scale: percent_value_not_fraction
+
+      - name: ten_year_yield_pct
+        description: 10 年国债收益率，单位为百分比点。
+        data_type: Nullable(Float64)
+        data_tests:
+          - not_null
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: chinabond__government_bond
+                column: ten_year_yield_pct
+            unit: percent
+            scale: percent_value_not_fraction
+
+      - name: fifteen_year_yield_pct
+        description: 15 年国债收益率，单位为百分比点；当前 raw 数据全为空。
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: chinabond__government_bond
+                column: fifteen_year_yield_pct
+            unit: percent
+            scale: percent_value_not_fraction
+
+      - name: twenty_year_yield_pct
+        description: 20 年国债收益率，单位为百分比点；当前 raw 数据全为空。
+        data_type: Nullable(Float64)
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: chinabond__government_bond
+                column: twenty_year_yield_pct
+            unit: percent
+            scale: percent_value_not_fraction
+
+      - name: thirty_year_yield_pct
+        description: 30 年国债收益率，单位为百分比点。
+        data_type: Nullable(Float64)
+        data_tests:
+          - not_null
+        config:
+          meta:
+            dictionary_scope: local
+            source_columns:
+              - source: raw
+                table: chinabond__government_bond
+                column: thirty_year_yield_pct
+            unit: percent
+            scale: percent_value_not_fraction

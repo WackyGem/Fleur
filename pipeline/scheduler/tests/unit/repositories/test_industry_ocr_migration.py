@@ -18,6 +18,7 @@ _MIGRATION_PATH = (
     / "pipeline"
     / "migrate"
     / "versions"
+    / "pipeline"
     / "0001_create_jiuyan_industry_images.py"
 )
 

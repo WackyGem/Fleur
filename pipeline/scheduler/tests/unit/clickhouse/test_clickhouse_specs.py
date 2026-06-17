@@ -13,8 +13,9 @@ def test_enabled_specs_cover_initial_snapshot_compacted_and_eastmoney_groups() -
         spec.raw_asset_key.to_user_string() for spec in ENABLED_CLICKHOUSE_RAW_TABLE_SPECS
     }
 
-    assert len(raw_asset_keys) == 16
+    assert len(raw_asset_keys) == 17
     assert "clickhouse/raw/baostock__query_history_k_data_plus_daily" in raw_asset_keys
+    assert "clickhouse/raw/chinabond__government_bond" in raw_asset_keys
     assert "clickhouse/raw/sina__trade_calendar" in raw_asset_keys
     assert "clickhouse/raw/jiuyan__industry_ocr_snapshot" in raw_asset_keys
     assert "clickhouse/raw/jiuyan__action_field_compacted" in raw_asset_keys

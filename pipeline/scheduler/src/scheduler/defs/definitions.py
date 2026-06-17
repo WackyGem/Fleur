@@ -22,6 +22,7 @@ from scheduler.defs.source_bundle import (
     bundle_jobs,
     bundle_schedules,
 )
+from scheduler.defs.sources.chinabond.definitions import chinabond_bundle
 from scheduler.defs.sources.eastmoney.definitions import eastmoney_bundle
 from scheduler.defs.sources.jiuyan.definitions import jiuyan_bundle
 from scheduler.defs.sources.sina.definitions import sina_bundle
@@ -33,6 +34,7 @@ SOURCE_BUNDLES: tuple[SourceBundle, ...] = (
     ths_bundle,
     baostock_bundle,
     eastmoney_bundle,
+    chinabond_bundle,
 )
 
 

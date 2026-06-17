@@ -1,0 +1,181 @@
+dataset: chinabond__government_bond
+version: 1
+owner: data
+grain: one row per ChinaBond government bond yield curve work date
+source_asset_key:
+- source
+- chinabond__government_bond
+raw_asset_key:
+- clickhouse
+- raw
+- chinabond__government_bond
+external:
+  provider: chinabond
+  source_table_name: chinabond__government_bond
+  source_description_zh: 中债国债收益率曲线年度 raw 分区
+source:
+  protocol: http
+  payload_format: json
+  fields:
+  - name: work_date
+    type: string
+    required: true
+    external_description_zh: 中债曲线日期，来自原始 JSON 字段 workTime，格式为 YYYY-MM-DD。
+  - name: curve_name
+    type: string
+    required: true
+    external_description_zh: 曲线名称，来自原始 JSON 字段 qxmc。
+  - name: three_month_yield_pct
+    type: string
+    required: false
+    external_description_zh: 3 个月收益率，来自原始 JSON 字段 threeMonth，单位为百分比点。
+  - name: six_month_yield_pct
+    type: string
+    required: false
+    external_description_zh: 6 个月收益率，来自原始 JSON 字段 sixMonth，单位为百分比点。
+  - name: one_year_yield_pct
+    type: string
+    required: false
+    external_description_zh: 1 年收益率，来自原始 JSON 字段 oneYear，单位为百分比点。
+  - name: two_year_yield_pct
+    type: string
+    required: false
+    external_description_zh: 2 年收益率，来自原始 JSON 字段 twoYear，单位为百分比点。
+  - name: three_year_yield_pct
+    type: string
+    required: false
+    external_description_zh: 3 年收益率，来自原始 JSON 字段 threeYear，单位为百分比点。
+  - name: five_year_yield_pct
+    type: string
+    required: false
+    external_description_zh: 5 年收益率，来自原始 JSON 字段 fiveYear，单位为百分比点。
+  - name: seven_year_yield_pct
+    type: string
+    required: false
+    external_description_zh: 7 年收益率，来自原始 JSON 字段 sevenYear，单位为百分比点。
+  - name: ten_year_yield_pct
+    type: string
+    required: false
+    external_description_zh: 10 年收益率，来自原始 JSON 字段 tenYear，单位为百分比点。
+  - name: fifteen_year_yield_pct
+    type: string
+    required: false
+    external_description_zh: 15 年收益率，来自原始 JSON 字段 fifteenYear，单位为百分比点。
+  - name: twenty_year_yield_pct
+    type: string
+    required: false
+    external_description_zh: 20 年收益率，来自原始 JSON 字段 twentyYear，单位为百分比点。
+  - name: thirty_year_yield_pct
+    type: string
+    required: false
+    external_description_zh: 30 年收益率，来自原始 JSON 字段 thirtyYear，单位为百分比点。
+parquet:
+  storage_mode: partitioned
+  partition_key_name: year
+  fields:
+  - name: work_date
+    type: date32[day]
+    nullable: false
+  - name: curve_name
+    type: string
+    nullable: false
+  - name: three_month_yield_pct
+    type: double
+    nullable: true
+  - name: six_month_yield_pct
+    type: double
+    nullable: true
+  - name: one_year_yield_pct
+    type: double
+    nullable: true
+  - name: two_year_yield_pct
+    type: double
+    nullable: true
+  - name: three_year_yield_pct
+    type: double
+    nullable: true
+  - name: five_year_yield_pct
+    type: double
+    nullable: true
+  - name: seven_year_yield_pct
+    type: double
+    nullable: true
+  - name: ten_year_yield_pct
+    type: double
+    nullable: true
+  - name: fifteen_year_yield_pct
+    type: double
+    nullable: true
+  - name: twenty_year_yield_pct
+    type: double
+    nullable: true
+  - name: thirty_year_yield_pct
+    type: double
+    nullable: true
+clickhouse_raw:
+  database: fleur_raw
+  table: chinabond__government_bond
+  partition_strategy: year
+  engine: MergeTree
+  partition_by: '`year`'
+  order_by:
+  - work_date
+  allow_empty: false
+  sync_enabled: true
+  fields:
+  - name: work_date
+    type: Date
+    from: work_date
+    nullable: false
+  - name: curve_name
+    type: LowCardinality(String)
+    from: curve_name
+    nullable: false
+    reason: expected_single_curve_dimension
+  - name: three_month_yield_pct
+    type: Float64
+    from: three_month_yield_pct
+    nullable: true
+  - name: six_month_yield_pct
+    type: Float64
+    from: six_month_yield_pct
+    nullable: true
+  - name: one_year_yield_pct
+    type: Float64
+    from: one_year_yield_pct
+    nullable: true
+  - name: two_year_yield_pct
+    type: Float64
+    from: two_year_yield_pct
+    nullable: true
+  - name: three_year_yield_pct
+    type: Float64
+    from: three_year_yield_pct
+    nullable: true
+  - name: five_year_yield_pct
+    type: Float64
+    from: five_year_yield_pct
+    nullable: true
+  - name: seven_year_yield_pct
+    type: Float64
+    from: seven_year_yield_pct
+    nullable: true
+  - name: ten_year_yield_pct
+    type: Float64
+    from: ten_year_yield_pct
+    nullable: true
+  - name: fifteen_year_yield_pct
+    type: Float64
+    from: fifteen_year_yield_pct
+    nullable: true
+  - name: twenty_year_yield_pct
+    type: Float64
+    from: twenty_year_yield_pct
+    nullable: true
+  - name: thirty_year_yield_pct
+    type: Float64
+    from: thirty_year_yield_pct
+    nullable: true
+dataset_note_zh: 中债国债收益率曲线年度分区 raw 数据，收益率字段单位为百分比点。
+validation_notes:
+- Initial contract derived from docs/references/remote_endpoint/chinabond__government_bond_yield_curve.md.

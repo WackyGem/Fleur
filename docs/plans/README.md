@@ -8,6 +8,7 @@
 |---|---|---|
 | [0023](0023-contract-driven-parquet-schema-adapter-backfill-test-plan.md) | Proposed | Contract-driven Parquet schema adapter 合入后的 dev 环境重置、小批量回填和全量回填准入计划 |
 | [0041](0041-racingline-virtual-account-portfolio-rebalancing-implementation-plan.md) | Proposed | Racingline 虚拟账户、组合运行、NATS worker、明细账本和净值曲线第一版实施计划 |
+| [0042](0042-chinabond-government-bond-s3-raw-implementation-plan.md) | Proposed | ChinaBond 国债收益率曲线 Dagster 年分区 S3 Parquet raw 接入与 2006-2026 回填计划 |
 
 ## 规则
 
