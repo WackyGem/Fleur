@@ -491,6 +491,20 @@ mod tests {
     }
 
     #[test]
+    fn performance_metric_config_hash_should_be_stable_for_canonical_fields() {
+        let config = PerformanceMetricConfig::default_full_period("run-1", "attempt-1");
+        let same_config = PerformanceMetricConfig::default_full_period("run-1", "attempt-1");
+        let different_attempt = PerformanceMetricConfig::default_full_period("run-1", "attempt-2");
+
+        assert_eq!(
+            config.config_hash,
+            "74e2930948c49b02157587878a66320d0e10a2fdd17d011c7d39e4c71e920c0a"
+        );
+        assert_eq!(config.config_hash, same_config.config_hash);
+        assert_ne!(config.config_hash, different_attempt.config_hash);
+    }
+
+    #[test]
     fn compute_performance_metric_should_use_compounded_period_return() {
         let nav = vec![
             nav_row(1, None, 0.0),
