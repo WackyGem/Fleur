@@ -108,6 +108,9 @@ cargo test --workspace
 | [../RFC/0019-racingline-rearview-frontend-workbench.md](../RFC/0019-racingline-rearview-frontend-workbench.md) | Racingline 前端 RFC |
 | [../RFC/0020-racingline-run-result-security-analysis-page.md](../RFC/0020-racingline-run-result-security-analysis-page.md) | Run result 个股分析页已实现 RFC |
 | [../RFC/0021-racingline-virtual-account-portfolio-rebalancing.md](../RFC/0021-racingline-virtual-account-portfolio-rebalancing.md) | 虚拟账户、交易费率、止盈止损和组合调仓净值 Proposed RFC |
+| [../RFC/0023-racingline-frontend-prototype-led-development.md](../RFC/0023-racingline-frontend-prototype-led-development.md) | Racingline 前端 RFC 阶段允许原型驱动多轮 UX 验证的流程 RFC |
+| [../Q&A/0003-racingline-strategy-lab-two-entry-navigation.md](../Q&A/0003-racingline-strategy-lab-two-entry-navigation.md) | Racingline 新策略实验室两入口导航和首屏承载 Proposed Q&A |
+| [../ADR/0013-racingline-ui-stack-variant-evaluation.md](../ADR/0013-racingline-ui-stack-variant-evaluation.md) | Racingline UI 栈变体评估 Proposed ADR |
 | [../plans/0041-racingline-virtual-account-portfolio-rebalancing-implementation-plan.md](../plans/0041-racingline-virtual-account-portfolio-rebalancing-implementation-plan.md) | 虚拟账户、组合运行、NATS worker 和组合页面当前实施计划 |
 | [../ADR/0011-racingline-frontend-technology-stack.md](../ADR/0011-racingline-frontend-technology-stack.md) | Racingline 前端技术栈和工程边界 |
 | [../plans/archive/0037-racingline-frontend-implementation-plan.md](../plans/archive/0037-racingline-frontend-implementation-plan.md) | Racingline 前端第一版实施计划归档 |
@@ -128,3 +131,4 @@ cargo test --workspace
 2. API base URL 使用仓库根目录 `.env` 或 `.env.example` 中的 `VITE_REARVIEW_API_BASE_URL`。
 3. 不得改写 shadcn/ui 官方 CLI 生成的默认 UI 组件文件；业务组件必须在独立业务目录中组合引用这些默认组件。
 4. 第一版不引入登录入口、认证/鉴权、用户隔离或权限系统。
+5. `app/racingline_new/` 如作为并行原型或重构工程，正式实现阶段必须继承 ADR 0011 的 Racingline 技术栈；任何 shadcn style、primitive base、icon library、状态管理或图表库变化都需要另起 ADR 或更新 ADR 0011。

@@ -39,7 +39,7 @@
 | Dagster 回填、运行和 lineage 记录 | [jobs/README.md](jobs/README.md) |
 | dbt 模型设计 | [design/README.md](design/README.md) |
 | 接口、数据字典和 raw profiling | [references/README.md](references/README.md) |
-| 设计问答和讨论记录 | [Q&A/](Q&A/) |
+| 设计问答和讨论记录 | [Q&A/](Q&A/)；Racingline 策略实验室两入口导航见 [Q&A/0003-racingline-strategy-lab-two-entry-navigation.md](Q&A/0003-racingline-strategy-lab-two-entry-navigation.md)；前端原型流程 RFC 见 [RFC/0023-racingline-frontend-prototype-led-development.md](RFC/0023-racingline-frontend-prototype-led-development.md)；UI 栈变体评估 ADR 见 [ADR/0013-racingline-ui-stack-variant-evaluation.md](ADR/0013-racingline-ui-stack-variant-evaluation.md) |
 | 质量审计和治理建议 | [optimize/README.md](optimize/README.md) |
 | agent 操作手册 | [skills/](skills/) |
 
