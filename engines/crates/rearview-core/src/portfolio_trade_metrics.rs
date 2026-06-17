@@ -288,6 +288,57 @@ mod tests {
         assert_eq!(metric.profit_loss_ratio, Some(1.0));
     }
 
+    #[test]
+    fn compute_trade_calculation_outputs_should_split_same_lot_across_partial_closes() {
+        let output = output_with_trades(vec![
+            trade(1, "2024-01-02", OrderSide::Buy, 100.0, 1_000.0, 10.0),
+            trade(2, "2024-01-03", OrderSide::Sell, 40.0, 480.0, 4.0),
+            trade(3, "2024-01-05", OrderSide::Sell, 60.0, 720.0, 6.0),
+        ]);
+
+        let (closed, metrics) = compute_trade_calculation_outputs("run-1", "attempt-1", &output);
+
+        assert_eq!(closed.len(), 2);
+        assert_eq!(closed[0].closed_trade_seq, 1);
+        assert_eq!(closed[1].closed_trade_seq, 2);
+        assert_ne!(closed[0].closed_trade_id, closed[1].closed_trade_id);
+        assert_eq!(closed[0].position_lot_id, closed[1].position_lot_id);
+        assert_eq!(closed[0].entry_gross_amount, 400.0);
+        assert_eq!(closed[0].entry_fee, 4.0);
+        assert_eq!(closed[0].realized_pnl, 72.0);
+        assert_eq!(closed[1].entry_gross_amount, 600.0);
+        assert_eq!(closed[1].entry_fee, 6.0);
+        assert_eq!(closed[1].realized_pnl, 108.0);
+
+        let metric = metrics.first().expect("trade metric row");
+        assert_eq!(metric.closed_trade_count, 2);
+        assert_eq!(metric.winning_trade_count, 2);
+        assert_eq!(metric.losing_trade_count, 0);
+        assert_eq!(metric.breakeven_trade_count, 0);
+        assert!(
+            (metric.average_win_return.expect("average win return") - 72.0 / 404.0).abs() < EPSILON
+        );
+    }
+
+    #[test]
+    fn compute_trade_calculation_outputs_should_exclude_open_lots_from_closed_ledger() {
+        let output = output_with_trades(vec![trade(
+            1,
+            "2024-01-02",
+            OrderSide::Buy,
+            100.0,
+            1_000.0,
+            10.0,
+        )]);
+
+        let (closed, metrics) = compute_trade_calculation_outputs("run-1", "attempt-1", &output);
+
+        assert!(closed.is_empty());
+        let metric = metrics.first().expect("trade metric row");
+        assert_eq!(metric.closed_trade_count, 0);
+        assert_eq!(metric.win_rate_closed_trades, None);
+    }
+
     fn output_with_trades(trades: Vec<PortfolioTradeRow>) -> PortfolioSimulationOutput {
         let nav = ["2024-01-02", "2024-01-03", "2024-01-04", "2024-01-05"]
             .into_iter()
