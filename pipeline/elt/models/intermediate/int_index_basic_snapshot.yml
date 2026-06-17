@@ -1,0 +1,91 @@
+version: 2
+
+models:
+  - name: int_index_basic_snapshot
+    description: BaoStock 指数基础信息当前快照 intermediate 模型；一行代表一个 BaoStock 指数证券。
+    columns:
+      - name: security_code
+        description: "{{ doc('field_security_code') }}"
+        data_type: String
+        data_tests:
+          - not_null
+          - unique
+          - cn_security_code_format
+
+      - name: security_local_code
+        description: "{{ doc('field_security_local_code') }}"
+        data_type: String
+        data_tests:
+          - not_null
+
+      - name: exchange_code
+        description: "{{ doc('field_exchange_code') }}"
+        data_type: String
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values:
+                  - SH
+                  - SZ
+                  - BJ
+
+      - name: index_name
+        description: BaoStock 当前快照中的指数名称。
+        data_type: String
+        data_tests:
+          - not_null
+
+      - name: ipo_date
+        description: BaoStock 指数上市日期。
+        data_type: Date
+        data_tests:
+          - not_null
+
+      - name: out_date
+        description: BaoStock 指数退市日期；NULL 表示当前快照未提供退市日期。
+        data_type: Nullable(Date)
+
+      - name: listing_status_code
+        description: BaoStock 上市状态编码。
+        data_type: Int8
+        data_tests:
+          - accepted_values:
+              arguments:
+                values:
+                  - 0
+                  - 1
+
+      - name: listing_status
+        description: BaoStock 当前快照上市状态标签。
+        data_type: Enum8('delisted' = 0, 'listed' = 1)
+        data_tests:
+          - accepted_values:
+              arguments:
+                values:
+                  - listed
+                  - delisted
+
+      - name: is_listed
+        description: 当前快照是否上市，透传自 staging；不代表历史任意交易日状态。
+        data_type: Bool
+        data_tests:
+          - not_null
+
+      - name: security_type_code
+        description: BaoStock 证券类型编码；本模型仅保留指数。
+        data_type: Int8
+        data_tests:
+          - accepted_values:
+              arguments:
+                values:
+                  - 2
+
+      - name: security_type
+        description: BaoStock 证券类型标签；本模型仅保留指数。
+        data_type: Enum8('stock' = 1, 'index' = 2, 'other' = 3, 'convertible_bond' = 4, 'etf' = 5)
+        data_tests:
+          - accepted_values:
+              arguments:
+                values:
+                  - index
