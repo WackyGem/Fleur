@@ -9,6 +9,7 @@ import {
   createRun,
   explainRule,
   getDefaultMarketFeeTemplate,
+  getPortfolioPerformance,
   getHealth,
   getPortfolioRun,
   getRun,
@@ -17,12 +18,14 @@ import {
   listAccountTemplates,
   listMetrics,
   listPoolMembers,
+  listPortfolioClosedTrades,
   listPortfolioEvents,
   listPortfolioNav,
   listPortfolioOrders,
   listPortfolioPositions,
   listPortfolioRuns,
   listPortfolioTargets,
+  listPortfolioTradeMetrics,
   listPortfolioTrades,
   listRuleSets,
   listRuleVersions,
@@ -39,12 +42,15 @@ import type {
   CreateRuleVersionRequest,
   CreateRunRequest,
   MetricsQuery,
+  PortfolioClosedTradeQuery,
   PatchAccountTemplateRequest,
   PortfolioEventQuery,
   PortfolioOrderQuery,
+  PortfolioPerformanceQuery,
   PortfolioPositionQuery,
   PortfolioRunsQuery,
   PortfolioTargetQuery,
+  PortfolioTradeMetricQuery,
   PortfolioTradeQuery,
   ResultRowsQuery,
   RuleSetsQuery,
@@ -213,6 +219,42 @@ export function usePortfolioEventsQuery(
   return useQuery({
     queryKey: queryKeys.portfolioEvents(portfolioRunId ?? "", query),
     queryFn: () => listPortfolioEvents(portfolioRunId ?? "", query),
+    enabled: Boolean(portfolioRunId),
+    retry: 1,
+  })
+}
+
+export function usePortfolioPerformanceQuery(
+  portfolioRunId: string | undefined,
+  query: PortfolioPerformanceQuery = {}
+) {
+  return useQuery({
+    queryKey: queryKeys.portfolioPerformance(portfolioRunId ?? "", query),
+    queryFn: () => getPortfolioPerformance(portfolioRunId ?? "", query),
+    enabled: Boolean(portfolioRunId),
+    retry: 1,
+  })
+}
+
+export function usePortfolioClosedTradesQuery(
+  portfolioRunId: string | undefined,
+  query: PortfolioClosedTradeQuery = {}
+) {
+  return useQuery({
+    queryKey: queryKeys.portfolioClosedTrades(portfolioRunId ?? "", query),
+    queryFn: () => listPortfolioClosedTrades(portfolioRunId ?? "", query),
+    enabled: Boolean(portfolioRunId),
+    retry: 1,
+  })
+}
+
+export function usePortfolioTradeMetricsQuery(
+  portfolioRunId: string | undefined,
+  query: PortfolioTradeMetricQuery = {}
+) {
+  return useQuery({
+    queryKey: queryKeys.portfolioTradeMetrics(portfolioRunId ?? "", query),
+    queryFn: () => listPortfolioTradeMetrics(portfolioRunId ?? "", query),
     enabled: Boolean(portfolioRunId),
     retry: 1,
   })

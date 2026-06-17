@@ -218,6 +218,87 @@ export type PortfolioEventRecord = {
   payload: JsonRecord
 }
 
+export type PortfolioPerformanceMetricRecord = {
+  portfolio_run_id: string
+  result_attempt_id: string
+  security_code: string
+  window_key: string
+  window_start?: string | null
+  window_end?: string | null
+  config_hash: string
+  metric_status: string
+  observation_count: number
+  holding_period_return?: number | null
+  annualized_return?: number | null
+  annualized_volatility?: number | null
+  max_drawdown?: number | null
+  calmar_ratio?: number | null
+  downside_deviation?: number | null
+  sortino_ratio?: number | null
+  sharpe_ratio?: number | null
+  information_ratio?: number | null
+  beta?: number | null
+  alpha?: number | null
+  treynor_ratio?: number | null
+}
+
+export type PortfolioPerformanceMetricStatusRecord = {
+  portfolio_run_id: string
+  result_attempt_id: string
+  security_code: string
+  window_key: string
+  metric_name: string
+  metric_status: string
+  reason_code: string
+}
+
+export type PortfolioPerformanceResponse = {
+  metric: PortfolioPerformanceMetricRecord
+  statuses: PortfolioPerformanceMetricStatusRecord[]
+}
+
+export type PortfolioClosedTradeRecord = {
+  portfolio_run_id: string
+  result_attempt_id: string
+  closed_trade_id: string
+  closed_trade_seq: number
+  position_lot_id: string
+  entry_trade_seq: number
+  exit_trade_seq: number
+  security_code: string
+  entry_date: string
+  exit_date: string
+  quantity: number
+  entry_gross_amount: number
+  exit_gross_amount: number
+  entry_fee: number
+  exit_fee: number
+  total_fee: number
+  realized_pnl: number
+  realized_return?: number | null
+  holding_days: number
+  exit_reason: string
+}
+
+export type PortfolioTradeMetricRecord = {
+  portfolio_run_id: string
+  result_attempt_id: string
+  window_key: string
+  window_start?: string | null
+  window_end?: string | null
+  closed_trade_count: number
+  winning_trade_count: number
+  losing_trade_count: number
+  breakeven_trade_count: number
+  win_rate_closed_trades?: number | null
+  average_win_return?: number | null
+  average_loss_return?: number | null
+  profit_loss_ratio?: number | null
+  average_holding_days?: number | null
+  largest_win_return?: number | null
+  largest_loss_return?: number | null
+}
+
 export type RunChunkRecord = {
   run_id: string
   chunk_no: number
@@ -419,6 +500,27 @@ export type PortfolioPositionQuery = {
 export type PortfolioEventQuery = {
   trade_date?: string
   event_type?: string
+  limit?: number
+  offset?: number
+}
+
+export type PortfolioPerformanceQuery = {
+  result_attempt_id?: string
+  security_code?: string
+  window_key?: string
+}
+
+export type PortfolioClosedTradeQuery = {
+  result_attempt_id?: string
+  security_code?: string
+  exit_date?: string
+  limit?: number
+  offset?: number
+}
+
+export type PortfolioTradeMetricQuery = {
+  result_attempt_id?: string
+  window_key?: string
   limit?: number
   offset?: number
 }

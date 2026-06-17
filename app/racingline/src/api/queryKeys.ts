@@ -1,10 +1,13 @@
 import type {
   MetricsQuery,
+  PortfolioClosedTradeQuery,
   PortfolioEventQuery,
   PortfolioOrderQuery,
+  PortfolioPerformanceQuery,
   PortfolioPositionQuery,
   PortfolioRunsQuery,
   PortfolioTargetQuery,
+  PortfolioTradeMetricQuery,
   PortfolioTradeQuery,
   ResultRowsQuery,
   RuleSetsQuery,
@@ -44,6 +47,18 @@ export const queryKeys = {
   ) => ["portfolio-runs", portfolioRunId, "positions", query] as const,
   portfolioEvents: (portfolioRunId: string, query: PortfolioEventQuery = {}) =>
     ["portfolio-runs", portfolioRunId, "events", query] as const,
+  portfolioPerformance: (
+    portfolioRunId: string,
+    query: PortfolioPerformanceQuery = {}
+  ) => ["portfolio-runs", portfolioRunId, "performance", query] as const,
+  portfolioClosedTrades: (
+    portfolioRunId: string,
+    query: PortfolioClosedTradeQuery = {}
+  ) => ["portfolio-runs", portfolioRunId, "closed-trades", query] as const,
+  portfolioTradeMetrics: (
+    portfolioRunId: string,
+    query: PortfolioTradeMetricQuery = {}
+  ) => ["portfolio-runs", portfolioRunId, "trade-metrics", query] as const,
   run: (runId: string) => ["runs", runId] as const,
   runChunks: (runId: string) => ["runs", runId, "chunks"] as const,
   runDays: (runId: string) => ["runs", runId, "days"] as const,

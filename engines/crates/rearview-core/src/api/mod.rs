@@ -15,10 +15,10 @@ use crate::error::{RearviewError, RearviewResult};
 use crate::planner::{CompiledQuery, QueryPlanner, QuerySettings};
 use crate::postgres::{
     BuySignalRecord, NewAccountTemplate, NewPortfolioRun, NewRuleSet, NewRuleVersion, NewRun, Page,
-    PatchAccountTemplate, PlannedChunk, PoolMemberRecord, PortfolioEventFilter,
-    PortfolioOrderFilter, PortfolioPositionFilter, PortfolioRunListFilter, PortfolioTargetFilter,
-    PortfolioTradeFilter, ResultRowsFilter, ResultRowsSort, RuleSetListFilter,
-    RuleVersionListFilter, RunListFilter, plan_date_chunks,
+    PatchAccountTemplate, PlannedChunk, PoolMemberRecord, PortfolioClosedTradeFilter,
+    PortfolioEventFilter, PortfolioOrderFilter, PortfolioPositionFilter, PortfolioRunListFilter,
+    PortfolioTargetFilter, PortfolioTradeFilter, PortfolioTradeMetricFilter, ResultRowsFilter,
+    ResultRowsSort, RuleSetListFilter, RuleVersionListFilter, RunListFilter, plan_date_chunks,
 };
 use crate::service::AppState;
 use crate::service::runner::execute_run;
@@ -78,6 +78,18 @@ pub fn routes() -> Router<AppState> {
         .route(
             "/rearview/portfolio-runs/{portfolio_run_id}/events",
             get(list_portfolio_events),
+        )
+        .route(
+            "/rearview/portfolio-runs/{portfolio_run_id}/performance",
+            get(get_portfolio_performance),
+        )
+        .route(
+            "/rearview/portfolio-runs/{portfolio_run_id}/closed-trades",
+            get(list_portfolio_closed_trades),
+        )
+        .route(
+            "/rearview/portfolio-runs/{portfolio_run_id}/trade-metrics",
+            get(list_portfolio_trade_metrics),
         )
         .route("/rearview/runs", get(list_runs).post(create_run))
         .route("/rearview/runs/{run_id}", get(get_run))
@@ -487,6 +499,85 @@ async fn list_portfolio_events(
                     portfolio_run_id,
                     trade_date: query.trade_date,
                     event_type: non_empty(query.event_type),
+                    page: page(query.limit, query.offset)?,
+                },
+                &attempt_id,
+            )
+            .await?,
+    ))
+}
+
+async fn get_portfolio_performance(
+    State(state): State<AppState>,
+    Path(portfolio_run_id): Path<String>,
+    Query(query): Query<PortfolioPerformanceQuery>,
+) -> RearviewResult<Json<impl Serialize>> {
+    let attempt_id = resolve_result_attempt(
+        &state,
+        &portfolio_run_id,
+        query.result_attempt_id.as_deref(),
+    )
+    .await?;
+    let security_code = non_empty(query.security_code).unwrap_or_else(default_benchmark);
+    let window_key = non_empty(query.window_key).unwrap_or_else(default_metric_window);
+    Ok(Json(
+        state
+            .clickhouse
+            .query_portfolio_performance(
+                &portfolio_run_id,
+                &attempt_id,
+                &security_code,
+                &window_key,
+            )
+            .await?,
+    ))
+}
+
+async fn list_portfolio_closed_trades(
+    State(state): State<AppState>,
+    Path(portfolio_run_id): Path<String>,
+    Query(query): Query<PortfolioClosedTradeQuery>,
+) -> RearviewResult<Json<impl Serialize>> {
+    let attempt_id = resolve_result_attempt(
+        &state,
+        &portfolio_run_id,
+        query.result_attempt_id.as_deref(),
+    )
+    .await?;
+    Ok(Json(
+        state
+            .clickhouse
+            .query_portfolio_closed_trades(
+                &PortfolioClosedTradeFilter {
+                    portfolio_run_id,
+                    security_code: non_empty(query.security_code),
+                    exit_date: query.exit_date,
+                    page: page(query.limit, query.offset)?,
+                },
+                &attempt_id,
+            )
+            .await?,
+    ))
+}
+
+async fn list_portfolio_trade_metrics(
+    State(state): State<AppState>,
+    Path(portfolio_run_id): Path<String>,
+    Query(query): Query<PortfolioTradeMetricQuery>,
+) -> RearviewResult<Json<impl Serialize>> {
+    let attempt_id = resolve_result_attempt(
+        &state,
+        &portfolio_run_id,
+        query.result_attempt_id.as_deref(),
+    )
+    .await?;
+    Ok(Json(
+        state
+            .clickhouse
+            .query_portfolio_trade_metrics(
+                &PortfolioTradeMetricFilter {
+                    portfolio_run_id,
+                    window_key: non_empty(query.window_key),
                     page: page(query.limit, query.offset)?,
                 },
                 &attempt_id,
@@ -960,6 +1051,42 @@ struct PortfolioEventQuery {
 }
 
 #[derive(Debug, Deserialize)]
+struct PortfolioPerformanceQuery {
+    #[serde(default)]
+    result_attempt_id: Option<String>,
+    #[serde(default)]
+    security_code: Option<String>,
+    #[serde(default)]
+    window_key: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+struct PortfolioClosedTradeQuery {
+    #[serde(default)]
+    result_attempt_id: Option<String>,
+    #[serde(default)]
+    security_code: Option<String>,
+    #[serde(default)]
+    exit_date: Option<NaiveDate>,
+    #[serde(default)]
+    limit: Option<u32>,
+    #[serde(default)]
+    offset: Option<u32>,
+}
+
+#[derive(Debug, Deserialize)]
+struct PortfolioTradeMetricQuery {
+    #[serde(default)]
+    result_attempt_id: Option<String>,
+    #[serde(default)]
+    window_key: Option<String>,
+    #[serde(default)]
+    limit: Option<u32>,
+    #[serde(default)]
+    offset: Option<u32>,
+}
+
+#[derive(Debug, Deserialize)]
 struct ListMetricsQuery {
     #[serde(default)]
     mart_table: Option<String>,
@@ -1325,6 +1452,14 @@ fn non_empty(value: Option<String>) -> Option<String> {
 
 fn default_market() -> String {
     "CN_A_SHARE".to_string()
+}
+
+fn default_benchmark() -> String {
+    "000300.SH".to_string()
+}
+
+fn default_metric_window() -> String {
+    "full_period".to_string()
 }
 
 fn default_rebalance_policy() -> serde_json::Value {

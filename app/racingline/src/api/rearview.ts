@@ -13,11 +13,15 @@ import type {
   MarketFeeTemplateRecord,
   MetricDefinition,
   MetricsQuery,
+  PortfolioClosedTradeQuery,
+  PortfolioClosedTradeRecord,
   PortfolioEventQuery,
   PortfolioEventRecord,
   PortfolioNavRecord,
   PortfolioOrderQuery,
   PortfolioOrderRecord,
+  PortfolioPerformanceQuery,
+  PortfolioPerformanceResponse,
   PortfolioPositionQuery,
   PortfolioPositionRecord,
   PortfolioRunRecord,
@@ -25,6 +29,8 @@ import type {
   PortfolioTargetQuery,
   PortfolioTargetRecord,
   PortfolioTradeQuery,
+  PortfolioTradeMetricQuery,
+  PortfolioTradeMetricRecord,
   PortfolioTradeRecord,
   PatchAccountTemplateRequest,
   PoolMemberRecord,
@@ -225,6 +231,35 @@ export async function listPortfolioEvents(
   const value = await requestJson<
     PortfolioEventRecord[] | Partial<ListResult<PortfolioEventRecord>>
   >(buildPath(`/rearview/portfolio-runs/${portfolioRunId}/events`, query))
+  return normalizeList(value, query.limit)
+}
+
+export function getPortfolioPerformance(
+  portfolioRunId: string,
+  query: PortfolioPerformanceQuery = {}
+) {
+  return requestJson<PortfolioPerformanceResponse>(
+    buildPath(`/rearview/portfolio-runs/${portfolioRunId}/performance`, query)
+  )
+}
+
+export async function listPortfolioClosedTrades(
+  portfolioRunId: string,
+  query: PortfolioClosedTradeQuery = {}
+): Promise<ListResult<PortfolioClosedTradeRecord>> {
+  const value = await requestJson<
+    PortfolioClosedTradeRecord[] | Partial<ListResult<PortfolioClosedTradeRecord>>
+  >(buildPath(`/rearview/portfolio-runs/${portfolioRunId}/closed-trades`, query))
+  return normalizeList(value, query.limit)
+}
+
+export async function listPortfolioTradeMetrics(
+  portfolioRunId: string,
+  query: PortfolioTradeMetricQuery = {}
+): Promise<ListResult<PortfolioTradeMetricRecord>> {
+  const value = await requestJson<
+    PortfolioTradeMetricRecord[] | Partial<ListResult<PortfolioTradeMetricRecord>>
+  >(buildPath(`/rearview/portfolio-runs/${portfolioRunId}/trade-metrics`, query))
   return normalizeList(value, query.limit)
 }
 

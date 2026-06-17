@@ -1834,6 +1834,21 @@ pub struct PortfolioEventFilter {
 }
 
 #[derive(Debug, Clone)]
+pub struct PortfolioClosedTradeFilter {
+    pub portfolio_run_id: String,
+    pub security_code: Option<String>,
+    pub exit_date: Option<NaiveDate>,
+    pub page: Page,
+}
+
+#[derive(Debug, Clone)]
+pub struct PortfolioTradeMetricFilter {
+    pub portfolio_run_id: String,
+    pub window_key: Option<String>,
+    pub page: Page,
+}
+
+#[derive(Debug, Clone)]
 pub struct ResultRowsFilter {
     pub trade_date: NaiveDate,
     pub security_code: Option<String>,
@@ -2084,6 +2099,92 @@ pub struct PortfolioEventRecord {
     pub severity: String,
     pub message: String,
     pub payload: Value,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PortfolioPerformanceMetricRecord {
+    pub portfolio_run_id: String,
+    pub result_attempt_id: String,
+    pub security_code: String,
+    pub window_key: String,
+    pub window_start: Option<NaiveDate>,
+    pub window_end: Option<NaiveDate>,
+    pub config_hash: String,
+    pub metric_status: String,
+    pub observation_count: u32,
+    pub holding_period_return: Option<f64>,
+    pub annualized_return: Option<f64>,
+    pub annualized_volatility: Option<f64>,
+    pub max_drawdown: Option<f64>,
+    pub calmar_ratio: Option<f64>,
+    pub downside_deviation: Option<f64>,
+    pub sortino_ratio: Option<f64>,
+    pub sharpe_ratio: Option<f64>,
+    pub information_ratio: Option<f64>,
+    pub beta: Option<f64>,
+    pub alpha: Option<f64>,
+    pub treynor_ratio: Option<f64>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PortfolioPerformanceMetricStatusRecord {
+    pub portfolio_run_id: String,
+    pub result_attempt_id: String,
+    pub security_code: String,
+    pub window_key: String,
+    pub metric_name: String,
+    pub metric_status: String,
+    pub reason_code: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PortfolioPerformanceResponse {
+    pub metric: PortfolioPerformanceMetricRecord,
+    pub statuses: Vec<PortfolioPerformanceMetricStatusRecord>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PortfolioClosedTradeRecord {
+    pub portfolio_run_id: String,
+    pub result_attempt_id: String,
+    pub closed_trade_id: String,
+    pub closed_trade_seq: u32,
+    pub position_lot_id: String,
+    pub entry_trade_seq: u32,
+    pub exit_trade_seq: u32,
+    pub security_code: String,
+    pub entry_date: NaiveDate,
+    pub exit_date: NaiveDate,
+    pub quantity: f64,
+    pub entry_gross_amount: f64,
+    pub exit_gross_amount: f64,
+    pub entry_fee: f64,
+    pub exit_fee: f64,
+    pub total_fee: f64,
+    pub realized_pnl: f64,
+    pub realized_return: Option<f64>,
+    pub holding_days: u32,
+    pub exit_reason: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PortfolioTradeMetricRecord {
+    pub portfolio_run_id: String,
+    pub result_attempt_id: String,
+    pub window_key: String,
+    pub window_start: Option<NaiveDate>,
+    pub window_end: Option<NaiveDate>,
+    pub closed_trade_count: u32,
+    pub winning_trade_count: u32,
+    pub losing_trade_count: u32,
+    pub breakeven_trade_count: u32,
+    pub win_rate_closed_trades: Option<f64>,
+    pub average_win_return: Option<f64>,
+    pub average_loss_return: Option<f64>,
+    pub profit_loss_ratio: Option<f64>,
+    pub average_holding_days: Option<f64>,
+    pub largest_win_return: Option<f64>,
+    pub largest_loss_return: Option<f64>,
 }
 
 #[derive(Debug, Clone, Serialize)]

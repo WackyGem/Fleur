@@ -977,6 +977,157 @@ FORMAT JSONEachRow"#,
         Ok(crate::postgres::ListResult::from_rows(rows, filter.page))
     }
 
+    pub async fn query_portfolio_performance(
+        &self,
+        portfolio_run_id: &str,
+        result_attempt_id: &str,
+        security_code: &str,
+        window_key: &str,
+    ) -> RearviewResult<crate::postgres::PortfolioPerformanceResponse> {
+        let database = &self.config.calculation_database;
+        validate_identifier(database)?;
+        validate_security_code(security_code)?;
+        validate_window_key(window_key)?;
+        let run_id = quote_string_literal(portfolio_run_id);
+        let attempt = quote_string_literal(result_attempt_id);
+        let security_code = quote_string_literal(security_code);
+        let window_key = quote_string_literal(window_key);
+        let sql = format!(
+            r#"
+SELECT portfolio_run_id, result_attempt_id, security_code, window_key,
+       window_start, window_end, config_hash, metric_status, observation_count,
+       holding_period_return, annualized_return, annualized_volatility,
+       max_drawdown, calmar_ratio, downside_deviation, sortino_ratio,
+       sharpe_ratio, information_ratio, beta, alpha, treynor_ratio
+FROM {database}.calc_portfolio_performance_metric
+WHERE portfolio_run_id = {run_id}
+  AND result_attempt_id = {attempt}
+  AND security_code = {security_code}
+  AND window_key = {window_key}
+LIMIT 1
+FORMAT JSONEachRow"#
+        );
+        let body = self
+            .execute_text(&sql, "rearview-portfolio-read-performance")
+            .await?;
+        let metric =
+            parse_json_each_row::<crate::postgres::PortfolioPerformanceMetricRecord>(&body)?
+                .into_iter()
+                .next()
+                .ok_or_else(|| {
+                    RearviewError::NotFound(format!(
+                        "portfolio performance metric not found for run {portfolio_run_id} attempt {result_attempt_id}"
+                    ))
+                })?;
+
+        let status_sql = format!(
+            r#"
+SELECT portfolio_run_id, result_attempt_id, security_code, window_key,
+       metric_name, metric_status, reason_code
+FROM {database}.calc_portfolio_performance_metric_status
+WHERE portfolio_run_id = {run_id}
+  AND result_attempt_id = {attempt}
+  AND security_code = {security_code}
+  AND window_key = {window_key}
+ORDER BY metric_name
+FORMAT JSONEachRow"#
+        );
+        let body = self
+            .execute_text(&status_sql, "rearview-portfolio-read-performance-status")
+            .await?;
+        let statuses =
+            parse_json_each_row::<crate::postgres::PortfolioPerformanceMetricStatusRecord>(&body)?;
+        Ok(crate::postgres::PortfolioPerformanceResponse { metric, statuses })
+    }
+
+    pub async fn query_portfolio_closed_trades(
+        &self,
+        filter: &crate::postgres::PortfolioClosedTradeFilter,
+        result_attempt_id: &str,
+    ) -> RearviewResult<crate::postgres::ListResult<crate::postgres::PortfolioClosedTradeRecord>>
+    {
+        let database = &self.config.calculation_database;
+        validate_identifier(database)?;
+        let run_id = quote_string_literal(&filter.portfolio_run_id);
+        let attempt = quote_string_literal(result_attempt_id);
+        let code_filter = match &filter.security_code {
+            Some(code) => {
+                validate_security_code(code)?;
+                format!("AND security_code = {}", quote_string_literal(code))
+            }
+            None => String::new(),
+        };
+        let exit_date_filter = match filter.exit_date {
+            Some(date) => format!("AND exit_date = toDate('{date}')"),
+            None => String::new(),
+        };
+        let fetch_limit = filter.page.fetch_limit();
+        let sql = format!(
+            r#"
+SELECT portfolio_run_id, result_attempt_id, closed_trade_id, closed_trade_seq,
+       position_lot_id, entry_trade_seq, exit_trade_seq, security_code,
+       entry_date, exit_date, quantity, entry_gross_amount, exit_gross_amount,
+       entry_fee, exit_fee, entry_fee + exit_fee AS total_fee, realized_pnl,
+       if(entry_gross_amount + entry_fee = 0, null, realized_pnl / (entry_gross_amount + entry_fee)) AS realized_return,
+       holding_days, exit_reason
+FROM {database}.calc_portfolio_closed_trade
+WHERE portfolio_run_id = {run_id}
+  AND result_attempt_id = {attempt}
+  {exit_date_filter}
+  {code_filter}
+ORDER BY exit_date, security_code, closed_trade_seq
+LIMIT {fetch_limit} OFFSET {offset}
+FORMAT JSONEachRow"#,
+            offset = filter.page.offset
+        );
+        let body = self
+            .execute_text(&sql, "rearview-portfolio-read-closed-trades")
+            .await?;
+        let rows = parse_json_each_row::<crate::postgres::PortfolioClosedTradeRecord>(&body)?;
+        Ok(crate::postgres::ListResult::from_rows(rows, filter.page))
+    }
+
+    pub async fn query_portfolio_trade_metrics(
+        &self,
+        filter: &crate::postgres::PortfolioTradeMetricFilter,
+        result_attempt_id: &str,
+    ) -> RearviewResult<crate::postgres::ListResult<crate::postgres::PortfolioTradeMetricRecord>>
+    {
+        let database = &self.config.calculation_database;
+        validate_identifier(database)?;
+        let run_id = quote_string_literal(&filter.portfolio_run_id);
+        let attempt = quote_string_literal(result_attempt_id);
+        let window_filter = match &filter.window_key {
+            Some(window_key) => {
+                validate_window_key(window_key)?;
+                format!("AND window_key = {}", quote_string_literal(window_key))
+            }
+            None => String::new(),
+        };
+        let fetch_limit = filter.page.fetch_limit();
+        let sql = format!(
+            r#"
+SELECT portfolio_run_id, result_attempt_id, window_key, window_start, window_end,
+       closed_trade_count, winning_trade_count, losing_trade_count,
+       breakeven_trade_count, win_rate_closed_trades, average_win_return,
+       average_loss_return, profit_loss_ratio, average_holding_days,
+       largest_win_return, largest_loss_return
+FROM {database}.calc_portfolio_trade_metric
+WHERE portfolio_run_id = {run_id}
+  AND result_attempt_id = {attempt}
+  {window_filter}
+ORDER BY window_key
+LIMIT {fetch_limit} OFFSET {offset}
+FORMAT JSONEachRow"#,
+            offset = filter.page.offset
+        );
+        let body = self
+            .execute_text(&sql, "rearview-portfolio-read-trade-metrics")
+            .await?;
+        let rows = parse_json_each_row::<crate::postgres::PortfolioTradeMetricRecord>(&body)?;
+        Ok(crate::postgres::ListResult::from_rows(rows, filter.page))
+    }
+
     async fn execute_text(&self, sql: &str, query_id: &str) -> RearviewResult<String> {
         let response = self
             .client
@@ -1048,6 +1199,24 @@ fn validate_source_tenor(source_tenor: &str) -> RearviewResult<()> {
     {
         return Err(RearviewError::Validation(format!(
             "invalid source_tenor: {source_tenor}"
+        )));
+    }
+    Ok(())
+}
+
+fn validate_window_key(window_key: &str) -> RearviewResult<()> {
+    let trimmed = window_key.trim();
+    if trimmed.is_empty() || trimmed.len() > 64 {
+        return Err(RearviewError::Validation(format!(
+            "invalid window_key: {window_key}"
+        )));
+    }
+    if !trimmed
+        .chars()
+        .all(|char| char.is_ascii_alphanumeric() || matches!(char, '_' | '-'))
+    {
+        return Err(RearviewError::Validation(format!(
+            "invalid window_key: {window_key}"
         )));
     }
     Ok(())
@@ -1338,7 +1507,10 @@ where
 
 #[cfg(test)]
 mod tests {
-    use super::{QuoteMartRow, ScreeningRow, validate_security_code, validate_source_tenor};
+    use super::{
+        QuoteMartRow, ScreeningRow, validate_security_code, validate_source_tenor,
+        validate_window_key,
+    };
 
     fn row_json(is_buy_signal: &str) -> String {
         format!(
@@ -1420,6 +1592,13 @@ mod tests {
     #[test]
     fn validate_source_tenor_rejects_sql_metacharacters() {
         let result = validate_source_tenor("1y'; drop table x; --");
+
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn validate_window_key_rejects_sql_metacharacters() {
+        let result = validate_window_key("full_period'; drop table x; --");
 
         assert!(result.is_err());
     }
