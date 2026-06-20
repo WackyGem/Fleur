@@ -153,6 +153,7 @@ uv run alembic upgrade head
 - 快速启动 Rearview + Racingline dev 环境：`make racingline-dev`；按端口清理：`make racingline-dev-stop`
 - Playwright CLI 使用全局安装的 `@playwright/cli`，命令为 `playwright-cli`
 - 当前浏览器调试环境通过 Docker `vnc-mini-desktop` 暴露 Chromium CDP 端口，默认 `PLAYWRIGHT_CDP_ENDPOINT=http://127.0.0.1:9222`
+- 使用 Playwright CLI 调试前端时，默认连接现有 CDP 浏览器：`playwright-cli attach --cdp="${PLAYWRIGHT_CDP_ENDPOINT:-http://127.0.0.1:9222}"`；不要用 `playwright-cli open` 启动本机 Chrome
 - CDP 连通性检查：
 
 ```bash

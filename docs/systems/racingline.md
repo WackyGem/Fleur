@@ -78,6 +78,8 @@ node scripts/check_playwright_cdp.mjs
 playwright-cli attach --cdp="${PLAYWRIGHT_CDP_ENDPOINT:-http://127.0.0.1:9222}"
 ```
 
+Racingline 调试默认连接 `vnc-mini-desktop` 已运行的 Chromium。不要使用 `playwright-cli open` 启动本机 Chrome；本机环境可能没有安装系统 Chrome，且会绕过共享 VNC/CDP 调试环境。
+
 具体 agent 调试流程见 [../skills/playwright-cdp-frontend-debug/SKILL.md](../skills/playwright-cdp-frontend-debug/SKILL.md)。官方 Playwright CLI skill 可通过 `playwright-cli install --skills agents` 安装到本地 `.agents/skills/playwright-cli`。
 
 ## 质量门禁

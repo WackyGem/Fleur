@@ -56,3 +56,5 @@ npm run build
 node scripts/check_playwright_cdp.mjs
 playwright-cli attach --cdp="${PLAYWRIGHT_CDP_ENDPOINT:-http://127.0.0.1:9222}"
 ```
+
+Racingline 前端验收默认 attach 到 Docker `vnc-mini-desktop` 暴露的 CDP endpoint，不使用 `playwright-cli open` 启动本机 Chrome。

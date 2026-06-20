@@ -20,6 +20,7 @@ This repo skill is a thin mono-fleur wrapper. Prefer the official `playwright-cl
 - Default CDP endpoint: `http://127.0.0.1:9222`
 - CDP health check: `node scripts/check_playwright_cdp.mjs`
 - Browser owner: Docker `vnc-mini-desktop`; do not close this browser unless explicitly asked.
+- Default Playwright CLI entrypoint: `playwright-cli attach --cdp="${PLAYWRIGHT_CDP_ENDPOINT:-http://127.0.0.1:9222}"`; do not use `playwright-cli open` for this repo workflow.
 
 ## Workflow
 
@@ -65,7 +66,8 @@ playwright-cli detach
 
 - Use CDP debugging for exploratory UI inspection, screenshots, console/network diagnostics, and reproducing user-visible issues.
 - Use deterministic Playwright tests for CI-grade assertions; CDP attachment is lower fidelity than Playwright's native protocol and is Chromium-only.
-- Do not rely on local browser downloads for this workflow. The target browser is the existing CDP browser in `vnc-mini-desktop`.
+- Do not rely on local browser downloads or system Chrome for this workflow. The target browser is the existing CDP browser in `vnc-mini-desktop`.
+- Do not start a new browser with `playwright-cli open` unless the user explicitly asks for an isolated local browser session.
 - Do not use `playwright-cli close` against the external VNC browser unless the user explicitly asks to shut it down.
 - If `playwright-cli install --skills agents` retries browser downloads and the official skill directory already exists, it is acceptable to stop the download; CDP debugging can still work.
 
