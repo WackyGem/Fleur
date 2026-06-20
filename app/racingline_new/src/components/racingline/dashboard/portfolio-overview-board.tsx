@@ -20,10 +20,22 @@ import {
   formatMetricValue,
   getChangeToneClassName,
   getMetricToneClassName,
+  getScoreBadgeVariant,
   type CurvePoint,
   type Metric,
   type PortfolioCardData,
+  type SignalStock,
 } from "@/components/racingline/dashboard/portfolio-data"
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table"
+
+const VISIBLE_SIGNAL_ROW_COUNT = 5
 
 function NavBenchmarkChart({
   className = "h-38",
@@ -149,6 +161,57 @@ function MetricSection({
   )
 }
 
+function TodaySignalSection({ stocks }: { stocks: SignalStock[] }) {
+  const placeholderCount = Math.max(0, VISIBLE_SIGNAL_ROW_COUNT - stocks.length)
+
+  return (
+    <section className="flex flex-col gap-2">
+      <div className="text-[11px] font-medium text-muted-foreground">
+        今日信号
+      </div>
+      <div className="max-h-[11rem] min-h-0 overflow-y-auto">
+        <Table className="w-full table-fixed text-xs">
+          <TableHeader>
+            <TableRow className="hover:bg-transparent">
+              <TableHead className="h-7 px-1">股票</TableHead>
+              <TableHead className="h-7 w-16 px-1 text-right">得分</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {stocks.map((stock) => (
+              <TableRow key={stock.code}>
+                <TableCell className="px-1 py-1">
+                  <div className="grid min-w-0 grid-cols-[4.5em_minmax(0,1fr)] items-center gap-1">
+                    <span className="truncate font-medium">{stock.name}</span>
+                    <span className="truncate text-muted-foreground tabular-nums">
+                      {stock.code}
+                    </span>
+                  </div>
+                </TableCell>
+                <TableCell className="px-1 py-1 text-right">
+                  <Badge variant={getScoreBadgeVariant(stock.score)}>
+                    {stock.score.toFixed(1)}
+                  </Badge>
+                </TableCell>
+              </TableRow>
+            ))}
+            {Array.from({ length: placeholderCount }, (_, index) => (
+              <TableRow key={`placeholder-${index}`}>
+                <TableCell className="px-1 py-1 text-muted-foreground">
+                  --
+                </TableCell>
+                <TableCell className="px-1 py-1 text-right text-muted-foreground">
+                  --
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
+    </section>
+  )
+}
+
 function PortfolioOverviewCard({
   portfolio,
 }: {
@@ -165,12 +228,9 @@ function PortfolioOverviewCard({
             <CardTitle className="text-xl leading-none">
               {portfolio.name}
             </CardTitle>
-            <div className="flex flex-wrap items-center gap-1.5">
-              <Badge variant="outline">建仓: {portfolio.startDate}</Badge>
-              <Badge variant="outline">回测: {portfolio.backtestDays} 天</Badge>
-              <Badge variant="outline">
-                模拟: {portfolio.simulationDays} 天
-              </Badge>
+            <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+              <span>建仓: {portfolio.startDate}</span>
+              <span>运行: {portfolio.simulationDays} 天</span>
             </div>
           </div>
 
@@ -196,8 +256,7 @@ function PortfolioOverviewCard({
         <div className="grid gap-4">
           <MetricSection title="收益指标" metrics={portfolio.returns} />
           <MetricSection title="风险指标" metrics={portfolio.risk} />
-          <MetricSection title="性价比" metrics={portfolio.efficiency} />
-          <MetricSection title="相对市场" metrics={portfolio.relative} />
+          <TodaySignalSection stocks={portfolio.todaySignals} />
         </div>
 
         <Separator />

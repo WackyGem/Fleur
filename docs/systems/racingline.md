@@ -111,7 +111,9 @@ cargo test --workspace
 | [../RFC/0020-racingline-run-result-security-analysis-page.md](../RFC/0020-racingline-run-result-security-analysis-page.md) | Run result 个股分析页已实现 RFC |
 | [../RFC/0021-racingline-virtual-account-portfolio-rebalancing.md](../RFC/0021-racingline-virtual-account-portfolio-rebalancing.md) | 虚拟账户、交易费率、止盈止损和组合调仓净值 Proposed RFC |
 | [../RFC/0023-racingline-frontend-prototype-led-development.md](../RFC/0023-racingline-frontend-prototype-led-development.md) | Racingline 前端 RFC 阶段允许原型驱动多轮 UX 验证的流程 RFC |
-| [../Q&A/0003-racingline-strategy-lab-two-entry-navigation.md](../Q&A/0003-racingline-strategy-lab-two-entry-navigation.md) | Racingline 新策略实验室两入口导航和首屏承载 Proposed Q&A |
+| [../Q&A/user-logic.md](../Q&A/user-logic.md) | Racingline 当前用户画像和策略研究工作台主路径 |
+| [../Q&A/0003-racingline-strategy-lab-two-entry-navigation.md](../Q&A/0003-racingline-strategy-lab-two-entry-navigation.md) | Racingline 策略研究工作台两入口导航和首屏承载 Proposed Q&A |
+| [../Q&A/0004-racingline-prototype-dashboard-to-strategy-loop.md](../Q&A/0004-racingline-prototype-dashboard-to-strategy-loop.md) | `app/racingline_new/` 看板到选股、回测和运行策略闭环用户故事 |
 | [../ADR/0013-racingline-ui-stack-variant-evaluation.md](../ADR/0013-racingline-ui-stack-variant-evaluation.md) | Racingline UI 栈变体评估 Proposed ADR |
 | [../plans/0041-racingline-virtual-account-portfolio-rebalancing-implementation-plan.md](../plans/0041-racingline-virtual-account-portfolio-rebalancing-implementation-plan.md) | 虚拟账户、组合运行、NATS worker 和组合页面当前实施计划 |
 | [../ADR/0011-racingline-frontend-technology-stack.md](../ADR/0011-racingline-frontend-technology-stack.md) | Racingline 前端技术栈和工程边界 |

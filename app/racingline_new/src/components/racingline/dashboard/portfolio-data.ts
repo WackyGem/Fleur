@@ -13,6 +13,12 @@ type CurvePoint = {
   benchmark: number
 }
 
+type SignalStock = {
+  code: string
+  name: string
+  score: number
+}
+
 type PortfolioCardData = {
   id: string
   name: string
@@ -25,6 +31,7 @@ type PortfolioCardData = {
   risk: Metric[]
   efficiency: Metric[]
   relative: Metric[]
+  todaySignals: SignalStock[]
   curve: CurvePoint[]
 }
 
@@ -61,6 +68,14 @@ const portfolioCards: PortfolioCardData[] = [
         kind: "ratio",
         tone: "neutral",
       },
+    ],
+    todaySignals: [
+      { code: "600036.SH", name: "招商银行", score: 91.4 },
+      { code: "600900.SH", name: "长江电力", score: 88.2 },
+      { code: "601318.SH", name: "中国平安", score: 84.7 },
+      { code: "601988.SH", name: "中国银行", score: 78.5 },
+      { code: "000333.SZ", name: "美的集团", score: 73.6 },
+      { code: "600519.SH", name: "贵州茅台", score: 69.1 },
     ],
     curve: [
       { time: "2025-06-16", nav: 1.0, benchmark: 1.0 },
@@ -108,6 +123,11 @@ const portfolioCards: PortfolioCardData[] = [
         kind: "ratio",
         tone: "neutral",
       },
+    ],
+    todaySignals: [
+      { code: "688981.SH", name: "中芯国际", score: 93.1 },
+      { code: "300750.SZ", name: "宁德时代", score: 89.6 },
+      { code: "002475.SZ", name: "立讯精密", score: 82.3 },
     ],
     curve: [
       { time: "2025-05-08", nav: 1.0, benchmark: 1.0 },
@@ -161,11 +181,24 @@ function getChangeToneClassName(value: number) {
   return "text-foreground"
 }
 
-export type { CurvePoint, Metric, PortfolioCardData }
+function getScoreBadgeVariant(score: number) {
+  if (score >= 85) {
+    return "default"
+  }
+
+  if (score >= 70) {
+    return "secondary"
+  }
+
+  return "outline"
+}
+
+export type { CurvePoint, Metric, PortfolioCardData, SignalStock }
 export {
   portfolioCards,
   formatChangeValue,
   formatMetricValue,
   getChangeToneClassName,
   getMetricToneClassName,
+  getScoreBadgeVariant,
 }
