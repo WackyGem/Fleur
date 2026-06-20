@@ -1,7 +1,9 @@
 import { Fragment, useEffect, useRef, useState } from "react"
 import { Link, useParams } from "react-router-dom"
+import { createChart, LineSeries } from "lightweight-charts"
 import { ArrowLeft, Trash2 } from "lucide-react"
 
+import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -66,6 +68,24 @@ type DetailTrade = {
 type DetailRebalanceRecord = {
   date: string
   trades: DetailTrade[]
+}
+
+type SignalScoreItem = {
+  label: string
+  score: number
+}
+
+type SignalStock = {
+  code: string
+  name: string
+  score: number
+  scoreItems: SignalScoreItem[]
+}
+
+type SignalPool = {
+  date: string
+  signalCount: number
+  stocks: SignalStock[]
 }
 
 const holdingsByPortfolioId: Record<string, HoldingRow[]> = {
@@ -170,10 +190,12 @@ const detailTradeCandidates = [
 
 function StrategyDetailPage() {
   const { portfolioId } = useParams()
+  const [selectedSignalDate, setSelectedSignalDate] = useState("")
   const [selectedRebalanceDate, setSelectedRebalanceDate] = useState("")
   const rebalanceDateScrollerRef = useRef<HTMLDivElement | null>(null)
   const portfolio = portfolioCards.find((item) => item.id === portfolioId)
   const holdings = portfolio ? (holdingsByPortfolioId[portfolio.id] ?? []) : []
+  const signalPools = portfolio ? buildStrategySignalPools(portfolio.id) : []
   const records = portfolio
     ? buildDetailRebalanceRecords(holdings, portfolio.backtestDays)
     : []
@@ -211,6 +233,9 @@ function StrategyDetailPage() {
   const selectedRebalanceRecord =
     records.find((record) => record.date === selectedRebalanceDate) ??
     records.at(-1)
+  const selectedSignalPool =
+    signalPools.find((pool) => pool.date === selectedSignalDate) ??
+    signalPools.at(-1)
   const selectedRebalanceTradeSections = selectedRebalanceRecord
     ? buildRebalanceTradeSections(selectedRebalanceRecord.trades)
     : []
@@ -253,8 +278,7 @@ function StrategyDetailPage() {
         <div aria-hidden="true" className="h-5 w-px shrink-0 bg-border/90" />
         <div className="flex min-w-0 flex-1 items-center gap-3 overflow-hidden text-xs text-muted-foreground tabular-nums">
           <span className="shrink-0">建仓: {portfolio.startDate}</span>
-          <span className="shrink-0">回测: {portfolio.backtestDays} 天</span>
-          <span className="shrink-0">模拟: {portfolio.simulationDays} 天</span>
+          <span className="shrink-0">运行: {portfolio.simulationDays} 天</span>
         </div>
         <Dialog>
           <DialogTrigger
@@ -292,6 +316,100 @@ function StrategyDetailPage() {
       <div className="flex min-h-full flex-col gap-4 pt-2">
         <div className="flex min-h-0 flex-col gap-4">
           <div className="flex w-full flex-col gap-4">
+            <section className="flex flex-col gap-3">
+              <div className="flex items-center justify-between gap-3">
+                <div className="text-sm font-medium">策略信号</div>
+                {selectedSignalPool ? (
+                  <div className="text-xs text-muted-foreground tabular-nums">
+                    {selectedSignalPool.date} / {selectedSignalPool.signalCount}{" "}
+                    次
+                  </div>
+                ) : null}
+              </div>
+
+              <div className="grid gap-4 xl:grid-cols-[minmax(0,3fr)_minmax(0,7fr)]">
+                <div className="flex min-h-0 flex-col gap-2">
+                  <div className="text-xs font-medium text-muted-foreground">
+                    历史信号数
+                  </div>
+                  <SignalCountChart
+                    onTimeSelect={setSelectedSignalDate}
+                    points={signalPools.map((pool) => ({
+                      time: pool.date,
+                      value: pool.signalCount,
+                    }))}
+                    selectedTime={selectedSignalPool?.date}
+                  />
+                </div>
+
+                {selectedSignalPool ? (
+                  <div className="flex min-h-0 flex-col gap-2">
+                    <div className="grid h-[18px] shrink-0 gap-1 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end">
+                      <div className="min-w-0">
+                        <div className="text-sm font-medium tabular-nums">
+                          {selectedSignalPool.date}
+                        </div>
+                      </div>
+                      <div className="text-xs text-muted-foreground tabular-nums">
+                        {selectedSignalPool.stocks.length} 只
+                      </div>
+                    </div>
+
+                    <div className="h-[14rem] min-h-0 overflow-y-auto">
+                      <Table className="w-full table-fixed">
+                        <TableHeader>
+                          <TableRow className="hover:bg-transparent">
+                            <TableHead className="h-7 w-[9.5rem] px-1">
+                              股票
+                            </TableHead>
+                            <TableHead className="h-7 px-1">得分项</TableHead>
+                            <TableHead className="h-7 w-16 px-1 text-right">
+                              得分
+                            </TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {selectedSignalPool.stocks.map((stock) => (
+                            <TableRow key={stock.code}>
+                              <TableCell className="px-1 py-1">
+                                <div className="grid min-w-0 grid-cols-[4.5em_minmax(0,1fr)] items-center gap-1">
+                                  <span className="truncate font-medium">
+                                    {stock.name}
+                                  </span>
+                                  <span className="truncate text-muted-foreground tabular-nums">
+                                    {stock.code}
+                                  </span>
+                                </div>
+                              </TableCell>
+                              <TableCell className="px-1 py-1">
+                                <div
+                                  className="w-full truncate text-muted-foreground tabular-nums"
+                                  title={formatSignalScoreItems(
+                                    stock.scoreItems
+                                  )}
+                                >
+                                  {formatSignalScoreItems(stock.scoreItems)}
+                                </div>
+                              </TableCell>
+                              <TableCell className="px-1 py-1 text-right">
+                                <Badge
+                                  variant={getScoreBadgeVariant(stock.score)}
+                                >
+                                  {stock.score.toFixed(1)}
+                                </Badge>
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  </div>
+                ) : null}
+              </div>
+            </section>
+
+            <Separator className="bg-border/60" />
+
             <section className="flex flex-col gap-3">
               <div className="flex items-baseline gap-2">
                 <div className="text-sm font-medium">策略业绩</div>
@@ -598,6 +716,109 @@ function MetricGroup({ metrics, title }: { metrics: Metric[]; title: string }) {
   )
 }
 
+function SignalCountChart({
+  onTimeSelect,
+  points,
+  selectedTime,
+}: {
+  onTimeSelect: (time: string) => void
+  points: { time: string; value: number }[]
+  selectedTime?: string
+}) {
+  const containerRef = useRef<HTMLDivElement | null>(null)
+
+  useEffect(() => {
+    const container = containerRef.current
+
+    if (!container) {
+      return
+    }
+
+    const chart = createChart(container, {
+      width: container.clientWidth,
+      height: container.clientHeight,
+      layout: {
+        background: { color: "transparent" },
+        textColor: "rgba(99, 95, 89, 0.78)",
+        attributionLogo: false,
+      },
+      grid: {
+        vertLines: { visible: false },
+        horzLines: { color: "rgba(120, 114, 108, 0.12)" },
+      },
+      crosshair: {
+        vertLine: { color: "rgba(120, 114, 108, 0.20)" },
+        horzLine: { color: "rgba(120, 114, 108, 0.20)" },
+      },
+      rightPriceScale: {
+        borderVisible: false,
+      },
+      leftPriceScale: {
+        visible: false,
+      },
+      timeScale: {
+        borderVisible: false,
+        timeVisible: false,
+      },
+      handleScroll: false,
+      handleScale: false,
+    })
+
+    const signalSeries = chart.addSeries(LineSeries, {
+      color: "#2b2622",
+      lineWidth: 2,
+      lastValueVisible: false,
+      priceLineVisible: false,
+    })
+
+    signalSeries.setData(points)
+    chart.timeScale().fitContent()
+
+    const selectedPoint = points.find((point) => point.time === selectedTime)
+
+    if (selectedPoint) {
+      chart.setCrosshairPosition(
+        selectedPoint.value,
+        selectedPoint.time,
+        signalSeries
+      )
+    }
+
+    function handleClick(param: { time?: unknown }) {
+      if (typeof param.time !== "string") {
+        return
+      }
+
+      onTimeSelect(param.time)
+    }
+
+    chart.subscribeClick(handleClick)
+
+    const resizeObserver = new ResizeObserver((entries) => {
+      const entry = entries[0]
+
+      if (!entry) {
+        return
+      }
+
+      chart.applyOptions({
+        height: entry.contentRect.height,
+        width: entry.contentRect.width,
+      })
+    })
+
+    resizeObserver.observe(container)
+
+    return () => {
+      chart.unsubscribeClick(handleClick)
+      resizeObserver.disconnect()
+      chart.remove()
+    }
+  }, [onTimeSelect, points, selectedTime])
+
+  return <div ref={containerRef} className="h-56 w-full cursor-crosshair" />
+}
+
 function buildReturnMetrics(metrics: Metric[], excessReturn: number): Metric[] {
   return [
     metrics[0],
@@ -615,6 +836,71 @@ function buildReturnMetrics(metrics: Metric[], excessReturn: number): Metric[] {
       tone: "neutral",
     },
   ].filter(Boolean)
+}
+
+function buildStrategySignalPools(portfolioId: string): SignalPool[] {
+  const dates = buildTradingDates("2025-09-08", 63)
+  const portfolioOffset = portfolioId.length % 7
+
+  return dates.map((date, dayIndex) => {
+    const dateSeed = getDateSeed(date) + portfolioOffset
+    const signalCount =
+      22 +
+      ((dateSeed + dayIndex * 3) % 11) +
+      Math.round(Math.sin(dayIndex * 0.42) * 4)
+    const poolSize = 5 + ((dateSeed + dayIndex) % 5)
+    const stocks = detailTradeCandidates
+      .map((candidate, candidateIndex) => {
+        const scoreItems = buildSignalScoreItems(dateSeed, candidateIndex)
+        const score = clampPreviewScore(
+          54 +
+            signalCount * 0.48 +
+            scoreItems.reduce((total, item) => total + item.score, 0) * 0.26 +
+            Math.sin((dayIndex + candidateIndex) * 0.68) * 7
+        )
+
+        return {
+          code: candidate.securityCode,
+          name: candidate.securityName,
+          score,
+          scoreItems,
+        }
+      })
+      .sort((a, b) => b.score - a.score)
+      .slice(0, poolSize)
+
+    return {
+      date,
+      signalCount,
+      stocks,
+    }
+  })
+}
+
+function buildSignalScoreItems(
+  dateSeed: number,
+  candidateIndex: number
+): SignalScoreItem[] {
+  const labels = ["趋势强度", "资金确认", "波动过滤"]
+
+  return labels.map((label, index) => ({
+    label,
+    score: Number(
+      (8.6 + ((dateSeed + candidateIndex * 13 + index * 17) % 46) / 10).toFixed(
+        1
+      )
+    ),
+  }))
+}
+
+function formatSignalScoreItems(scoreItems: SignalScoreItem[]) {
+  if (scoreItems.length === 0) {
+    return "-"
+  }
+
+  return scoreItems
+    .map((item) => `${item.label} ${item.score.toFixed(1)}`)
+    .join(" / ")
 }
 
 function buildDetailRebalanceRecords(
@@ -780,6 +1066,26 @@ function formatSignedPercent(value: number) {
   const sign = value > 0 ? "+" : ""
 
   return `${sign}${(value * 100).toFixed(2)}%`
+}
+
+function getDateSeed(date: string) {
+  return Array.from(date).reduce((total, char) => total + char.charCodeAt(0), 0)
+}
+
+function clampPreviewScore(score: number) {
+  return Math.min(99, Math.max(0, Number(score.toFixed(1))))
+}
+
+function getScoreBadgeVariant(score: number) {
+  if (score >= 85) {
+    return "default"
+  }
+
+  if (score >= 70) {
+    return "secondary"
+  }
+
+  return "outline"
 }
 
 function getSignedValueClassName(value: string) {
