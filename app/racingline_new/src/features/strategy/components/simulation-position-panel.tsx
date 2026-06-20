@@ -1,0 +1,1020 @@
+import type { ReactNode } from "react"
+
+import { Badge } from "@/components/ui/badge"
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card"
+import { Checkbox } from "@/components/ui/checkbox"
+import {
+  Field,
+  FieldContent,
+  FieldGroup,
+  FieldLabel,
+  FieldLegend,
+  FieldSet,
+  FieldTitle,
+} from "@/components/ui/field"
+import {
+  InputGroup,
+  InputGroupAddon,
+  InputGroupInput,
+} from "@/components/ui/input-group"
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectLabel,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+import { Separator } from "@/components/ui/separator"
+import { Slider } from "@/components/ui/slider"
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table"
+import { indicatorCatalog } from "@/features/strategy/catalog"
+import type {
+  SimulationSettings,
+  StrategyConditionGroup,
+  WeightIndicator,
+} from "@/features/strategy/types"
+import {
+  getCatalog,
+  getCatalogMetricsByType,
+  getScaledWeightIndicators,
+} from "@/features/strategy/utils"
+import { cn } from "@/lib/utils"
+
+type SimulationPositionPanelProps = {
+  appliedWeightIndicators: WeightIndicator[]
+  conditionGroups: StrategyConditionGroup[]
+  onSettingsChange: (settings: SimulationSettings) => void
+  settings: SimulationSettings
+}
+
+type NumberInputFieldProps = {
+  disabled?: boolean
+  label: string
+  max?: number
+  min?: number
+  onValueChange: (value: number) => void
+  step?: number
+  suffix?: string
+  value: number
+}
+
+type RiskRuleRowProps = {
+  checked: boolean
+  children: ReactNode
+  onCheckedChange: (checked: boolean) => void
+  title: string
+}
+
+type SettingRowProps = {
+  children: ReactNode
+  label: ReactNode
+}
+
+type SummaryRow = {
+  condition: string
+  trigger: string
+}
+
+type SignalTrendPoint = {
+  count: number
+  label: string
+}
+
+type RiskSettingsKey =
+  | "fixedStopLoss"
+  | "indicatorStopLoss"
+  | "takeProfit"
+  | "timeStopLoss"
+
+type TransactionFeeSettingsKey = keyof SimulationSettings["transactionFees"]
+
+type TransactionFeeRow = {
+  defaultRatePercent: number
+  direction: string
+  key: TransactionFeeSettingsKey
+  max?: number
+  name: string
+  note: string
+  step: number
+}
+
+const numericCatalogs = indicatorCatalog
+  .map((catalog) => ({
+    ...catalog,
+    metrics: catalog.metrics.filter((metric) => metric.valueType === "number"),
+  }))
+  .filter((catalog) => catalog.metrics.length > 0)
+
+const sectionCardClassName = "bg-transparent ring-0"
+const configSectionCardClassName = cn(sectionCardClassName, "xl:pr-4")
+const configSeparatorClassName =
+  "bg-border/60 md:ml-[11rem] md:max-w-[37rem]"
+const configListClassName = "max-w-[48rem] gap-0"
+const sectionSeparatorClassName = "max-w-[52rem] bg-border/60"
+const settingRowClassName =
+  "grid gap-3 py-2 md:grid-cols-[11rem_minmax(0,1fr)] md:items-center"
+const settingControlGridClassName =
+  "grid gap-2 md:grid-cols-[6.5rem_10rem_minmax(0,1fr)] md:items-center"
+const transactionFeeRowClassName =
+  "grid gap-2 py-2 md:grid-cols-[11rem_6.5rem_10rem_minmax(0,1fr)] md:items-center"
+const commissionMaxRatePercent = 0.3
+
+const transactionFeeRows: TransactionFeeRow[] = [
+  {
+    defaultRatePercent: 0.05,
+    direction: "卖出",
+    key: "stampDutyRatePercent",
+    name: "印花税",
+    note: "",
+    step: 0.001,
+  },
+  {
+    defaultRatePercent: 0.001,
+    direction: "双向",
+    key: "transferFeeRatePercent",
+    name: "过户费",
+    note: "",
+    step: 0.001,
+  },
+  {
+    defaultRatePercent: 0.01,
+    direction: "双向",
+    key: "commissionRatePercent",
+    max: commissionMaxRatePercent,
+    name: "佣金",
+    note: `上限 ${formatFeePercent(commissionMaxRatePercent)}`,
+    step: 0.001,
+  },
+  {
+    defaultRatePercent: 0.1,
+    direction: "双向",
+    key: "slippageRatePercent",
+    name: "成交滑点",
+    note: "买入按开盘价上浮，卖出按开盘价下浮",
+    step: 0.001,
+  },
+]
+
+function SimulationPositionPanel({
+  appliedWeightIndicators,
+  conditionGroups,
+  onSettingsChange,
+  settings,
+}: SimulationPositionPanelProps) {
+  const activeRiskRows = buildRiskSummaryRows(settings)
+  const perPositionCapital =
+    (settings.initialCapital * settings.singlePositionLimitPercent) / 100
+  const maxPositions =
+    settings.singlePositionLimitPercent > 0
+      ? Math.floor(100 / settings.singlePositionLimitPercent)
+      : 0
+  const groupCount = conditionGroups.length
+  const conditionCount = conditionGroups.reduce(
+    (total, group) => total + group.conditions.length,
+    0
+  )
+  const { indicators } = getScaledWeightIndicators(appliedWeightIndicators)
+  const signalTrend = buildSignalTrendData(
+    settings,
+    conditionGroups,
+    appliedWeightIndicators
+  )
+  const totalSignals = signalTrend.reduce(
+    (total, item) => total + item.count,
+    0
+  )
+
+  function updateSettings(patch: Partial<SimulationSettings>) {
+    onSettingsChange({ ...settings, ...patch })
+  }
+
+  function updateRiskSettings<Key extends RiskSettingsKey>(
+    key: Key,
+    patch: Partial<SimulationSettings[Key]>
+  ) {
+    onSettingsChange({
+      ...settings,
+      [key]: {
+        ...(settings[key] as object),
+        ...patch,
+      },
+    })
+  }
+
+  function updateTransactionFeeSettings(
+    key: TransactionFeeSettingsKey,
+    value: number
+  ) {
+    onSettingsChange({
+      ...settings,
+      transactionFees: {
+        ...settings.transactionFees,
+        [key]: value,
+      },
+    })
+  }
+
+  return (
+    <div className="grid min-h-full gap-y-4 xl:grid-cols-[minmax(34rem,1fr)_auto_20rem] xl:gap-x-0">
+      <div className="flex min-h-0 flex-col gap-3 pt-5">
+        <Card size="sm" className={configSectionCardClassName}>
+          <CardHeader className="px-0">
+            <CardTitle>仓位管理</CardTitle>
+          </CardHeader>
+          <CardContent className="px-0">
+            <FieldSet>
+              <FieldLegend className="sr-only">仓位管理</FieldLegend>
+              <FieldGroup className="grid max-w-[48rem] gap-3 md:grid-cols-[12rem_12rem_19rem]">
+                <NumberInputField
+                  label="初始金额"
+                  min={0}
+                  onValueChange={(initialCapital) =>
+                    updateSettings({ initialCapital })
+                  }
+                  step={10000}
+                  suffix="元"
+                  value={settings.initialCapital}
+                />
+
+                <NumberInputField
+                  label="买入信号 Top N"
+                  min={1}
+                  onValueChange={(buyTopN) => updateSettings({ buyTopN })}
+                  step={1}
+                  suffix="只"
+                  value={settings.buyTopN}
+                />
+
+                <Field>
+                  <FieldLabel>单票上限</FieldLabel>
+                  <div className="grid grid-cols-[minmax(0,1fr)_8rem] items-center gap-3">
+                    <Slider
+                      aria-label="单票仓位上限"
+                      max={100}
+                      min={1}
+                      onValueChange={(nextValue) =>
+                        updateSettings({
+                          singlePositionLimitPercent: readSliderValue(
+                            nextValue,
+                            settings.singlePositionLimitPercent
+                          ),
+                        })
+                      }
+                      step={1}
+                      value={[settings.singlePositionLimitPercent]}
+                    />
+                    <InputGroup>
+                      <InputGroupInput
+                        inputMode="decimal"
+                        max={100}
+                        min={1}
+                        onChange={(event) =>
+                          updateSettings({
+                            singlePositionLimitPercent: toBoundedNumber(
+                              event.target.value,
+                              1,
+                              100
+                            ),
+                          })
+                        }
+                        step={1}
+                        type="number"
+                        value={String(settings.singlePositionLimitPercent)}
+                      />
+                      <InputGroupAddon align="inline-end">%</InputGroupAddon>
+                    </InputGroup>
+                  </div>
+                </Field>
+              </FieldGroup>
+            </FieldSet>
+          </CardContent>
+        </Card>
+
+        <Separator className={sectionSeparatorClassName} />
+
+        <Card size="sm" className={configSectionCardClassName}>
+          <CardHeader className="px-0">
+            <CardTitle>交易费率</CardTitle>
+          </CardHeader>
+          <CardContent className="px-0">
+            <TransactionFeeList
+              fees={settings.transactionFees}
+              onRateChange={updateTransactionFeeSettings}
+            />
+          </CardContent>
+        </Card>
+
+        <Separator className={sectionSeparatorClassName} />
+
+        <Card size="sm" className={configSectionCardClassName}>
+          <CardHeader className="px-0">
+            <CardTitle>风险管理</CardTitle>
+          </CardHeader>
+          <CardContent className="px-0">
+            <FieldSet>
+              <FieldLegend className="sr-only">卖出条件</FieldLegend>
+              <FieldGroup className={configListClassName}>
+                <RiskRuleRow
+                  checked={settings.takeProfit.enabled}
+                  onCheckedChange={(enabled) =>
+                    updateRiskSettings("takeProfit", { enabled })
+                  }
+                  title="固定止盈"
+                >
+                  <div className={settingControlGridClassName}>
+                    <div className="text-xs text-muted-foreground">
+                      收益达到
+                    </div>
+                    <CompactNumberInput
+                      disabled={!settings.takeProfit.enabled}
+                      label="收益达到"
+                      min={0}
+                      onValueChange={(profitPercent) =>
+                        updateRiskSettings("takeProfit", { profitPercent })
+                      }
+                      step={0.5}
+                      suffix="%"
+                      value={settings.takeProfit.profitPercent}
+                    />
+                  </div>
+                </RiskRuleRow>
+                <Separator className={configSeparatorClassName} />
+
+                <RiskRuleRow
+                  checked={settings.fixedStopLoss.enabled}
+                  onCheckedChange={(enabled) =>
+                    updateRiskSettings("fixedStopLoss", { enabled })
+                  }
+                  title="固定止损"
+                >
+                  <div className={settingControlGridClassName}>
+                    <div className="text-xs text-muted-foreground">
+                      买入价下跌
+                    </div>
+                    <CompactNumberInput
+                      disabled={!settings.fixedStopLoss.enabled}
+                      label="买入价下跌"
+                      min={0}
+                      onValueChange={(lossPercent) =>
+                        updateRiskSettings("fixedStopLoss", { lossPercent })
+                      }
+                      step={0.5}
+                      suffix="%"
+                      value={settings.fixedStopLoss.lossPercent}
+                    />
+                  </div>
+                </RiskRuleRow>
+                <Separator className={configSeparatorClassName} />
+
+                <RiskRuleRow
+                  checked={settings.indicatorStopLoss.enabled}
+                  onCheckedChange={(enabled) =>
+                    updateRiskSettings("indicatorStopLoss", { enabled })
+                  }
+                  title="指标止损"
+                >
+                  <IndicatorStopLossFields
+                    disabled={!settings.indicatorStopLoss.enabled}
+                    settings={settings}
+                    onSettingsChange={(patch) =>
+                      updateRiskSettings("indicatorStopLoss", patch)
+                    }
+                  />
+                </RiskRuleRow>
+                <Separator className={configSeparatorClassName} />
+
+                <RiskRuleRow
+                  checked={settings.timeStopLoss.enabled}
+                  onCheckedChange={(enabled) =>
+                    updateRiskSettings("timeStopLoss", { enabled })
+                  }
+                  title="时间止损"
+                >
+                  <div className="grid gap-2 md:grid-cols-[6.5rem_10rem_6.5rem_10rem] md:items-center">
+                    <div className="text-xs text-muted-foreground">持仓</div>
+                    <CompactNumberInput
+                      disabled={!settings.timeStopLoss.enabled}
+                      label="持仓"
+                      min={1}
+                      onValueChange={(holdingDays) =>
+                        updateRiskSettings("timeStopLoss", { holdingDays })
+                      }
+                      step={1}
+                      suffix="天"
+                      value={settings.timeStopLoss.holdingDays}
+                    />
+                    <div className="text-xs text-muted-foreground">
+                      收益低于
+                    </div>
+                    <CompactNumberInput
+                      disabled={!settings.timeStopLoss.enabled}
+                      label="收益低于"
+                      onValueChange={(minimumReturnPercent) =>
+                        updateRiskSettings("timeStopLoss", {
+                          minimumReturnPercent,
+                        })
+                      }
+                      step={0.5}
+                      suffix="%"
+                      value={settings.timeStopLoss.minimumReturnPercent}
+                    />
+                  </div>
+                </RiskRuleRow>
+              </FieldGroup>
+            </FieldSet>
+          </CardContent>
+        </Card>
+      </div>
+
+      <Separator className="xl:hidden" />
+      <Separator className="hidden xl:block" orientation="vertical" />
+
+      <div className="flex min-h-0 flex-col gap-4 pt-5">
+        <Card className={cn("h-fit", sectionCardClassName)}>
+          <CardHeader>
+            <CardTitle>建仓摘要</CardTitle>
+            <CardDescription>当前模拟参数</CardDescription>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-4">
+            <div className="grid grid-cols-2 gap-2">
+              <SummaryMetric
+                label="初始金额"
+                value={formatCurrency(settings.initialCapital)}
+              />
+              <SummaryMetric
+                label="买入信号"
+                value={`Top ${settings.buyTopN}`}
+              />
+              <SummaryMetric
+                label="单票上限"
+                value={formatPercent(settings.singlePositionLimitPercent)}
+              />
+              <SummaryMetric
+                label="单票金额"
+                value={formatCurrency(perPositionCapital)}
+              />
+            </div>
+
+            <Separator />
+
+            <div className="flex flex-col gap-2">
+              <div className="flex items-center justify-between gap-2">
+                <div className="text-sm font-medium">近三月信号数</div>
+                <Badge variant="secondary">{totalSignals} 次</Badge>
+              </div>
+              <SignalCountTrendChart data={signalTrend} />
+            </div>
+
+            <Separator />
+
+            <div className="grid grid-cols-2 gap-2">
+              <SummaryMetric label="最大持仓" value={`${maxPositions} 只`} />
+              <SummaryMetric label="指标组" value={`${groupCount} 组`} />
+              <SummaryMetric label="选股条件" value={`${conditionCount} 条`} />
+              <SummaryMetric
+                label="权重指标"
+                value={`${indicators.length} 条`}
+              />
+            </div>
+
+            <Separator />
+
+            <div className="flex flex-col gap-2">
+              <div className="text-sm font-medium">卖出条件</div>
+              {activeRiskRows.length === 0 ? (
+                <div className="text-xs text-muted-foreground">
+                  暂无卖出条件。
+                </div>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow className="hover:bg-transparent">
+                      <TableHead>条件</TableHead>
+                      <TableHead>触发</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {activeRiskRows.map((row) => (
+                      <TableRow
+                        key={row.condition}
+                        className="hover:bg-transparent"
+                      >
+                        <TableCell className="font-medium">
+                          {row.condition}
+                        </TableCell>
+                        <TableCell className="whitespace-normal text-muted-foreground">
+                          {row.trigger}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  )
+}
+
+function NumberInputField({
+  disabled = false,
+  label,
+  max,
+  min,
+  onValueChange,
+  step,
+  suffix,
+  value,
+}: NumberInputFieldProps) {
+  return (
+    <Field data-disabled={disabled ? true : undefined}>
+      <FieldLabel>{label}</FieldLabel>
+      <InputGroup>
+        <InputGroupInput
+          disabled={disabled}
+          inputMode="decimal"
+          max={max}
+          min={min}
+          onChange={(event) =>
+            onValueChange(toBoundedNumber(event.target.value, min, max))
+          }
+          step={step}
+          type="number"
+          value={String(value)}
+        />
+        {suffix ? (
+          <InputGroupAddon align="inline-end">{suffix}</InputGroupAddon>
+        ) : null}
+      </InputGroup>
+    </Field>
+  )
+}
+
+function CompactNumberInput({
+  disabled = false,
+  label,
+  max,
+  min,
+  onValueChange,
+  step,
+  suffix,
+  value,
+}: NumberInputFieldProps) {
+  return (
+    <Field data-disabled={disabled ? true : undefined}>
+      <FieldLabel className="sr-only">{label}</FieldLabel>
+      <InputGroup className="bg-background">
+        <InputGroupInput
+          aria-label={label}
+          disabled={disabled}
+          inputMode="decimal"
+          max={max}
+          min={min}
+          onChange={(event) =>
+            onValueChange(toBoundedNumber(event.target.value, min, max))
+          }
+          step={step}
+          type="number"
+          value={String(value)}
+        />
+        {suffix ? (
+          <InputGroupAddon align="inline-end">{suffix}</InputGroupAddon>
+        ) : null}
+      </InputGroup>
+    </Field>
+  )
+}
+
+function SettingRow({ children, label }: SettingRowProps) {
+  return (
+    <div className={settingRowClassName}>
+      <div className="min-w-0">{label}</div>
+      <div className="min-w-0">{children}</div>
+    </div>
+  )
+}
+
+function TransactionFeeList({
+  fees,
+  onRateChange,
+}: {
+  fees: SimulationSettings["transactionFees"]
+  onRateChange: (key: TransactionFeeSettingsKey, value: number) => void
+}) {
+  return (
+    <FieldSet>
+      <FieldLegend className="sr-only">交易费率</FieldLegend>
+      <FieldGroup className={configListClassName}>
+        {transactionFeeRows.map((row, index) => (
+          <div key={row.key}>
+            {index > 0 ? (
+              <Separator className={configSeparatorClassName} />
+            ) : null}
+            <div className={transactionFeeRowClassName}>
+              <div className="text-xs font-medium">{row.name}</div>
+              <div className="text-xs text-muted-foreground">
+                {row.direction}
+              </div>
+              <CompactNumberInput
+                label={`${row.name}费率`}
+                max={row.max}
+                min={0}
+                onValueChange={(value) => onRateChange(row.key, value)}
+                step={row.step}
+                suffix="%"
+                value={fees[row.key] ?? row.defaultRatePercent}
+              />
+              <div className="text-xs text-muted-foreground">{row.note}</div>
+            </div>
+          </div>
+        ))}
+      </FieldGroup>
+    </FieldSet>
+  )
+}
+
+function RiskRuleRow({
+  checked,
+  children,
+  onCheckedChange,
+  title,
+}: RiskRuleRowProps) {
+  return (
+    <SettingRow
+      label={
+        <Field className="min-w-0" orientation="horizontal">
+          <Checkbox
+            aria-label={`启用${title}`}
+            checked={checked}
+            onCheckedChange={onCheckedChange}
+          />
+          <FieldContent>
+            <FieldTitle className="text-xs font-medium">{title}</FieldTitle>
+          </FieldContent>
+        </Field>
+      }
+    >
+      {children}
+    </SettingRow>
+  )
+}
+
+function IndicatorStopLossFields({
+  disabled,
+  onSettingsChange,
+  settings,
+}: {
+  disabled: boolean
+  onSettingsChange: (
+    patch: Partial<SimulationSettings["indicatorStopLoss"]>
+  ) => void
+  settings: SimulationSettings
+}) {
+  const selectedCatalog = getCatalog(settings.indicatorStopLoss.catalogId)
+  const selectedMetrics = getCatalogMetricsByType(selectedCatalog.id, "number")
+  const selectedMetric =
+    selectedMetrics.find(
+      (metric) => metric.id === settings.indicatorStopLoss.metric
+    ) ?? selectedMetrics[0]
+
+  return (
+    <div className="grid gap-2 md:grid-cols-[6.5rem_10rem_10rem] md:items-center">
+      <div className="text-xs text-muted-foreground">收盘价跌破</div>
+      <Field data-disabled={disabled ? true : undefined}>
+        <FieldLabel className="sr-only">指标类型</FieldLabel>
+        <Select
+          value={selectedCatalog.id}
+          onValueChange={(catalogId) => {
+            if (!catalogId) {
+              return
+            }
+
+            const metrics = getCatalogMetricsByType(catalogId, "number")
+            const metric = metrics[0]
+            if (metric) {
+              onSettingsChange({ catalogId, metric: metric.id })
+            }
+          }}
+        >
+          <SelectTrigger className="w-full bg-background" disabled={disabled}>
+            <SelectValue>
+              <span className="truncate">{selectedCatalog.label}</span>
+            </SelectValue>
+          </SelectTrigger>
+          <SelectContent
+            align="start"
+            className="min-w-72 bg-background text-foreground"
+          >
+            <SelectGroup>
+              <SelectLabel>指标来源</SelectLabel>
+              {numericCatalogs.map((catalog) => (
+                <SelectItem key={catalog.id} value={catalog.id}>
+                  <span className="truncate text-xs font-medium">
+                    {catalog.label}
+                  </span>
+                </SelectItem>
+              ))}
+            </SelectGroup>
+          </SelectContent>
+        </Select>
+      </Field>
+
+      <Field data-disabled={disabled ? true : undefined}>
+        <FieldLabel className="sr-only">止损指标</FieldLabel>
+        <Select
+          value={selectedMetric?.id ?? settings.indicatorStopLoss.metric}
+          onValueChange={(metric) => {
+            if (metric) {
+              onSettingsChange({ metric })
+            }
+          }}
+        >
+          <SelectTrigger className="w-full bg-background" disabled={disabled}>
+            <SelectValue>
+              <span className="truncate">
+                {selectedMetric?.id ?? settings.indicatorStopLoss.metric}
+              </span>
+            </SelectValue>
+          </SelectTrigger>
+          <SelectContent
+            align="start"
+            className="min-w-72 bg-background text-foreground"
+          >
+            <SelectGroup>
+              <SelectLabel>{selectedCatalog.source}</SelectLabel>
+              {selectedMetrics.map((metric) => (
+                <SelectItem key={metric.id} value={metric.id}>
+                  <span className="truncate text-xs">{metric.id}</span>
+                </SelectItem>
+              ))}
+            </SelectGroup>
+          </SelectContent>
+        </Select>
+      </Field>
+    </div>
+  )
+}
+
+function SummaryMetric({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="min-w-0 px-1 py-1">
+      <div className="text-xs text-muted-foreground">{label}</div>
+      <div className="mt-1 truncate text-sm font-medium tabular-nums">
+        {value}
+      </div>
+    </div>
+  )
+}
+
+function SignalCountTrendChart({ data }: { data: SignalTrendPoint[] }) {
+  const width = 320
+  const height = 152
+  const padding = {
+    top: 12,
+    right: 10,
+    bottom: 24,
+    left: 28,
+  }
+  const chartWidth = width - padding.left - padding.right
+  const chartHeight = height - padding.top - padding.bottom
+  const maxCount = Math.max(1, ...data.map((item) => item.count))
+  const points = data.map((item, index) => {
+    const x = padding.left + (index / Math.max(1, data.length - 1)) * chartWidth
+    const y = padding.top + chartHeight - (item.count / maxCount) * chartHeight
+
+    return { ...item, x, y }
+  })
+  const linePath = points
+    .map((point, index) => `${index === 0 ? "M" : "L"} ${point.x} ${point.y}`)
+    .join(" ")
+  const areaPath = `${linePath} L ${padding.left + chartWidth} ${
+    padding.top + chartHeight
+  } L ${padding.left} ${padding.top + chartHeight} Z`
+  const guideRows = [maxCount, Math.round(maxCount / 2), 0]
+
+  return (
+    <div className="py-2">
+      <svg
+        aria-label="近三个月交易信号数量走势"
+        className="h-38 w-full"
+        role="img"
+        viewBox={`0 0 ${width} ${height}`}
+      >
+        <g className="text-border" stroke="currentColor" strokeWidth="1">
+          {guideRows.map((value) => {
+            const y =
+              padding.top + chartHeight - (value / maxCount) * chartHeight
+            return (
+              <line
+                key={value}
+                x1={padding.left}
+                x2={padding.left + chartWidth}
+                y1={y}
+                y2={y}
+                vectorEffect="non-scaling-stroke"
+              />
+            )
+          })}
+        </g>
+
+        <path className="fill-primary/10" d={areaPath} />
+        <path
+          className="text-primary"
+          d={linePath}
+          fill="none"
+          stroke="currentColor"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth="2"
+          vectorEffect="non-scaling-stroke"
+        />
+
+        {points.map((point, index) =>
+          index === points.length - 1 || index % 4 === 0 ? (
+            <circle
+              key={`${point.label}-${point.count}`}
+              className="fill-background text-primary"
+              cx={point.x}
+              cy={point.y}
+              r="3"
+              stroke="currentColor"
+              strokeWidth="2"
+              vectorEffect="non-scaling-stroke"
+            />
+          ) : null
+        )}
+
+        <g className="text-muted-foreground" fill="currentColor">
+          {guideRows.map((value) => {
+            const y =
+              padding.top + chartHeight - (value / maxCount) * chartHeight
+            return (
+              <text
+                key={`label-${value}`}
+                dominantBaseline="middle"
+                fontSize="10"
+                textAnchor="end"
+                x={padding.left - 6}
+                y={y}
+              >
+                {value}
+              </text>
+            )
+          })}
+          {points.map((point, index) =>
+            index === 0 ||
+            index === Math.floor(points.length / 2) ||
+            index === points.length - 1 ? (
+              <text
+                key={point.label}
+                fontSize="10"
+                textAnchor={
+                  index === 0
+                    ? "start"
+                    : index === points.length - 1
+                      ? "end"
+                      : "middle"
+                }
+                x={point.x}
+                y={height - 6}
+              >
+                {point.label}
+              </text>
+            ) : null
+          )}
+        </g>
+      </svg>
+    </div>
+  )
+}
+
+function buildRiskSummaryRows(settings: SimulationSettings): SummaryRow[] {
+  const rows: SummaryRow[] = []
+  if (settings.takeProfit.enabled) {
+    rows.push({
+      condition: "固定止盈",
+      trigger: `收益达到 ${formatPercent(settings.takeProfit.profitPercent)}`,
+    })
+  }
+
+  if (settings.fixedStopLoss.enabled) {
+    rows.push({
+      condition: "固定止损",
+      trigger: `买入价下跌 ${formatPercent(settings.fixedStopLoss.lossPercent)}`,
+    })
+  }
+
+  if (settings.indicatorStopLoss.enabled) {
+    rows.push({
+      condition: "指标止损",
+      trigger: `收盘价跌破 ${settings.indicatorStopLoss.metric}`,
+    })
+  }
+
+  if (settings.timeStopLoss.enabled) {
+    rows.push({
+      condition: "时间止损",
+      trigger: `${settings.timeStopLoss.holdingDays} 天后收益低于 ${formatPercent(settings.timeStopLoss.minimumReturnPercent)}`,
+    })
+  }
+
+  return rows
+}
+
+function buildSignalTrendData(
+  settings: SimulationSettings,
+  conditionGroups: StrategyConditionGroup[],
+  appliedWeightIndicators: WeightIndicator[]
+): SignalTrendPoint[] {
+  const groupCount = conditionGroups.length
+  const conditionCount = conditionGroups.reduce(
+    (total, group) => total + group.conditions.length,
+    0
+  )
+  const riskCount = [
+    settings.fixedStopLoss.enabled,
+    settings.indicatorStopLoss.enabled,
+    settings.takeProfit.enabled,
+    settings.timeStopLoss.enabled,
+  ].filter(Boolean).length
+  const base =
+    settings.buyTopN * 2 +
+    groupCount * 3 +
+    conditionCount * 2 +
+    appliedWeightIndicators.length * 2
+  const today = new Date()
+
+  return Array.from({ length: 13 }, (_, index) => {
+    const age = 12 - index
+    const date = new Date(today)
+    date.setDate(today.getDate() - age * 7)
+
+    const wave =
+      Math.sin((index + 1 + groupCount) * 0.85) *
+      Math.max(3, conditionCount + 2)
+    const recentLift = index * Math.max(0.2, settings.buyTopN / 28)
+    const riskAdjustment = riskCount * (index % 3 === 0 ? -1 : 1)
+    const count = Math.max(
+      0,
+      Math.round(base + wave + recentLift + riskAdjustment)
+    )
+
+    return {
+      count,
+      label: `${date.getMonth() + 1}/${date.getDate()}`,
+    }
+  })
+}
+
+function formatCurrency(value: number) {
+  return `¥${Math.round(Math.max(0, value)).toLocaleString("zh-CN")}`
+}
+
+function formatPercent(value: number) {
+  return `${Number.isInteger(value) ? value : value.toFixed(1)}%`
+}
+
+function formatFeePercent(value: number) {
+  return `${Number(value.toFixed(3))}%`
+}
+
+function readSliderValue(
+  nextValue: number | readonly number[],
+  fallback: number
+) {
+  const value = Array.isArray(nextValue) ? nextValue[0] : nextValue
+  return typeof value === "number" ? value : fallback
+}
+
+function toBoundedNumber(value: string, min?: number, max?: number) {
+  const parsed = Number(value)
+  const fallback = min ?? 0
+
+  if (Number.isNaN(parsed)) {
+    return fallback
+  }
+
+  return Math.min(
+    max ?? Number.POSITIVE_INFINITY,
+    Math.max(min ?? parsed, parsed)
+  )
+}
+
+export { SimulationPositionPanel }

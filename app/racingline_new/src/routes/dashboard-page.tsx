@@ -1,3 +1,5 @@
+import { PortfolioOverviewBoard } from "@/components/racingline/dashboard/portfolio-overview-board"
+
 export function DashboardPage() {
-  return <section className="min-h-[calc(100svh-8rem)]" />
+  return <PortfolioOverviewBoard />
 }

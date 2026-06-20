@@ -51,6 +51,8 @@
 :root {
     --background: oklch(1 0 0);
     --foreground: oklch(0.147 0.004 49.3);
+    --portfolio-up: oklch(0.56 0.17 27);
+    --portfolio-down: oklch(0.58 0.14 145);
     --card: oklch(1 0 0);
     --card-foreground: oklch(0.147 0.004 49.3);
     --popover: oklch(1 0 0);
@@ -86,6 +88,8 @@
 .dark {
     --background: oklch(0.147 0.004 49.3);
     --foreground: oklch(0.986 0.002 67.8);
+    --portfolio-up: oklch(0.78 0.16 27);
+    --portfolio-down: oklch(0.76 0.13 145);
     --card: oklch(0.214 0.009 43.1);
     --card-foreground: oklch(0.986 0.002 67.8);
     --popover: oklch(0.214 0.009 43.1);
