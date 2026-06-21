@@ -21,7 +21,7 @@ A 股股票日频价格行为与前低-次低结构 mart。模型把 `int_stock_
 
 - 不读取行情、估值、财务、raw、staging 或 `fleur_calculation` 物理表。
 - 不在 mart 层重算连阳、连阴或前低-次低结构。
-- 不把本模型并入 `mart_stock_trend_indicator`、`mart_stock_momentum_indicator` 或 `mart_stock_volume_indicator`，避免价格形态类字段和趋势/动量/均量指标混杂。
+- 不把本模型并入 `mart_stock_trend_indicator_daily`、`mart_stock_momentum_indicator_daily` 或 `mart_stock_volume_indicator_daily`，避免价格形态类字段和趋势/动量/均量指标混杂。
 
 ## 2. 数据粒度与依赖
 

@@ -124,19 +124,19 @@ models:
         description: 交易日成交金额，单位沿用 BaoStock source-local 口径。
         data_type: Nullable(Float64)
 
-      - name: turnover_rate
+      - name: turnover_rate_pct
         description: 换手率，百分数口径，来自 int_stock_quotes_daily_unadj。
         data_type: Nullable(Float64)
 
-      - name: turnover_rate_actual
-        description: 实际换手率，使用 A 股自由流通股本作分母，百分数口径，来自 int_stock_quotes_daily_unadj。
+      - name: turnover_rate_free_float_pct
+        description: 自由流通换手率，使用 A 股自由流通股本作分母，百分数口径，来自 int_stock_quotes_daily_unadj。
         data_type: Nullable(Float64)
 
-      - name: pct_amplitude
+      - name: amplitude_pct
         description: 振幅，百分数口径，来自 int_stock_quotes_daily_unadj。
         data_type: Nullable(Float64)
 
-      - name: pct_change
+      - name: change_pct
         description: 涨跌幅，百分数口径，来自 int_stock_quotes_daily_unadj；允许为负值。
         data_type: Nullable(Float64)
 
@@ -148,27 +148,27 @@ models:
         description: 基于板块、ST 状态和 BaoStock preclose 口径前收盘价派生的跌停价，来自 int_stock_quotes_daily_unadj。
         data_type: Nullable(Float64)
 
-      - name: a_market_cap
+      - name: market_cap
         description: A 股市值，单位元，来自 int_stock_quotes_daily_unadj。
         data_type: Nullable(Float64)
 
-      - name: a_float_market_cap
+      - name: float_market_cap
         description: A 股流通市值，单位元，来自 int_stock_quotes_daily_unadj。
         data_type: Nullable(Float64)
 
-      - name: a_free_float_market_cap
+      - name: free_float_market_cap
         description: A 股自由流通市值，单位元，来自 int_stock_quotes_daily_unadj。
         data_type: Nullable(Float64)
 
-      - name: a_shares
+      - name: shares
         description: A 股股本，单位股，来自 int_stock_quotes_daily_unadj。
         data_type: Nullable(Float64)
 
-      - name: a_float_shares
+      - name: float_shares_a
         description: A 股流通股本，单位股，来自 int_stock_quotes_daily_unadj。
         data_type: Nullable(Float64)
 
-      - name: a_free_float_shares
+      - name: free_float_shares
         description: A 股自由流通股本估算值，单位股，来自 int_stock_quotes_daily_unadj。
         data_type: Nullable(Float64)
 
@@ -208,11 +208,11 @@ models:
         description: ROAE，按最近 report_date <= trade_date 的财报期估值 as-of 取值；比率口径，不乘以 100。
         data_type: Nullable(Float64)
 
-      - name: dy_static
+      - name: dy_static_pct
         description: 静态股息率，百分数口径，来自 int_stock_quotes_daily_unadj。
         data_type: Nullable(Float64)
 
-      - name: dy_ttm
+      - name: dy_ttm_pct
         description: TTM 股息率，百分数口径，来自 int_stock_quotes_daily_unadj。
         data_type: Nullable(Float64)
 

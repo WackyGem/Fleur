@@ -22,6 +22,9 @@ ChinaBond 中债国债收益率曲线日频 intermediate 模型。模型透传 s
 - 粒度：一行一个 ChinaBond 国债收益率曲线工作日，与 staging 一致。
 - 候选键：`trade_date`。
 - 收益率口径：百分比点（如 `2.85` 表示 2.85%），不转换为小数比例。
+- 物化：ClickHouse `MergeTree()` table。
+- 排序键：`trade_date`。
+- 分区：`toYear(trade_date)`。
 
 ## 3. 字段设计
 

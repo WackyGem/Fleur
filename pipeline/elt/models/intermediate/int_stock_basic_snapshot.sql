@@ -1,3 +1,9 @@
+{{ config(
+    materialized='table',
+    engine='MergeTree()',
+    order_by='security_code'
+) }}
+
 with source as (
     select
         security_code,

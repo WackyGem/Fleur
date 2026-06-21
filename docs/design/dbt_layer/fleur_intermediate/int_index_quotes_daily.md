@@ -36,7 +36,6 @@ BaoStock 指数日频价格行情 intermediate 模型。模型使用 `int_index_
 | `return_daily` | `close_price / prev_close_price - 1` | `Nullable(Float64)` | 价格指数简单日收益；前收盘点位缺失或小于等于 0 时为 NULL。 |
 | `volume` | staging | `Nullable(Int64)` | 成交量，沿用 BaoStock source-local 口径。 |
 | `amount` | staging | `Nullable(Float64)` | 成交金额，沿用 BaoStock source-local 口径。 |
-| `is_suspend` | staging | `Bool` | 是否停牌。 |
 
 ## 4. SQL 逻辑
 
@@ -63,7 +62,6 @@ inner join index_universe
 - 组合键 `security_code`, `trade_date`: 唯一。
 - `security_code`: `not_null`，`cn_security_code_format`，relationships 到 `int_index_basic_snapshot.security_code`。
 - `trade_date`: `not_null`。
-- `is_suspend`: `not_null`。
 
 ## 6. 延后事项
 

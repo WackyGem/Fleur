@@ -27,8 +27,7 @@ index_quotes as (
             cast(null, 'Nullable(Float64)')
         ) as return_daily,
         quotes.volume,
-        quotes.amount,
-        quotes.is_suspend
+        quotes.amount
     from {{ ref('stg_baostock__query_history_k_data_plus_daily') }} as quotes
     inner join index_universe
         on quotes.security_code = index_universe.security_code
@@ -44,6 +43,5 @@ select
     prev_close_price,
     return_daily,
     volume,
-    amount,
-    is_suspend
+    amount
 from index_quotes

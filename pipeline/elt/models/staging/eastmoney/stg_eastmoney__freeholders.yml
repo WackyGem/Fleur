@@ -10,7 +10,7 @@ models:
         staging_grain_zh: 每证券、报告期、流通股东名次、股东标识/名称和股份类别一行。
         natural_key:
           - security_code
-          - end_date
+          - report_date
           - holder_rank
           - holder_eastmoney_code
           - holder_name
@@ -32,7 +32,7 @@ models:
           arguments:
             combination_of_columns:
               - security_code
-              - end_date
+              - report_date
               - holder_rank
               - holder_eastmoney_code
               - holder_name
@@ -55,14 +55,14 @@ models:
               macro: normalize_cn_security_code
               input_format: eastmoney_suffix
 
-      - name: end_date
-        description: 前十大流通股东名单对应的报告期截止日期。
+      - name: report_date
+        description: "{{ doc('field_report_date') }}"
         data_type: Date
         data_tests:
           - not_null
         config:
           meta:
-            dictionary_scope: local
+            glossary_key: report_date
             source_columns:
               - source: raw
                 table: eastmoney__freeholders

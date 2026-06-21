@@ -58,9 +58,3 @@ models:
       - name: amount
         description: 指数交易日成交金额，沿用 BaoStock source-local 口径。
         data_type: Nullable(Float64)
-
-      - name: is_suspend
-        description: 是否停牌；由上游 BaoStock staging 从 trade_status = 0 派生后透传。
-        data_type: Bool
-        data_tests:
-          - not_null

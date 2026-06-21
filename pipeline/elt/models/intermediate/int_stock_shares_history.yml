@@ -56,15 +56,15 @@ models:
         description: 流通股本，单位为股，对应东方财富无限售条件股份（已流通）。
         data_type: Nullable(Float64)
 
-      - name: a_shares
-        description: A 股股本，单位为股，由已上市流通 A 股与限售 A 股相加得到。
+      - name: shares
+        description: A 股股本，单位为股，由已上市流通 A 股与限售 A 股相加得到；与 total_shares（全市场总股本）区分。
         data_type: Nullable(Float64)
 
-      - name: a_float_shares
-        description: A 股流通股本，单位为股，对应东方财富已上市流通 A 股。
+      - name: float_shares_a
+        description: A 股流通股本，单位为股，对应东方财富已上市流通 A 股；与 float_shares（全市场无限售条件股份）区分。
         data_type: Nullable(Float64)
 
-      - name: a_free_float_shares
+      - name: free_float_shares
         description: A 股自由流通股本估算值，单位为股，等于 A 股流通股本减去超过 5% 大股东持有的流通 A 股数量合计。
         data_type: Nullable(Float64)
 

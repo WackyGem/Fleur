@@ -2,7 +2,7 @@ version: 2
 
 models:
   - name: mart_portfolio_trade_metric_rank
-    description: Cross-run trade quality metric ranking in long format.
+    description: 跨 run 的交易质量指标长表排名。
     config:
       meta:
         grain_zh: 每个 run、attempt、window、metric_name 一行排名结果。
@@ -18,23 +18,55 @@ models:
               - window_key
               - metric_name
     columns:
-      - name: metric_rank
-        description: Dense rank within window and trade metric group.
-        data_type: UInt64
-        data_tests:
-          - not_null
-
-      - name: metric_name
-        description: Trade quality metric field name.
+      - name: portfolio_run_id
+        description: 组合 run 标识符。
         data_type: String
         data_tests:
           - not_null
 
+      - name: result_attempt_id
+        description: 仅追加的 result attempt 标识符。
+        data_type: String
+        data_tests:
+          - not_null
+
+      - name: window_key
+        description: 交易指标窗口键。
+        data_type: String
+        data_tests:
+          - not_null
+
+      - name: window_start
+        description: 交易指标窗口起始日期；full_period 等无显式窗口边界的指标允许为 NULL。
+        data_type: Nullable(Date)
+
+      - name: window_end
+        description: 交易指标窗口结束日期；full_period 等无显式窗口边界的指标允许为 NULL。
+        data_type: Nullable(Date)
+
+      - name: metric_name
+        description: 交易质量指标字段名。
+        data_type: String
+        data_tests:
+          - not_null
+
+      - name: metric_value
+        description: 该指标的数值；已过滤掉 NULL，仅保留非 NULL 指标参与排名。
+        data_type: Nullable(Float64)
+        data_tests:
+          - not_null
+
       - name: rank_direction
-        description: Ranking direction.
+        description: 排名方向。
         data_type: String
         data_tests:
           - not_null
           - accepted_values:
               arguments:
                 values: [asc, desc]
+
+      - name: metric_rank
+        description: 在 window 与交易指标分组内的 dense rank 排名。
+        data_type: UInt64
+        data_tests:
+          - not_null

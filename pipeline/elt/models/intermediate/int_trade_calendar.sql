@@ -1,3 +1,9 @@
+{{ config(
+    materialized='table',
+    engine='MergeTree()',
+    order_by='trade_date'
+) }}
+
 with trade_calendar as (
     select
         trade_date

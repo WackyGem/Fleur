@@ -1,13 +1,14 @@
 {{ config(
     materialized='table',
     engine='MergeTree()',
-    order_by='(security_code, effective_date)'
+    order_by='(security_code, effective_date)',
+    partition_by='toYear(effective_date)'
 ) }}
 
 with equity_history as (
     select
         security_code,
-        report_date as end_date,
+        end_date,
         total_shares,
         unlimited_shares,
         listed_a_shares,
@@ -18,7 +19,7 @@ with equity_history as (
 freeholders_deduplicated as (
     select
         security_code,
-        end_date,
+        report_date as end_date,
         holder_eastmoney_code,
         holder_name,
         shares_type,
@@ -28,7 +29,7 @@ freeholders_deduplicated as (
     where shares_type = 'A股'
     group by
         security_code,
-        end_date,
+        report_date,
         holder_eastmoney_code,
         holder_name,
         shares_type
@@ -106,8 +107,8 @@ shares_with_next_effective_date as (
             equity_as_of.a_float_shares is null and equity_as_of.limited_a_shares is null,
             cast(null, 'Nullable(Float64)'),
             coalesce(equity_as_of.a_float_shares, 0) + coalesce(equity_as_of.limited_a_shares, 0)
-        ) as a_shares,
-        equity_as_of.a_float_shares,
+        ) as shares,
+        equity_as_of.a_float_shares as float_shares_a,
         freeholders_as_of_source.major_holder_a_float_shares as major_holder_a_float_shares,
         freeholders_as_of_source.major_holder_count as major_holder_count
     from equity_as_of
@@ -128,13 +129,13 @@ select
     source_freeholders_end_date,
     total_shares,
     float_shares,
-    a_shares,
-    a_float_shares,
+    shares,
+    float_shares_a,
     if(
-        a_float_shares is null,
+        float_shares_a is null,
         cast(null, 'Nullable(Float64)'),
-        greatest(0, a_float_shares - coalesce(major_holder_a_float_shares, 0))
-    ) as a_free_float_shares,
+        greatest(0, float_shares_a - coalesce(major_holder_a_float_shares, 0))
+    ) as free_float_shares,
     coalesce(major_holder_a_float_shares, 0) as major_holder_a_float_shares,
     coalesce(major_holder_count, 0) as major_holder_count
 from shares_with_next_effective_date
