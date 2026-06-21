@@ -98,9 +98,9 @@
 
 | 资源 | 路径 | 当前能力 | 欠缺 |
 |---|---|---|---|
-| 趋势指标 mart | `pipeline/elt/models/marts/mart_stock_trend_indicator.sql` | 每证券、交易日输出 MA、组合 MA、EMA、BOLL 和 MACD 当期值 | 尚无 `prev_*` 前值字段，无法稳定表达上穿/下穿 |
-| 趋势指标设计文档 | `docs/design/dbt_layer/fleur_marts/mart_stock_trend_indicator.md` | 已记录趋势 mart 粒度、字段分组、NULL 语义和验证命令 | 需要补充前值字段语义：同一证券上一交易行，不是自然日前一日 |
-| 趋势指标 YAML | `pipeline/elt/models/marts/mart_stock_trend_indicator.yml` | 已声明趋势 mart 字段描述和主键测试 | 需要补充 `prev_*` 字段描述和必要测试 |
+| 趋势指标 mart | `pipeline/elt/models/marts/mart_stock_trend_indicator_daily.sql` | 每证券、交易日输出 MA、组合 MA、EMA、BOLL 和 MACD 当期值 | 尚无 `prev_*` 前值字段，无法稳定表达上穿/下穿 |
+| 趋势指标设计文档 | `docs/design/dbt_layer/fleur_marts/mart_stock_trend_indicator_daily.md` | 已记录趋势 mart 粒度、字段分组、NULL 语义和验证命令 | 需要补充前值字段语义：同一证券上一交易行，不是自然日前一日 |
+| 趋势指标 YAML | `pipeline/elt/models/marts/mart_stock_trend_indicator_daily.yml` | 已声明趋势 mart 字段描述和主键测试 | 需要补充 `prev_*` 字段描述和必要测试 |
 
 ## 欠缺资源
 
@@ -119,13 +119,13 @@
 1. `POST /rearview/explain` 的错误响应当前主要是通用 validation message，字段路径粒度可能不足。
 2. `GET /rearview/metrics` 返回的是 flat list；前端需要本地分组、搜索和筛选策略。
 3. 后端当前 `Operator` 支持 `eq`、`ne`、`lt`、`lte`、`gt`、`gte`、`between`、`is_null`；需要新增 `crosses_above` / `crosses_below`，并限制为具备前值字段的趋势指标。
-4. `GET /rearview/metrics` 需要暴露或可由 policy 推导 crossing 能力，例如 `supports_cross` 和 `previous_metric`。
+4. `GET /rearview/metrics` 需要暴露或可由 policy 推导 crossing 能力，例如 `cross.previous_metric` 和 crossing operator。
 5. 指标字段的用户友好中文名称、分组名和说明需要从 `MetricDefinition.description` 或 UI overlay 补足。
 6. 如果需要跨指标比较和二元表达式，前端必须只生成后端已支持的 `Operand.metric`、`Operand.range` 和 `Operand.binary.multiply`。
 
 ### 数据层欠缺
 
-1. `mart_stock_trend_indicator` 尚未输出趋势指标前值，无法用单行谓词判断上穿/下穿。
+1. `mart_stock_trend_indicator_daily` 尚未输出趋势指标前值，无法用单行谓词判断上穿/下穿。
 2. 当前 mart 字段只有当期值；Planner 若在 request path 动态 `lag()` 或自连接，会把规则解释和执行复杂度推高。
 3. 需要为所有允许 crossing 的趋势字段建立稳定命名：`prev_<current_metric_column>`。
 4. 需要定义前值缺失、warm-up NULL 和跨停牌/非交易日场景的匹配语义。
@@ -232,6 +232,82 @@ crosses_below(left, right):
 
 前端可以做 UI 分组 overlay，但 overlay 不能改变 metric 事实；只负责展示名、排序和分组。
 
+### D4.1: `metric_policy.yml` 短期治理方案
+
+第一阶段继续维护 `engines/crates/rearview-core/config/metric_policy.yml`，不把 metric catalog 立即迁到 `pipeline/migrate` 生成 SQL 或 PostgreSQL runtime source。原因是 Step 1 的主要风险在字段漂移、遗漏和操作符能力不一致；这些问题可以先通过 YAML 结构优化和机械检查收敛，避免同时改动 dbt metadata、Alembic seed、PostgreSQL catalog 读取和 Rearview runtime bootstrap。
+
+短期分层：
+
+| 层级 | 职责 | 不承担 |
+|---|---|---|
+| dbt mart YAML | 字段存在性、`data_type`、字段描述、mart 粒度和主键测试 | Rearview 是否允许筛选、评分或 crossing |
+| `metric_policy.yml` | Rearview policy overlay：logical metric、来源字段、过滤/评分能力、操作符、NULL 策略、默认输出和前端展示 hint | 重新定义 mart 字段语义 |
+| PostgreSQL `metric_catalog` | `catalog sync` 后的运行时快照和 API 查询来源候选 | 长期手工维护的字段事实源 |
+
+`metric_policy.yml` 优化方向：
+
+1. 增加操作符 profile，减少每个 metric 重复声明完整数组。
+2. 按 mart/domain 分组并保持稳定排序，降低 review 成本。
+3. 对常见数值、布尔、日期字段提供默认能力模板；单个 metric 只覆盖差异。
+4. 将 crossing 能力表达为 `cross.previous_metric` + `allowed_ops`，`supports_cross` 可由 catalog 构建阶段推导，避免双写。
+5. 增加 `display` hint，例如 `group`、`label_zh`、`unit`、`sort_order`；这些只影响前端展示，不改变字段事实。
+6. 增加 `ignored_fields`，要求 eligible mart 中不进入 Rearview 的字段写明排除原因。
+
+示例结构：
+
+```yaml
+version: 1
+
+op_profiles:
+  numeric_filter: [lt, lte, gt, gte, between, eq, ne, is_null]
+  boolean_filter: [eq, ne, is_null]
+
+defaults:
+  numeric_metric:
+    value_kind: numeric
+    allow_filter: true
+    allow_scoring: true
+    allowed_ops_profile: numeric_filter
+    null_policy: no_match
+
+metrics:
+  - logical_metric: change_pct
+    source:
+      mart_table: mart_stock_quotes_daily
+      column_name: change_pct
+    extends: numeric_metric
+    default_output: true
+    display:
+      group: quotes
+      label_zh: 涨跌幅
+      unit: pct
+
+  - logical_metric: price_ma_20
+    source:
+      mart_table: mart_stock_trend_indicator_daily
+      column_name: price_ma_20
+    extends: numeric_metric
+    allowed_ops_profile: numeric_filter
+    cross:
+      previous_metric: prev_price_ma_20
+      allowed_ops: [crosses_above, crosses_below]
+    display:
+      group: trend
+      label_zh: MA20
+
+ignored_fields:
+  mart_stock_quotes_daily:
+    forward_adjustment_factor: 解释前复权价格口径，不作为策略筛选指标。
+```
+
+机械门禁：
+
+- `catalog check`：policy 引用的 mart 表、字段和 `value_kind` 必须与 dbt mart YAML 一致；旧字段名、旧 mart 表名或类型不兼容必须失败。
+- `catalog coverage`：所有标记为 Rearview eligible 的 mart 非主键字段，必须在 `metrics` 或 `ignored_fields` 中出现；否则失败，防止新增指标字段被静默遗漏。
+- `catalog format` 或稳定序列化检查：生成规范化 YAML diff，避免人工排序和 profile 展开造成无意义变更。
+
+PostgreSQL 生成 SQL 方案保留为后续阶段：当 metric 数量或 mart 数量超过单文件 YAML 可维护边界时，再把 dbt mart YAML / manifest 与 policy overlay 生成 SQL seed，交由 `pipeline/migrate` 持久化到 PostgreSQL，并让 Rearview runtime 从 PostgreSQL 读取 catalog。第一阶段不把这个迁移作为 Step 1 前置条件。
+
 ### D5: Explain 面板是 Step 1 的主要反馈
 
 Step 1 右侧或底部应展示 explain 结果：
@@ -251,7 +327,7 @@ Step 1 右侧或底部应展示 explain 结果：
 上穿/下穿需要同时参考当期值和前一期值。第一阶段不在 Rearview request path 中动态计算前值，而是在趋势 mart 中输出前值字段：
 
 ```text
-mart_stock_trend_indicator
+mart_stock_trend_indicator_daily
   price_ma_20
   prev_price_ma_20
   macd_dif
@@ -261,19 +337,19 @@ mart_stock_trend_indicator
   ...
 ```
 
-字段范围：为 `mart_stock_trend_indicator` 中允许过滤且数值型的趋势字段补充 `prev_*`。初始覆盖当前 mart 暴露的 MA、组合 MA、双重 EMA、BOLL 和 MACD 字段：
+字段范围：为 `mart_stock_trend_indicator_daily` 中允许过滤且数值型的趋势字段补充 `prev_*`。初始覆盖当前 mart 暴露的 MA、组合 MA、双重 EMA、BOLL 和 MACD 字段：
 
 - `price_ma_3`, `price_ma_5`, `price_ma_6`, `price_ma_10`, `price_ma_12`, `price_ma_14`, `price_ma_20`, `price_ma_24`, `price_ma_28`, `price_ma_30`, `price_ma_57`, `price_ma_60`, `price_ma_114`, `price_ma_250`
 - `price_avg_ma_3_6_12_24`, `price_avg_ma_14_28_57_114`, `price_ema2_10`
-- `boll_mid_10_1p5`, `boll_up_10_1p5`, `boll_dn_10_1p5`, `boll_mid_20_2`, `boll_up_20_2`, `boll_dn_20_2`, `boll_mid_50_2p5`, `boll_up_50_2p5`, `boll_dn_50_2p5`
+- `boll_mid_10_1p5`, `boll_upper_10_1p5`, `boll_lower_10_1p5`, `boll_mid_20_2`, `boll_upper_20_2`, `boll_lower_20_2`, `boll_mid_50_2p5`, `boll_upper_50_2p5`, `boll_lower_50_2p5`
 - `macd_dif`, `macd_dea`, `macd_histogram`
 
 实现建议：
 
-1. 在 `mart_stock_trend_indicator.sql` 中以窗口函数生成前值：`lag(field) over (partition by security_code order by trade_date)`。
+1. 在 `mart_stock_trend_indicator_daily.sql` 中以窗口函数生成前值：`lag(field) over (partition by security_code order by trade_date)`。
 2. 因 mart 粒度是每证券、交易日一行，前值语义自然是上一交易行；若上一交易行对应字段为 NULL，则 `prev_*` 也为 NULL。
-3. `mart_stock_trend_indicator.yml` 和设计文档同步声明每个 `prev_*` 字段。
-4. Rearview metric policy 为可 crossing 的趋势指标配置 `previous_metric = "prev_<column_name>"` 和 `supports_cross = true`。
+3. `mart_stock_trend_indicator_daily.yml` 和设计文档同步声明每个 `prev_*` 字段。
+4. Rearview metric policy 为可 crossing 的趋势指标配置 `cross.previous_metric = "prev_<column_name>"`，crossing 能力由 catalog 构建阶段推导。
 5. Planner 编译 crossing 时把一个条件展开成当前谓词和前值谓词，并把 `required_columns` 同时加入当前字段和 `prev_*` 字段。
 
 这个方案把“上一期”事实沉淀在 mart 层，避免每次 explain 或执行规则时临时拼 `lag()` / self join，也让前端、后端 explain 和未来 run 使用同一套字段契约。
@@ -282,20 +358,25 @@ mart_stock_trend_indicator
 
 ### Phase 0: 趋势 crossing 数据契约
 
-目标：让趋势指标具备可被 Rearview 单行谓词消费的前值字段。
+目标：让趋势指标具备可被 Rearview 单行谓词消费的前值字段，并先把 `metric_policy.yml` 治理到可被机械校验。
 
 任务：
 
-1. 在 `mart_stock_trend_indicator.sql` 为 crossing-eligible 趋势字段增加 `prev_*`。
-2. 更新 `mart_stock_trend_indicator.yml` 和 `docs/design/dbt_layer/fleur_marts/mart_stock_trend_indicator.md`。
-3. 在 Rearview metric policy/catalog 中登记 `supports_cross` 和 `previous_metric`。
-4. 确保 dbt build 后 `(security_code, trade_date)` 粒度不变。
+1. 在 `mart_stock_trend_indicator_daily.sql` 为 crossing-eligible 趋势字段增加 `prev_*`。
+2. 更新 `mart_stock_trend_indicator_daily.yml` 和 `docs/design/dbt_layer/fleur_marts/mart_stock_trend_indicator_daily.md`。
+3. 修正 `metric_policy.yml` 中的旧 mart 表名、旧字段名和 BOLL 上下轨命名，使其与当前 dbt mart YAML 一致。
+4. 在 Rearview metric policy/catalog 中登记 `cross.previous_metric`，并由 catalog 构建阶段推导 crossing 能力。
+5. 增加操作符 profile、display hint 和 `ignored_fields` 结构，减少重复并明确未开放字段原因。
+6. 增加 `catalog coverage` 检查，确保 eligible mart 字段不会被静默遗漏。
+7. 确保 dbt build 后 `(security_code, trade_date)` 粒度不变。
 
 完成标准：
 
-- `mart_stock_trend_indicator` 输出当前值和前值。
+- `mart_stock_trend_indicator_daily` 输出当前值和前值。
 - `prev_*` 的语义明确为同一证券上一交易行。
 - Rearview 能在 metric catalog 中识别哪些趋势指标允许 crossing。
+- `cargo run -p rearview-server -- catalog check` 能发现 policy 引用不存在字段、表名漂移和类型不匹配。
+- `cargo run -p rearview-server -- catalog coverage` 能发现 eligible mart 新增字段未被 policy 或 `ignored_fields` 处理。
 
 ### Phase 1: 前端契约迁移
 
@@ -322,7 +403,7 @@ mart_stock_trend_indicator
 1. 建立 `MetricDefinition` 到 UI options 的映射。
 2. 按 `allow_filter` 过滤可选指标。
 3. 按 `value_kind` 和 `allowed_ops` 过滤操作符。
-4. 仅在 `supports_cross = true` 且 `previous_metric` 有效时展示 `crosses_above` / `crosses_below`。
+4. 仅在 metric 暴露 crossing operator 且 `cross.previous_metric` 有效时展示 `crosses_above` / `crosses_below`。
 5. 保留搜索和分组能力，避免长列表不可用。
 6. 对无指标、加载中、失败状态提供空态。
 
@@ -416,7 +497,7 @@ mart_stock_trend_indicator
 | API | 当前状态 | Step 1 用途 |
 |---|---|---|
 | `GET /healthz` | 已存在 | 可选健康检查 |
-| `GET /rearview/metrics` | 已存在，需扩展 crossing 能力元数据 | 指标目录、操作符能力、`supports_cross` 和 `previous_metric` |
+| `GET /rearview/metrics` | 已存在，需扩展 crossing 能力元数据 | 指标目录、操作符能力和 `cross.previous_metric` |
 | `POST /rearview/explain` | 已存在，需扩展 crossing operator | 规则草案校验和编译摘要 |
 | `POST /rearview/rule-sets` | 已存在 | 后续发布阶段使用，Step 1 不调用 |
 | `POST /rearview/rule-sets/{rule_set_id}/versions` | 已存在 | 后续发布阶段使用，Step 1 不调用 |
@@ -455,6 +536,8 @@ npm run build
 
 ```bash
 cd engines
+cargo run -p rearview-server -- catalog check
+cargo run -p rearview-server -- catalog coverage
 cargo fmt --check
 cargo clippy --workspace --all-targets --all-features -- -D warnings
 cargo test --workspace
@@ -465,7 +548,7 @@ cargo test --workspace
 ```bash
 cd pipeline
 uv run dbt parse --project-dir elt --profiles-dir elt
-uv run dbt build --project-dir elt --profiles-dir elt --select mart_stock_trend_indicator
+uv run dbt build --project-dir elt --profiles-dir elt --select mart_stock_trend_indicator_daily
 ```
 
 浏览器验收：
