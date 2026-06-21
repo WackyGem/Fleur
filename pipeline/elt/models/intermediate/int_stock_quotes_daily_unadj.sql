@@ -79,9 +79,9 @@ shares_history as (
         security_code,
         effective_date,
         expiry_date,
-        toNullable(a_shares) as a_shares,
-        toNullable(a_float_shares) as a_float_shares,
-        toNullable(a_free_float_shares) as a_free_float_shares
+        toNullable(shares) as shares,
+        toNullable(float_shares_a) as float_shares_a,
+        toNullable(free_float_shares) as free_float_shares
     from {{ ref('int_stock_shares_history') }}
 ),
 
@@ -104,21 +104,21 @@ quotes_with_shares as (
         if(
             shares_history.expiry_date is null
             or quotes_with_prev_close_unadj.trade_date <= shares_history.expiry_date,
-            shares_history.a_shares,
+            shares_history.shares,
             cast(null, 'Nullable(Float64)')
-        ) as a_shares,
+        ) as shares,
         if(
             shares_history.expiry_date is null
             or quotes_with_prev_close_unadj.trade_date <= shares_history.expiry_date,
-            shares_history.a_float_shares,
+            shares_history.float_shares_a,
             cast(null, 'Nullable(Float64)')
-        ) as a_float_shares,
+        ) as float_shares_a,
         if(
             shares_history.expiry_date is null
             or quotes_with_prev_close_unadj.trade_date <= shares_history.expiry_date,
-            shares_history.a_free_float_shares,
+            shares_history.free_float_shares,
             cast(null, 'Nullable(Float64)')
-        ) as a_free_float_shares
+        ) as free_float_shares
     from quotes_with_prev_close_unadj
     asof left join shares_history
         on quotes_with_prev_close_unadj.security_code = shares_history.security_code
@@ -225,18 +225,18 @@ quotes_with_metrics as (
         amount,
         if(
             volume is null
-            or a_float_shares is null
-            or a_float_shares <= 0,
+            or float_shares_a is null
+            or float_shares_a <= 0,
             cast(null, 'Nullable(Float64)'),
-            volume / a_float_shares * 100
-        ) as turnover_rate,
+            volume / float_shares_a * 100
+        ) as turnover_rate_pct,
         if(
             volume is null
-            or a_free_float_shares is null
-            or a_free_float_shares <= 0,
+            or free_float_shares is null
+            or free_float_shares <= 0,
             cast(null, 'Nullable(Float64)'),
-            volume / a_free_float_shares * 100
-        ) as turnover_rate_actual,
+            volume / free_float_shares * 100
+        ) as turnover_rate_free_float_pct,
         if(
             high_price is null
             or low_price is null
@@ -244,14 +244,14 @@ quotes_with_metrics as (
             or prev_close_price <= 0,
             cast(null, 'Nullable(Float64)'),
             (high_price - low_price) / prev_close_price * 100
-        ) as pct_amplitude,
+        ) as amplitude_pct,
         if(
             close_price is null
             or prev_close_price is null
             or prev_close_price <= 0,
             cast(null, 'Nullable(Float64)'),
             (close_price - prev_close_price) / prev_close_price * 100
-        ) as pct_change,
+        ) as change_pct,
         multiIf(
             security_board in ('sse_main_board', 'szse_main_board')
                 and coalesce(is_st, false) = true
@@ -270,37 +270,37 @@ quotes_with_metrics as (
         if(
             close_price is null
             or close_price < 0
-            or a_shares is null
-            or a_shares <= 0,
+            or shares is null
+            or shares <= 0,
             cast(null, 'Nullable(Float64)'),
-            close_price * a_shares
-        ) as a_market_cap,
+            close_price * shares
+        ) as market_cap,
         if(
             close_price is null
             or close_price < 0
-            or a_float_shares is null
-            or a_float_shares <= 0,
+            or float_shares_a is null
+            or float_shares_a <= 0,
             cast(null, 'Nullable(Float64)'),
-            close_price * a_float_shares
-        ) as a_float_market_cap,
+            close_price * float_shares_a
+        ) as float_market_cap,
         if(
             close_price is null
             or close_price < 0
-            or a_free_float_shares is null
-            or a_free_float_shares <= 0,
+            or free_float_shares is null
+            or free_float_shares <= 0,
             cast(null, 'Nullable(Float64)'),
-            close_price * a_free_float_shares
-        ) as a_free_float_market_cap,
-        a_shares,
-        a_float_shares,
-        a_free_float_shares,
+            close_price * free_float_shares
+        ) as free_float_market_cap,
+        shares,
+        float_shares_a,
+        free_float_shares,
         if(
             latest_annual_cash_dividend_per_share is null
             or close_price is null
             or close_price <= 0,
             cast(null, 'Nullable(Float64)'),
             latest_annual_cash_dividend_per_share / close_price * 100
-        ) as dy_static,
+        ) as dy_static_pct,
         if(
             current_cumulative_cash_dividend_per_share is null
             or close_price is null
@@ -310,7 +310,7 @@ quotes_with_metrics as (
                 current_cumulative_cash_dividend_per_share
                 - coalesce(previous_cumulative_cash_dividend_per_share, 0)
             ) / close_price * 100
-        ) as dy_ttm,
+        ) as dy_ttm_pct,
         is_suspend,
         is_st
     from quotes_with_dividends
@@ -329,10 +329,10 @@ quotes_with_limit_prices as (
         prev_volume,
         volume,
         amount,
-        turnover_rate,
-        turnover_rate_actual,
-        pct_amplitude,
-        pct_change,
+        turnover_rate_pct,
+        turnover_rate_free_float_pct,
+        amplitude_pct,
+        change_pct,
         if(
             prev_close_price is null
             or prev_close_price <= 0
@@ -347,14 +347,14 @@ quotes_with_limit_prices as (
             cast(null, 'Nullable(Float64)'),
             round(prev_close_price * (1 - price_limit_ratio), 2)
         ) as limit_down_price,
-        a_market_cap,
-        a_float_market_cap,
-        a_free_float_market_cap,
-        a_shares,
-        a_float_shares,
-        a_free_float_shares,
-        dy_static,
-        dy_ttm,
+        market_cap,
+        float_market_cap,
+        free_float_market_cap,
+        shares,
+        float_shares_a,
+        free_float_shares,
+        dy_static_pct,
+        dy_ttm_pct,
         is_suspend,
         is_st
     from quotes_with_metrics
@@ -372,20 +372,20 @@ select
     prev_volume,
     volume,
     amount,
-    turnover_rate,
-    turnover_rate_actual,
-    pct_amplitude,
-    pct_change,
+    turnover_rate_pct,
+    turnover_rate_free_float_pct,
+    amplitude_pct,
+    change_pct,
     limit_up_price,
     limit_down_price,
-    a_market_cap,
-    a_float_market_cap,
-    a_free_float_market_cap,
-    a_shares,
-    a_float_shares,
-    a_free_float_shares,
-    dy_static,
-    dy_ttm,
+    market_cap,
+    float_market_cap,
+    free_float_market_cap,
+    shares,
+    float_shares_a,
+    free_float_shares,
+    dy_static_pct,
+    dy_ttm_pct,
     is_suspend,
     is_st
 from quotes_with_limit_prices

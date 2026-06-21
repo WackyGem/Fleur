@@ -2,7 +2,7 @@ version: 2
 
 models:
   - name: int_portfolio_performance_metric_status
-    description: Metric-level status wrapper explaining NULL values in int_portfolio_performance_metric.
+    description: 指标级状态薄封装；解释 int_portfolio_performance_metric 中的 NULL 值。
     config:
       meta:
         grain_zh: 每个 portfolio run、attempt、benchmark、window、metric_name 一行。
@@ -20,19 +20,35 @@ models:
               - metric_name
     columns:
       - name: portfolio_run_id
-        description: Portfolio run identifier.
+        description: 组合 run 标识符。
         data_type: String
         data_tests:
           - not_null
 
       - name: result_attempt_id
-        description: Append-only result attempt identifier.
+        description: 仅追加的 result attempt 标识符。
         data_type: String
         data_tests:
           - not_null
 
+      - name: security_code
+        description: "{{ doc('field_security_code') }}"
+        data_type: String
+        data_tests:
+          - not_null
+          - cn_security_code_format
+
+      - name: window_key
+        description: 指标窗口键；第一版固定为 full_period。
+        data_type: String
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [full_period]
+
       - name: metric_name
-        description: Performance metric field name.
+        description: 绩效指标字段名。
         data_type: String
         data_tests:
           - not_null
@@ -53,7 +69,7 @@ models:
                   - treynor_ratio
 
       - name: metric_status
-        description: Metric-level calculation status.
+        description: 指标级计算状态。
         data_type: String
         data_tests:
           - not_null
@@ -68,7 +84,11 @@ models:
                   - invalid_input
 
       - name: reason_code
-        description: Reason code for the metric status.
+        description: 指标状态的原因码。
         data_type: String
         data_tests:
           - not_null
+
+      - name: computed_at
+        description: 状态计算完成时间，由 worker 写入时填入。
+        data_type: DateTime

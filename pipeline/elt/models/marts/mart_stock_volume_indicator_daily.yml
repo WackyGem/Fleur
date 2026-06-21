@@ -1,7 +1,7 @@
 version: 2
 
 models:
-  - name: mart_stock_volume_indicator
+  - name: mart_stock_volume_indicator_daily
     description: A 股股票日频成交量形指标 mart；只暴露由 int_stock_ma_daily 提供的均量字段，不混入价格趋势或动量指标。
     config:
       meta:
@@ -31,17 +31,17 @@ models:
           - not_null
 
       - name: volume_ma_5
-        description: 5-valid-volume simple moving average based on int_stock_quotes_daily_unadj.volume; 0 volume is a valid input and warm-up rows may be NULL.
+        description: 基于 int_stock_quotes_daily_unadj.volume 的 5 个有效成交量简单移动平均；0 成交量是有效输入，预热行可能为 NULL。
         data_type: Nullable(Float64)
 
       - name: volume_ma_10
-        description: 10-valid-volume simple moving average based on int_stock_quotes_daily_unadj.volume; 0 volume is a valid input and warm-up rows may be NULL.
+        description: 基于 int_stock_quotes_daily_unadj.volume 的 10 个有效成交量简单移动平均；0 成交量是有效输入，预热行可能为 NULL。
         data_type: Nullable(Float64)
 
       - name: volume_ma_20
-        description: 20-valid-volume simple moving average based on int_stock_quotes_daily_unadj.volume; 0 volume is a valid input and warm-up rows may be NULL.
+        description: 基于 int_stock_quotes_daily_unadj.volume 的 20 个有效成交量简单移动平均；0 成交量是有效输入，预热行可能为 NULL。
         data_type: Nullable(Float64)
 
       - name: volume_ma_60
-        description: 60-valid-volume simple moving average based on int_stock_quotes_daily_unadj.volume; 0 volume is a valid input and warm-up rows may be NULL.
+        description: 基于 int_stock_quotes_daily_unadj.volume 的 60 个有效成交量简单移动平均；0 成交量是有效输入，预热行可能为 NULL。
         data_type: Nullable(Float64)

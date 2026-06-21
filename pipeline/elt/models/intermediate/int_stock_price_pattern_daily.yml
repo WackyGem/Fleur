@@ -34,7 +34,7 @@ models:
           - not_null
 
       - name: close_direction
-        description: Direction of unadjusted close_price versus BaoStock prev_close_price; 1 means up, -1 means down, 0 means flat, NULL means either close input is missing.
+        description: 未复权 close_price 相对 BaoStock prev_close_price 的方向；1 为上涨，-1 为下跌，0 为持平，NULL 表示收盘价输入缺失。
         data_type: Nullable(Int8)
         data_tests:
           - accepted_values:
@@ -44,45 +44,45 @@ models:
                 where: close_direction is not null
 
       - name: close_up_streak_days
-        description: Consecutive valid up days through the current row; NULL when close_direction is NULL, 0 when current direction is flat or down.
+        description: 截至当前行的连续有效上涨天数；close_direction 为 NULL 时为 NULL，当前方向为持平或下跌时为 0。
         data_type: Nullable(UInt16)
 
       - name: close_down_streak_days
-        description: Consecutive valid down days through the current row; NULL when close_direction is NULL, 0 when current direction is flat or up.
+        description: 截至当前行的连续有效下跌天数；close_direction 为 NULL 时为 NULL，当前方向为持平或上涨时为 0。
         data_type: Nullable(UInt16)
 
       - name: n_structure_20_valid_bars
-        description: Count of recent valid forward-adjusted high/low bars used by the 20-bar structure window.
+        description: 20 根结构窗口使用的近期有效前复权最高/最低价 K 线数量。
         data_type: UInt16
 
       - name: n_structure_20_high_date
-        description: Trade date of the first highest high_price_forward_adj in the recent 20 valid high/low bars.
+        description: 近期 20 根有效最高/最低价 K 线中第一个最高 high_price_forward_adj 的交易日。
         data_type: Nullable(Date)
 
       - name: n_structure_20_high_price
-        description: Highest high_price_forward_adj in the recent 20 valid high/low bars.
+        description: 近期 20 根有效最高/最低价 K 线中的最高 high_price_forward_adj。
         data_type: Nullable(Float64)
 
       - name: n_structure_20_low_date
-        description: Trade date of the first lowest low_price_forward_adj on the left side of the structure window, including the high bar.
+        description: 结构窗口左侧（含最高点 K 线）第一个最低 low_price_forward_adj 的交易日。
         data_type: Nullable(Date)
 
       - name: n_structure_20_low_price
-        description: Lowest low_price_forward_adj on the left side of the structure window, including the high bar.
+        description: 结构窗口左侧（含最高点 K 线）的最低 low_price_forward_adj。
         data_type: Nullable(Float64)
 
       - name: n_structure_20_second_low_date
-        description: Trade date of the first lowest low_price_forward_adj on the right side after the high bar.
+        description: 最高点 K 线右侧之后第一个最低 low_price_forward_adj 的交易日。
         data_type: Nullable(Date)
 
       - name: n_structure_20_second_low_price
-        description: Lowest low_price_forward_adj on the right side after the high bar.
+        description: 最高点 K 线右侧之后的最低 low_price_forward_adj。
         data_type: Nullable(Float64)
 
       - name: n_structure_20_second_low_ratio
-        description: n_structure_20_second_low_price divided by n_structure_20_low_price; NULL when the second low is unavailable.
+        description: n_structure_20_second_low_price 除以 n_structure_20_low_price；次低点不可用时为 NULL。
         data_type: Nullable(Float64)
 
       - name: n_structure_20_is_valid
-        description: True when n_structure_20_second_low_ratio is strictly greater than 1.0; false when ratio is NULL or not greater than 1.0.
+        description: 当 n_structure_20_second_low_ratio 严格大于 1.0 时为 true；比率为 NULL 或不大于 1.0 时为 false。
         data_type: Bool

@@ -20,6 +20,8 @@
 - 粒度：一行一个 `security_code` 的 BaoStock 当前证券基础信息快照。
 - 候选键：`security_code`。
 - 股票 universe：`security_type = 'stock'`。
+- 物化：ClickHouse `MergeTree()` table。
+- 排序键：`security_code`。
 
 快照语义：
 

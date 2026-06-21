@@ -22,8 +22,8 @@
 - [System: Rearview](../../systems/rearview.md)
 - [Plan 0038: MA30 and adjusted quotes mart implementation](0038-ma30-and-adjusted-quotes-mart-implementation-plan.md)
 - [mart_stock_quotes_daily 设计](../../design/dbt_layer/fleur_marts/mart_stock_quotes_daily.md)
-- [mart_stock_trend_indicator 设计](../../design/dbt_layer/fleur_marts/mart_stock_trend_indicator.md)
-- [mart_stock_momentum_indicator 设计](../../design/dbt_layer/fleur_marts/mart_stock_momentum_indicator.md)
+- [mart_stock_trend_indicator_daily 设计](../../design/dbt_layer/fleur_marts/mart_stock_trend_indicator_daily.md)
+- [mart_stock_momentum_indicator_daily 设计](../../design/dbt_layer/fleur_marts/mart_stock_momentum_indicator_daily.md)
 
 相关规则：
 

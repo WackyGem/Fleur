@@ -21,9 +21,9 @@
 - [RFC 0020: Racingline Run Result 个股分析页](../../RFC/0020-racingline-run-result-security-analysis-page.md)
 - [Plan 0039: Racingline Run Result 个股分析页实施计划](0039-racingline-run-result-security-analysis-page-implementation-plan.md)
 - [mart_stock_quotes_daily 设计](../../design/dbt_layer/fleur_marts/mart_stock_quotes_daily.md)
-- [mart_stock_trend_indicator 设计](../../design/dbt_layer/fleur_marts/mart_stock_trend_indicator.md)
-- [mart_stock_momentum_indicator 设计](../../design/dbt_layer/fleur_marts/mart_stock_momentum_indicator.md)
-- [mart_stock_volume_indicator 设计](../../design/dbt_layer/fleur_marts/mart_stock_volume_indicator.md)
+- [mart_stock_trend_indicator_daily 设计](../../design/dbt_layer/fleur_marts/mart_stock_trend_indicator_daily.md)
+- [mart_stock_momentum_indicator_daily 设计](../../design/dbt_layer/fleur_marts/mart_stock_momentum_indicator_daily.md)
+- [mart_stock_volume_indicator_daily 设计](../../design/dbt_layer/fleur_marts/mart_stock_volume_indicator_daily.md)
 - [mart_stock_price_pattern_daily 设计](../../design/dbt_layer/fleur_marts/mart_stock_price_pattern_daily.md)
 
 相关规则：

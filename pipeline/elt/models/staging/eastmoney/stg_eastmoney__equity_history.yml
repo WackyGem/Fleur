@@ -8,7 +8,7 @@ models:
           arguments:
             combination_of_columns:
               - security_code
-              - report_date
+              - end_date
     columns:
       - name: security_code
         description: "{{ doc('field_security_code') }}"
@@ -54,14 +54,14 @@ models:
                 table: eastmoney__equity_history
                 column: ORG_CODE
 
-      - name: report_date
-        description: "{{ doc('field_report_date') }}"
+      - name: end_date
+        description: 股本变动截止日，非财报报告期。
         data_type: Date
         data_tests:
           - not_null
         config:
           meta:
-            glossary_key: report_date
+            dictionary_scope: local
             source_columns:
               - source: raw
                 table: eastmoney__equity_history

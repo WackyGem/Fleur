@@ -16,7 +16,7 @@ with source as (
 
 select
     {{ normalize_cn_security_code('SECUCODE', input_format='eastmoney_suffix') }} as security_code,
-    END_DATE as end_date,
+    END_DATE as report_date,
     HOLDER_RANK as holder_rank,
     HOLDER_NEW as holder_eastmoney_code,
     HOLDER_NAME as holder_name,

@@ -2,7 +2,7 @@ version: 2
 
 models:
   - name: int_portfolio_trade_metric
-    description: Trade quality metric thin wrapper over worker-authored calculation rows.
+    description: 交易质量指标薄封装；透传 Rust worker 输出的计算行。
     config:
       meta:
         grain_zh: 每个 portfolio run、attempt、window 一行。
@@ -18,19 +18,75 @@ models:
               - window_key
     columns:
       - name: portfolio_run_id
-        description: Portfolio run identifier.
+        description: 组合 run 标识符。
         data_type: String
         data_tests:
           - not_null
 
       - name: result_attempt_id
-        description: Append-only result attempt identifier.
+        description: 仅追加的 result attempt 标识符。
         data_type: String
         data_tests:
           - not_null
 
       - name: window_key
-        description: Trade metric window key.
+        description: 交易指标窗口键。
         data_type: String
         data_tests:
           - not_null
+
+      - name: window_start
+        description: 指标窗口起始日期；无窗口边界时为 NULL。
+        data_type: Nullable(Date)
+
+      - name: window_end
+        description: 指标窗口结束日期；无窗口边界时为 NULL。
+        data_type: Nullable(Date)
+
+      - name: closed_trade_count
+        description: 窗口内已平仓交易笔数。
+        data_type: UInt32
+
+      - name: winning_trade_count
+        description: 窗口内盈利已平仓交易笔数。
+        data_type: UInt32
+
+      - name: losing_trade_count
+        description: 窗口内亏损已平仓交易笔数。
+        data_type: UInt32
+
+      - name: breakeven_trade_count
+        description: 窗口内持平（盈亏为零）已平仓交易笔数。
+        data_type: UInt32
+
+      - name: win_rate_closed_trades
+        description: 盈利已平仓交易占比，winning_trade_count / closed_trade_count；分母为零时为 NULL。
+        data_type: Nullable(Float64)
+
+      - name: average_win_return
+        description: 盈利已平仓交易的平均收益率；无盈利交易时为 NULL。
+        data_type: Nullable(Float64)
+
+      - name: average_loss_return
+        description: 亏损已平仓交易的平均收益率；无亏损交易时为 NULL。
+        data_type: Nullable(Float64)
+
+      - name: profit_loss_ratio
+        description: 盈亏比，平均盈利收益率除以平均亏损收益率绝对值；无亏损交易时为 NULL。
+        data_type: Nullable(Float64)
+
+      - name: average_holding_days
+        description: 已平仓交易的平均持仓天数；无已平仓交易时为 NULL。
+        data_type: Nullable(Float64)
+
+      - name: largest_win_return
+        description: 窗口内单笔最大盈利收益率；无盈利交易时为 NULL。
+        data_type: Nullable(Float64)
+
+      - name: largest_loss_return
+        description: 窗口内单笔最大亏损收益率；无亏损交易时为 NULL。
+        data_type: Nullable(Float64)
+
+      - name: computed_at
+        description: 指标计算完成时间，由 worker 写入时填入。
+        data_type: DateTime

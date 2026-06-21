@@ -1,17 +1,15 @@
 version: 2
 
 models:
-  - name: int_stock_rsi_daily
-    description: A 股股票日频 RSI intermediate wrapper；包装 Furnace/Dagster 物化的 calculation 层结果，不在 dbt 中重算 RSI 公式。
+  - name: mart_stock_momentum_indicator_daily
+    description: A 股股票日频动量指标 mart；整合 RSI 和 KDJ intermediate wrapper，不从 mart_stock_quotes_daily 读取 KDJ，也不在 mart 层重写公式。
     config:
       meta:
         grain_zh: 每证券、交易日一行。
         business_logic_zh:
-          - 上游物理表为 fleur_calculation.calc_stock_rsi_daily，由 Furnace 计算、Dagster 调度和观测。
-          - 第一版固定使用 close_price_forward_adj 前复权收盘价口径。
-          - RSI 使用 Wilder smoothing，启动阶段使用前 n 个有效涨跌幅的 SMA。
-          - dbt wrapper 只暴露业务 RSI 字段；avg_gain_*_state 和 avg_loss_*_state 为 Furnace 内部状态列，不在本模型暴露。
-          - dbt 不重写 RSI 公式，只提供 intermediate wrapper、字段文档和下游消费契约。
+          - 以 int_stock_rsi_daily 为左表，保留 RSI 指标的完整主键集合。
+          - 通过 int_stock_kdj_daily 左连接 canonical KDJ(9,3,3) 字段，并统一添加 kdj_ 前缀。
+          - RSI 和 KDJ 的 NULL warm-up 语义完全沿用 upstream wrapper。
     data_tests:
       - unique_combination_of_columns:
           arguments:
@@ -53,5 +51,21 @@ models:
         data_type: Nullable(Float64)
 
       - name: rsi_50
-        description: 基于 close_price_forward_adj 的 RSI(50)，使用 Wilder 平滑；第 51 个有效收盘价起首次非 NULL；非 NULL 值必须在 [0, 100] 范围内。
+        description: 基于 close_price_forward_adj 的 RSI(50)，使用 Wilder 平滑；第 51 个有效收盘价起首次非 NULL。
+        data_type: Nullable(Float64)
+
+      - name: kdj_rsv
+        description: KDJ RSV 值，来自 int_stock_kdj_daily；窗口不足、缺价或价格异常时允许为 NULL。
+        data_type: Nullable(Float64)
+
+      - name: kdj_k_value
+        description: KDJ K 值，来自 int_stock_kdj_daily；RSV 不可用时允许为 NULL。
+        data_type: Nullable(Float64)
+
+      - name: kdj_d_value
+        description: KDJ D 值，来自 int_stock_kdj_daily；RSV 不可用时允许为 NULL。
+        data_type: Nullable(Float64)
+
+      - name: kdj_j_value
+        description: KDJ J 值，来自 int_stock_kdj_daily；RSV 不可用时允许为 NULL。
         data_type: Nullable(Float64)

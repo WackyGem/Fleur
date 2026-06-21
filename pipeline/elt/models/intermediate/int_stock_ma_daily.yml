@@ -33,59 +33,59 @@ models:
           - not_null
 
       - name: price_ma_3
-        description: 3-valid-close simple moving average based on close_price_forward_adj.
+        description: 基于 close_price_forward_adj 的 3 个有效收盘价简单移动平均。
         data_type: Nullable(Float64)
 
       - name: price_ma_5
-        description: 5-valid-close simple moving average based on close_price_forward_adj.
+        description: 基于 close_price_forward_adj 的 5 个有效收盘价简单移动平均。
         data_type: Nullable(Float64)
 
       - name: price_ma_6
-        description: 6-valid-close simple moving average based on close_price_forward_adj.
+        description: 基于 close_price_forward_adj 的 6 个有效收盘价简单移动平均。
         data_type: Nullable(Float64)
 
       - name: price_ma_10
-        description: 10-valid-close simple moving average based on close_price_forward_adj.
+        description: 基于 close_price_forward_adj 的 10 个有效收盘价简单移动平均。
         data_type: Nullable(Float64)
 
       - name: price_ma_12
-        description: 12-valid-close simple moving average based on close_price_forward_adj.
+        description: 基于 close_price_forward_adj 的 12 个有效收盘价简单移动平均。
         data_type: Nullable(Float64)
 
       - name: price_ma_14
-        description: 14-valid-close simple moving average based on close_price_forward_adj.
+        description: 基于 close_price_forward_adj 的 14 个有效收盘价简单移动平均。
         data_type: Nullable(Float64)
 
       - name: price_ma_20
-        description: 20-valid-close simple moving average based on close_price_forward_adj.
+        description: 基于 close_price_forward_adj 的 20 个有效收盘价简单移动平均。
         data_type: Nullable(Float64)
 
       - name: price_ma_24
-        description: 24-valid-close simple moving average based on close_price_forward_adj.
+        description: 基于 close_price_forward_adj 的 24 个有效收盘价简单移动平均。
         data_type: Nullable(Float64)
 
       - name: price_ma_28
-        description: 28-valid-close simple moving average based on close_price_forward_adj.
+        description: 基于 close_price_forward_adj 的 28 个有效收盘价简单移动平均。
         data_type: Nullable(Float64)
 
       - name: price_ma_30
-        description: 30-valid-close simple moving average based on close_price_forward_adj.
+        description: 基于 close_price_forward_adj 的 30 个有效收盘价简单移动平均。
         data_type: Nullable(Float64)
 
       - name: price_ma_57
-        description: 57-valid-close simple moving average based on close_price_forward_adj.
+        description: 基于 close_price_forward_adj 的 57 个有效收盘价简单移动平均。
         data_type: Nullable(Float64)
 
       - name: price_ma_60
-        description: 60-valid-close simple moving average based on close_price_forward_adj.
+        description: 基于 close_price_forward_adj 的 60 个有效收盘价简单移动平均。
         data_type: Nullable(Float64)
 
       - name: price_ma_114
-        description: 114-valid-close simple moving average based on close_price_forward_adj.
+        description: 基于 close_price_forward_adj 的 114 个有效收盘价简单移动平均。
         data_type: Nullable(Float64)
 
       - name: price_ma_250
-        description: 250-valid-close simple moving average based on close_price_forward_adj.
+        description: 基于 close_price_forward_adj 的 250 个有效收盘价简单移动平均。
         data_type: Nullable(Float64)
 
       - name: price_avg_ma_3_6_12_24
@@ -97,21 +97,21 @@ models:
         data_type: Nullable(Float64)
 
       - name: price_ema2_10
-        description: Double EMA EMA(EMA(close_price_forward_adj, 10), 10) with SMA startup; first non-NULL at the 19th valid close.
+        description: 双重 EMA EMA(EMA(close_price_forward_adj, 10), 10)，使用 SMA 启动；第 19 个有效收盘价起首次非 NULL。
         data_type: Nullable(Float64)
 
       - name: volume_ma_5
-        description: 5-valid-volume simple moving average based on int_stock_quotes_daily_unadj.volume; 0 volume is a valid input.
+        description: 基于 int_stock_quotes_daily_unadj.volume 的 5 个有效成交量简单移动平均；0 成交量是有效输入。
         data_type: Nullable(Float64)
 
       - name: volume_ma_10
-        description: 10-valid-volume simple moving average based on int_stock_quotes_daily_unadj.volume; 0 volume is a valid input.
+        description: 基于 int_stock_quotes_daily_unadj.volume 的 10 个有效成交量简单移动平均；0 成交量是有效输入。
         data_type: Nullable(Float64)
 
       - name: volume_ma_20
-        description: 20-valid-volume simple moving average based on int_stock_quotes_daily_unadj.volume; 0 volume is a valid input.
+        description: 基于 int_stock_quotes_daily_unadj.volume 的 20 个有效成交量简单移动平均；0 成交量是有效输入。
         data_type: Nullable(Float64)
 
       - name: volume_ma_60
-        description: 60-valid-volume simple moving average based on int_stock_quotes_daily_unadj.volume; 0 volume is a valid input.
+        description: 基于 int_stock_quotes_daily_unadj.volume 的 60 个有效成交量简单移动平均；0 成交量是有效输入。
         data_type: Nullable(Float64)

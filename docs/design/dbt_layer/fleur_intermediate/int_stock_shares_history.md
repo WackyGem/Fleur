@@ -25,11 +25,14 @@
 - 粒度：一行一个 `security_code` + `effective_date` 的股本有效区间。
 - 候选键：`security_code`, `effective_date`。
 - 区间语义：`effective_date` 当日生效，`expiry_date` 为下一生效日前一天；最后一个已知区间 `expiry_date` 为 `NULL`。
+- 物化：ClickHouse `MergeTree()` table。
+- 排序键：`security_code`, `effective_date`。
+- 分区：`toYear(effective_date)`。
 
 `effective_date` 的来源：
 
-- `stg_eastmoney__equity_history.report_date`：总股本、流通股本、A 股股本或 A 股流通股本可能变化；模型实现中可在 CTE 内别名为 `end_date` 参与股本区间逻辑。
-- `stg_eastmoney__freeholders.end_date`：超过 5% 大股东扣减额可能变化，即使该报告期没有超过 5% 的 A 股流通股东，也必须作为 change point，用于把上一报告期的扣减额归零。
+- `stg_eastmoney__equity_history.end_date`：总股本、流通股本、A 股股本或 A 股流通股本可能变化。
+- `stg_eastmoney__freeholders.report_date`：超过 5% 大股东扣减额可能变化；模型实现中可在 CTE 内别名为 `end_date` 参与股本区间逻辑。即使该报告期没有超过 5% 的 A 股流通股东，也必须作为 change point，用于把上一报告期的扣减额归零。
 
 as-of 取值规则：
 
@@ -42,15 +45,15 @@ as-of 取值规则：
 股本字段口径：
 
 - `total_shares`：总股本，来自 `stg_eastmoney__equity_history.total_shares`。
-- `float_shares`：流通股本，来自 `stg_eastmoney__equity_history.unlimited_shares`。
-- `a_float_shares`：A 股流通股本，来自 `stg_eastmoney__equity_history.listed_a_shares`。
-- `a_shares`：A 股股本，等于 `listed_a_shares + limited_a_shares`。当两个输入字段均为空时输出 `NULL`；单边为空时按 0 参与相加。
+- `float_shares`：流通股本，来自 `stg_eastmoney__equity_history.unlimited_a_shares`。
+- `float_shares_a`：A 股流通股本，来自 `stg_eastmoney__equity_history.listed_a_shares`。
+- `shares`：A 股股本，等于 `listed_a_shares + limited_a_shares`。当两个输入字段均为空时输出 `NULL`；单边为空时按 0 参与相加。
 
 A 股自由流通股本口径：
 
 ```text
-a_free_float_shares =
-    a_float_shares
+free_float_shares =
+    float_shares_a
     - sum(free_float_hold_shares where shares_type = 'A股' and free_float_holdnum_ratio_pct > 5)
 ```
 
@@ -78,18 +81,18 @@ a_free_float_shares =
 | `source_equity_end_date` | 股本 as-of 记录 | `Date` | 本区间采用的最近一条股本变动记录截止日。 |
 | `source_freeholders_end_date` | 流通股东 as-of 聚合 | `Nullable(Date)` | 本区间采用的最近一个 A 股流通股东报告期；无报告期时为 `NULL`。 |
 | `total_shares` | `equity_history.total_shares` | `Nullable(Float64)` | 总股本，单位为股。 |
-| `float_shares` | `equity_history.unlimited_shares` | `Nullable(Float64)` | 流通股本，单位为股。 |
-| `a_shares` | `listed_a_shares + limited_a_shares` | `Nullable(Float64)` | A 股股本，单位为股。 |
-| `a_float_shares` | `equity_history.listed_a_shares` | `Nullable(Float64)` | A 股流通股本，单位为股。 |
+| `float_shares` | `equity_history.unlimited_a_shares` | `Nullable(Float64)` | 流通股本，单位为股。 |
+| `shares` | `listed_a_shares + limited_a_shares` | `Nullable(Float64)` | A 股股本，单位为股。 |
+| `float_shares_a` | `equity_history.listed_a_shares` | `Nullable(Float64)` | A 股流通股本，单位为股。 |
 | `major_holder_a_float_shares` | A 股流通股东报告期聚合 | `Float64` | 持有流通 A 股比例超过 5% 的股东持股数量合计，单位为股。 |
-| `a_free_float_shares` | `a_float_shares - major_holder_a_float_shares` | `Nullable(Float64)` | A 股自由流通股本估算值，单位为股。 |
+| `free_float_shares` | `float_shares_a - major_holder_a_float_shares` | `Nullable(Float64)` | A 股自由流通股本估算值，单位为股。 |
 | `major_holder_count` | A 股流通股东报告期聚合 | `UInt64` | 纳入扣减的超过 5% A 股流通股东数量。 |
 
 字段顺序建议：
 
 1. 主键与区间字段：`security_code`, `effective_date`, `expiry_date`
 2. 来源追踪字段：`source_equity_end_date`, `source_freeholders_end_date`
-3. 股本字段：`total_shares`, `float_shares`, `a_shares`, `a_float_shares`, `a_free_float_shares`
+3. 股本字段：`total_shares`, `float_shares`, `shares`, `float_shares_a`, `free_float_shares`
 4. 扣减解释字段：`major_holder_a_float_shares`, `major_holder_count`
 
 ## 5. SQL 逻辑建议
@@ -100,7 +103,7 @@ with equity_history as (
         security_code,
         report_date as end_date,
         total_shares,
-        unlimited_shares,
+        unlimited_a_shares,
         listed_a_shares,
         limited_a_shares
     from {{ ref('stg_eastmoney__equity_history') }}
@@ -160,7 +163,7 @@ change_points as (
 - ClickHouse 默认 `join_use_nulls = 0` 时，`LEFT JOIN` 未命中的右表字段会给类型默认值；实现中如需区分“无报告期”和“报告期为默认日期”，应使用右表匹配键或显式 nullable 处理。
 - `change_points` 必须包含所有 A 股流通股东报告期，而不是只包含有超过 5% 股东的报告期。
 - `major_holder_a_float_shares` 缺失时按 `0` 参与计算；`source_freeholders_end_date` 仍应保留为 `NULL` 表达尚无报告期。
-- 不输出 `free_shares` 字段，避免和本模型计算的 `a_free_float_shares` 混淆。
+- 不输出 `free_shares` 字段，避免和本模型计算的 `free_float_shares` 混淆。
 - 不把区间展开到交易日；日频模型使用 `trade_date >= effective_date and (expiry_date is null or trade_date <= expiry_date)` 关联。
 
 ## 6. 测试建议
@@ -173,7 +176,7 @@ change_points as (
 - `total_shares`: `not_null`。
 - `major_holder_a_float_shares`: `not_null`，且应大于等于 0。
 - `major_holder_count`: `not_null`，且应大于等于 0。
-- `a_free_float_shares`: 可空；非空时应满足 `0 <= a_free_float_shares <= a_float_shares`。
+- `free_float_shares`: 可空；非空时应满足 `0 <= free_float_shares <= float_shares_a`。
 - 增加定向数据测试：
   - 同一证券区间不得重叠。
   - 每只证券最多一条 `expiry_date is null` 的当前区间。

@@ -1,3 +1,10 @@
+{{ config(
+    materialized='table',
+    engine='MergeTree()',
+    order_by='trade_date',
+    partition_by='toYear(trade_date)'
+) }}
+
 with government_bond_yields as (
     select
         trade_date,

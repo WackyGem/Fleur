@@ -1,7 +1,7 @@
 version: 2
 
 models:
-  - name: mart_stock_trend_indicator
+  - name: mart_stock_trend_indicator_daily
     description: A 股股票日频趋势指标 mart；整合 MA、BOLL 和 MACD intermediate wrapper，不在 mart 层重写技术指标公式。
     config:
       meta:
@@ -32,39 +32,39 @@ models:
           - not_null
 
       - name: price_ma_3
-        description: 3-valid-close simple moving average based on close_price_forward_adj.
+        description: 基于 close_price_forward_adj 的 3 个有效收盘价简单移动平均。
         data_type: Nullable(Float64)
 
       - name: price_ma_5
-        description: 5-valid-close simple moving average based on close_price_forward_adj.
+        description: 基于 close_price_forward_adj 的 5 个有效收盘价简单移动平均。
         data_type: Nullable(Float64)
 
       - name: price_ma_6
-        description: 6-valid-close simple moving average based on close_price_forward_adj.
+        description: 基于 close_price_forward_adj 的 6 个有效收盘价简单移动平均。
         data_type: Nullable(Float64)
 
       - name: price_ma_10
-        description: 10-valid-close simple moving average based on close_price_forward_adj.
+        description: 基于 close_price_forward_adj 的 10 个有效收盘价简单移动平均。
         data_type: Nullable(Float64)
 
       - name: price_ma_12
-        description: 12-valid-close simple moving average based on close_price_forward_adj.
+        description: 基于 close_price_forward_adj 的 12 个有效收盘价简单移动平均。
         data_type: Nullable(Float64)
 
       - name: price_ma_14
-        description: 14-valid-close simple moving average based on close_price_forward_adj.
+        description: 基于 close_price_forward_adj 的 14 个有效收盘价简单移动平均。
         data_type: Nullable(Float64)
 
       - name: price_ma_20
-        description: 20-valid-close simple moving average based on close_price_forward_adj.
+        description: 基于 close_price_forward_adj 的 20 个有效收盘价简单移动平均。
         data_type: Nullable(Float64)
 
       - name: price_ma_24
-        description: 24-valid-close simple moving average based on close_price_forward_adj.
+        description: 基于 close_price_forward_adj 的 24 个有效收盘价简单移动平均。
         data_type: Nullable(Float64)
 
       - name: price_ma_28
-        description: 28-valid-close simple moving average based on close_price_forward_adj.
+        description: 基于 close_price_forward_adj 的 28 个有效收盘价简单移动平均。
         data_type: Nullable(Float64)
 
       - name: price_ma_30
@@ -72,19 +72,19 @@ models:
         data_type: Nullable(Float64)
 
       - name: price_ma_57
-        description: 57-valid-close simple moving average based on close_price_forward_adj.
+        description: 基于 close_price_forward_adj 的 57 个有效收盘价简单移动平均。
         data_type: Nullable(Float64)
 
       - name: price_ma_60
-        description: 60-valid-close simple moving average based on close_price_forward_adj.
+        description: 基于 close_price_forward_adj 的 60 个有效收盘价简单移动平均。
         data_type: Nullable(Float64)
 
       - name: price_ma_114
-        description: 114-valid-close simple moving average based on close_price_forward_adj.
+        description: 基于 close_price_forward_adj 的 114 个有效收盘价简单移动平均。
         data_type: Nullable(Float64)
 
       - name: price_ma_250
-        description: 250-valid-close simple moving average based on close_price_forward_adj.
+        description: 基于 close_price_forward_adj 的 250 个有效收盘价简单移动平均。
         data_type: Nullable(Float64)
 
       - name: price_avg_ma_3_6_12_24
@@ -96,53 +96,53 @@ models:
         data_type: Nullable(Float64)
 
       - name: price_ema2_10
-        description: Double EMA EMA(EMA(close_price_forward_adj, 10), 10) with SMA startup; first non-NULL at the 19th valid close.
+        description: 双重 EMA EMA(EMA(close_price_forward_adj, 10), 10)，使用 SMA 启动；第 19 个有效收盘价起首次非 NULL。
         data_type: Nullable(Float64)
 
       - name: boll_mid_10_1p5
-        description: BOLL(10, 1.5) middle band from int_stock_boll_daily.
+        description: BOLL(10, 1.5) 中轨，来自 int_stock_boll_daily。
         data_type: Nullable(Float64)
 
-      - name: boll_up_10_1p5
-        description: BOLL(10, 1.5) upper band from int_stock_boll_daily.
+      - name: boll_upper_10_1p5
+        description: BOLL(10, 1.5) 上轨，来自 int_stock_boll_daily。
         data_type: Nullable(Float64)
 
-      - name: boll_dn_10_1p5
-        description: BOLL(10, 1.5) lower band from int_stock_boll_daily.
+      - name: boll_lower_10_1p5
+        description: BOLL(10, 1.5) 下轨，来自 int_stock_boll_daily。
         data_type: Nullable(Float64)
 
       - name: boll_mid_20_2
-        description: BOLL(20, 2) middle band from int_stock_boll_daily.
+        description: BOLL(20, 2) 中轨，来自 int_stock_boll_daily。
         data_type: Nullable(Float64)
 
-      - name: boll_up_20_2
-        description: BOLL(20, 2) upper band from int_stock_boll_daily.
+      - name: boll_upper_20_2
+        description: BOLL(20, 2) 上轨，来自 int_stock_boll_daily。
         data_type: Nullable(Float64)
 
-      - name: boll_dn_20_2
-        description: BOLL(20, 2) lower band from int_stock_boll_daily.
+      - name: boll_lower_20_2
+        description: BOLL(20, 2) 下轨，来自 int_stock_boll_daily。
         data_type: Nullable(Float64)
 
       - name: boll_mid_50_2p5
-        description: BOLL(50, 2.5) middle band from int_stock_boll_daily.
+        description: BOLL(50, 2.5) 中轨，来自 int_stock_boll_daily。
         data_type: Nullable(Float64)
 
-      - name: boll_up_50_2p5
-        description: BOLL(50, 2.5) upper band from int_stock_boll_daily.
+      - name: boll_upper_50_2p5
+        description: BOLL(50, 2.5) 上轨，来自 int_stock_boll_daily。
         data_type: Nullable(Float64)
 
-      - name: boll_dn_50_2p5
-        description: BOLL(50, 2.5) lower band from int_stock_boll_daily.
+      - name: boll_lower_50_2p5
+        description: BOLL(50, 2.5) 下轨，来自 int_stock_boll_daily。
         data_type: Nullable(Float64)
 
       - name: macd_dif
-        description: MACD(12,26,9) DIF, EMA(12) - EMA(26), based on close_price_forward_adj and sourced from int_stock_macd_daily.
+        description: MACD(12,26,9) DIF 快线，EMA(12) - EMA(26)，基于 close_price_forward_adj，来自 int_stock_macd_daily。
         data_type: Nullable(Float64)
 
       - name: macd_dea
-        description: MACD(12,26,9) DEA signal line, EMA(DIF, 9) with SMA startup and sourced from int_stock_macd_daily.
+        description: MACD(12,26,9) DEA 慢线，对 DIF 做 EMA(9) 平滑并使用 SMA 启动，来自 int_stock_macd_daily。
         data_type: Nullable(Float64)
 
       - name: macd_histogram
-        description: Standard MACD histogram, macd_dif - macd_dea; not the doubled 2 * (DIF - DEA) variant.
+        description: 标准 MACD 柱状图，macd_dif - macd_dea；非 2 倍增强版。
         data_type: Nullable(Float64)

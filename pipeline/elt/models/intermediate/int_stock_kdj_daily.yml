@@ -32,7 +32,7 @@ models:
           - not_null
 
       - name: rsv_window
-        description: RSV rolling window. First production version must be 9.
+        description: RSV 滚动窗口；第一版必须为 9。
         data_type: UInt16
         data_tests:
           - not_null
@@ -41,7 +41,7 @@ models:
                 values: [9]
 
       - name: k_smoothing
-        description: K smoothing denominator. First production version must be 3.
+        description: K 平滑分母；第一版必须为 3。
         data_type: UInt16
         data_tests:
           - not_null
@@ -50,7 +50,7 @@ models:
                 values: [3]
 
       - name: d_smoothing
-        description: D smoothing denominator. First production version must be 3.
+        description: D 平滑分母；第一版必须为 3。
         data_type: UInt16
         data_tests:
           - not_null
@@ -59,17 +59,17 @@ models:
                 values: [3]
 
       - name: rsv
-        description: RSV value. NULL means the current row has no complete valid RSV window.
+        description: RSV 值；当前行无完整有效 RSV 窗口时为 NULL。
         data_type: Nullable(Float64)
 
       - name: k_value
-        description: K value. NULL means RSV is unavailable for the current row.
+        description: K 值；当前行 RSV 不可用时为 NULL。
         data_type: Nullable(Float64)
 
       - name: d_value
-        description: D value. NULL means RSV is unavailable for the current row.
+        description: D 值；当前行 RSV 不可用时为 NULL。
         data_type: Nullable(Float64)
 
       - name: j_value
-        description: J value. NULL means RSV is unavailable for the current row.
+        description: J 值；当前行 RSV 不可用时为 NULL。
         data_type: Nullable(Float64)

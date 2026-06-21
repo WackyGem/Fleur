@@ -14,20 +14,20 @@ where not (
     and mart.prev_volume is not distinct from quotes.prev_volume
     and mart.volume is not distinct from quotes.volume
     and mart.amount is not distinct from quotes.amount
-    and mart.turnover_rate is not distinct from quotes.turnover_rate
-    and mart.turnover_rate_actual is not distinct from quotes.turnover_rate_actual
-    and mart.pct_amplitude is not distinct from quotes.pct_amplitude
-    and mart.pct_change is not distinct from quotes.pct_change
+    and mart.turnover_rate_pct is not distinct from quotes.turnover_rate_pct
+    and mart.turnover_rate_free_float_pct is not distinct from quotes.turnover_rate_free_float_pct
+    and mart.amplitude_pct is not distinct from quotes.amplitude_pct
+    and mart.change_pct is not distinct from quotes.change_pct
     and mart.limit_up_price is not distinct from quotes.limit_up_price
     and mart.limit_down_price is not distinct from quotes.limit_down_price
-    and mart.a_market_cap is not distinct from quotes.a_market_cap
-    and mart.a_float_market_cap is not distinct from quotes.a_float_market_cap
-    and mart.a_free_float_market_cap is not distinct from quotes.a_free_float_market_cap
-    and mart.a_shares is not distinct from quotes.a_shares
-    and mart.a_float_shares is not distinct from quotes.a_float_shares
-    and mart.a_free_float_shares is not distinct from quotes.a_free_float_shares
-    and mart.dy_static is not distinct from quotes.dy_static
-    and mart.dy_ttm is not distinct from quotes.dy_ttm
+    and mart.market_cap is not distinct from quotes.market_cap
+    and mart.float_market_cap is not distinct from quotes.float_market_cap
+    and mart.free_float_market_cap is not distinct from quotes.free_float_market_cap
+    and mart.shares is not distinct from quotes.shares
+    and mart.float_shares_a is not distinct from quotes.float_shares_a
+    and mart.free_float_shares is not distinct from quotes.free_float_shares
+    and mart.dy_static_pct is not distinct from quotes.dy_static_pct
+    and mart.dy_ttm_pct is not distinct from quotes.dy_ttm_pct
     and mart.is_suspend is not distinct from quotes.is_suspend
     and mart.is_st is not distinct from quotes.is_st
 )

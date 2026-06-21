@@ -1,7 +1,7 @@
 select
     security_code,
     trade_date
-from {{ ref('mart_stock_momentum_indicator') }}
+from {{ ref('mart_stock_momentum_indicator_daily') }}
 where
     (rsi_6 is not null and not (rsi_6 >= 0 and rsi_6 <= 100))
     or (rsi_12 is not null and not (rsi_12 >= 0 and rsi_12 <= 100))
