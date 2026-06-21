@@ -174,10 +174,12 @@ StrategyConditionGroup[]
 | 指标与指标比较 | `Operand.metric` + `Operand.metric` |
 | 区间比较 | `Operator.between` + `Operand.range` |
 
-如果组内同时存在 AND 和 OR，第一阶段必须选择一个明确降级策略。推荐策略：
+组内同时存在 AND 和 OR 时，第一阶段必须支持混排，不允许降级为统一 AND 或统一 OR。实施计划以 [Plan 0045](../plans/0045-racingline-strategy-selection-step1-gap-closure-plan.md) 的阶段 6 为准：
 
-1. 按连续逻辑分段生成 nested `all` / `any`。
-2. 如果实现成本过高，第一阶段把组内逻辑限制为统一 AND 或统一 OR，并在 UI 上明确。
+1. `AND` 高于 `OR`。
+2. 按连续 AND segment 生成 nested `all` / `any`。
+3. 例如 `A and B or C and D` 必须生成 `any([all([A, B]), all([C, D])])`。
+4. 第一个 condition 的隐藏 `logic` 字段不参与 AST 生成。
 
 ### D3: 操作符按 Rearview 能力和 metric 能力收敛
 
@@ -506,7 +508,7 @@ mart_stock_trend_indicator_daily
 ## 风险与待决问题
 
 1. 后端是否允许 `scoring.rules = []`？如果不允许，Step 1 需要默认 scoring placeholder。
-2. 组内 AND/OR 混排如何精确映射到 nested `FilterExpr`？第一阶段可以先限制组内统一逻辑。
+2. 组内 AND/OR 混排已由 Plan 0045 阶段 6 固定为 `AND` 高于 `OR` 的 nested `all` / `any` AST；后续待决项是 UI 是否需要在摘要中显式渲染括号。
 3. `MetricDefinition.description` 是否足以支持中文 UI？如果不足，需要 UI overlay，但 overlay 只能补展示，不改事实。
 4. explain 错误是否包含字段路径？如果没有，第一阶段只能做摘要提示；字段级定位需要 Rearview error contract 增强。
 5. `app/racingline_new` 是否继续作为原型工程，还是开始承接正式实现？本 RFC 默认仍按 RFC 0023 的原型隔离规则执行。
@@ -575,5 +577,6 @@ playwright-cli attach --cdp="${PLAYWRIGHT_CDP_ENDPOINT:-http://127.0.0.1:9222}"
 - [RFC 0018: Rust Rearview 规则选股服务与 mart 指标库](0018-rust-stock-screening-service.md)
 - [RFC 0019: Racingline Rearview 前端工作台](0019-racingline-rearview-frontend-workbench.md)
 - [RFC 0023: Racingline 前端原型驱动开发流程](0023-racingline-frontend-prototype-led-development.md)
+- [Plan 0045: Racingline 策略选股 Step 1 缺口填补实施计划](../plans/0045-racingline-strategy-selection-step1-gap-closure-plan.md)
 - [System: Racingline](../systems/racingline.md)
 - [System: Rearview](../systems/rearview.md)
