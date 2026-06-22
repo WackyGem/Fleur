@@ -2,7 +2,11 @@ import { Fragment, useEffect, useMemo, useRef, useState } from "react"
 import { useNavigate } from "react-router-dom"
 import { createChart, LineSeries } from "lightweight-charts"
 
-import { useExplainMutation, useMetricsQuery } from "@/api/hooks"
+import {
+  useExplainMutation,
+  useMetricsQuery,
+  useStrategyPreviewMutation,
+} from "@/api/hooks"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -28,12 +32,15 @@ import {
 } from "@/components/ui/table"
 import {
   buildStrategyMetricCatalog,
+  buildStrategyPreviewRuleSpec,
+  buildStrategyScoringCatalog,
   buildStrategySelectionRuleSpec,
   StrategyRuleSpecError,
 } from "@/features/strategy/adapters"
 import { indicatorCatalog } from "@/features/strategy/catalog"
 import { ConditionGroupsPanel } from "@/features/strategy/components/condition-groups-panel"
 import { PoolPreviewPanel } from "@/features/strategy/components/pool-preview-panel"
+import type { PreviewRange } from "@/features/strategy/components/pool-preview-panel"
 import { SimulationPositionPanel } from "@/features/strategy/components/simulation-position-panel"
 import { StrategyStepSidebar } from "@/features/strategy/components/strategy-step-sidebar"
 import { WeightIndicatorsPanel } from "@/features/strategy/components/weight-indicators-panel"
@@ -51,7 +58,11 @@ import {
   createWeightIndicator,
 } from "@/features/strategy/utils"
 import { cn } from "@/lib/utils"
-import type { ExplainResponse, RuleVersionSpec } from "@/types/rearview"
+import type {
+  ExplainResponse,
+  RuleVersionSpec,
+  StrategyPreviewResponse,
+} from "@/types/rearview"
 import { Play } from "lucide-react"
 
 const stepContent: Record<Step, { description: string; title: string }> = {
@@ -144,6 +155,12 @@ const defaultSimulationSettings: SimulationSettings = {
     holdingDays: 20,
     minimumReturnPercent: 0,
   },
+}
+
+const defaultPreviewRange: PreviewRange = {
+  startDate: "2026-05-26",
+  endDate: "2026-06-01",
+  topN: 10,
 }
 
 const backtestPeriodOptions = [
@@ -257,6 +274,25 @@ function buildPreviewWeightIndicators(weightIndicators: WeightIndicator[]) {
       : defaultPreviewWeightIndicators
 
   return source.map((indicator) => ({ ...indicator }))
+}
+
+function cloneWeightIndicators(weightIndicators: WeightIndicator[]) {
+  return weightIndicators.map((indicator) => ({ ...indicator }))
+}
+
+function buildPreviewRequestRange(previewRange: PreviewRange) {
+  if (!previewRange.startDate || !previewRange.endDate) {
+    throw new StrategyRuleSpecError("股池预览需要开始日期和结束日期")
+  }
+  if (previewRange.startDate > previewRange.endDate) {
+    throw new StrategyRuleSpecError("股池预览开始日期不能晚于结束日期")
+  }
+
+  return {
+    start_date: previewRange.startDate,
+    end_date: previewRange.endDate,
+    top_n: Math.max(1, Math.floor(previewRange.topN || 1)),
+  }
 }
 
 function BacktestPanel({
@@ -1079,12 +1115,19 @@ export function StrategyPage() {
   const navigate = useNavigate()
   const metricsQuery = useMetricsQuery()
   const explainMutation = useExplainMutation()
+  const previewMutation = useStrategyPreviewMutation()
   const strategyCatalog = useMemo(
     () => buildStrategyMetricCatalog(metricsQuery.data ?? []),
     [metricsQuery.data]
   )
+  const strategyScoringCatalog = useMemo(
+    () => buildStrategyScoringCatalog(metricsQuery.data ?? []),
+    [metricsQuery.data]
+  )
   const hasRealMetricsCatalog =
     metricsQuery.isSuccess && strategyCatalog.length > 0
+  const hasRealScoringCatalog =
+    metricsQuery.isSuccess && strategyScoringCatalog.length > 0
   const strategyCatalogOptions = hasRealMetricsCatalog
     ? strategyCatalog
     : indicatorCatalog
@@ -1110,13 +1153,29 @@ export function StrategyPage() {
     useState<ExplainResponse | null>(null)
   const [lastExplainAt, setLastExplainAt] = useState<string | null>(null)
   const [isExplainStale, setIsExplainStale] = useState(false)
+  const [previewRange, setPreviewRange] =
+    useState<PreviewRange>(defaultPreviewRange)
+  const [previewAdapterError, setPreviewAdapterError] = useState<string | null>(
+    null
+  )
+  const [lastPreviewRuleSpec, setLastPreviewRuleSpec] =
+    useState<RuleVersionSpec | null>(null)
+  const [lastPreviewResult, setLastPreviewResult] =
+    useState<StrategyPreviewResponse | null>(null)
+  const [lastPreviewAt, setLastPreviewAt] = useState<string | null>(null)
+  const [isPreviewStale, setIsPreviewStale] = useState(false)
   const canEditConditions = strategyCatalogOptions.length > 0
   const canExplainRule = hasRealMetricsCatalog
+  const canEditWeights = hasRealScoringCatalog
 
   function markRuleDraftChanged() {
     setAdapterError(null)
+    setPreviewAdapterError(null)
     if (lastRuleSpec || lastExplainResult || lastExplainAt) {
       setIsExplainStale(true)
+    }
+    if (lastPreviewRuleSpec || lastPreviewResult || lastPreviewAt) {
+      setIsPreviewStale(true)
     }
   }
 
@@ -1219,9 +1278,14 @@ export function StrategyPage() {
   }
 
   function addWeightIndicator() {
+    if (!canEditWeights) {
+      return
+    }
+
+    markRuleDraftChanged()
     setWeightIndicators((current) => [
       ...current,
-      createWeightIndicator(strategyCatalogOptions),
+      createWeightIndicator(strategyScoringCatalog),
     ])
   }
 
@@ -1256,6 +1320,7 @@ export function StrategyPage() {
     indicatorId: string,
     patch: Partial<WeightIndicator>
   ) {
+    markRuleDraftChanged()
     setWeightIndicators((current) =>
       current.map((indicator) =>
         indicator.id === indicatorId ? { ...indicator, ...patch } : indicator
@@ -1264,23 +1329,65 @@ export function StrategyPage() {
   }
 
   function removeWeightIndicator(indicatorId: string) {
+    markRuleDraftChanged()
     setWeightIndicators((current) =>
       current.filter((indicator) => indicator.id !== indicatorId)
     )
   }
 
-  function openPreview() {
-    const nextPreviewWeightIndicators =
-      buildPreviewWeightIndicators(weightIndicators)
+  async function openPreview(
+    nextWeightIndicators: WeightIndicator[] = weightIndicators,
+    options: { syncMainDraft?: boolean } = {}
+  ) {
+    previewMutation.reset()
+    setPreviewAdapterError(null)
 
-    setPreviewDraftWeightIndicators(nextPreviewWeightIndicators)
-    setPreviewAppliedWeightIndicators(nextPreviewWeightIndicators)
-    setActiveStep("preview")
+    try {
+      if (!metricsQuery.data || metricsQuery.data.length === 0) {
+        throw new StrategyRuleSpecError(
+          "Rearview 指标目录未加载，不能执行股池预览"
+        )
+      }
+      if (!hasRealScoringCatalog) {
+        throw new StrategyRuleSpecError(
+          "Rearview scoring 指标目录未加载，不能执行股池预览"
+        )
+      }
+
+      const requestRange = buildPreviewRequestRange(previewRange)
+      const previewWeights = cloneWeightIndicators(nextWeightIndicators)
+      const { rule } = buildStrategyPreviewRuleSpec(
+        conditionGroups,
+        previewWeights,
+        metricsQuery.data,
+        { topN: requestRange.top_n }
+      )
+      const result = await previewMutation.mutateAsync({
+        rule,
+        ...requestRange,
+      })
+
+      setPreviewDraftWeightIndicators(previewWeights)
+      setPreviewAppliedWeightIndicators(previewWeights)
+      if (options.syncMainDraft) {
+        setWeightIndicators(previewWeights)
+      }
+      setLastPreviewRuleSpec(rule)
+      setLastPreviewResult(result)
+      setLastPreviewAt(new Date().toISOString())
+      setIsPreviewStale(false)
+      setActiveStep("preview")
+    } catch (error) {
+      setPreviewAdapterError(formatErrorMessage(error))
+      if (error instanceof StrategyRuleSpecError) {
+        return
+      }
+    }
   }
 
   function changeStep(step: Step) {
     if (step === "preview") {
-      openPreview()
+      void openPreview()
       return
     }
 
@@ -1288,6 +1395,10 @@ export function StrategyPage() {
   }
 
   function updatePreviewDraftWeightScore(indicatorId: string, score: number) {
+    setPreviewAdapterError(null)
+    if (lastPreviewRuleSpec || lastPreviewResult || lastPreviewAt) {
+      setIsPreviewStale(true)
+    }
     setPreviewDraftWeightIndicators((current) =>
       current.map((indicator) =>
         indicator.id === indicatorId
@@ -1297,8 +1408,23 @@ export function StrategyPage() {
     )
   }
 
+  function updatePreviewRange(patch: Partial<PreviewRange>) {
+    setPreviewAdapterError(null)
+    if (lastPreviewRuleSpec || lastPreviewResult || lastPreviewAt) {
+      setIsPreviewStale(true)
+    }
+    setPreviewRange((current) => ({
+      ...current,
+      ...patch,
+      topN:
+        patch.topN === undefined
+          ? current.topN
+          : Math.max(1, Math.floor(patch.topN || 1)),
+    }))
+  }
+
   function applyPreviewWeightIndicators() {
-    setPreviewAppliedWeightIndicators(previewDraftWeightIndicators)
+    void openPreview(previewDraftWeightIndicators, { syncMainDraft: true })
   }
 
   const content = stepContent[activeStep]
@@ -1383,19 +1509,51 @@ export function StrategyPage() {
                   />
                 </div>
               ) : activeStep === "weights" ? (
-                <WeightIndicatorsPanel
-                  weightIndicators={weightIndicators}
-                  onAddIndicator={addWeightIndicator}
-                  onRemoveIndicator={removeWeightIndicator}
-                  onUpdateIndicator={updateWeightIndicator}
-                />
+                canEditWeights ? (
+                  <div className="flex h-full min-h-0 flex-col gap-3">
+                    <WeightIndicatorsPanel
+                      catalogOptions={strategyScoringCatalog}
+                      weightIndicators={weightIndicators}
+                      onAddIndicator={addWeightIndicator}
+                      onRemoveIndicator={removeWeightIndicator}
+                      onUpdateIndicator={updateWeightIndicator}
+                    />
+                    {previewAdapterError || previewMutation.isError ? (
+                      <Alert variant="destructive" className="shrink-0">
+                        <AlertTitle>股池预览失败</AlertTitle>
+                        <AlertDescription>
+                          {previewAdapterError ??
+                            formatErrorMessage(previewMutation.error)}
+                        </AlertDescription>
+                      </Alert>
+                    ) : null}
+                  </div>
+                ) : (
+                  <Alert>
+                    <AlertTitle>没有可评分指标</AlertTitle>
+                    <AlertDescription>
+                      Rearview catalog 当前没有返回 allow_scoring 指标。
+                    </AlertDescription>
+                  </Alert>
+                )
               ) : activeStep === "preview" ? (
                 <PoolPreviewPanel
                   appliedWeightIndicators={previewAppliedWeightIndicators}
                   conditionGroups={conditionGroups}
                   draftWeightIndicators={previewDraftWeightIndicators}
+                  error={
+                    previewAdapterError ??
+                    (previewMutation.isError
+                      ? formatErrorMessage(previewMutation.error)
+                      : null)
+                  }
+                  isPending={previewMutation.isPending}
+                  isStale={isPreviewStale}
+                  previewRange={previewRange}
+                  previewResult={lastPreviewResult}
                   weightIndicators={weightIndicators}
                   onDraftWeightScoreChange={updatePreviewDraftWeightScore}
+                  onPreviewRangeChange={updatePreviewRange}
                 />
               ) : activeStep === "simulation" ? (
                 <SimulationPositionPanel
@@ -1465,9 +1623,17 @@ export function StrategyPage() {
                       variant="default"
                       size="lg"
                       className="w-full sm:w-48"
-                      onClick={openPreview}
+                      disabled={
+                        previewMutation.isPending ||
+                        !canEditWeights ||
+                        !hasRealMetricsCatalog
+                      }
+                      onClick={() => void openPreview()}
                       type="button"
                     >
+                      {previewMutation.isPending ? (
+                        <Spinner data-icon="inline-start" />
+                      ) : null}
                       股池预览
                     </Button>
                   ) : activeStep === "preview" ? (
@@ -1491,9 +1657,13 @@ export function StrategyPage() {
                         variant="outline"
                         size="lg"
                         className="w-full sm:w-48 xl:ml-2"
+                        disabled={previewMutation.isPending}
                         onClick={applyPreviewWeightIndicators}
                         type="button"
                       >
+                        {previewMutation.isPending ? (
+                          <Spinner data-icon="inline-start" />
+                        ) : null}
                         更新股池
                       </Button>
                     </>

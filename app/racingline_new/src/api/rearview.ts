@@ -4,6 +4,8 @@ import type {
   MetricDefinition,
   MetricsQuery,
   RuleVersionSpec,
+  StrategyPreviewRequest,
+  StrategyPreviewResponse,
 } from "@/types/rearview"
 
 export async function listMetrics(
@@ -21,4 +23,11 @@ export function explainRule(
 ) {
   const body = range?.start_date && range.end_date ? { rule, ...range } : rule
   return requestJson<ExplainResponse>("/rearview/explain", jsonBody(body))
+}
+
+export function previewStrategy(request: StrategyPreviewRequest) {
+  return requestJson<StrategyPreviewResponse>(
+    "/rearview/strategy-preview",
+    jsonBody(request)
+  )
 }

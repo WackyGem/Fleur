@@ -130,6 +130,42 @@ export type ExplainResponse = {
   [key: string]: JsonValue | string[] | ChunkPlanRecord[] | undefined
 }
 
+export type StrategyPreviewRequest = {
+  rule: RuleVersionSpec
+  start_date: string
+  end_date: string
+  top_n: number
+}
+
+export type StrategyPreviewSignal = {
+  security_code: string
+  raw_score: number
+  score: number
+  signal_rank: number
+  is_buy_signal: boolean
+  score_breakdown: JsonValue
+  selected_metrics: JsonValue
+  raw_values: JsonValue
+}
+
+export type StrategyPreviewTradeDate = {
+  trade_date: string
+  pool_count: number
+  signals: StrategyPreviewSignal[]
+}
+
+export type StrategyPreviewResponse = {
+  preview_id: string
+  sql_hash: string
+  required_metrics: string[]
+  required_marts: string[]
+  required_columns: Record<string, string[]>
+  start_date: string
+  end_date: string
+  top_n: number
+  trade_dates: StrategyPreviewTradeDate[]
+}
+
 export type MetricsQuery = {
   mart_table?: string
   value_kind?: string

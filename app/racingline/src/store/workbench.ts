@@ -52,7 +52,7 @@ export const defaultRuleDraft: RuleDraftState = {
   scoringMetric: "",
   scoringWeight: "1",
   clampMin: "0",
-  clampMax: "99",
+  clampMax: "100",
   outputMetrics: "",
   topNDefault: "20",
   runStartDate: "",
@@ -112,7 +112,7 @@ export function buildRuleVersionSpec(draft: RuleDraftState): RuleVersionSpec {
   const scoringWeight = Number(draft.scoringWeight || 1)
   const topNDefault = Number(draft.topNDefault || 20)
   const clampMin = Number(draft.clampMin || 0)
-  const clampMax = Number(draft.clampMax || 99)
+  const clampMax = Number(draft.clampMax || 100)
 
   return {
     universe: {
@@ -231,7 +231,7 @@ export function buildLowReversalRuleVersionSpec(
       ],
       clamp: {
         min: 0,
-        max: 99,
+        max: 100,
       },
     },
     top_n_default: Number(draft.topNDefault || 10),

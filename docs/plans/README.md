@@ -16,6 +16,7 @@
 
 | Plan | 状态 | 说明 |
 |---|---|---|
+| [0046](archive/0046-racingline-strategy-weight-configuration-step2-implementation-plan.md) | Completed | Racingline 策略权重配置 Step 2：评分规则 adapter、Rearview preview-only API、真实股池预览和 `[0, 100]` score clamp；验收见 [2026-06-22 report](../jobs/reports/2026-06-22-racingline-strategy-step2-preview.md) |
 | [0045](archive/0045-racingline-strategy-selection-step1-gap-closure-plan.md) | Completed | Racingline 策略选股 Step 1 缺口填补；验收见 [2026-06-21 report](../jobs/reports/2026-06-21-racingline-strategy-step1-gap-closure.md) |
 
 ## 规则

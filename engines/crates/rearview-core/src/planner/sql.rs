@@ -766,7 +766,7 @@ mod tests {
                 rules: Vec::new(),
                 clamp: crate::domain::ScoreClamp {
                     min: 0.0,
-                    max: 99.0,
+                    max: 100.0,
                 },
             },
             top_n_default: 20,

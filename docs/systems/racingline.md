@@ -112,7 +112,10 @@ cargo test --workspace
 | [../RFC/0021-racingline-virtual-account-portfolio-rebalancing.md](../RFC/0021-racingline-virtual-account-portfolio-rebalancing.md) | 虚拟账户、交易费率、止盈止损和组合调仓净值 Proposed RFC |
 | [../RFC/0023-racingline-frontend-prototype-led-development.md](../RFC/0023-racingline-frontend-prototype-led-development.md) | Racingline 前端 RFC 阶段允许原型驱动多轮 UX 验证的流程 RFC |
 | [../RFC/0024-racingline-strategy-selection-step1.md](../RFC/0024-racingline-strategy-selection-step1.md) | 从 `/strategies` Step 1 策略选股切入，接通 metric catalog、RuleVersionSpec 和 explain 的 Proposed RFC |
+| [../RFC/0025-racingline-strategy-weight-configuration-step2.md](../RFC/0025-racingline-strategy-weight-configuration-step2.md) | 从 `/strategies` Step 2 权重配置切入，把权重草稿落到 `RuleVersionSpec.scoring.rules`，并定义点击股池预览时才执行选股、评分和排名的 Implemented RFC |
 | [../plans/archive/0045-racingline-strategy-selection-step1-gap-closure-plan.md](../plans/archive/0045-racingline-strategy-selection-step1-gap-closure-plan.md) | 策略选股 Step 1 缺口填补实施计划归档 |
+| [../plans/archive/0046-racingline-strategy-weight-configuration-step2-implementation-plan.md](../plans/archive/0046-racingline-strategy-weight-configuration-step2-implementation-plan.md) | 策略权重配置 Step 2、preview-only API 和真实股池预览实施计划归档 |
+| [../jobs/reports/2026-06-22-racingline-strategy-step2-preview.md](../jobs/reports/2026-06-22-racingline-strategy-step2-preview.md) | 策略权重配置 Step 2 到股池预览闭环验收报告 |
 | [../Q&A/user-logic.md](../Q&A/user-logic.md) | Racingline 当前用户画像和策略研究工作台主路径 |
 | [../Q&A/0003-racingline-strategy-lab-two-entry-navigation.md](../Q&A/0003-racingline-strategy-lab-two-entry-navigation.md) | Racingline 策略研究工作台两入口导航和首屏承载 Proposed Q&A |
 | [../Q&A/0004-racingline-prototype-dashboard-to-strategy-loop.md](../Q&A/0004-racingline-prototype-dashboard-to-strategy-loop.md) | `app/racingline_new/` 看板到选股、回测和运行策略闭环用户故事 |

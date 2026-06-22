@@ -1,8 +1,12 @@
 import { useMutation, useQuery } from "@tanstack/react-query"
 
 import { queryKeys } from "@/api/queryKeys"
-import { explainRule, listMetrics } from "@/api/rearview"
-import type { MetricsQuery, RuleVersionSpec } from "@/types/rearview"
+import { explainRule, listMetrics, previewStrategy } from "@/api/rearview"
+import type {
+  MetricsQuery,
+  RuleVersionSpec,
+  StrategyPreviewRequest,
+} from "@/types/rearview"
 
 export function useMetricsQuery(query: MetricsQuery = {}) {
   return useQuery({
@@ -21,5 +25,11 @@ export function useExplainMutation() {
       rule: RuleVersionSpec
       range?: { start_date?: string; end_date?: string; top_n?: number }
     }) => explainRule(rule, range),
+  })
+}
+
+export function useStrategyPreviewMutation() {
+  return useMutation({
+    mutationFn: (request: StrategyPreviewRequest) => previewStrategy(request),
   })
 }

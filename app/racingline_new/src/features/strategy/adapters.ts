@@ -1,10 +1,12 @@
 import type {
   ConditionOperator,
+  ComparableIndicator,
   IndicatorCatalog,
   MetricOption,
   MetricValueType,
   StrategyCondition,
   StrategyConditionGroup,
+  WeightIndicator,
 } from "@/features/strategy/types"
 import type {
   FilterExpr,
@@ -19,10 +21,22 @@ type BuildRuleSpecOptions = {
   topN?: number
 }
 
+type BuildWeightScoringOptions = {
+  scoreBudget?: number
+}
+
+type BuildPreviewRuleSpecOptions = BuildRuleSpecOptions &
+  BuildWeightScoringOptions
+
 export type ConditionFilterPath = {
   conditionId: string
   groupId: string
   path: string
+}
+
+export type WeightScoringPath = {
+  path: string
+  weightId: string
 }
 
 export type BuildRuleSpecResult = {
@@ -30,7 +44,18 @@ export type BuildRuleSpecResult = {
   rule: RuleVersionSpec
 }
 
+export type BuildWeightScoringResult = {
+  outputMetrics: string[]
+  scoring: RuleVersionSpec["scoring"]
+  weightPaths: WeightScoringPath[]
+}
+
+export type BuildPreviewRuleSpecResult = BuildRuleSpecResult & {
+  weightPaths: WeightScoringPath[]
+}
+
 type MetricIndex = Map<string, MetricDefinition>
+type MetricCapability = "filter" | "scoring"
 
 const metricGroupLabels: Record<string, string> = {
   momentum: "动量指标",
@@ -88,10 +113,23 @@ export class StrategyRuleSpecError extends Error {
 export function buildStrategyMetricCatalog(
   metrics: MetricDefinition[]
 ): IndicatorCatalog[] {
+  return buildStrategyCatalog(metrics, "filter")
+}
+
+export function buildStrategyScoringCatalog(
+  metrics: MetricDefinition[]
+): IndicatorCatalog[] {
+  return buildStrategyCatalog(metrics, "scoring")
+}
+
+function buildStrategyCatalog(
+  metrics: MetricDefinition[],
+  capability: MetricCapability
+): IndicatorCatalog[] {
   const groups = new Map<string, IndicatorCatalog>()
 
   for (const metric of metrics) {
-    if (!metric.allow_filter) {
+    if (!isMetricAllowedForCapability(metric, capability)) {
       continue
     }
 
@@ -155,11 +193,104 @@ export function buildStrategySelectionRuleSpec(
         rules: [],
         clamp: {
           min: 0,
-          max: 99,
+          max: 100,
         },
       },
       top_n_default: normalizeTopN(options.topN),
       output_metrics: buildOutputMetrics(conditionGroups, metricIndex),
+    },
+  }
+}
+
+export function buildStrategyWeightScoring(
+  weightIndicators: WeightIndicator[],
+  catalog: MetricDefinition[],
+  options: BuildWeightScoringOptions = {}
+): BuildWeightScoringResult {
+  const metricIndex = buildMetricIndex(catalog)
+  const scoreBudget = normalizeScoreBudget(options.scoreBudget)
+  const weightedScores = weightIndicators.map((indicator) => ({
+    indicator,
+    score: normalizeWeightScore(indicator.score),
+  }))
+  const rawTotal = weightedScores.reduce((total, item) => total + item.score, 0)
+
+  if (weightIndicators.length === 0) {
+    throw new StrategyRuleSpecError("至少需要一个评分权重")
+  }
+  if (rawTotal <= 0) {
+    throw new StrategyRuleSpecError("评分权重总分必须大于 0")
+  }
+
+  const scaleRatio = rawTotal > scoreBudget ? scoreBudget / rawTotal : 1
+  const output = new Set<string>()
+  const weightPaths: WeightScoringPath[] = []
+  const rules = weightedScores
+    .filter((item) => item.score > 0)
+    .map((item, ruleIndex) => {
+      const condition = buildComparableFilterExpr(item.indicator, metricIndex, {
+        capability: "scoring",
+        itemId: item.indicator.id,
+      })
+      collectComparableOutputMetrics(item.indicator, metricIndex, output)
+      weightPaths.push({
+        path: `scoring.rules.${ruleIndex}.condition`,
+        weightId: item.indicator.id,
+      })
+
+      return {
+        type: "conditional_points" as const,
+        name: buildScoringRuleName(item.indicator, ruleIndex),
+        condition,
+        points: roundScore(item.score * scaleRatio),
+      }
+    })
+
+  if (rules.length === 0) {
+    throw new StrategyRuleSpecError("评分权重总分必须大于 0")
+  }
+
+  return {
+    outputMetrics: [...output].sort(),
+    scoring: {
+      rules,
+      clamp: {
+        min: 0,
+        max: 100,
+      },
+    },
+    weightPaths,
+  }
+}
+
+export function buildStrategyPreviewRuleSpec(
+  conditionGroups: StrategyConditionGroup[],
+  weightIndicators: WeightIndicator[],
+  catalog: MetricDefinition[],
+  options: BuildPreviewRuleSpecOptions = {}
+): BuildPreviewRuleSpecResult {
+  const selection = buildStrategySelectionRuleSpec(
+    conditionGroups,
+    catalog,
+    options
+  )
+  const scoring = buildStrategyWeightScoring(
+    weightIndicators,
+    catalog,
+    options
+  )
+  const outputMetrics = new Set<string>(selection.rule.output_metrics)
+  for (const metric of scoring.outputMetrics) {
+    outputMetrics.add(metric)
+  }
+
+  return {
+    conditionPaths: selection.conditionPaths,
+    weightPaths: scoring.weightPaths,
+    rule: {
+      ...selection.rule,
+      scoring: scoring.scoring,
+      output_metrics: [...outputMetrics].sort(),
     },
   }
 }
@@ -174,6 +305,13 @@ export function buildGroupFilterExpr(
     "pool_filters.conditions.0",
     conditionPaths
   )
+}
+
+function isMetricAllowedForCapability(
+  metric: MetricDefinition,
+  capability: MetricCapability
+) {
+  return capability === "filter" ? metric.allow_filter : metric.allow_scoring
 }
 
 export function buildMixedLogicFilterExpr(
@@ -367,116 +505,126 @@ function buildConditionFilterExpr(
   condition: StrategyCondition,
   metricIndex: MetricIndex
 ): FilterExpr {
-  const leftMetric = requireMetric(condition.metric, metricIndex, {
-    conditionId: condition.id,
+  return buildComparableFilterExpr(condition, metricIndex, {
+    capability: "filter",
+    itemId: condition.id,
   })
-  if (!leftMetric.allow_filter) {
-    throw new StrategyRuleSpecError(`指标不可用于筛选: ${condition.metric}`, {
-      conditionId: condition.id,
-    })
-  }
+}
 
-  const op = condition.operator
-  if (!leftMetric.allowed_ops.includes(op)) {
-    throw new StrategyRuleSpecError(
-      `指标不支持操作符: ${condition.metric} ${op}`,
-      {
-        conditionId: condition.id,
-      }
-    )
-  }
+function buildComparableFilterExpr(
+  indicator: ComparableIndicator,
+  metricIndex: MetricIndex,
+  options: { capability: MetricCapability; itemId?: string }
+): FilterExpr {
+  const leftMetric = requireMetric(indicator.metric, metricIndex, {
+    conditionId: options.itemId,
+  })
+  assertMetricAllowedForCapability(
+    leftMetric,
+    indicator.operator,
+    options.capability,
+    options.itemId
+  )
 
+  const op = indicator.operator
   const left: Operand = { type: "metric", name: leftMetric.logical_metric }
 
   if (op === "is_null") {
     return { type: "compare", left, op }
   }
 
-  const right = buildRightOperand(condition, leftMetric, op, metricIndex)
+  const right = buildRightOperand(indicator, leftMetric, op, metricIndex, {
+    capability: options.capability,
+    itemId: options.itemId,
+  })
   return { type: "compare", left, op, right }
 }
 
 function buildRightOperand(
-  condition: StrategyCondition,
+  indicator: ComparableIndicator,
   leftMetric: MetricDefinition,
   op: Operator,
-  metricIndex: MetricIndex
+  metricIndex: MetricIndex,
+  options: { capability: MetricCapability; itemId?: string }
 ): Operand {
   if (op === "between") {
     return {
       type: "range",
       min: {
         type: "number",
-        value: parseNumber(condition.value, condition.id),
+        value: parseNumber(indicator.value, options.itemId),
       },
       max: {
         type: "number",
-        value: parseNumber(condition.valueEnd, condition.id),
+        value: parseNumber(indicator.valueEnd, options.itemId),
       },
     }
   }
 
-  if (condition.target === "metric") {
-    const rightMetric = requireMetric(condition.compareMetric, metricIndex, {
-      conditionId: condition.id,
+  if (indicator.target === "metric") {
+    const rightMetric = requireMetric(indicator.compareMetric, metricIndex, {
+      conditionId: options.itemId,
     })
-    if (!rightMetric.allow_filter) {
-      throw new StrategyRuleSpecError(
-        `对比指标不可用于筛选: ${rightMetric.logical_metric}`,
-        {
-          conditionId: condition.id,
-        }
-      )
-    }
-    validateMetricOperandPair(condition, leftMetric, rightMetric, op)
+    assertMetricAllowedForCapability(
+      rightMetric,
+      op,
+      options.capability,
+      options.itemId,
+      "对比指标"
+    )
+    validateMetricOperandPair(leftMetric, rightMetric, op, options.itemId)
     return { type: "metric", name: rightMetric.logical_metric }
   }
 
   if (op === "crosses_above" || op === "crosses_below") {
-    validateCrossingMetric(leftMetric, condition.id)
-    return { type: "number", value: parseNumber(condition.value, condition.id) }
+    validateCrossingMetric(leftMetric, options.itemId)
+    return {
+      type: "number",
+      value: parseNumber(indicator.value, options.itemId),
+    }
   }
 
-  return buildLiteralOperand(condition, leftMetric)
+  return buildLiteralOperand(indicator, leftMetric, options.itemId)
 }
 
 function buildLiteralOperand(
-  condition: StrategyCondition,
-  leftMetric: MetricDefinition
+  indicator: ComparableIndicator,
+  leftMetric: MetricDefinition,
+  itemId: string | undefined
 ): Operand {
   switch (leftMetric.value_kind) {
     case "numeric":
     case "integer":
       return {
         type: "number",
-        value: parseNumber(condition.value, condition.id),
+        value: parseNumber(indicator.value, itemId),
       }
     case "boolean":
       return {
         type: "bool",
-        value: parseBool(condition.value, condition.id),
+        value: parseBool(indicator.value, itemId),
       }
     case "string":
       return {
         type: "string",
-        value: condition.value,
+        value: indicator.value,
       }
     case "date":
       throw new StrategyRuleSpecError("日期指标暂只支持为空判断", {
-        conditionId: condition.id,
+        conditionId: itemId,
       })
   }
 }
 
 function validateMetricOperandPair(
-  condition: StrategyCondition,
   leftMetric: MetricDefinition,
   rightMetric: MetricDefinition,
-  op: Operator
+  op: Operator,
+  itemId: string | undefined
 ) {
   if (op === "crosses_above" || op === "crosses_below") {
-    validateCrossingMetric(leftMetric, condition.id)
-    validateCrossingMetric(rightMetric, condition.id)
+    validateCrossingMetric(leftMetric, itemId)
+    validateCrossingMetric(rightMetric, itemId)
     return
   }
 
@@ -489,12 +637,38 @@ function validateMetricOperandPair(
   if (!compatible) {
     throw new StrategyRuleSpecError(
       `指标类型不兼容: ${leftMetric.logical_metric} / ${rightMetric.logical_metric}`,
-      { conditionId: condition.id }
+      { conditionId: itemId }
     )
   }
 }
 
-function validateCrossingMetric(metric: MetricDefinition, conditionId: string) {
+function assertMetricAllowedForCapability(
+  metric: MetricDefinition,
+  operator: Operator,
+  capability: MetricCapability,
+  itemId: string | undefined,
+  label = "指标"
+) {
+  if (!isMetricAllowedForCapability(metric, capability)) {
+    const capabilityLabel = capability === "filter" ? "筛选" : "评分"
+    throw new StrategyRuleSpecError(
+      `${label}不允许用于${capabilityLabel}: ${metric.logical_metric}`,
+      { conditionId: itemId }
+    )
+  }
+
+  if (!metric.allowed_ops.includes(operator)) {
+    throw new StrategyRuleSpecError(
+      `${label}不支持操作符 ${operator}: ${metric.logical_metric}`,
+      { conditionId: itemId }
+    )
+  }
+}
+
+function validateCrossingMetric(
+  metric: MetricDefinition,
+  conditionId: string | undefined
+) {
   if (!isNumericKind(metric.value_kind) || !metric.cross?.previous_metric) {
     throw new StrategyRuleSpecError(
       `指标不支持上穿/下穿: ${metric.logical_metric}`,
@@ -518,7 +692,7 @@ function requireMetric(
   return metric
 }
 
-function parseNumber(value: string, conditionId: string) {
+function parseNumber(value: string, conditionId?: string) {
   const numberValue = Number(value)
   if (!Number.isFinite(numberValue)) {
     throw new StrategyRuleSpecError(`数值无效: ${value}`, { conditionId })
@@ -527,7 +701,7 @@ function parseNumber(value: string, conditionId: string) {
   return numberValue
 }
 
-function parseBool(value: string, conditionId: string) {
+function parseBool(value: string, conditionId?: string) {
   if (value === "true") {
     return true
   }
@@ -609,10 +783,62 @@ function buildOutputMetrics(
   return [...output].sort()
 }
 
+function collectComparableOutputMetrics(
+  indicator: ComparableIndicator,
+  metricIndex: MetricIndex,
+  output: Set<string>
+) {
+  const leftMetric = metricIndex.get(indicator.metric)
+  if (leftMetric) {
+    output.add(leftMetric.logical_metric)
+    if (isCrossingOperator(indicator.operator)) {
+      addPreviousMetric(output, leftMetric)
+    }
+  }
+
+  if (indicator.target === "metric") {
+    const rightMetric = metricIndex.get(indicator.compareMetric)
+    if (rightMetric) {
+      output.add(rightMetric.logical_metric)
+      if (isCrossingOperator(indicator.operator)) {
+        addPreviousMetric(output, rightMetric)
+      }
+    }
+  }
+}
+
 function addPreviousMetric(output: Set<string>, metric: MetricDefinition) {
   if (metric.cross?.previous_metric) {
     output.add(metric.cross.previous_metric)
   }
+}
+
+function normalizeScoreBudget(scoreBudget: number | undefined) {
+  if (scoreBudget === undefined) {
+    return 100
+  }
+
+  if (!Number.isFinite(scoreBudget)) {
+    throw new StrategyRuleSpecError("评分总分预算无效")
+  }
+
+  return Math.min(100, Math.max(1, scoreBudget))
+}
+
+function normalizeWeightScore(score: number) {
+  if (!Number.isFinite(score)) {
+    return 0
+  }
+
+  return Math.min(100, Math.max(0, Math.round(score)))
+}
+
+function roundScore(score: number) {
+  return Math.round(score * 10_000) / 10_000
+}
+
+function buildScoringRuleName(indicator: WeightIndicator, ruleIndex: number) {
+  return `weight:${indicator.id}:${ruleIndex + 1}`
 }
 
 function isCrossingOperator(operator: ConditionOperator) {

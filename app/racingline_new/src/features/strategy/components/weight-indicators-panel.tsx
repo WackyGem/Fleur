@@ -18,7 +18,10 @@ import {
 import { AddDashedButton } from "@/features/strategy/components/add-dashed-button"
 import { ComparisonFields } from "@/features/strategy/components/comparison-fields"
 import { WeightScoreSlider } from "@/features/strategy/components/weight-score-slider"
-import type { WeightIndicator } from "@/features/strategy/types"
+import type {
+  IndicatorCatalog,
+  WeightIndicator,
+} from "@/features/strategy/types"
 import {
   clampScore,
   formatComparableIndicator,
@@ -26,6 +29,7 @@ import {
 } from "@/features/strategy/utils"
 
 type WeightIndicatorsPanelProps = {
+  catalogOptions: IndicatorCatalog[]
   onAddIndicator: () => void
   onRemoveIndicator: (indicatorId: string) => void
   onUpdateIndicator: (
@@ -36,6 +40,7 @@ type WeightIndicatorsPanelProps = {
 }
 
 function WeightIndicatorsPanel({
+  catalogOptions,
   onAddIndicator,
   onRemoveIndicator,
   onUpdateIndicator,
@@ -57,6 +62,7 @@ function WeightIndicatorsPanel({
                   return (
                     <ComparisonFields
                       key={indicator.id}
+                      catalogOptions={catalogOptions}
                       className="bg-muted/10 p-2 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)_minmax(0,0.8fr)_auto_minmax(0,1fr)_minmax(0,1.1fr)_minmax(16rem,1.4fr)_5rem_auto]"
                       value={indicator}
                       onChange={(patch) =>

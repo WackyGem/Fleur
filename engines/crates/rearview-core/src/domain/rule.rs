@@ -145,9 +145,9 @@ impl RuleVersionSpec {
                 "top_n_default must be greater than 0".to_string(),
             ));
         }
-        if self.scoring.clamp.min < 0.0 || self.scoring.clamp.max > 99.0 {
+        if self.scoring.clamp.min < 0.0 || self.scoring.clamp.max > 100.0 {
             return Err(RearviewError::Validation(
-                "score clamp must stay within [0, 99]".to_string(),
+                "score clamp must stay within [0, 100]".to_string(),
             ));
         }
         if self.scoring.clamp.min > self.scoring.clamp.max {
@@ -554,7 +554,7 @@ pub fn representative_rule() -> RuleVersionSpec {
             ],
             clamp: ScoreClamp {
                 min: 0.0,
-                max: 99.0,
+                max: 100.0,
             },
         },
         top_n_default: 10,
@@ -767,7 +767,7 @@ mod tests {
             rule.scoring.clamp,
             ScoreClamp {
                 min: 0.0,
-                max: 99.0
+                max: 100.0
             }
         );
         assert_eq!(rule.scoring.rules.len(), 7);
@@ -803,6 +803,28 @@ mod tests {
         let error = rule.validate(&catalog).unwrap_err();
 
         assert!(error.to_string().contains("missing_metric"));
+    }
+
+    #[test]
+    fn validate_should_accept_score_clamp_max_100() {
+        let mut rule = representative_rule();
+        rule.scoring.clamp.max = 100.0;
+        let catalog = representative_catalog();
+
+        let report = rule.validate(&catalog).unwrap();
+
+        assert_eq!(report.dependencies.metrics.len(), 18);
+    }
+
+    #[test]
+    fn validate_should_reject_score_clamp_above_100() {
+        let mut rule = representative_rule();
+        rule.scoring.clamp.max = 100.1;
+        let catalog = representative_catalog();
+
+        let error = rule.validate(&catalog).unwrap_err();
+
+        assert!(error.to_string().contains("[0, 100]"));
     }
 
     #[test]

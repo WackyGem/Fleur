@@ -102,6 +102,7 @@ pub fn routes() -> Router<AppState> {
         .route("/rearview/runs/{run_id}/pool", get(list_pool_members))
         .route("/rearview/runs/{run_id}/signals", get(list_buy_signals))
         .route("/rearview/explain", post(explain_rule))
+        .route("/rearview/strategy-preview", post(preview_strategy))
         .layer(CorsLayer::permissive())
 }
 
@@ -829,6 +830,45 @@ async fn explain_rule(
     }))
 }
 
+async fn preview_strategy(
+    State(state): State<AppState>,
+    Json(request): Json<StrategyPreviewRequest>,
+) -> RearviewResult<Json<StrategyPreviewResponse>> {
+    let request = request.into_parts(state.config.chunk_small_range_trading_days)?;
+    let planner = QueryPlanner::new(state.catalog.clone());
+    let settings = QuerySettings {
+        max_execution_time_seconds: state.config.clickhouse.max_execution_time_seconds,
+        max_rows_to_read: state.config.clickhouse.max_rows_to_read,
+        max_bytes_to_read: state.config.clickhouse.max_bytes_to_read,
+    };
+    let compiled = planner.compile(
+        &request.rule,
+        Some(request.start_date),
+        Some(request.end_date),
+        request.top_n,
+        settings,
+    )?;
+    let preview_id = ulid::Ulid::new().to_string();
+    let query_id = format!("rearview-preview-{preview_id}");
+    let rows = state
+        .clickhouse
+        .query_screening_rows(&compiled.sql, &query_id)
+        .await?;
+    let trade_dates = build_strategy_preview_trade_dates(rows, request.top_n)?;
+
+    Ok(Json(StrategyPreviewResponse {
+        preview_id,
+        sql_hash: compiled.sql_hash,
+        required_metrics: compiled.required_metrics,
+        required_marts: compiled.required_marts,
+        required_columns: compiled.required_columns,
+        start_date: request.start_date,
+        end_date: request.end_date,
+        top_n: request.top_n,
+        trade_dates,
+    }))
+}
+
 #[derive(Debug, Deserialize)]
 struct CreateRuleSetRequest {
     name: String,
@@ -1424,6 +1464,128 @@ struct ExplainResponse {
     chunk_plan: Option<Vec<PlannedChunk>>,
 }
 
+#[derive(Debug, Deserialize)]
+struct StrategyPreviewRequest {
+    rule: RuleVersionSpec,
+    start_date: NaiveDate,
+    end_date: NaiveDate,
+    top_n: u32,
+}
+
+impl StrategyPreviewRequest {
+    fn into_parts(self, max_range_days: u32) -> RearviewResult<StrategyPreviewRequestParts> {
+        if self.top_n == 0 {
+            return Err(RearviewError::Validation(
+                "top_n must be greater than 0".to_string(),
+            ));
+        }
+        if self.start_date > self.end_date {
+            return Err(RearviewError::Validation(
+                "start_date must be earlier than or equal to end_date".to_string(),
+            ));
+        }
+        if max_range_days == 0 {
+            return Err(RearviewError::Validation(
+                "preview max date range must be greater than 0".to_string(),
+            ));
+        }
+
+        let day_count = (self.end_date - self.start_date).num_days() + 1;
+        if day_count > i64::from(max_range_days) {
+            return Err(RearviewError::Validation(format!(
+                "preview date range must not exceed {max_range_days} days"
+            )));
+        }
+
+        Ok(StrategyPreviewRequestParts {
+            rule: self.rule,
+            start_date: self.start_date,
+            end_date: self.end_date,
+            top_n: self.top_n,
+        })
+    }
+}
+
+#[derive(Debug)]
+struct StrategyPreviewRequestParts {
+    rule: RuleVersionSpec,
+    start_date: NaiveDate,
+    end_date: NaiveDate,
+    top_n: u32,
+}
+
+#[derive(Debug, Serialize)]
+struct StrategyPreviewResponse {
+    preview_id: String,
+    sql_hash: String,
+    required_metrics: Vec<String>,
+    required_marts: Vec<String>,
+    required_columns: BTreeMap<String, Vec<String>>,
+    start_date: NaiveDate,
+    end_date: NaiveDate,
+    top_n: u32,
+    trade_dates: Vec<StrategyPreviewTradeDate>,
+}
+
+#[derive(Debug, Serialize)]
+struct StrategyPreviewTradeDate {
+    trade_date: NaiveDate,
+    pool_count: usize,
+    signals: Vec<StrategyPreviewSignal>,
+}
+
+#[derive(Debug, Serialize)]
+struct StrategyPreviewSignal {
+    security_code: String,
+    raw_score: f64,
+    score: f64,
+    signal_rank: u32,
+    is_buy_signal: bool,
+    score_breakdown: serde_json::Value,
+    selected_metrics: serde_json::Value,
+    raw_values: serde_json::Value,
+}
+
+fn build_strategy_preview_trade_dates(
+    rows: Vec<crate::clickhouse::ScreeningRow>,
+    top_n: u32,
+) -> RearviewResult<Vec<StrategyPreviewTradeDate>> {
+    let mut grouped: BTreeMap<NaiveDate, StrategyPreviewTradeDate> = BTreeMap::new();
+
+    for row in rows {
+        let entry = grouped
+            .entry(row.trade_date)
+            .or_insert_with(|| StrategyPreviewTradeDate {
+                trade_date: row.trade_date,
+                pool_count: 0,
+                signals: Vec::new(),
+            });
+        entry.pool_count += 1;
+        if row.is_buy_signal || row.signal_rank <= top_n {
+            entry.signals.push(StrategyPreviewSignal {
+                security_code: row.security_code,
+                raw_score: row.raw_score,
+                score: row.score,
+                signal_rank: row.signal_rank,
+                is_buy_signal: row.is_buy_signal,
+                score_breakdown: parse_preview_json_field(&row.score_breakdown)?,
+                selected_metrics: parse_preview_json_field(&row.selected_metrics)?,
+                raw_values: parse_preview_json_field(&row.raw_values)?,
+            });
+        }
+    }
+
+    Ok(grouped.into_values().collect())
+}
+
+fn parse_preview_json_field(raw: &str) -> RearviewResult<serde_json::Value> {
+    if raw.trim().is_empty() {
+        return Ok(serde_json::Value::Object(serde_json::Map::new()));
+    }
+
+    Ok(serde_json::from_str(raw)?)
+}
+
 fn page(limit: Option<u32>, offset: Option<u32>) -> RearviewResult<Page> {
     const DEFAULT_LIMIT: u32 = 50;
     const MAX_LIMIT: u32 = 500;
@@ -1859,6 +2021,9 @@ async fn resolve_result_attempt(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::clickhouse::ScreeningRow;
+    use crate::domain::{FilterExpr, ScoreClamp, ScoringSpec, UniverseSpec};
+    use serde_json::json;
 
     #[test]
     fn page_should_default_limit_and_offset() {
@@ -1911,5 +2076,102 @@ mod tests {
         let error = query.into_request().unwrap_err();
 
         assert!(matches!(error, RearviewError::Validation(_)));
+    }
+
+    #[test]
+    fn strategy_preview_request_should_reject_zero_top_n() {
+        let error = preview_request("2026-06-01", "2026-06-02", 0)
+            .into_parts(90)
+            .unwrap_err();
+
+        assert!(matches!(error, RearviewError::Validation(_)));
+    }
+
+    #[test]
+    fn strategy_preview_request_should_reject_inverted_range() {
+        let error = preview_request("2026-06-03", "2026-06-02", 10)
+            .into_parts(90)
+            .unwrap_err();
+
+        assert!(matches!(error, RearviewError::Validation(_)));
+    }
+
+    #[test]
+    fn strategy_preview_request_should_reject_range_above_preview_limit() {
+        let error = preview_request("2026-06-01", "2026-06-04", 10)
+            .into_parts(3)
+            .unwrap_err();
+
+        assert!(matches!(error, RearviewError::Validation(_)));
+    }
+
+    #[test]
+    fn build_strategy_preview_trade_dates_should_group_rows_and_keep_top_signals() {
+        let trade_date = date("2026-06-02");
+        let rows = vec![
+            screening_row("000001.SZ", trade_date, 80.0, 1, true),
+            screening_row("000002.SZ", trade_date, 70.0, 2, true),
+            screening_row("000003.SZ", trade_date, 60.0, 3, false),
+        ];
+        let trade_dates = build_strategy_preview_trade_dates(rows, 2).unwrap();
+
+        assert_eq!(trade_dates.len(), 1);
+        assert_eq!(trade_dates[0].pool_count, 3);
+        assert_eq!(trade_dates[0].signals.len(), 2);
+        assert_eq!(trade_dates[0].signals[0].security_code, "000001.SZ");
+        assert_eq!(trade_dates[0].signals[0].score_breakdown, json!({"w1": 80}));
+    }
+
+    fn preview_request(start_date: &str, end_date: &str, top_n: u32) -> StrategyPreviewRequest {
+        StrategyPreviewRequest {
+            rule: RuleVersionSpec {
+                universe: UniverseSpec {
+                    base: "all_a_shares".to_string(),
+                    exclude_st: true,
+                    exclude_suspend: true,
+                    include_security_codes: Vec::new(),
+                    exclude_security_codes: Vec::new(),
+                },
+                pool_filters: FilterExpr::All {
+                    conditions: Vec::new(),
+                },
+                scoring: ScoringSpec {
+                    rules: Vec::new(),
+                    clamp: ScoreClamp {
+                        min: 0.0,
+                        max: 100.0,
+                    },
+                },
+                top_n_default: 20,
+                output_metrics: Vec::new(),
+            },
+            start_date: date(start_date),
+            end_date: date(end_date),
+            top_n,
+        }
+    }
+
+    fn screening_row(
+        security_code: &str,
+        trade_date: NaiveDate,
+        score: f64,
+        signal_rank: u32,
+        is_buy_signal: bool,
+    ) -> ScreeningRow {
+        ScreeningRow {
+            security_code: security_code.to_string(),
+            trade_date,
+            raw_score: score,
+            score,
+            signal_rank,
+            is_buy_signal,
+            score_breakdown: r#"{"w1":80}"#.to_string(),
+            selected_metrics: r#"{"close_price":10}"#.to_string(),
+            raw_values: r#"{"close_price":10}"#.to_string(),
+        }
+    }
+
+    fn date(value: &str) -> NaiveDate {
+        NaiveDate::parse_from_str(value, "%Y-%m-%d").unwrap()
     }
 }

@@ -33,6 +33,7 @@ import {
   formatComparableIndicator,
   getScaledWeightIndicators,
 } from "@/features/strategy/utils"
+import type { JsonValue, StrategyPreviewResponse } from "@/types/rearview"
 
 type CandlePoint = {
   close: number
@@ -84,6 +85,7 @@ type DailyPoolStock = {
 type DailyStockPool = {
   averageScore: number
   date: string
+  poolCount: number
   stocks: DailyPoolStock[]
 }
 
@@ -101,6 +103,7 @@ type StockPoolPreviewWorkbenchProps = {
   draftWeightIndicators: WeightIndicator[]
   hasStrategyInput: boolean
   onDraftWeightScoreChange: (indicatorId: string, score: number) => void
+  previewResult?: StrategyPreviewResponse | null
 }
 
 const adjustmentOptions = [
@@ -156,18 +159,33 @@ function StockPoolPreviewWorkbench({
   draftWeightIndicators,
   hasStrategyInput,
   onDraftWeightScoreChange,
+  previewResult,
 }: StockPoolPreviewWorkbenchProps) {
   const selectedStock = previewStock
   const selectedSnapshot = getStockSnapshot(selectedStock)
   const dailyStockPools = useMemo(
-    () =>
-      buildDailyStockPools(
+    () => {
+      if (previewResult) {
+        return buildDailyStockPoolsFromPreview(
+          previewResult,
+          appliedWeightIndicators
+        )
+      }
+
+      return buildDailyStockPools(
         selectedStock,
         conditionGroups,
         appliedWeightIndicators,
         hasStrategyInput || appliedWeightIndicators.length > 0
-      ),
-    [appliedWeightIndicators, conditionGroups, hasStrategyInput, selectedStock]
+      )
+    },
+    [
+      appliedWeightIndicators,
+      conditionGroups,
+      hasStrategyInput,
+      previewResult,
+      selectedStock,
+    ]
   )
   const latestTradeDate = dailyStockPools.at(-1)?.date ?? ""
   const [selectedTradeDate, setSelectedTradeDate] = useState(latestTradeDate)
@@ -409,7 +427,7 @@ function DailyStockPoolPanel({
               return (
                 <Button
                   key={pool.date}
-                  aria-label={`${pool.date} 股池 ${pool.stocks.length} 只`}
+                  aria-label={`${pool.date} 股池 ${pool.poolCount} 只`}
                   aria-pressed={isSelected}
                   data-state={isSelected ? "selected" : "idle"}
                   className="h-[18px] w-[4.25rem] shrink-0 items-center gap-1 px-1 text-muted-foreground hover:bg-muted data-[state=selected]:bg-muted data-[state=selected]:text-foreground"
@@ -422,7 +440,7 @@ function DailyStockPoolPanel({
                     {formatCompactDate(pool.date)}
                   </span>
                   <span className="text-[10px] leading-none font-normal tabular-nums opacity-80">
-                    {pool.stocks.length}只
+                    {pool.poolCount}只
                   </span>
                 </Button>
               )
@@ -437,7 +455,7 @@ function DailyStockPoolPanel({
             </div>
           </div>
           <div className="text-xs text-muted-foreground tabular-nums">
-            {selectedPool.stocks.length} 只
+            {selectedPool.poolCount} 只
           </div>
         </div>
 
@@ -725,9 +743,75 @@ function buildDailyStockPools(
     return {
       averageScore,
       date,
+      poolCount: stocks.length,
       stocks,
     }
   })
+}
+
+function buildDailyStockPoolsFromPreview(
+  previewResult: StrategyPreviewResponse,
+  weightIndicators: WeightIndicator[]
+): DailyStockPool[] {
+  const labelByRuleName = new Map(
+    weightIndicators.map((indicator, index) => [
+      `weight:${indicator.id}:${index + 1}`,
+      formatComparableIndicator(indicator),
+    ])
+  )
+
+  return previewResult.trade_dates.map((tradeDate) => {
+    const stocks = tradeDate.signals.map((signal) => ({
+      code: signal.security_code,
+      industry: "-",
+      name: signal.security_code,
+      rank: signal.signal_rank,
+      score: signal.score,
+      scoreItems: buildPreviewScoreItems(
+        signal.score_breakdown,
+        labelByRuleName
+      ),
+    }))
+    const averageScore =
+      stocks.length > 0
+        ? stocks.reduce((total, candidate) => total + candidate.score, 0) /
+          stocks.length
+        : 0
+
+    return {
+      averageScore,
+      date: tradeDate.trade_date,
+      poolCount: tradeDate.pool_count,
+      stocks,
+    }
+  })
+}
+
+function buildPreviewScoreItems(
+  scoreBreakdown: JsonValue,
+  labelByRuleName: Map<string, string>
+): WeightScoreItem[] {
+  if (!isJsonRecord(scoreBreakdown)) {
+    return []
+  }
+
+  return Object.entries(scoreBreakdown)
+    .map(([key, value]) => {
+      if (typeof value !== "number") {
+        return null
+      }
+
+      return {
+        id: key,
+        label: labelByRuleName.get(key) ?? key,
+        score: value,
+      }
+    })
+    .filter((item): item is WeightScoreItem => item !== null)
+}
+
+function isJsonRecord(value: JsonValue): value is Record<string, JsonValue> {
+  return typeof value === "object" && value !== null && !Array.isArray(value)
 }
 
 function buildWeightScoreItems(

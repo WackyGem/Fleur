@@ -4,12 +4,16 @@ import {
   StrategyRuleSpecError,
   buildMixedLogicFilterExpr,
   buildStrategyMetricCatalog,
+  buildStrategyPreviewRuleSpec,
+  buildStrategyScoringCatalog,
   buildStrategySelectionRuleSpec,
+  buildStrategyWeightScoring,
 } from "@/features/strategy/adapters"
 import type {
   ConditionOperator,
   StrategyCondition,
   StrategyConditionGroup,
+  WeightIndicator,
 } from "@/features/strategy/types"
 import type {
   MetricDefinition,
@@ -87,6 +91,12 @@ const catalog = [
     ops: ["eq"],
     sortOrder: 90,
   }),
+  metric("scoring_disabled_metric", {
+    allowScoring: false,
+    displayGroup: "momentum",
+    labelZh: "不可评分指标",
+    sortOrder: 99,
+  }),
 ]
 
 describe("buildStrategyMetricCatalog", () => {
@@ -119,6 +129,138 @@ describe("buildStrategyMetricCatalog", () => {
     expect(ma5?.label).toBe("MA5")
     expect(ma5?.allowedOps).toContain("crosses_above")
     expect(kdj?.allowedOps).not.toContain("crosses_above")
+  })
+})
+
+describe("buildStrategyScoringCatalog", () => {
+  it("includes only metrics that are allowed for scoring", () => {
+    const uiCatalog = buildStrategyScoringCatalog(catalog)
+    const metricIds = uiCatalog.flatMap((group) =>
+      group.metrics.map((item) => item.id)
+    )
+
+    expect(metricIds).toContain("kdj_j_value")
+    expect(metricIds).toContain("prev_price_ma_5")
+    expect(metricIds).not.toContain("scoring_disabled_metric")
+  })
+})
+
+describe("buildStrategyWeightScoring", () => {
+  it("builds conditional scoring rules with a fixed 0-100 clamp", () => {
+    const result = buildStrategyWeightScoring(
+      [weight("w1", "kdj_j_value", "gte", "50", 60)],
+      catalog
+    )
+
+    expect(result.scoring).toEqual({
+      rules: [
+        {
+          type: "conditional_points",
+          name: "weight:w1:1",
+          condition: compare("kdj_j_value", "gte", numberOperand(50)),
+          points: 60,
+        },
+      ],
+      clamp: { min: 0, max: 100 },
+    })
+    expect(result.weightPaths).toEqual([
+      { weightId: "w1", path: "scoring.rules.0.condition" },
+    ])
+  })
+
+  it("scales total scoring points down to 100", () => {
+    const result = buildStrategyWeightScoring(
+      [
+        weight("w1", "kdj_j_value", "gte", "50", 80),
+        weight("w2", "close_price", "gte", "1", 40),
+      ],
+      catalog
+    )
+
+    expect(result.scoring.rules).toMatchObject([
+      { name: "weight:w1:1", points: 66.6667 },
+      { name: "weight:w2:2", points: 33.3333 },
+    ])
+  })
+
+  it("rejects empty or zero scoring totals before preview", () => {
+    expect(() => buildStrategyWeightScoring([], catalog)).toThrow(
+      StrategyRuleSpecError
+    )
+    expect(() =>
+      buildStrategyWeightScoring(
+        [weight("w1", "kdj_j_value", "gte", "50", 0)],
+        catalog
+      )
+    ).toThrow(StrategyRuleSpecError)
+  })
+
+  it("requires metric operands to be allowed for scoring", () => {
+    expect(() =>
+      buildStrategyWeightScoring(
+        [
+          weight("w1", "kdj_j_value", "gte", "0", 50, {
+            compareMetric: "scoring_disabled_metric",
+            target: "metric",
+          }),
+        ],
+        catalog
+      )
+    ).toThrow(StrategyRuleSpecError)
+  })
+
+  it("adds scoring metrics and crossing previous metrics to output metrics", () => {
+    const result = buildStrategyWeightScoring(
+      [
+        weight("w1", "price_ma_5", "crosses_above", "0", 50, {
+          compareMetric: "price_ma_20",
+          target: "metric",
+        }),
+      ],
+      catalog
+    )
+
+    expect(result.outputMetrics).toEqual([
+      "prev_price_ma_20",
+      "prev_price_ma_5",
+      "price_ma_20",
+      "price_ma_5",
+    ])
+  })
+})
+
+describe("buildStrategyPreviewRuleSpec", () => {
+  it("combines Step 1 filters with Step 2 scoring and output metrics", () => {
+    const result = buildStrategyPreviewRuleSpec(
+      [group([condition("c1", "close_price", "gte", "1")])],
+      [
+        weight("w1", "price_ma_5", "crosses_above", "0", 50, {
+          compareMetric: "price_ma_20",
+          target: "metric",
+        }),
+      ],
+      catalog,
+      { topN: 12 }
+    )
+
+    expect(result.rule.pool_filters).toEqual({
+      type: "all",
+      conditions: [compare("close_price", "gte", numberOperand(1))],
+    })
+    expect(result.rule.scoring.rules).toHaveLength(1)
+    expect(result.rule.top_n_default).toBe(12)
+    expect(result.rule.output_metrics).toEqual(
+      expect.arrayContaining([
+        "close_price",
+        "prev_price_ma_20",
+        "prev_price_ma_5",
+        "price_ma_20",
+        "price_ma_5",
+      ])
+    )
+    expect(result.weightPaths).toEqual([
+      { weightId: "w1", path: "scoring.rules.0.condition" },
+    ])
   })
 })
 
@@ -391,6 +533,7 @@ function metric(
   name: string,
   options: {
     allowFilter?: boolean
+    allowScoring?: boolean
     cross?: string
     defaultOutput?: boolean
     displayGroup?: string
@@ -407,7 +550,7 @@ function metric(
     column_name: name,
     value_kind: options.kind ?? "numeric",
     allow_filter: options.allowFilter ?? true,
-    allow_scoring: true,
+    allow_scoring: options.allowScoring ?? true,
     allowed_ops: options.ops ?? numericOps,
     null_policy: "no_match",
     default_output: options.defaultOutput ?? false,
@@ -460,6 +603,21 @@ function condition(
     compareMetric: "close_price",
     logic: "and",
     ...overrides,
+  }
+}
+
+function weight(
+  id: string,
+  metricName: string,
+  operator: ConditionOperator,
+  value: string,
+  score: number,
+  overrides: Partial<WeightIndicator> = {}
+): WeightIndicator {
+  return {
+    ...condition(id, metricName, operator, value, overrides),
+    id,
+    score,
   }
 }
 
