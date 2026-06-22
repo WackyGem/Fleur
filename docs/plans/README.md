@@ -11,6 +11,7 @@
 | [0042](0042-chinabond-government-bond-s3-raw-implementation-plan.md) | Proposed | ChinaBond 国债收益率曲线 Dagster 年分区 S3 Parquet raw 接入与 2006-2026 回填计划 |
 | [0043](0043-portfolio-data-plane-clickhouse-phase1-implementation-plan.md) | Proposed | 组合数据面迁移 ClickHouse 第一阶段：结果事实存储迁移、result_attempt_id 幂等重算、worker 切换写入目标、API 切换读取源 |
 | [0044](0044-portfolio-performance-metrics-implementation-plan.md) | Proposed | 组合绩效指标、int/mart risk-free 与 benchmark 输入、metric config、worker 写入 fleur_calculation、dbt thin wrapper/ranking 和 closed trade ledger 实施计划 |
+| [0048](0048-racingline-strategy-step3-drift-remediation-plan.md) | Proposed | Racingline Step 3 股池预览漂移修正：职责收缩、近一年横轴、10 条分页、K 线复权/MA 和 Step1/Step2 展示语义拆分 |
 
 ## Recently Completed
 
