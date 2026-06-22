@@ -11,12 +11,12 @@
 | [0042](0042-chinabond-government-bond-s3-raw-implementation-plan.md) | Proposed | ChinaBond 国债收益率曲线 Dagster 年分区 S3 Parquet raw 接入与 2006-2026 回填计划 |
 | [0043](0043-portfolio-data-plane-clickhouse-phase1-implementation-plan.md) | Proposed | 组合数据面迁移 ClickHouse 第一阶段：结果事实存储迁移、result_attempt_id 幂等重算、worker 切换写入目标、API 切换读取源 |
 | [0044](0044-portfolio-performance-metrics-implementation-plan.md) | Proposed | 组合绩效指标、int/mart risk-free 与 benchmark 输入、metric config、worker 写入 fleur_calculation、dbt thin wrapper/ranking 和 closed trade ledger 实施计划 |
-| [0047](0047-racingline-strategy-pool-preview-step3-implementation-plan.md) | Proposed | Racingline 股池预览 Step 3：真实接口基线、PreviewSnapshot、结果解释、完整候选池分页、证券显示和 preview-only 个股上下文实施计划 |
 
 ## Recently Completed
 
 | Plan | 状态 | 说明 |
 |---|---|---|
+| [0047](archive/0047-racingline-strategy-pool-preview-step3-implementation-plan.md) | Completed | Racingline 股池预览 Step 3：真实接口基线、PreviewSnapshot、结果解释、完整候选池分页、证券显示和 preview-only 个股上下文；验收见 [2026-06-22 report](../jobs/reports/2026-06-22-racingline-strategy-step3-preview.md) |
 | [0046](archive/0046-racingline-strategy-weight-configuration-step2-implementation-plan.md) | Completed | Racingline 策略权重配置 Step 2：评分规则 adapter、Rearview preview-only API、真实股池预览和 `[0, 100]` score clamp；验收见 [2026-06-22 report](../jobs/reports/2026-06-22-racingline-strategy-step2-preview.md) |
 | [0045](archive/0045-racingline-strategy-selection-step1-gap-closure-plan.md) | Completed | Racingline 策略选股 Step 1 缺口填补；验收见 [2026-06-21 report](../jobs/reports/2026-06-21-racingline-strategy-step1-gap-closure.md) |
 

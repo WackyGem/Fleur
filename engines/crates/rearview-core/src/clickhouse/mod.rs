@@ -632,25 +632,11 @@ FORMAT JSONEachRow"#
         validate_security_code(security_code)?;
         let security_code = quote_string_literal(security_code);
         let database = quote_identifier(&self.config.marts_database);
+        let select = trend_select_columns();
         let sql = format!(
             r#"
 SELECT
-    security_code,
-    trade_date,
-    price_ma_5,
-    price_ma_10,
-    price_ma_20,
-    price_ma_30,
-    price_ma_60,
-    price_avg_ma_3_6_12_24,
-    price_avg_ma_14_28_57_114,
-    price_ema2_10,
-    boll_mid_20_2,
-    boll_up_20_2,
-    boll_dn_20_2,
-    macd_dif,
-    macd_dea,
-    macd_histogram
+{select}
 FROM {database}.`mart_stock_trend_indicator_daily`
 WHERE trade_date BETWEEN toDate('{start_date}') AND toDate('{end_date}')
   AND security_code = {security_code}
@@ -1298,18 +1284,18 @@ fn quote_select_columns() -> &'static str {
     prev_volume,
     volume,
     amount,
-    turnover_rate,
-    turnover_rate_actual,
-    pct_amplitude,
-    pct_change,
+    turnover_rate_pct AS turnover_rate,
+    turnover_rate_free_float_pct AS turnover_rate_actual,
+    amplitude_pct AS pct_amplitude,
+    change_pct AS pct_change,
     limit_up_price,
     limit_down_price,
-    a_market_cap,
-    a_float_market_cap,
-    a_free_float_market_cap,
-    a_shares,
-    a_float_shares,
-    a_free_float_shares,
+    market_cap AS a_market_cap,
+    float_market_cap AS a_float_market_cap,
+    free_float_market_cap AS a_free_float_market_cap,
+    shares AS a_shares,
+    float_shares_a AS a_float_shares,
+    free_float_shares AS a_free_float_shares,
     pe_static,
     pe_ttm,
     pe_forecast,
@@ -1319,14 +1305,33 @@ fn quote_select_columns() -> &'static str {
     roa,
     roaa,
     roae,
-    dy_static,
-    dy_ttm,
+    dy_static_pct AS dy_static,
+    dy_ttm_pct AS dy_ttm,
     is_suspend,
     is_st,
     kdj_rsv,
     kdj_k_value,
     kdj_d_value,
     kdj_j_value"#
+}
+
+fn trend_select_columns() -> &'static str {
+    r#"    security_code,
+    trade_date,
+    price_ma_5,
+    price_ma_10,
+    price_ma_20,
+    price_ma_30,
+    price_ma_60,
+    price_avg_ma_3_6_12_24,
+    price_avg_ma_14_28_57_114,
+    price_ema2_10,
+    boll_mid_20_2,
+    boll_upper_20_2 AS boll_up_20_2,
+    boll_lower_20_2 AS boll_dn_20_2,
+    macd_dif,
+    macd_dea,
+    macd_histogram"#
 }
 
 fn parse_json_each_row<T>(body: &str) -> RearviewResult<Vec<T>>
@@ -1550,8 +1555,8 @@ where
 #[cfg(test)]
 mod tests {
     use super::{
-        QuoteMartRow, ScreeningRow, validate_security_code, validate_source_tenor,
-        validate_window_key,
+        QuoteMartRow, ScreeningRow, quote_select_columns, trend_select_columns,
+        validate_security_code, validate_source_tenor, validate_window_key,
     };
 
     fn row_json(is_buy_signal: &str) -> String {
@@ -1622,6 +1627,26 @@ mod tests {
         assert_eq!(row.open_price, Some(10.1));
         assert_eq!(row.is_suspend, Some(false));
         assert_eq!(row.is_st, Some(true));
+    }
+
+    #[test]
+    fn quote_select_columns_alias_current_mart_fields_to_analysis_contract() {
+        let columns = quote_select_columns();
+
+        assert!(columns.contains("turnover_rate_pct AS turnover_rate"));
+        assert!(columns.contains("turnover_rate_free_float_pct AS turnover_rate_actual"));
+        assert!(columns.contains("amplitude_pct AS pct_amplitude"));
+        assert!(columns.contains("change_pct AS pct_change"));
+        assert!(columns.contains("market_cap AS a_market_cap"));
+        assert!(columns.contains("dy_static_pct AS dy_static"));
+    }
+
+    #[test]
+    fn trend_select_columns_alias_current_boll_fields_to_analysis_contract() {
+        let columns = trend_select_columns();
+
+        assert!(columns.contains("boll_upper_20_2 AS boll_up_20_2"));
+        assert!(columns.contains("boll_lower_20_2 AS boll_dn_20_2"));
     }
 
     #[test]

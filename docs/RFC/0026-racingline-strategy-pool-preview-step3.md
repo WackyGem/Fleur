@@ -1,6 +1,6 @@
 # RFC 0026: Racingline 股池预览 Step 3 实现方案
 
-状态：Proposed（2026-06-22）
+状态：Implemented（2026-06-22）
 领域：racingline, rearview
 关联系统：racingline, rearview
 代码根：app/racingline_new/, app/racingline/, engines/crates/rearview-core/, pipeline/elt/
@@ -9,6 +9,8 @@
 ## 摘要
 
 本文档定义 `/strategies` Step 3「股池预览」的业务边界、现有资源、实施缺口和补齐方案。
+
+实现状态：已按 [Plan 0047](../plans/archive/0047-racingline-strategy-pool-preview-step3-implementation-plan.md) 落地，验收见 [2026-06-22 Step3 Preview report](../jobs/reports/2026-06-22-racingline-strategy-step3-preview.md)。
 
 完整流程仍按 RFC 0025 修正后的语义：
 
@@ -653,12 +655,9 @@ uv run python elt/scripts/validate_field_glossary.py
 
 ## 风险与待决问题
 
-1. 是否需要完整候选池分页作为 Step 3 第一版必做项，取决于用户是否需要审查全池尾部。
-2. 证券基础信息应沉淀为 `fleur_marts` mart 还是同步到 Rearview PostgreSQL lookup 表，需要结合后续看板和策略详情复用路径决定。
-3. Preview security analysis 的 membership 校验会重复执行单日规则，可能增加响应时间；如性能不足，再评估短期 preview cache。
-4. `selected_metrics` 的展示顺序应优先使用 `RuleVersionSpec.output_metrics`，还是 metric catalog `sort_order`，实施计划需固定。
-5. Preview result 页面刷新后是否需要恢复，不在第一版范围；如果需要恢复，必须设计 preview cache、过期和用户隔离。
-6. Step 3 进入后续阶段时是否必须要求最近一个交易日有预览行，还是任一交易日有预览行即可，需在后续阶段 RFC 中最终确定。
+1. Preview security analysis 的 membership 校验会重复执行单日规则；如性能不足，再评估短期 preview cache。
+2. Preview result 页面刷新后是否需要恢复，不在第一版范围；如果需要恢复，必须设计 preview cache、过期和用户隔离。
+3. Step 3 进入后续阶段当前要求存在非 stale snapshot、至少一个交易日有候选池且至少一个交易日有 ranked preview rows；更细的 Step 4 建仓准入规则仍由后续 RFC 固定。
 
 ## 相关文档
 
@@ -668,6 +667,8 @@ uv run python elt/scripts/validate_field_glossary.py
 - [RFC 0024: Racingline 策略选股 Step 1 实现切入方案](0024-racingline-strategy-selection-step1.md)
 - [RFC 0025: Racingline 策略权重配置 Step 2 实现方案](0025-racingline-strategy-weight-configuration-step2.md)
 - [Plan 0046: Racingline 策略权重配置 Step 2 实施计划](../plans/archive/0046-racingline-strategy-weight-configuration-step2-implementation-plan.md)
+- [Plan 0047: Racingline 股池预览 Step 3 实施计划](../plans/archive/0047-racingline-strategy-pool-preview-step3-implementation-plan.md)
 - [Racingline Strategy Step 2 Preview Implementation 报告](../jobs/reports/2026-06-22-racingline-strategy-step2-preview.md)
+- [Racingline Strategy Step 3 Preview Implementation 报告](../jobs/reports/2026-06-22-racingline-strategy-step3-preview.md)
 - [System: Racingline](../systems/racingline.md)
 - [System: Rearview](../systems/rearview.md)

@@ -1,6 +1,6 @@
 # System: Rearview
 
-状态：当前事实入口（2026-06-16）
+状态：当前事实入口（2026-06-22）
 
 ## 代码根
 
@@ -19,8 +19,9 @@
 3. 消费 ClickHouse `fleur_marts` 指标 mart，并把运行状态、股票池和买入信号写入 PostgreSQL `rearview` database。
 4. 保存 rule hash、compiled SQL hash、ClickHouse query id、chunk 状态和结果解释快照。
 5. 提供 `GET /rearview/runs/{run_id}/securities/{security_code}/analysis`，在校验 run result membership 后组合 PostgreSQL result snapshot 与 ClickHouse mart 当前查询值。
-6. 提供虚拟账户模板、默认市场费率模板、组合运行、组合净值和目标/订单/成交/持仓/事件明细 API。
-7. 通过 PostgreSQL outbox 和 NATS JetStream 分发组合净值计算任务，由 `rearview-portfolio-worker` 幂等写回组合账本。
+6. 提供 preview-only 策略检查 API：`POST /rearview/strategy-preview`、`POST /rearview/strategy-preview/pool-page` 和 `POST /rearview/strategy-preview/security-analysis`；这些接口不创建 rule set、rule version、run 或 portfolio run。
+7. 提供虚拟账户模板、默认市场费率模板、组合运行、组合净值和目标/订单/成交/持仓/事件明细 API。
+8. 通过 PostgreSQL outbox 和 NATS JetStream 分发组合净值计算任务，由 `rearview-portfolio-worker` 幂等写回组合账本。
 
 ## 非职责
 
@@ -36,6 +37,7 @@
 |---|---|
 | PostgreSQL `rearview` database | 规则、版本、运行、chunk、day、pool、signal 和 metric catalog 状态 |
 | ClickHouse `fleur_marts` | 日频行情、趋势、动量、成交量和价格行为结构指标 |
+| `fleur_marts.mart_stock_basic_snapshot` | preview rows 和 pool page 的证券名称、交易所代码显示信息 |
 | NATS JetStream | 组合净值计算任务的 at-least-once 分发 |
 | dbt mart YAML | metric catalog 基础字段事实校验来源 |
 | Furnace/dbt | 指标计算和 mart 物化 |
@@ -101,10 +103,12 @@ uv run alembic upgrade head
 | [../RFC/0021-racingline-virtual-account-portfolio-rebalancing.md](../RFC/0021-racingline-virtual-account-portfolio-rebalancing.md) | 虚拟账户、NATS 分发、`rearview-server` / `rearview-portfolio-worker` crate 拆分和组合净值计算 Proposed RFC |
 | [../RFC/0024-racingline-strategy-selection-step1.md](../RFC/0024-racingline-strategy-selection-step1.md) | 从 `/strategies` Step 1 接通 metric catalog、RuleVersionSpec、crossing operator 和 explain 的 Proposed RFC |
 | [../RFC/0025-racingline-strategy-weight-configuration-step2.md](../RFC/0025-racingline-strategy-weight-configuration-step2.md) | 从 `/strategies` Step 2 接通 `RuleVersionSpec.scoring.rules`，并定义点击股池预览时才执行选股、评分和排名的 Implemented RFC |
-| [../RFC/0026-racingline-strategy-pool-preview-step3.md](../RFC/0026-racingline-strategy-pool-preview-step3.md) | 从 `/strategies` Step 3 股池预览切入，定义 preview snapshot、全池分页、证券显示和 preview-only 个股上下文的 Proposed RFC |
+| [../RFC/0026-racingline-strategy-pool-preview-step3.md](../RFC/0026-racingline-strategy-pool-preview-step3.md) | 从 `/strategies` Step 3 股池预览切入，定义 preview snapshot、全池分页、证券显示和 preview-only 个股上下文的 Implemented RFC |
 | [../plans/0041-racingline-virtual-account-portfolio-rebalancing-implementation-plan.md](../plans/0041-racingline-virtual-account-portfolio-rebalancing-implementation-plan.md) | 虚拟账户、组合运行、worker 和 Racingline 组合页面当前实施计划 |
 | [../plans/archive/0046-racingline-strategy-weight-configuration-step2-implementation-plan.md](../plans/archive/0046-racingline-strategy-weight-configuration-step2-implementation-plan.md) | Rearview preview-only API、`[0, 100]` scoring clamp 和策略权重配置 Step 2 实施计划归档 |
+| [../plans/archive/0047-racingline-strategy-pool-preview-step3-implementation-plan.md](../plans/archive/0047-racingline-strategy-pool-preview-step3-implementation-plan.md) | Step 3 preview snapshot、全池分页、证券显示和 preview security analysis 实施计划归档 |
 | [../jobs/reports/2026-06-22-racingline-strategy-step2-preview.md](../jobs/reports/2026-06-22-racingline-strategy-step2-preview.md) | Rearview preview-only API 和 Racingline Step 2/3 闭环验收报告 |
+| [../jobs/reports/2026-06-22-racingline-strategy-step3-preview.md](../jobs/reports/2026-06-22-racingline-strategy-step3-preview.md) | Step 1/2/3 真实接口闭环、preview pool page 和 preview security analysis 浏览器验收报告 |
 | [../plans/archive/0045-racingline-strategy-selection-step1-gap-closure-plan.md](../plans/archive/0045-racingline-strategy-selection-step1-gap-closure-plan.md) | Rearview metric catalog、crossing operator 和 explain 缺口填补实施计划归档 |
 | [../plans/archive/0036-rust-rearview-stock-screening-service-implementation-plan.md](../plans/archive/0036-rust-rearview-stock-screening-service-implementation-plan.md) | Rearview 后端历史实施计划 |
 | [../plans/archive/0039-racingline-run-result-security-analysis-page-implementation-plan.md](../plans/archive/0039-racingline-run-result-security-analysis-page-implementation-plan.md) | Rearview analysis API 和 Racingline 个股分析页实施计划 |

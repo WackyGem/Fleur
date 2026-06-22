@@ -2,18 +2,19 @@
 
 日期：2026-06-22
 
-状态：Proposed
+状态：Completed
 
 关联文档：
 
-- [RFC 0026: Racingline 股池预览 Step 3 实现方案](../RFC/0026-racingline-strategy-pool-preview-step3.md)
-- [RFC 0025: Racingline 策略权重配置 Step 2 实现方案](../RFC/0025-racingline-strategy-weight-configuration-step2.md)
-- [RFC 0024: Racingline 策略选股 Step 1 实现切入方案](../RFC/0024-racingline-strategy-selection-step1.md)
-- [Plan 0046: Racingline 策略权重配置 Step 2 实施计划](archive/0046-racingline-strategy-weight-configuration-step2-implementation-plan.md)
-- [Racingline Strategy Step 2 Preview Implementation 报告](../jobs/reports/2026-06-22-racingline-strategy-step2-preview.md)
-- [Q&A 0004: Racingline 原型看板到策略创建闭环用户故事](../Q&A/0004-racingline-prototype-dashboard-to-strategy-loop.md)
-- [System: Racingline](../systems/racingline.md)
-- [System: Rearview](../systems/rearview.md)
+- [RFC 0026: Racingline 股池预览 Step 3 实现方案](../../RFC/0026-racingline-strategy-pool-preview-step3.md)
+- [RFC 0025: Racingline 策略权重配置 Step 2 实现方案](../../RFC/0025-racingline-strategy-weight-configuration-step2.md)
+- [RFC 0024: Racingline 策略选股 Step 1 实现切入方案](../../RFC/0024-racingline-strategy-selection-step1.md)
+- [Plan 0046: Racingline 策略权重配置 Step 2 实施计划](0046-racingline-strategy-weight-configuration-step2-implementation-plan.md)
+- [Racingline Strategy Step 2 Preview Implementation 报告](../../jobs/reports/2026-06-22-racingline-strategy-step2-preview.md)
+- [Racingline Strategy Step 3 Preview Implementation 报告](../../jobs/reports/2026-06-22-racingline-strategy-step3-preview.md)
+- [Q&A 0004: Racingline 原型看板到策略创建闭环用户故事](../../Q&A/0004-racingline-prototype-dashboard-to-strategy-loop.md)
+- [System: Racingline](../../systems/racingline.md)
+- [System: Rearview](../../systems/rearview.md)
 
 ## 目标
 
@@ -541,7 +542,7 @@ uv run python elt/scripts/validate_field_glossary.py
 ## 后续维护动作
 
 1. 实施完成后将本计划移入 `docs/plans/archive/`，状态改为 `Completed`。
-2. 更新 [docs/plans/README.md](README.md) 的 active/completed 索引。
-3. 新增 [docs/jobs/reports/](../jobs/reports/) 验收报告。
-4. 如新增 API 或 mart，同步 [docs/systems/rearview.md](../systems/rearview.md)、[docs/systems/racingline.md](../systems/racingline.md) 和相关 design 文档。
+2. 更新 [docs/plans/README.md](../README.md) 的 active/completed 索引。
+3. 新增 [docs/jobs/reports/](../../jobs/reports/) 验收报告。
+4. 如新增 API 或 mart，同步 [docs/systems/rearview.md](../../systems/rearview.md)、[docs/systems/racingline.md](../../systems/racingline.md) 和相关 design 文档。
 5. 如果后续需要刷新恢复 preview result，另起 RFC 设计短期 preview cache、过期策略和用户隔离。
