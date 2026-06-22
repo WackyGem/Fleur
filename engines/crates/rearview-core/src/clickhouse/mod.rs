@@ -51,10 +51,17 @@ pub struct ScreeningRow {
 }
 
 #[derive(Debug, Clone, Deserialize)]
+pub struct PreviewTimelineRow {
+    pub trade_date: NaiveDate,
+    pub pool_count: usize,
+}
+
+#[derive(Debug, Clone, Deserialize)]
 pub struct SecurityDisplayRow {
     pub security_code: String,
     pub security_name: Option<String>,
     pub exchange_code: Option<String>,
+    pub security_board: Option<String>,
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
@@ -506,6 +513,17 @@ FORMAT JSONEachRow"#
         parse_json_each_row::<ScreeningRow>(&body)
     }
 
+    pub async fn query_preview_timeline_rows(
+        &self,
+        sql: &str,
+        query_id: &str,
+    ) -> RearviewResult<Vec<PreviewTimelineRow>> {
+        let body = self
+            .execute_text(&format!("{sql}\nFORMAT JSONEachRow"), query_id)
+            .await?;
+        parse_json_each_row::<PreviewTimelineRow>(&body)
+    }
+
     pub async fn query_security_display_rows(
         &self,
         security_codes: &[String],
@@ -528,7 +546,8 @@ FORMAT JSONEachRow"#
 SELECT
     security_code,
     security_name,
-    exchange_code
+    exchange_code,
+    security_board
 FROM {database}.`mart_stock_basic_snapshot`
 WHERE security_code IN ({securities})
 ORDER BY security_code ASC

@@ -1,41 +1,40 @@
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
-import { Field, FieldGroup, FieldLabel } from "@/components/ui/field"
-import { Input } from "@/components/ui/input"
 import { StockPoolPreviewWorkbench } from "@/features/strategy/components/stock-pool-preview-workbench"
 import type {
+  IndicatorCatalog,
   StrategyConditionGroup,
   WeightIndicator,
 } from "@/features/strategy/types"
-import type {
-  PreviewRange,
-  PreviewSnapshot,
-} from "@/features/strategy/preview"
+import type { PreviewSnapshot } from "@/features/strategy/preview"
 
 type PoolPreviewPanelProps = {
   appliedWeightIndicators: WeightIndicator[]
   conditionGroups: StrategyConditionGroup[]
-  draftWeightIndicators: WeightIndicator[]
   error?: string | null
   isPending?: boolean
   isStale?: boolean
-  onDraftWeightScoreChange: (indicatorId: string, score: number) => void
-  onPreviewRangeChange: (patch: Partial<PreviewRange>) => void
-  previewRange: PreviewRange
+  onAddWeightIndicator: () => void
+  onRemoveWeightIndicator: (indicatorId: string) => void
+  onUpdateWeightIndicator: (
+    indicatorId: string,
+    patch: Partial<WeightIndicator>
+  ) => void
   previewSnapshot: PreviewSnapshot | null
+  scoringCatalogOptions: IndicatorCatalog[]
   weightIndicators: WeightIndicator[]
 }
 
 function PoolPreviewPanel({
   appliedWeightIndicators,
   conditionGroups,
-  draftWeightIndicators,
   error,
   isPending,
   isStale,
-  onDraftWeightScoreChange,
-  onPreviewRangeChange,
-  previewRange,
+  onAddWeightIndicator,
+  onRemoveWeightIndicator,
+  onUpdateWeightIndicator,
   previewSnapshot,
+  scoringCatalogOptions,
   weightIndicators,
 }: PoolPreviewPanelProps) {
   const hasStrategyInput =
@@ -44,42 +43,6 @@ function PoolPreviewPanel({
 
   return (
     <div className="flex h-full min-h-0 flex-col gap-3">
-      <FieldGroup className="grid shrink-0 gap-3 md:grid-cols-3">
-        <Field>
-          <FieldLabel>开始日期</FieldLabel>
-          <Input
-            value={previewRange.startDate}
-            onChange={(event) =>
-              onPreviewRangeChange({ startDate: event.target.value })
-            }
-            type="date"
-          />
-        </Field>
-        <Field>
-          <FieldLabel>结束日期</FieldLabel>
-          <Input
-            value={previewRange.endDate}
-            onChange={(event) =>
-              onPreviewRangeChange({ endDate: event.target.value })
-            }
-            type="date"
-          />
-        </Field>
-        <Field>
-          <FieldLabel>展示行数</FieldLabel>
-          <Input
-            min={1}
-            value={String(previewRange.previewRowLimit)}
-            onChange={(event) =>
-              onPreviewRangeChange({
-                previewRowLimit: Number(event.target.value),
-              })
-            }
-            type="number"
-          />
-        </Field>
-      </FieldGroup>
-
       {error ? (
         <Alert variant="destructive" className="shrink-0">
           <AlertTitle>股池预览失败</AlertTitle>
@@ -97,7 +60,9 @@ function PoolPreviewPanel({
         </Alert>
       ) : null}
 
-      {previewSnapshot && previewSnapshot.result.trade_dates.length === 0 ? (
+      {previewSnapshot &&
+      (previewSnapshot.timeline?.trade_dates.length ??
+        previewSnapshot.result.trade_dates.length) === 0 ? (
         <Alert className="shrink-0">
           <AlertTitle>股池为空</AlertTitle>
           <AlertDescription>当前区间没有返回候选股票。</AlertDescription>
@@ -105,14 +70,17 @@ function PoolPreviewPanel({
       ) : null}
 
       <div className="min-h-0 flex-1">
-      <StockPoolPreviewWorkbench
-        appliedWeightIndicators={appliedWeightIndicators}
-        conditionGroups={conditionGroups}
-        draftWeightIndicators={draftWeightIndicators}
-        hasStrategyInput={hasStrategyInput}
-        onDraftWeightScoreChange={onDraftWeightScoreChange}
-        previewSnapshot={previewSnapshot}
-      />
+        <StockPoolPreviewWorkbench
+          appliedWeightIndicators={appliedWeightIndicators}
+          conditionGroups={conditionGroups}
+          hasStrategyInput={hasStrategyInput}
+          onAddWeightIndicator={onAddWeightIndicator}
+          onRemoveWeightIndicator={onRemoveWeightIndicator}
+          onUpdateWeightIndicator={onUpdateWeightIndicator}
+          previewSnapshot={previewSnapshot}
+          scoringCatalogOptions={scoringCatalogOptions}
+          weightIndicators={weightIndicators}
+        />
       </div>
     </div>
   )

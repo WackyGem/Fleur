@@ -1,10 +1,12 @@
 # Debt 0004: Strategies Step 3 股池预览实现漂移
 
-状态：Open
+状态：Resolved（2026-06-22）
 日期：2026-06-22
 领域：racingline, rearview
 关联代码：`app/racingline_new/`, `engines/crates/rearview-core/`
 关联设计：`docs/Q&A/0004-racingline-prototype-dashboard-to-strategy-loop.md`, `docs/RFC/0024-racingline-strategy-selection-step1.md`, `docs/RFC/0025-racingline-strategy-weight-configuration-step2.md`, `docs/RFC/0026-racingline-strategy-pool-preview-step3.md`
+修正计划：`docs/plans/archive/0048-racingline-strategy-step3-drift-remediation-plan.md`
+验收报告：`docs/jobs/reports/2026-06-22-racingline-strategy-step3-drift-remediation.md`
 
 ## 摘要
 
@@ -445,3 +447,25 @@ cargo test --workspace
 1. network 中 Step 1/2/3 都来自 Rearview。
 2. `strategy-preview`、`pool-page`、`security-analysis` 的请求参数符合本 debt 的调整口径。
 3. 截图覆盖默认 Step 3、复权切换、MA 切换、分页和断开 Rearview 的失败态。
+
+## Resolution 2026-06-22
+
+已按 [Plan 0048](../plans/archive/0048-racingline-strategy-step3-drift-remediation-plan.md) 完成修正，并在 [Step3 Drift Remediation report](../jobs/reports/2026-06-22-racingline-strategy-step3-drift-remediation.md) 中记录命令和浏览器证据。
+
+实际落地：
+
+1. Step 3 移除了开始日期、结束日期和展示行数输入。
+2. Step 3 移除了“命中指标”“原始值”和 Step 2 权重滑杆。
+3. 新增 `POST /rearview/strategy-preview/timeline`，近一年横轴只返回 `trade_date + pool_count`。
+4. Step 3 preview 首屏只拉取 selected/end date，`preview_row_limit = 10`。
+5. `pool-page` 在 Step 3 固定 `limit = 10`。
+6. `security-analysis` 请求固定 `lookback_trading_days = 240` 和 `ma_windows = "5,10,30"`。
+7. K 线复权切换会触发新的 Rearview 请求，前复权与除权 OHLC 已在浏览器验收中确认不同。
+8. MA5/MA10/MA30 使用 Lightweight Charts line series 渲染；非前复权模式按后端 metadata 禁用。
+9. 表格“得分项”只来自 Step 2 `score_breakdown`，表格“指标”只来自 Step 1 condition mapping。
+10. `/strategies` 成功路径仍全部来自 Rearview 真实接口，不恢复 mock 成功路径。
+
+保留限制：
+
+1. Rearview 尚未返回 condition-level `condition_hits`；当前指标列展示 Step 1 筛选指标值，不宣称 boolean 命中。
+2. `security-analysis` 响应仍保留 diagnostics 字段，但 Step 3 主 UI 不展示这些 debug 字段。

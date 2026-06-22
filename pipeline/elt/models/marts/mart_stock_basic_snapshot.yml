@@ -2,13 +2,13 @@ version: 2
 
 models:
   - name: mart_stock_basic_snapshot
-    description: A 股股票基础显示信息 mart 当前快照，仅用于按证券代码补齐页面展示名称和交易所代码。
+    description: A 股股票基础显示信息 mart 当前快照，仅用于按证券代码补齐页面展示名称、交易所代码和交易板块。
     config:
       meta:
         grain_zh: 每证券一行。
         business_logic_zh:
-          - 从 int_stock_basic_snapshot 透传证券代码、证券简称和交易所代码。
-          - 仅透出上述三列，不增加其他分类字段。
+          - 从 int_stock_basic_snapshot 透传证券代码、证券简称、交易所代码和交易板块。
+          - security_board 是 A 股交易板块，不是行业、概念或地域分组。
     data_tests:
       - unique_combination_of_columns:
           arguments:
@@ -38,3 +38,15 @@ models:
                   - SH
                   - SZ
                   - BJ
+
+      - name: security_board
+        description: A 股交易板块，用于 Racingline preview 展示证券所属交易板块；不是行业、概念或地域分类。
+        data_type: LowCardinality(Nullable(String))
+        data_tests:
+          - accepted_values:
+              arguments:
+                values:
+                  - sse_main_board
+                  - szse_main_board
+                  - chinext
+                  - star_market

@@ -16,13 +16,14 @@
 1. 提供 Rearview 指标选股前端工作台。
 2. 支持规则集选择、规则版本表单化编辑、explain 校验和运行发起。
 3. 在 `app/racingline_new` 的 `/strategies` 中支持 Step 1 记录筛选条件、Step 2 记录评分规则、Step 3 点击股池预览后执行真实选股/评分/排名。
-4. Step 3 使用 Rearview preview-only API 展示 applied preview snapshot、候选池数量、rank、score、score breakdown、selected metrics、raw values、完整候选池分页和 preview security analysis。
-5. 展示 run、chunk 和 day 粒度进度。
-6. 按交易日展示股票池、TopN 买入信号、score breakdown 和 selected metrics。
-7. 用 UI 明确区分运行时结果快照和当前 mart 查询值。
-8. 从 run result 的 `Open` 进入 `/runs/:runId/securities/:securityCode` 个股分析页，提供结果列表、日 K 线、MA5/MA10/MA30、KDJ/RSI/MACD/BOLL 和右侧 mart 指标面板。
-9. 提供虚拟账户模板表单，使用 Rearview 默认市场费率模板预填初始资金、费率、滑点和卖出规则。
-10. 提供 `/portfolios` 和 `/portfolios/:portfolioRunId`，展示组合运行状态、净值曲线、summary、参数、持仓、成交、订单、调仓目标和事件。
+4. Step 3 使用 Rearview preview-only API 展示 applied preview snapshot、动态近一年交易日股池概览、10 条分页候选股、rank、score、Step 2 得分项、Step 1 指标列、证券交易板块、K 线复权、MA5/MA10/MA30 和成交量柱；不展示 raw debug 面板。
+5. Step 3 允许在行情/估值下方微调 Step 2 权重草稿；权重变化只标记 preview stale，必须点击“更新股池”并由 Rearview 重新 preview 后才替换 applied snapshot。
+6. 展示 run、chunk 和 day 粒度进度。
+7. 按交易日展示股票池、TopN 买入信号、score breakdown 和 selected metrics。
+8. 用 UI 明确区分运行时结果快照和当前 mart 查询值。
+9. 从 run result 的 `Open` 进入 `/runs/:runId/securities/:securityCode` 个股分析页，提供结果列表、日 K 线、MA5/MA10/MA30、KDJ/RSI/MACD/BOLL 和右侧 mart 指标面板。
+10. 提供虚拟账户模板表单，使用 Rearview 默认市场费率模板预填初始资金、费率、滑点和卖出规则。
+11. 提供 `/portfolios` 和 `/portfolios/:portfolioRunId`，展示组合运行状态、净值曲线、summary、参数、持仓、成交、订单、调仓目标和事件。
 
 ## 非职责
 
@@ -134,8 +135,12 @@ cargo test --workspace
 | [../plans/archive/0045-racingline-strategy-selection-step1-gap-closure-plan.md](../plans/archive/0045-racingline-strategy-selection-step1-gap-closure-plan.md) | 策略选股 Step 1 缺口填补实施计划归档 |
 | [../plans/archive/0046-racingline-strategy-weight-configuration-step2-implementation-plan.md](../plans/archive/0046-racingline-strategy-weight-configuration-step2-implementation-plan.md) | 策略权重配置 Step 2、preview-only API 和真实股池预览实施计划归档 |
 | [../plans/archive/0047-racingline-strategy-pool-preview-step3-implementation-plan.md](../plans/archive/0047-racingline-strategy-pool-preview-step3-implementation-plan.md) | 策略股池预览 Step 3、PreviewSnapshot、全池分页和 preview security analysis 实施计划归档 |
+| [../plans/archive/0048-racingline-strategy-step3-drift-remediation-plan.md](../plans/archive/0048-racingline-strategy-step3-drift-remediation-plan.md) | Step 3 股池预览漂移修正：职责收缩、timeline、10 条分页、K 线复权/MA 和 Step1/Step2 展示语义拆分 |
+| [../plans/archive/0049-racingline-strategy-step3-drift2-remediation-plan.md](../plans/archive/0049-racingline-strategy-step3-drift2-remediation-plan.md) | Step 3 二次漂移修正：交易板块、量柱、动态窗口、权重微调和 analysis payload 瘦身 |
 | [../jobs/reports/2026-06-22-racingline-strategy-step2-preview.md](../jobs/reports/2026-06-22-racingline-strategy-step2-preview.md) | 策略权重配置 Step 2 到股池预览闭环验收报告 |
 | [../jobs/reports/2026-06-22-racingline-strategy-step3-preview.md](../jobs/reports/2026-06-22-racingline-strategy-step3-preview.md) | 策略创建 Step 1/2/3 真实接口闭环、negative smoke、stale 状态和 preview analysis 验收报告 |
+| [../jobs/reports/2026-06-22-racingline-strategy-step3-drift-remediation.md](../jobs/reports/2026-06-22-racingline-strategy-step3-drift-remediation.md) | Step 3 漂移修正后的接口、浏览器和质量门禁验收报告 |
+| [../jobs/reports/2026-06-22-racingline-strategy-step3-drift2-remediation.md](../jobs/reports/2026-06-22-racingline-strategy-step3-drift2-remediation.md) | Step 3 二次漂移修正后的板块、图表、权重微调、性能和质量门禁验收报告 |
 | [../Q&A/user-logic.md](../Q&A/user-logic.md) | Racingline 当前用户画像和策略研究工作台主路径 |
 | [../Q&A/0003-racingline-strategy-lab-two-entry-navigation.md](../Q&A/0003-racingline-strategy-lab-two-entry-navigation.md) | Racingline 策略研究工作台两入口导航和首屏承载 Proposed Q&A |
 | [../Q&A/0004-racingline-prototype-dashboard-to-strategy-loop.md](../Q&A/0004-racingline-prototype-dashboard-to-strategy-loop.md) | `app/racingline_new/` 看板到选股、回测和运行策略闭环用户故事 |

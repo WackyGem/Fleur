@@ -106,6 +106,10 @@ pub fn routes() -> Router<AppState> {
         .route("/rearview/explain", post(explain_rule))
         .route("/rearview/strategy-preview", post(preview_strategy))
         .route(
+            "/rearview/strategy-preview/timeline",
+            post(preview_strategy_timeline),
+        )
+        .route(
             "/rearview/strategy-preview/pool-page",
             post(preview_strategy_pool_page),
         )
@@ -736,6 +740,9 @@ async fn get_security_analysis(
     let exchange_code = display
         .as_ref()
         .and_then(|display| display.exchange_code.clone());
+    let security_board = display
+        .as_ref()
+        .and_then(|display| display.security_board.clone());
 
     let query_id_prefix = format!(
         "rearview-analysis-{run_id}-{security_code}-{}",
@@ -764,25 +771,22 @@ async fn get_security_analysis(
     let (trend_rows, momentum_rows) = if quote_rows.is_empty() {
         (Vec::new(), Vec::new())
     } else {
-        let trend_rows = state
-            .clickhouse
-            .query_analysis_trend_rows(
+        let trend_query_id = format!("{query_id_prefix}-trend");
+        let momentum_query_id = format!("{query_id_prefix}-momentum");
+        tokio::try_join!(
+            state.clickhouse.query_analysis_trend_rows(
                 &security_code,
                 chart_start_date,
                 chart_end_date,
-                &format!("{query_id_prefix}-trend"),
-            )
-            .await?;
-        let momentum_rows = state
-            .clickhouse
-            .query_analysis_momentum_rows(
+                &trend_query_id,
+            ),
+            state.clickhouse.query_analysis_momentum_rows(
                 &security_code,
                 chart_start_date,
                 chart_end_date,
-                &format!("{query_id_prefix}-momentum"),
+                &momentum_query_id,
             )
-            .await?;
-        (trend_rows, momentum_rows)
+        )?
     };
 
     let response = build_security_analysis_response(
@@ -791,6 +795,7 @@ async fn get_security_analysis(
             security_code,
             security_name,
             exchange_code,
+            security_board,
             trade_date: request.trade_date,
             source: request.source,
             adjustment: request.adjustment,
@@ -798,6 +803,7 @@ async fn get_security_analysis(
             lookback_trading_days: request.lookback_trading_days,
             chart_start_date,
             chart_end_date,
+            include_quote_rows: true,
         },
         result_snapshot,
         quote_rows,
@@ -910,6 +916,49 @@ async fn preview_strategy(
     }))
 }
 
+async fn preview_strategy_timeline(
+    State(state): State<AppState>,
+    Json(request): Json<StrategyPreviewTimelineRequest>,
+) -> RearviewResult<Json<StrategyPreviewTimelineResponse>> {
+    let request = request.into_parts()?;
+    let planner = QueryPlanner::new(state.catalog.clone());
+    let settings = QuerySettings {
+        max_execution_time_seconds: state.config.clickhouse.max_execution_time_seconds,
+        max_rows_to_read: state.config.clickhouse.max_rows_to_read,
+        max_bytes_to_read: state.config.clickhouse.max_bytes_to_read,
+    };
+    let compiled = planner.compile_preview_timeline(
+        &request.rule,
+        request.start_date,
+        request.end_date,
+        settings,
+    )?;
+    let preview_id = ulid::Ulid::new().to_string();
+    let query_id = format!("rearview-preview-timeline-{preview_id}");
+    let rows = state
+        .clickhouse
+        .query_preview_timeline_rows(&compiled.sql, &query_id)
+        .await?;
+    let trade_dates = rows
+        .into_iter()
+        .map(|row| StrategyPreviewTimelineTradeDate {
+            trade_date: row.trade_date,
+            pool_count: row.pool_count,
+        })
+        .collect();
+
+    Ok(Json(StrategyPreviewTimelineResponse {
+        preview_id,
+        sql_hash: compiled.sql_hash,
+        required_metrics: compiled.required_metrics,
+        required_marts: compiled.required_marts,
+        required_columns: compiled.required_columns,
+        start_date: request.start_date,
+        end_date: request.end_date,
+        trade_dates,
+    }))
+}
+
 async fn preview_strategy_pool_page(
     State(state): State<AppState>,
     Json(request): Json<StrategyPreviewPoolPageRequest>,
@@ -1016,6 +1065,9 @@ async fn preview_strategy_security_analysis(
     let exchange_code = display
         .as_ref()
         .and_then(|display| display.exchange_code.clone());
+    let security_board = display
+        .as_ref()
+        .and_then(|display| display.security_board.clone());
     let quote_rows = state
         .clickhouse
         .query_analysis_quote_rows(
@@ -1042,25 +1094,22 @@ async fn preview_strategy_security_analysis(
     let (trend_rows, momentum_rows) = if quote_rows.is_empty() {
         (Vec::new(), Vec::new())
     } else {
-        let trend_rows = state
-            .clickhouse
-            .query_analysis_trend_rows(
+        let trend_query_id = format!("{query_id_prefix}-trend");
+        let momentum_query_id = format!("{query_id_prefix}-momentum");
+        tokio::try_join!(
+            state.clickhouse.query_analysis_trend_rows(
                 &request.security_code,
                 chart_start_date,
                 chart_end_date,
-                &format!("{query_id_prefix}-trend"),
-            )
-            .await?;
-        let momentum_rows = state
-            .clickhouse
-            .query_analysis_momentum_rows(
+                &trend_query_id,
+            ),
+            state.clickhouse.query_analysis_momentum_rows(
                 &request.security_code,
                 chart_start_date,
                 chart_end_date,
-                &format!("{query_id_prefix}-momentum"),
+                &momentum_query_id,
             )
-            .await?;
-        (trend_rows, momentum_rows)
+        )?
     };
 
     let response = build_security_analysis_response(
@@ -1069,6 +1118,7 @@ async fn preview_strategy_security_analysis(
             security_code: request.security_code,
             security_name,
             exchange_code,
+            security_board,
             trade_date: request.analysis.trade_date,
             source: AnalysisSource::Preview,
             adjustment: request.analysis.adjustment,
@@ -1076,6 +1126,7 @@ async fn preview_strategy_security_analysis(
             lookback_trading_days: request.analysis.lookback_trading_days,
             chart_start_date,
             chart_end_date,
+            include_quote_rows: request.include_quote_rows,
         },
         ResultSnapshot::from_preview(row)?,
         quote_rows,
@@ -1453,6 +1504,8 @@ struct SecurityAnalysisResponse {
     security_name: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     exchange_code: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    security_board: Option<String>,
     source: AnalysisSource,
     adjustment: Adjustment,
     result_snapshot: ResultSnapshot,
@@ -1560,6 +1613,7 @@ struct ChartMaMetadata {
     default_visible_windows: Vec<u32>,
     available_windows: Vec<u32>,
     adjustment: Adjustment,
+    basis_adjustment: Adjustment,
     status: &'static str,
 }
 
@@ -1629,6 +1683,7 @@ struct SecurityAnalysisBuildInput {
     security_code: String,
     security_name: Option<String>,
     exchange_code: Option<String>,
+    security_board: Option<String>,
     trade_date: NaiveDate,
     source: AnalysisSource,
     adjustment: Adjustment,
@@ -1636,6 +1691,7 @@ struct SecurityAnalysisBuildInput {
     lookback_trading_days: u32,
     chart_start_date: NaiveDate,
     chart_end_date: NaiveDate,
+    include_quote_rows: bool,
 }
 
 impl ResultRowsQuery {
@@ -1780,6 +1836,61 @@ struct StrategyPreviewResponse {
     trade_dates: Vec<StrategyPreviewTradeDate>,
 }
 
+#[derive(Debug, Deserialize)]
+struct StrategyPreviewTimelineRequest {
+    rule: RuleVersionSpec,
+    start_date: NaiveDate,
+    end_date: NaiveDate,
+}
+
+impl StrategyPreviewTimelineRequest {
+    fn into_parts(self) -> RearviewResult<StrategyPreviewTimelineRequestParts> {
+        const MAX_TIMELINE_DAYS: i64 = 370;
+        if self.start_date > self.end_date {
+            return Err(RearviewError::Validation(
+                "start_date must be earlier than or equal to end_date".to_string(),
+            ));
+        }
+        let day_count = (self.end_date - self.start_date).num_days() + 1;
+        if day_count > MAX_TIMELINE_DAYS {
+            return Err(RearviewError::Validation(format!(
+                "preview timeline date range must not exceed {MAX_TIMELINE_DAYS} days"
+            )));
+        }
+
+        Ok(StrategyPreviewTimelineRequestParts {
+            rule: self.rule,
+            start_date: self.start_date,
+            end_date: self.end_date,
+        })
+    }
+}
+
+#[derive(Debug)]
+struct StrategyPreviewTimelineRequestParts {
+    rule: RuleVersionSpec,
+    start_date: NaiveDate,
+    end_date: NaiveDate,
+}
+
+#[derive(Debug, Serialize)]
+struct StrategyPreviewTimelineResponse {
+    preview_id: String,
+    sql_hash: String,
+    required_metrics: Vec<String>,
+    required_marts: Vec<String>,
+    required_columns: BTreeMap<String, Vec<String>>,
+    start_date: NaiveDate,
+    end_date: NaiveDate,
+    trade_dates: Vec<StrategyPreviewTimelineTradeDate>,
+}
+
+#[derive(Debug, Serialize)]
+struct StrategyPreviewTimelineTradeDate {
+    trade_date: NaiveDate,
+    pool_count: usize,
+}
+
 #[derive(Debug, Serialize)]
 struct StrategyPreviewTradeDate {
     trade_date: NaiveDate,
@@ -1794,6 +1905,8 @@ struct StrategyPreviewSignal {
     security_name: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     exchange_code: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    security_board: Option<String>,
     raw_score: f64,
     score: f64,
     signal_rank: u32,
@@ -1873,6 +1986,8 @@ struct StrategyPreviewSecurityAnalysisRequest {
     quote_start_date: Option<NaiveDate>,
     #[serde(default)]
     ma_windows: Option<String>,
+    #[serde(default)]
+    include_quote_rows: Option<bool>,
 }
 
 impl StrategyPreviewSecurityAnalysisRequest {
@@ -1897,6 +2012,7 @@ impl StrategyPreviewSecurityAnalysisRequest {
             rule: self.rule,
             security_code,
             analysis,
+            include_quote_rows: self.include_quote_rows.unwrap_or(true),
         })
     }
 }
@@ -1906,6 +2022,7 @@ struct StrategyPreviewSecurityAnalysisRequestParts {
     rule: RuleVersionSpec,
     security_code: String,
     analysis: SecurityAnalysisRequest,
+    include_quote_rows: bool,
 }
 
 fn build_strategy_preview_trade_dates(
@@ -1946,6 +2063,7 @@ fn build_strategy_preview_signal(
     Ok(StrategyPreviewSignal {
         security_name: display.and_then(|display| display.security_name.clone()),
         exchange_code: display.and_then(|display| display.exchange_code.clone()),
+        security_board: display.and_then(|display| display.security_board.clone()),
         security_code: row.security_code,
         raw_score: row.raw_score,
         score: row.score,
@@ -2086,8 +2204,8 @@ fn build_security_analysis_response(
                 trade_date: quote.trade_date,
                 ohlc: ohlc_for_adjustment(quote, input.adjustment),
                 volume: quote.volume,
-                ma: ma_values(trend, &input.ma_windows, input.adjustment),
-                price_overlays: price_overlay_values(trend, input.adjustment),
+                ma: ma_values(trend, &input.ma_windows),
+                price_overlays: price_overlay_values(trend),
                 kdj: kdj_values(momentum, quote),
                 rsi: rsi_values(momentum),
                 macd: macd_values(trend),
@@ -2095,10 +2213,10 @@ fn build_security_analysis_response(
             }
         })
         .collect::<Vec<_>>();
-    let ma_supported = input.adjustment == Adjustment::ForwardAdjusted;
     let requested_windows = input.ma_windows;
-    let available_windows = if ma_supported {
-        requested_windows.clone()
+    let available_windows = requested_windows.clone();
+    let quote_rows_for_response = if input.include_quote_rows {
+        quote_rows
     } else {
         Vec::new()
     };
@@ -2109,6 +2227,7 @@ fn build_security_analysis_response(
         security_code: input.security_code,
         security_name: input.security_name,
         exchange_code: input.exchange_code,
+        security_board: input.security_board,
         source: input.source,
         adjustment: input.adjustment,
         result_snapshot,
@@ -2149,30 +2268,19 @@ fn build_security_analysis_response(
                 default_visible_windows: available_windows.clone(),
                 available_windows,
                 adjustment: Adjustment::ForwardAdjusted,
-                status: if ma_supported {
-                    "available"
-                } else {
-                    "forward_adjusted_only"
-                },
+                basis_adjustment: Adjustment::ForwardAdjusted,
+                status: "available",
             },
             price_overlays: ChartPriceOverlayMetadata {
                 default_visible_keys: vec!["price_ma_5", "price_ma_10", "price_ma_30"],
-                available_keys: if ma_supported {
-                    PRICE_OVERLAY_KEYS.to_vec()
-                } else {
-                    Vec::new()
-                },
+                available_keys: PRICE_OVERLAY_KEYS.to_vec(),
                 adjustment: Adjustment::ForwardAdjusted,
-                status: if ma_supported {
-                    "available"
-                } else {
-                    "forward_adjusted_only"
-                },
+                status: "available",
             },
             indicator_panels: ["kdj", "rsi", "macd", "boll"],
             series,
         },
-        quote_rows,
+        quote_rows: quote_rows_for_response,
         selected_quote,
     }
 }
@@ -2218,11 +2326,7 @@ const PRICE_OVERLAY_KEYS: [&str; 6] = [
 fn ma_values(
     trend: Option<&TrendIndicatorRow>,
     ma_windows: &[u32],
-    adjustment: Adjustment,
 ) -> BTreeMap<String, Option<f64>> {
-    if adjustment != Adjustment::ForwardAdjusted {
-        return BTreeMap::new();
-    }
     let mut values = BTreeMap::new();
     for window in ma_windows {
         let value = trend.and_then(|trend| match window {
@@ -2236,13 +2340,7 @@ fn ma_values(
     values
 }
 
-fn price_overlay_values(
-    trend: Option<&TrendIndicatorRow>,
-    adjustment: Adjustment,
-) -> BTreeMap<&'static str, Option<f64>> {
-    if adjustment != Adjustment::ForwardAdjusted {
-        return BTreeMap::new();
-    }
+fn price_overlay_values(trend: Option<&TrendIndicatorRow>) -> BTreeMap<&'static str, Option<f64>> {
     let mut values = BTreeMap::new();
     for key in PRICE_OVERLAY_KEYS {
         let value = trend.and_then(|trend| match key {
@@ -2522,6 +2620,25 @@ mod tests {
     }
 
     #[test]
+    fn preview_timeline_request_should_accept_near_one_year_range() {
+        let request = preview_timeline_request("2025-06-01", "2026-06-01");
+
+        let parts = request.into_parts().unwrap();
+
+        assert_eq!(parts.start_date, date("2025-06-01"));
+        assert_eq!(parts.end_date, date("2026-06-01"));
+    }
+
+    #[test]
+    fn preview_timeline_request_should_reject_range_above_one_year_window() {
+        let error = preview_timeline_request("2025-01-01", "2026-06-01")
+            .into_parts()
+            .unwrap_err();
+
+        assert!(matches!(error, RearviewError::Validation(_)));
+    }
+
+    #[test]
     fn preview_pool_page_request_should_reject_non_score_sort() {
         let mut request = preview_pool_page_request();
         request.sort = Some("rank_asc".to_string());
@@ -2542,6 +2659,25 @@ mod tests {
     }
 
     #[test]
+    fn preview_security_analysis_request_should_default_to_include_quote_rows() {
+        let request = preview_security_analysis_request();
+
+        let parts = request.into_parts().unwrap();
+
+        assert!(parts.include_quote_rows);
+    }
+
+    #[test]
+    fn preview_security_analysis_request_should_accept_quote_rows_omission() {
+        let mut request = preview_security_analysis_request();
+        request.include_quote_rows = Some(false);
+
+        let parts = request.into_parts().unwrap();
+
+        assert!(!parts.include_quote_rows);
+    }
+
+    #[test]
     fn build_strategy_preview_trade_dates_should_group_rows_and_keep_top_signals() {
         let trade_date = date("2026-06-02");
         let rows = vec![
@@ -2555,6 +2691,36 @@ mod tests {
         assert_eq!(trade_dates[0].signals.len(), 2);
         assert_eq!(trade_dates[0].signals[0].security_code, "000001.SZ");
         assert_eq!(trade_dates[0].signals[0].score_breakdown, json!({"w1": 80}));
+    }
+
+    #[test]
+    fn build_strategy_preview_signal_should_include_security_board() {
+        let trade_date = date("2026-06-02");
+        let row = screening_row("000001.SZ", trade_date, 80.0, 3, 1, true);
+        let display_by_code = BTreeMap::from([(
+            "000001.SZ".to_string(),
+            SecurityDisplayRow {
+                security_code: "000001.SZ".to_string(),
+                security_name: Some("平安银行".to_string()),
+                exchange_code: Some("SZ".to_string()),
+                security_board: Some("szse_main_board".to_string()),
+            },
+        )]);
+
+        let signal = build_strategy_preview_signal(row, &display_by_code).unwrap();
+
+        assert_eq!(signal.security_board.as_deref(), Some("szse_main_board"));
+    }
+
+    #[test]
+    fn ma_values_should_return_forward_adjusted_values_for_any_chart_adjustment() {
+        let trend = trend_row("000001.SZ", date("2026-06-02"));
+
+        let values = ma_values(Some(&trend), &[5, 10, 30]);
+
+        assert_eq!(values.get("5").copied().flatten(), Some(10.0));
+        assert_eq!(values.get("10").copied().flatten(), Some(11.0));
+        assert_eq!(values.get("30").copied().flatten(), Some(12.0));
     }
 
     fn preview_request(start_date: &str, end_date: &str, top_n: u32) -> StrategyPreviewRequest {
@@ -2587,6 +2753,17 @@ mod tests {
         }
     }
 
+    fn preview_timeline_request(
+        start_date: &str,
+        end_date: &str,
+    ) -> StrategyPreviewTimelineRequest {
+        StrategyPreviewTimelineRequest {
+            rule: preview_request(start_date, end_date, 10).rule,
+            start_date: date(start_date),
+            end_date: date(end_date),
+        }
+    }
+
     fn preview_pool_page_request() -> StrategyPreviewPoolPageRequest {
         StrategyPreviewPoolPageRequest {
             rule: preview_request("2026-06-01", "2026-06-01", 10).rule,
@@ -2608,6 +2785,7 @@ mod tests {
             lookback_trading_days: Some(240),
             quote_start_date: None,
             ma_windows: None,
+            include_quote_rows: None,
         }
     }
 
@@ -2630,6 +2808,27 @@ mod tests {
             score_breakdown: r#"{"w1":80}"#.to_string(),
             selected_metrics: r#"{"close_price":10}"#.to_string(),
             raw_values: r#"{"close_price":10}"#.to_string(),
+        }
+    }
+
+    fn trend_row(security_code: &str, trade_date: NaiveDate) -> TrendIndicatorRow {
+        TrendIndicatorRow {
+            security_code: security_code.to_string(),
+            trade_date,
+            price_ma_5: Some(10.0),
+            price_ma_10: Some(11.0),
+            price_ma_20: None,
+            price_ma_30: Some(12.0),
+            price_ma_60: None,
+            price_avg_ma_3_6_12_24: None,
+            price_avg_ma_14_28_57_114: None,
+            price_ema2_10: None,
+            boll_mid_20_2: None,
+            boll_up_20_2: None,
+            boll_dn_20_2: None,
+            macd_dif: None,
+            macd_dea: None,
+            macd_histogram: None,
         }
     }
 

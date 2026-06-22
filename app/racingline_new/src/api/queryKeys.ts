@@ -2,6 +2,8 @@ import type { MetricsQuery } from "@/types/rearview"
 
 export const queryKeys = {
   metrics: (query: MetricsQuery = {}) => ["metrics", query] as const,
+  previewTimeline: (previewId: string, startDate: string, endDate: string) =>
+    ["preview-timeline", previewId, startDate, endDate] as const,
   previewPoolPage: (
     previewId: string,
     tradeDate: string,
@@ -11,12 +13,18 @@ export const queryKeys = {
   previewSecurityAnalysis: (
     previewId: string,
     tradeDate: string,
-    securityCode: string
+    securityCode: string,
+    adjustment: string,
+    maWindows: string,
+    includeQuoteRows: boolean
   ) =>
     [
       "preview-security-analysis",
       previewId,
       tradeDate,
       securityCode,
+      adjustment,
+      maWindows,
+      includeQuoteRows,
     ] as const,
 }

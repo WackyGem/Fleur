@@ -2,19 +2,20 @@
 
 日期：2026-06-22
 
-状态：Proposed
+状态：Completed
 
 关联文档：
 
-- [Debt 0004: Strategies Step 3 股池预览实现漂移](../debt/0004-2026-06-22-strategies-step3-implemennt-drift.md)
-- [Q&A 0004: Racingline 原型看板到策略创建闭环用户故事](../Q&A/0004-racingline-prototype-dashboard-to-strategy-loop.md)
-- [RFC 0024: Racingline 策略选股 Step 1 实现切入方案](../RFC/0024-racingline-strategy-selection-step1.md)
-- [RFC 0025: Racingline 策略权重配置 Step 2 实现方案](../RFC/0025-racingline-strategy-weight-configuration-step2.md)
-- [RFC 0026: Racingline 股池预览 Step 3 实现方案](../RFC/0026-racingline-strategy-pool-preview-step3.md)
-- [Plan 0047: Racingline 股池预览 Step 3 实施计划](archive/0047-racingline-strategy-pool-preview-step3-implementation-plan.md)
-- [Racingline Strategy Step 3 Preview Implementation 报告](../jobs/reports/2026-06-22-racingline-strategy-step3-preview.md)
-- [System: Racingline](../systems/racingline.md)
-- [System: Rearview](../systems/rearview.md)
+- [Debt 0004: Strategies Step 3 股池预览实现漂移](../../debt/0004-2026-06-22-strategies-step3-implemennt-drift.md)
+- [Q&A 0004: Racingline 原型看板到策略创建闭环用户故事](../../Q&A/0004-racingline-prototype-dashboard-to-strategy-loop.md)
+- [RFC 0024: Racingline 策略选股 Step 1 实现切入方案](../../RFC/0024-racingline-strategy-selection-step1.md)
+- [RFC 0025: Racingline 策略权重配置 Step 2 实现方案](../../RFC/0025-racingline-strategy-weight-configuration-step2.md)
+- [RFC 0026: Racingline 股池预览 Step 3 实现方案](../../RFC/0026-racingline-strategy-pool-preview-step3.md)
+- [Plan 0047: Racingline 股池预览 Step 3 实施计划](0047-racingline-strategy-pool-preview-step3-implementation-plan.md)
+- [Racingline Strategy Step 3 Preview Implementation 报告](../../jobs/reports/2026-06-22-racingline-strategy-step3-preview.md)
+- [System: Racingline](../../systems/racingline.md)
+- [System: Rearview](../../systems/rearview.md)
+- [Step3 Drift Remediation 报告](../../jobs/reports/2026-06-22-racingline-strategy-step3-drift-remediation.md)
 
 ## 目标
 

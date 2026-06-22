@@ -19,9 +19,11 @@
 3. 消费 ClickHouse `fleur_marts` 指标 mart，并把运行状态、股票池和买入信号写入 PostgreSQL `rearview` database。
 4. 保存 rule hash、compiled SQL hash、ClickHouse query id、chunk 状态和结果解释快照。
 5. 提供 `GET /rearview/runs/{run_id}/securities/{security_code}/analysis`，在校验 run result membership 后组合 PostgreSQL result snapshot 与 ClickHouse mart 当前查询值。
-6. 提供 preview-only 策略检查 API：`POST /rearview/strategy-preview`、`POST /rearview/strategy-preview/pool-page` 和 `POST /rearview/strategy-preview/security-analysis`；这些接口不创建 rule set、rule version、run 或 portfolio run。
-7. 提供虚拟账户模板、默认市场费率模板、组合运行、组合净值和目标/订单/成交/持仓/事件明细 API。
-8. 通过 PostgreSQL outbox 和 NATS JetStream 分发组合净值计算任务，由 `rearview-portfolio-worker` 幂等写回组合账本。
+6. 提供 preview-only 策略检查 API：`POST /rearview/strategy-preview/timeline`、`POST /rearview/strategy-preview`、`POST /rearview/strategy-preview/pool-page` 和 `POST /rearview/strategy-preview/security-analysis`；这些接口不创建 rule set、rule version、run 或 portfolio run。
+7. Preview rows、pool page 和 preview security analysis 通过 `mart_stock_basic_snapshot` 补齐 `security_name`、`exchange_code` 和交易板块 `security_board`。
+8. Preview security analysis 支持 `include_quote_rows=false`，在保留 membership 校验、`selected_quote` 和 chart series 的同时省略完整 `quote_rows` payload；MA5/MA10/MA30 固定使用前复权指标基准并可叠加到任意 OHLC 复权模式。
+9. 提供虚拟账户模板、默认市场费率模板、组合运行、组合净值和目标/订单/成交/持仓/事件明细 API。
+10. 通过 PostgreSQL outbox 和 NATS JetStream 分发组合净值计算任务，由 `rearview-portfolio-worker` 幂等写回组合账本。
 
 ## 非职责
 
@@ -37,7 +39,7 @@
 |---|---|
 | PostgreSQL `rearview` database | 规则、版本、运行、chunk、day、pool、signal 和 metric catalog 状态 |
 | ClickHouse `fleur_marts` | 日频行情、趋势、动量、成交量和价格行为结构指标 |
-| `fleur_marts.mart_stock_basic_snapshot` | preview rows 和 pool page 的证券名称、交易所代码显示信息 |
+| `fleur_marts.mart_stock_basic_snapshot` | preview rows、pool page 和 preview security analysis 的证券名称、交易所代码、交易板块显示信息 |
 | NATS JetStream | 组合净值计算任务的 at-least-once 分发 |
 | dbt mart YAML | metric catalog 基础字段事实校验来源 |
 | Furnace/dbt | 指标计算和 mart 物化 |
@@ -107,8 +109,12 @@ uv run alembic upgrade head
 | [../plans/0041-racingline-virtual-account-portfolio-rebalancing-implementation-plan.md](../plans/0041-racingline-virtual-account-portfolio-rebalancing-implementation-plan.md) | 虚拟账户、组合运行、worker 和 Racingline 组合页面当前实施计划 |
 | [../plans/archive/0046-racingline-strategy-weight-configuration-step2-implementation-plan.md](../plans/archive/0046-racingline-strategy-weight-configuration-step2-implementation-plan.md) | Rearview preview-only API、`[0, 100]` scoring clamp 和策略权重配置 Step 2 实施计划归档 |
 | [../plans/archive/0047-racingline-strategy-pool-preview-step3-implementation-plan.md](../plans/archive/0047-racingline-strategy-pool-preview-step3-implementation-plan.md) | Step 3 preview snapshot、全池分页、证券显示和 preview security analysis 实施计划归档 |
+| [../plans/archive/0048-racingline-strategy-step3-drift-remediation-plan.md](../plans/archive/0048-racingline-strategy-step3-drift-remediation-plan.md) | Step 3 preview timeline、10 条分页、K 线复权/MA 和 UI 职责收缩实施计划归档 |
+| [../plans/archive/0049-racingline-strategy-step3-drift2-remediation-plan.md](../plans/archive/0049-racingline-strategy-step3-drift2-remediation-plan.md) | Step 3 二次漂移修正：交易板块、量柱、动态窗口、权重微调和 analysis payload 瘦身 |
 | [../jobs/reports/2026-06-22-racingline-strategy-step2-preview.md](../jobs/reports/2026-06-22-racingline-strategy-step2-preview.md) | Rearview preview-only API 和 Racingline Step 2/3 闭环验收报告 |
 | [../jobs/reports/2026-06-22-racingline-strategy-step3-preview.md](../jobs/reports/2026-06-22-racingline-strategy-step3-preview.md) | Step 1/2/3 真实接口闭环、preview pool page 和 preview security analysis 浏览器验收报告 |
+| [../jobs/reports/2026-06-22-racingline-strategy-step3-drift-remediation.md](../jobs/reports/2026-06-22-racingline-strategy-step3-drift-remediation.md) | Step 3 漂移修正后的 Rearview timeline、pool-page 和 security-analysis 验收报告 |
+| [../jobs/reports/2026-06-22-racingline-strategy-step3-drift2-remediation.md](../jobs/reports/2026-06-22-racingline-strategy-step3-drift2-remediation.md) | Step 3 二次漂移修正后的 Rearview security display、MA、analysis payload 和质量门禁验收报告 |
 | [../plans/archive/0045-racingline-strategy-selection-step1-gap-closure-plan.md](../plans/archive/0045-racingline-strategy-selection-step1-gap-closure-plan.md) | Rearview metric catalog、crossing operator 和 explain 缺口填补实施计划归档 |
 | [../plans/archive/0036-rust-rearview-stock-screening-service-implementation-plan.md](../plans/archive/0036-rust-rearview-stock-screening-service-implementation-plan.md) | Rearview 后端历史实施计划 |
 | [../plans/archive/0039-racingline-run-result-security-analysis-page-implementation-plan.md](../plans/archive/0039-racingline-run-result-security-analysis-page-implementation-plan.md) | Rearview analysis API 和 Racingline 个股分析页实施计划 |

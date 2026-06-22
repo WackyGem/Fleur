@@ -10,6 +10,8 @@ import type {
   StrategyPreviewPoolPageResponse,
   StrategyPreviewRequest,
   StrategyPreviewResponse,
+  StrategyPreviewTimelineRequest,
+  StrategyPreviewTimelineResponse,
 } from "@/types/rearview"
 
 export async function listMetrics(
@@ -36,6 +38,15 @@ export function previewStrategy(request: StrategyPreviewRequest) {
   )
 }
 
+export function previewStrategyTimeline(
+  request: StrategyPreviewTimelineRequest
+) {
+  return requestJson<StrategyPreviewTimelineResponse>(
+    "/rearview/strategy-preview/timeline",
+    jsonBody(request)
+  )
+}
+
 export function previewStrategyPoolPage(
   request: StrategyPreviewPoolPageRequest
 ) {
@@ -46,10 +57,11 @@ export function previewStrategyPoolPage(
 }
 
 export function previewStrategySecurityAnalysis(
-  request: PreviewSecurityAnalysisRequest
+  request: PreviewSecurityAnalysisRequest,
+  signal?: AbortSignal
 ) {
   return requestJson<SecurityAnalysisResponse>(
     "/rearview/strategy-preview/security-analysis",
-    jsonBody(request)
+    { ...jsonBody(request), signal }
   )
 }

@@ -142,6 +142,7 @@ export type StrategyPreviewSignal = {
   security_code: string
   security_name?: string | null
   exchange_code?: string | null
+  security_board?: string | null
   raw_score: number
   score: number
   signal_rank: number
@@ -168,6 +169,28 @@ export type StrategyPreviewResponse = {
   preview_row_limit: number
   top_n: number
   trade_dates: StrategyPreviewTradeDate[]
+}
+
+export type StrategyPreviewTimelineRequest = {
+  rule: RuleVersionSpec
+  start_date: string
+  end_date: string
+}
+
+export type StrategyPreviewTimelineTradeDate = {
+  trade_date: string
+  pool_count: number
+}
+
+export type StrategyPreviewTimelineResponse = {
+  preview_id: string
+  sql_hash: string
+  required_metrics: string[]
+  required_marts: string[]
+  required_columns: Record<string, string[]>
+  start_date: string
+  end_date: string
+  trade_dates: StrategyPreviewTimelineTradeDate[]
 }
 
 export type StrategyPreviewPoolPageRequest = {
@@ -235,6 +258,24 @@ export type PreviewSecurityAnalysisRequest = {
   security_code: string
   adjustment?: Adjustment
   lookback_trading_days?: number
+  ma_windows?: string
+  include_quote_rows?: boolean
+}
+
+export type ChartMaMetadata = {
+  requested_windows: number[]
+  default_visible_windows: number[]
+  available_windows: number[]
+  adjustment: Adjustment
+  basis_adjustment?: Adjustment
+  status: "available" | string
+}
+
+export type ChartPriceOverlayMetadata = {
+  default_visible_keys: string[]
+  available_keys: string[]
+  adjustment: Adjustment
+  status: "available" | "forward_adjusted_only" | string
 }
 
 export type SecurityAnalysisResponse = {
@@ -243,6 +284,7 @@ export type SecurityAnalysisResponse = {
   security_code: string
   security_name?: string | null
   exchange_code?: string | null
+  security_board?: string | null
   source: "signals" | "pool" | "preview"
   adjustment: Adjustment
   result_snapshot: {
@@ -260,9 +302,12 @@ export type SecurityAnalysisResponse = {
     lookback_trading_days: number
   }
   chart: {
+    ma?: ChartMaMetadata
+    price_overlays?: ChartPriceOverlayMetadata
+    indicator_panels?: string[]
     series: ChartSeriesRow[]
   }
-  quote_rows: QuoteMartRow[]
+  quote_rows?: QuoteMartRow[]
   selected_quote?: QuoteMartRow | null
 }
 

@@ -1,4 +1,4 @@
-import { useMutation, useQuery } from "@tanstack/react-query"
+import { keepPreviousData, useMutation, useQuery } from "@tanstack/react-query"
 
 import { queryKeys } from "@/api/queryKeys"
 import {
@@ -7,6 +7,7 @@ import {
   previewStrategy,
   previewStrategyPoolPage,
   previewStrategySecurityAnalysis,
+  previewStrategyTimeline,
 } from "@/api/rearview"
 import type {
   MetricsQuery,
@@ -14,6 +15,7 @@ import type {
   RuleVersionSpec,
   StrategyPreviewPoolPageRequest,
   StrategyPreviewRequest,
+  StrategyPreviewTimelineRequest,
 } from "@/types/rearview"
 
 export function useMetricsQuery(query: MetricsQuery = {}) {
@@ -39,6 +41,13 @@ export function useExplainMutation() {
 export function useStrategyPreviewMutation() {
   return useMutation({
     mutationFn: (request: StrategyPreviewRequest) => previewStrategy(request),
+  })
+}
+
+export function useStrategyPreviewTimelineMutation() {
+  return useMutation({
+    mutationFn: (request: StrategyPreviewTimelineRequest) =>
+      previewStrategyTimeline(request),
   })
 }
 
@@ -76,15 +85,20 @@ export function usePreviewSecurityAnalysisQuery(
       ? queryKeys.previewSecurityAnalysis(
           previewId ?? "",
           request.trade_date,
-          request.security_code
+          request.security_code,
+          request.adjustment ?? "",
+          request.ma_windows ?? "",
+          request.include_quote_rows ?? true
         )
-      : queryKeys.previewSecurityAnalysis("", "", ""),
-    queryFn: () => {
+      : queryKeys.previewSecurityAnalysis("", "", "", "", "", true),
+    queryFn: ({ signal }) => {
       if (!request) {
         throw new Error("preview security-analysis request is missing")
       }
-      return previewStrategySecurityAnalysis(request)
+      return previewStrategySecurityAnalysis(request, signal)
     },
+    placeholderData: keepPreviousData,
     retry: 1,
+    staleTime: 30_000,
   })
 }

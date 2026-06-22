@@ -205,6 +205,76 @@ SETTINGS
         })
     }
 
+    pub fn compile_preview_timeline(
+        &self,
+        rule: &RuleVersionSpec,
+        start_date: NaiveDate,
+        end_date: NaiveDate,
+        settings: QuerySettings,
+    ) -> RearviewResult<CompiledQuery> {
+        let report = rule.validate(&self.catalog)?;
+        let required_metrics = report
+            .dependencies
+            .metrics
+            .iter()
+            .map(|metric| metric.logical_metric.clone())
+            .collect::<Vec<_>>();
+        let metric_lookup = required_metrics
+            .iter()
+            .map(|metric| {
+                self.catalog
+                    .require(metric)
+                    .map(|definition| (metric.clone(), definition.clone()))
+            })
+            .collect::<RearviewResult<BTreeMap<_, _>>>()?;
+        let marts = group_metrics_by_mart(&metric_lookup, &rule.universe)?;
+        let required_marts = marts.keys().cloned().collect::<Vec<_>>();
+        let required_columns = required_columns_by_mart(&marts);
+        let ctes = compile_mart_ctes(&marts, Some(start_date), Some(end_date))?;
+        let from_sql = compile_join_sql(&marts)?;
+        let filter_sql = compile_filter(&rule.pool_filters, &metric_lookup)?;
+        let universe_sql = compile_universe_filter(rule);
+        let where_sql = if universe_sql.is_empty() {
+            filter_sql
+        } else {
+            format!("({universe_sql}) AND ({filter_sql})")
+        };
+        let sql = format!(
+            r#"WITH
+{ctes},
+pool AS (
+    SELECT
+        security_code,
+        trade_date
+    FROM {from_sql}
+    WHERE {where_sql}
+)
+SELECT
+    trade_date,
+    count() AS pool_count
+FROM pool
+GROUP BY trade_date
+ORDER BY trade_date ASC
+SETTINGS
+    max_execution_time = {max_execution_time},
+    max_rows_to_read = {max_rows_to_read},
+    max_bytes_to_read = {max_bytes_to_read},
+    timeout_before_checking_execution_speed = 0,
+    join_algorithm = 'auto'"#,
+            max_execution_time = settings.max_execution_time_seconds,
+            max_rows_to_read = settings.max_rows_to_read,
+            max_bytes_to_read = settings.max_bytes_to_read,
+        );
+        let sql_hash = sql_hash(&sql);
+        Ok(CompiledQuery {
+            sql,
+            sql_hash,
+            required_metrics,
+            required_marts,
+            required_columns,
+        })
+    }
+
     fn compile_preview_rows(
         &self,
         request: PreviewRowsRequest<'_>,
@@ -913,6 +983,30 @@ mod tests {
                 .contains("WHERE 1 = 1 AND security_code = '600000.SH'")
         );
         assert!(compiled.sql.contains("LIMIT 51\nOFFSET 50"));
+    }
+
+    #[test]
+    fn compile_preview_timeline_should_group_by_trade_date_without_signals() {
+        let catalog = test_catalog();
+        let planner = QueryPlanner::new(catalog);
+        let rule = crossing_rule(
+            Operand::metric("price_ma_5"),
+            Operator::Gte,
+            Operand::metric("price_ma_20"),
+        );
+
+        let compiled = planner
+            .compile_preview_timeline(
+                &rule,
+                NaiveDate::from_ymd_opt(2025, 6, 1).unwrap(),
+                NaiveDate::from_ymd_opt(2026, 6, 1).unwrap(),
+                QuerySettings::default(),
+            )
+            .unwrap();
+
+        assert!(compiled.sql.contains("count() AS pool_count"));
+        assert!(compiled.sql.contains("GROUP BY trade_date"));
+        assert!(!compiled.sql.contains("score_breakdown"));
     }
 
     #[test]
