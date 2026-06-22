@@ -1793,9 +1793,21 @@ fn metric_matches_query(
     }
     if let Some(keyword) = keyword {
         let description = metric.description.as_deref().unwrap_or_default();
+        let display_group = metric
+            .display
+            .as_ref()
+            .and_then(|display| display.group.as_deref())
+            .unwrap_or_default();
+        let display_label_zh = metric
+            .display
+            .as_ref()
+            .and_then(|display| display.label_zh.as_deref())
+            .unwrap_or_default();
         return metric.logical_metric.to_lowercase().contains(keyword)
             || metric.column_name.to_lowercase().contains(keyword)
-            || description.to_lowercase().contains(keyword);
+            || description.to_lowercase().contains(keyword)
+            || display_group.to_lowercase().contains(keyword)
+            || display_label_zh.to_lowercase().contains(keyword);
     }
     true
 }

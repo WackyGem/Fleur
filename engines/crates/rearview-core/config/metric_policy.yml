@@ -1,217 +1,524 @@
-metrics:
-  - logical_metric: close_price
-    source:
-      mart_table: mart_stock_quotes_daily
-      column_name: close_price
+op_profiles:
+  numeric_filter: [lt, lte, gt, gte, between, eq, ne, is_null]
+  boolean_filter: [eq, ne, is_null]
+
+defaults:
+  numeric_metric:
     value_kind: numeric
     allow_filter: true
     allow_scoring: true
-    allowed_ops: [lt, lte, gt, gte, between, eq, ne, is_null]
+    allowed_ops_profile: numeric_filter
     null_policy: no_match
-    default_output: true
-
-  - logical_metric: close_price_forward_adj
-    source:
-      mart_table: mart_stock_quotes_daily
-      column_name: close_price_forward_adj
+  numeric_dependency:
     value_kind: numeric
-    allow_filter: true
-    allow_scoring: true
-    allowed_ops: [lt, lte, gt, gte, between, eq, ne, is_null]
+    allow_filter: false
+    allow_scoring: false
+    allowed_ops: []
     null_policy: no_match
-    default_output: true
-
-  - logical_metric: prev_volume
-    source:
-      mart_table: mart_stock_quotes_daily
-      column_name: prev_volume
-    value_kind: numeric
-    allow_filter: true
-    allow_scoring: true
-    allowed_ops: [lt, lte, gt, gte, between, eq, ne, is_null]
-    null_policy: no_match
-
-  - logical_metric: volume
-    source:
-      mart_table: mart_stock_quotes_daily
-      column_name: volume
-    value_kind: numeric
-    allow_filter: true
-    allow_scoring: true
-    allowed_ops: [lt, lte, gt, gte, between, eq, ne, is_null]
-    null_policy: no_match
-    default_output: true
-
-  - logical_metric: pct_amplitude
-    source:
-      mart_table: mart_stock_quotes_daily
-      column_name: pct_amplitude
-    value_kind: numeric
-    allow_filter: true
-    allow_scoring: true
-    allowed_ops: [lt, lte, gt, gte, between, eq, ne, is_null]
-    null_policy: no_match
-
-  - logical_metric: pct_change
-    source:
-      mart_table: mart_stock_quotes_daily
-      column_name: pct_change
-    value_kind: numeric
-    allow_filter: true
-    allow_scoring: true
-    allowed_ops: [lt, lte, gt, gte, between, eq, ne, is_null]
-    null_policy: no_match
-
-  - logical_metric: kdj_j_value
-    source:
-      mart_table: mart_stock_momentum_indicator
-      column_name: kdj_j_value
-    value_kind: numeric
-    allow_filter: true
-    allow_scoring: true
-    allowed_ops: [lt, lte, gt, gte, between, eq, ne, is_null]
-    null_policy: no_match
-    default_output: true
-
-  - logical_metric: rsi_6
-    source:
-      mart_table: mart_stock_momentum_indicator
-      column_name: rsi_6
-    value_kind: numeric
-    allow_filter: true
-    allow_scoring: true
-    allowed_ops: [lt, lte, gt, gte, between, eq, ne, is_null]
-    null_policy: no_match
-    default_output: true
-
-  - logical_metric: price_ema2_10
-    source:
-      mart_table: mart_stock_trend_indicator
-      column_name: price_ema2_10
-    value_kind: numeric
-    allow_filter: true
-    allow_scoring: true
-    allowed_ops: [lt, lte, gt, gte, between, eq, ne, is_null]
-    null_policy: no_match
-
-  - logical_metric: price_avg_ma_14_28_57_114
-    source:
-      mart_table: mart_stock_trend_indicator
-      column_name: price_avg_ma_14_28_57_114
-    value_kind: numeric
-    allow_filter: true
-    allow_scoring: true
-    allowed_ops: [lt, lte, gt, gte, between, eq, ne, is_null]
-    null_policy: no_match
-
-  - logical_metric: price_avg_ma_3_6_12_24
-    source:
-      mart_table: mart_stock_trend_indicator
-      column_name: price_avg_ma_3_6_12_24
-    value_kind: numeric
-    allow_filter: true
-    allow_scoring: true
-    allowed_ops: [lt, lte, gt, gte, between, eq, ne, is_null]
-    null_policy: no_match
-
-  - logical_metric: price_ma_20
-    source:
-      mart_table: mart_stock_trend_indicator
-      column_name: price_ma_20
-    value_kind: numeric
-    allow_filter: true
-    allow_scoring: true
-    allowed_ops: [lt, lte, gt, gte, between, eq, ne, is_null]
-    null_policy: no_match
-
-  - logical_metric: price_ma_30
-    source:
-      mart_table: mart_stock_trend_indicator
-      column_name: price_ma_30
-    value_kind: numeric
-    allow_filter: true
-    allow_scoring: true
-    allowed_ops: [lt, lte, gt, gte, between, eq, ne, is_null]
-    null_policy: no_match
-
-  - logical_metric: price_ma_60
-    source:
-      mart_table: mart_stock_trend_indicator
-      column_name: price_ma_60
-    value_kind: numeric
-    allow_filter: true
-    allow_scoring: true
-    allowed_ops: [lt, lte, gt, gte, between, eq, ne, is_null]
-    null_policy: no_match
-
-  - logical_metric: price_ma_114
-    source:
-      mart_table: mart_stock_trend_indicator
-      column_name: price_ma_114
-    value_kind: numeric
-    allow_filter: true
-    allow_scoring: true
-    allowed_ops: [lt, lte, gt, gte, between, eq, ne, is_null]
-    null_policy: no_match
-
-  - logical_metric: price_ma_250
-    source:
-      mart_table: mart_stock_trend_indicator
-      column_name: price_ma_250
-    value_kind: numeric
-    allow_filter: true
-    allow_scoring: true
-    allowed_ops: [lt, lte, gt, gte, between, eq, ne, is_null]
-    null_policy: no_match
-
-  - logical_metric: boll_dn_20_2
-    source:
-      mart_table: mart_stock_trend_indicator
-      column_name: boll_dn_20_2
-    value_kind: numeric
-    allow_filter: true
-    allow_scoring: true
-    allowed_ops: [lt, lte, gt, gte, between, eq, ne, is_null]
-    null_policy: no_match
-
-  - logical_metric: volume_ma_5
-    source:
-      mart_table: mart_stock_volume_indicator
-      column_name: volume_ma_5
-    value_kind: numeric
-    allow_filter: true
-    allow_scoring: true
-    allowed_ops: [lt, lte, gt, gte, between, eq, ne, is_null]
-    null_policy: no_match
-
-  - logical_metric: close_down_streak_days
-    source:
-      mart_table: mart_stock_price_pattern_daily
-      column_name: close_down_streak_days
-    value_kind: numeric
-    allow_filter: true
-    allow_scoring: true
-    allowed_ops: [lt, lte, gt, gte, between, eq, ne, is_null]
-    null_policy: no_match
-
-  - logical_metric: n_structure_20_is_valid
-    source:
-      mart_table: mart_stock_price_pattern_daily
-      column_name: n_structure_20_is_valid
+  boolean_metric:
     value_kind: boolean
     allow_filter: true
-    allow_scoring: true
-    allowed_ops: [eq, ne, is_null]
+    allow_scoring: false
+    allowed_ops_profile: boolean_filter
     null_policy: no_match
+
+metrics:
+  - logical_metric: close_price
+    source: {mart_table: mart_stock_quotes_daily, column_name: close_price}
+    extends: numeric_metric
     default_output: true
+    display: {group: quotes, label_zh: 收盘价, sort_order: 10}
+
+  - logical_metric: close_price_forward_adj
+    source: {mart_table: mart_stock_quotes_daily, column_name: close_price_forward_adj}
+    extends: numeric_metric
+    default_output: true
+    display: {group: quotes, label_zh: 前复权收盘价, sort_order: 20}
+
+  - logical_metric: prev_volume
+    source: {mart_table: mart_stock_quotes_daily, column_name: prev_volume}
+    extends: numeric_metric
+    display: {group: quotes, label_zh: 上一交易日成交量, sort_order: 30}
+
+  - logical_metric: volume
+    source: {mart_table: mart_stock_quotes_daily, column_name: volume}
+    extends: numeric_metric
+    default_output: true
+    display: {group: quotes, label_zh: 成交量, sort_order: 40}
+
+  - logical_metric: pct_amplitude
+    source: {mart_table: mart_stock_quotes_daily, column_name: amplitude_pct}
+    extends: numeric_metric
+    display: {group: quotes, label_zh: 振幅, unit: pct, sort_order: 50}
+
+  - logical_metric: pct_change
+    source: {mart_table: mart_stock_quotes_daily, column_name: change_pct}
+    extends: numeric_metric
+    display: {group: quotes, label_zh: 涨跌幅, unit: pct, sort_order: 60}
+
+  - logical_metric: kdj_j_value
+    source: {mart_table: mart_stock_momentum_indicator_daily, column_name: kdj_j_value}
+    extends: numeric_metric
+    default_output: true
+    display: {group: momentum, label_zh: KDJ J, sort_order: 10}
+
+  - logical_metric: rsi_6
+    source: {mart_table: mart_stock_momentum_indicator_daily, column_name: rsi_6}
+    extends: numeric_metric
+    default_output: true
+    display: {group: momentum, label_zh: RSI 6, sort_order: 20}
+
+  - logical_metric: rsi_12
+    source: {mart_table: mart_stock_momentum_indicator_daily, column_name: rsi_12}
+    extends: numeric_metric
+    display: {group: momentum, label_zh: RSI 12, sort_order: 30}
+
+  - logical_metric: rsi_14
+    source: {mart_table: mart_stock_momentum_indicator_daily, column_name: rsi_14}
+    extends: numeric_metric
+    display: {group: momentum, label_zh: RSI 14, sort_order: 40}
+
+  - logical_metric: rsi_24
+    source: {mart_table: mart_stock_momentum_indicator_daily, column_name: rsi_24}
+    extends: numeric_metric
+    display: {group: momentum, label_zh: RSI 24, sort_order: 50}
+
+  - logical_metric: rsi_25
+    source: {mart_table: mart_stock_momentum_indicator_daily, column_name: rsi_25}
+    extends: numeric_metric
+    display: {group: momentum, label_zh: RSI 25, sort_order: 60}
+
+  - logical_metric: rsi_50
+    source: {mart_table: mart_stock_momentum_indicator_daily, column_name: rsi_50}
+    extends: numeric_metric
+    display: {group: momentum, label_zh: RSI 50, sort_order: 70}
+
+  - logical_metric: kdj_rsv
+    source: {mart_table: mart_stock_momentum_indicator_daily, column_name: kdj_rsv}
+    extends: numeric_metric
+    display: {group: momentum, label_zh: KDJ RSV, sort_order: 80}
+
+  - logical_metric: kdj_k_value
+    source: {mart_table: mart_stock_momentum_indicator_daily, column_name: kdj_k_value}
+    extends: numeric_metric
+    display: {group: momentum, label_zh: KDJ K, sort_order: 90}
+
+  - logical_metric: kdj_d_value
+    source: {mart_table: mart_stock_momentum_indicator_daily, column_name: kdj_d_value}
+    extends: numeric_metric
+    display: {group: momentum, label_zh: KDJ D, sort_order: 100}
+
+  - logical_metric: price_ma_3
+    source: {mart_table: mart_stock_trend_indicator_daily, column_name: price_ma_3}
+    extends: numeric_metric
+    cross: {previous_metric: prev_price_ma_3, allowed_ops: [crosses_above, crosses_below]}
+    display: {group: trend, label_zh: MA3, sort_order: 10}
+
+  - logical_metric: prev_price_ma_3
+    source: {mart_table: mart_stock_trend_indicator_daily, column_name: prev_price_ma_3}
+    extends: numeric_dependency
+    display: {group: trend_previous, label_zh: 前值 MA3, sort_order: 10}
+
+  - logical_metric: price_ma_5
+    source: {mart_table: mart_stock_trend_indicator_daily, column_name: price_ma_5}
+    extends: numeric_metric
+    cross: {previous_metric: prev_price_ma_5, allowed_ops: [crosses_above, crosses_below]}
+    display: {group: trend, label_zh: MA5, sort_order: 20}
+
+  - logical_metric: prev_price_ma_5
+    source: {mart_table: mart_stock_trend_indicator_daily, column_name: prev_price_ma_5}
+    extends: numeric_dependency
+    display: {group: trend_previous, label_zh: 前值 MA5, sort_order: 20}
+
+  - logical_metric: price_ma_6
+    source: {mart_table: mart_stock_trend_indicator_daily, column_name: price_ma_6}
+    extends: numeric_metric
+    cross: {previous_metric: prev_price_ma_6, allowed_ops: [crosses_above, crosses_below]}
+    display: {group: trend, label_zh: MA6, sort_order: 30}
+
+  - logical_metric: prev_price_ma_6
+    source: {mart_table: mart_stock_trend_indicator_daily, column_name: prev_price_ma_6}
+    extends: numeric_dependency
+    display: {group: trend_previous, label_zh: 前值 MA6, sort_order: 30}
+
+  - logical_metric: price_ma_10
+    source: {mart_table: mart_stock_trend_indicator_daily, column_name: price_ma_10}
+    extends: numeric_metric
+    cross: {previous_metric: prev_price_ma_10, allowed_ops: [crosses_above, crosses_below]}
+    display: {group: trend, label_zh: MA10, sort_order: 40}
+
+  - logical_metric: prev_price_ma_10
+    source: {mart_table: mart_stock_trend_indicator_daily, column_name: prev_price_ma_10}
+    extends: numeric_dependency
+    display: {group: trend_previous, label_zh: 前值 MA10, sort_order: 40}
+
+  - logical_metric: price_ma_12
+    source: {mart_table: mart_stock_trend_indicator_daily, column_name: price_ma_12}
+    extends: numeric_metric
+    cross: {previous_metric: prev_price_ma_12, allowed_ops: [crosses_above, crosses_below]}
+    display: {group: trend, label_zh: MA12, sort_order: 50}
+
+  - logical_metric: prev_price_ma_12
+    source: {mart_table: mart_stock_trend_indicator_daily, column_name: prev_price_ma_12}
+    extends: numeric_dependency
+    display: {group: trend_previous, label_zh: 前值 MA12, sort_order: 50}
+
+  - logical_metric: price_ma_14
+    source: {mart_table: mart_stock_trend_indicator_daily, column_name: price_ma_14}
+    extends: numeric_metric
+    cross: {previous_metric: prev_price_ma_14, allowed_ops: [crosses_above, crosses_below]}
+    display: {group: trend, label_zh: MA14, sort_order: 60}
+
+  - logical_metric: prev_price_ma_14
+    source: {mart_table: mart_stock_trend_indicator_daily, column_name: prev_price_ma_14}
+    extends: numeric_dependency
+    display: {group: trend_previous, label_zh: 前值 MA14, sort_order: 60}
+
+  - logical_metric: price_ma_20
+    source: {mart_table: mart_stock_trend_indicator_daily, column_name: price_ma_20}
+    extends: numeric_metric
+    cross: {previous_metric: prev_price_ma_20, allowed_ops: [crosses_above, crosses_below]}
+    display: {group: trend, label_zh: MA20, sort_order: 70}
+
+  - logical_metric: prev_price_ma_20
+    source: {mart_table: mart_stock_trend_indicator_daily, column_name: prev_price_ma_20}
+    extends: numeric_dependency
+    display: {group: trend_previous, label_zh: 前值 MA20, sort_order: 70}
+
+  - logical_metric: price_ma_24
+    source: {mart_table: mart_stock_trend_indicator_daily, column_name: price_ma_24}
+    extends: numeric_metric
+    cross: {previous_metric: prev_price_ma_24, allowed_ops: [crosses_above, crosses_below]}
+    display: {group: trend, label_zh: MA24, sort_order: 80}
+
+  - logical_metric: prev_price_ma_24
+    source: {mart_table: mart_stock_trend_indicator_daily, column_name: prev_price_ma_24}
+    extends: numeric_dependency
+    display: {group: trend_previous, label_zh: 前值 MA24, sort_order: 80}
+
+  - logical_metric: price_ma_28
+    source: {mart_table: mart_stock_trend_indicator_daily, column_name: price_ma_28}
+    extends: numeric_metric
+    cross: {previous_metric: prev_price_ma_28, allowed_ops: [crosses_above, crosses_below]}
+    display: {group: trend, label_zh: MA28, sort_order: 90}
+
+  - logical_metric: prev_price_ma_28
+    source: {mart_table: mart_stock_trend_indicator_daily, column_name: prev_price_ma_28}
+    extends: numeric_dependency
+    display: {group: trend_previous, label_zh: 前值 MA28, sort_order: 90}
+
+  - logical_metric: price_ma_30
+    source: {mart_table: mart_stock_trend_indicator_daily, column_name: price_ma_30}
+    extends: numeric_metric
+    cross: {previous_metric: prev_price_ma_30, allowed_ops: [crosses_above, crosses_below]}
+    display: {group: trend, label_zh: MA30, sort_order: 100}
+
+  - logical_metric: prev_price_ma_30
+    source: {mart_table: mart_stock_trend_indicator_daily, column_name: prev_price_ma_30}
+    extends: numeric_dependency
+    display: {group: trend_previous, label_zh: 前值 MA30, sort_order: 100}
+
+  - logical_metric: price_ma_57
+    source: {mart_table: mart_stock_trend_indicator_daily, column_name: price_ma_57}
+    extends: numeric_metric
+    cross: {previous_metric: prev_price_ma_57, allowed_ops: [crosses_above, crosses_below]}
+    display: {group: trend, label_zh: MA57, sort_order: 110}
+
+  - logical_metric: prev_price_ma_57
+    source: {mart_table: mart_stock_trend_indicator_daily, column_name: prev_price_ma_57}
+    extends: numeric_dependency
+    display: {group: trend_previous, label_zh: 前值 MA57, sort_order: 110}
+
+  - logical_metric: price_ma_60
+    source: {mart_table: mart_stock_trend_indicator_daily, column_name: price_ma_60}
+    extends: numeric_metric
+    cross: {previous_metric: prev_price_ma_60, allowed_ops: [crosses_above, crosses_below]}
+    display: {group: trend, label_zh: MA60, sort_order: 120}
+
+  - logical_metric: prev_price_ma_60
+    source: {mart_table: mart_stock_trend_indicator_daily, column_name: prev_price_ma_60}
+    extends: numeric_dependency
+    display: {group: trend_previous, label_zh: 前值 MA60, sort_order: 120}
+
+  - logical_metric: price_ma_114
+    source: {mart_table: mart_stock_trend_indicator_daily, column_name: price_ma_114}
+    extends: numeric_metric
+    cross: {previous_metric: prev_price_ma_114, allowed_ops: [crosses_above, crosses_below]}
+    display: {group: trend, label_zh: MA114, sort_order: 130}
+
+  - logical_metric: prev_price_ma_114
+    source: {mart_table: mart_stock_trend_indicator_daily, column_name: prev_price_ma_114}
+    extends: numeric_dependency
+    display: {group: trend_previous, label_zh: 前值 MA114, sort_order: 130}
+
+  - logical_metric: price_ma_250
+    source: {mart_table: mart_stock_trend_indicator_daily, column_name: price_ma_250}
+    extends: numeric_metric
+    cross: {previous_metric: prev_price_ma_250, allowed_ops: [crosses_above, crosses_below]}
+    display: {group: trend, label_zh: MA250, sort_order: 140}
+
+  - logical_metric: prev_price_ma_250
+    source: {mart_table: mart_stock_trend_indicator_daily, column_name: prev_price_ma_250}
+    extends: numeric_dependency
+    display: {group: trend_previous, label_zh: 前值 MA250, sort_order: 140}
+
+  - logical_metric: price_avg_ma_3_6_12_24
+    source: {mart_table: mart_stock_trend_indicator_daily, column_name: price_avg_ma_3_6_12_24}
+    extends: numeric_metric
+    cross: {previous_metric: prev_price_avg_ma_3_6_12_24, allowed_ops: [crosses_above, crosses_below]}
+    display: {group: trend, label_zh: 组合 MA 3/6/12/24, sort_order: 150}
+
+  - logical_metric: prev_price_avg_ma_3_6_12_24
+    source: {mart_table: mart_stock_trend_indicator_daily, column_name: prev_price_avg_ma_3_6_12_24}
+    extends: numeric_dependency
+    display: {group: trend_previous, label_zh: 前值组合 MA 3/6/12/24, sort_order: 150}
+
+  - logical_metric: price_avg_ma_14_28_57_114
+    source: {mart_table: mart_stock_trend_indicator_daily, column_name: price_avg_ma_14_28_57_114}
+    extends: numeric_metric
+    cross: {previous_metric: prev_price_avg_ma_14_28_57_114, allowed_ops: [crosses_above, crosses_below]}
+    display: {group: trend, label_zh: 组合 MA 14/28/57/114, sort_order: 160}
+
+  - logical_metric: prev_price_avg_ma_14_28_57_114
+    source: {mart_table: mart_stock_trend_indicator_daily, column_name: prev_price_avg_ma_14_28_57_114}
+    extends: numeric_dependency
+    display: {group: trend_previous, label_zh: 前值组合 MA 14/28/57/114, sort_order: 160}
+
+  - logical_metric: price_ema2_10
+    source: {mart_table: mart_stock_trend_indicator_daily, column_name: price_ema2_10}
+    extends: numeric_metric
+    cross: {previous_metric: prev_price_ema2_10, allowed_ops: [crosses_above, crosses_below]}
+    display: {group: trend, label_zh: 二重 EMA10, sort_order: 170}
+
+  - logical_metric: prev_price_ema2_10
+    source: {mart_table: mart_stock_trend_indicator_daily, column_name: prev_price_ema2_10}
+    extends: numeric_dependency
+    display: {group: trend_previous, label_zh: 前值二重 EMA10, sort_order: 170}
+
+  - logical_metric: boll_mid_10_1p5
+    source: {mart_table: mart_stock_trend_indicator_daily, column_name: boll_mid_10_1p5}
+    extends: numeric_metric
+    cross: {previous_metric: prev_boll_mid_10_1p5, allowed_ops: [crosses_above, crosses_below]}
+    display: {group: trend, label_zh: BOLL 10/1.5 中轨, sort_order: 180}
+
+  - logical_metric: prev_boll_mid_10_1p5
+    source: {mart_table: mart_stock_trend_indicator_daily, column_name: prev_boll_mid_10_1p5}
+    extends: numeric_dependency
+    display: {group: trend_previous, label_zh: 前值 BOLL 10/1.5 中轨, sort_order: 180}
+
+  - logical_metric: boll_upper_10_1p5
+    source: {mart_table: mart_stock_trend_indicator_daily, column_name: boll_upper_10_1p5}
+    extends: numeric_metric
+    cross: {previous_metric: prev_boll_upper_10_1p5, allowed_ops: [crosses_above, crosses_below]}
+    display: {group: trend, label_zh: BOLL 10/1.5 上轨, sort_order: 190}
+
+  - logical_metric: prev_boll_upper_10_1p5
+    source: {mart_table: mart_stock_trend_indicator_daily, column_name: prev_boll_upper_10_1p5}
+    extends: numeric_dependency
+    display: {group: trend_previous, label_zh: 前值 BOLL 10/1.5 上轨, sort_order: 190}
+
+  - logical_metric: boll_lower_10_1p5
+    source: {mart_table: mart_stock_trend_indicator_daily, column_name: boll_lower_10_1p5}
+    extends: numeric_metric
+    cross: {previous_metric: prev_boll_lower_10_1p5, allowed_ops: [crosses_above, crosses_below]}
+    display: {group: trend, label_zh: BOLL 10/1.5 下轨, sort_order: 200}
+
+  - logical_metric: prev_boll_lower_10_1p5
+    source: {mart_table: mart_stock_trend_indicator_daily, column_name: prev_boll_lower_10_1p5}
+    extends: numeric_dependency
+    display: {group: trend_previous, label_zh: 前值 BOLL 10/1.5 下轨, sort_order: 200}
+
+  - logical_metric: boll_mid_20_2
+    source: {mart_table: mart_stock_trend_indicator_daily, column_name: boll_mid_20_2}
+    extends: numeric_metric
+    cross: {previous_metric: prev_boll_mid_20_2, allowed_ops: [crosses_above, crosses_below]}
+    display: {group: trend, label_zh: BOLL 20/2 中轨, sort_order: 210}
+
+  - logical_metric: prev_boll_mid_20_2
+    source: {mart_table: mart_stock_trend_indicator_daily, column_name: prev_boll_mid_20_2}
+    extends: numeric_dependency
+    display: {group: trend_previous, label_zh: 前值 BOLL 20/2 中轨, sort_order: 210}
+
+  - logical_metric: boll_upper_20_2
+    source: {mart_table: mart_stock_trend_indicator_daily, column_name: boll_upper_20_2}
+    extends: numeric_metric
+    cross: {previous_metric: prev_boll_upper_20_2, allowed_ops: [crosses_above, crosses_below]}
+    display: {group: trend, label_zh: BOLL 20/2 上轨, sort_order: 220}
+
+  - logical_metric: prev_boll_upper_20_2
+    source: {mart_table: mart_stock_trend_indicator_daily, column_name: prev_boll_upper_20_2}
+    extends: numeric_dependency
+    display: {group: trend_previous, label_zh: 前值 BOLL 20/2 上轨, sort_order: 220}
+
+  - logical_metric: boll_lower_20_2
+    source: {mart_table: mart_stock_trend_indicator_daily, column_name: boll_lower_20_2}
+    extends: numeric_metric
+    cross: {previous_metric: prev_boll_lower_20_2, allowed_ops: [crosses_above, crosses_below]}
+    display: {group: trend, label_zh: BOLL 20/2 下轨, sort_order: 230}
+
+  - logical_metric: prev_boll_lower_20_2
+    source: {mart_table: mart_stock_trend_indicator_daily, column_name: prev_boll_lower_20_2}
+    extends: numeric_dependency
+    display: {group: trend_previous, label_zh: 前值 BOLL 20/2 下轨, sort_order: 230}
+
+  - logical_metric: boll_mid_50_2p5
+    source: {mart_table: mart_stock_trend_indicator_daily, column_name: boll_mid_50_2p5}
+    extends: numeric_metric
+    cross: {previous_metric: prev_boll_mid_50_2p5, allowed_ops: [crosses_above, crosses_below]}
+    display: {group: trend, label_zh: BOLL 50/2.5 中轨, sort_order: 240}
+
+  - logical_metric: prev_boll_mid_50_2p5
+    source: {mart_table: mart_stock_trend_indicator_daily, column_name: prev_boll_mid_50_2p5}
+    extends: numeric_dependency
+    display: {group: trend_previous, label_zh: 前值 BOLL 50/2.5 中轨, sort_order: 240}
+
+  - logical_metric: boll_upper_50_2p5
+    source: {mart_table: mart_stock_trend_indicator_daily, column_name: boll_upper_50_2p5}
+    extends: numeric_metric
+    cross: {previous_metric: prev_boll_upper_50_2p5, allowed_ops: [crosses_above, crosses_below]}
+    display: {group: trend, label_zh: BOLL 50/2.5 上轨, sort_order: 250}
+
+  - logical_metric: prev_boll_upper_50_2p5
+    source: {mart_table: mart_stock_trend_indicator_daily, column_name: prev_boll_upper_50_2p5}
+    extends: numeric_dependency
+    display: {group: trend_previous, label_zh: 前值 BOLL 50/2.5 上轨, sort_order: 250}
+
+  - logical_metric: boll_lower_50_2p5
+    source: {mart_table: mart_stock_trend_indicator_daily, column_name: boll_lower_50_2p5}
+    extends: numeric_metric
+    cross: {previous_metric: prev_boll_lower_50_2p5, allowed_ops: [crosses_above, crosses_below]}
+    display: {group: trend, label_zh: BOLL 50/2.5 下轨, sort_order: 260}
+
+  - logical_metric: prev_boll_lower_50_2p5
+    source: {mart_table: mart_stock_trend_indicator_daily, column_name: prev_boll_lower_50_2p5}
+    extends: numeric_dependency
+    display: {group: trend_previous, label_zh: 前值 BOLL 50/2.5 下轨, sort_order: 260}
+
+  - logical_metric: macd_dif
+    source: {mart_table: mart_stock_trend_indicator_daily, column_name: macd_dif}
+    extends: numeric_metric
+    cross: {previous_metric: prev_macd_dif, allowed_ops: [crosses_above, crosses_below]}
+    display: {group: trend, label_zh: MACD DIF, sort_order: 270}
+
+  - logical_metric: prev_macd_dif
+    source: {mart_table: mart_stock_trend_indicator_daily, column_name: prev_macd_dif}
+    extends: numeric_dependency
+    display: {group: trend_previous, label_zh: 前值 MACD DIF, sort_order: 270}
+
+  - logical_metric: macd_dea
+    source: {mart_table: mart_stock_trend_indicator_daily, column_name: macd_dea}
+    extends: numeric_metric
+    cross: {previous_metric: prev_macd_dea, allowed_ops: [crosses_above, crosses_below]}
+    display: {group: trend, label_zh: MACD DEA, sort_order: 280}
+
+  - logical_metric: prev_macd_dea
+    source: {mart_table: mart_stock_trend_indicator_daily, column_name: prev_macd_dea}
+    extends: numeric_dependency
+    display: {group: trend_previous, label_zh: 前值 MACD DEA, sort_order: 280}
+
+  - logical_metric: macd_histogram
+    source: {mart_table: mart_stock_trend_indicator_daily, column_name: macd_histogram}
+    extends: numeric_metric
+    cross: {previous_metric: prev_macd_histogram, allowed_ops: [crosses_above, crosses_below]}
+    display: {group: trend, label_zh: MACD 柱, sort_order: 290}
+
+  - logical_metric: prev_macd_histogram
+    source: {mart_table: mart_stock_trend_indicator_daily, column_name: prev_macd_histogram}
+    extends: numeric_dependency
+    display: {group: trend_previous, label_zh: 前值 MACD 柱, sort_order: 290}
+
+  - logical_metric: volume_ma_5
+    source: {mart_table: mart_stock_volume_indicator_daily, column_name: volume_ma_5}
+    extends: numeric_metric
+    display: {group: volume, label_zh: 成交量 MA5, sort_order: 10}
+
+  - logical_metric: volume_ma_10
+    source: {mart_table: mart_stock_volume_indicator_daily, column_name: volume_ma_10}
+    extends: numeric_metric
+    display: {group: volume, label_zh: 成交量 MA10, sort_order: 20}
+
+  - logical_metric: volume_ma_20
+    source: {mart_table: mart_stock_volume_indicator_daily, column_name: volume_ma_20}
+    extends: numeric_metric
+    display: {group: volume, label_zh: 成交量 MA20, sort_order: 30}
+
+  - logical_metric: volume_ma_60
+    source: {mart_table: mart_stock_volume_indicator_daily, column_name: volume_ma_60}
+    extends: numeric_metric
+    display: {group: volume, label_zh: 成交量 MA60, sort_order: 40}
+
+  - logical_metric: close_down_streak_days
+    source: {mart_table: mart_stock_price_pattern_daily, column_name: close_down_streak_days}
+    extends: numeric_metric
+    display: {group: pattern, label_zh: 连续下跌天数, sort_order: 10}
+
+  - logical_metric: n_structure_20_is_valid
+    source: {mart_table: mart_stock_price_pattern_daily, column_name: n_structure_20_is_valid}
+    extends: boolean_metric
+    default_output: true
+    display: {group: pattern, label_zh: N 字结构有效, sort_order: 20}
 
   - logical_metric: n_structure_20_second_low_ratio
-    source:
-      mart_table: mart_stock_price_pattern_daily
-      column_name: n_structure_20_second_low_ratio
-    value_kind: numeric
-    allow_filter: true
-    allow_scoring: true
-    allowed_ops: [lt, lte, gt, gte, between, eq, ne, is_null]
-    null_policy: no_match
+    source: {mart_table: mart_stock_price_pattern_daily, column_name: n_structure_20_second_low_ratio}
+    extends: numeric_metric
     default_output: true
+    display: {group: pattern, label_zh: N 字结构次低点比例, sort_order: 30}
+
+ignored_fields:
+  mart_stock_quotes_daily:
+    open_price: 第一阶段不作为策略筛选指标。
+    high_price: 第一阶段不作为策略筛选指标。
+    low_price: 第一阶段不作为策略筛选指标。
+    prev_close_price: BaoStock preclose 口径字段，暂不开放策略筛选。
+    prev_close_price_unadj: 未复权前收辅助字段，暂不开放策略筛选。
+    open_price_forward_adj: 第一阶段优先开放前复权收盘价。
+    high_price_forward_adj: 第一阶段优先开放前复权收盘价。
+    low_price_forward_adj: 第一阶段优先开放前复权收盘价。
+    prev_close_price_forward_adj: 前复权前收辅助字段，暂不开放策略筛选。
+    open_price_backward_adj: 后复权价格口径暂不作为策略筛选指标。
+    high_price_backward_adj: 后复权价格口径暂不作为策略筛选指标。
+    low_price_backward_adj: 后复权价格口径暂不作为策略筛选指标。
+    close_price_backward_adj: 后复权价格口径暂不作为策略筛选指标。
+    prev_close_price_backward_adj: 后复权前收辅助字段，暂不开放策略筛选。
+    forward_adjustment_factor: 解释前复权价格口径，不作为策略筛选指标。
+    forward_adjustment_ratio: 解释除权除息影响，不作为策略筛选指标。
+    backward_adjustment_factor: 解释后复权价格口径，不作为策略筛选指标。
+    backward_adjustment_ratio: 解释除权除息影响，不作为策略筛选指标。
+    amount: 第一阶段暂不开放成交金额。
+    turnover_rate_pct: 换手率后续作为量能策略指标评估。
+    turnover_rate_free_float_pct: 自由流通换手率后续作为量能策略指标评估。
+    limit_up_price: 涨停价属于交易约束字段，暂不开放筛选。
+    limit_down_price: 跌停价属于交易约束字段，暂不开放筛选。
+    market_cap: 市值字段后续单独设计估值/规模分组。
+    float_market_cap: 市值字段后续单独设计估值/规模分组。
+    free_float_market_cap: 市值字段后续单独设计估值/规模分组。
+    shares: 股本事实字段，不作为策略筛选指标。
+    float_shares_a: 股本事实字段，不作为策略筛选指标。
+    free_float_shares: 股本事实字段，不作为策略筛选指标。
+    pe_static: 估值字段后续单独设计。
+    pe_ttm: 估值字段后续单独设计。
+    pe_forecast: 估值字段后续单独设计。
+    pb_mrq: 估值字段后续单独设计。
+    book_value_per_share: 估值字段后续单独设计。
+    roe: 财务质量字段后续单独设计。
+    roa: 财务质量字段后续单独设计。
+    roaa: 财务质量字段后续单独设计。
+    roae: 财务质量字段后续单独设计。
+    dy_static_pct: 股息率字段后续单独设计。
+    dy_ttm_pct: 股息率字段后续单独设计。
+    is_suspend: 第一阶段由 universe exclude_suspend 控制，不作为普通筛选指标。
+    is_st: 第一阶段由 universe exclude_st 控制，不作为普通筛选指标。
+    kdj_rsv: KDJ 指标来源统一使用 mart_stock_momentum_indicator_daily。
+    kdj_k_value: KDJ 指标来源统一使用 mart_stock_momentum_indicator_daily。
+    kdj_d_value: KDJ 指标来源统一使用 mart_stock_momentum_indicator_daily。
+    kdj_j_value: KDJ 指标来源统一使用 mart_stock_momentum_indicator_daily。
+  mart_stock_price_pattern_daily:
+    close_direction: 方向枚举暂不开放策略筛选。
+    close_up_streak_days: 第一阶段先开放连续下跌天数。
+    n_structure_20_valid_bars: N 字结构解释字段，不作为筛选指标。
+    n_structure_20_high_date: N 字结构解释字段，不作为筛选指标。
+    n_structure_20_high_price: N 字结构解释字段，不作为筛选指标。
+    n_structure_20_low_date: N 字结构解释字段，不作为筛选指标。
+    n_structure_20_low_price: N 字结构解释字段，不作为筛选指标。
+    n_structure_20_second_low_date: N 字结构解释字段，不作为筛选指标。
+    n_structure_20_second_low_price: N 字结构解释字段，不作为筛选指标。

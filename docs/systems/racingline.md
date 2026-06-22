@@ -112,7 +112,7 @@ cargo test --workspace
 | [../RFC/0021-racingline-virtual-account-portfolio-rebalancing.md](../RFC/0021-racingline-virtual-account-portfolio-rebalancing.md) | 虚拟账户、交易费率、止盈止损和组合调仓净值 Proposed RFC |
 | [../RFC/0023-racingline-frontend-prototype-led-development.md](../RFC/0023-racingline-frontend-prototype-led-development.md) | Racingline 前端 RFC 阶段允许原型驱动多轮 UX 验证的流程 RFC |
 | [../RFC/0024-racingline-strategy-selection-step1.md](../RFC/0024-racingline-strategy-selection-step1.md) | 从 `/strategies` Step 1 策略选股切入，接通 metric catalog、RuleVersionSpec 和 explain 的 Proposed RFC |
-| [../plans/0045-racingline-strategy-selection-step1-gap-closure-plan.md](../plans/0045-racingline-strategy-selection-step1-gap-closure-plan.md) | 策略选股 Step 1 缺口填补当前实施计划 |
+| [../plans/archive/0045-racingline-strategy-selection-step1-gap-closure-plan.md](../plans/archive/0045-racingline-strategy-selection-step1-gap-closure-plan.md) | 策略选股 Step 1 缺口填补实施计划归档 |
 | [../Q&A/user-logic.md](../Q&A/user-logic.md) | Racingline 当前用户画像和策略研究工作台主路径 |
 | [../Q&A/0003-racingline-strategy-lab-two-entry-navigation.md](../Q&A/0003-racingline-strategy-lab-two-entry-navigation.md) | Racingline 策略研究工作台两入口导航和首屏承载 Proposed Q&A |
 | [../Q&A/0004-racingline-prototype-dashboard-to-strategy-loop.md](../Q&A/0004-racingline-prototype-dashboard-to-strategy-loop.md) | `app/racingline_new/` 看板到选股、回测和运行策略闭环用户故事 |
@@ -128,6 +128,7 @@ cargo test --workspace
 | [../jobs/reports/2026-06-15-racingline-security-analysis-page.md](../jobs/reports/2026-06-15-racingline-security-analysis-page.md) | 个股分析页 API、桌面/移动和交互验收报告 |
 | [../jobs/reports/2026-06-15-racingline-security-analysis-optimization.md](../jobs/reports/2026-06-15-racingline-security-analysis-optimization.md) | 个股分析页优化、规则适配和评分 clamp 验收报告 |
 | [../jobs/reports/2026-06-16-racingline-portfolio-nav.md](../jobs/reports/2026-06-16-racingline-portfolio-nav.md) | 组合净值、明细 API、列表页和详情页 smoke 验收报告 |
+| [../jobs/reports/2026-06-21-racingline-strategy-step1-gap-closure.md](../jobs/reports/2026-06-21-racingline-strategy-step1-gap-closure.md) | 策略选股 Step 1 metric catalog、RuleVersionSpec、crossing explain 和浏览器验收报告 |
 | [../RFC/0018-rust-stock-screening-service.md](../RFC/0018-rust-stock-screening-service.md) | Rearview 后端服务 RFC |
 | [rearview.md](rearview.md) | Rearview 当前系统地图 |
 

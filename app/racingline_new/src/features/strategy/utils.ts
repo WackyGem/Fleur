@@ -3,7 +3,9 @@ import type {
   ComparableIndicator,
   CompareTarget,
   ConditionOperator,
+  IndicatorCatalog,
   MetricValueType,
+  MetricOption,
   ScaledWeightIndicator,
   StrategyCondition,
   WeightIndicator,
@@ -14,6 +16,13 @@ type CompatibleMetric = {
   metricId: string
 }
 
+const defaultOperatorPreference: ConditionOperator[] = [
+  "gte",
+  "eq",
+  "gt",
+  "is_null",
+]
+
 export function createId(prefix: string) {
   if (globalThis.crypto?.randomUUID) {
     return `${prefix}-${globalThis.crypto.randomUUID()}`
@@ -22,34 +31,55 @@ export function createId(prefix: string) {
   return `${prefix}-${Date.now()}-${Math.round(Math.random() * 10000)}`
 }
 
-export function createComparableIndicator(): ComparableIndicator {
-  const firstCatalog = indicatorCatalog[0]
-  const compareCatalog = indicatorCatalog[1] ?? firstCatalog
+export function createComparableIndicator(
+  catalogOptions: IndicatorCatalog[] = indicatorCatalog
+): ComparableIndicator {
+  const catalogs = getCatalogOptions(catalogOptions)
+  const firstCatalog = catalogs[0]
+  const firstMetric =
+    firstCatalog.metrics.find((metric) => metric.allowedOps.length > 0) ??
+    firstCatalog.metrics[0]
+  const defaultOperator = getDefaultOperator(firstMetric)
+  const defaultTarget = getCompatibleCompareTarget(
+    "value",
+    defaultOperator,
+    firstMetric.valueType
+  )
+  const compareMetric = findCompatibleMetric(
+    firstMetric.valueType,
+    undefined,
+    undefined,
+    catalogs
+  )
 
   return {
     catalogId: firstCatalog.id,
-    metric: (firstCatalog.metrics[2] ?? firstCatalog.metrics[0]).id,
-    target: "value",
-    operator: "gte",
-    value: "0",
+    metric: firstMetric.id,
+    target: defaultTarget,
+    operator: defaultOperator,
+    value: getDefaultValue(firstMetric.valueType),
     valueEnd: "",
-    compareCatalogId: compareCatalog.id,
-    compareMetric: compareCatalog.metrics[0].id,
+    compareCatalogId: compareMetric.catalogId,
+    compareMetric: compareMetric.metricId,
   }
 }
 
-export function createCondition(): StrategyCondition {
+export function createCondition(
+  catalogOptions: IndicatorCatalog[] = indicatorCatalog
+): StrategyCondition {
   return {
     id: createId("condition"),
     logic: "and",
-    ...createComparableIndicator(),
+    ...createComparableIndicator(catalogOptions),
   }
 }
 
-export function createWeightIndicator(): WeightIndicator {
+export function createWeightIndicator(
+  catalogOptions: IndicatorCatalog[] = indicatorCatalog
+): WeightIndicator {
   return {
     id: createId("weight"),
-    ...createComparableIndicator(),
+    ...createComparableIndicator(catalogOptions),
     score: 50,
   }
 }
@@ -73,6 +103,10 @@ export function clampWeightTotal(score: number) {
 export function formatComparableIndicator(indicator: ComparableIndicator) {
   const operatorLabel = getOperatorLabel(indicator.operator)
 
+  if (indicator.operator === "is_null") {
+    return `${indicator.metric} ${operatorLabel}`
+  }
+
   if (indicator.target === "metric") {
     return `${indicator.metric} ${operatorLabel} ${indicator.compareMetric}`
   }
@@ -84,15 +118,20 @@ export function formatComparableIndicator(indicator: ComparableIndicator) {
   return `${indicator.metric} ${operatorLabel} ${indicator.value}`
 }
 
-export function getCatalog(catalogId: string) {
-  return (
-    indicatorCatalog.find((catalog) => catalog.id === catalogId) ??
-    indicatorCatalog[0]
-  )
+export function getCatalog(
+  catalogId: string,
+  catalogOptions: IndicatorCatalog[] = indicatorCatalog
+) {
+  const catalogs = getCatalogOptions(catalogOptions)
+  return catalogs.find((catalog) => catalog.id === catalogId) ?? catalogs[0]
 }
 
-export function getMetric(catalogId: string, metricId: string) {
-  const catalog = getCatalog(catalogId)
+export function getMetric(
+  catalogId: string,
+  metricId: string,
+  catalogOptions: IndicatorCatalog[] = indicatorCatalog
+) {
+  const catalog = getCatalog(catalogId, catalogOptions)
   return (
     catalog.metrics.find((metric) => metric.id === metricId) ??
     catalog.metrics[0]
@@ -102,14 +141,19 @@ export function getMetric(catalogId: string, metricId: string) {
 export function findCompatibleMetric(
   valueType: MetricValueType,
   preferredCatalogId?: string,
-  preferredMetricId?: string
+  preferredMetricId?: string,
+  catalogOptions: IndicatorCatalog[] = indicatorCatalog,
+  options: { requireCrossing?: boolean } = {}
 ): CompatibleMetric {
+  const catalogs = getCatalogOptions(catalogOptions)
   const preferredCatalog = preferredCatalogId
-    ? getCatalog(preferredCatalogId)
+    ? getCatalog(preferredCatalogId, catalogs)
     : undefined
   const preferredMetric = preferredCatalog?.metrics.find(
     (metric) =>
-      metric.id === preferredMetricId && metric.valueType === valueType
+      metric.id === preferredMetricId &&
+      metric.valueType === valueType &&
+      (!options.requireCrossing || metric.supportsCrossing)
   )
 
   if (preferredCatalog && preferredMetric) {
@@ -119,9 +163,11 @@ export function findCompatibleMetric(
     }
   }
 
-  for (const catalog of indicatorCatalog) {
+  for (const catalog of catalogs) {
     const metric = catalog.metrics.find(
-      (candidate) => candidate.valueType === valueType
+      (candidate) =>
+        candidate.valueType === valueType &&
+        (!options.requireCrossing || candidate.supportsCrossing)
     )
     if (metric) {
       return {
@@ -132,18 +178,21 @@ export function findCompatibleMetric(
   }
 
   return {
-    catalogId: indicatorCatalog[0].id,
-    metricId: indicatorCatalog[0].metrics[0].id,
+    catalogId: catalogs[0].id,
+    metricId: catalogs[0].metrics[0].id,
   }
 }
 
 export function getOperatorOptions(
   target: CompareTarget,
-  valueType: MetricValueType
+  valueType: MetricValueType,
+  allowedOps?: ConditionOperator[]
 ) {
   return operatorOptions.filter(
     (option) =>
-      option.targets.includes(target) && option.valueTypes.includes(valueType)
+      option.targets.includes(target) &&
+      option.valueTypes.includes(valueType) &&
+      (!allowedOps || allowedOps.includes(option.value))
   )
 }
 
@@ -157,12 +206,13 @@ export function getOperatorLabel(operator: ConditionOperator) {
 export function getCompatibleOperator(
   operator: ConditionOperator,
   target: CompareTarget,
-  valueType: MetricValueType
+  valueType: MetricValueType,
+  allowedOps?: ConditionOperator[]
 ) {
-  const options = getOperatorOptions(target, valueType)
+  const options = getOperatorOptions(target, valueType, allowedOps)
   return options.some((option) => option.value === operator)
     ? operator
-    : options[0].value
+    : (options[0]?.value ?? "eq")
 }
 
 export function getCompatibleCompareTarget(
@@ -181,10 +231,14 @@ export function getCompatibleCompareTarget(
 
 export function getCatalogMetricsByType(
   catalogId: string,
-  valueType: MetricValueType
+  valueType: MetricValueType,
+  catalogOptions: IndicatorCatalog[] = indicatorCatalog,
+  options: { requireCrossing?: boolean } = {}
 ) {
-  return getCatalog(catalogId).metrics.filter(
-    (metric) => metric.valueType === valueType
+  return getCatalog(catalogId, catalogOptions).metrics.filter(
+    (metric) =>
+      metric.valueType === valueType &&
+      (!options.requireCrossing || metric.supportsCrossing)
   )
 }
 
@@ -193,24 +247,37 @@ export function getCompatibleValue(value: string, valueType: MetricValueType) {
     return value === "true" || value === "false" ? value : "false"
   }
 
-  return value === "true" || value === "false" ? "0" : value
+  if (valueType === "number") {
+    return value === "true" || value === "false" ? "0" : value
+  }
+
+  return value
 }
 
 export function getComparableMetricPatch(
   indicator: ComparableIndicator,
   catalogId: string,
-  metricId: string
+  metricId: string,
+  catalogOptions: IndicatorCatalog[] = indicatorCatalog
 ): Partial<ComparableIndicator> {
-  const nextMetric = getMetric(catalogId, metricId)
+  const nextMetric = getMetric(catalogId, metricId, catalogOptions)
+  const nextOperator = getCompatibleOperator(
+    indicator.operator,
+    indicator.target,
+    nextMetric.valueType,
+    nextMetric.allowedOps
+  )
   const nextTarget = getCompatibleCompareTarget(
     indicator.target,
-    indicator.operator,
+    nextOperator,
     nextMetric.valueType
   )
   const compatibleCompare = findCompatibleMetric(
     nextMetric.valueType,
     indicator.compareCatalogId,
-    indicator.compareMetric
+    indicator.compareMetric,
+    catalogOptions,
+    { requireCrossing: isCrossingOperator(nextOperator) }
   )
 
   return {
@@ -218,9 +285,10 @@ export function getComparableMetricPatch(
     metric: metricId,
     target: nextTarget,
     operator: getCompatibleOperator(
-      indicator.operator,
+      nextOperator,
       nextTarget,
-      nextMetric.valueType
+      nextMetric.valueType,
+      nextMetric.allowedOps
     ),
     value: getCompatibleValue(indicator.value, nextMetric.valueType),
     compareCatalogId: compatibleCompare.catalogId,
@@ -256,4 +324,33 @@ export function getScaledWeightIndicators(weightIndicators: WeightIndicator[]) {
     scaledTotal,
     scaleRatio,
   }
+}
+
+function getCatalogOptions(catalogOptions: IndicatorCatalog[]) {
+  return catalogOptions.length > 0 ? catalogOptions : indicatorCatalog
+}
+
+function getDefaultOperator(metric: MetricOption): ConditionOperator {
+  return (
+    defaultOperatorPreference.find((operator) =>
+      metric.allowedOps.includes(operator)
+    ) ??
+    metric.allowedOps[0] ??
+    "eq"
+  )
+}
+
+function getDefaultValue(valueType: MetricValueType) {
+  if (valueType === "boolean") {
+    return "false"
+  }
+  if (valueType === "string" || valueType === "date") {
+    return ""
+  }
+
+  return "0"
+}
+
+function isCrossingOperator(operator: ConditionOperator) {
+  return operator === "crosses_above" || operator === "crosses_below"
 }

@@ -174,7 +174,7 @@ StrategyConditionGroup[]
 | 指标与指标比较 | `Operand.metric` + `Operand.metric` |
 | 区间比较 | `Operator.between` + `Operand.range` |
 
-组内同时存在 AND 和 OR 时，第一阶段必须支持混排，不允许降级为统一 AND 或统一 OR。实施计划以 [Plan 0045](../plans/0045-racingline-strategy-selection-step1-gap-closure-plan.md) 的阶段 6 为准：
+组内同时存在 AND 和 OR 时，第一阶段必须支持混排，不允许降级为统一 AND 或统一 OR。实施计划以 [Plan 0045](../plans/archive/0045-racingline-strategy-selection-step1-gap-closure-plan.md) 的阶段 6 为准：
 
 1. `AND` 高于 `OR`。
 2. 按连续 AND segment 生成 nested `all` / `any`。
@@ -577,6 +577,6 @@ playwright-cli attach --cdp="${PLAYWRIGHT_CDP_ENDPOINT:-http://127.0.0.1:9222}"
 - [RFC 0018: Rust Rearview 规则选股服务与 mart 指标库](0018-rust-stock-screening-service.md)
 - [RFC 0019: Racingline Rearview 前端工作台](0019-racingline-rearview-frontend-workbench.md)
 - [RFC 0023: Racingline 前端原型驱动开发流程](0023-racingline-frontend-prototype-led-development.md)
-- [Plan 0045: Racingline 策略选股 Step 1 缺口填补实施计划](../plans/0045-racingline-strategy-selection-step1-gap-closure-plan.md)
+- [Plan 0045: Racingline 策略选股 Step 1 缺口填补实施计划](../plans/archive/0045-racingline-strategy-selection-step1-gap-closure-plan.md)
 - [System: Racingline](../systems/racingline.md)
 - [System: Rearview](../systems/rearview.md)

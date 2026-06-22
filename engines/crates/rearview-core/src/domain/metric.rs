@@ -19,6 +19,27 @@ pub struct MetricDefinition {
     pub default_output: bool,
     #[serde(default)]
     pub description: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub cross: Option<MetricCross>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub display: Option<MetricDisplay>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct MetricCross {
+    pub previous_metric: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct MetricDisplay {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub group: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub label_zh: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub unit: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub sort_order: Option<i32>,
 }
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord)]
@@ -42,6 +63,8 @@ pub enum Operator {
     Gte,
     Between,
     IsNull,
+    CrossesAbove,
+    CrossesBelow,
 }
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]

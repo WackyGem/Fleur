@@ -11,6 +11,8 @@ models:
           - 通过 int_stock_boll_daily 左连接 BOLL 字段，通过 int_stock_macd_daily 左连接 MACD 字段。
           - 不选择 volume_ma_* 均量字段；均量归属 mart_stock_volume_indicator。
           - MACD 字段来自 int_stock_macd_daily，只暴露 macd_dif、macd_dea 和 macd_histogram，不暴露内部递推状态列。
+          - 为允许 crossing 的趋势指标输出 prev_* 前值字段；前值定义为同一 security_code 按 trade_date 排序的上一交易行，不是自然日前一日。
+          - prev_* 不做填充；首个交易行、上一交易行缺失或上一交易行对应指标为 NULL 时保持 NULL。
     data_tests:
       - unique_combination_of_columns:
           arguments:
@@ -35,114 +37,230 @@ models:
         description: 基于 close_price_forward_adj 的 3 个有效收盘价简单移动平均。
         data_type: Nullable(Float64)
 
+      - name: prev_price_ma_3
+        description: 同一 security_code 上一交易行的 price_ma_3；首个交易行或上一交易行 price_ma_3 为 NULL 时为 NULL。
+        data_type: Nullable(Float64)
+
       - name: price_ma_5
         description: 基于 close_price_forward_adj 的 5 个有效收盘价简单移动平均。
+        data_type: Nullable(Float64)
+
+      - name: prev_price_ma_5
+        description: 同一 security_code 上一交易行的 price_ma_5；首个交易行或上一交易行 price_ma_5 为 NULL 时为 NULL。
         data_type: Nullable(Float64)
 
       - name: price_ma_6
         description: 基于 close_price_forward_adj 的 6 个有效收盘价简单移动平均。
         data_type: Nullable(Float64)
 
+      - name: prev_price_ma_6
+        description: 同一 security_code 上一交易行的 price_ma_6；首个交易行或上一交易行 price_ma_6 为 NULL 时为 NULL。
+        data_type: Nullable(Float64)
+
       - name: price_ma_10
         description: 基于 close_price_forward_adj 的 10 个有效收盘价简单移动平均。
+        data_type: Nullable(Float64)
+
+      - name: prev_price_ma_10
+        description: 同一 security_code 上一交易行的 price_ma_10；首个交易行或上一交易行 price_ma_10 为 NULL 时为 NULL。
         data_type: Nullable(Float64)
 
       - name: price_ma_12
         description: 基于 close_price_forward_adj 的 12 个有效收盘价简单移动平均。
         data_type: Nullable(Float64)
 
+      - name: prev_price_ma_12
+        description: 同一 security_code 上一交易行的 price_ma_12；首个交易行或上一交易行 price_ma_12 为 NULL 时为 NULL。
+        data_type: Nullable(Float64)
+
       - name: price_ma_14
         description: 基于 close_price_forward_adj 的 14 个有效收盘价简单移动平均。
+        data_type: Nullable(Float64)
+
+      - name: prev_price_ma_14
+        description: 同一 security_code 上一交易行的 price_ma_14；首个交易行或上一交易行 price_ma_14 为 NULL 时为 NULL。
         data_type: Nullable(Float64)
 
       - name: price_ma_20
         description: 基于 close_price_forward_adj 的 20 个有效收盘价简单移动平均。
         data_type: Nullable(Float64)
 
+      - name: prev_price_ma_20
+        description: 同一 security_code 上一交易行的 price_ma_20；首个交易行或上一交易行 price_ma_20 为 NULL 时为 NULL。
+        data_type: Nullable(Float64)
+
       - name: price_ma_24
         description: 基于 close_price_forward_adj 的 24 个有效收盘价简单移动平均。
+        data_type: Nullable(Float64)
+
+      - name: prev_price_ma_24
+        description: 同一 security_code 上一交易行的 price_ma_24；首个交易行或上一交易行 price_ma_24 为 NULL 时为 NULL。
         data_type: Nullable(Float64)
 
       - name: price_ma_28
         description: 基于 close_price_forward_adj 的 28 个有效收盘价简单移动平均。
         data_type: Nullable(Float64)
 
+      - name: prev_price_ma_28
+        description: 同一 security_code 上一交易行的 price_ma_28；首个交易行或上一交易行 price_ma_28 为 NULL 时为 NULL。
+        data_type: Nullable(Float64)
+
       - name: price_ma_30
         description: 30-valid-close simple moving average based on close_price_forward_adj; not an alias of price_ma_28.
+        data_type: Nullable(Float64)
+
+      - name: prev_price_ma_30
+        description: 同一 security_code 上一交易行的 price_ma_30；首个交易行或上一交易行 price_ma_30 为 NULL 时为 NULL。
         data_type: Nullable(Float64)
 
       - name: price_ma_57
         description: 基于 close_price_forward_adj 的 57 个有效收盘价简单移动平均。
         data_type: Nullable(Float64)
 
+      - name: prev_price_ma_57
+        description: 同一 security_code 上一交易行的 price_ma_57；首个交易行或上一交易行 price_ma_57 为 NULL 时为 NULL。
+        data_type: Nullable(Float64)
+
       - name: price_ma_60
         description: 基于 close_price_forward_adj 的 60 个有效收盘价简单移动平均。
+        data_type: Nullable(Float64)
+
+      - name: prev_price_ma_60
+        description: 同一 security_code 上一交易行的 price_ma_60；首个交易行或上一交易行 price_ma_60 为 NULL 时为 NULL。
         data_type: Nullable(Float64)
 
       - name: price_ma_114
         description: 基于 close_price_forward_adj 的 114 个有效收盘价简单移动平均。
         data_type: Nullable(Float64)
 
+      - name: prev_price_ma_114
+        description: 同一 security_code 上一交易行的 price_ma_114；首个交易行或上一交易行 price_ma_114 为 NULL 时为 NULL。
+        data_type: Nullable(Float64)
+
       - name: price_ma_250
         description: 基于 close_price_forward_adj 的 250 个有效收盘价简单移动平均。
+        data_type: Nullable(Float64)
+
+      - name: prev_price_ma_250
+        description: 同一 security_code 上一交易行的 price_ma_250；首个交易行或上一交易行 price_ma_250 为 NULL 时为 NULL。
         data_type: Nullable(Float64)
 
       - name: price_avg_ma_3_6_12_24
         description: Average of price_ma_3, price_ma_6, price_ma_12, and price_ma_24; NULL when any component is NULL.
         data_type: Nullable(Float64)
 
+      - name: prev_price_avg_ma_3_6_12_24
+        description: 同一 security_code 上一交易行的 price_avg_ma_3_6_12_24；首个交易行或上一交易行 price_avg_ma_3_6_12_24 为 NULL 时为 NULL。
+        data_type: Nullable(Float64)
+
       - name: price_avg_ma_14_28_57_114
         description: Average of price_ma_14, price_ma_28, price_ma_57, and price_ma_114; NULL when any component is NULL.
+        data_type: Nullable(Float64)
+
+      - name: prev_price_avg_ma_14_28_57_114
+        description: 同一 security_code 上一交易行的 price_avg_ma_14_28_57_114；首个交易行或上一交易行 price_avg_ma_14_28_57_114 为 NULL 时为 NULL。
         data_type: Nullable(Float64)
 
       - name: price_ema2_10
         description: 双重 EMA EMA(EMA(close_price_forward_adj, 10), 10)，使用 SMA 启动；第 19 个有效收盘价起首次非 NULL。
         data_type: Nullable(Float64)
 
+      - name: prev_price_ema2_10
+        description: 同一 security_code 上一交易行的 price_ema2_10；首个交易行或上一交易行 price_ema2_10 为 NULL 时为 NULL。
+        data_type: Nullable(Float64)
+
       - name: boll_mid_10_1p5
         description: BOLL(10, 1.5) 中轨，来自 int_stock_boll_daily。
+        data_type: Nullable(Float64)
+
+      - name: prev_boll_mid_10_1p5
+        description: 同一 security_code 上一交易行的 boll_mid_10_1p5；首个交易行或上一交易行 boll_mid_10_1p5 为 NULL 时为 NULL。
         data_type: Nullable(Float64)
 
       - name: boll_upper_10_1p5
         description: BOLL(10, 1.5) 上轨，来自 int_stock_boll_daily。
         data_type: Nullable(Float64)
 
+      - name: prev_boll_upper_10_1p5
+        description: 同一 security_code 上一交易行的 boll_upper_10_1p5；首个交易行或上一交易行 boll_upper_10_1p5 为 NULL 时为 NULL。
+        data_type: Nullable(Float64)
+
       - name: boll_lower_10_1p5
         description: BOLL(10, 1.5) 下轨，来自 int_stock_boll_daily。
+        data_type: Nullable(Float64)
+
+      - name: prev_boll_lower_10_1p5
+        description: 同一 security_code 上一交易行的 boll_lower_10_1p5；首个交易行或上一交易行 boll_lower_10_1p5 为 NULL 时为 NULL。
         data_type: Nullable(Float64)
 
       - name: boll_mid_20_2
         description: BOLL(20, 2) 中轨，来自 int_stock_boll_daily。
         data_type: Nullable(Float64)
 
+      - name: prev_boll_mid_20_2
+        description: 同一 security_code 上一交易行的 boll_mid_20_2；首个交易行或上一交易行 boll_mid_20_2 为 NULL 时为 NULL。
+        data_type: Nullable(Float64)
+
       - name: boll_upper_20_2
         description: BOLL(20, 2) 上轨，来自 int_stock_boll_daily。
+        data_type: Nullable(Float64)
+
+      - name: prev_boll_upper_20_2
+        description: 同一 security_code 上一交易行的 boll_upper_20_2；首个交易行或上一交易行 boll_upper_20_2 为 NULL 时为 NULL。
         data_type: Nullable(Float64)
 
       - name: boll_lower_20_2
         description: BOLL(20, 2) 下轨，来自 int_stock_boll_daily。
         data_type: Nullable(Float64)
 
+      - name: prev_boll_lower_20_2
+        description: 同一 security_code 上一交易行的 boll_lower_20_2；首个交易行或上一交易行 boll_lower_20_2 为 NULL 时为 NULL。
+        data_type: Nullable(Float64)
+
       - name: boll_mid_50_2p5
         description: BOLL(50, 2.5) 中轨，来自 int_stock_boll_daily。
+        data_type: Nullable(Float64)
+
+      - name: prev_boll_mid_50_2p5
+        description: 同一 security_code 上一交易行的 boll_mid_50_2p5；首个交易行或上一交易行 boll_mid_50_2p5 为 NULL 时为 NULL。
         data_type: Nullable(Float64)
 
       - name: boll_upper_50_2p5
         description: BOLL(50, 2.5) 上轨，来自 int_stock_boll_daily。
         data_type: Nullable(Float64)
 
+      - name: prev_boll_upper_50_2p5
+        description: 同一 security_code 上一交易行的 boll_upper_50_2p5；首个交易行或上一交易行 boll_upper_50_2p5 为 NULL 时为 NULL。
+        data_type: Nullable(Float64)
+
       - name: boll_lower_50_2p5
         description: BOLL(50, 2.5) 下轨，来自 int_stock_boll_daily。
+        data_type: Nullable(Float64)
+
+      - name: prev_boll_lower_50_2p5
+        description: 同一 security_code 上一交易行的 boll_lower_50_2p5；首个交易行或上一交易行 boll_lower_50_2p5 为 NULL 时为 NULL。
         data_type: Nullable(Float64)
 
       - name: macd_dif
         description: MACD(12,26,9) DIF 快线，EMA(12) - EMA(26)，基于 close_price_forward_adj，来自 int_stock_macd_daily。
         data_type: Nullable(Float64)
 
+      - name: prev_macd_dif
+        description: 同一 security_code 上一交易行的 macd_dif；首个交易行或上一交易行 macd_dif 为 NULL 时为 NULL。
+        data_type: Nullable(Float64)
+
       - name: macd_dea
         description: MACD(12,26,9) DEA 慢线，对 DIF 做 EMA(9) 平滑并使用 SMA 启动，来自 int_stock_macd_daily。
         data_type: Nullable(Float64)
 
+      - name: prev_macd_dea
+        description: 同一 security_code 上一交易行的 macd_dea；首个交易行或上一交易行 macd_dea 为 NULL 时为 NULL。
+        data_type: Nullable(Float64)
+
       - name: macd_histogram
         description: 标准 MACD 柱状图，macd_dif - macd_dea；非 2 倍增强版。
+        data_type: Nullable(Float64)
+
+      - name: prev_macd_histogram
+        description: 同一 security_code 上一交易行的 macd_histogram；首个交易行或上一交易行 macd_histogram 为 NULL 时为 NULL。
         data_type: Nullable(Float64)

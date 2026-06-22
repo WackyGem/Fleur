@@ -1,3 +1,5 @@
+import type { MetricDefinition, Operator } from "@/types/rearview"
+
 export type IndicatorCatalog = {
   id: string
   label: string
@@ -5,10 +7,17 @@ export type IndicatorCatalog = {
   metrics: MetricOption[]
 }
 
-export type MetricValueType = "number" | "boolean"
+export type MetricValueType = "number" | "boolean" | "string" | "date"
 
 export type MetricOption = {
+  allowedOps: ConditionOperator[]
+  defaultOutput?: boolean
+  description?: string | null
   id: string
+  label: string
+  previousMetric?: string
+  sourceMetric?: MetricDefinition
+  supportsCrossing?: boolean
   valueType: MetricValueType
 }
 
@@ -16,16 +25,7 @@ export type GroupLogic = "and" | "or"
 
 export type CompareTarget = "value" | "metric"
 
-export type ConditionOperator =
-  | "gt"
-  | "gte"
-  | "lt"
-  | "lte"
-  | "eq"
-  | "neq"
-  | "between"
-  | "crosses_above"
-  | "crosses_below"
+export type ConditionOperator = Operator
 
 export type ComparableIndicator = {
   catalogId: string

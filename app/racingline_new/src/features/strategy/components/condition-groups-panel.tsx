@@ -15,12 +15,14 @@ import { AddDashedButton } from "@/features/strategy/components/add-dashed-butto
 import { ComparisonFields } from "@/features/strategy/components/comparison-fields"
 import type {
   GroupLogic,
+  IndicatorCatalog,
   StrategyCondition,
   StrategyConditionGroup,
 } from "@/features/strategy/types"
 import { Trash2 } from "lucide-react"
 
 type ConditionGroupsPanelProps = {
+  catalogOptions: IndicatorCatalog[]
   conditionGroups: StrategyConditionGroup[]
   onAddCondition: (groupId: string) => void
   onCreateGroup: () => void
@@ -38,6 +40,7 @@ type ConditionGroupsPanelProps = {
 }
 
 function ConditionGroupsPanel({
+  catalogOptions,
   conditionGroups,
   onAddCondition,
   onCreateGroup,
@@ -105,6 +108,7 @@ function ConditionGroupsPanel({
                         ) : null}
 
                         <ComparisonFields
+                          catalogOptions={catalogOptions}
                           className="bg-muted/10 p-2 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)_minmax(0,0.8fr)_auto_minmax(0,1fr)_minmax(0,1.1fr)_auto]"
                           value={condition}
                           onChange={(patch) =>

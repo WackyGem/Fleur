@@ -1,14 +1,11 @@
-import { Fragment, useEffect, useRef, useState } from "react"
+import { Fragment, useEffect, useMemo, useRef, useState } from "react"
 import { useNavigate } from "react-router-dom"
 import { createChart, LineSeries } from "lightweight-charts"
 
+import { useExplainMutation, useMetricsQuery } from "@/api/hooks"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Field, FieldGroup, FieldLabel } from "@/components/ui/field"
 import {
   Select,
@@ -19,6 +16,8 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { Separator } from "@/components/ui/separator"
+import { Skeleton } from "@/components/ui/skeleton"
+import { Spinner } from "@/components/ui/spinner"
 import {
   Table,
   TableBody,
@@ -27,6 +26,12 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
+import {
+  buildStrategyMetricCatalog,
+  buildStrategySelectionRuleSpec,
+  StrategyRuleSpecError,
+} from "@/features/strategy/adapters"
+import { indicatorCatalog } from "@/features/strategy/catalog"
 import { ConditionGroupsPanel } from "@/features/strategy/components/condition-groups-panel"
 import { PoolPreviewPanel } from "@/features/strategy/components/pool-preview-panel"
 import { SimulationPositionPanel } from "@/features/strategy/components/simulation-position-panel"
@@ -46,6 +51,7 @@ import {
   createWeightIndicator,
 } from "@/features/strategy/utils"
 import { cn } from "@/lib/utils"
+import type { ExplainResponse, RuleVersionSpec } from "@/types/rearview"
 import { Play } from "lucide-react"
 
 const stepContent: Record<Step, { description: string; title: string }> = {
@@ -271,9 +277,8 @@ function BacktestPanel({
     backtestPeriodOptions.find((option) => option.value === period)?.label ??
     period
   const selectedBenchmarkLabel =
-    backtestBenchmarkOptions.find(
-      (option) => option.securityCode === benchmark
-    )?.label ?? benchmark
+    backtestBenchmarkOptions.find((option) => option.securityCode === benchmark)
+      ?.label ?? benchmark
   const selectedRebalanceRecord =
     backtestRebalanceRecords.find(
       (record) => record.date === selectedRebalanceDate
@@ -347,7 +352,12 @@ function BacktestPanel({
               </Select>
             </Field>
 
-            <Button className="w-full" variant="outline" size="lg" type="button">
+            <Button
+              className="w-full"
+              variant="outline"
+              size="lg"
+              type="button"
+            >
               重新回测
             </Button>
           </FieldGroup>
@@ -384,7 +394,8 @@ function BacktestPanel({
             <div className="h-[32px] shrink-0 [scrollbar-width:thin] overflow-x-auto overflow-y-hidden overscroll-x-contain pb-3 [&::-webkit-scrollbar]:h-[2px] [&::-webkit-scrollbar-thumb]:bg-border [&::-webkit-scrollbar-track]:bg-transparent">
               <div className="flex min-w-max gap-1.5 pr-1">
                 {backtestRebalanceRecords.map((record) => {
-                  const isSelected = record.date === selectedRebalanceRecord?.date
+                  const isSelected =
+                    record.date === selectedRebalanceRecord?.date
                   const buyCount = record.trades.filter(
                     (trade) => trade.direction === "buy"
                   ).length
@@ -548,14 +559,14 @@ function BacktestPanel({
             {latestNetValuePoint ? (
               <>
                 <div className="grid grid-cols-2 gap-2">
-                    <BacktestSummaryMetric
-                      label="策略净值"
-                      value={formatNetValue(latestNetValuePoint.strategy)}
-                    />
-                    <BacktestSummaryMetric
-                      label="基准净值"
-                      value={formatNetValue(latestNetValuePoint.benchmark)}
-                    />
+                  <BacktestSummaryMetric
+                    label="策略净值"
+                    value={formatNetValue(latestNetValuePoint.strategy)}
+                  />
+                  <BacktestSummaryMetric
+                    label="基准净值"
+                    value={formatNetValue(latestNetValuePoint.benchmark)}
+                  />
                 </div>
 
                 <Separator />
@@ -717,7 +728,8 @@ function buildBacktestTrade(
     backtestTradeCandidates[
       (dayIndex * 3 + offset * 5) % backtestTradeCandidates.length
     ]
-  const costPrice = candidate.basePrice * (0.96 + ((dayIndex + offset) % 9) / 50)
+  const costPrice =
+    candidate.basePrice * (0.96 + ((dayIndex + offset) % 9) / 50)
   const change =
     direction === "buy"
       ? 0
@@ -784,6 +796,24 @@ function formatSignedPercent(value: number) {
   const sign = value > 0 ? "+" : ""
 
   return `${sign}${(value * 100).toFixed(2)}%`
+}
+
+function formatErrorMessage(error: unknown) {
+  if (error instanceof Error) {
+    return error.message
+  }
+
+  return String(error || "Unknown error")
+}
+
+function formatRequiredColumns(columns: Record<string, string[]> | undefined) {
+  if (!columns) {
+    return ""
+  }
+
+  return Object.entries(columns)
+    .map(([mart, names]) => `${mart}: ${names.join(", ")}`)
+    .join(" / ")
 }
 
 function BacktestNetValueChart({
@@ -881,8 +911,183 @@ function BacktestNetValueChart({
   return <div ref={containerRef} className="h-60 w-full bg-muted/10" />
 }
 
+function MetricsCatalogState({
+  error,
+  isError,
+  isLoading,
+  usingFallback,
+}: {
+  error: unknown
+  isError: boolean
+  isLoading: boolean
+  usingFallback: boolean
+}) {
+  if (isError) {
+    return (
+      <Alert variant="destructive">
+        <AlertTitle>指标加载失败</AlertTitle>
+        <AlertDescription>
+          {usingFallback
+            ? `${formatErrorMessage(error)} / 当前仅展示原型字段，真实校验已禁用。`
+            : formatErrorMessage(error)}
+        </AlertDescription>
+      </Alert>
+    )
+  }
+
+  if (isLoading && usingFallback) {
+    return (
+      <Alert>
+        <Spinner />
+        <AlertTitle>正在加载真实指标目录</AlertTitle>
+        <AlertDescription>
+          当前先展示原型字段；Rearview metrics 返回前，真实校验保持禁用。
+        </AlertDescription>
+      </Alert>
+    )
+  }
+
+  if (isLoading) {
+    return <Skeleton className="h-9 w-full" />
+  }
+
+  if (usingFallback) {
+    return (
+      <Alert>
+        <AlertTitle>使用原型字段</AlertTitle>
+        <AlertDescription>
+          Rearview catalog
+          当前没有可用指标；页面保留编辑器展示，真实校验已禁用。
+        </AlertDescription>
+      </Alert>
+    )
+  }
+
+  return null
+}
+
+function ExplainStatusPanel({
+  adapterError,
+  error,
+  isPending,
+  lastExplainAt,
+  result,
+  ruleSpec,
+  stale,
+}: {
+  adapterError: string | null
+  error: unknown
+  isPending: boolean
+  lastExplainAt: string | null
+  result: ExplainResponse | null
+  ruleSpec: RuleVersionSpec | null
+  stale: boolean
+}) {
+  if (adapterError) {
+    return (
+      <Alert variant="destructive">
+        <AlertTitle>规则草案无效</AlertTitle>
+        <AlertDescription>{adapterError}</AlertDescription>
+      </Alert>
+    )
+  }
+
+  if (error) {
+    return (
+      <Alert variant="destructive">
+        <AlertTitle>规则校验失败</AlertTitle>
+        <AlertDescription>{formatErrorMessage(error)}</AlertDescription>
+      </Alert>
+    )
+  }
+
+  if (isPending) {
+    return (
+      <Alert>
+        <Spinner />
+        <AlertTitle>正在校验规则</AlertTitle>
+        <AlertDescription>Rearview explain 正在编译规则草案。</AlertDescription>
+      </Alert>
+    )
+  }
+
+  if (!result || !ruleSpec) {
+    return null
+  }
+
+  return (
+    <div className="flex flex-col gap-3">
+      <Alert>
+        <AlertTitle>{stale ? "规则校验已过期" : "规则校验通过"}</AlertTitle>
+        <AlertDescription>
+          {[
+            result.sql_hash ?? result.compiled_sql_hash ?? "no-hash",
+            `${result.required_metrics?.length ?? 0} metrics`,
+            `${result.required_marts?.length ?? 0} marts`,
+            `${result.chunk_plan?.length ?? 0} chunks`,
+            lastExplainAt ?? "",
+          ]
+            .filter(Boolean)
+            .join(" / ")}
+        </AlertDescription>
+      </Alert>
+
+      <div className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_minmax(22rem,0.75fr)]">
+        <div className="min-w-0 border border-border/60 bg-background p-3">
+          <div className="mb-2 text-xs font-medium text-muted-foreground">
+            Explain dependencies
+          </div>
+          <div className="grid gap-2 text-xs">
+            <DependencyLine
+              label="metrics"
+              value={(result.required_metrics ?? []).join(", ")}
+            />
+            <DependencyLine
+              label="marts"
+              value={(result.required_marts ?? []).join(", ")}
+            />
+            <DependencyLine
+              label="columns"
+              value={formatRequiredColumns(result.required_columns)}
+            />
+          </div>
+        </div>
+
+        <div className="min-w-0 border border-border/60 bg-background p-3">
+          <div className="mb-2 text-xs font-medium text-muted-foreground">
+            RuleVersionSpec
+          </div>
+          <pre className="max-h-64 overflow-auto text-[11px] leading-relaxed break-all whitespace-pre-wrap text-muted-foreground">
+            {JSON.stringify(ruleSpec, null, 2)}
+          </pre>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function DependencyLine({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="grid min-w-0 grid-cols-[5rem_minmax(0,1fr)] gap-2">
+      <div className="text-muted-foreground">{label}</div>
+      <div className="truncate font-medium">{value || "--"}</div>
+    </div>
+  )
+}
+
 export function StrategyPage() {
   const navigate = useNavigate()
+  const metricsQuery = useMetricsQuery()
+  const explainMutation = useExplainMutation()
+  const strategyCatalog = useMemo(
+    () => buildStrategyMetricCatalog(metricsQuery.data ?? []),
+    [metricsQuery.data]
+  )
+  const hasRealMetricsCatalog =
+    metricsQuery.isSuccess && strategyCatalog.length > 0
+  const strategyCatalogOptions = hasRealMetricsCatalog
+    ? strategyCatalog
+    : indicatorCatalog
   const [activeStep, setActiveStep] = useState<Step>("indicators")
   const [conditionGroups, setConditionGroups] = useState<
     StrategyConditionGroup[]
@@ -896,22 +1101,41 @@ export function StrategyPage() {
     useState<WeightIndicator[]>(() => buildPreviewWeightIndicators([]))
   const [simulationSettings, setSimulationSettings] =
     useState<SimulationSettings>(defaultSimulationSettings)
-  const [backtestPeriod, setBacktestPeriod] =
-    useState<BacktestPeriod>("1y")
+  const [backtestPeriod, setBacktestPeriod] = useState<BacktestPeriod>("1y")
   const [backtestBenchmark, setBacktestBenchmark] =
     useState<BacktestBenchmark>("000300.SH")
+  const [adapterError, setAdapterError] = useState<string | null>(null)
+  const [lastRuleSpec, setLastRuleSpec] = useState<RuleVersionSpec | null>(null)
+  const [lastExplainResult, setLastExplainResult] =
+    useState<ExplainResponse | null>(null)
+  const [lastExplainAt, setLastExplainAt] = useState<string | null>(null)
+  const [isExplainStale, setIsExplainStale] = useState(false)
+  const canEditConditions = strategyCatalogOptions.length > 0
+  const canExplainRule = hasRealMetricsCatalog
+
+  function markRuleDraftChanged() {
+    setAdapterError(null)
+    if (lastRuleSpec || lastExplainResult || lastExplainAt) {
+      setIsExplainStale(true)
+    }
+  }
 
   function handleBack() {
     navigate("/dashboard", { viewTransition: true })
   }
 
   function createGroup() {
+    if (!canEditConditions) {
+      return
+    }
+
+    markRuleDraftChanged()
     setConditionGroups((current) => [
       ...current,
       {
         id: createId("group"),
         name: `指标组 ${current.length + 1}`,
-        conditions: [createCondition()],
+        conditions: [createCondition(strategyCatalogOptions)],
       },
     ])
   }
@@ -920,6 +1144,7 @@ export function StrategyPage() {
     groupId: string,
     patch: Partial<Pick<StrategyConditionGroup, "name">>
   ) {
+    markRuleDraftChanged()
     setConditionGroups((current) =>
       current.map((group) =>
         group.id === groupId ? { ...group, ...patch } : group
@@ -928,16 +1153,28 @@ export function StrategyPage() {
   }
 
   function removeGroup(groupId: string) {
+    markRuleDraftChanged()
     setConditionGroups((current) =>
       current.filter((group) => group.id !== groupId)
     )
   }
 
   function addCondition(groupId: string) {
+    if (!canEditConditions) {
+      return
+    }
+
+    markRuleDraftChanged()
     setConditionGroups((current) =>
       current.map((group) =>
         group.id === groupId
-          ? { ...group, conditions: [...group.conditions, createCondition()] }
+          ? {
+              ...group,
+              conditions: [
+                ...group.conditions,
+                createCondition(strategyCatalogOptions),
+              ],
+            }
           : group
       )
     )
@@ -948,6 +1185,7 @@ export function StrategyPage() {
     conditionId: string,
     patch: Partial<StrategyCondition>
   ) {
+    markRuleDraftChanged()
     setConditionGroups((current) =>
       current.map((group) =>
         group.id === groupId
@@ -965,6 +1203,7 @@ export function StrategyPage() {
   }
 
   function removeCondition(groupId: string, conditionId: string) {
+    markRuleDraftChanged()
     setConditionGroups((current) =>
       current.map((group) =>
         group.id === groupId
@@ -980,7 +1219,37 @@ export function StrategyPage() {
   }
 
   function addWeightIndicator() {
-    setWeightIndicators((current) => [...current, createWeightIndicator()])
+    setWeightIndicators((current) => [
+      ...current,
+      createWeightIndicator(strategyCatalogOptions),
+    ])
+  }
+
+  async function validateRuleDraft() {
+    explainMutation.reset()
+    setAdapterError(null)
+
+    try {
+      if (!metricsQuery.data || metricsQuery.data.length === 0) {
+        throw new StrategyRuleSpecError(
+          "Rearview 指标目录未加载，不能提交真实 explain"
+        )
+      }
+
+      const { rule } = buildStrategySelectionRuleSpec(
+        conditionGroups,
+        metricsQuery.data ?? []
+      )
+      const result = await explainMutation.mutateAsync({ rule })
+      setLastRuleSpec(rule)
+      setLastExplainResult(result)
+      setLastExplainAt(new Date().toISOString())
+      setIsExplainStale(false)
+    } catch (error) {
+      if (error instanceof StrategyRuleSpecError) {
+        setAdapterError(error.message)
+      }
+    }
   }
 
   function updateWeightIndicator(
@@ -1073,15 +1342,46 @@ export function StrategyPage() {
               )}
             >
               {activeStep === "indicators" ? (
-                <ConditionGroupsPanel
-                  conditionGroups={conditionGroups}
-                  onAddCondition={addCondition}
-                  onCreateGroup={createGroup}
-                  onRemoveCondition={removeCondition}
-                  onRemoveGroup={removeGroup}
-                  onUpdateCondition={updateCondition}
-                  onUpdateGroup={updateGroup}
-                />
+                <div className="flex flex-col gap-3">
+                  <MetricsCatalogState
+                    error={metricsQuery.error}
+                    isError={metricsQuery.isError}
+                    isLoading={metricsQuery.isLoading}
+                    usingFallback={!hasRealMetricsCatalog}
+                  />
+
+                  {canEditConditions ? (
+                    <ConditionGroupsPanel
+                      catalogOptions={strategyCatalogOptions}
+                      conditionGroups={conditionGroups}
+                      onAddCondition={addCondition}
+                      onCreateGroup={createGroup}
+                      onRemoveCondition={removeCondition}
+                      onRemoveGroup={removeGroup}
+                      onUpdateCondition={updateCondition}
+                      onUpdateGroup={updateGroup}
+                    />
+                  ) : metricsQuery.isLoading || metricsQuery.isError ? null : (
+                    <Alert>
+                      <AlertTitle>没有可筛选指标</AlertTitle>
+                      <AlertDescription>
+                        Rearview catalog 当前没有返回 allow_filter 指标。
+                      </AlertDescription>
+                    </Alert>
+                  )}
+
+                  <ExplainStatusPanel
+                    adapterError={adapterError}
+                    error={
+                      explainMutation.isError ? explainMutation.error : null
+                    }
+                    isPending={explainMutation.isPending}
+                    lastExplainAt={lastExplainAt}
+                    result={lastExplainResult}
+                    ruleSpec={lastRuleSpec}
+                    stale={isExplainStale}
+                  />
+                </div>
               ) : activeStep === "weights" ? (
                 <WeightIndicatorsPanel
                   weightIndicators={weightIndicators}
@@ -1131,15 +1431,35 @@ export function StrategyPage() {
                   )}
                 >
                   {activeStep === "indicators" ? (
-                    <Button
-                      variant="default"
-                      size="lg"
-                      className="w-full sm:w-48"
-                      onClick={() => setActiveStep("weights")}
-                      type="button"
-                    >
-                      配置权重
-                    </Button>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Button
+                        variant="default"
+                        size="lg"
+                        className="w-full sm:w-48"
+                        disabled={
+                          explainMutation.isPending ||
+                          !canEditConditions ||
+                          !canExplainRule
+                        }
+                        onClick={validateRuleDraft}
+                        type="button"
+                      >
+                        {explainMutation.isPending ? (
+                          <Spinner data-icon="inline-start" />
+                        ) : null}
+                        校验规则
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="lg"
+                        className="w-full sm:w-48"
+                        disabled={!lastExplainResult || isExplainStale}
+                        onClick={() => setActiveStep("weights")}
+                        type="button"
+                      >
+                        配置权重
+                      </Button>
+                    </div>
                   ) : activeStep === "weights" ? (
                     <Button
                       variant="default"
@@ -1220,14 +1540,14 @@ export function StrategyPage() {
                 >
                   <div className="flex flex-wrap items-center gap-2">
                     <Button
-	                      variant="default"
-	                      size="lg"
-	                      className="w-full sm:w-48"
-	                      onClick={() =>
-	                        navigate("/dashboard", { viewTransition: true })
-	                      }
-	                      type="button"
-	                    >
+                      variant="default"
+                      size="lg"
+                      className="w-full sm:w-48"
+                      onClick={() =>
+                        navigate("/dashboard", { viewTransition: true })
+                      }
+                      type="button"
+                    >
                       运行策略
                     </Button>
                   </div>

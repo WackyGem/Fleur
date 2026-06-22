@@ -39,6 +39,7 @@ A 股股票日频趋势指标 mart。模型整合价格 MA、组合 MA、双重 
 | MA 组合和 EMA | `int_stock_ma_daily` | `price_avg_ma_3_6_12_24`, `price_avg_ma_14_28_57_114`, `price_ema2_10` |
 | BOLL | `int_stock_boll_daily` | `boll_mid_10_1p5`, `boll_upper_10_1p5`, `boll_lower_10_1p5`, `boll_mid_20_2`, `boll_upper_20_2`, `boll_lower_20_2`, `boll_mid_50_2p5`, `boll_upper_50_2p5`, `boll_lower_50_2p5` |
 | MACD | `int_stock_macd_daily` | `macd_dif`, `macd_dea`, `macd_histogram` |
+| Crossing 前值 | mart 内窗口函数 | 所有趋势数值字段对应的 `prev_*` 字段，例如 `prev_price_ma_20`, `prev_boll_upper_20_2`, `prev_macd_dif` |
 
 ## 4. NULL 语义
 
@@ -47,6 +48,10 @@ A 股股票日频趋势指标 mart。模型整合价格 MA、组合 MA、双重 
 - MA/BOLL/MACD warm-up 阶段允许为 NULL。
 - 当前价格缺失或状态无法推进时允许为 NULL。
 - mart 层不填 0，不使用上一日值，不重算公式。
+- `prev_*` 字段使用 `lag(field) over (partition by security_code order by trade_date)` 生成。
+- `prev_*` 的“上一期”是同一 `security_code` 的上一交易行，不是自然日前一日；停牌或非交易日不会被补行。
+- 首个交易行、上一交易行不存在、上一交易行对应指标为 NULL 时，`prev_*` 为 NULL，不做 forward fill。
+- Rearview crossing 规则任一当前值或前值为 NULL 时应按 `no_match` 处理，mart 层只提供字段事实，不判断 crossing。
 
 MACD 口径：
 
@@ -71,3 +76,4 @@ uv run dbt show --project-dir elt --profiles-dir elt --select mart_stock_trend_i
 - `security_code` 符合 A 股标准代码格式。
 - BOLL 非空完整三元组满足 `up >= mid >= down`。
 - compiled SQL 中 MACD 来源为 `int_stock_macd_daily`。
+- `prev_*` 字段仅由同证券上一交易行生成，不跨证券、不按自然日补齐。

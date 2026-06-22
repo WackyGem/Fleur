@@ -18,8 +18,10 @@ import type {
   ComparableIndicator,
   CompareTarget,
   ConditionOperator,
+  IndicatorCatalog,
 } from "@/features/strategy/types"
 import {
+  findCompatibleMetric,
   getCatalog,
   getCatalogMetricsByType,
   getComparableMetricPatch,
@@ -31,6 +33,7 @@ import {
 import { cn } from "@/lib/utils"
 
 type ComparisonFieldsProps = {
+  catalogOptions?: IndicatorCatalog[]
   children?: ReactNode
   className?: string
   onChange: (patch: Partial<ComparableIndicator>) => void
@@ -40,6 +43,7 @@ type ComparisonFieldsProps = {
 }
 
 function ComparisonFields({
+  catalogOptions = indicatorCatalog,
   children,
   className,
   onChange,
@@ -47,14 +51,35 @@ function ComparisonFields({
   removeLabel,
   value,
 }: ComparisonFieldsProps) {
-  const catalog = getCatalog(value.catalogId)
-  const metric = getMetric(value.catalogId, value.metric)
-  const compareCatalog = getCatalog(value.compareCatalogId)
+  const effectiveCatalogOptions =
+    catalogOptions.length > 0 ? catalogOptions : indicatorCatalog
+  const catalog = getCatalog(value.catalogId, effectiveCatalogOptions)
+  const metric = getMetric(
+    value.catalogId,
+    value.metric,
+    effectiveCatalogOptions
+  )
+  const compareCatalog = getCatalog(
+    value.compareCatalogId,
+    effectiveCatalogOptions
+  )
+  const requireCrossing = isCrossingOperator(value.operator)
   const compareMetrics = getCatalogMetricsByType(
     value.compareCatalogId,
-    metric.valueType
+    metric.valueType,
+    effectiveCatalogOptions,
+    { requireCrossing }
   )
-  const operatorChoices = getOperatorOptions(value.target, metric.valueType)
+  const operatorChoices = getOperatorOptions(
+    value.target,
+    metric.valueType,
+    metric.allowedOps
+  )
+  const compareTargetOptions = getCompareTargetOptions(
+    value.operator,
+    metric.valueType,
+    metric.allowedOps
+  )
   const valueLabel =
     value.operator === "between"
       ? "区间下限"
@@ -73,10 +98,15 @@ function ComparisonFields({
               return
             }
 
-            const nextCatalog = getCatalog(catalogId)
+            const nextCatalog = getCatalog(catalogId, effectiveCatalogOptions)
             const nextMetric = nextCatalog.metrics[0]
             onChange(
-              getComparableMetricPatch(value, nextCatalog.id, nextMetric.id)
+              getComparableMetricPatch(
+                value,
+                nextCatalog.id,
+                nextMetric.id,
+                effectiveCatalogOptions
+              )
             )
           }}
         >
@@ -93,7 +123,7 @@ function ComparisonFields({
           >
             <SelectGroup>
               <SelectLabel>指标来源</SelectLabel>
-              {indicatorCatalog.map((item) => (
+              {effectiveCatalogOptions.map((item) => (
                 <SelectItem key={item.id} value={item.id}>
                   <span className="truncate text-xs font-medium">
                     {item.label}
@@ -112,7 +142,12 @@ function ComparisonFields({
           onValueChange={(metricId) => {
             if (metricId) {
               onChange(
-                getComparableMetricPatch(value, value.catalogId, metricId)
+                getComparableMetricPatch(
+                  value,
+                  value.catalogId,
+                  metricId,
+                  effectiveCatalogOptions
+                )
               )
             }
           }}
@@ -120,7 +155,7 @@ function ComparisonFields({
           <SelectTrigger className="h-10 w-full bg-background px-3">
             <SelectValue>
               <span className="truncate text-sm text-foreground">
-                {value.metric}
+                {metric.label}
               </span>
             </SelectValue>
           </SelectTrigger>
@@ -132,7 +167,7 @@ function ComparisonFields({
               <SelectLabel>{catalog.source}</SelectLabel>
               {catalog.metrics.map((item) => (
                 <SelectItem key={item.id} value={item.id}>
-                  <span className="truncate text-xs">{item.id}</span>
+                  <span className="truncate text-xs">{item.label}</span>
                 </SelectItem>
               ))}
             </SelectGroup>
@@ -146,7 +181,31 @@ function ComparisonFields({
           value={value.operator}
           onValueChange={(operator) => {
             if (operator) {
-              onChange({ operator: operator as ConditionOperator })
+              const nextOperator = operator as ConditionOperator
+              const nextTargetOptions = getCompareTargetOptions(
+                nextOperator,
+                metric.valueType,
+                metric.allowedOps
+              )
+              const nextTarget = nextTargetOptions.some(
+                (target) => target === value.target
+              )
+                ? value.target
+                : nextTargetOptions[0]
+              const compatibleCompare = findCompatibleMetric(
+                metric.valueType,
+                value.compareCatalogId,
+                value.compareMetric,
+                effectiveCatalogOptions,
+                { requireCrossing: isCrossingOperator(nextOperator) }
+              )
+
+              onChange({
+                operator: nextOperator,
+                target: nextTarget ?? "value",
+                compareCatalogId: compatibleCompare.catalogId,
+                compareMetric: compatibleCompare.metricId,
+              })
             }
           }}
         >
@@ -180,13 +239,24 @@ function ComparisonFields({
           onValueChange={(target) => {
             if (target) {
               const nextTarget = target as CompareTarget
+              const nextOperator = getCompatibleOperator(
+                value.operator,
+                nextTarget,
+                metric.valueType,
+                metric.allowedOps
+              )
+              const compatibleCompare = findCompatibleMetric(
+                metric.valueType,
+                value.compareCatalogId,
+                value.compareMetric,
+                effectiveCatalogOptions,
+                { requireCrossing: isCrossingOperator(nextOperator) }
+              )
               onChange({
                 target: nextTarget,
-                operator: getCompatibleOperator(
-                  value.operator,
-                  nextTarget,
-                  metric.valueType
-                ),
+                operator: nextOperator,
+                compareCatalogId: compatibleCompare.catalogId,
+                compareMetric: compatibleCompare.metricId,
               })
             }
           }}
@@ -204,18 +274,19 @@ function ComparisonFields({
           >
             <SelectGroup>
               <SelectLabel>比较对象</SelectLabel>
-              <SelectItem value="value">
-                <span className="truncate text-xs">数值</span>
-              </SelectItem>
-              <SelectItem value="metric">
-                <span className="truncate text-xs">指标</span>
-              </SelectItem>
+              {compareTargetOptions.map((target) => (
+                <SelectItem key={target} value={target}>
+                  <span className="truncate text-xs">
+                    {target === "value" ? "数值" : "指标"}
+                  </span>
+                </SelectItem>
+              ))}
             </SelectGroup>
           </SelectContent>
         </Select>
       </Field>
 
-      {value.target === "value" ? (
+      {value.operator === "is_null" ? null : value.target === "value" ? (
         <>
           <Field>
             <FieldLabel>{valueLabel}</FieldLabel>
@@ -254,7 +325,13 @@ function ComparisonFields({
               <Input
                 value={value.value}
                 onChange={(event) => onChange({ value: event.target.value })}
-                type="number"
+                type={
+                  metric.valueType === "date"
+                    ? "date"
+                    : metric.valueType === "number"
+                      ? "number"
+                      : "text"
+                }
               />
             )}
           </Field>
@@ -288,10 +365,15 @@ function ComparisonFields({
                   return
                 }
 
-                const nextCatalog = getCatalog(catalogId)
+                const nextCatalog = getCatalog(
+                  catalogId,
+                  effectiveCatalogOptions
+                )
                 const nextCompareMetric = getCatalogMetricsByType(
                   nextCatalog.id,
-                  metric.valueType
+                  metric.valueType,
+                  effectiveCatalogOptions,
+                  { requireCrossing }
                 )[0]
 
                 if (nextCompareMetric) {
@@ -315,10 +397,12 @@ function ComparisonFields({
               >
                 <SelectGroup>
                   <SelectLabel>指标来源</SelectLabel>
-                  {indicatorCatalog
+                  {effectiveCatalogOptions
                     .filter((item) =>
                       item.metrics.some(
-                        (candidate) => candidate.valueType === metric.valueType
+                        (candidate) =>
+                          candidate.valueType === metric.valueType &&
+                          (!requireCrossing || candidate.supportsCrossing)
                       )
                     )
                     .map((item) => (
@@ -346,7 +430,9 @@ function ComparisonFields({
               <SelectTrigger className="h-10 w-full bg-background px-3">
                 <SelectValue>
                   <span className="truncate text-sm text-foreground">
-                    {value.compareMetric}
+                    {compareMetrics.find(
+                      (item) => item.id === value.compareMetric
+                    )?.label ?? value.compareMetric}
                   </span>
                 </SelectValue>
               </SelectTrigger>
@@ -359,7 +445,7 @@ function ComparisonFields({
                   {compareMetrics.map((compareMetric) => (
                     <SelectItem key={compareMetric.id} value={compareMetric.id}>
                       <span className="truncate text-xs">
-                        {compareMetric.id}
+                        {compareMetric.label}
                       </span>
                     </SelectItem>
                   ))}
@@ -384,6 +470,22 @@ function ComparisonFields({
       </Button>
     </div>
   )
+}
+
+function getCompareTargetOptions(
+  operator: ConditionOperator,
+  valueType: "number" | "boolean" | "string" | "date",
+  allowedOps: ConditionOperator[]
+): CompareTarget[] {
+  return (["value", "metric"] as CompareTarget[]).filter((target) =>
+    getOperatorOptions(target, valueType, allowedOps).some(
+      (option) => option.value === operator
+    )
+  )
+}
+
+function isCrossingOperator(operator: ConditionOperator) {
+  return operator === "crosses_above" || operator === "crosses_below"
 }
 
 export { ComparisonFields }

@@ -2,18 +2,19 @@
 
 日期：2026-06-21
 
-状态：Proposed
+状态：Completed
 
 关联文档：
 
-- [RFC 0024: Racingline 策略选股 Step 1 实现切入方案](../RFC/0024-racingline-strategy-selection-step1.md)
-- [RFC 0023: Racingline 前端原型驱动开发流程](../RFC/0023-racingline-frontend-prototype-led-development.md)
-- [ADR 0011: Racingline 前端技术栈和工程边界](../ADR/0011-racingline-frontend-technology-stack.md)
-- [ADR 0013: Racingline UI 栈变体评估](../ADR/0013-racingline-ui-stack-variant-evaluation.md)
-- [ADR 0010: 技术指标字段命名区分窗口参数和算子重数](../ADR/0010-technical-indicator-field-naming.md)
-- [System: Racingline](../systems/racingline.md)
-- [System: Rearview](../systems/rearview.md)
-- [mart_stock_trend_indicator_daily 设计](../design/dbt_layer/fleur_marts/mart_stock_trend_indicator_daily.md)
+- [RFC 0024: Racingline 策略选股 Step 1 实现切入方案](../../RFC/0024-racingline-strategy-selection-step1.md)
+- [RFC 0023: Racingline 前端原型驱动开发流程](../../RFC/0023-racingline-frontend-prototype-led-development.md)
+- [ADR 0011: Racingline 前端技术栈和工程边界](../../ADR/0011-racingline-frontend-technology-stack.md)
+- [ADR 0013: Racingline UI 栈变体评估](../../ADR/0013-racingline-ui-stack-variant-evaluation.md)
+- [ADR 0010: 技术指标字段命名区分窗口参数和算子重数](../../ADR/0010-technical-indicator-field-naming.md)
+- [System: Racingline](../../systems/racingline.md)
+- [System: Rearview](../../systems/rearview.md)
+- [mart_stock_trend_indicator_daily 设计](../../design/dbt_layer/fleur_marts/mart_stock_trend_indicator_daily.md)
+- [验收报告：Racingline Strategy Step 1 Gap Closure](../../jobs/reports/2026-06-21-racingline-strategy-step1-gap-closure.md)
 
 ## 目标
 

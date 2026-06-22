@@ -820,22 +820,22 @@ function SignalCountChart({
 }
 
 function buildReturnMetrics(metrics: Metric[], excessReturn: number): Metric[] {
-  return [
-    metrics[0],
-    {
-      label: "超额收益",
-      value: excessReturn,
-      kind: "percent",
-      tone: excessReturn >= 0 ? "up" : "down",
-    },
-    ...metrics.slice(1),
-    {
-      label: "日胜率",
-      value: 0.584,
-      kind: "percent",
-      tone: "neutral",
-    },
-  ].filter(Boolean)
+  const excessMetric: Metric = {
+    label: "超额收益",
+    value: excessReturn,
+    kind: "percent",
+    tone: excessReturn >= 0 ? "up" : "down",
+  }
+  const winRateMetric: Metric = {
+    label: "日胜率",
+    value: 0.584,
+    kind: "percent",
+    tone: "neutral",
+  }
+
+  return [metrics[0], excessMetric, ...metrics.slice(1), winRateMetric].filter(
+    (metric): metric is Metric => Boolean(metric)
+  )
 }
 
 function buildStrategySignalPools(portfolioId: string): SignalPool[] {

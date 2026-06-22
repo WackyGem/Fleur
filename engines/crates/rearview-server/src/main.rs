@@ -25,12 +25,13 @@ async fn main() -> RearviewResult<()> {
         Some("serve") | None => serve().await,
         Some("catalog") => match args.next().as_deref() {
             Some("check") => catalog_check(),
+            Some("coverage") => catalog_coverage(),
             Some("sync") => catalog_sync().await,
             Some(other) => Err(RearviewError::Config(format!(
                 "unknown catalog command: {other}"
             ))),
             None => Err(RearviewError::Config(
-                "missing catalog command; expected check or sync".to_string(),
+                "missing catalog command; expected check, coverage, or sync".to_string(),
             )),
         },
         Some("sample-rule") => sample_rule(),
@@ -139,6 +140,16 @@ fn catalog_check() -> RearviewResult<()> {
     Ok(())
 }
 
+fn catalog_coverage() -> RearviewResult<()> {
+    let repo_root = find_repo_root()?;
+    let policy_path = repo_root.join("engines/crates/rearview-core/config/metric_policy.yml");
+    let dbt_marts_dir = repo_root.join("pipeline/elt/models/marts");
+    let policy = rearview_core::domain::MetricPolicyFile::load(policy_path)?;
+    let checked = policy.check_coverage(dbt_marts_dir)?;
+    println!("metric catalog coverage passed: {checked} dbt fields checked");
+    Ok(())
+}
+
 async fn catalog_sync() -> RearviewResult<()> {
     let config = AppConfig::from_env()?;
     let (catalog, metric_count) = load_default_catalog()?;
@@ -195,6 +206,6 @@ fn is_repo_root(path: &Path) -> bool {
 
 fn print_help() {
     println!(
-        "rearview-server\n\nUSAGE:\n  rearview-server serve\n  rearview-server catalog check\n  rearview-server catalog sync\n  rearview-server sample-rule\n\nENV:\n  REARVIEW_DATABASE_URL\n  REARVIEW_HTTP_BIND\n  CLICKHOUSE_HOST / CLICKHOUSE_PORT / CLICKHOUSE_USER / CLICKHOUSE_PASSWORD"
+        "rearview-server\n\nUSAGE:\n  rearview-server serve\n  rearview-server catalog check\n  rearview-server catalog coverage\n  rearview-server catalog sync\n  rearview-server sample-rule\n\nENV:\n  REARVIEW_DATABASE_URL\n  REARVIEW_HTTP_BIND\n  CLICKHOUSE_HOST / CLICKHOUSE_PORT / CLICKHOUSE_USER / CLICKHOUSE_PASSWORD"
     );
 }

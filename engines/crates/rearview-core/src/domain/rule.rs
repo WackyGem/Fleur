@@ -176,8 +176,9 @@ impl RuleVersionSpec {
         catalog: &MetricCatalog,
     ) -> RearviewResult<RuleDependencySnapshot> {
         let mut metric_names = BTreeSet::new();
-        self.pool_filters.collect_metrics(&mut metric_names);
-        self.scoring.collect_metrics(&mut metric_names);
+        self.pool_filters
+            .collect_metrics(catalog, &mut metric_names)?;
+        self.scoring.collect_metrics(catalog, &mut metric_names)?;
         metric_names.extend(self.output_metrics.iter().cloned());
 
         let mut metrics = Vec::with_capacity(metric_names.len());
@@ -247,19 +248,28 @@ impl FilterExpr {
         }
     }
 
-    pub fn collect_metrics(&self, output: &mut BTreeSet<String>) {
+    pub fn collect_metrics(
+        &self,
+        catalog: &MetricCatalog,
+        output: &mut BTreeSet<String>,
+    ) -> RearviewResult<()> {
         match self {
             Self::All { conditions } | Self::Any { conditions } => {
                 for condition in conditions {
-                    condition.collect_metrics(output);
+                    condition.collect_metrics(catalog, output)?;
                 }
+                Ok(())
             }
-            Self::Not { condition } => condition.collect_metrics(output),
-            Self::Compare { left, right, .. } => {
+            Self::Not { condition } => condition.collect_metrics(catalog, output),
+            Self::Compare { left, op, right } => {
                 left.collect_metrics(output);
                 if let Some(right) = right {
                     right.collect_metrics(output);
                 }
+                if matches!(op, Operator::CrossesAbove | Operator::CrossesBelow) {
+                    collect_cross_previous_metrics(left, right.as_ref(), catalog, output)?;
+                }
+                Ok(())
             }
         }
     }
@@ -389,17 +399,22 @@ impl ScoringSpec {
         Ok(())
     }
 
-    fn collect_metrics(&self, output: &mut BTreeSet<String>) {
+    fn collect_metrics(
+        &self,
+        catalog: &MetricCatalog,
+        output: &mut BTreeSet<String>,
+    ) -> RearviewResult<()> {
         for rule in &self.rules {
             match rule {
                 ScoringRule::ConditionalPoints { condition, .. } => {
-                    condition.collect_metrics(output);
+                    condition.collect_metrics(catalog, output)?;
                 }
                 ScoringRule::WeightedMetric { metric, .. } => {
                     output.insert(metric.clone());
                 }
             }
         }
+        Ok(())
     }
 }
 
@@ -519,8 +534,12 @@ pub fn representative_rule() -> RuleVersionSpec {
                     15.0,
                 ),
                 points(
-                    "below_boll_dn_20_2",
-                    compare(forward_close, Operator::Lt, Operand::metric("boll_dn_20_2")),
+                    "below_boll_lower_20_2",
+                    compare(
+                        forward_close,
+                        Operator::Lt,
+                        Operand::metric("boll_lower_20_2"),
+                    ),
                     15.0,
                 ),
                 points(
@@ -555,7 +574,7 @@ pub fn representative_rule() -> RuleVersionSpec {
             "price_ma_60".to_string(),
             "price_ma_114".to_string(),
             "price_ma_250".to_string(),
-            "boll_dn_20_2".to_string(),
+            "boll_lower_20_2".to_string(),
             "close_down_streak_days".to_string(),
             "n_structure_20_second_low_ratio".to_string(),
         ],
@@ -606,7 +625,78 @@ fn validate_operand_pair(
                 return Err(type_mismatch(metric, right_kind));
             }
         }
+        Operator::CrossesAbove | Operator::CrossesBelow => {
+            validate_crossing_operand_pair(metric, right, right_kind, catalog)?;
+        }
         Operator::IsNull => {}
+    }
+    Ok(())
+}
+
+fn validate_crossing_operand_pair(
+    metric: &MetricDefinition,
+    right: &Operand,
+    right_kind: ValueKind,
+    catalog: &MetricCatalog,
+) -> RearviewResult<()> {
+    if !metric.is_numeric() || !is_numeric_kind(right_kind) {
+        return Err(type_mismatch(metric, right_kind));
+    }
+    let Some(cross) = &metric.cross else {
+        return Err(RearviewError::Validation(format!(
+            "metric {} cannot use crossing operators because previous_metric is not configured",
+            metric.logical_metric
+        )));
+    };
+    catalog.require(&cross.previous_metric)?;
+
+    match right {
+        Operand::Metric { name } => {
+            let right_metric = catalog.require(name)?;
+            if right_metric.cross.is_none() {
+                return Err(RearviewError::Validation(format!(
+                    "metric {name} cannot be used as crossing right operand because previous_metric is not configured"
+                )));
+            }
+        }
+        Operand::Number { .. } => {}
+        Operand::Bool { .. }
+        | Operand::String { .. }
+        | Operand::Range { .. }
+        | Operand::Binary { .. } => {
+            return Err(RearviewError::Validation(
+                "crossing right operand must be a metric or numeric constant".to_string(),
+            ));
+        }
+    }
+    Ok(())
+}
+
+fn collect_cross_previous_metrics(
+    left: &Operand,
+    right: Option<&Operand>,
+    catalog: &MetricCatalog,
+    output: &mut BTreeSet<String>,
+) -> RearviewResult<()> {
+    let left_metric = left.metric_name().ok_or_else(|| {
+        RearviewError::Validation("crossing left side must be a metric".to_string())
+    })?;
+    let left_definition = catalog.require(left_metric)?;
+    let left_cross = left_definition.cross.as_ref().ok_or_else(|| {
+        RearviewError::Validation(format!(
+            "metric {left_metric} cannot use crossing operators because previous_metric is not configured"
+        ))
+    })?;
+    output.insert(left_cross.previous_metric.clone());
+
+    if let Some(Operand::Metric { name }) = right {
+        let right_definition = catalog.require(name)?;
+        let right_cross = right_definition.cross.as_ref().ok_or_else(|| {
+            RearviewError::Validation(format!(
+                "metric {name} cannot be used as crossing right operand because previous_metric is not configured"
+            ))
+        })?;
+        output.insert(right_cross.previous_metric.clone());
     }
     Ok(())
 }
@@ -742,7 +832,7 @@ mod tests {
             "price_ma_60",
             "price_ma_114",
             "price_ma_250",
-            "boll_dn_20_2",
+            "boll_lower_20_2",
             "volume_ma_5",
             "close_down_streak_days",
             "n_structure_20_second_low_ratio",
@@ -774,6 +864,8 @@ mod tests {
             null_policy: NullPolicy::NoMatch,
             default_output: false,
             description: None,
+            cross: None,
+            display: None,
         }
     }
 }

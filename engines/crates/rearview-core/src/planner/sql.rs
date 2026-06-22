@@ -343,6 +343,9 @@ fn compile_compare(
     let right = right.ok_or_else(|| {
         RearviewError::Planner("comparison right side is required for SQL compilation".to_string())
     })?;
+    if matches!(op, Operator::CrossesAbove | Operator::CrossesBelow) {
+        return compile_crossing_compare(left, op, right, metrics);
+    }
     if matches!(op, Operator::Between) {
         let Operand::Range { min, max } = right else {
             return Err(RearviewError::Planner(
@@ -360,6 +363,67 @@ fn compile_compare(
         operator_sql(op)?,
         compile_operand(right, metrics)?
     ))
+}
+
+fn compile_crossing_compare(
+    left: &Operand,
+    op: Operator,
+    right: &Operand,
+    metrics: &BTreeMap<String, MetricDefinition>,
+) -> RearviewResult<String> {
+    let current_left = compile_operand(left, metrics)?;
+    let current_right = compile_operand(right, metrics)?;
+    let previous_left = compile_previous_operand(left, metrics)?;
+    let previous_right = match right {
+        Operand::Metric { .. } => compile_previous_operand(right, metrics)?,
+        Operand::Number { .. } => current_right.clone(),
+        Operand::Bool { .. }
+        | Operand::String { .. }
+        | Operand::Range { .. }
+        | Operand::Binary { .. } => {
+            return Err(RearviewError::Planner(
+                "crossing right operand must be a metric or numeric constant".to_string(),
+            ));
+        }
+    };
+    let (current_operator, previous_operator) = match op {
+        Operator::CrossesAbove => (">", "<="),
+        Operator::CrossesBelow => ("<", ">="),
+        _ => {
+            return Err(RearviewError::Planner(format!(
+                "operator {op:?} is not a crossing operator"
+            )));
+        }
+    };
+    Ok(format!(
+        "({current_left} {current_operator} {current_right} AND {previous_left} {previous_operator} {previous_right})"
+    ))
+}
+
+fn compile_previous_operand(
+    operand: &Operand,
+    metrics: &BTreeMap<String, MetricDefinition>,
+) -> RearviewResult<String> {
+    let Operand::Metric { name } = operand else {
+        return Err(RearviewError::Planner(
+            "crossing previous operand must be a metric".to_string(),
+        ));
+    };
+    let metric = metrics
+        .get(name)
+        .ok_or_else(|| RearviewError::Planner(format!("missing metric in plan: {name}")))?;
+    let cross = metric.cross.as_ref().ok_or_else(|| {
+        RearviewError::Planner(format!(
+            "metric {name} cannot use crossing operators because previous_metric is not configured"
+        ))
+    })?;
+    let previous_metric = metrics.get(&cross.previous_metric).ok_or_else(|| {
+        RearviewError::Planner(format!(
+            "missing previous metric in plan: {}",
+            cross.previous_metric
+        ))
+    })?;
+    Ok(quote_identifier(&previous_metric.logical_metric))
 }
 
 fn compile_operand(
@@ -512,9 +576,11 @@ fn operator_sql(operator: Operator) -> RearviewResult<&'static str> {
         Operator::Lte => Ok("<="),
         Operator::Gt => Ok(">"),
         Operator::Gte => Ok(">="),
-        Operator::Between | Operator::IsNull => Err(RearviewError::Planner(format!(
-            "operator {operator:?} is not binary"
-        ))),
+        Operator::Between | Operator::IsNull | Operator::CrossesAbove | Operator::CrossesBelow => {
+            Err(RearviewError::Planner(format!(
+                "operator {operator:?} is not binary"
+            )))
+        }
     }
 }
 
@@ -605,6 +671,72 @@ mod tests {
         );
     }
 
+    #[test]
+    fn compile_should_expand_crosses_above_between_metrics() {
+        let catalog = test_catalog();
+        let planner = QueryPlanner::new(catalog);
+        let rule = crossing_rule(
+            Operand::metric("price_ma_5"),
+            Operator::CrossesAbove,
+            Operand::metric("price_ma_20"),
+        );
+
+        let compiled = planner.compile_explain(&rule).unwrap();
+
+        assert!(compiled.sql.contains(
+            "(`price_ma_5` > `price_ma_20` AND `prev_price_ma_5` <= `prev_price_ma_20`)"
+        ));
+        assert!(
+            compiled
+                .required_metrics
+                .contains(&"prev_price_ma_5".to_string())
+        );
+        assert!(
+            compiled
+                .required_columns
+                .get("fleur_marts.mart_stock_trend_indicator_daily")
+                .is_some_and(|columns| columns.contains(&"prev_price_ma_20".to_string()))
+        );
+    }
+
+    #[test]
+    fn compile_should_expand_crosses_below_against_constant() {
+        let catalog = test_catalog();
+        let planner = QueryPlanner::new(catalog);
+        let rule = crossing_rule(
+            Operand::metric("macd_dif"),
+            Operator::CrossesBelow,
+            Operand::number(0.0),
+        );
+
+        let compiled = planner.compile_explain(&rule).unwrap();
+
+        assert!(
+            compiled
+                .sql
+                .contains("(`macd_dif` < 0 AND `prev_macd_dif` >= 0)")
+        );
+    }
+
+    #[test]
+    fn compile_should_reject_crossing_when_metric_has_no_previous_metric() {
+        let catalog = test_catalog();
+        let planner = QueryPlanner::new(catalog);
+        let rule = crossing_rule(
+            Operand::metric("close_price"),
+            Operator::CrossesAbove,
+            Operand::metric("price_ma_20"),
+        );
+
+        let error = planner.compile_explain(&rule).unwrap_err();
+
+        assert!(
+            error
+                .to_string()
+                .contains("operator CrossesAbove is not allowed for metric close_price")
+        );
+    }
+
     fn test_catalog() -> MetricCatalog {
         let manifest_dir = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
         let policy = MetricPolicyFile::load(manifest_dir.join("config/metric_policy.yml")).unwrap();
@@ -614,5 +746,31 @@ mod tests {
                 "fleur_marts",
             )
             .unwrap()
+    }
+
+    fn crossing_rule(left: Operand, op: Operator, right: Operand) -> RuleVersionSpec {
+        RuleVersionSpec {
+            universe: crate::domain::UniverseSpec {
+                base: "all_a_shares".to_string(),
+                exclude_st: false,
+                exclude_suspend: false,
+                include_security_codes: Vec::new(),
+                exclude_security_codes: Vec::new(),
+            },
+            pool_filters: FilterExpr::Compare {
+                left,
+                op,
+                right: Some(right),
+            },
+            scoring: crate::domain::ScoringSpec {
+                rules: Vec::new(),
+                clamp: crate::domain::ScoreClamp {
+                    min: 0.0,
+                    max: 99.0,
+                },
+            },
+            top_n_default: 20,
+            output_metrics: vec!["price_ma_20".to_string()],
+        }
     }
 }
