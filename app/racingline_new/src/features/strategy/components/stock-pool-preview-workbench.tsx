@@ -75,7 +75,6 @@ type WeightScoreItem = {
 
 type DailyPoolStock = {
   code: string
-  industry: string
   name: string
   rank: number
   score: number
@@ -139,18 +138,18 @@ const previewStock: StockPoolItem = {
 }
 
 const stockPoolCandidates = [
-  { code: "600519.SH", industry: "白酒", name: "贵州茅台" },
-  { code: "300750.SZ", industry: "电池", name: "宁德时代" },
-  { code: "600036.SH", industry: "银行", name: "招商银行" },
-  { code: "601318.SH", industry: "保险", name: "中国平安" },
-  { code: "000858.SZ", industry: "白酒", name: "五粮液" },
-  { code: "002594.SZ", industry: "汽车", name: "比亚迪" },
-  { code: "600276.SH", industry: "医药", name: "恒瑞医药" },
-  { code: "601899.SH", industry: "有色", name: "紫金矿业" },
-  { code: "600900.SH", industry: "电力", name: "长江电力" },
-  { code: "000333.SZ", industry: "家电", name: "美的集团" },
-  { code: "688981.SH", industry: "半导体", name: "中芯国际" },
-  { code: "601012.SH", industry: "光伏", name: "隆基绿能" },
+  { code: "600519.SH", name: "贵州茅台" },
+  { code: "300750.SZ", name: "宁德时代" },
+  { code: "600036.SH", name: "招商银行" },
+  { code: "601318.SH", name: "中国平安" },
+  { code: "000858.SZ", name: "五粮液" },
+  { code: "002594.SZ", name: "比亚迪" },
+  { code: "600276.SH", name: "恒瑞医药" },
+  { code: "601899.SH", name: "紫金矿业" },
+  { code: "600900.SH", name: "长江电力" },
+  { code: "000333.SZ", name: "美的集团" },
+  { code: "688981.SH", name: "中芯国际" },
+  { code: "601012.SH", name: "隆基绿能" },
 ] as const
 
 function StockPoolPreviewWorkbench({
@@ -763,7 +762,6 @@ function buildDailyStockPoolsFromPreview(
   return previewResult.trade_dates.map((tradeDate) => {
     const stocks = tradeDate.signals.map((signal) => ({
       code: signal.security_code,
-      industry: "-",
       name: signal.security_code,
       rank: signal.signal_rank,
       score: signal.score,
