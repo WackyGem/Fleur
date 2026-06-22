@@ -43,6 +43,7 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { indicatorCatalog } from "@/features/strategy/catalog"
+import { StrategySplitPanel } from "@/features/strategy/components/strategy-split-panel"
 import type {
   SimulationSettings,
   StrategyConditionGroup,
@@ -122,8 +123,7 @@ const numericCatalogs = indicatorCatalog
 
 const sectionCardClassName = "bg-transparent ring-0"
 const configSectionCardClassName = cn(sectionCardClassName, "xl:pr-4")
-const configSeparatorClassName =
-  "bg-border/60 md:ml-[11rem] md:max-w-[37rem]"
+const configSeparatorClassName = "bg-border/60 md:ml-[11rem] md:max-w-[37rem]"
 const configListClassName = "max-w-[48rem] gap-0"
 const sectionSeparatorClassName = "max-w-[52rem] bg-border/60"
 const settingRowClassName =
@@ -230,222 +230,221 @@ function SimulationPositionPanel({
   }
 
   return (
-    <div className="grid min-h-full gap-y-4 xl:grid-cols-[minmax(34rem,1fr)_auto_20rem] xl:gap-x-0">
-      <div className="flex min-h-0 flex-col gap-3 pt-5">
-        <Card size="sm" className={configSectionCardClassName}>
-          <CardHeader className="px-0">
-            <CardTitle>仓位管理</CardTitle>
-          </CardHeader>
-          <CardContent className="px-0">
-            <FieldSet>
-              <FieldLegend className="sr-only">仓位管理</FieldLegend>
-              <FieldGroup className="grid max-w-[48rem] gap-3 md:grid-cols-[12rem_12rem_19rem]">
-                <NumberInputField
-                  label="初始金额"
-                  min={0}
-                  onValueChange={(initialCapital) =>
-                    updateSettings({ initialCapital })
-                  }
-                  step={10000}
-                  suffix="元"
-                  value={settings.initialCapital}
-                />
+    <StrategySplitPanel
+      mainClassName="gap-3"
+      main={
+        <>
+          <Card size="sm" className={cn(configSectionCardClassName, "pt-0")}>
+            <CardHeader className="px-0">
+              <CardTitle>仓位管理</CardTitle>
+            </CardHeader>
+            <CardContent className="px-0">
+              <FieldSet>
+                <FieldLegend className="sr-only">仓位管理</FieldLegend>
+                <FieldGroup className="grid max-w-[48rem] gap-3 md:grid-cols-[12rem_12rem_19rem]">
+                  <NumberInputField
+                    label="初始金额"
+                    min={0}
+                    onValueChange={(initialCapital) =>
+                      updateSettings({ initialCapital })
+                    }
+                    step={10000}
+                    suffix="元"
+                    value={settings.initialCapital}
+                  />
 
-                <NumberInputField
-                  label="买入信号 Top N"
-                  min={1}
-                  onValueChange={(buyTopN) => updateSettings({ buyTopN })}
-                  step={1}
-                  suffix="只"
-                  value={settings.buyTopN}
-                />
+                  <NumberInputField
+                    label="买入信号 Top N"
+                    min={1}
+                    onValueChange={(buyTopN) => updateSettings({ buyTopN })}
+                    step={1}
+                    suffix="只"
+                    value={settings.buyTopN}
+                  />
 
-                <Field>
-                  <FieldLabel>单票上限</FieldLabel>
-                  <div className="grid grid-cols-[minmax(0,1fr)_8rem] items-center gap-3">
-                    <Slider
-                      aria-label="单票仓位上限"
-                      max={100}
-                      min={1}
-                      onValueChange={(nextValue) =>
-                        updateSettings({
-                          singlePositionLimitPercent: readSliderValue(
-                            nextValue,
-                            settings.singlePositionLimitPercent
-                          ),
-                        })
-                      }
-                      step={1}
-                      value={[settings.singlePositionLimitPercent]}
-                    />
-                    <InputGroup>
-                      <InputGroupInput
-                        inputMode="decimal"
+                  <Field>
+                    <FieldLabel>单票上限</FieldLabel>
+                    <div className="grid grid-cols-[minmax(0,1fr)_8rem] items-center gap-3">
+                      <Slider
+                        aria-label="单票仓位上限"
                         max={100}
                         min={1}
-                        onChange={(event) =>
+                        onValueChange={(nextValue) =>
                           updateSettings({
-                            singlePositionLimitPercent: toBoundedNumber(
-                              event.target.value,
-                              1,
-                              100
+                            singlePositionLimitPercent: readSliderValue(
+                              nextValue,
+                              settings.singlePositionLimitPercent
                             ),
                           })
                         }
                         step={1}
-                        type="number"
-                        value={String(settings.singlePositionLimitPercent)}
+                        value={[settings.singlePositionLimitPercent]}
                       />
-                      <InputGroupAddon align="inline-end">%</InputGroupAddon>
-                    </InputGroup>
-                  </div>
-                </Field>
-              </FieldGroup>
-            </FieldSet>
-          </CardContent>
-        </Card>
-
-        <Separator className={sectionSeparatorClassName} />
-
-        <Card size="sm" className={configSectionCardClassName}>
-          <CardHeader className="px-0">
-            <CardTitle>交易费率</CardTitle>
-          </CardHeader>
-          <CardContent className="px-0">
-            <TransactionFeeList
-              fees={settings.transactionFees}
-              onRateChange={updateTransactionFeeSettings}
-            />
-          </CardContent>
-        </Card>
-
-        <Separator className={sectionSeparatorClassName} />
-
-        <Card size="sm" className={configSectionCardClassName}>
-          <CardHeader className="px-0">
-            <CardTitle>风险管理</CardTitle>
-          </CardHeader>
-          <CardContent className="px-0">
-            <FieldSet>
-              <FieldLegend className="sr-only">卖出条件</FieldLegend>
-              <FieldGroup className={configListClassName}>
-                <RiskRuleRow
-                  checked={settings.takeProfit.enabled}
-                  onCheckedChange={(enabled) =>
-                    updateRiskSettings("takeProfit", { enabled })
-                  }
-                  title="固定止盈"
-                >
-                  <div className={settingControlGridClassName}>
-                    <div className="text-xs text-muted-foreground">
-                      收益达到
+                      <InputGroup>
+                        <InputGroupInput
+                          inputMode="decimal"
+                          max={100}
+                          min={1}
+                          onChange={(event) =>
+                            updateSettings({
+                              singlePositionLimitPercent: toBoundedNumber(
+                                event.target.value,
+                                1,
+                                100
+                              ),
+                            })
+                          }
+                          step={1}
+                          type="number"
+                          value={String(settings.singlePositionLimitPercent)}
+                        />
+                        <InputGroupAddon align="inline-end">%</InputGroupAddon>
+                      </InputGroup>
                     </div>
-                    <CompactNumberInput
-                      disabled={!settings.takeProfit.enabled}
-                      label="收益达到"
-                      min={0}
-                      onValueChange={(profitPercent) =>
-                        updateRiskSettings("takeProfit", { profitPercent })
-                      }
-                      step={0.5}
-                      suffix="%"
-                      value={settings.takeProfit.profitPercent}
-                    />
-                  </div>
-                </RiskRuleRow>
-                <Separator className={configSeparatorClassName} />
+                  </Field>
+                </FieldGroup>
+              </FieldSet>
+            </CardContent>
+          </Card>
 
-                <RiskRuleRow
-                  checked={settings.fixedStopLoss.enabled}
-                  onCheckedChange={(enabled) =>
-                    updateRiskSettings("fixedStopLoss", { enabled })
-                  }
-                  title="固定止损"
-                >
-                  <div className={settingControlGridClassName}>
-                    <div className="text-xs text-muted-foreground">
-                      买入价下跌
-                    </div>
-                    <CompactNumberInput
-                      disabled={!settings.fixedStopLoss.enabled}
-                      label="买入价下跌"
-                      min={0}
-                      onValueChange={(lossPercent) =>
-                        updateRiskSettings("fixedStopLoss", { lossPercent })
-                      }
-                      step={0.5}
-                      suffix="%"
-                      value={settings.fixedStopLoss.lossPercent}
-                    />
-                  </div>
-                </RiskRuleRow>
-                <Separator className={configSeparatorClassName} />
+          <Separator className={sectionSeparatorClassName} />
 
-                <RiskRuleRow
-                  checked={settings.indicatorStopLoss.enabled}
-                  onCheckedChange={(enabled) =>
-                    updateRiskSettings("indicatorStopLoss", { enabled })
-                  }
-                  title="指标止损"
-                >
-                  <IndicatorStopLossFields
-                    disabled={!settings.indicatorStopLoss.enabled}
-                    settings={settings}
-                    onSettingsChange={(patch) =>
-                      updateRiskSettings("indicatorStopLoss", patch)
+          <Card size="sm" className={configSectionCardClassName}>
+            <CardHeader className="px-0">
+              <CardTitle>交易费率</CardTitle>
+            </CardHeader>
+            <CardContent className="px-0">
+              <TransactionFeeList
+                fees={settings.transactionFees}
+                onRateChange={updateTransactionFeeSettings}
+              />
+            </CardContent>
+          </Card>
+
+          <Separator className={sectionSeparatorClassName} />
+
+          <Card size="sm" className={configSectionCardClassName}>
+            <CardHeader className="px-0">
+              <CardTitle>风险管理</CardTitle>
+            </CardHeader>
+            <CardContent className="px-0">
+              <FieldSet>
+                <FieldLegend className="sr-only">卖出条件</FieldLegend>
+                <FieldGroup className={configListClassName}>
+                  <RiskRuleRow
+                    checked={settings.takeProfit.enabled}
+                    onCheckedChange={(enabled) =>
+                      updateRiskSettings("takeProfit", { enabled })
                     }
-                  />
-                </RiskRuleRow>
-                <Separator className={configSeparatorClassName} />
-
-                <RiskRuleRow
-                  checked={settings.timeStopLoss.enabled}
-                  onCheckedChange={(enabled) =>
-                    updateRiskSettings("timeStopLoss", { enabled })
-                  }
-                  title="时间止损"
-                >
-                  <div className="grid gap-2 md:grid-cols-[6.5rem_10rem_6.5rem_10rem] md:items-center">
-                    <div className="text-xs text-muted-foreground">持仓</div>
-                    <CompactNumberInput
-                      disabled={!settings.timeStopLoss.enabled}
-                      label="持仓"
-                      min={1}
-                      onValueChange={(holdingDays) =>
-                        updateRiskSettings("timeStopLoss", { holdingDays })
-                      }
-                      step={1}
-                      suffix="天"
-                      value={settings.timeStopLoss.holdingDays}
-                    />
-                    <div className="text-xs text-muted-foreground">
-                      收益低于
+                    title="固定止盈"
+                  >
+                    <div className={settingControlGridClassName}>
+                      <div className="text-xs text-muted-foreground">
+                        收益达到
+                      </div>
+                      <CompactNumberInput
+                        disabled={!settings.takeProfit.enabled}
+                        label="收益达到"
+                        min={0}
+                        onValueChange={(profitPercent) =>
+                          updateRiskSettings("takeProfit", { profitPercent })
+                        }
+                        step={0.5}
+                        suffix="%"
+                        value={settings.takeProfit.profitPercent}
+                      />
                     </div>
-                    <CompactNumberInput
-                      disabled={!settings.timeStopLoss.enabled}
-                      label="收益低于"
-                      onValueChange={(minimumReturnPercent) =>
-                        updateRiskSettings("timeStopLoss", {
-                          minimumReturnPercent,
-                        })
+                  </RiskRuleRow>
+                  <Separator className={configSeparatorClassName} />
+
+                  <RiskRuleRow
+                    checked={settings.fixedStopLoss.enabled}
+                    onCheckedChange={(enabled) =>
+                      updateRiskSettings("fixedStopLoss", { enabled })
+                    }
+                    title="固定止损"
+                  >
+                    <div className={settingControlGridClassName}>
+                      <div className="text-xs text-muted-foreground">
+                        买入价下跌
+                      </div>
+                      <CompactNumberInput
+                        disabled={!settings.fixedStopLoss.enabled}
+                        label="买入价下跌"
+                        min={0}
+                        onValueChange={(lossPercent) =>
+                          updateRiskSettings("fixedStopLoss", { lossPercent })
+                        }
+                        step={0.5}
+                        suffix="%"
+                        value={settings.fixedStopLoss.lossPercent}
+                      />
+                    </div>
+                  </RiskRuleRow>
+                  <Separator className={configSeparatorClassName} />
+
+                  <RiskRuleRow
+                    checked={settings.indicatorStopLoss.enabled}
+                    onCheckedChange={(enabled) =>
+                      updateRiskSettings("indicatorStopLoss", { enabled })
+                    }
+                    title="指标止损"
+                  >
+                    <IndicatorStopLossFields
+                      disabled={!settings.indicatorStopLoss.enabled}
+                      settings={settings}
+                      onSettingsChange={(patch) =>
+                        updateRiskSettings("indicatorStopLoss", patch)
                       }
-                      step={0.5}
-                      suffix="%"
-                      value={settings.timeStopLoss.minimumReturnPercent}
                     />
-                  </div>
-                </RiskRuleRow>
-              </FieldGroup>
-            </FieldSet>
-          </CardContent>
-        </Card>
-      </div>
+                  </RiskRuleRow>
+                  <Separator className={configSeparatorClassName} />
 
-      <Separator className="xl:hidden" />
-      <Separator className="hidden xl:block" orientation="vertical" />
-
-      <div className="flex min-h-0 flex-col gap-4 pt-5">
-        <Card className={cn("h-fit", sectionCardClassName)}>
+                  <RiskRuleRow
+                    checked={settings.timeStopLoss.enabled}
+                    onCheckedChange={(enabled) =>
+                      updateRiskSettings("timeStopLoss", { enabled })
+                    }
+                    title="时间止损"
+                  >
+                    <div className="grid gap-2 md:grid-cols-[6.5rem_10rem_6.5rem_10rem] md:items-center">
+                      <div className="text-xs text-muted-foreground">持仓</div>
+                      <CompactNumberInput
+                        disabled={!settings.timeStopLoss.enabled}
+                        label="持仓"
+                        min={1}
+                        onValueChange={(holdingDays) =>
+                          updateRiskSettings("timeStopLoss", { holdingDays })
+                        }
+                        step={1}
+                        suffix="天"
+                        value={settings.timeStopLoss.holdingDays}
+                      />
+                      <div className="text-xs text-muted-foreground">
+                        收益低于
+                      </div>
+                      <CompactNumberInput
+                        disabled={!settings.timeStopLoss.enabled}
+                        label="收益低于"
+                        onValueChange={(minimumReturnPercent) =>
+                          updateRiskSettings("timeStopLoss", {
+                            minimumReturnPercent,
+                          })
+                        }
+                        step={0.5}
+                        suffix="%"
+                        value={settings.timeStopLoss.minimumReturnPercent}
+                      />
+                    </div>
+                  </RiskRuleRow>
+                </FieldGroup>
+              </FieldSet>
+            </CardContent>
+          </Card>
+        </>
+      }
+      aside={
+        <Card className={cn("h-fit py-0", sectionCardClassName)}>
           <CardHeader>
             <CardTitle>建仓摘要</CardTitle>
             <CardDescription>当前模拟参数</CardDescription>
@@ -528,8 +527,8 @@ function SimulationPositionPanel({
             </div>
           </CardContent>
         </Card>
-      </div>
-    </div>
+      }
+    />
   )
 }
 

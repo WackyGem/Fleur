@@ -42,6 +42,8 @@ import {
 import { ConditionGroupsPanel } from "@/features/strategy/components/condition-groups-panel"
 import { PoolPreviewPanel } from "@/features/strategy/components/pool-preview-panel"
 import { SimulationPositionPanel } from "@/features/strategy/components/simulation-position-panel"
+import { strategySplitPanelColumnsClassName } from "@/features/strategy/components/strategy-split-layout"
+import { StrategySplitPanel } from "@/features/strategy/components/strategy-split-panel"
 import { StrategyStepSidebar } from "@/features/strategy/components/strategy-step-sidebar"
 import { WeightIndicatorsPanel } from "@/features/strategy/components/weight-indicators-panel"
 import {
@@ -240,7 +242,7 @@ const backtestTradeCandidates = [
 
 const backtestRebalanceRecords = buildBacktestRebalanceRecords()
 
-const splitStepLayoutClassName = "xl:grid-cols-[minmax(34rem,1fr)_auto_20rem]"
+const splitStepLayoutClassName = strategySplitPanelColumnsClassName
 const previewAnalysisMaWindows = "5,10,30"
 
 type BacktestPeriod = (typeof backtestPeriodOptions)[number]["value"]
@@ -329,8 +331,8 @@ function BacktestPanel({
     : ""
 
   return (
-    <div className="grid min-h-full gap-y-4 xl:grid-cols-[minmax(34rem,1fr)_auto_20rem] xl:gap-x-0">
-      <div className="flex min-h-0 flex-col gap-4 pt-7">
+    <StrategySplitPanel
+      main={
         <div className="flex w-full flex-col gap-4">
           <div className="text-sm font-medium">回测配置</div>
           <FieldGroup className="grid gap-3 md:grid-cols-3 md:items-end xl:pr-4">
@@ -573,12 +575,8 @@ function BacktestPanel({
             ) : null}
           </section>
         </div>
-      </div>
-
-      <Separator className="xl:hidden" />
-      <Separator className="hidden xl:block" orientation="vertical" />
-
-      <div className="flex min-h-0 flex-col gap-4 pt-7">
+      }
+      aside={
         <Card className="h-fit bg-transparent py-0 ring-0">
           <CardHeader>
             <div className="inline-flex items-baseline gap-2">
@@ -656,8 +654,8 @@ function BacktestPanel({
             </div>
           </CardContent>
         </Card>
-      </div>
-    </div>
+      }
+    />
   )
 }
 
@@ -1264,7 +1262,9 @@ export function StrategyPage() {
 
   const content = stepContent[activeStep]
   const isPreviewPending =
-    isOpeningPreview || previewMutation.isPending || previewTimelineMutation.isPending
+    isOpeningPreview ||
+    previewMutation.isPending ||
+    previewTimelineMutation.isPending
   const isSplitStep =
     activeStep === "preview" ||
     activeStep === "simulation" ||
@@ -1272,11 +1272,10 @@ export function StrategyPage() {
   const showStepActions = activeStep !== "backtest"
   const canEnterSimulation = Boolean(
     previewSnapshot &&
-      !previewSnapshot.stale &&
-      previewSnapshot.result.trade_dates.some(
-        (tradeDate) =>
-          tradeDate.pool_count > 0 && tradeDate.signals.length > 0
-      )
+    !previewSnapshot.stale &&
+    previewSnapshot.result.trade_dates.some(
+      (tradeDate) => tradeDate.pool_count > 0 && tradeDate.signals.length > 0
+    )
   )
 
   return (
@@ -1306,6 +1305,7 @@ export function StrategyPage() {
             <div
               className={cn(
                 "min-h-0 flex-1 pr-1",
+                isSplitStep && "[scrollbar-gutter:stable]",
                 !isSplitStep && "mt-5",
                 activeStep === "preview"
                   ? "overflow-y-auto xl:overflow-hidden"
@@ -1339,7 +1339,6 @@ export function StrategyPage() {
                       </AlertDescription>
                     </Alert>
                   )}
-
                 </div>
               ) : activeStep === "weights" ? (
                 canEditWeights ? (
@@ -1379,7 +1378,7 @@ export function StrategyPage() {
                       ? formatErrorMessage(previewMutation.error)
                       : previewTimelineMutation.isError
                         ? formatErrorMessage(previewTimelineMutation.error)
-                      : null)
+                        : null)
                   }
                   isPending={isPreviewPending}
                   isStale={previewSnapshot?.stale ?? false}

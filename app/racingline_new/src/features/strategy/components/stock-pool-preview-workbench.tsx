@@ -53,12 +53,13 @@ import type {
   StrategyConditionGroup,
   WeightIndicator,
 } from "@/features/strategy/types"
+import { StrategySplitPanel } from "@/features/strategy/components/strategy-split-panel"
 import { WeightScoreSlider } from "@/features/strategy/components/weight-score-slider"
-import { clampScore, formatComparableIndicator } from "@/features/strategy/utils"
-import type {
-  ChartSeriesRow,
-  SecurityAnalysisResponse,
-} from "@/types/rearview"
+import {
+  clampScore,
+  formatComparableIndicator,
+} from "@/features/strategy/utils"
+import type { ChartSeriesRow, SecurityAnalysisResponse } from "@/types/rearview"
 
 type StockPoolPreviewWorkbenchProps = {
   appliedWeightIndicators: WeightIndicator[]
@@ -167,7 +168,9 @@ function StockPoolPreviewWorkbench({
   }, [poolPageQuery.data, previewSnapshot, selectedDailyPool?.stocks])
   const selectedStock =
     pagedStocks.find((stock) => stock.code === selectedSecurityCode) ??
-    selectedDailyPool?.stocks.find((stock) => stock.code === selectedSecurityCode) ??
+    selectedDailyPool?.stocks.find(
+      (stock) => stock.code === selectedSecurityCode
+    ) ??
     pagedStocks[0] ??
     selectedDailyPool?.stocks[0] ??
     null
@@ -213,59 +216,60 @@ function StockPoolPreviewWorkbench({
   }
 
   return (
-    <div
-      className="grid h-full min-h-[46rem] grid-cols-1 xl:min-h-0 xl:grid-cols-[minmax(34rem,1fr)_auto_20rem]"
+    <StrategySplitPanel
+      className="h-full min-h-[46rem] xl:min-h-0"
       data-has-strategy-input={hasStrategyInput}
       data-preview-stale={previewSnapshot.stale}
-    >
-      <div className="flex min-h-0 flex-col gap-3 pt-5">
-        <KLinePanel
-          adjustmentMode={adjustmentMode}
-          analysis={analysisQuery.data ?? null}
-          error={analysisQuery.isError ? analysisQuery.error : null}
-          isPending={analysisQuery.isPending}
-          onAdjustmentModeChange={setAdjustmentMode}
-          stock={selectedStock}
-        />
-        <Separator />
-        <DailyStockPoolPanel
-          dailyStockPools={dailyStockPools}
-          onNextPage={() =>
-            setPoolPageState({
-              offset: poolOffset + pageSize,
-              previewId: selectedPreviewId,
-              tradeDate: selectedPoolDate,
-            })
-          }
-          onPreviousPage={() =>
-            setPoolPageState({
-              offset: Math.max(0, poolOffset - pageSize),
-              previewId: selectedPreviewId,
-              tradeDate: selectedPoolDate,
-            })
-          }
-          onSelectedDateChange={(date) => {
-            setSelectedTradeDate(date)
-            setSelectedSecurityCode("")
-          }}
-          onSelectedStockChange={setSelectedSecurityCode}
-          pageHasMore={
-            poolPageQuery.data?.has_more ??
-            (hasLocalPoolPage
-              ? selectedDailyPool.poolCount > selectedDailyPool.stocks.length
-              : false)
-          }
-          pageOffset={poolOffset}
-          pagedStocks={pagedStocks}
-          selectedDate={selectedDailyPool.date}
-          selectedPool={selectedDailyPool}
-          selectedSecurityCode={selectedStock?.code ?? ""}
-          isPoolPagePending={shouldFetchPoolPage && poolPageQuery.isPending}
-        />
-      </div>
-      <Separator className="my-3 xl:hidden" />
-      <Separator orientation="vertical" className="hidden xl:block" />
-      <div className="min-h-0 xl:h-full xl:pt-5">
+      mainClassName="gap-3"
+      asideClassName="xl:h-full"
+      main={
+        <>
+          <KLinePanel
+            adjustmentMode={adjustmentMode}
+            analysis={analysisQuery.data ?? null}
+            error={analysisQuery.isError ? analysisQuery.error : null}
+            isPending={analysisQuery.isPending}
+            onAdjustmentModeChange={setAdjustmentMode}
+            stock={selectedStock}
+          />
+          <Separator />
+          <DailyStockPoolPanel
+            dailyStockPools={dailyStockPools}
+            onNextPage={() =>
+              setPoolPageState({
+                offset: poolOffset + pageSize,
+                previewId: selectedPreviewId,
+                tradeDate: selectedPoolDate,
+              })
+            }
+            onPreviousPage={() =>
+              setPoolPageState({
+                offset: Math.max(0, poolOffset - pageSize),
+                previewId: selectedPreviewId,
+                tradeDate: selectedPoolDate,
+              })
+            }
+            onSelectedDateChange={(date) => {
+              setSelectedTradeDate(date)
+              setSelectedSecurityCode("")
+            }}
+            onSelectedStockChange={setSelectedSecurityCode}
+            pageHasMore={
+              poolPageQuery.data?.has_more ??
+              (hasLocalPoolPage
+                ? selectedDailyPool.poolCount > selectedDailyPool.stocks.length
+                : false)
+            }
+            pageOffset={poolOffset}
+            pagedStocks={pagedStocks}
+            selectedDate={selectedDailyPool.date}
+            selectedPool={selectedDailyPool}
+            selectedSecurityCode={selectedStock?.code ?? ""}
+            isPoolPagePending={shouldFetchPoolPage && poolPageQuery.isPending}
+          />
+        </>
+      }
+      aside={
         <KeyDataPanel
           analysis={analysisQuery.data ?? null}
           analysisError={analysisQuery.isError ? analysisQuery.error : null}
@@ -274,8 +278,8 @@ function StockPoolPreviewWorkbench({
           stock={selectedStock}
           weightIndicators={weightIndicators}
         />
-      </div>
-    </div>
+      }
+    />
   )
 }
 
@@ -296,14 +300,17 @@ function KLinePanel({
   ) => void
   stock: PreviewStockRow | null
 }) {
-  const [trendLines, setTrendLines] = useState<string[]>(["MA5", "MA10", "MA30"])
+  const [trendLines, setTrendLines] = useState<string[]>([
+    "MA5",
+    "MA10",
+    "MA30",
+  ])
   const adjustmentLabel =
     adjustmentOptions.find((option) => option.value === adjustmentMode)
       ?.label ?? "前复权"
   const boardLabel =
     stock?.boardLabel ?? formatSecurityBoard(analysis?.security_board)
-  const maAvailable =
-    (analysis?.chart.ma?.available_windows.length ?? 0) > 0
+  const maAvailable = (analysis?.chart.ma?.available_windows.length ?? 0) > 0
   const visibleTrendLines = maAvailable ? trendLines : []
 
   return (
@@ -315,7 +322,10 @@ function KLinePanel({
         <div className="min-h-[3.75rem] min-w-0">
           <CardTitle className="flex h-[3.75rem] min-w-0 flex-col justify-between group-data-[size=sm]/card:text-xl">
             <span className="flex h-7 items-center truncate leading-7">
-              {stock?.name ?? analysis?.security_name ?? analysis?.security_code ?? "-"}
+              {stock?.name ??
+                analysis?.security_name ??
+                analysis?.security_code ??
+                "-"}
             </span>
             <span className="flex h-7 items-center text-sm leading-5 font-normal text-muted-foreground tabular-nums">
               {formatStockSubtitle(
@@ -533,9 +543,7 @@ function CandlestickChart({
                 }
               : null
           })
-          .filter(
-            (row): row is { time: string; value: number } => row !== null
-          )
+          .filter((row): row is { time: string; value: number } => row !== null)
       )
     }
     chart.timeScale().fitContent()
@@ -823,7 +831,10 @@ function KeyDataPanel({
               label="成交额"
               value={formatCompactUnit(quote?.amount, 100000000, "亿")}
             />
-            <DataRow label="涨停价" value={formatPrice(quote?.limit_up_price)} />
+            <DataRow
+              label="涨停价"
+              value={formatPrice(quote?.limit_up_price)}
+            />
             <DataRow
               label="跌停价"
               value={formatPrice(quote?.limit_down_price)}
