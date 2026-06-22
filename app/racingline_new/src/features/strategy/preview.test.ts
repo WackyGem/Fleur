@@ -213,6 +213,56 @@ describe("buildPreviewPresentation", () => {
       "2026-06-02",
     ])
   })
+
+  it("keeps timeline dates inside the dynamic preview range", () => {
+    const snapshot = buildPreviewSnapshot({
+      appliedRuleSpec: rule,
+      conditionGroups: [],
+      conditionPaths: [],
+      createdAt: "2026-06-22T00:00:00.000Z",
+      metrics,
+      range: {
+        endDate: "2026-06-22",
+        previewRowLimit: 10,
+        startDate: "2025-06-22",
+      },
+      result: {
+        end_date: "2026-06-22",
+        preview_id: "preview-1",
+        preview_row_limit: 10,
+        required_columns: {},
+        required_marts: [],
+        required_metrics: ["close_price"],
+        sql_hash: "hash",
+        start_date: "2026-06-22",
+        top_n: 10,
+        trade_dates: [],
+      },
+      timeline: {
+        end_date: "2026-06-22",
+        preview_id: "timeline-1",
+        required_columns: {},
+        required_marts: [],
+        required_metrics: ["close_price"],
+        sql_hash: "timeline-hash",
+        start_date: "2025-06-22",
+        trade_dates: [
+          { pool_count: 5, trade_date: "2025-06-20" },
+          { pool_count: 8, trade_date: "2025-06-22" },
+          { pool_count: 13, trade_date: "2026-06-22" },
+          { pool_count: 21, trade_date: "2026-06-23" },
+        ],
+      },
+      weightIndicators: [],
+    })
+
+    const presentation = buildPreviewPresentation(snapshot)
+
+    expect(presentation.tradeDates.map((row) => row.date)).toEqual([
+      "2025-06-22",
+      "2026-06-22",
+    ])
+  })
 })
 
 describe("markPreviewSnapshotStale", () => {

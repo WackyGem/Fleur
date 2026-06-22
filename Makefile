@@ -16,6 +16,7 @@ REARVIEW_HTTP_BIND ?= 127.0.0.1:34057
 REARVIEW_DEV_PORT ?= $(lastword $(subst :, ,$(REARVIEW_HTTP_BIND)))
 RACINGLINE_DEV_HOST ?= 127.0.0.1
 RACINGLINE_DEV_PORT ?= 5173
+RACINGLINE_APP_DIR ?= app/racingline_new
 
 ifneq ("$(wildcard .env)","")
 include .env
@@ -211,7 +212,7 @@ rearview-dev:
 racingline-frontend-dev:
 	$(call stop-listening-port,$(RACINGLINE_DEV_PORT),Racingline frontend dev server)
 	@printf 'Starting Racingline frontend at http://%s:%s\n' '$(RACINGLINE_DEV_HOST)' '$(RACINGLINE_DEV_PORT)'
-	cd app/racingline && npm run dev -- --host $(RACINGLINE_DEV_HOST) --port $(RACINGLINE_DEV_PORT)
+	cd $(RACINGLINE_APP_DIR) && npm run dev -- --host $(RACINGLINE_DEV_HOST) --port $(RACINGLINE_DEV_PORT)
 
 racingline-dev-stop:
 	$(call stop-listening-port,$(RACINGLINE_DEV_PORT),Racingline frontend dev server)
@@ -263,7 +264,7 @@ racingline-dev:
 			exit 1; \
 		fi; \
 		printf 'Starting Racingline frontend at http://%s:%s\n' '$(RACINGLINE_DEV_HOST)' '$(RACINGLINE_DEV_PORT)'; \
-		(cd app/racingline && npm run dev -- --host $(RACINGLINE_DEV_HOST) --port $(RACINGLINE_DEV_PORT)) & \
+		(cd $(RACINGLINE_APP_DIR) && npm run dev -- --host $(RACINGLINE_DEV_HOST) --port $(RACINGLINE_DEV_PORT)) & \
 		frontend_pid=$$!; \
 		set +e; \
 		wait -n "$$backend_pid" "$$worker_pid" "$$frontend_pid"; \

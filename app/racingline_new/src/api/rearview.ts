@@ -3,8 +3,8 @@ import type {
   ExplainResponse,
   MetricDefinition,
   MetricsQuery,
-  PreviewSecurityAnalysisRequest,
   RuleVersionSpec,
+  SecurityAnalysisRequest,
   SecurityAnalysisResponse,
   StrategyPreviewPoolPageRequest,
   StrategyPreviewPoolPageResponse,
@@ -56,12 +56,12 @@ export function previewStrategyPoolPage(
   )
 }
 
-export function previewStrategySecurityAnalysis(
-  request: PreviewSecurityAnalysisRequest,
+export function securityAnalysis(
+  request: SecurityAnalysisRequest,
   signal?: AbortSignal
 ) {
   return requestJson<SecurityAnalysisResponse>(
-    "/rearview/strategy-preview/security-analysis",
+    "/rearview/security-analysis",
     { ...jsonBody(request), signal }
   )
 }

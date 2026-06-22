@@ -159,12 +159,15 @@ export function buildPreviewPresentation(
       tradeDate.pool_count,
     ])
   )
-  const tradeDates =
+  const tradeDates = (
     snapshot.timeline?.trade_dates.map((tradeDate) => ({
       pool_count: tradeDate.pool_count,
       signals: signalsByDate.get(tradeDate.trade_date) ?? [],
       trade_date: tradeDate.trade_date,
     })) ?? snapshot.result.trade_dates
+  ).filter((tradeDate) =>
+    isWithinPreviewRange(tradeDate.trade_date, snapshot.range)
+  )
 
   return {
     tradeDates: tradeDates.map((tradeDate) => {
@@ -186,6 +189,10 @@ export function buildPreviewPresentation(
       }
     }),
   }
+}
+
+function isWithinPreviewRange(tradeDate: string, range: PreviewRange) {
+  return tradeDate >= range.startDate && tradeDate <= range.endDate
 }
 
 export function buildPreviewStockRow(

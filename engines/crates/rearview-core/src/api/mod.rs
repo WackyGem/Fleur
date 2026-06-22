@@ -9,7 +9,8 @@ use serde::{Deserialize, Serialize};
 use tower_http::cors::CorsLayer;
 
 use crate::clickhouse::{
-    MomentumIndicatorRow, QuoteMartRow, SecurityDisplayRow, TrendIndicatorRow,
+    AnalysisQuoteAdjustment, MomentumIndicatorRow, QuoteMartRow, SecurityDisplayRow,
+    TrendIndicatorRow,
 };
 use crate::domain::RuleVersionSpec;
 use crate::domain::metric::{MetricDefinition, ValueKind};
@@ -101,6 +102,7 @@ pub fn routes() -> Router<AppState> {
             "/rearview/runs/{run_id}/securities/{security_code}/analysis",
             get(get_security_analysis),
         )
+        .route("/rearview/security-analysis", post(analyze_security))
         .route("/rearview/runs/{run_id}/pool", get(list_pool_members))
         .route("/rearview/runs/{run_id}/signals", get(list_buy_signals))
         .route("/rearview/explain", post(explain_rule))
@@ -748,23 +750,35 @@ async fn get_security_analysis(
         "rearview-analysis-{run_id}-{security_code}-{}",
         request.trade_date
     );
-    let quote_rows = state
-        .clickhouse
-        .query_analysis_quote_rows(
-            &security_code,
-            request.quote_start_date,
-            request.quote_end_date,
-            request.lookback_trading_days,
-            &format!("{query_id_prefix}-quotes"),
-        )
-        .await?;
+    let quote_start_date = resolve_analysis_quote_start_date(
+        &state,
+        request.quote_start_date,
+        request.quote_end_date,
+        request.lookback_trading_days,
+        &format!("{query_id_prefix}-date-window"),
+    )
+    .await?;
+    let quote_rows = if quote_start_date.is_some() {
+        state
+            .clickhouse
+            .query_analysis_quote_rows(
+                &security_code,
+                quote_start_date,
+                request.quote_end_date,
+                request.lookback_trading_days,
+                &format!("{query_id_prefix}-quotes"),
+            )
+            .await?
+    } else {
+        Vec::new()
+    };
 
     let (chart_start_date, chart_end_date) = quote_rows
         .first()
         .zip(quote_rows.last())
         .map(|(first, last)| (first.trade_date, last.trade_date))
         .unwrap_or((
-            request.quote_start_date.unwrap_or(request.quote_end_date),
+            quote_start_date.unwrap_or(request.quote_end_date),
             request.quote_end_date,
         ));
 
@@ -805,7 +819,139 @@ async fn get_security_analysis(
             chart_end_date,
             include_quote_rows: true,
         },
-        result_snapshot,
+        Some(result_snapshot),
+        None,
+        quote_rows,
+        trend_rows,
+        momentum_rows,
+        state.config.clickhouse.marts_database.clone(),
+    );
+    Ok(Json(response))
+}
+
+async fn analyze_security(
+    State(state): State<AppState>,
+    Json(request): Json<SecurityAnalysisContextRequest>,
+) -> RearviewResult<Json<impl Serialize>> {
+    let request = request.into_parts()?;
+    let display = security_display_for_one(
+        &state,
+        &request.security_code,
+        &format!(
+            "rearview-security-analysis-display-{}-{}",
+            request.security_code, request.analysis.trade_date
+        ),
+    )
+    .await;
+    let security_name = display
+        .as_ref()
+        .and_then(|display| display.security_name.clone());
+    let exchange_code = display
+        .as_ref()
+        .and_then(|display| display.exchange_code.clone());
+    let security_board = display
+        .as_ref()
+        .and_then(|display| display.security_board.clone());
+
+    let query_id_prefix = format!(
+        "rearview-security-analysis-{}-{}-{}",
+        ulid::Ulid::new(),
+        request.security_code,
+        request.analysis.trade_date
+    );
+    let quote_start_date = resolve_analysis_quote_start_date(
+        &state,
+        request.analysis.quote_start_date,
+        request.analysis.quote_end_date,
+        request.analysis.lookback_trading_days,
+        &format!("{query_id_prefix}-date-window"),
+    )
+    .await?;
+    let (quote_rows, selected_quote) = if let Some(quote_start_date) = quote_start_date {
+        if request.include_quote_rows {
+            (
+                state
+                    .clickhouse
+                    .query_analysis_quote_rows(
+                        &request.security_code,
+                        Some(quote_start_date),
+                        request.analysis.quote_end_date,
+                        request.analysis.lookback_trading_days,
+                        &format!("{query_id_prefix}-quotes"),
+                    )
+                    .await?,
+                None,
+            )
+        } else {
+            let chart_query_id = format!("{query_id_prefix}-chart-quotes");
+            let selected_query_id = format!("{query_id_prefix}-selected-quote");
+            tokio::try_join!(
+                state.clickhouse.query_analysis_chart_quote_rows(
+                    &request.security_code,
+                    quote_start_date,
+                    request.analysis.quote_end_date,
+                    request.analysis.adjustment.into(),
+                    &chart_query_id,
+                ),
+                state.clickhouse.query_analysis_selected_quote_row(
+                    &request.security_code,
+                    request.analysis.trade_date,
+                    &selected_query_id,
+                )
+            )?
+        }
+    } else {
+        (Vec::new(), None)
+    };
+
+    let (chart_start_date, chart_end_date) = quote_rows
+        .first()
+        .zip(quote_rows.last())
+        .map(|(first, last)| (first.trade_date, last.trade_date))
+        .unwrap_or((
+            quote_start_date.unwrap_or(request.analysis.quote_end_date),
+            request.analysis.quote_end_date,
+        ));
+
+    let (trend_rows, momentum_rows) = if quote_rows.is_empty() {
+        (Vec::new(), Vec::new())
+    } else {
+        let trend_query_id = format!("{query_id_prefix}-trend");
+        let momentum_query_id = format!("{query_id_prefix}-momentum");
+        tokio::try_join!(
+            state.clickhouse.query_analysis_trend_rows(
+                &request.security_code,
+                chart_start_date,
+                chart_end_date,
+                &trend_query_id,
+            ),
+            state.clickhouse.query_analysis_momentum_rows(
+                &request.security_code,
+                chart_start_date,
+                chart_end_date,
+                &momentum_query_id,
+            )
+        )?
+    };
+
+    let response = build_security_analysis_response(
+        SecurityAnalysisBuildInput {
+            run_id: None,
+            security_code: request.security_code,
+            security_name,
+            exchange_code,
+            security_board,
+            trade_date: request.analysis.trade_date,
+            source: AnalysisSource::Preview,
+            adjustment: request.analysis.adjustment,
+            ma_windows: request.analysis.ma_windows,
+            lookback_trading_days: request.analysis.lookback_trading_days,
+            chart_start_date,
+            chart_end_date,
+            include_quote_rows: request.include_quote_rows,
+        },
+        None,
+        selected_quote,
         quote_rows,
         trend_rows,
         momentum_rows,
@@ -1068,26 +1214,57 @@ async fn preview_strategy_security_analysis(
     let security_board = display
         .as_ref()
         .and_then(|display| display.security_board.clone());
-    let quote_rows = state
-        .clickhouse
-        .query_analysis_quote_rows(
-            &request.security_code,
-            request.analysis.quote_start_date,
-            request.analysis.quote_end_date,
-            request.analysis.lookback_trading_days,
-            &format!("{query_id_prefix}-quotes"),
-        )
-        .await?;
+    let quote_start_date = resolve_analysis_quote_start_date(
+        &state,
+        request.analysis.quote_start_date,
+        request.analysis.quote_end_date,
+        request.analysis.lookback_trading_days,
+        &format!("{query_id_prefix}-date-window"),
+    )
+    .await?;
+    let (quote_rows, selected_quote) = if let Some(quote_start_date) = quote_start_date {
+        if request.include_quote_rows {
+            (
+                state
+                    .clickhouse
+                    .query_analysis_quote_rows(
+                        &request.security_code,
+                        Some(quote_start_date),
+                        request.analysis.quote_end_date,
+                        request.analysis.lookback_trading_days,
+                        &format!("{query_id_prefix}-quotes"),
+                    )
+                    .await?,
+                None,
+            )
+        } else {
+            let chart_query_id = format!("{query_id_prefix}-chart-quotes");
+            let selected_query_id = format!("{query_id_prefix}-selected-quote");
+            tokio::try_join!(
+                state.clickhouse.query_analysis_chart_quote_rows(
+                    &request.security_code,
+                    quote_start_date,
+                    request.analysis.quote_end_date,
+                    request.analysis.adjustment.into(),
+                    &chart_query_id,
+                ),
+                state.clickhouse.query_analysis_selected_quote_row(
+                    &request.security_code,
+                    request.analysis.trade_date,
+                    &selected_query_id,
+                )
+            )?
+        }
+    } else {
+        (Vec::new(), None)
+    };
 
     let (chart_start_date, chart_end_date) = quote_rows
         .first()
         .zip(quote_rows.last())
         .map(|(first, last)| (first.trade_date, last.trade_date))
         .unwrap_or((
-            request
-                .analysis
-                .quote_start_date
-                .unwrap_or(request.analysis.quote_end_date),
+            quote_start_date.unwrap_or(request.analysis.quote_end_date),
             request.analysis.quote_end_date,
         ));
 
@@ -1128,7 +1305,8 @@ async fn preview_strategy_security_analysis(
             chart_end_date,
             include_quote_rows: request.include_quote_rows,
         },
-        ResultSnapshot::from_preview(row)?,
+        Some(ResultSnapshot::from_preview(row)?),
+        selected_quote,
         quote_rows,
         trend_rows,
         momentum_rows,
@@ -1494,6 +1672,16 @@ enum Adjustment {
     Unadjusted,
 }
 
+impl From<Adjustment> for AnalysisQuoteAdjustment {
+    fn from(value: Adjustment) -> Self {
+        match value {
+            Adjustment::ForwardAdjusted => Self::ForwardAdjusted,
+            Adjustment::BackwardAdjusted => Self::BackwardAdjusted,
+            Adjustment::Unadjusted => Self::Unadjusted,
+        }
+    }
+}
+
 #[derive(Debug, Serialize)]
 struct SecurityAnalysisResponse {
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -1508,7 +1696,8 @@ struct SecurityAnalysisResponse {
     security_board: Option<String>,
     source: AnalysisSource,
     adjustment: Adjustment,
-    result_snapshot: ResultSnapshot,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    result_snapshot: Option<ResultSnapshot>,
     sources: AnalysisSources,
     chart_window: ChartWindow,
     chart: ChartPayload,
@@ -2025,6 +2214,57 @@ struct StrategyPreviewSecurityAnalysisRequestParts {
     include_quote_rows: bool,
 }
 
+#[derive(Debug, Deserialize)]
+struct SecurityAnalysisContextRequest {
+    trade_date: NaiveDate,
+    security_code: String,
+    #[serde(default)]
+    adjustment: Option<Adjustment>,
+    #[serde(default)]
+    quote_end_date: Option<NaiveDate>,
+    #[serde(default)]
+    lookback_trading_days: Option<u32>,
+    #[serde(default)]
+    quote_start_date: Option<NaiveDate>,
+    #[serde(default)]
+    ma_windows: Option<String>,
+    #[serde(default)]
+    include_quote_rows: Option<bool>,
+}
+
+impl SecurityAnalysisContextRequest {
+    fn into_parts(self) -> RearviewResult<SecurityAnalysisContextRequestParts> {
+        let security_code = self.security_code.trim().to_string();
+        if security_code.is_empty() {
+            return Err(RearviewError::Validation(
+                "security_code must not be empty".to_string(),
+            ));
+        }
+        let analysis = SecurityAnalysisQuery {
+            trade_date: self.trade_date,
+            source: AnalysisSource::Preview,
+            adjustment: self.adjustment,
+            quote_end_date: self.quote_end_date,
+            lookback_trading_days: self.lookback_trading_days,
+            quote_start_date: self.quote_start_date,
+            ma_windows: self.ma_windows,
+        }
+        .into_request()?;
+        Ok(SecurityAnalysisContextRequestParts {
+            security_code,
+            analysis,
+            include_quote_rows: self.include_quote_rows.unwrap_or(false),
+        })
+    }
+}
+
+#[derive(Debug)]
+struct SecurityAnalysisContextRequestParts {
+    security_code: String,
+    analysis: SecurityAnalysisRequest,
+    include_quote_rows: bool,
+}
+
 fn build_strategy_preview_trade_dates(
     rows: Vec<crate::clickhouse::ScreeningRow>,
     preview_row_limit: u32,
@@ -2144,6 +2384,22 @@ fn non_empty(value: Option<String>) -> Option<String> {
     })
 }
 
+async fn resolve_analysis_quote_start_date(
+    state: &AppState,
+    quote_start_date: Option<NaiveDate>,
+    quote_end_date: NaiveDate,
+    lookback_trading_days: u32,
+    query_id: &str,
+) -> RearviewResult<Option<NaiveDate>> {
+    if quote_start_date.is_some() {
+        return Ok(quote_start_date);
+    }
+    state
+        .clickhouse
+        .query_trade_date_lookback_start(quote_end_date, lookback_trading_days, query_id)
+        .await
+}
+
 fn default_market() -> String {
     "CN_A_SHARE".to_string()
 }
@@ -2177,7 +2433,8 @@ fn default_risk_exit_policy() -> serde_json::Value {
 
 fn build_security_analysis_response(
     input: SecurityAnalysisBuildInput,
-    result_snapshot: ResultSnapshot,
+    result_snapshot: Option<ResultSnapshot>,
+    selected_quote: Option<QuoteMartRow>,
     quote_rows: Vec<QuoteMartRow>,
     trend_rows: Vec<TrendIndicatorRow>,
     momentum_rows: Vec<MomentumIndicatorRow>,
@@ -2191,10 +2448,12 @@ fn build_security_analysis_response(
         .into_iter()
         .map(|row| (row.trade_date, row))
         .collect::<BTreeMap<_, _>>();
-    let selected_quote = quote_rows
-        .iter()
-        .find(|row| row.trade_date == input.trade_date)
-        .cloned();
+    let selected_quote = selected_quote.or_else(|| {
+        quote_rows
+            .iter()
+            .find(|row| row.trade_date == input.trade_date)
+            .cloned()
+    });
     let series = quote_rows
         .iter()
         .map(|quote| {

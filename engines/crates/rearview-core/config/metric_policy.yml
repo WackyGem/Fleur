@@ -455,6 +455,7 @@ metrics:
   - logical_metric: n_structure_20_is_valid
     source: {mart_table: mart_stock_price_pattern_daily, column_name: n_structure_20_is_valid}
     extends: boolean_metric
+    allow_scoring: true
     default_output: true
     display: {group: pattern, label_zh: N 字结构有效, sort_order: 20}
 

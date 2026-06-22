@@ -1,7 +1,6 @@
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { StockPoolPreviewWorkbench } from "@/features/strategy/components/stock-pool-preview-workbench"
 import type {
-  IndicatorCatalog,
   StrategyConditionGroup,
   WeightIndicator,
 } from "@/features/strategy/types"
@@ -13,14 +12,11 @@ type PoolPreviewPanelProps = {
   error?: string | null
   isPending?: boolean
   isStale?: boolean
-  onAddWeightIndicator: () => void
-  onRemoveWeightIndicator: (indicatorId: string) => void
   onUpdateWeightIndicator: (
     indicatorId: string,
     patch: Partial<WeightIndicator>
   ) => void
   previewSnapshot: PreviewSnapshot | null
-  scoringCatalogOptions: IndicatorCatalog[]
   weightIndicators: WeightIndicator[]
 }
 
@@ -30,11 +26,8 @@ function PoolPreviewPanel({
   error,
   isPending,
   isStale,
-  onAddWeightIndicator,
-  onRemoveWeightIndicator,
   onUpdateWeightIndicator,
   previewSnapshot,
-  scoringCatalogOptions,
   weightIndicators,
 }: PoolPreviewPanelProps) {
   const hasStrategyInput =
@@ -74,11 +67,8 @@ function PoolPreviewPanel({
           appliedWeightIndicators={appliedWeightIndicators}
           conditionGroups={conditionGroups}
           hasStrategyInput={hasStrategyInput}
-          onAddWeightIndicator={onAddWeightIndicator}
-          onRemoveWeightIndicator={onRemoveWeightIndicator}
           onUpdateWeightIndicator={onUpdateWeightIndicator}
           previewSnapshot={previewSnapshot}
-          scoringCatalogOptions={scoringCatalogOptions}
           weightIndicators={weightIndicators}
         />
       </div>

@@ -1,9 +1,11 @@
 import { Fragment, useEffect, useMemo, useRef, useState } from "react"
 import { useNavigate } from "react-router-dom"
 import { createChart, LineSeries } from "lightweight-charts"
+import { useQueryClient } from "@tanstack/react-query"
 
+import { queryKeys } from "@/api/queryKeys"
+import { securityAnalysis } from "@/api/rearview"
 import {
-  useExplainMutation,
   useMetricsQuery,
   useStrategyPreviewMutation,
   useStrategyPreviewTimelineMutation,
@@ -35,7 +37,6 @@ import {
   buildStrategyMetricCatalog,
   buildStrategyPreviewRuleSpec,
   buildStrategyScoringCatalog,
-  buildStrategySelectionRuleSpec,
   StrategyRuleSpecError,
 } from "@/features/strategy/adapters"
 import { ConditionGroupsPanel } from "@/features/strategy/components/condition-groups-panel"
@@ -63,10 +64,6 @@ import {
   createWeightIndicator,
 } from "@/features/strategy/utils"
 import { cn } from "@/lib/utils"
-import type {
-  ExplainResponse,
-  RuleVersionSpec,
-} from "@/types/rearview"
 import { Play } from "lucide-react"
 
 const stepContent: Record<Step, { description: string; title: string }> = {
@@ -244,6 +241,7 @@ const backtestTradeCandidates = [
 const backtestRebalanceRecords = buildBacktestRebalanceRecords()
 
 const splitStepLayoutClassName = "xl:grid-cols-[minmax(34rem,1fr)_auto_20rem]"
+const previewAnalysisMaWindows = "5,10,30"
 
 type BacktestPeriod = (typeof backtestPeriodOptions)[number]["value"]
 type BacktestBenchmark =
@@ -843,16 +841,6 @@ function formatErrorMessage(error: unknown) {
   return String(error || "Unknown error")
 }
 
-function formatRequiredColumns(columns: Record<string, string[]> | undefined) {
-  if (!columns) {
-    return ""
-  }
-
-  return Object.entries(columns)
-    .map(([mart, names]) => `${mart}: ${names.join(", ")}`)
-    .join(" / ")
-}
-
 function BacktestNetValueChart({
   points,
 }: {
@@ -973,119 +961,10 @@ function MetricsCatalogState({
   return null
 }
 
-function ExplainStatusPanel({
-  adapterError,
-  error,
-  isPending,
-  lastExplainAt,
-  result,
-  ruleSpec,
-  stale,
-}: {
-  adapterError: string | null
-  error: unknown
-  isPending: boolean
-  lastExplainAt: string | null
-  result: ExplainResponse | null
-  ruleSpec: RuleVersionSpec | null
-  stale: boolean
-}) {
-  if (adapterError) {
-    return (
-      <Alert variant="destructive">
-        <AlertTitle>规则草案无效</AlertTitle>
-        <AlertDescription>{adapterError}</AlertDescription>
-      </Alert>
-    )
-  }
-
-  if (error) {
-    return (
-      <Alert variant="destructive">
-        <AlertTitle>规则校验失败</AlertTitle>
-        <AlertDescription>{formatErrorMessage(error)}</AlertDescription>
-      </Alert>
-    )
-  }
-
-  if (isPending) {
-    return (
-      <Alert>
-        <Spinner />
-        <AlertTitle>正在校验规则</AlertTitle>
-        <AlertDescription>Rearview explain 正在编译规则草案。</AlertDescription>
-      </Alert>
-    )
-  }
-
-  if (!result || !ruleSpec) {
-    return null
-  }
-
-  return (
-    <div className="flex flex-col gap-3">
-      <Alert>
-        <AlertTitle>{stale ? "规则校验已过期" : "规则校验通过"}</AlertTitle>
-        <AlertDescription>
-          {[
-            result.sql_hash ?? result.compiled_sql_hash ?? "no-hash",
-            `${result.required_metrics?.length ?? 0} metrics`,
-            `${result.required_marts?.length ?? 0} marts`,
-            `${result.chunk_plan?.length ?? 0} chunks`,
-            lastExplainAt ?? "",
-          ]
-            .filter(Boolean)
-            .join(" / ")}
-        </AlertDescription>
-      </Alert>
-
-      <div className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_minmax(22rem,0.75fr)]">
-        <div className="min-w-0 border border-border/60 bg-background p-3">
-          <div className="mb-2 text-xs font-medium text-muted-foreground">
-            Explain dependencies
-          </div>
-          <div className="grid gap-2 text-xs">
-            <DependencyLine
-              label="metrics"
-              value={(result.required_metrics ?? []).join(", ")}
-            />
-            <DependencyLine
-              label="marts"
-              value={(result.required_marts ?? []).join(", ")}
-            />
-            <DependencyLine
-              label="columns"
-              value={formatRequiredColumns(result.required_columns)}
-            />
-          </div>
-        </div>
-
-        <div className="min-w-0 border border-border/60 bg-background p-3">
-          <div className="mb-2 text-xs font-medium text-muted-foreground">
-            RuleVersionSpec
-          </div>
-          <pre className="max-h-64 overflow-auto text-[11px] leading-relaxed break-all whitespace-pre-wrap text-muted-foreground">
-            {JSON.stringify(ruleSpec, null, 2)}
-          </pre>
-        </div>
-      </div>
-    </div>
-  )
-}
-
-function DependencyLine({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="grid min-w-0 grid-cols-[5rem_minmax(0,1fr)] gap-2">
-      <div className="text-muted-foreground">{label}</div>
-      <div className="truncate font-medium">{value || "--"}</div>
-    </div>
-  )
-}
-
 export function StrategyPage() {
   const navigate = useNavigate()
+  const queryClient = useQueryClient()
   const metricsQuery = useMetricsQuery()
-  const explainMutation = useExplainMutation()
   const previewMutation = useStrategyPreviewMutation()
   const previewTimelineMutation = useStrategyPreviewTimelineMutation()
   const strategyCatalog = useMemo(
@@ -1115,27 +994,17 @@ export function StrategyPage() {
   const [backtestPeriod, setBacktestPeriod] = useState<BacktestPeriod>("1y")
   const [backtestBenchmark, setBacktestBenchmark] =
     useState<BacktestBenchmark>("000300.SH")
-  const [adapterError, setAdapterError] = useState<string | null>(null)
-  const [lastRuleSpec, setLastRuleSpec] = useState<RuleVersionSpec | null>(null)
-  const [lastExplainResult, setLastExplainResult] =
-    useState<ExplainResponse | null>(null)
-  const [lastExplainAt, setLastExplainAt] = useState<string | null>(null)
-  const [isExplainStale, setIsExplainStale] = useState(false)
   const [previewAdapterError, setPreviewAdapterError] = useState<string | null>(
     null
   )
+  const [isOpeningPreview, setIsOpeningPreview] = useState(false)
   const [previewSnapshot, setPreviewSnapshot] =
     useState<PreviewSnapshot | null>(null)
   const canEditConditions = strategyCatalogOptions.length > 0
-  const canExplainRule = hasRealMetricsCatalog
   const canEditWeights = hasRealScoringCatalog
 
   function markRuleDraftChanged() {
-    setAdapterError(null)
     setPreviewAdapterError(null)
-    if (lastRuleSpec || lastExplainResult || lastExplainAt) {
-      setIsExplainStale(true)
-    }
     setPreviewSnapshot(markPreviewSnapshotStale)
   }
 
@@ -1249,33 +1118,6 @@ export function StrategyPage() {
     ])
   }
 
-  async function validateRuleDraft() {
-    explainMutation.reset()
-    setAdapterError(null)
-
-    try {
-      if (!metricsQuery.data || metricsQuery.data.length === 0) {
-        throw new StrategyRuleSpecError(
-          "Rearview 指标目录未加载，不能提交真实 explain"
-        )
-      }
-
-      const { rule } = buildStrategySelectionRuleSpec(
-        conditionGroups,
-        metricsQuery.data ?? []
-      )
-      const result = await explainMutation.mutateAsync({ rule })
-      setLastRuleSpec(rule)
-      setLastExplainResult(result)
-      setLastExplainAt(new Date().toISOString())
-      setIsExplainStale(false)
-    } catch (error) {
-      if (error instanceof StrategyRuleSpecError) {
-        setAdapterError(error.message)
-      }
-    }
-  }
-
   function updateWeightIndicator(
     indicatorId: string,
     patch: Partial<WeightIndicator>
@@ -1298,6 +1140,7 @@ export function StrategyPage() {
   async function openPreview(
     nextWeightIndicators: WeightIndicator[] = weightIndicators
   ) {
+    setIsOpeningPreview(true)
     previewMutation.reset()
     previewTimelineMutation.reset()
     setPreviewAdapterError(null)
@@ -1348,30 +1191,65 @@ export function StrategyPage() {
           }
 
       setPreviewAppliedWeightIndicators(previewWeights)
-      setPreviewSnapshot(
-        buildPreviewSnapshot({
-          appliedRuleSpec: rule,
-          conditionGroups,
-          conditionPaths,
-          createdAt: new Date().toISOString(),
-          metrics: metricsQuery.data,
-          range: {
-            endDate: requestRange.end_date,
-            previewRowLimit: requestRange.preview_row_limit,
-            selectedTradeDate: latestTradeDate,
-            startDate: requestRange.start_date,
-          },
-          result,
-          timeline,
-          weightIndicators: previewWeights,
-        })
-      )
+      const nextPreviewSnapshot = buildPreviewSnapshot({
+        appliedRuleSpec: rule,
+        conditionGroups,
+        conditionPaths,
+        createdAt: new Date().toISOString(),
+        metrics: metricsQuery.data,
+        range: {
+          endDate: requestRange.end_date,
+          previewRowLimit: requestRange.preview_row_limit,
+          selectedTradeDate: latestTradeDate,
+          startDate: requestRange.start_date,
+        },
+        result,
+        timeline,
+        weightIndicators: previewWeights,
+      })
+      await prefetchInitialSecurityAnalysis(nextPreviewSnapshot)
+      setPreviewSnapshot(nextPreviewSnapshot)
       setActiveStep("preview")
     } catch (error) {
       setPreviewAdapterError(formatErrorMessage(error))
       if (error instanceof StrategyRuleSpecError) {
         return
       }
+    } finally {
+      setIsOpeningPreview(false)
+    }
+  }
+
+  async function prefetchInitialSecurityAnalysis(snapshot: PreviewSnapshot) {
+    const latestTradeDate = snapshot.result.trade_dates.at(-1)
+    const firstSignal = latestTradeDate?.signals[0]
+
+    if (!latestTradeDate || !firstSignal) {
+      return
+    }
+
+    const request = {
+      adjustment: "forward_adjusted" as const,
+      include_quote_rows: false,
+      lookback_trading_days: 240,
+      ma_windows: previewAnalysisMaWindows,
+      security_code: firstSignal.security_code,
+      trade_date: latestTradeDate.trade_date,
+    }
+
+    const queryKey = queryKeys.previewSecurityAnalysis(
+      snapshot.previewId,
+      request.trade_date,
+      request.security_code,
+      request.adjustment,
+      request.ma_windows,
+      request.include_quote_rows
+    )
+
+    try {
+      queryClient.setQueryData(queryKey, await securityAnalysis(request))
+    } catch {
+      // Step3 will issue the same request through useQuery and retry normally.
     }
   }
 
@@ -1386,7 +1264,7 @@ export function StrategyPage() {
 
   const content = stepContent[activeStep]
   const isPreviewPending =
-    previewMutation.isPending || previewTimelineMutation.isPending
+    isOpeningPreview || previewMutation.isPending || previewTimelineMutation.isPending
   const isSplitStep =
     activeStep === "preview" ||
     activeStep === "simulation" ||
@@ -1462,17 +1340,6 @@ export function StrategyPage() {
                     </Alert>
                   )}
 
-                  <ExplainStatusPanel
-                    adapterError={adapterError}
-                    error={
-                      explainMutation.isError ? explainMutation.error : null
-                    }
-                    isPending={explainMutation.isPending}
-                    lastExplainAt={lastExplainAt}
-                    result={lastExplainResult}
-                    ruleSpec={lastRuleSpec}
-                    stale={isExplainStale}
-                  />
                 </div>
               ) : activeStep === "weights" ? (
                 canEditWeights ? (
@@ -1516,11 +1383,8 @@ export function StrategyPage() {
                   }
                   isPending={isPreviewPending}
                   isStale={previewSnapshot?.stale ?? false}
-                  onAddWeightIndicator={addWeightIndicator}
-                  onRemoveWeightIndicator={removeWeightIndicator}
                   onUpdateWeightIndicator={updateWeightIndicator}
                   previewSnapshot={previewSnapshot}
-                  scoringCatalogOptions={strategyScoringCatalog}
                   weightIndicators={weightIndicators}
                 />
               ) : activeStep === "simulation" ? (
@@ -1561,25 +1425,8 @@ export function StrategyPage() {
                       <Button
                         variant="default"
                         size="lg"
-                        className="w-full sm:w-48"
-                        disabled={
-                          explainMutation.isPending ||
-                          !canEditConditions ||
-                          !canExplainRule
-                        }
-                        onClick={validateRuleDraft}
-                        type="button"
-                      >
-                        {explainMutation.isPending ? (
-                          <Spinner data-icon="inline-start" />
-                        ) : null}
-                        校验规则
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="lg"
-                        className="w-full sm:w-48"
-                        disabled={!lastExplainResult || isExplainStale}
+                        className="w-full bg-foreground text-background hover:bg-foreground/90 sm:w-48"
+                        disabled={!canEditConditions}
                         onClick={() => setActiveStep("weights")}
                         type="button"
                       >
@@ -1617,9 +1464,6 @@ export function StrategyPage() {
                         >
                           模拟建仓
                         </Button>
-                        <Button size="lg" variant="ghost" type="button">
-                          保存草稿
-                        </Button>
                       </div>
                       <div className="hidden xl:block" />
                       <Button
@@ -1649,18 +1493,10 @@ export function StrategyPage() {
                           <Play data-icon="inline-start" />
                           执行回测
                         </Button>
-                        <Button size="lg" variant="ghost" type="button">
-                          保存草稿
-                        </Button>
                       </div>
                       <div className="hidden xl:block" />
                       <div className="hidden xl:block" />
                     </>
-                  ) : null}
-                  {activeStep !== "preview" && activeStep !== "simulation" ? (
-                    <Button size="lg" variant="ghost" type="button">
-                      保存草稿
-                    </Button>
                   ) : null}
                 </div>
               </>

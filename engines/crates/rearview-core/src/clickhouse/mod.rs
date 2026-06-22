@@ -174,6 +174,13 @@ pub struct QuoteMartRow {
     pub kdj_j_value: Option<f64>,
 }
 
+#[derive(Debug, Clone, Copy)]
+pub enum AnalysisQuoteAdjustment {
+    ForwardAdjusted,
+    BackwardAdjusted,
+    Unadjusted,
+}
+
 #[derive(Debug, Clone, Deserialize)]
 pub struct TrendIndicatorRow {
     pub security_code: String,
@@ -583,6 +590,42 @@ FORMAT JSONEachRow"#,
         Ok(trade_dates)
     }
 
+    pub async fn query_trade_date_lookback_start(
+        &self,
+        end_date: NaiveDate,
+        lookback_trading_days: u32,
+        query_id: &str,
+    ) -> RearviewResult<Option<NaiveDate>> {
+        validate_identifier(&self.config.marts_database)?;
+        if lookback_trading_days == 0 {
+            return Err(RearviewError::Validation(
+                "lookback_trading_days must be greater than 0".to_string(),
+            ));
+        }
+
+        let database = quote_identifier(&self.config.marts_database);
+        let sql = format!(
+            r#"
+SELECT
+    trade_date
+FROM
+(
+    SELECT DISTINCT
+        trade_date
+    FROM {database}.`mart_stock_quotes_daily`
+    PREWHERE trade_date <= toDate('{end_date}')
+    ORDER BY trade_date DESC
+    LIMIT {lookback_trading_days}
+)
+ORDER BY trade_date ASC
+LIMIT 1
+FORMAT JSONEachRow"#
+        );
+        let body = self.execute_text(&sql, query_id).await?;
+        let mut rows = parse_json_each_row::<TradeDateRow>(&body)?;
+        Ok(rows.pop().map(|row| row.trade_date))
+    }
+
     pub async fn query_analysis_quote_rows(
         &self,
         security_code: &str,
@@ -615,8 +658,8 @@ FORMAT JSONEachRow"#,
 SELECT
 {select}
 FROM {database}.`mart_stock_quotes_daily`
+PREWHERE trade_date BETWEEN toDate('{start_date}') AND toDate('{end_date}')
 WHERE security_code = {security_code}
-  AND trade_date BETWEEN toDate('{start_date}') AND toDate('{end_date}')
 ORDER BY trade_date ASC
 FORMAT JSONEachRow"#
             ),
@@ -640,6 +683,66 @@ FORMAT JSONEachRow"#
         Ok(rows)
     }
 
+    pub async fn query_analysis_chart_quote_rows(
+        &self,
+        security_code: &str,
+        start_date: NaiveDate,
+        end_date: NaiveDate,
+        adjustment: AnalysisQuoteAdjustment,
+        query_id: &str,
+    ) -> RearviewResult<Vec<QuoteMartRow>> {
+        validate_identifier(&self.config.marts_database)?;
+        validate_security_code(security_code)?;
+        if start_date > end_date {
+            return Err(RearviewError::Validation(
+                "quote_start_date must be <= quote_end_date".to_string(),
+            ));
+        }
+
+        let security_code = quote_string_literal(security_code);
+        let database = quote_identifier(&self.config.marts_database);
+        let select = chart_quote_select_columns(adjustment);
+        let sql = format!(
+            r#"
+SELECT
+{select}
+FROM {database}.`mart_stock_quotes_daily`
+PREWHERE trade_date BETWEEN toDate('{start_date}') AND toDate('{end_date}')
+WHERE security_code = {security_code}
+ORDER BY trade_date ASC
+FORMAT JSONEachRow"#
+        );
+        let body = self.execute_text(&sql, query_id).await?;
+        parse_json_each_row::<QuoteMartRow>(&body)
+    }
+
+    pub async fn query_analysis_selected_quote_row(
+        &self,
+        security_code: &str,
+        trade_date: NaiveDate,
+        query_id: &str,
+    ) -> RearviewResult<Option<QuoteMartRow>> {
+        validate_identifier(&self.config.marts_database)?;
+        validate_security_code(security_code)?;
+
+        let security_code = quote_string_literal(security_code);
+        let database = quote_identifier(&self.config.marts_database);
+        let select = quote_select_columns();
+        let sql = format!(
+            r#"
+SELECT
+{select}
+FROM {database}.`mart_stock_quotes_daily`
+PREWHERE trade_date = toDate('{trade_date}')
+WHERE security_code = {security_code}
+LIMIT 1
+FORMAT JSONEachRow"#
+        );
+        let body = self.execute_text(&sql, query_id).await?;
+        let mut rows = parse_json_each_row::<QuoteMartRow>(&body)?;
+        Ok(rows.pop())
+    }
+
     pub async fn query_analysis_trend_rows(
         &self,
         security_code: &str,
@@ -657,8 +760,8 @@ FORMAT JSONEachRow"#
 SELECT
 {select}
 FROM {database}.`mart_stock_trend_indicator_daily`
-WHERE trade_date BETWEEN toDate('{start_date}') AND toDate('{end_date}')
-  AND security_code = {security_code}
+PREWHERE trade_date BETWEEN toDate('{start_date}') AND toDate('{end_date}')
+WHERE security_code = {security_code}
 ORDER BY trade_date ASC
 FORMAT JSONEachRow"#
         );
@@ -690,8 +793,8 @@ SELECT
     kdj_d_value,
     kdj_j_value
 FROM {database}.`mart_stock_momentum_indicator_daily`
-WHERE trade_date BETWEEN toDate('{start_date}') AND toDate('{end_date}')
-  AND security_code = {security_code}
+PREWHERE trade_date BETWEEN toDate('{start_date}') AND toDate('{end_date}')
+WHERE security_code = {security_code}
 ORDER BY trade_date ASC
 FORMAT JSONEachRow"#
         );
@@ -1332,6 +1435,50 @@ fn quote_select_columns() -> &'static str {
     kdj_k_value,
     kdj_d_value,
     kdj_j_value"#
+}
+
+fn chart_quote_select_columns(adjustment: AnalysisQuoteAdjustment) -> &'static str {
+    match adjustment {
+        AnalysisQuoteAdjustment::ForwardAdjusted => {
+            r#"    security_code,
+    trade_date,
+    open_price_forward_adj,
+    high_price_forward_adj,
+    low_price_forward_adj,
+    close_price_forward_adj,
+    volume,
+    kdj_rsv,
+    kdj_k_value,
+    kdj_d_value,
+    kdj_j_value"#
+        }
+        AnalysisQuoteAdjustment::BackwardAdjusted => {
+            r#"    security_code,
+    trade_date,
+    open_price_backward_adj,
+    high_price_backward_adj,
+    low_price_backward_adj,
+    close_price_backward_adj,
+    volume,
+    kdj_rsv,
+    kdj_k_value,
+    kdj_d_value,
+    kdj_j_value"#
+        }
+        AnalysisQuoteAdjustment::Unadjusted => {
+            r#"    security_code,
+    trade_date,
+    open_price,
+    high_price,
+    low_price,
+    close_price,
+    volume,
+    kdj_rsv,
+    kdj_k_value,
+    kdj_d_value,
+    kdj_j_value"#
+        }
+    }
 }
 
 fn trend_select_columns() -> &'static str {

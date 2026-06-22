@@ -252,11 +252,12 @@ export type QuoteMartRow = {
   roe?: number | null
 }
 
-export type PreviewSecurityAnalysisRequest = {
-  rule: RuleVersionSpec
+export type SecurityAnalysisRequest = {
   trade_date: string
   security_code: string
   adjustment?: Adjustment
+  quote_end_date?: string
+  quote_start_date?: string
   lookback_trading_days?: number
   ma_windows?: string
   include_quote_rows?: boolean
@@ -287,7 +288,7 @@ export type SecurityAnalysisResponse = {
   security_board?: string | null
   source: "signals" | "pool" | "preview"
   adjustment: Adjustment
-  result_snapshot: {
+  result_snapshot?: {
     rank?: number | null
     signal_rank?: number | null
     score?: number | null

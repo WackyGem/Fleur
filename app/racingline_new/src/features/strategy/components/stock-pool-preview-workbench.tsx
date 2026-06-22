@@ -11,7 +11,6 @@ import {
   useStrategyPreviewPoolPageQuery,
 } from "@/api/hooks"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
-import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import {
@@ -51,7 +50,6 @@ import {
   type PreviewValueRow,
 } from "@/features/strategy/preview"
 import type {
-  IndicatorCatalog,
   StrategyConditionGroup,
   WeightIndicator,
 } from "@/features/strategy/types"
@@ -61,28 +59,16 @@ import type {
   ChartSeriesRow,
   SecurityAnalysisResponse,
 } from "@/types/rearview"
-import { Plus, Trash2 } from "lucide-react"
-
-type BadgeVariant =
-  | "default"
-  | "secondary"
-  | "destructive"
-  | "outline"
-  | "ghost"
-  | "link"
 
 type StockPoolPreviewWorkbenchProps = {
   appliedWeightIndicators: WeightIndicator[]
   conditionGroups: StrategyConditionGroup[]
   hasStrategyInput: boolean
-  onAddWeightIndicator: () => void
-  onRemoveWeightIndicator: (indicatorId: string) => void
   onUpdateWeightIndicator: (
     indicatorId: string,
     patch: Partial<WeightIndicator>
   ) => void
   previewSnapshot?: PreviewSnapshot | null
-  scoringCatalogOptions: IndicatorCatalog[]
   weightIndicators: WeightIndicator[]
 }
 
@@ -114,11 +100,8 @@ const percentFormatter = new Intl.NumberFormat("zh-CN", {
 
 function StockPoolPreviewWorkbench({
   hasStrategyInput,
-  onAddWeightIndicator,
-  onRemoveWeightIndicator,
   onUpdateWeightIndicator,
   previewSnapshot,
-  scoringCatalogOptions,
   weightIndicators,
 }: StockPoolPreviewWorkbenchProps) {
   const [selectedTradeDate, setSelectedTradeDate] = useState("")
@@ -138,9 +121,13 @@ function StockPoolPreviewWorkbench({
     () => presentation?.tradeDates ?? [],
     [presentation]
   )
+  const effectiveSelectedTradeDate = dailyStockPools.some(
+    (pool) => pool.date === selectedTradeDate
+  )
+    ? selectedTradeDate
+    : dailyStockPools.at(-1)?.date
   const selectedDailyPool =
-    dailyStockPools.find((pool) => pool.date === selectedTradeDate) ??
-    dailyStockPools.at(-1) ??
+    dailyStockPools.find((pool) => pool.date === effectiveSelectedTradeDate) ??
     null
   const selectedPreviewId = previewSnapshot?.previewId ?? ""
   const selectedPoolDate = selectedDailyPool?.date ?? ""
@@ -149,9 +136,14 @@ function StockPoolPreviewWorkbench({
     poolPageState.tradeDate === selectedPoolDate
       ? poolPageState.offset
       : 0
+  const hasLocalPoolPage =
+    poolOffset === 0 && (selectedDailyPool?.stocks.length ?? 0) > 0
+  const shouldFetchPoolPage = Boolean(
+    previewSnapshot && selectedDailyPool && !hasLocalPoolPage
+  )
 
   const poolPageRequest =
-    previewSnapshot && selectedDailyPool
+    shouldFetchPoolPage && previewSnapshot && selectedDailyPool
       ? {
           rule: previewSnapshot.appliedRuleSpec,
           trade_date: selectedDailyPool.date,
@@ -161,7 +153,7 @@ function StockPoolPreviewWorkbench({
         }
       : null
   const poolPageQuery = useStrategyPreviewPoolPageQuery(
-    previewSnapshot?.previewId ?? null,
+    shouldFetchPoolPage ? (previewSnapshot?.previewId ?? null) : null,
     poolPageRequest
   )
   const pagedStocks = useMemo(() => {
@@ -187,7 +179,6 @@ function StockPoolPreviewWorkbench({
           include_quote_rows: false,
           lookback_trading_days: 240,
           ma_windows: maWindows,
-          rule: previewSnapshot.appliedRuleSpec,
           security_code: selectedStock.code,
           trade_date: selectedDailyPool.date,
         }
@@ -239,7 +230,6 @@ function StockPoolPreviewWorkbench({
         <Separator />
         <DailyStockPoolPanel
           dailyStockPools={dailyStockPools}
-          isPoolPagePending={poolPageQuery.isPending}
           onNextPage={() =>
             setPoolPageState({
               offset: poolOffset + pageSize,
@@ -259,12 +249,18 @@ function StockPoolPreviewWorkbench({
             setSelectedSecurityCode("")
           }}
           onSelectedStockChange={setSelectedSecurityCode}
-          pageHasMore={poolPageQuery.data?.has_more ?? false}
+          pageHasMore={
+            poolPageQuery.data?.has_more ??
+            (hasLocalPoolPage
+              ? selectedDailyPool.poolCount > selectedDailyPool.stocks.length
+              : false)
+          }
           pageOffset={poolOffset}
           pagedStocks={pagedStocks}
           selectedDate={selectedDailyPool.date}
           selectedPool={selectedDailyPool}
           selectedSecurityCode={selectedStock?.code ?? ""}
+          isPoolPagePending={shouldFetchPoolPage && poolPageQuery.isPending}
         />
       </div>
       <Separator className="my-3 xl:hidden" />
@@ -274,10 +270,7 @@ function StockPoolPreviewWorkbench({
           analysis={analysisQuery.data ?? null}
           analysisError={analysisQuery.isError ? analysisQuery.error : null}
           isAnalysisPending={analysisQuery.isPending}
-          onAddWeightIndicator={onAddWeightIndicator}
-          onRemoveWeightIndicator={onRemoveWeightIndicator}
           onUpdateWeightIndicator={onUpdateWeightIndicator}
-          scoringCatalogOptions={scoringCatalogOptions}
           stock={selectedStock}
           weightIndicators={weightIndicators}
         />
@@ -303,7 +296,7 @@ function KLinePanel({
   ) => void
   stock: PreviewStockRow | null
 }) {
-  const [trendLines, setTrendLines] = useState<string[]>(["MA5", "MA10"])
+  const [trendLines, setTrendLines] = useState<string[]>(["MA5", "MA10", "MA30"])
   const adjustmentLabel =
     adjustmentOptions.find((option) => option.value === adjustmentMode)
       ?.label ?? "前复权"
@@ -373,8 +366,9 @@ function KLinePanel({
               趋势线
             </span>
             <ToggleGroup
+              multiple
               value={visibleTrendLines}
-              onValueChange={setTrendLines}
+              onValueChange={(nextTrendLines) => setTrendLines(nextTrendLines)}
               variant="outline"
               size="sm"
               spacing={0}
@@ -609,13 +603,32 @@ function DailyStockPoolPanel({
   selectedPool: PreviewTradeDateRow
   selectedSecurityCode: string
 }) {
+  const timelineScrollRef = useRef<HTMLDivElement | null>(null)
+  const latestDate = dailyStockPools.at(-1)?.date ?? ""
+
+  useEffect(() => {
+    const container = timelineScrollRef.current
+    if (!container || selectedDate !== latestDate) {
+      return
+    }
+
+    const frameId = window.requestAnimationFrame(() => {
+      container.scrollLeft = container.scrollWidth
+    })
+
+    return () => window.cancelAnimationFrame(frameId)
+  }, [latestDate, selectedDate, dailyStockPools.length])
+
   return (
     <Card
       size="sm"
       className="min-h-0 flex-1 bg-transparent py-0 ring-0 xl:pr-4"
     >
       <CardContent className="flex h-full min-h-0 flex-col gap-2 px-0 pt-0 pb-0">
-        <div className="h-[32px] shrink-0 [scrollbar-width:thin] overflow-x-auto overflow-y-hidden overscroll-x-contain pb-3 [&::-webkit-scrollbar]:h-[2px] [&::-webkit-scrollbar-thumb]:bg-border [&::-webkit-scrollbar-track]:bg-transparent">
+        <div
+          ref={timelineScrollRef}
+          className="h-[32px] shrink-0 [scrollbar-width:thin] overflow-x-auto overflow-y-hidden overscroll-x-contain pb-3 [&::-webkit-scrollbar]:h-[2px] [&::-webkit-scrollbar-thumb]:bg-border [&::-webkit-scrollbar-track]:bg-transparent"
+        >
           <div className="flex min-w-max gap-1.5 pr-1">
             {dailyStockPools.map((pool) => {
               const isSelected = pool.date === selectedDate
@@ -656,14 +669,14 @@ function DailyStockPoolPanel({
         </div>
 
         <div className="min-h-0 flex-1 overflow-y-auto">
-          <Table className="min-w-[48rem] table-fixed">
+          <Table className="min-w-[56rem] table-fixed">
             <TableHeader>
               <TableRow className="hover:bg-transparent">
                 <TableHead className="h-7 w-8 px-1 text-right">#</TableHead>
                 <TableHead className="h-7 w-44 px-1">股票</TableHead>
+                <TableHead className="h-7 w-52 px-1">指标筛选</TableHead>
                 <TableHead className="h-7 px-1">得分项</TableHead>
-                <TableHead className="h-7 w-40 px-1">指标</TableHead>
-                <TableHead className="h-7 w-16 px-1 text-right">得分</TableHead>
+                <TableHead className="h-7 w-28 px-1 text-right">得分</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -691,9 +704,12 @@ function DailyStockPoolPanel({
                     <div className="grid min-w-0 grid-cols-[4.5em_minmax(0,1fr)] items-center gap-1">
                       <span className="truncate font-medium">{stock.name}</span>
                       <span className="truncate text-muted-foreground tabular-nums">
-                        {formatStockSubtitle(stock.code, stock.boardLabel)}
+                        {stock.code}
                       </span>
                     </div>
+                  </TableCell>
+                  <TableCell className="px-1 py-1">
+                    <InlineValueRows rows={stock.filterMetricRows} />
                   </TableCell>
                   <TableCell className="px-1 py-1">
                     <div
@@ -703,18 +719,13 @@ function DailyStockPoolPanel({
                       {formatScoreItems(stock.scoreItems)}
                     </div>
                   </TableCell>
-                  <TableCell className="px-1 py-1">
-                    <div
-                      className="w-full truncate text-muted-foreground tabular-nums"
-                      title={formatValueRows(stock.filterMetricRows)}
-                    >
-                      {formatValueRows(stock.filterMetricRows)}
-                    </div>
-                  </TableCell>
-                  <TableCell className="px-1 py-1 text-right">
-                    <Badge variant={getScoreBadgeVariant(stock.score)}>
+                  <TableCell
+                    className="px-1 py-1 text-right"
+                    title={formatScoreItems(stock.scoreItems)}
+                  >
+                    <span className="text-xs font-medium tabular-nums">
                       {stock.score.toFixed(1)}
-                    </Badge>
+                    </span>
                   </TableCell>
                 </TableRow>
               ))}
@@ -754,22 +765,16 @@ function KeyDataPanel({
   analysis,
   analysisError,
   isAnalysisPending,
-  onAddWeightIndicator,
-  onRemoveWeightIndicator,
   onUpdateWeightIndicator,
-  scoringCatalogOptions,
   weightIndicators,
 }: {
   analysis: SecurityAnalysisResponse | null
   analysisError: unknown
   isAnalysisPending: boolean
-  onAddWeightIndicator: () => void
-  onRemoveWeightIndicator: (indicatorId: string) => void
   onUpdateWeightIndicator: (
     indicatorId: string,
     patch: Partial<WeightIndicator>
   ) => void
-  scoringCatalogOptions: IndicatorCatalog[]
   stock: PreviewStockRow | null
   weightIndicators: WeightIndicator[]
 }) {
@@ -835,10 +840,7 @@ function KeyDataPanel({
           </MetricSection>
 
           <CompactWeightTuningSection
-            scoringCatalogOptions={scoringCatalogOptions}
             weightIndicators={weightIndicators}
-            onAddWeightIndicator={onAddWeightIndicator}
-            onRemoveWeightIndicator={onRemoveWeightIndicator}
             onUpdateWeightIndicator={onUpdateWeightIndicator}
           />
         </div>
@@ -848,36 +850,20 @@ function KeyDataPanel({
 }
 
 function CompactWeightTuningSection({
-  onAddWeightIndicator,
-  onRemoveWeightIndicator,
   onUpdateWeightIndicator,
-  scoringCatalogOptions,
   weightIndicators,
 }: {
-  onAddWeightIndicator: () => void
-  onRemoveWeightIndicator: (indicatorId: string) => void
   onUpdateWeightIndicator: (
     indicatorId: string,
     patch: Partial<WeightIndicator>
   ) => void
-  scoringCatalogOptions: IndicatorCatalog[]
   weightIndicators: WeightIndicator[]
 }) {
   return (
     <MetricSection title="权重配置">
-      <div className="flex flex-col gap-2">
+      <div className="flex flex-col gap-0.5">
         {weightIndicators.length === 0 ? (
-          <Button
-            className="w-full justify-center"
-            disabled={scoringCatalogOptions.length === 0}
-            size="sm"
-            type="button"
-            variant="outline"
-            onClick={onAddWeightIndicator}
-          >
-            <Plus data-icon="inline-start" />
-            新增权重
-          </Button>
+          <div className="text-xs text-muted-foreground">暂无权重项</div>
         ) : (
           weightIndicators.map((indicator) => {
             const clampedScore = clampScore(indicator.score)
@@ -885,66 +871,39 @@ function CompactWeightTuningSection({
             return (
               <div
                 key={indicator.id}
-                className="flex flex-col gap-2 border-b border-border/50 pb-2 last:border-b-0 last:pb-0"
+                className="grid grid-cols-[minmax(0,1.25fr)_minmax(4.5rem,0.9fr)_2.75rem] items-center gap-1.5 border-b border-border/30 py-1 last:border-b-0"
               >
-                <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2">
-                  <div
-                    className="truncate text-xs font-medium"
-                    title={formatComparableIndicator(indicator)}
-                  >
-                    {formatComparableIndicator(indicator)}
-                  </div>
-                  <Button
-                    aria-label="删除权重"
-                    className="size-7"
-                    size="icon"
-                    type="button"
-                    variant="ghost"
-                    onClick={() => onRemoveWeightIndicator(indicator.id)}
-                  >
-                    <Trash2 data-icon="icon" />
-                  </Button>
+                <div
+                  className="truncate text-xs text-muted-foreground"
+                  title={formatComparableIndicator(indicator)}
+                >
+                  {formatComparableIndicator(indicator)}
                 </div>
-                <div className="grid grid-cols-[minmax(0,1fr)_3.5rem] items-center gap-2">
-                  <WeightScoreSlider
-                    value={clampedScore}
-                    onValueChange={(nextValue) =>
-                      onUpdateWeightIndicator(indicator.id, {
-                        score: clampScore(nextValue),
-                      })
-                    }
-                  />
-                  <Input
-                    className="h-8 px-1 text-center text-xs tabular-nums"
-                    max={100}
-                    min={0}
-                    type="number"
-                    value={String(indicator.score)}
-                    onChange={(event) =>
-                      onUpdateWeightIndicator(indicator.id, {
-                        score: Number(event.target.value),
-                      })
-                    }
-                  />
-                </div>
+                <WeightScoreSlider
+                  className="[&_[data-slot=slider-range]]:bg-muted-foreground/35 [&_[data-slot=slider-thumb]]:size-2 [&_[data-slot=slider-thumb]]:border-muted-foreground/35 [&_[data-slot=slider-thumb]]:bg-background [&_[data-slot=slider-track]]:h-0.5 [&_[data-slot=slider-track]]:bg-muted/70"
+                  value={clampedScore}
+                  onValueChange={(nextValue) =>
+                    onUpdateWeightIndicator(indicator.id, {
+                      score: clampScore(nextValue),
+                    })
+                  }
+                />
+                <Input
+                  className="h-6 px-1 text-center text-xs text-muted-foreground tabular-nums"
+                  max={100}
+                  min={0}
+                  type="number"
+                  value={String(indicator.score)}
+                  onChange={(event) =>
+                    onUpdateWeightIndicator(indicator.id, {
+                      score: Number(event.target.value),
+                    })
+                  }
+                />
               </div>
             )
           })
         )}
-
-        {weightIndicators.length > 0 ? (
-          <Button
-            className="w-full justify-center"
-            disabled={scoringCatalogOptions.length === 0}
-            size="sm"
-            type="button"
-            variant="outline"
-            onClick={onAddWeightIndicator}
-          >
-            <Plus data-icon="inline-start" />
-            新增权重
-          </Button>
-        ) : null}
       </div>
     </MetricSection>
   )
@@ -978,14 +937,27 @@ function DataRow({ label, value }: { label: string; value: string }) {
   )
 }
 
+function InlineValueRows({ rows }: { rows: PreviewValueRow[] }) {
+  if (rows.length === 0) {
+    return <span className="text-xs text-muted-foreground">-</span>
+  }
+
+  return (
+    <div
+      className="w-full truncate text-xs text-muted-foreground tabular-nums"
+      title={formatValueRows(rows)}
+    >
+      {formatValueRows(rows)}
+    </div>
+  )
+}
+
 function formatScoreItems(scoreItems: { label: string; score: number }[]) {
   if (scoreItems.length === 0) {
     return "-"
   }
 
-  return scoreItems
-    .map((item) => `${item.label} ${item.score.toFixed(1)}`)
-    .join(" / ")
+  return scoreItems.map((item) => item.label).join(" / ")
 }
 
 function formatValueRows(rows: PreviewValueRow[]) {
@@ -1005,18 +977,6 @@ function formatStockSubtitle(
   )
 
   return parts.join(" / ") || "-"
-}
-
-function getScoreBadgeVariant(score: number): BadgeVariant {
-  if (score >= 85) {
-    return "default"
-  }
-
-  if (score >= 70) {
-    return "secondary"
-  }
-
-  return "outline"
 }
 
 function formatCompactDate(date: string) {

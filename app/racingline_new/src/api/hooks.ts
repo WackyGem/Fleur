@@ -6,13 +6,13 @@ import {
   listMetrics,
   previewStrategy,
   previewStrategyPoolPage,
-  previewStrategySecurityAnalysis,
+  securityAnalysis,
   previewStrategyTimeline,
 } from "@/api/rearview"
 import type {
   MetricsQuery,
-  PreviewSecurityAnalysisRequest,
   RuleVersionSpec,
+  SecurityAnalysisRequest,
   StrategyPreviewPoolPageRequest,
   StrategyPreviewRequest,
   StrategyPreviewTimelineRequest,
@@ -77,7 +77,7 @@ export function useStrategyPreviewPoolPageQuery(
 
 export function usePreviewSecurityAnalysisQuery(
   previewId: string | null,
-  request: PreviewSecurityAnalysisRequest | null
+  request: SecurityAnalysisRequest | null
 ) {
   return useQuery({
     enabled: Boolean(previewId && request),
@@ -95,7 +95,7 @@ export function usePreviewSecurityAnalysisQuery(
       if (!request) {
         throw new Error("preview security-analysis request is missing")
       }
-      return previewStrategySecurityAnalysis(request, signal)
+      return securityAnalysis(request, signal)
     },
     placeholderData: keepPreviousData,
     retry: 1,
