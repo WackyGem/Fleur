@@ -256,6 +256,9 @@ async fn build_simulation_input(
         start_date: run.start_date,
         initial_cash: account_snapshot.initial_cash,
         max_positions: execution_snapshot.rebalance_policy.max_positions,
+        single_position_limit_pct: execution_snapshot
+            .rebalance_policy
+            .single_position_limit_pct,
         cash_reserve_pct: execution_snapshot.rebalance_policy.cash_reserve_pct,
         lot_size: execution_snapshot.rebalance_policy.lot_size,
         min_trade_lots: execution_snapshot.rebalance_policy.min_trade_lots,
@@ -316,6 +319,8 @@ struct ExecutionSnapshot {
 #[derive(Debug, Deserialize)]
 struct RebalancePolicy {
     max_positions: usize,
+    #[serde(default)]
+    single_position_limit_pct: Option<f64>,
     #[serde(default)]
     cash_reserve_pct: f64,
     #[serde(default = "default_lot_size")]

@@ -311,8 +311,9 @@ impl RearviewPg {
             slippage_profile: template.slippage_profile,
             rebalance_policy: serde_json::json!({
                 "frequency": "signal_day",
-                "target_weighting": "equal_weight",
+                "target_weighting": "equal_weight_capped",
                 "max_positions": 10,
+                "single_position_limit_pct": 0.1,
                 "lot_size": 100,
                 "min_trade_lots": 1,
                 "cash_reserve_pct": 0,

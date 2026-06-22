@@ -10,6 +10,7 @@ pub struct PortfolioSimulationInput {
     pub start_date: NaiveDate,
     pub initial_cash: f64,
     pub max_positions: usize,
+    pub single_position_limit_pct: Option<f64>,
     pub cash_reserve_pct: f64,
     pub lot_size: u32,
     pub min_trade_lots: u32,
@@ -420,7 +421,7 @@ pub fn simulate_portfolio(
                 {
                     continue;
                 }
-                let target_weight = (1.0 - input.cash_reserve_pct) / input.max_positions as f64;
+                let target_weight = target_weight_per_position(input);
                 let target_amount = total_equity_after_sells * target_weight;
                 let reference_price = match open_price(&prices, trade_date, &signal.security_code) {
                     Some(price) => price,
@@ -662,12 +663,34 @@ fn validate_input(input: &PortfolioSimulationInput) -> RearviewResult<()> {
             "max_positions must be greater than 0".to_string(),
         ));
     }
+    if !(0.0..1.0).contains(&input.cash_reserve_pct) {
+        return Err(RearviewError::Validation(
+            "cash_reserve_pct must be within [0, 1)".to_string(),
+        ));
+    }
+    if let Some(single_position_limit_pct) = input.single_position_limit_pct
+        && (!(0.0..=1.0).contains(&single_position_limit_pct) || single_position_limit_pct == 0.0)
+    {
+        return Err(RearviewError::Validation(
+            "single_position_limit_pct must be within (0, 1]".to_string(),
+        ));
+    }
     if input.lot_size == 0 || input.min_trade_lots == 0 {
         return Err(RearviewError::Validation(
             "lot_size and min_trade_lots must be greater than 0".to_string(),
         ));
     }
     Ok(())
+}
+
+fn target_weight_per_position(input: &PortfolioSimulationInput) -> f64 {
+    let equal_weight_after_cash_reserve =
+        (1.0 - input.cash_reserve_pct) / input.max_positions as f64;
+    input
+        .single_position_limit_pct
+        .map_or(equal_weight_after_cash_reserve, |limit| {
+            equal_weight_after_cash_reserve.min(limit)
+        })
 }
 
 fn open_price(
@@ -1009,6 +1032,46 @@ mod tests {
         assert_eq!(first_nav.position_count, 0);
     }
 
+    #[test]
+    fn single_position_limit_should_cap_target_weight_and_leave_cash_unallocated() {
+        let mut input = fixture_input();
+        input.max_positions = 5;
+        input.single_position_limit_pct = Some(0.10);
+        input.exit_rules = Vec::new();
+
+        let output = simulate_portfolio(&input).expect("simulation should succeed");
+
+        let first_target = output
+            .targets
+            .iter()
+            .find(|target| target.security_code == "AAA")
+            .expect("first ranked signal should create a target");
+        assert_eq!(first_target.target_weight, 0.10);
+        assert!(
+            output
+                .nav
+                .iter()
+                .any(|row| row.cash_balance > input.initial_cash * 0.75)
+        );
+    }
+
+    #[test]
+    fn missing_single_position_limit_should_keep_legacy_equal_weight_behavior() {
+        let mut input = fixture_input();
+        input.max_positions = 5;
+        input.single_position_limit_pct = None;
+        input.exit_rules = Vec::new();
+
+        let output = simulate_portfolio(&input).expect("simulation should succeed");
+
+        let first_target = output
+            .targets
+            .iter()
+            .find(|target| target.security_code == "AAA")
+            .expect("first ranked signal should create a target");
+        assert_eq!(first_target.target_weight, 0.20);
+    }
+
     fn fixture_input() -> PortfolioSimulationInput {
         let d1 = date(2024, 1, 2);
         let d2 = date(2024, 1, 3);
@@ -1017,6 +1080,7 @@ mod tests {
             start_date: date(2024, 1, 1),
             initial_cash: 20_000.0,
             max_positions: 2,
+            single_position_limit_pct: None,
             cash_reserve_pct: 0.0,
             lot_size: 100,
             min_trade_lots: 1,

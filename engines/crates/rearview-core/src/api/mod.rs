@@ -25,6 +25,7 @@ use crate::postgres::{
 };
 use crate::service::AppState;
 use crate::service::runner::execute_run;
+use crate::strategy_backtest::{StrategyBacktestDraftResponse, StrategyBacktestValidateRequest};
 
 pub fn routes() -> Router<AppState> {
     Router::new()
@@ -106,6 +107,10 @@ pub fn routes() -> Router<AppState> {
         .route("/rearview/runs/{run_id}/pool", get(list_pool_members))
         .route("/rearview/runs/{run_id}/signals", get(list_buy_signals))
         .route("/rearview/explain", post(explain_rule))
+        .route(
+            "/rearview/strategy-backtests/validate",
+            post(validate_strategy_backtest),
+        )
         .route("/rearview/strategy-preview", post(preview_strategy))
         .route(
             "/rearview/strategy-preview/timeline",
@@ -343,6 +348,13 @@ async fn create_portfolio_run(
         })
         .await?;
     Ok((StatusCode::ACCEPTED, Json(record)))
+}
+
+async fn validate_strategy_backtest(
+    State(state): State<AppState>,
+    Json(request): Json<StrategyBacktestValidateRequest>,
+) -> RearviewResult<Json<StrategyBacktestDraftResponse>> {
+    Ok(Json(request.validate(&state.catalog)?))
 }
 
 async fn list_portfolio_runs(
@@ -2415,8 +2427,9 @@ fn default_metric_window() -> String {
 fn default_rebalance_policy() -> serde_json::Value {
     serde_json::json!({
         "frequency": "signal_day",
-        "target_weighting": "equal_weight",
+        "target_weighting": "equal_weight_capped",
         "max_positions": 10,
+        "single_position_limit_pct": 0.1,
         "lot_size": 100,
         "min_trade_lots": 1,
         "cash_reserve_pct": 0,

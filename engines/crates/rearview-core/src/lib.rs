@@ -15,6 +15,7 @@ pub mod portfolio_performance;
 pub mod portfolio_trade_metrics;
 pub mod postgres;
 pub mod service;
+pub mod strategy_backtest;
 
 pub use config::{AppConfig, ClickHouseConfig};
 pub use error::{RearviewError, RearviewResult};
