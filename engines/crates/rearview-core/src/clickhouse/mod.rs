@@ -41,11 +41,20 @@ pub struct ScreeningRow {
     pub raw_score: f64,
     pub score: f64,
     pub signal_rank: u32,
+    #[serde(default)]
+    pub pool_count: Option<usize>,
     #[serde(deserialize_with = "deserialize_clickhouse_bool")]
     pub is_buy_signal: bool,
     pub score_breakdown: String,
     pub selected_metrics: String,
     pub raw_values: String,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct SecurityDisplayRow {
+    pub security_code: String,
+    pub security_name: Option<String>,
+    pub exchange_code: Option<String>,
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
@@ -497,6 +506,39 @@ FORMAT JSONEachRow"#
         parse_json_each_row::<ScreeningRow>(&body)
     }
 
+    pub async fn query_security_display_rows(
+        &self,
+        security_codes: &[String],
+        query_id: &str,
+    ) -> RearviewResult<Vec<SecurityDisplayRow>> {
+        validate_identifier(&self.config.marts_database)?;
+        if security_codes.is_empty() {
+            return Ok(Vec::new());
+        }
+        for security_code in security_codes {
+            validate_security_code(security_code)?;
+        }
+        let securities = security_codes
+            .iter()
+            .map(|security_code| quote_string_literal(security_code))
+            .collect::<Vec<_>>()
+            .join(", ");
+        let sql = format!(
+            r#"
+SELECT
+    security_code,
+    security_name,
+    exchange_code
+FROM {database}.`mart_stock_basic_snapshot`
+WHERE security_code IN ({securities})
+ORDER BY security_code ASC
+FORMAT JSONEachRow"#,
+            database = quote_identifier(&self.config.marts_database),
+        );
+        let body = self.execute_text(&sql, query_id).await?;
+        parse_json_each_row::<SecurityDisplayRow>(&body)
+    }
+
     pub async fn query_trade_dates(
         &self,
         start_date: NaiveDate,
@@ -609,7 +651,7 @@ SELECT
     macd_dif,
     macd_dea,
     macd_histogram
-FROM {database}.`mart_stock_trend_indicator`
+FROM {database}.`mart_stock_trend_indicator_daily`
 WHERE trade_date BETWEEN toDate('{start_date}') AND toDate('{end_date}')
   AND security_code = {security_code}
 ORDER BY trade_date ASC
@@ -642,7 +684,7 @@ SELECT
     kdj_k_value,
     kdj_d_value,
     kdj_j_value
-FROM {database}.`mart_stock_momentum_indicator`
+FROM {database}.`mart_stock_momentum_indicator_daily`
 WHERE trade_date BETWEEN toDate('{start_date}') AND toDate('{end_date}')
   AND security_code = {security_code}
 ORDER BY trade_date ASC

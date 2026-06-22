@@ -3,7 +3,11 @@ import type {
   ExplainResponse,
   MetricDefinition,
   MetricsQuery,
+  PreviewSecurityAnalysisRequest,
   RuleVersionSpec,
+  SecurityAnalysisResponse,
+  StrategyPreviewPoolPageRequest,
+  StrategyPreviewPoolPageResponse,
   StrategyPreviewRequest,
   StrategyPreviewResponse,
 } from "@/types/rearview"
@@ -28,6 +32,24 @@ export function explainRule(
 export function previewStrategy(request: StrategyPreviewRequest) {
   return requestJson<StrategyPreviewResponse>(
     "/rearview/strategy-preview",
+    jsonBody(request)
+  )
+}
+
+export function previewStrategyPoolPage(
+  request: StrategyPreviewPoolPageRequest
+) {
+  return requestJson<StrategyPreviewPoolPageResponse>(
+    "/rearview/strategy-preview/pool-page",
+    jsonBody(request)
+  )
+}
+
+export function previewStrategySecurityAnalysis(
+  request: PreviewSecurityAnalysisRequest
+) {
+  return requestJson<SecurityAnalysisResponse>(
+    "/rearview/strategy-preview/security-analysis",
     jsonBody(request)
   )
 }

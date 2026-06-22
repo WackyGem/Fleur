@@ -134,11 +134,14 @@ export type StrategyPreviewRequest = {
   rule: RuleVersionSpec
   start_date: string
   end_date: string
-  top_n: number
+  preview_row_limit: number
+  top_n?: number
 }
 
 export type StrategyPreviewSignal = {
   security_code: string
+  security_name?: string | null
+  exchange_code?: string | null
   raw_score: number
   score: number
   signal_rank: number
@@ -162,8 +165,105 @@ export type StrategyPreviewResponse = {
   required_columns: Record<string, string[]>
   start_date: string
   end_date: string
+  preview_row_limit: number
   top_n: number
   trade_dates: StrategyPreviewTradeDate[]
+}
+
+export type StrategyPreviewPoolPageRequest = {
+  rule: RuleVersionSpec
+  trade_date: string
+  limit: number
+  offset: number
+  sort?: "score_desc"
+  security_code?: string
+}
+
+export type StrategyPreviewPoolPageResponse = {
+  trade_date: string
+  pool_count: number
+  items: StrategyPreviewSignal[]
+  limit: number
+  offset: number
+  has_more: boolean
+}
+
+export type Adjustment = "forward_adjusted" | "backward_adjusted" | "unadjusted"
+
+export type ChartOhlc = {
+  open: number
+  high: number
+  low: number
+  close: number
+}
+
+export type ChartSeriesRow = {
+  trade_date: string
+  ohlc?: ChartOhlc | null
+  volume?: number | null
+  ma?: Record<string, number | null>
+  price_overlays?: Record<string, number | null>
+  kdj?: Record<string, number | null>
+  rsi?: Record<string, number | null>
+  macd?: Record<string, number | null>
+  boll?: Record<string, number | null>
+}
+
+export type QuoteMartRow = {
+  security_code: string
+  trade_date: string
+  open_price?: number | null
+  high_price?: number | null
+  low_price?: number | null
+  close_price?: number | null
+  prev_close_price?: number | null
+  prev_close_price_unadj?: number | null
+  volume?: number | null
+  amount?: number | null
+  pct_amplitude?: number | null
+  pct_change?: number | null
+  limit_up_price?: number | null
+  limit_down_price?: number | null
+  a_market_cap?: number | null
+  pe_ttm?: number | null
+  roe?: number | null
+}
+
+export type PreviewSecurityAnalysisRequest = {
+  rule: RuleVersionSpec
+  trade_date: string
+  security_code: string
+  adjustment?: Adjustment
+  lookback_trading_days?: number
+}
+
+export type SecurityAnalysisResponse = {
+  run_id?: string
+  trade_date: string
+  security_code: string
+  security_name?: string | null
+  exchange_code?: string | null
+  source: "signals" | "pool" | "preview"
+  adjustment: Adjustment
+  result_snapshot: {
+    rank?: number | null
+    signal_rank?: number | null
+    score?: number | null
+    score_breakdown?: JsonValue
+    selected_metrics: JsonValue
+    raw_values?: JsonValue
+    filter_snapshot?: JsonValue
+  }
+  chart_window: {
+    start_date: string
+    end_date: string
+    lookback_trading_days: number
+  }
+  chart: {
+    series: ChartSeriesRow[]
+  }
+  quote_rows: QuoteMartRow[]
+  selected_quote?: QuoteMartRow | null
 }
 
 export type MetricsQuery = {

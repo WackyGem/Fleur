@@ -1,4 +1,4 @@
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 
 use axum::extract::{Path, Query, State};
 use axum::http::StatusCode;
@@ -8,7 +8,9 @@ use chrono::NaiveDate;
 use serde::{Deserialize, Serialize};
 use tower_http::cors::CorsLayer;
 
-use crate::clickhouse::{MomentumIndicatorRow, QuoteMartRow, TrendIndicatorRow};
+use crate::clickhouse::{
+    MomentumIndicatorRow, QuoteMartRow, SecurityDisplayRow, TrendIndicatorRow,
+};
 use crate::domain::RuleVersionSpec;
 use crate::domain::metric::{MetricDefinition, ValueKind};
 use crate::error::{RearviewError, RearviewResult};
@@ -103,6 +105,14 @@ pub fn routes() -> Router<AppState> {
         .route("/rearview/runs/{run_id}/signals", get(list_buy_signals))
         .route("/rearview/explain", post(explain_rule))
         .route("/rearview/strategy-preview", post(preview_strategy))
+        .route(
+            "/rearview/strategy-preview/pool-page",
+            post(preview_strategy_pool_page),
+        )
+        .route(
+            "/rearview/strategy-preview/security-analysis",
+            post(preview_strategy_security_analysis),
+        )
         .layer(CorsLayer::permissive())
 }
 
@@ -704,7 +714,28 @@ async fn get_security_analysis(
                 })?;
             ResultSnapshot::from_pool_member(pool_member)
         }
+        AnalysisSource::Preview => {
+            return Err(RearviewError::Validation(
+                "preview analysis source must use /rearview/strategy-preview/security-analysis"
+                    .to_string(),
+            ));
+        }
     };
+    let display = security_display_for_one(
+        &state,
+        &security_code,
+        &format!(
+            "rearview-analysis-display-{run_id}-{security_code}-{}",
+            request.trade_date
+        ),
+    )
+    .await;
+    let security_name = display
+        .as_ref()
+        .and_then(|display| display.security_name.clone());
+    let exchange_code = display
+        .as_ref()
+        .and_then(|display| display.exchange_code.clone());
 
     let query_id_prefix = format!(
         "rearview-analysis-{run_id}-{security_code}-{}",
@@ -756,8 +787,10 @@ async fn get_security_analysis(
 
     let response = build_security_analysis_response(
         SecurityAnalysisBuildInput {
-            run_id,
+            run_id: Some(run_id),
             security_code,
+            security_name,
+            exchange_code,
             trade_date: request.trade_date,
             source: request.source,
             adjustment: request.adjustment,
@@ -841,11 +874,11 @@ async fn preview_strategy(
         max_rows_to_read: state.config.clickhouse.max_rows_to_read,
         max_bytes_to_read: state.config.clickhouse.max_bytes_to_read,
     };
-    let compiled = planner.compile(
+    let compiled = planner.compile_preview(
         &request.rule,
-        Some(request.start_date),
-        Some(request.end_date),
-        request.top_n,
+        request.start_date,
+        request.end_date,
+        request.preview_row_limit,
         settings,
     )?;
     let preview_id = ulid::Ulid::new().to_string();
@@ -854,7 +887,14 @@ async fn preview_strategy(
         .clickhouse
         .query_screening_rows(&compiled.sql, &query_id)
         .await?;
-    let trade_dates = build_strategy_preview_trade_dates(rows, request.top_n)?;
+    let display_by_code = security_display_map(
+        &state,
+        &collect_security_codes(&rows),
+        &format!("{query_id}-display"),
+    )
+    .await;
+    let trade_dates =
+        build_strategy_preview_trade_dates(rows, request.preview_row_limit, &display_by_code)?;
 
     Ok(Json(StrategyPreviewResponse {
         preview_id,
@@ -864,9 +904,186 @@ async fn preview_strategy(
         required_columns: compiled.required_columns,
         start_date: request.start_date,
         end_date: request.end_date,
-        top_n: request.top_n,
+        preview_row_limit: request.preview_row_limit,
+        top_n: request.preview_row_limit,
         trade_dates,
     }))
+}
+
+async fn preview_strategy_pool_page(
+    State(state): State<AppState>,
+    Json(request): Json<StrategyPreviewPoolPageRequest>,
+) -> RearviewResult<Json<StrategyPreviewPoolPageResponse>> {
+    let request = request.into_parts()?;
+    let planner = QueryPlanner::new(state.catalog.clone());
+    let settings = QuerySettings {
+        max_execution_time_seconds: state.config.clickhouse.max_execution_time_seconds,
+        max_rows_to_read: state.config.clickhouse.max_rows_to_read,
+        max_bytes_to_read: state.config.clickhouse.max_bytes_to_read,
+    };
+    let query_limit = request.limit.saturating_add(1);
+    let compiled = planner.compile_preview_pool_page(
+        &request.rule,
+        request.trade_date,
+        query_limit,
+        request.offset,
+        request.security_code.as_deref(),
+        settings,
+    )?;
+    let query_id = format!(
+        "rearview-preview-pool-page-{}-{}",
+        ulid::Ulid::new(),
+        request.trade_date
+    );
+    let mut rows = state
+        .clickhouse
+        .query_screening_rows(&compiled.sql, &query_id)
+        .await?;
+    let has_more = rows.len() > request.limit as usize;
+    if has_more {
+        rows.truncate(request.limit as usize);
+    }
+    let pool_count = rows
+        .iter()
+        .filter_map(|row| row.pool_count)
+        .max()
+        .unwrap_or(0);
+    let display_by_code = security_display_map(
+        &state,
+        &collect_security_codes(&rows),
+        &format!("{query_id}-display"),
+    )
+    .await;
+    let items = rows
+        .into_iter()
+        .map(|row| build_strategy_preview_signal(row, &display_by_code))
+        .collect::<RearviewResult<Vec<_>>>()?;
+
+    Ok(Json(StrategyPreviewPoolPageResponse {
+        trade_date: request.trade_date,
+        pool_count,
+        items,
+        limit: request.limit,
+        offset: request.offset,
+        has_more,
+    }))
+}
+
+async fn preview_strategy_security_analysis(
+    State(state): State<AppState>,
+    Json(request): Json<StrategyPreviewSecurityAnalysisRequest>,
+) -> RearviewResult<Json<impl Serialize>> {
+    let request = request.into_parts()?;
+    let planner = QueryPlanner::new(state.catalog.clone());
+    let settings = QuerySettings {
+        max_execution_time_seconds: state.config.clickhouse.max_execution_time_seconds,
+        max_rows_to_read: state.config.clickhouse.max_rows_to_read,
+        max_bytes_to_read: state.config.clickhouse.max_bytes_to_read,
+    };
+    let compiled = planner.compile_preview_pool_page(
+        &request.rule,
+        request.analysis.trade_date,
+        1,
+        0,
+        Some(&request.security_code),
+        settings,
+    )?;
+    let query_id_prefix = format!(
+        "rearview-preview-analysis-{}-{}-{}",
+        ulid::Ulid::new(),
+        request.security_code,
+        request.analysis.trade_date
+    );
+    let mut rows = state
+        .clickhouse
+        .query_screening_rows(&compiled.sql, &format!("{query_id_prefix}-member"))
+        .await?;
+    let row = rows.pop().ok_or_else(|| {
+        RearviewError::NotFound(format!(
+            "security {} is not in preview pool on {}",
+            request.security_code, request.analysis.trade_date
+        ))
+    })?;
+    let display = security_display_for_one(
+        &state,
+        &request.security_code,
+        &format!("{query_id_prefix}-display"),
+    )
+    .await;
+    let security_name = display
+        .as_ref()
+        .and_then(|display| display.security_name.clone());
+    let exchange_code = display
+        .as_ref()
+        .and_then(|display| display.exchange_code.clone());
+    let quote_rows = state
+        .clickhouse
+        .query_analysis_quote_rows(
+            &request.security_code,
+            request.analysis.quote_start_date,
+            request.analysis.quote_end_date,
+            request.analysis.lookback_trading_days,
+            &format!("{query_id_prefix}-quotes"),
+        )
+        .await?;
+
+    let (chart_start_date, chart_end_date) = quote_rows
+        .first()
+        .zip(quote_rows.last())
+        .map(|(first, last)| (first.trade_date, last.trade_date))
+        .unwrap_or((
+            request
+                .analysis
+                .quote_start_date
+                .unwrap_or(request.analysis.quote_end_date),
+            request.analysis.quote_end_date,
+        ));
+
+    let (trend_rows, momentum_rows) = if quote_rows.is_empty() {
+        (Vec::new(), Vec::new())
+    } else {
+        let trend_rows = state
+            .clickhouse
+            .query_analysis_trend_rows(
+                &request.security_code,
+                chart_start_date,
+                chart_end_date,
+                &format!("{query_id_prefix}-trend"),
+            )
+            .await?;
+        let momentum_rows = state
+            .clickhouse
+            .query_analysis_momentum_rows(
+                &request.security_code,
+                chart_start_date,
+                chart_end_date,
+                &format!("{query_id_prefix}-momentum"),
+            )
+            .await?;
+        (trend_rows, momentum_rows)
+    };
+
+    let response = build_security_analysis_response(
+        SecurityAnalysisBuildInput {
+            run_id: None,
+            security_code: request.security_code,
+            security_name,
+            exchange_code,
+            trade_date: request.analysis.trade_date,
+            source: AnalysisSource::Preview,
+            adjustment: request.analysis.adjustment,
+            ma_windows: request.analysis.ma_windows,
+            lookback_trading_days: request.analysis.lookback_trading_days,
+            chart_start_date,
+            chart_end_date,
+        },
+        ResultSnapshot::from_preview(row)?,
+        quote_rows,
+        trend_rows,
+        momentum_rows,
+        state.config.clickhouse.marts_database.clone(),
+    );
+    Ok(Json(response))
 }
 
 #[derive(Debug, Deserialize)]
@@ -1215,6 +1432,7 @@ struct SecurityAnalysisRequest {
 enum AnalysisSource {
     Signals,
     Pool,
+    Preview,
 }
 
 #[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq, Eq)]
@@ -1227,9 +1445,14 @@ enum Adjustment {
 
 #[derive(Debug, Serialize)]
 struct SecurityAnalysisResponse {
-    run_id: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    run_id: Option<String>,
     trade_date: NaiveDate,
     security_code: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    security_name: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    exchange_code: Option<String>,
     source: AnalysisSource,
     adjustment: Adjustment,
     result_snapshot: ResultSnapshot,
@@ -1247,6 +1470,8 @@ struct ResultSnapshot {
     score: Option<f64>,
     score_breakdown: Option<serde_json::Value>,
     selected_metrics: serde_json::Value,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    raw_values: Option<serde_json::Value>,
     filter_snapshot: Option<serde_json::Value>,
 }
 
@@ -1258,6 +1483,7 @@ impl ResultSnapshot {
             score: Some(record.score),
             score_breakdown: Some(record.score_breakdown),
             selected_metrics: record.selected_metrics,
+            raw_values: None,
             filter_snapshot: None,
         }
     }
@@ -1269,8 +1495,23 @@ impl ResultSnapshot {
             score: record.score,
             score_breakdown: None,
             selected_metrics: record.selected_metrics,
+            raw_values: None,
             filter_snapshot: Some(record.filter_snapshot),
         }
+    }
+
+    fn from_preview(row: crate::clickhouse::ScreeningRow) -> RearviewResult<Self> {
+        Ok(Self {
+            rank: None,
+            signal_rank: Some(i32::try_from(row.signal_rank).map_err(|error| {
+                RearviewError::Validation(format!("preview signal_rank out of range: {error}"))
+            })?),
+            score: Some(row.score),
+            score_breakdown: Some(parse_preview_json_field(&row.score_breakdown)?),
+            selected_metrics: parse_preview_json_field(&row.selected_metrics)?,
+            raw_values: Some(parse_preview_json_field(&row.raw_values)?),
+            filter_snapshot: None,
+        })
     }
 }
 
@@ -1384,8 +1625,10 @@ struct BollSeries {
 }
 
 struct SecurityAnalysisBuildInput {
-    run_id: String,
+    run_id: Option<String>,
     security_code: String,
+    security_name: Option<String>,
+    exchange_code: Option<String>,
     trade_date: NaiveDate,
     source: AnalysisSource,
     adjustment: Adjustment,
@@ -1469,14 +1712,23 @@ struct StrategyPreviewRequest {
     rule: RuleVersionSpec,
     start_date: NaiveDate,
     end_date: NaiveDate,
-    top_n: u32,
+    #[serde(default)]
+    preview_row_limit: Option<u32>,
+    #[serde(default)]
+    top_n: Option<u32>,
 }
 
 impl StrategyPreviewRequest {
     fn into_parts(self, max_range_days: u32) -> RearviewResult<StrategyPreviewRequestParts> {
-        if self.top_n == 0 {
+        let preview_row_limit = self.preview_row_limit.or(self.top_n).unwrap_or(50);
+        if preview_row_limit == 0 {
             return Err(RearviewError::Validation(
-                "top_n must be greater than 0".to_string(),
+                "preview_row_limit must be greater than 0".to_string(),
+            ));
+        }
+        if preview_row_limit > 500 {
+            return Err(RearviewError::Validation(
+                "preview_row_limit must not exceed 500".to_string(),
             ));
         }
         if self.start_date > self.end_date {
@@ -1501,7 +1753,7 @@ impl StrategyPreviewRequest {
             rule: self.rule,
             start_date: self.start_date,
             end_date: self.end_date,
-            top_n: self.top_n,
+            preview_row_limit,
         })
     }
 }
@@ -1511,7 +1763,7 @@ struct StrategyPreviewRequestParts {
     rule: RuleVersionSpec,
     start_date: NaiveDate,
     end_date: NaiveDate,
-    top_n: u32,
+    preview_row_limit: u32,
 }
 
 #[derive(Debug, Serialize)]
@@ -1523,6 +1775,7 @@ struct StrategyPreviewResponse {
     required_columns: BTreeMap<String, Vec<String>>,
     start_date: NaiveDate,
     end_date: NaiveDate,
+    preview_row_limit: u32,
     top_n: u32,
     trade_dates: Vec<StrategyPreviewTradeDate>,
 }
@@ -1537,6 +1790,10 @@ struct StrategyPreviewTradeDate {
 #[derive(Debug, Serialize)]
 struct StrategyPreviewSignal {
     security_code: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    security_name: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    exchange_code: Option<String>,
     raw_score: f64,
     score: f64,
     signal_rank: u32,
@@ -1546,9 +1803,115 @@ struct StrategyPreviewSignal {
     raw_values: serde_json::Value,
 }
 
+#[derive(Debug, Deserialize)]
+struct StrategyPreviewPoolPageRequest {
+    rule: RuleVersionSpec,
+    trade_date: NaiveDate,
+    #[serde(default)]
+    limit: Option<u32>,
+    #[serde(default)]
+    offset: Option<u32>,
+    #[serde(default)]
+    sort: Option<String>,
+    #[serde(default)]
+    security_code: Option<String>,
+}
+
+impl StrategyPreviewPoolPageRequest {
+    fn into_parts(self) -> RearviewResult<StrategyPreviewPoolPageRequestParts> {
+        if self.sort.as_deref().unwrap_or("score_desc") != "score_desc" {
+            return Err(RearviewError::Validation(
+                "strategy preview pool-page only supports score_desc sort".to_string(),
+            ));
+        }
+        let page = page(self.limit, self.offset)?;
+        Ok(StrategyPreviewPoolPageRequestParts {
+            rule: self.rule,
+            trade_date: self.trade_date,
+            limit: u32::try_from(page.limit).map_err(|error| {
+                RearviewError::Validation(format!("limit out of range: {error}"))
+            })?,
+            offset: u32::try_from(page.offset).map_err(|error| {
+                RearviewError::Validation(format!("offset out of range: {error}"))
+            })?,
+            security_code: non_empty(self.security_code),
+        })
+    }
+}
+
+#[derive(Debug)]
+struct StrategyPreviewPoolPageRequestParts {
+    rule: RuleVersionSpec,
+    trade_date: NaiveDate,
+    limit: u32,
+    offset: u32,
+    security_code: Option<String>,
+}
+
+#[derive(Debug, Serialize)]
+struct StrategyPreviewPoolPageResponse {
+    trade_date: NaiveDate,
+    pool_count: usize,
+    items: Vec<StrategyPreviewSignal>,
+    limit: u32,
+    offset: u32,
+    has_more: bool,
+}
+
+#[derive(Debug, Deserialize)]
+struct StrategyPreviewSecurityAnalysisRequest {
+    rule: RuleVersionSpec,
+    trade_date: NaiveDate,
+    security_code: String,
+    #[serde(default)]
+    adjustment: Option<Adjustment>,
+    #[serde(default)]
+    quote_end_date: Option<NaiveDate>,
+    #[serde(default)]
+    lookback_trading_days: Option<u32>,
+    #[serde(default)]
+    quote_start_date: Option<NaiveDate>,
+    #[serde(default)]
+    ma_windows: Option<String>,
+}
+
+impl StrategyPreviewSecurityAnalysisRequest {
+    fn into_parts(self) -> RearviewResult<StrategyPreviewSecurityAnalysisRequestParts> {
+        let security_code = self.security_code.trim().to_string();
+        if security_code.is_empty() {
+            return Err(RearviewError::Validation(
+                "security_code must not be empty".to_string(),
+            ));
+        }
+        let analysis = SecurityAnalysisQuery {
+            trade_date: self.trade_date,
+            source: AnalysisSource::Preview,
+            adjustment: self.adjustment,
+            quote_end_date: self.quote_end_date,
+            lookback_trading_days: self.lookback_trading_days,
+            quote_start_date: self.quote_start_date,
+            ma_windows: self.ma_windows,
+        }
+        .into_request()?;
+        Ok(StrategyPreviewSecurityAnalysisRequestParts {
+            rule: self.rule,
+            security_code,
+            analysis,
+        })
+    }
+}
+
+#[derive(Debug)]
+struct StrategyPreviewSecurityAnalysisRequestParts {
+    rule: RuleVersionSpec,
+    security_code: String,
+    analysis: SecurityAnalysisRequest,
+}
+
 fn build_strategy_preview_trade_dates(
     rows: Vec<crate::clickhouse::ScreeningRow>,
-    top_n: u32,
+    preview_row_limit: u32,
+    display_by_code: &BTreeMap<String, SecurityDisplayRow>,
 ) -> RearviewResult<Vec<StrategyPreviewTradeDate>> {
     let mut grouped: BTreeMap<NaiveDate, StrategyPreviewTradeDate> = BTreeMap::new();
 
@@ -1560,22 +1923,73 @@ fn build_strategy_preview_trade_dates(
                 pool_count: 0,
                 signals: Vec::new(),
             });
-        entry.pool_count += 1;
-        if row.is_buy_signal || row.signal_rank <= top_n {
-            entry.signals.push(StrategyPreviewSignal {
-                security_code: row.security_code,
-                raw_score: row.raw_score,
-                score: row.score,
-                signal_rank: row.signal_rank,
-                is_buy_signal: row.is_buy_signal,
-                score_breakdown: parse_preview_json_field(&row.score_breakdown)?,
-                selected_metrics: parse_preview_json_field(&row.selected_metrics)?,
-                raw_values: parse_preview_json_field(&row.raw_values)?,
-            });
+        if let Some(pool_count) = row.pool_count {
+            entry.pool_count = entry.pool_count.max(pool_count);
+        } else {
+            entry.pool_count += 1;
+        }
+        if row.is_buy_signal || row.signal_rank <= preview_row_limit {
+            entry
+                .signals
+                .push(build_strategy_preview_signal(row, display_by_code)?);
         }
     }
 
     Ok(grouped.into_values().collect())
+}
+
+fn build_strategy_preview_signal(
+    row: crate::clickhouse::ScreeningRow,
+    display_by_code: &BTreeMap<String, SecurityDisplayRow>,
+) -> RearviewResult<StrategyPreviewSignal> {
+    let display = display_by_code.get(&row.security_code);
+    Ok(StrategyPreviewSignal {
+        security_name: display.and_then(|display| display.security_name.clone()),
+        exchange_code: display.and_then(|display| display.exchange_code.clone()),
+        security_code: row.security_code,
+        raw_score: row.raw_score,
+        score: row.score,
+        signal_rank: row.signal_rank,
+        is_buy_signal: row.is_buy_signal,
+        score_breakdown: parse_preview_json_field(&row.score_breakdown)?,
+        selected_metrics: parse_preview_json_field(&row.selected_metrics)?,
+        raw_values: parse_preview_json_field(&row.raw_values)?,
+    })
+}
+
+fn collect_security_codes(rows: &[crate::clickhouse::ScreeningRow]) -> Vec<String> {
+    rows.iter()
+        .map(|row| row.security_code.clone())
+        .collect::<BTreeSet<_>>()
+        .into_iter()
+        .collect()
+}
+
+async fn security_display_map(
+    state: &AppState,
+    security_codes: &[String],
+    query_id: &str,
+) -> BTreeMap<String, SecurityDisplayRow> {
+    match state
+        .clickhouse
+        .query_security_display_rows(security_codes, query_id)
+        .await
+    {
+        Ok(rows) => rows
+            .into_iter()
+            .map(|row| (row.security_code.clone(), row))
+            .collect(),
+        Err(_) => BTreeMap::new(),
+    }
+}
+
+async fn security_display_for_one(
+    state: &AppState,
+    security_code: &str,
+    query_id: &str,
+) -> Option<SecurityDisplayRow> {
+    let rows = security_display_map(state, &[security_code.to_string()], query_id).await;
+    rows.get(security_code).cloned()
 }
 
 fn parse_preview_json_field(raw: &str) -> RearviewResult<serde_json::Value> {
@@ -1693,6 +2107,8 @@ fn build_security_analysis_response(
         run_id: input.run_id,
         trade_date: input.trade_date,
         security_code: input.security_code,
+        security_name: input.security_name,
+        exchange_code: input.exchange_code,
         source: input.source,
         adjustment: input.adjustment,
         result_snapshot,
@@ -1711,13 +2127,13 @@ fn build_security_analysis_response(
             },
             trend: SourceMetadata {
                 database: marts_database.clone(),
-                table: "mart_stock_trend_indicator",
+                table: "mart_stock_trend_indicator_daily",
                 value_semantics: "current_mart_query",
                 adjustment: Some(Adjustment::ForwardAdjusted),
             },
             momentum: SourceMetadata {
                 database: marts_database,
-                table: "mart_stock_momentum_indicator",
+                table: "mart_stock_momentum_indicator_daily",
                 value_semantics: "current_mart_query",
                 adjustment: Some(Adjustment::ForwardAdjusted),
             },
@@ -2079,7 +2495,7 @@ mod tests {
     }
 
     #[test]
-    fn strategy_preview_request_should_reject_zero_top_n() {
+    fn strategy_preview_request_should_reject_zero_preview_row_limit() {
         let error = preview_request("2026-06-01", "2026-06-02", 0)
             .into_parts(90)
             .unwrap_err();
@@ -2106,14 +2522,33 @@ mod tests {
     }
 
     #[test]
+    fn preview_pool_page_request_should_reject_non_score_sort() {
+        let mut request = preview_pool_page_request();
+        request.sort = Some("rank_asc".to_string());
+
+        let error = request.into_parts().unwrap_err();
+
+        assert!(matches!(error, RearviewError::Validation(_)));
+    }
+
+    #[test]
+    fn preview_security_analysis_request_should_reject_empty_security_code() {
+        let mut request = preview_security_analysis_request();
+        request.security_code = " ".to_string();
+
+        let error = request.into_parts().unwrap_err();
+
+        assert!(matches!(error, RearviewError::Validation(_)));
+    }
+
+    #[test]
     fn build_strategy_preview_trade_dates_should_group_rows_and_keep_top_signals() {
         let trade_date = date("2026-06-02");
         let rows = vec![
-            screening_row("000001.SZ", trade_date, 80.0, 1, true),
-            screening_row("000002.SZ", trade_date, 70.0, 2, true),
-            screening_row("000003.SZ", trade_date, 60.0, 3, false),
+            screening_row("000001.SZ", trade_date, 80.0, 3, 1, true),
+            screening_row("000002.SZ", trade_date, 70.0, 3, 2, true),
         ];
-        let trade_dates = build_strategy_preview_trade_dates(rows, 2).unwrap();
+        let trade_dates = build_strategy_preview_trade_dates(rows, 2, &BTreeMap::new()).unwrap();
 
         assert_eq!(trade_dates.len(), 1);
         assert_eq!(trade_dates[0].pool_count, 3);
@@ -2147,7 +2582,32 @@ mod tests {
             },
             start_date: date(start_date),
             end_date: date(end_date),
-            top_n,
+            preview_row_limit: Some(top_n),
+            top_n: None,
+        }
+    }
+
+    fn preview_pool_page_request() -> StrategyPreviewPoolPageRequest {
+        StrategyPreviewPoolPageRequest {
+            rule: preview_request("2026-06-01", "2026-06-01", 10).rule,
+            trade_date: date("2026-06-01"),
+            limit: Some(50),
+            offset: Some(0),
+            sort: Some("score_desc".to_string()),
+            security_code: None,
+        }
+    }
+
+    fn preview_security_analysis_request() -> StrategyPreviewSecurityAnalysisRequest {
+        StrategyPreviewSecurityAnalysisRequest {
+            rule: preview_request("2026-06-01", "2026-06-01", 10).rule,
+            trade_date: date("2026-06-01"),
+            security_code: "600000.SH".to_string(),
+            adjustment: Some(Adjustment::ForwardAdjusted),
+            quote_end_date: None,
+            lookback_trading_days: Some(240),
+            quote_start_date: None,
+            ma_windows: None,
         }
     }
 
@@ -2155,6 +2615,7 @@ mod tests {
         security_code: &str,
         trade_date: NaiveDate,
         score: f64,
+        pool_count: usize,
         signal_rank: u32,
         is_buy_signal: bool,
     ) -> ScreeningRow {
@@ -2164,6 +2625,7 @@ mod tests {
             raw_score: score,
             score,
             signal_rank,
+            pool_count: Some(pool_count),
             is_buy_signal,
             score_breakdown: r#"{"w1":80}"#.to_string(),
             selected_metrics: r#"{"close_price":10}"#.to_string(),

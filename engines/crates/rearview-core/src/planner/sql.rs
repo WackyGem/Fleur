@@ -165,6 +165,182 @@ SETTINGS
             required_columns,
         })
     }
+
+    pub fn compile_preview(
+        &self,
+        rule: &RuleVersionSpec,
+        start_date: NaiveDate,
+        end_date: NaiveDate,
+        preview_row_limit: u32,
+        settings: QuerySettings,
+    ) -> RearviewResult<CompiledQuery> {
+        self.compile_preview_rows(PreviewRowsRequest {
+            rule,
+            start_date: Some(start_date),
+            end_date: Some(end_date),
+            row_limit: preview_row_limit,
+            offset: None,
+            security_code: None,
+            settings,
+        })
+    }
+
+    pub fn compile_preview_pool_page(
+        &self,
+        rule: &RuleVersionSpec,
+        trade_date: NaiveDate,
+        limit: u32,
+        offset: u32,
+        security_code: Option<&str>,
+        settings: QuerySettings,
+    ) -> RearviewResult<CompiledQuery> {
+        self.compile_preview_rows(PreviewRowsRequest {
+            rule,
+            start_date: Some(trade_date),
+            end_date: Some(trade_date),
+            row_limit: limit,
+            offset: Some(offset),
+            security_code,
+            settings,
+        })
+    }
+
+    fn compile_preview_rows(
+        &self,
+        request: PreviewRowsRequest<'_>,
+    ) -> RearviewResult<CompiledQuery> {
+        let rule = request.rule;
+        let row_limit = request.row_limit;
+        if row_limit == 0 {
+            return Err(RearviewError::Validation(
+                "preview row limit must be greater than 0".to_string(),
+            ));
+        }
+
+        let report = rule.validate(&self.catalog)?;
+        let required_metrics = report
+            .dependencies
+            .metrics
+            .iter()
+            .map(|metric| metric.logical_metric.clone())
+            .collect::<Vec<_>>();
+        let metric_lookup = required_metrics
+            .iter()
+            .map(|metric| {
+                self.catalog
+                    .require(metric)
+                    .map(|definition| (metric.clone(), definition.clone()))
+            })
+            .collect::<RearviewResult<BTreeMap<_, _>>>()?;
+        let marts = group_metrics_by_mart(&metric_lookup, &rule.universe)?;
+        let required_marts = marts.keys().cloned().collect::<Vec<_>>();
+        let required_columns = required_columns_by_mart(&marts);
+        let ctes = compile_mart_ctes(&marts, request.start_date, request.end_date)?;
+        let from_sql = compile_join_sql(&marts)?;
+        let filter_sql = compile_filter(&rule.pool_filters, &metric_lookup)?;
+        let score_sql = compile_score(rule, &metric_lookup)?;
+        let score_breakdown_sql = compile_score_breakdown(rule, &metric_lookup)?;
+        let selected_metrics_sql =
+            compile_selected_metric_json(&rule.output_metrics, &metric_lookup)?;
+        let raw_values_sql = compile_raw_values_json(&required_metrics, &metric_lookup)?;
+        let universe_sql = compile_universe_filter(rule);
+        let where_sql = if universe_sql.is_empty() {
+            filter_sql
+        } else {
+            format!("({universe_sql}) AND ({filter_sql})")
+        };
+        let security_filter = request
+            .security_code
+            .map(|code| format!(" AND security_code = '{}'", escape_string(code)))
+            .unwrap_or_default();
+        let rank_filter_sql = if request.offset.is_some() {
+            "1 = 1".to_string()
+        } else {
+            format!("signal_rank <= {row_limit}")
+        };
+        let offset_sql = request
+            .offset
+            .map(|offset| format!("\nOFFSET {offset}"))
+            .unwrap_or_default();
+        let limit_sql = if request.offset.is_some() {
+            format!("\nLIMIT {row_limit}{offset_sql}")
+        } else {
+            String::new()
+        };
+        let sql = format!(
+            r#"WITH
+{ctes},
+pool AS (
+    SELECT
+        security_code,
+        trade_date,
+        {score_sql} AS raw_score,
+        {score_breakdown_sql} AS score_breakdown,
+        {selected_metrics_sql} AS selected_metrics,
+        {raw_values_sql} AS raw_values
+    FROM {from_sql}
+    WHERE {where_sql}
+),
+scored AS (
+    SELECT
+        security_code,
+        trade_date,
+        raw_score,
+        greatest({clamp_min}, least({clamp_max}, raw_score)) AS score,
+        score_breakdown,
+        selected_metrics,
+        raw_values
+    FROM pool
+),
+ranked AS (
+    SELECT
+        security_code,
+        trade_date,
+        raw_score,
+        score,
+        row_number() OVER (PARTITION BY trade_date ORDER BY score DESC, security_code ASC) AS signal_rank,
+        count() OVER (PARTITION BY trade_date) AS pool_count,
+        score_breakdown,
+        selected_metrics,
+        raw_values
+    FROM scored
+)
+SELECT
+    security_code,
+    trade_date,
+    raw_score,
+    score,
+    signal_rank,
+    pool_count,
+    signal_rank <= {row_limit} AS is_buy_signal,
+    score_breakdown,
+    selected_metrics,
+    raw_values
+FROM ranked
+WHERE {rank_filter_sql}{security_filter}
+ORDER BY trade_date ASC, signal_rank ASC, security_code ASC
+{limit_sql}
+SETTINGS
+    max_execution_time = {max_execution_time},
+    max_rows_to_read = {max_rows_to_read},
+    max_bytes_to_read = {max_bytes_to_read},
+    timeout_before_checking_execution_speed = 0,
+    join_algorithm = 'auto'"#,
+            max_execution_time = request.settings.max_execution_time_seconds,
+            max_rows_to_read = request.settings.max_rows_to_read,
+            max_bytes_to_read = request.settings.max_bytes_to_read,
+            clamp_min = rule.scoring.clamp.min,
+            clamp_max = rule.scoring.clamp.max,
+        );
+        let sql_hash = sql_hash(&sql);
+        Ok(CompiledQuery {
+            sql,
+            sql_hash,
+            required_metrics,
+            required_marts,
+            required_columns,
+        })
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -174,6 +350,16 @@ struct MartPlan {
     table: String,
     metrics: Vec<MetricDefinition>,
     extra_columns: BTreeSet<String>,
+}
+
+struct PreviewRowsRequest<'a> {
+    rule: &'a RuleVersionSpec,
+    start_date: Option<NaiveDate>,
+    end_date: Option<NaiveDate>,
+    row_limit: u32,
+    offset: Option<u32>,
+    security_code: Option<&'a str>,
+    settings: QuerySettings,
 }
 
 fn group_metrics_by_mart(
@@ -669,6 +855,64 @@ mod tests {
                 .sql
                 .contains("greatest(0, least(50, raw_score)) AS score")
         );
+    }
+
+    #[test]
+    fn compile_preview_should_limit_rows_per_trade_date_without_global_limit() {
+        let catalog = test_catalog();
+        let planner = QueryPlanner::new(catalog);
+        let rule = crossing_rule(
+            Operand::metric("price_ma_5"),
+            Operator::Gte,
+            Operand::metric("price_ma_20"),
+        );
+
+        let compiled = planner
+            .compile_preview(
+                &rule,
+                NaiveDate::from_ymd_opt(2026, 6, 1).unwrap(),
+                NaiveDate::from_ymd_opt(2026, 6, 5).unwrap(),
+                10,
+                QuerySettings::default(),
+            )
+            .unwrap();
+
+        assert!(
+            compiled
+                .sql
+                .contains("count() OVER (PARTITION BY trade_date) AS pool_count")
+        );
+        assert!(compiled.sql.contains("WHERE signal_rank <= 10"));
+        assert!(!compiled.sql.contains("LIMIT 10"));
+    }
+
+    #[test]
+    fn compile_preview_pool_page_should_page_single_trade_date() {
+        let catalog = test_catalog();
+        let planner = QueryPlanner::new(catalog);
+        let rule = crossing_rule(
+            Operand::metric("price_ma_5"),
+            Operator::Gte,
+            Operand::metric("price_ma_20"),
+        );
+
+        let compiled = planner
+            .compile_preview_pool_page(
+                &rule,
+                NaiveDate::from_ymd_opt(2026, 6, 1).unwrap(),
+                51,
+                50,
+                Some("600000.SH"),
+                QuerySettings::default(),
+            )
+            .unwrap();
+
+        assert!(
+            compiled
+                .sql
+                .contains("WHERE 1 = 1 AND security_code = '600000.SH'")
+        );
+        assert!(compiled.sql.contains("LIMIT 51\nOFFSET 50"));
     }
 
     #[test]

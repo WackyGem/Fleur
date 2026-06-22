@@ -6,7 +6,10 @@ import type {
   StrategyConditionGroup,
   WeightIndicator,
 } from "@/features/strategy/types"
-import type { StrategyPreviewResponse } from "@/types/rearview"
+import type {
+  PreviewRange,
+  PreviewSnapshot,
+} from "@/features/strategy/preview"
 
 type PoolPreviewPanelProps = {
   appliedWeightIndicators: WeightIndicator[]
@@ -18,14 +21,8 @@ type PoolPreviewPanelProps = {
   onDraftWeightScoreChange: (indicatorId: string, score: number) => void
   onPreviewRangeChange: (patch: Partial<PreviewRange>) => void
   previewRange: PreviewRange
-  previewResult: StrategyPreviewResponse | null
+  previewSnapshot: PreviewSnapshot | null
   weightIndicators: WeightIndicator[]
-}
-
-export type PreviewRange = {
-  endDate: string
-  startDate: string
-  topN: number
 }
 
 function PoolPreviewPanel({
@@ -38,7 +35,7 @@ function PoolPreviewPanel({
   onDraftWeightScoreChange,
   onPreviewRangeChange,
   previewRange,
-  previewResult,
+  previewSnapshot,
   weightIndicators,
 }: PoolPreviewPanelProps) {
   const hasStrategyInput =
@@ -69,12 +66,14 @@ function PoolPreviewPanel({
           />
         </Field>
         <Field>
-          <FieldLabel>TopN</FieldLabel>
+          <FieldLabel>展示行数</FieldLabel>
           <Input
             min={1}
-            value={String(previewRange.topN)}
+            value={String(previewRange.previewRowLimit)}
             onChange={(event) =>
-              onPreviewRangeChange({ topN: Number(event.target.value) })
+              onPreviewRangeChange({
+                previewRowLimit: Number(event.target.value),
+              })
             }
             type="number"
           />
@@ -98,7 +97,7 @@ function PoolPreviewPanel({
         </Alert>
       ) : null}
 
-      {previewResult && previewResult.trade_dates.length === 0 ? (
+      {previewSnapshot && previewSnapshot.result.trade_dates.length === 0 ? (
         <Alert className="shrink-0">
           <AlertTitle>股池为空</AlertTitle>
           <AlertDescription>当前区间没有返回候选股票。</AlertDescription>
@@ -112,7 +111,7 @@ function PoolPreviewPanel({
         draftWeightIndicators={draftWeightIndicators}
         hasStrategyInput={hasStrategyInput}
         onDraftWeightScoreChange={onDraftWeightScoreChange}
-        previewResult={previewResult}
+        previewSnapshot={previewSnapshot}
       />
       </div>
     </div>

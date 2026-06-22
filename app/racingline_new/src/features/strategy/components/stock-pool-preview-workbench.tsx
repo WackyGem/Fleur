@@ -1,9 +1,20 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react"
 import { CandlestickSeries, createChart } from "lightweight-charts"
 
+import {
+  usePreviewSecurityAnalysisQuery,
+  useStrategyPreviewPoolPageQuery,
+} from "@/api/hooks"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import {
+  Empty,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyTitle,
+} from "@/components/ui/empty"
 import { Field, FieldGroup, FieldLabel } from "@/components/ui/field"
 import {
   Select,
@@ -14,6 +25,8 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { Separator } from "@/components/ui/separator"
+import { Skeleton } from "@/components/ui/skeleton"
+import { Spinner } from "@/components/ui/spinner"
 import {
   Table,
   TableBody,
@@ -24,69 +37,23 @@ import {
 } from "@/components/ui/table"
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
 import { WeightScoreSlider } from "@/features/strategy/components/weight-score-slider"
+import {
+  buildPreviewPresentation,
+  buildPreviewStockRow,
+  type PreviewSnapshot,
+  type PreviewStockRow,
+  type PreviewTradeDateRow,
+  type PreviewValueRow,
+} from "@/features/strategy/preview"
 import type {
   StrategyConditionGroup,
   WeightIndicator,
 } from "@/features/strategy/types"
-import {
-  clampScore,
-  formatComparableIndicator,
-  getScaledWeightIndicators,
-} from "@/features/strategy/utils"
-import type { JsonValue, StrategyPreviewResponse } from "@/types/rearview"
-
-type CandlePoint = {
-  close: number
-  high: number
-  low: number
-  open: number
-  time: string
-  volume: number
-}
-
-type StockPoolItem = {
-  candles: CandlePoint[]
-  code: string
-  marketCap: number
-  name: string
-  peTtm: number
-  roe: number
-}
-
-type StockSnapshot = {
-  amount: number
-  close: number
-  high: number
-  limitDown: number
-  limitUp: number
-  low: number
-  open: number
-  pctAmplitude: number
-  pctChange: number
-  prevClose: number
-  volume: number
-}
-
-type WeightScoreItem = {
-  id: string
-  label: string
-  score: number
-}
-
-type DailyPoolStock = {
-  code: string
-  name: string
-  rank: number
-  score: number
-  scoreItems: WeightScoreItem[]
-}
-
-type DailyStockPool = {
-  averageScore: number
-  date: string
-  poolCount: number
-  stocks: DailyPoolStock[]
-}
+import { clampScore, formatComparableIndicator } from "@/features/strategy/utils"
+import type {
+  ChartSeriesRow,
+  SecurityAnalysisResponse,
+} from "@/types/rearview"
 
 type BadgeVariant =
   | "default"
@@ -102,16 +69,18 @@ type StockPoolPreviewWorkbenchProps = {
   draftWeightIndicators: WeightIndicator[]
   hasStrategyInput: boolean
   onDraftWeightScoreChange: (indicatorId: string, score: number) => void
-  previewResult?: StrategyPreviewResponse | null
+  previewSnapshot?: PreviewSnapshot | null
 }
 
 const adjustmentOptions = [
-  { label: "除权", value: "none" },
-  { label: "前复权", value: "forward" },
-  { label: "后复权", value: "backward" },
+  { label: "除权", value: "unadjusted" },
+  { label: "前复权", value: "forward_adjusted" },
+  { label: "后复权", value: "backward_adjusted" },
 ] as const
 
-const trendLineOptions = ["MA5", "MA10", "MA30", "MA60"] as const
+const trendLineOptions = ["MA5", "MA10", "MA30"] as const
+
+const pageSize = 50
 
 const priceFormatter = new Intl.NumberFormat("zh-CN", {
   maximumFractionDigits: 2,
@@ -128,106 +97,189 @@ const percentFormatter = new Intl.NumberFormat("zh-CN", {
   style: "percent",
 })
 
-const previewStock: StockPoolItem = {
-  code: "600519.SH",
-  name: "贵州茅台",
-  marketCap: 19650,
-  peTtm: 24.8,
-  roe: 0.321,
-  candles: buildCandles("2026-03-02", 1498, 0.08, 0.62),
-}
-
-const stockPoolCandidates = [
-  { code: "600519.SH", name: "贵州茅台" },
-  { code: "300750.SZ", name: "宁德时代" },
-  { code: "600036.SH", name: "招商银行" },
-  { code: "601318.SH", name: "中国平安" },
-  { code: "000858.SZ", name: "五粮液" },
-  { code: "002594.SZ", name: "比亚迪" },
-  { code: "600276.SH", name: "恒瑞医药" },
-  { code: "601899.SH", name: "紫金矿业" },
-  { code: "600900.SH", name: "长江电力" },
-  { code: "000333.SZ", name: "美的集团" },
-  { code: "688981.SH", name: "中芯国际" },
-  { code: "601012.SH", name: "隆基绿能" },
-] as const
-
 function StockPoolPreviewWorkbench({
-  appliedWeightIndicators,
-  conditionGroups,
   draftWeightIndicators,
   hasStrategyInput,
   onDraftWeightScoreChange,
-  previewResult,
+  previewSnapshot,
 }: StockPoolPreviewWorkbenchProps) {
-  const selectedStock = previewStock
-  const selectedSnapshot = getStockSnapshot(selectedStock)
-  const dailyStockPools = useMemo(
-    () => {
-      if (previewResult) {
-        return buildDailyStockPoolsFromPreview(
-          previewResult,
-          appliedWeightIndicators
-        )
-      }
-
-      return buildDailyStockPools(
-        selectedStock,
-        conditionGroups,
-        appliedWeightIndicators,
-        hasStrategyInput || appliedWeightIndicators.length > 0
-      )
-    },
-    [
-      appliedWeightIndicators,
-      conditionGroups,
-      hasStrategyInput,
-      previewResult,
-      selectedStock,
-    ]
+  const [selectedTradeDate, setSelectedTradeDate] = useState("")
+  const [selectedSecurityCode, setSelectedSecurityCode] = useState("")
+  const [poolPageState, setPoolPageState] = useState({
+    offset: 0,
+    previewId: "",
+    tradeDate: "",
+  })
+  const [adjustmentMode, setAdjustmentMode] =
+    useState<(typeof adjustmentOptions)[number]["value"]>("forward_adjusted")
+  const presentation = useMemo(
+    () => (previewSnapshot ? buildPreviewPresentation(previewSnapshot) : null),
+    [previewSnapshot]
   )
-  const latestTradeDate = dailyStockPools.at(-1)?.date ?? ""
-  const [selectedTradeDate, setSelectedTradeDate] = useState(latestTradeDate)
+  const dailyStockPools = useMemo(
+    () => presentation?.tradeDates ?? [],
+    [presentation]
+  )
   const selectedDailyPool =
     dailyStockPools.find((pool) => pool.date === selectedTradeDate) ??
-    dailyStockPools.at(-1)
+    dailyStockPools.at(-1) ??
+    null
+  const selectedPreviewId = previewSnapshot?.previewId ?? ""
+  const selectedPoolDate = selectedDailyPool?.date ?? ""
+  const poolOffset =
+    poolPageState.previewId === selectedPreviewId &&
+    poolPageState.tradeDate === selectedPoolDate
+      ? poolPageState.offset
+      : 0
+
+  const poolPageRequest =
+    previewSnapshot && selectedDailyPool
+      ? {
+          rule: previewSnapshot.appliedRuleSpec,
+          trade_date: selectedDailyPool.date,
+          limit: pageSize,
+          offset: poolOffset,
+          sort: "score_desc" as const,
+        }
+      : null
+  const poolPageQuery = useStrategyPreviewPoolPageQuery(
+    previewSnapshot?.previewId ?? null,
+    poolPageRequest
+  )
+  const pagedStocks = useMemo(() => {
+    if (!previewSnapshot || !poolPageQuery.data) {
+      return selectedDailyPool?.stocks ?? []
+    }
+
+    return poolPageQuery.data.items.map((signal) =>
+      buildPreviewStockRow(signal, previewSnapshot.labels)
+    )
+  }, [poolPageQuery.data, previewSnapshot, selectedDailyPool?.stocks])
+  const selectedStock =
+    pagedStocks.find((stock) => stock.code === selectedSecurityCode) ??
+    selectedDailyPool?.stocks.find((stock) => stock.code === selectedSecurityCode) ??
+    pagedStocks[0] ??
+    selectedDailyPool?.stocks[0] ??
+    null
+
+  const analysisRequest =
+    previewSnapshot && selectedDailyPool && selectedStock
+      ? {
+          adjustment: adjustmentMode,
+          lookback_trading_days: 240,
+          rule: previewSnapshot.appliedRuleSpec,
+          security_code: selectedStock.code,
+          trade_date: selectedDailyPool.date,
+        }
+      : null
+  const analysisQuery = usePreviewSecurityAnalysisQuery(
+    previewSnapshot?.previewId ?? null,
+    analysisRequest
+  )
+
+  if (!previewSnapshot) {
+    return (
+      <Empty className="h-full border border-border/60">
+        <EmptyHeader>
+          <EmptyTitle>尚未执行股池预览</EmptyTitle>
+          <EmptyDescription>
+            当前页面只展示 Rearview 返回的真实预览结果。
+          </EmptyDescription>
+        </EmptyHeader>
+      </Empty>
+    )
+  }
 
   if (!selectedDailyPool) {
-    return null
+    return (
+      <Empty className="h-full border border-border/60">
+        <EmptyHeader>
+          <EmptyTitle>股池为空</EmptyTitle>
+          <EmptyDescription>当前预览没有返回交易日结果。</EmptyDescription>
+        </EmptyHeader>
+      </Empty>
+    )
   }
 
   return (
     <div
       className="grid h-full min-h-[46rem] grid-cols-1 xl:min-h-0 xl:grid-cols-[minmax(34rem,1fr)_auto_20rem]"
       data-has-strategy-input={hasStrategyInput}
+      data-preview-stale={previewSnapshot.stale}
     >
       <div className="flex min-h-0 flex-col gap-3 pt-5">
-        <KLinePanel stock={selectedStock} />
+        <KLinePanel
+          adjustmentMode={adjustmentMode}
+          analysis={analysisQuery.data ?? null}
+          error={analysisQuery.isError ? analysisQuery.error : null}
+          isPending={analysisQuery.isPending}
+          onAdjustmentModeChange={setAdjustmentMode}
+          stock={selectedStock}
+        />
         <Separator />
         <DailyStockPoolPanel
           dailyStockPools={dailyStockPools}
+          isPoolPagePending={poolPageQuery.isPending}
+          onNextPage={() =>
+            setPoolPageState({
+              offset: poolOffset + pageSize,
+              previewId: selectedPreviewId,
+              tradeDate: selectedPoolDate,
+            })
+          }
+          onPreviousPage={() =>
+            setPoolPageState({
+              offset: Math.max(0, poolOffset - pageSize),
+              previewId: selectedPreviewId,
+              tradeDate: selectedPoolDate,
+            })
+          }
+          onSelectedDateChange={(date) => {
+            setSelectedTradeDate(date)
+            setSelectedSecurityCode("")
+          }}
+          onSelectedStockChange={setSelectedSecurityCode}
+          pageHasMore={poolPageQuery.data?.has_more ?? false}
+          pageOffset={poolOffset}
+          pagedStocks={pagedStocks}
           selectedDate={selectedDailyPool.date}
           selectedPool={selectedDailyPool}
-          onSelectedDateChange={setSelectedTradeDate}
+          selectedSecurityCode={selectedStock?.code ?? ""}
         />
       </div>
       <Separator className="my-3 xl:hidden" />
       <Separator orientation="vertical" className="hidden xl:block" />
       <div className="min-h-0 xl:h-full xl:pt-5">
         <KeyDataPanel
+          analysis={analysisQuery.data ?? null}
+          analysisError={analysisQuery.isError ? analysisQuery.error : null}
           draftWeightIndicators={draftWeightIndicators}
-          snapshot={selectedSnapshot}
-          stock={selectedStock}
+          isAnalysisPending={analysisQuery.isPending}
           onDraftWeightScoreChange={onDraftWeightScoreChange}
+          stock={selectedStock}
         />
       </div>
     </div>
   )
 }
 
-function KLinePanel({ stock }: { stock: StockPoolItem }) {
-  const [adjustmentMode, setAdjustmentMode] =
-    useState<(typeof adjustmentOptions)[number]["value"]>("forward")
+function KLinePanel({
+  adjustmentMode,
+  analysis,
+  error,
+  isPending,
+  onAdjustmentModeChange,
+  stock,
+}: {
+  adjustmentMode: (typeof adjustmentOptions)[number]["value"]
+  analysis: SecurityAnalysisResponse | null
+  error: unknown
+  isPending: boolean
+  onAdjustmentModeChange: (
+    value: (typeof adjustmentOptions)[number]["value"]
+  ) => void
+  stock: PreviewStockRow | null
+}) {
   const [trendLines, setTrendLines] = useState<string[]>(["MA5", "MA10"])
   const adjustmentLabel =
     adjustmentOptions.find((option) => option.value === adjustmentMode)
@@ -242,10 +294,12 @@ function KLinePanel({ stock }: { stock: StockPoolItem }) {
         <div className="min-h-[3.75rem] min-w-0">
           <CardTitle className="flex h-[3.75rem] min-w-0 flex-col justify-between group-data-[size=sm]/card:text-xl">
             <span className="flex h-7 items-center truncate leading-7">
-              {stock.name}
+              {stock?.name ?? analysis?.security_name ?? analysis?.security_code ?? "-"}
             </span>
             <span className="flex h-7 items-center text-sm leading-5 font-normal text-muted-foreground tabular-nums">
-              {stock.code}
+              {[stock?.code ?? analysis?.security_code, stock?.exchangeCode]
+                .filter(Boolean)
+                .join(" / ") || "-"}
             </span>
           </CardTitle>
         </div>
@@ -259,7 +313,7 @@ function KLinePanel({ stock }: { stock: StockPoolItem }) {
               value={adjustmentMode}
               onValueChange={(value) => {
                 if (value) {
-                  setAdjustmentMode(
+                  onAdjustmentModeChange(
                     value as (typeof adjustmentOptions)[number]["value"]
                   )
                 }
@@ -291,9 +345,7 @@ function KLinePanel({ stock }: { stock: StockPoolItem }) {
             </span>
             <ToggleGroup
               value={trendLines}
-              onValueChange={(nextTrendLines) => {
-                setTrendLines(nextTrendLines)
-              }}
+              onValueChange={setTrendLines}
               variant="outline"
               size="sm"
               spacing={0}
@@ -315,14 +367,36 @@ function KLinePanel({ stock }: { stock: StockPoolItem }) {
 
       <CardContent className="px-0 pt-0 pb-3">
         <div className="h-[22rem] overflow-hidden border border-border/70 bg-muted/10 sm:h-[23rem] xl:h-[24rem]">
-          <CandlestickChart stock={stock} />
+          {isPending ? (
+            <div className="flex h-full items-center justify-center">
+              <Spinner />
+            </div>
+          ) : error ? (
+            <div className="flex h-full items-center p-3">
+              <Alert variant="destructive">
+                <AlertTitle>个股上下文加载失败</AlertTitle>
+                <AlertDescription>{formatErrorMessage(error)}</AlertDescription>
+              </Alert>
+            </div>
+          ) : analysis && analysis.chart.series.length > 0 ? (
+            <CandlestickChart series={analysis.chart.series} />
+          ) : (
+            <Empty className="h-full">
+              <EmptyHeader>
+                <EmptyTitle>暂无行情序列</EmptyTitle>
+                <EmptyDescription>
+                  Rearview 没有返回当前证券的图表数据。
+                </EmptyDescription>
+              </EmptyHeader>
+            </Empty>
+          )}
         </div>
       </CardContent>
     </Card>
   )
 }
 
-function CandlestickChart({ stock }: { stock: StockPoolItem }) {
+function CandlestickChart({ series }: { series: ChartSeriesRow[] }) {
   const containerRef = useRef<HTMLDivElement | null>(null)
 
   useEffect(() => {
@@ -367,13 +441,15 @@ function CandlestickChart({ stock }: { stock: StockPoolItem }) {
     })
 
     candleSeries.setData(
-      stock.candles.map(({ close, high, low, open, time }) => ({
-        close,
-        high,
-        low,
-        open,
-        time,
-      }))
+      series
+        .filter((row) => row.ohlc)
+        .map((row) => ({
+          close: row.ohlc?.close ?? 0,
+          high: row.ohlc?.high ?? 0,
+          low: row.ohlc?.low ?? 0,
+          open: row.ohlc?.open ?? 0,
+          time: row.trade_date,
+        }))
     )
     chart.timeScale().fitContent()
 
@@ -396,21 +472,37 @@ function CandlestickChart({ stock }: { stock: StockPoolItem }) {
       resizeObserver.disconnect()
       chart.remove()
     }
-  }, [stock])
+  }, [series])
 
   return <div ref={containerRef} className="h-full min-h-[12rem] w-full" />
 }
 
 function DailyStockPoolPanel({
   dailyStockPools,
+  isPoolPagePending,
+  onNextPage,
+  onPreviousPage,
   onSelectedDateChange,
+  onSelectedStockChange,
+  pageHasMore,
+  pageOffset,
+  pagedStocks,
   selectedDate,
   selectedPool,
+  selectedSecurityCode,
 }: {
-  dailyStockPools: DailyStockPool[]
+  dailyStockPools: PreviewTradeDateRow[]
+  isPoolPagePending: boolean
+  onNextPage: () => void
+  onPreviousPage: () => void
   onSelectedDateChange: (date: string) => void
+  onSelectedStockChange: (securityCode: string) => void
+  pageHasMore: boolean
+  pageOffset: number
+  pagedStocks: PreviewStockRow[]
   selectedDate: string
-  selectedPool: DailyStockPool
+  selectedPool: PreviewTradeDateRow
+  selectedSecurityCode: string
 }) {
   return (
     <Card
@@ -459,18 +551,34 @@ function DailyStockPoolPanel({
         </div>
 
         <div className="min-h-0 flex-1 overflow-y-auto">
-          <Table className="min-w-[44rem] table-fixed">
+          <Table className="min-w-[48rem] table-fixed">
             <TableHeader>
               <TableRow className="hover:bg-transparent">
                 <TableHead className="h-7 w-8 px-1 text-right">#</TableHead>
-                <TableHead className="h-7 w-40 px-1">股票</TableHead>
+                <TableHead className="h-7 w-44 px-1">股票</TableHead>
                 <TableHead className="h-7 px-1">得分项</TableHead>
+                <TableHead className="h-7 w-40 px-1">指标</TableHead>
                 <TableHead className="h-7 w-16 px-1 text-right">得分</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {selectedPool.stocks.map((stock) => (
-                <TableRow key={stock.code}>
+              {isPoolPagePending && pagedStocks.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={5} className="py-3">
+                    <Skeleton className="h-8 w-full" />
+                  </TableCell>
+                </TableRow>
+              ) : null}
+              {pagedStocks.map((stock) => (
+                <TableRow
+                  key={stock.code}
+                  aria-selected={stock.code === selectedSecurityCode}
+                  data-state={
+                    stock.code === selectedSecurityCode ? "selected" : "idle"
+                  }
+                  className="cursor-pointer data-[state=selected]:bg-muted/70"
+                  onClick={() => onSelectedStockChange(stock.code)}
+                >
                   <TableCell className="px-1 py-1 text-right tabular-nums">
                     {stock.rank}
                   </TableCell>
@@ -478,7 +586,9 @@ function DailyStockPoolPanel({
                     <div className="grid min-w-0 grid-cols-[4.5em_minmax(0,1fr)] items-center gap-1">
                       <span className="truncate font-medium">{stock.name}</span>
                       <span className="truncate text-muted-foreground tabular-nums">
-                        {stock.code}
+                        {[stock.code, stock.exchangeCode]
+                          .filter(Boolean)
+                          .join(" / ")}
                       </span>
                     </div>
                   </TableCell>
@@ -488,6 +598,14 @@ function DailyStockPoolPanel({
                       title={formatScoreItems(stock.scoreItems)}
                     >
                       {formatScoreItems(stock.scoreItems)}
+                    </div>
+                  </TableCell>
+                  <TableCell className="px-1 py-1">
+                    <div
+                      className="w-full truncate text-muted-foreground tabular-nums"
+                      title={formatValueRows(stock.selectedMetricRows)}
+                    >
+                      {formatValueRows(stock.selectedMetricRows)}
                     </div>
                   </TableCell>
                   <TableCell className="px-1 py-1 text-right">
@@ -500,22 +618,57 @@ function DailyStockPoolPanel({
             </TableBody>
           </Table>
         </div>
+
+        <div className="grid shrink-0 grid-cols-[auto_1fr_auto] items-center gap-2 pb-1">
+          <Button
+            size="sm"
+            variant="outline"
+            type="button"
+            disabled={pageOffset === 0 || isPoolPagePending}
+            onClick={onPreviousPage}
+          >
+            上一页
+          </Button>
+          <div className="truncate text-center text-xs text-muted-foreground tabular-nums">
+            {pageOffset + 1} - {pageOffset + pagedStocks.length}
+          </div>
+          <Button
+            size="sm"
+            variant="outline"
+            type="button"
+            disabled={!pageHasMore || isPoolPagePending}
+            onClick={onNextPage}
+          >
+            下一页
+          </Button>
+        </div>
       </CardContent>
     </Card>
   )
 }
 
 function KeyDataPanel({
+  analysis,
+  analysisError,
   draftWeightIndicators,
+  isAnalysisPending,
   onDraftWeightScoreChange,
-  snapshot,
   stock,
 }: {
+  analysis: SecurityAnalysisResponse | null
+  analysisError: unknown
   draftWeightIndicators: WeightIndicator[]
+  isAnalysisPending: boolean
   onDraftWeightScoreChange: (indicatorId: string, score: number) => void
-  snapshot: StockSnapshot
-  stock: StockPoolItem
+  stock: PreviewStockRow | null
 }) {
+  const quote = analysis?.selected_quote ?? null
+  const selectedMetrics =
+    stock?.selectedMetricRows ??
+    buildRowsFromRecord(analysis?.result_snapshot.selected_metrics)
+  const rawValues =
+    stock?.rawValueRows ?? buildRowsFromRecord(analysis?.result_snapshot.raw_values)
+
   return (
     <Card
       size="sm"
@@ -523,60 +676,76 @@ function KeyDataPanel({
     >
       <CardContent className="min-h-0 flex-1 overflow-y-auto py-3">
         <div className="flex flex-col gap-4">
+          {isAnalysisPending ? (
+            <Skeleton className="h-20 w-full" />
+          ) : analysisError ? (
+            <Alert variant="destructive">
+              <AlertTitle>个股上下文加载失败</AlertTitle>
+              <AlertDescription>
+                {formatErrorMessage(analysisError)}
+              </AlertDescription>
+            </Alert>
+          ) : null}
+
           <MetricSection title="行情">
-            <DataRow
-              label="开盘价"
-              value={priceFormatter.format(snapshot.open)}
-            />
-            <DataRow
-              label="最高价"
-              value={priceFormatter.format(snapshot.high)}
-            />
-            <DataRow
-              label="最低价"
-              value={priceFormatter.format(snapshot.low)}
-            />
-            <DataRow
-              label="收盘价"
-              value={priceFormatter.format(snapshot.close)}
-            />
+            <DataRow label="开盘价" value={formatPrice(quote?.open_price)} />
+            <DataRow label="最高价" value={formatPrice(quote?.high_price)} />
+            <DataRow label="最低价" value={formatPrice(quote?.low_price)} />
+            <DataRow label="收盘价" value={formatPrice(quote?.close_price)} />
             <DataRow
               label="前收盘价"
-              value={priceFormatter.format(snapshot.prevClose)}
+              value={formatPrice(quote?.prev_close_price)}
             />
             <DataRow
               label="涨跌幅"
-              value={formatPercentPoint(snapshot.pctChange)}
+              value={formatPercentPoint(quote?.pct_change)}
             />
             <DataRow
               label="振幅"
-              value={formatPercentPoint(snapshot.pctAmplitude)}
+              value={formatPercentPoint(quote?.pct_amplitude)}
             />
             <DataRow
               label="成交量"
-              value={`${compactFormatter.format(snapshot.volume / 10000)} 万手`}
+              value={formatCompactUnit(quote?.volume, 10000, "万手")}
             />
             <DataRow
               label="成交额"
-              value={`${compactFormatter.format(snapshot.amount / 100000000)} 亿`}
+              value={formatCompactUnit(quote?.amount, 100000000, "亿")}
             />
-            <DataRow
-              label="涨停价"
-              value={priceFormatter.format(snapshot.limitUp)}
-            />
+            <DataRow label="涨停价" value={formatPrice(quote?.limit_up_price)} />
             <DataRow
               label="跌停价"
-              value={priceFormatter.format(snapshot.limitDown)}
+              value={formatPrice(quote?.limit_down_price)}
             />
           </MetricSection>
 
           <MetricSection title="估值与财务">
             <DataRow
               label="总市值"
-              value={`${compactFormatter.format(stock.marketCap)} 亿`}
+              value={formatCompactUnit(quote?.a_market_cap, 100000000, "亿")}
             />
-            <DataRow label="PE(TTM)" value={stock.peTtm.toFixed(1)} />
-            <DataRow label="ROE" value={percentFormatter.format(stock.roe)} />
+            <DataRow label="PE(TTM)" value={formatNumber(quote?.pe_ttm)} />
+            <DataRow label="ROE" value={formatRatio(quote?.roe)} />
+          </MetricSection>
+
+          <MetricSection title="命中指标">
+            {selectedMetrics.length > 0 ? (
+              selectedMetrics.map((row) => (
+                <DataRow key={row.id} label={row.label} value={row.value} />
+              ))
+            ) : (
+              <DataRow label="-" value="-" />
+            )}
+          </MetricSection>
+
+          <MetricSection title="原始值">
+            {rawValues.length > 0 ? (
+              rawValues.slice(0, 12).map((row) => (
+                <DataRow key={row.id} label={row.label} value={row.value} />
+              ))
+            ) : (
+              <DataRow label="-" value="-" />
+            )}
           </MetricSection>
 
           <Separator />
@@ -611,7 +780,7 @@ function MetricSection({
 function DataRow({ label, value }: { label: string; value: string }) {
   return (
     <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3 border-b border-border/50 py-1.5 last:border-b-0 last:pb-0">
-      <div className="text-xs text-muted-foreground">{label}</div>
+      <div className="truncate text-xs text-muted-foreground">{label}</div>
       <div className="max-w-40 truncate text-xs font-medium tabular-nums">
         {value}
       </div>
@@ -656,181 +825,19 @@ function WeightControlSection({
   )
 }
 
-function buildDailyStockPools(
-  stock: StockPoolItem,
-  conditionGroups: StrategyConditionGroup[],
-  weightIndicators: WeightIndicator[],
-  hasStrategyInput: boolean
-) {
-  const tradingDates = stock.candles.slice(-63).map((candle) => candle.time)
-  const conditionCount = conditionGroups.reduce(
-    (total, group) => total + group.conditions.length,
-    0
-  )
-  const weightCount = weightIndicators.length
-  const averageWeightScore =
-    weightCount > 0
-      ? weightIndicators.reduce(
-          (total, indicator) => total + indicator.score,
-          0
-        ) / weightCount
-      : 0
-  const strategyBoost = hasStrategyInput
-    ? Math.min(
-        20,
-        conditionCount * 2.4 + weightCount * 3 + averageWeightScore * 0.12
-      )
-    : 6
-
-  return tradingDates.map((date, dayIndex) => {
-    const dateSeed = getDateSeed(date)
-    const scaledWeightIndicators =
-      getScaledWeightIndicators(weightIndicators).indicators
-    const poolSize = Math.min(
-      stockPoolCandidates.length,
-      4 + ((dateSeed + dayIndex + conditionCount + weightCount) % 5)
-    )
-    const stocks = stockPoolCandidates
-      .map((candidate, candidateIndex) => {
-        const matchedConditions =
-          conditionCount === 0
-            ? 0
-            : Math.max(
-                1,
-                Math.min(
-                  conditionCount,
-                  1 + ((dateSeed + candidateIndex * 3) % conditionCount)
-                )
-              )
-        const scoreItems = buildWeightScoreItems(
-          scaledWeightIndicators,
-          dateSeed,
-          candidateIndex
-        )
-        const weightContribution = Math.min(
-          40,
-          scoreItems.reduce((total, item) => total + item.score, 0)
-        )
-        const priceMomentum = Math.sin((dayIndex + candidateIndex) * 0.72) * 8
-        const dispersion = (((dateSeed + candidateIndex * 17) % 100) / 100) * 8
-        const score = clampPreviewScore(
-          48 +
-            strategyBoost +
-            matchedConditions * 4.5 +
-            weightContribution * 0.38 +
-            priceMomentum +
-            dispersion
-        )
-
-        return {
-          ...candidate,
-          rank: 0,
-          score,
-          scoreItems,
-        }
-      })
-      .sort((a, b) => b.score - a.score)
-      .slice(0, poolSize)
-      .map((candidate, index) => ({
-        ...candidate,
-        rank: index + 1,
-      }))
-    const averageScore =
-      stocks.reduce((total, candidate) => total + candidate.score, 0) /
-      stocks.length
-
-    return {
-      averageScore,
-      date,
-      poolCount: stocks.length,
-      stocks,
-    }
-  })
-}
-
-function buildDailyStockPoolsFromPreview(
-  previewResult: StrategyPreviewResponse,
-  weightIndicators: WeightIndicator[]
-): DailyStockPool[] {
-  const labelByRuleName = new Map(
-    weightIndicators.map((indicator, index) => [
-      `weight:${indicator.id}:${index + 1}`,
-      formatComparableIndicator(indicator),
-    ])
-  )
-
-  return previewResult.trade_dates.map((tradeDate) => {
-    const stocks = tradeDate.signals.map((signal) => ({
-      code: signal.security_code,
-      name: signal.security_code,
-      rank: signal.signal_rank,
-      score: signal.score,
-      scoreItems: buildPreviewScoreItems(
-        signal.score_breakdown,
-        labelByRuleName
-      ),
-    }))
-    const averageScore =
-      stocks.length > 0
-        ? stocks.reduce((total, candidate) => total + candidate.score, 0) /
-          stocks.length
-        : 0
-
-    return {
-      averageScore,
-      date: tradeDate.trade_date,
-      poolCount: tradeDate.pool_count,
-      stocks,
-    }
-  })
-}
-
-function buildPreviewScoreItems(
-  scoreBreakdown: JsonValue,
-  labelByRuleName: Map<string, string>
-): WeightScoreItem[] {
-  if (!isJsonRecord(scoreBreakdown)) {
+function buildRowsFromRecord(value: unknown): PreviewValueRow[] {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
     return []
   }
 
-  return Object.entries(scoreBreakdown)
-    .map(([key, value]) => {
-      if (typeof value !== "number") {
-        return null
-      }
-
-      return {
-        id: key,
-        label: labelByRuleName.get(key) ?? key,
-        score: value,
-      }
-    })
-    .filter((item): item is WeightScoreItem => item !== null)
+  return Object.entries(value).map(([key, item]) => ({
+    id: key,
+    label: key,
+    value: typeof item === "number" ? formatNumber(item) : String(item ?? "-"),
+  }))
 }
 
-function isJsonRecord(value: JsonValue): value is Record<string, JsonValue> {
-  return typeof value === "object" && value !== null && !Array.isArray(value)
-}
-
-function buildWeightScoreItems(
-  weightIndicators: ReturnType<typeof getScaledWeightIndicators>["indicators"],
-  dateSeed: number,
-  candidateIndex: number
-): WeightScoreItem[] {
-  return weightIndicators.map((indicator, indicatorIndex) => {
-    const factor =
-      0.72 + ((dateSeed + candidateIndex * 11 + indicatorIndex * 17) % 28) / 100
-    const score = Number((indicator.scaledScore * 0.38 * factor).toFixed(1))
-
-    return {
-      id: indicator.id,
-      label: formatComparableIndicator(indicator),
-      score,
-    }
-  })
-}
-
-function formatScoreItems(scoreItems: WeightScoreItem[]) {
+function formatScoreItems(scoreItems: { label: string; score: number }[]) {
   if (scoreItems.length === 0) {
     return "-"
   }
@@ -840,12 +847,12 @@ function formatScoreItems(scoreItems: WeightScoreItem[]) {
     .join(" / ")
 }
 
-function getDateSeed(date: string) {
-  return Array.from(date).reduce((total, char) => total + char.charCodeAt(0), 0)
-}
+function formatValueRows(rows: PreviewValueRow[]) {
+  if (rows.length === 0) {
+    return "-"
+  }
 
-function clampPreviewScore(score: number) {
-  return Math.min(99, Math.max(0, Number(score.toFixed(1))))
+  return rows.map((row) => `${row.label} ${row.value}`).join(" / ")
 }
 
 function getScoreBadgeVariant(score: number): BadgeVariant {
@@ -866,75 +873,43 @@ function formatCompactDate(date: string) {
   return `${Number(month)}/${Number(day)}`
 }
 
-function buildCandles(
-  startDate: string,
-  startPrice: number,
-  drift: number,
-  amplitude: number
+function formatPrice(value: number | null | undefined) {
+  return typeof value === "number" ? priceFormatter.format(value) : "-"
+}
+
+function formatNumber(value: number | null | undefined) {
+  return typeof value === "number" ? compactFormatter.format(value) : "-"
+}
+
+function formatRatio(value: number | null | undefined) {
+  return typeof value === "number" ? percentFormatter.format(value) : "-"
+}
+
+function formatCompactUnit(
+  value: number | null | undefined,
+  divisor: number,
+  unit: string
 ) {
-  const candles: CandlePoint[] = []
-  const date = new Date(`${startDate}T00:00:00.000Z`)
-  let previousClose = startPrice
+  return typeof value === "number"
+    ? `${compactFormatter.format(value / divisor)} ${unit}`
+    : "-"
+}
 
-  for (let index = 0; candles.length < 72; index += 1) {
-    const day = date.getUTCDay()
-
-    if (day !== 0 && day !== 6) {
-      const wave =
-        Math.sin(candles.length * 0.43) * amplitude +
-        Math.cos(candles.length * 0.17) * amplitude * 0.38 +
-        drift
-      const open = previousClose * (1 + Math.sin(index * 0.31) * 0.003)
-      const close = Math.max(1, open * (1 + wave / 100))
-      const high = Math.max(open, close) * (1 + 0.006 + (index % 5) * 0.001)
-      const low = Math.min(open, close) * (1 - 0.006 - (index % 4) * 0.001)
-      const volume =
-        260000 + Math.round((Math.sin(index * 0.51) + 1.45) * 84000)
-
-      candles.push({
-        close: roundPrice(close),
-        high: roundPrice(high),
-        low: roundPrice(low),
-        open: roundPrice(open),
-        time: date.toISOString().slice(0, 10),
-        volume,
-      })
-      previousClose = close
-    }
-
-    date.setUTCDate(date.getUTCDate() + 1)
+function formatPercentPoint(value: number | null | undefined) {
+  if (typeof value !== "number") {
+    return "-"
   }
 
-  return candles
-}
-
-function getStockSnapshot(stock: StockPoolItem): StockSnapshot {
-  const last = stock.candles[stock.candles.length - 1]
-  const previous = stock.candles[stock.candles.length - 2]
-  const pctChange = ((last.close - previous.close) / previous.close) * 100
-
-  return {
-    amount: last.close * last.volume * 100,
-    close: last.close,
-    high: last.high,
-    limitDown: roundPrice(previous.close * 0.9),
-    limitUp: roundPrice(previous.close * 1.1),
-    low: last.low,
-    open: last.open,
-    pctAmplitude: ((last.high - last.low) / previous.close) * 100,
-    pctChange,
-    prevClose: previous.close,
-    volume: last.volume,
-  }
-}
-
-function roundPrice(value: number) {
-  return Number(value.toFixed(2))
-}
-
-function formatPercentPoint(value: number) {
   const sign = value > 0 ? "+" : ""
   return `${sign}${value.toFixed(2)}%`
+}
+
+function formatErrorMessage(error: unknown) {
+  if (error instanceof Error) {
+    return error.message
+  }
+
+  return String(error || "Unknown error")
 }
 
 export { StockPoolPreviewWorkbench }

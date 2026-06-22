@@ -13,7 +13,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { indicatorCatalog } from "@/features/strategy/catalog"
 import type {
   ComparableIndicator,
   CompareTarget,
@@ -33,7 +32,7 @@ import {
 import { cn } from "@/lib/utils"
 
 type ComparisonFieldsProps = {
-  catalogOptions?: IndicatorCatalog[]
+  catalogOptions: IndicatorCatalog[]
   children?: ReactNode
   className?: string
   onChange: (patch: Partial<ComparableIndicator>) => void
@@ -43,7 +42,7 @@ type ComparisonFieldsProps = {
 }
 
 function ComparisonFields({
-  catalogOptions = indicatorCatalog,
+  catalogOptions,
   children,
   className,
   onChange,
@@ -51,8 +50,11 @@ function ComparisonFields({
   removeLabel,
   value,
 }: ComparisonFieldsProps) {
-  const effectiveCatalogOptions =
-    catalogOptions.length > 0 ? catalogOptions : indicatorCatalog
+  if (catalogOptions.length === 0) {
+    return null
+  }
+
+  const effectiveCatalogOptions = catalogOptions
   const catalog = getCatalog(value.catalogId, effectiveCatalogOptions)
   const metric = getMetric(
     value.catalogId,
