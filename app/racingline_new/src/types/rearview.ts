@@ -335,6 +335,153 @@ export type StrategyBacktestDraftResponse = {
   warnings: string[]
 }
 
+export type StrategyBacktestPeriodKey = "1y" | "2y" | "3y"
+
+export type StrategyBacktestBenchmarkOption = {
+  security_code: string
+  label: string
+  is_default: boolean
+  availability_status: string
+}
+
+export type StrategyBacktestPeriodOption = {
+  period_key: StrategyBacktestPeriodKey
+  label: string
+  resolved_start_date: string
+  resolved_end_date: string
+  latest_available_trade_date: string
+  benchmark_security_code: string
+  range_resolution_snapshot: JsonValue
+}
+
+export type StrategyBacktestOptionsResponse = {
+  default_period_key: StrategyBacktestPeriodKey
+  default_benchmark_security_code: string
+  selected_benchmark_security_code: string
+  as_of_date: string
+  latest_available_trade_date: string
+  period_options: StrategyBacktestPeriodOption[]
+  benchmark_options: StrategyBacktestBenchmarkOption[]
+  range_resolution_snapshot: JsonValue
+}
+
+export type StrategyBacktestCreateRequest = {
+  rule: RuleVersionSpec
+  period_key: StrategyBacktestPeriodKey
+  benchmark_security_code: string
+  execution_config: BacktestExecutionConfig
+  preview_id?: string
+  preview_range?: BacktestDateRange
+  top_n?: number
+  rule_hash?: string
+  execution_config_hash?: string
+  client_request_id?: string
+  ui_display_snapshot?: JsonRecord
+  range_hint?: BacktestDateRange
+}
+
+export type StrategyBacktestRunStatus =
+  | "created"
+  | "queued"
+  | "compiling_signals"
+  | "running_clickhouse"
+  | "loading_market_data"
+  | "calculating_nav"
+  | "computing_performance"
+  | "writing_results"
+  | "succeeded"
+  | "failed_validation"
+  | "failed_compile"
+  | "failed_market_data"
+  | "failed_simulation"
+  | "failed_write"
+  | "cancelled"
+
+export type StrategyBacktestRunRecord = {
+  strategy_backtest_run_id: string
+  rule_snapshot: JsonValue
+  rule_hash: string
+  execution_config: BacktestExecutionConfig
+  execution_config_hash: string
+  catalog_hash?: string | null
+  compiled_sql_hash?: string | null
+  required_metrics: JsonValue
+  required_marts: JsonValue
+  data_preflight_snapshot: JsonValue
+  preview_id?: string | null
+  preview_range?: JsonValue | null
+  period_key: StrategyBacktestPeriodKey
+  range_as_of_date?: string | null
+  range_resolved_at?: string | null
+  range_resolution_snapshot: JsonValue
+  start_date: string
+  end_date: string
+  benchmark_security_code: string
+  price_basis: "backward_adjusted"
+  ui_display_snapshot: JsonValue
+  client_request_id?: string | null
+  request_hash: string
+  status: StrategyBacktestRunStatus
+  dispatch_status: "pending" | "published" | "publish_failed"
+  nats_stream_sequence?: number | null
+  worker_attempt_no: number
+  claimed_at?: string | null
+  heartbeat_at?: string | null
+  claim_expires_at?: string | null
+  progress: JsonValue
+  summary: JsonValue
+  signal_summary: JsonValue
+  data_coverage_summary: JsonValue
+  error_type?: string | null
+  error_message?: string | null
+  current_result_attempt_id?: string | null
+  config_summary: BacktestExecutionSummary
+}
+
+export type StrategyBacktestNavPoint = {
+  trade_date: string
+  strategy_nav: number
+  benchmark_nav?: number | null
+  excess_return?: number | null
+}
+
+export type StrategyBacktestRebalanceRow = {
+  direction: "buy" | "hold" | "sell"
+  security_code: string
+  security_name?: string | null
+  quantity: number
+  holding_days?: number | null
+  change_pct?: number | null
+  cost_price?: number | null
+  current_price?: number | null
+  contribution_pct?: number | null
+  reason?: string | null
+}
+
+export type StrategyBacktestRebalanceRecord = {
+  trade_date: string
+  position_count: number
+  buy_count: number
+  hold_count: number
+  sell_count: number
+  rows: StrategyBacktestRebalanceRow[]
+}
+
+export type StrategyBacktestRebalanceRecordsResponse = {
+  selected_trade_date: string
+  records: StrategyBacktestRebalanceRecord[]
+}
+
+export type StrategyBacktestPerformanceView = {
+  metric: JsonRecord
+  statuses: JsonRecord[]
+  daily_win_rate: {
+    value?: number | null
+    observation_count: number
+    winning_day_count: number
+  }
+}
+
 export type Adjustment = "forward_adjusted" | "backward_adjusted" | "unadjusted"
 
 export type ChartOhlc = {

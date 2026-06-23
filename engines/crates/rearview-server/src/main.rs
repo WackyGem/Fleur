@@ -4,7 +4,8 @@ use rearview_core::api;
 use rearview_core::clickhouse::ClickHouseClient;
 use rearview_core::config::{AppConfig, load_dotenv_if_present};
 use rearview_core::nats::{
-    PortfolioTaskMessage, connect_jetstream, ensure_portfolio_stream, publish_portfolio_task,
+    PortfolioTaskMessage, StrategyBacktestTaskMessage, connect_jetstream, ensure_portfolio_stream,
+    publish_portfolio_task, publish_strategy_backtest_task,
 };
 use rearview_core::postgres::RearviewPg;
 use rearview_core::service::AppState;
@@ -76,7 +77,7 @@ async fn run_outbox_dispatcher(
                 }
             }
             Err(error) => {
-                error!(error = %error, "portfolio outbox dispatcher iteration failed");
+                error!(error = %error, "outbox dispatcher iteration failed");
                 sleep(Duration::from_secs(5)).await;
             }
         }
@@ -89,8 +90,8 @@ async fn dispatch_outbox_once(
 ) -> RearviewResult<usize> {
     let jetstream = connect_jetstream(nats_config).await?;
     ensure_portfolio_stream(&jetstream, nats_config).await?;
-    let records = postgres.list_pending_portfolio_outbox(50).await?;
     let mut dispatched = 0;
+    let records = postgres.list_pending_portfolio_outbox(50).await?;
     for record in records {
         let message = PortfolioTaskMessage {
             portfolio_run_id: record.portfolio_run_id.clone(),
@@ -114,6 +115,33 @@ async fn dispatch_outbox_once(
                     .mark_portfolio_outbox_failed(
                         &record.outbox_id,
                         &record.portfolio_run_id,
+                        &error.to_string(),
+                    )
+                    .await?;
+            }
+        }
+    }
+    let records = postgres.list_pending_strategy_backtest_outbox(50).await?;
+    for record in records {
+        let message = StrategyBacktestTaskMessage::new(record.strategy_backtest_run_id.clone());
+        match publish_strategy_backtest_task(&jetstream, nats_config, &message).await {
+            Ok(sequence) => {
+                postgres
+                    .mark_strategy_backtest_outbox_published(
+                        &record.outbox_id,
+                        &record.strategy_backtest_run_id,
+                        i64::try_from(sequence).map_err(|error| {
+                            RearviewError::Nats(format!("stream sequence out of range: {error}"))
+                        })?,
+                    )
+                    .await?;
+                dispatched += 1;
+            }
+            Err(error) => {
+                postgres
+                    .mark_strategy_backtest_outbox_failed(
+                        &record.outbox_id,
+                        &record.strategy_backtest_run_id,
                         &error.to_string(),
                     )
                     .await?;

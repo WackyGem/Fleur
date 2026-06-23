@@ -10,6 +10,24 @@ export const queryKeys = {
   strategyBacktestValidate: (
     request: StrategyBacktestValidateRequest | null
   ) => ["strategy-backtests", "validate", request] as const,
+  strategyBacktestOptions: (benchmarkSecurityCode: string) =>
+    ["strategy-backtests", "options", benchmarkSecurityCode] as const,
+  strategyBacktest: (strategyBacktestRunId: string | null) =>
+    ["strategy-backtests", strategyBacktestRunId] as const,
+  strategyBacktestNav: (strategyBacktestRunId: string | null) =>
+    ["strategy-backtests", strategyBacktestRunId, "nav"] as const,
+  strategyBacktestRebalanceRecords: (
+    strategyBacktestRunId: string | null,
+    tradeDate?: string | null
+  ) =>
+    [
+      "strategy-backtests",
+      strategyBacktestRunId,
+      "rebalance-records",
+      tradeDate ?? null,
+    ] as const,
+  strategyBacktestPerformance: (strategyBacktestRunId: string | null) =>
+    ["strategy-backtests", strategyBacktestRunId, "performance"] as const,
   previewTimeline: (previewId: string, startDate: string, endDate: string) =>
     ["preview-timeline", previewId, startDate, endDate] as const,
   previewPoolPage: (

@@ -819,11 +819,41 @@ impl RearviewPg {
         .fetch_optional(&self.pool)
         .await?
         .ok_or_else(|| {
-            RearviewError::Validation(format!(
+            RearviewError::NotFound(format!(
                 "strategy_backtest_run not found: {strategy_backtest_run_id}"
             ))
         })?;
         Ok(strategy_backtest_run_from_row(&row))
+    }
+
+    pub async fn get_strategy_backtest_run_by_client_request_id(
+        &self,
+        client_request_id: &str,
+    ) -> RearviewResult<Option<StrategyBacktestRunRecord>> {
+        let row = sqlx::query(
+            r#"
+            select strategy_backtest_run_id, rule_snapshot, rule_hash,
+                   execution_config, execution_config_hash, catalog_hash,
+                   compiled_sql_hash, required_metrics, required_marts,
+                   data_preflight_snapshot, preview_id, preview_range,
+                   period_key, range_as_of_date, range_resolved_at,
+                   range_resolution_snapshot, start_date, end_date,
+                   benchmark_security_code, price_basis, ui_display_snapshot,
+                   client_request_id, request_hash, status, dispatch_status,
+                   nats_stream_sequence, worker_attempt_no, claimed_at,
+                   heartbeat_at, claim_expires_at, progress, summary,
+                   signal_summary, data_coverage_summary, error_type,
+                   error_message, current_result_attempt_id
+            from strategy_backtest_run
+            where client_request_id = $1
+            order by created_at
+            limit 1
+            "#,
+        )
+        .bind(client_request_id)
+        .fetch_optional(&self.pool)
+        .await?;
+        Ok(row.map(|row| strategy_backtest_run_from_row(&row)))
     }
 
     pub async fn claim_strategy_backtest_run(
@@ -893,6 +923,57 @@ impl RearviewPg {
         .bind(strategy_backtest_run_id)
         .bind(status)
         .bind(progress)
+        .execute(&self.pool)
+        .await?;
+        Ok(())
+    }
+
+    pub async fn update_strategy_backtest_signal_materialization(
+        &self,
+        strategy_backtest_run_id: &str,
+        compiled_sql_hash: &str,
+        required_metrics: &Value,
+        required_marts: &Value,
+        signal_summary: &Value,
+    ) -> RearviewResult<()> {
+        sqlx::query(
+            r#"
+            update strategy_backtest_run
+            set compiled_sql_hash = $2,
+                required_metrics = $3::jsonb,
+                required_marts = $4::jsonb,
+                signal_summary = $5::jsonb,
+                heartbeat_at = now(),
+                updated_at = now()
+            where strategy_backtest_run_id = $1
+            "#,
+        )
+        .bind(strategy_backtest_run_id)
+        .bind(compiled_sql_hash)
+        .bind(required_metrics)
+        .bind(required_marts)
+        .bind(signal_summary)
+        .execute(&self.pool)
+        .await?;
+        Ok(())
+    }
+
+    pub async fn update_strategy_backtest_data_coverage(
+        &self,
+        strategy_backtest_run_id: &str,
+        data_coverage_summary: &Value,
+    ) -> RearviewResult<()> {
+        sqlx::query(
+            r#"
+            update strategy_backtest_run
+            set data_coverage_summary = $2::jsonb,
+                heartbeat_at = now(),
+                updated_at = now()
+            where strategy_backtest_run_id = $1
+            "#,
+        )
+        .bind(strategy_backtest_run_id)
+        .bind(data_coverage_summary)
         .execute(&self.pool)
         .await?;
         Ok(())

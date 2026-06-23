@@ -219,11 +219,14 @@ describe("buildBacktestExecutionRequestDraft", () => {
         period: "2y",
       })
     ).toMatchObject({
-      benchmark: "000300.SH",
-      end_date: "2026-06-22",
+      benchmark_security_code: "000300.SH",
       execution_config_hash: "execution-hash",
+      period_key: "2y",
+      range_hint: {
+        end_date: "2026-06-22",
+        start_date: "2024-06-22",
+      },
       rule_hash: "rule-hash",
-      start_date: "2024-06-22",
       top_n: 5,
     })
   })

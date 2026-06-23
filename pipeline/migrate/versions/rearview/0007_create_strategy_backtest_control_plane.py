@@ -1,6 +1,6 @@
 """create strategy backtest control plane
 
-Revision ID: 0007_strategy_backtest_control_plane
+Revision ID: 0007_strategy_backtest_cp
 Revises: 0006_portfolio_metric_config
 Create Date: 2026-06-23
 """
@@ -11,7 +11,7 @@ import sqlalchemy as sa
 from alembic import context, op
 from sqlalchemy.dialects import postgresql
 
-revision = "0007_strategy_backtest_control_plane"
+revision = "0007_strategy_backtest_cp"
 down_revision = "0006_portfolio_metric_config"
 branch_labels = None
 depends_on = None
@@ -181,6 +181,13 @@ def upgrade() -> None:
         "idx_strategy_backtest_client_request",
         "strategy_backtest_run",
         ["client_request_id", "request_hash"],
+    )
+    op.create_index(
+        "uq_strategy_backtest_client_request_id",
+        "strategy_backtest_run",
+        ["client_request_id"],
+        unique=True,
+        postgresql_where=sa.text("client_request_id is not null"),
     )
     op.create_index(
         "idx_strategy_backtest_current_attempt",
@@ -402,6 +409,10 @@ def downgrade() -> None:
     op.drop_table("strategy_backtest_task_outbox")
     op.drop_index("idx_strategy_backtest_claim_expires", table_name="strategy_backtest_run")
     op.drop_index("idx_strategy_backtest_current_attempt", table_name="strategy_backtest_run")
+    op.drop_index(
+        "uq_strategy_backtest_client_request_id",
+        table_name="strategy_backtest_run",
+    )
     op.drop_index("idx_strategy_backtest_client_request", table_name="strategy_backtest_run")
     op.drop_index("idx_strategy_backtest_request_hash", table_name="strategy_backtest_run")
     op.drop_index(

@@ -8,6 +8,13 @@ import { securityAnalysis } from "@/api/rearview"
 import {
   useDefaultMarketFeeTemplateQuery,
   useMetricsQuery,
+  useStrategyBacktestCreateMutation,
+  useStrategyBacktestNavQuery,
+  useStrategyBacktestOptionsQuery,
+  useStrategyBacktestPerformanceQuery,
+  useStrategyBacktestQuery,
+  useStrategyBacktestRebalanceRecordsQuery,
+  useStrategyBacktestValidateQuery,
   useStrategyPreviewMutation,
   useStrategyPreviewTimelineMutation,
 } from "@/api/hooks"
@@ -19,7 +26,18 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
-import { Field, FieldGroup, FieldLabel } from "@/components/ui/field"
+import {
+  Field,
+  FieldDescription,
+  FieldGroup,
+  FieldLabel,
+} from "@/components/ui/field"
+import {
+  Empty,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyTitle,
+} from "@/components/ui/empty"
 import {
   Select,
   SelectContent,
@@ -54,7 +72,11 @@ import { StrategyStepSidebar } from "@/features/strategy/components/strategy-ste
 import { WeightIndicatorsPanel } from "@/features/strategy/components/weight-indicators-panel"
 import {
   areTransactionFeesEqual,
+  buildBacktestExecutionRequestDraft,
+  buildStrategyBacktestValidateRequest,
   marketTemplateToTransactionFees,
+  toBacktestExecutionDraft,
+  type BacktestExecutionDraft,
   type BacktestPeriodValue,
 } from "@/features/strategy/execution"
 import {
@@ -77,6 +99,14 @@ import {
   createWeightIndicator,
 } from "@/features/strategy/utils"
 import { cn } from "@/lib/utils"
+import type {
+  StrategyBacktestNavPoint,
+  StrategyBacktestPerformanceView,
+  StrategyBacktestRebalanceRecord as ApiBacktestRebalanceRecord,
+  StrategyBacktestRunRecord,
+  StrategyBacktestRunStatus,
+  StrategyBacktestValidateRequest,
+} from "@/types/rearview"
 import { Play } from "lucide-react"
 
 const stepContent: Record<Step, { description: string; title: string }> = {
@@ -187,80 +217,17 @@ const backtestBenchmarkOptions = [
   { securityCode: "399311.SZ", label: "国证1000" },
 ] as const
 
-const backtestPerformanceGroups = [
-  {
-    title: "收益指标",
-    metrics: [
-      { label: "持仓收益", value: "+18.42%" },
-      { label: "年化收益", value: "+21.96%" },
-      { label: "日胜率", value: "56.73%" },
-    ],
-  },
-  {
-    title: "风险指标",
-    metrics: [
-      { label: "最大回撤", value: "-8.24%" },
-      { label: "年化波动率", value: "13.75%" },
-      { label: "下行波动率", value: "9.41%" },
-    ],
-  },
-  {
-    title: "性价比",
-    metrics: [
-      { label: "Sharpe Ratio", value: "1.42" },
-      { label: "Sortino Ratio", value: "1.91" },
-      { label: "Calmar Ratio", value: "2.66" },
-      { label: "Treynor Ratio", value: "0.23" },
-    ],
-  },
-  {
-    title: "相对市场",
-    metrics: [
-      { label: "Alpha", value: "4.10%" },
-      { label: "Beta", value: "0.78" },
-      { label: "Information Ratio", value: "0.88" },
-    ],
-  },
-] as const
-
-const backtestNetValuePoints = [
-  { time: "2025-06-20", strategy: 1.0, benchmark: 1.0 },
-  { time: "2025-07-04", strategy: 1.014, benchmark: 1.006 },
-  { time: "2025-07-18", strategy: 1.031, benchmark: 1.012 },
-  { time: "2025-08-01", strategy: 1.049, benchmark: 1.017 },
-  { time: "2025-08-15", strategy: 1.083, benchmark: 1.029 },
-  { time: "2025-08-29", strategy: 1.102, benchmark: 1.038 },
-  { time: "2025-09-12", strategy: 1.126, benchmark: 1.051 },
-  { time: "2025-09-26", strategy: 1.107, benchmark: 1.043 },
-  { time: "2025-10-10", strategy: 1.139, benchmark: 1.058 },
-  { time: "2025-10-24", strategy: 1.157, benchmark: 1.066 },
-  { time: "2025-11-07", strategy: 1.174, benchmark: 1.073 },
-  { time: "2025-11-21", strategy: 1.162, benchmark: 1.069 },
-  { time: "2025-12-05", strategy: 1.1842, benchmark: 1.082 },
-] as const
-
-const backtestTradeCandidates = [
-  { securityCode: "600519.SH", securityName: "贵州茅台", basePrice: 1458.2 },
-  { securityCode: "300750.SZ", securityName: "宁德时代", basePrice: 187.64 },
-  { securityCode: "601318.SH", securityName: "中国平安", basePrice: 45.12 },
-  { securityCode: "000858.SZ", securityName: "五粮液", basePrice: 132.4 },
-  { securityCode: "600036.SH", securityName: "招商银行", basePrice: 34.15 },
-  { securityCode: "600276.SH", securityName: "恒瑞医药", basePrice: 48.72 },
-  { securityCode: "002415.SZ", securityName: "海康威视", basePrice: 31.06 },
-  { securityCode: "002594.SZ", securityName: "比亚迪", basePrice: 236.5 },
-  { securityCode: "600900.SH", securityName: "长江电力", basePrice: 28.36 },
-  { securityCode: "688981.SH", securityName: "中芯国际", basePrice: 57.42 },
-] as const
-
-const backtestRebalanceRecords = buildBacktestRebalanceRecords()
-
 const splitStepLayoutClassName = strategySplitPanelColumnsClassName
 const previewAnalysisMaWindows = "5,10,30"
 
 type BacktestPeriod = BacktestPeriodValue
 type BacktestBenchmark =
   (typeof backtestBenchmarkOptions)[number]["securityCode"]
-type BacktestNetValuePoint = (typeof backtestNetValuePoints)[number]
+type BacktestNetValuePoint = {
+  benchmark: number | null
+  strategy: number
+  time: string
+}
 type BacktestTradeDirection = "buy" | "hold" | "sell"
 type BacktestRebalanceTrade = {
   changePercent: string
@@ -273,8 +240,16 @@ type BacktestRebalanceTrade = {
   securityName: string
 }
 type BacktestRebalanceRecord = {
+  buyCount: number
   date: string
+  holdCount: number
+  positionCount: number
+  sellCount: number
   trades: BacktestRebalanceTrade[]
+}
+type BacktestPerformanceGroup = {
+  metrics: { label: string; value: string }[]
+  title: string
 }
 
 function buildPreviewWeightIndicators(weightIndicators: WeightIndicator[]) {
@@ -309,38 +284,215 @@ function buildPreviewRequestRange(previewRange: PreviewRange) {
 }
 
 function BacktestPanel({
+  backtestExecutionDraft,
+  backtestValidationError,
   benchmark,
+  isBacktestValidationPending,
+  isMarketTemplateError,
+  isMarketTemplateLoading,
   onBenchmarkChange,
   onPeriodChange,
   period,
+  previewSnapshot,
+  settings,
 }: {
+  backtestExecutionDraft: BacktestExecutionDraft | null
+  backtestValidationError: string | null
   benchmark: BacktestBenchmark
+  isBacktestValidationPending: boolean
+  isMarketTemplateError: boolean
+  isMarketTemplateLoading: boolean
   onBenchmarkChange: (benchmark: BacktestBenchmark) => void
   onPeriodChange: (period: BacktestPeriod) => void
   period: BacktestPeriod
+  previewSnapshot: PreviewSnapshot | null
+  settings: SimulationSettings
 }) {
-  const [selectedRebalanceDate, setSelectedRebalanceDate] = useState(
-    backtestRebalanceRecords.at(-1)?.date ?? ""
+  const [activeRunId, setActiveRunId] = useState<string | null>(null)
+  const [selectedRebalanceDate, setSelectedRebalanceDate] = useState<
+    string | null
+  >(null)
+  const optionsQuery = useStrategyBacktestOptionsQuery(benchmark)
+  const createBacktestMutation = useStrategyBacktestCreateMutation()
+  const runQuery = useStrategyBacktestQuery(activeRunId)
+  const currentRun =
+    runQuery.data ??
+    (createBacktestMutation.data?.strategy_backtest_run_id === activeRunId
+      ? createBacktestMutation.data
+      : null)
+  const hasPendingConfigChange = hasStrategyBacktestConfigChanged(
+    currentRun,
+    backtestExecutionDraft,
+    period,
+    benchmark
   )
-  const selectedPeriodLabel =
-    backtestPeriodOptions.find((option) => option.value === period)?.label ??
-    period
+  const isRunInProgress = Boolean(
+    currentRun && !isStrategyBacktestTerminalStatus(currentRun.status)
+  )
+  const isResultReady = Boolean(
+    currentRun?.status === "succeeded" &&
+      currentRun.current_result_attempt_id &&
+      !hasPendingConfigChange
+  )
+  const navQuery = useStrategyBacktestNavQuery(activeRunId, isResultReady)
+  const rebalanceRecordsQuery = useStrategyBacktestRebalanceRecordsQuery(
+    activeRunId,
+    selectedRebalanceDate,
+    isResultReady
+  )
+  const performanceQuery = useStrategyBacktestPerformanceQuery(
+    activeRunId,
+    isResultReady
+  )
+
+  const periodOptions = useMemo(
+    () =>
+      optionsQuery.data
+        ? optionsQuery.data.period_options.map((option) => ({
+            description: `${option.resolved_start_date} - ${option.resolved_end_date}`,
+            label: option.label,
+            value: option.period_key as BacktestPeriod,
+          }))
+        : backtestPeriodOptions.map((option) => ({
+            description: "等待后端解析动态区间",
+            label: option.label,
+            value: option.value,
+          })),
+    [optionsQuery.data]
+  )
+  const benchmarkOptions = useMemo(
+    () =>
+      optionsQuery.data
+        ? optionsQuery.data.benchmark_options.map((option) => ({
+            availabilityStatus: option.availability_status,
+            label: option.label,
+            securityCode: option.security_code as BacktestBenchmark,
+          }))
+        : backtestBenchmarkOptions.map((option) => ({
+            availabilityStatus: "available",
+            label: option.label,
+            securityCode: option.securityCode,
+          })),
+    [optionsQuery.data]
+  )
+  const selectedPeriodOption =
+    periodOptions.find((option) => option.value === period) ?? periodOptions[0]
+  const selectedBenchmarkOption =
+    benchmarkOptions.find((option) => option.securityCode === benchmark) ??
+    benchmarkOptions[0]
+  const selectedPeriodLabel = selectedPeriodOption?.label ?? period
   const selectedBenchmarkLabel =
+    selectedBenchmarkOption?.label ??
     backtestBenchmarkOptions.find((option) => option.securityCode === benchmark)
-      ?.label ?? benchmark
+      ?.label ??
+    benchmark
+  const navPoints = useMemo(
+    () => mapStrategyBacktestNavPoints(navQuery.data ?? []),
+    [navQuery.data]
+  )
+  const latestNetValuePoint = navPoints.at(-1)
+  const latestExcessReturn =
+    latestNetValuePoint && latestNetValuePoint.benchmark !== null
+      ? formatSignedPercent(
+          latestNetValuePoint.strategy - latestNetValuePoint.benchmark
+        )
+      : ""
+  const rebalanceRecords = useMemo(
+    () =>
+      (rebalanceRecordsQuery.data?.records ?? []).map(
+        mapApiBacktestRebalanceRecord
+      ),
+    [rebalanceRecordsQuery.data]
+  )
   const selectedRebalanceRecord =
-    backtestRebalanceRecords.find(
-      (record) => record.date === selectedRebalanceDate
-    ) ?? backtestRebalanceRecords.at(-1)
+    rebalanceRecords.find(
+      (record) => record.date === rebalanceRecordsQuery.data?.selected_trade_date
+    ) ??
+    rebalanceRecords.find((record) => record.date === selectedRebalanceDate) ??
+    rebalanceRecords.at(-1)
   const selectedRebalanceTradeSections = selectedRebalanceRecord
     ? buildRebalanceTradeSections(selectedRebalanceRecord.trades)
     : []
-  const latestNetValuePoint = backtestNetValuePoints.at(-1)
-  const latestExcessReturn = latestNetValuePoint
-    ? formatSignedPercent(
-        latestNetValuePoint.strategy - latestNetValuePoint.benchmark
-      )
-    : ""
+  const performanceGroups = useMemo(
+    () =>
+      buildBacktestPerformanceGroups(
+        performanceQuery.data ?? null,
+        latestExcessReturn
+      ),
+    [latestExcessReturn, performanceQuery.data]
+  )
+  const actionDisabled = Boolean(
+    !previewSnapshot ||
+      previewSnapshot.stale ||
+      !backtestExecutionDraft ||
+      backtestValidationError ||
+      isBacktestValidationPending ||
+      isMarketTemplateLoading ||
+      isMarketTemplateError ||
+      optionsQuery.isLoading ||
+      optionsQuery.isError ||
+      createBacktestMutation.isPending ||
+      isRunInProgress
+  )
+  const actionLabel = createBacktestMutation.isPending
+    ? "提交中"
+    : isRunInProgress
+      ? getStrategyBacktestStatusLabel(currentRun?.status)
+      : activeRunId
+        ? "重新回测"
+        : "开始回测"
+  const showActionSpinner =
+    createBacktestMutation.isPending ||
+    isRunInProgress ||
+    isBacktestValidationPending ||
+    optionsQuery.isLoading
+
+  async function runBacktest() {
+    if (!backtestExecutionDraft || !previewSnapshot) {
+      return
+    }
+
+    const request = {
+      ...buildBacktestExecutionRequestDraft({
+        benchmark,
+        draft: backtestExecutionDraft,
+        period,
+      }),
+      client_request_id: createId("strategy-backtest"),
+      preview_id: previewSnapshot.previewId,
+      preview_range: {
+        end_date: previewSnapshot.range.endDate,
+        start_date: previewSnapshot.range.startDate,
+      },
+      ui_display_snapshot: {
+        benchmark: {
+          label: selectedBenchmarkLabel,
+          security_code: benchmark,
+        },
+        period: {
+          key: period,
+          label: selectedPeriodLabel,
+          resolved_range: selectedPeriodOption?.description ?? null,
+        },
+        preview: {
+          created_at: previewSnapshot.createdAt,
+          preview_id: previewSnapshot.previewId,
+          selected_trade_date: previewSnapshot.range.selectedTradeDate ?? null,
+        },
+        simulation: {
+          buy_signal_top_n: settings.buyTopN,
+          initial_capital: settings.initialCapital,
+          max_positions: settings.maxPositions,
+          single_position_limit_pct: settings.singlePositionLimitPercent,
+          stop_loss_rule_count:
+            backtestExecutionDraft.summary.enabled_exit_rule_count,
+        },
+      },
+    }
+    const run = await createBacktestMutation.mutateAsync(request)
+    setActiveRunId(run.strategy_backtest_run_id)
+    setSelectedRebalanceDate(null)
+  }
 
   return (
     <StrategySplitPanel
@@ -363,14 +515,24 @@ function BacktestPanel({
                 </SelectTrigger>
                 <SelectContent align="start">
                   <SelectGroup>
-                    {backtestPeriodOptions.map((option) => (
+                    {periodOptions.map((option) => (
                       <SelectItem key={option.value} value={option.value}>
-                        {option.label}
+                        <div className="flex flex-col gap-0.5">
+                          <span>{option.label}</span>
+                          <span className="text-xs text-muted-foreground">
+                            {option.description}
+                          </span>
+                        </div>
                       </SelectItem>
                     ))}
                   </SelectGroup>
                 </SelectContent>
               </Select>
+              {selectedPeriodOption?.description ? (
+                <FieldDescription>
+                  {selectedPeriodOption.description}
+                </FieldDescription>
+              ) : null}
             </Field>
 
             <Field>
@@ -388,9 +550,10 @@ function BacktestPanel({
                 </SelectTrigger>
                 <SelectContent align="start">
                   <SelectGroup>
-                    {backtestBenchmarkOptions.map((option) => (
+                    {benchmarkOptions.map((option) => (
                       <SelectItem
                         key={option.securityCode}
+                        disabled={option.availabilityStatus !== "available"}
                         value={option.securityCode}
                       >
                         {option.label}
@@ -403,13 +566,26 @@ function BacktestPanel({
 
             <Button
               className="w-full"
+              disabled={actionDisabled}
+              onClick={() => void runBacktest()}
               variant="outline"
               size="lg"
               type="button"
             >
-              重新回测
+              {showActionSpinner ? <Spinner data-icon="inline-start" /> : null}
+              {actionLabel}
             </Button>
           </FieldGroup>
+
+          <BacktestStatusAlert
+            backtestValidationError={backtestValidationError}
+            createError={createBacktestMutation.error}
+            hasPendingConfigChange={hasPendingConfigChange}
+            isMarketTemplateError={isMarketTemplateError}
+            optionsError={optionsQuery.error}
+            run={currentRun}
+            runError={runQuery.error}
+          />
 
           <Separator className="bg-border/60" />
 
@@ -427,7 +603,20 @@ function BacktestPanel({
                 </div>
               </div>
             </div>
-            <BacktestNetValueChart points={backtestNetValuePoints} />
+            {navQuery.isLoading ? (
+              <Skeleton className="h-60 w-full" />
+            ) : navPoints.length > 0 ? (
+              <BacktestNetValueChart points={navPoints} />
+            ) : (
+              <Empty className="h-60 border">
+                <EmptyHeader>
+                  <EmptyTitle>暂无净值数据</EmptyTitle>
+                  <EmptyDescription>
+                    提交回测并等待计算完成后展示策略与基准净值。
+                  </EmptyDescription>
+                </EmptyHeader>
+              </Empty>
+            )}
           </section>
 
           <Separator className="bg-border/60" />
@@ -436,27 +625,24 @@ function BacktestPanel({
             <div className="flex items-center justify-between gap-3">
               <div className="text-sm font-medium">持仓记录</div>
               <div className="text-xs text-muted-foreground tabular-nums">
-                {backtestRebalanceRecords.length} 个调仓日
+                {rebalanceRecords.length} 个调仓日
               </div>
             </div>
 
-            <div className="h-[32px] shrink-0 overflow-x-auto overflow-y-hidden overscroll-x-contain pb-3 [scrollbar-width:thin] [&::-webkit-scrollbar]:h-[2px] [&::-webkit-scrollbar-thumb]:bg-border [&::-webkit-scrollbar-track]:bg-transparent">
-              <div className="flex min-w-max gap-1.5 pr-1">
-                {backtestRebalanceRecords.map((record) => {
+            {rebalanceRecordsQuery.isLoading ? (
+              <Skeleton className="h-36 w-full" />
+            ) : rebalanceRecords.length > 0 ? (
+              <>
+                <div className="h-[32px] shrink-0 overflow-x-auto overflow-y-hidden overscroll-x-contain pb-3 [scrollbar-width:thin] [&::-webkit-scrollbar]:h-[2px] [&::-webkit-scrollbar-thumb]:bg-border [&::-webkit-scrollbar-track]:bg-transparent">
+                  <div className="flex min-w-max gap-1.5 pr-1">
+                    {rebalanceRecords.map((record) => {
                   const isSelected =
                     record.date === selectedRebalanceRecord?.date
-                  const buyCount = record.trades.filter(
-                    (trade) => trade.direction === "buy"
-                  ).length
-                  const holdCount = record.trades.filter(
-                    (trade) => trade.direction === "hold"
-                  ).length
-                  const positionCount = buyCount + holdCount
 
                   return (
                     <Button
                       key={record.date}
-                      aria-label={`${record.date} 持仓 ${positionCount} 只`}
+                      aria-label={`${record.date} 持仓 ${record.positionCount} 只`}
                       aria-pressed={isSelected}
                       data-state={isSelected ? "selected" : "idle"}
                       className="grid h-[18px] w-[6.25rem] shrink-0 grid-cols-[2.75rem_2rem] items-center justify-center gap-1 px-1 text-muted-foreground hover:bg-muted data-[state=selected]:bg-muted data-[state=selected]:text-foreground"
@@ -469,122 +655,136 @@ function BacktestPanel({
                         {formatCompactDate(record.date)}
                       </span>
                       <span className="text-left text-[11px] leading-none font-normal tabular-nums opacity-80">
-                        {positionCount}只
+                        {record.positionCount}只
                       </span>
                     </Button>
                   )
                 })}
-              </div>
-            </div>
-
-            {selectedRebalanceRecord ? (
-              <div className="flex flex-col gap-2">
-                <div className="flex items-end justify-between gap-3">
-                  <div className="text-sm font-medium tabular-nums">
-                    {selectedRebalanceRecord.date}
-                  </div>
-                  <div className="text-xs text-muted-foreground tabular-nums">
-                    调入{" "}
-                    {
-                      selectedRebalanceRecord.trades.filter(
-                        (trade) => trade.direction === "buy"
-                      ).length
-                    }{" "}
-                    只 / 持有{" "}
-                    {
-                      selectedRebalanceRecord.trades.filter(
-                        (trade) => trade.direction === "hold"
-                      ).length
-                    }{" "}
-                    只 / 卖出{" "}
-                    {
-                      selectedRebalanceRecord.trades.filter(
-                        (trade) => trade.direction === "sell"
-                      ).length
-                    }{" "}
-                    只
                   </div>
                 </div>
-                <Table className="w-full table-fixed text-xs leading-snug [&_td]:overflow-hidden [&_th]:overflow-hidden">
-                  <TableHeader>
-                    <TableRow className="hover:bg-transparent">
-                      <TableHead className="h-6 w-[20%] px-1">股票</TableHead>
-                      <TableHead className="h-6 w-[13%] px-1 text-right">
-                        持仓天数
-                      </TableHead>
-                      <TableHead className="h-6 w-[15%] px-1 text-right">
-                        涨跌幅
-                      </TableHead>
-                      <TableHead className="h-6 w-[17%] px-1 text-right">
-                        成本价
-                      </TableHead>
-                      <TableHead className="h-6 w-[17%] px-1 text-right">
-                        现价
-                      </TableHead>
-                      <TableHead className="h-6 w-[18%] px-1 text-right">
-                        收益贡献
-                      </TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {selectedRebalanceTradeSections.map((section) => (
-                      <Fragment key={section.direction}>
-                        <TableRow className="bg-muted/30 hover:bg-muted/30">
-                          <TableCell
-                            colSpan={6}
-                            className="px-1 py-1 text-xs font-medium text-muted-foreground"
-                          >
-                            {formatTradeDirection(section.direction)}{" "}
-                            {section.trades.length} 只
-                          </TableCell>
-                        </TableRow>
-                        {section.trades.map((trade, tradeIndex) => (
-                          <TableRow
-                            key={`${selectedRebalanceRecord.date}-${trade.direction}-${trade.securityCode}-${tradeIndex}`}
-                          >
-                            <TableCell className="px-1 py-0.5">
-                              <div className="grid min-w-0 grid-cols-[4.25em_minmax(0,1fr)] items-center gap-1">
-                                <span className="truncate font-medium">
-                                  {trade.securityName}
-                                </span>
-                                <span className="truncate text-muted-foreground tabular-nums">
-                                  {trade.securityCode}
-                                </span>
-                              </div>
-                            </TableCell>
-                            <TableCell className="px-1 py-0.5 text-right tabular-nums">
-                              {trade.holdingDays}
-                            </TableCell>
-                            <TableCell
-                              className={cn(
-                                "px-1 py-0.5 text-right font-medium tabular-nums",
-                                getSignedValueClassName(trade.changePercent)
-                              )}
-                            >
-                              {trade.changePercent}
-                            </TableCell>
-                            <TableCell className="px-1 py-0.5 text-right tabular-nums">
-                              {trade.costPrice}
-                            </TableCell>
-                            <TableCell className="px-1 py-0.5 text-right tabular-nums">
-                              {trade.currentPrice}
-                            </TableCell>
-                            <TableCell
-                              className={cn(
-                                "px-1 py-0.5 text-right font-medium tabular-nums",
-                                getSignedValueClassName(trade.contribution)
-                              )}
-                            >
-                              {trade.contribution}
-                            </TableCell>
+
+                {selectedRebalanceRecord ? (
+                  <div className="flex flex-col gap-2">
+                    <div className="flex items-end justify-between gap-3">
+                      <div className="text-sm font-medium tabular-nums">
+                        {selectedRebalanceRecord.date}
+                      </div>
+                      <div className="text-xs text-muted-foreground tabular-nums">
+                        调入 {selectedRebalanceRecord.buyCount} 只 / 持有{" "}
+                        {selectedRebalanceRecord.holdCount} 只 / 卖出{" "}
+                        {selectedRebalanceRecord.sellCount} 只
+                      </div>
+                    </div>
+                    {selectedRebalanceTradeSections.some(
+                      (section) => section.trades.length > 0
+                    ) ? (
+                      <Table className="w-full table-fixed text-xs leading-snug [&_td]:overflow-hidden [&_th]:overflow-hidden">
+                        <TableHeader>
+                          <TableRow className="hover:bg-transparent">
+                            <TableHead className="h-6 w-[20%] px-1">
+                              股票
+                            </TableHead>
+                            <TableHead className="h-6 w-[13%] px-1 text-right">
+                              持仓天数
+                            </TableHead>
+                            <TableHead className="h-6 w-[15%] px-1 text-right">
+                              涨跌幅
+                            </TableHead>
+                            <TableHead className="h-6 w-[17%] px-1 text-right">
+                              成本价
+                            </TableHead>
+                            <TableHead className="h-6 w-[17%] px-1 text-right">
+                              现价
+                            </TableHead>
+                            <TableHead className="h-6 w-[18%] px-1 text-right">
+                              收益贡献
+                            </TableHead>
                           </TableRow>
-                        ))}
-                      </Fragment>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
-            ) : null}
+                        </TableHeader>
+                        <TableBody>
+                          {selectedRebalanceTradeSections.map((section) => (
+                            <Fragment key={section.direction}>
+                              <TableRow className="bg-muted/30 hover:bg-muted/30">
+                                <TableCell
+                                  colSpan={6}
+                                  className="px-1 py-1 text-xs font-medium text-muted-foreground"
+                                >
+                                  {formatTradeDirection(section.direction)}{" "}
+                                  {section.trades.length} 只
+                                </TableCell>
+                              </TableRow>
+                              {section.trades.map((trade, tradeIndex) => (
+                                <TableRow
+                                  key={`${selectedRebalanceRecord.date}-${trade.direction}-${trade.securityCode}-${tradeIndex}`}
+                                >
+                                  <TableCell className="px-1 py-0.5">
+                                    <div className="grid min-w-0 grid-cols-[4.25em_minmax(0,1fr)] items-center gap-1">
+                                      <span className="truncate font-medium">
+                                        {trade.securityName}
+                                      </span>
+                                      <span className="truncate text-muted-foreground tabular-nums">
+                                        {trade.securityCode}
+                                      </span>
+                                    </div>
+                                  </TableCell>
+                                  <TableCell className="px-1 py-0.5 text-right tabular-nums">
+                                    {trade.holdingDays}
+                                  </TableCell>
+                                  <TableCell
+                                    className={cn(
+                                      "px-1 py-0.5 text-right font-medium tabular-nums",
+                                      getSignedValueClassName(
+                                        trade.changePercent
+                                      )
+                                    )}
+                                  >
+                                    {trade.changePercent}
+                                  </TableCell>
+                                  <TableCell className="px-1 py-0.5 text-right tabular-nums">
+                                    {trade.costPrice}
+                                  </TableCell>
+                                  <TableCell className="px-1 py-0.5 text-right tabular-nums">
+                                    {trade.currentPrice}
+                                  </TableCell>
+                                  <TableCell
+                                    className={cn(
+                                      "px-1 py-0.5 text-right font-medium tabular-nums",
+                                      getSignedValueClassName(
+                                        trade.contribution
+                                      )
+                                    )}
+                                  >
+                                    {trade.contribution}
+                                  </TableCell>
+                                </TableRow>
+                              ))}
+                            </Fragment>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    ) : (
+                      <Empty className="min-h-32 border">
+                        <EmptyHeader>
+                          <EmptyTitle>该日无持仓明细</EmptyTitle>
+                          <EmptyDescription>
+                            当前日期没有调入、持有或卖出记录。
+                          </EmptyDescription>
+                        </EmptyHeader>
+                      </Empty>
+                    )}
+                  </div>
+                ) : null}
+              </>
+            ) : (
+              <Empty className="min-h-36 border">
+                <EmptyHeader>
+                  <EmptyTitle>暂无持仓记录</EmptyTitle>
+                  <EmptyDescription>
+                    回测结果写入后会展示调仓日和对应交易明细。
+                  </EmptyDescription>
+                </EmptyHeader>
+              </Empty>
+            )}
           </section>
         </div>
       }
@@ -609,7 +809,11 @@ function BacktestPanel({
                 />
                 <BacktestSummaryMetric
                   label="基准净值"
-                  value={formatNetValue(latestNetValuePoint.benchmark)}
+                  value={
+                    latestNetValuePoint.benchmark === null
+                      ? "—"
+                      : formatNetValue(latestNetValuePoint.benchmark)
+                  }
                 />
 
                 <Separator />
@@ -617,50 +821,36 @@ function BacktestPanel({
             ) : null}
 
             <div className="flex flex-col gap-4">
-              {backtestPerformanceGroups.map((group) => {
-                const metrics =
-                  group.title === "收益指标" && latestExcessReturn
-                    ? [
-                        ...group.metrics.slice(0, 2),
-                        { label: "超额收益", value: latestExcessReturn },
-                        ...group.metrics.slice(2),
-                      ]
-                    : group.metrics
-
-                return (
-                  <div
-                    key={group.title}
-                    className="flex min-w-0 flex-col gap-2"
-                  >
-                    <div className="text-xs font-medium text-muted-foreground">
-                      {group.title}
-                    </div>
-                    <div className="flex flex-col gap-1.5">
-                      {metrics.map((metric) => (
-                        <div
-                          key={metric.label}
-                          className="grid grid-cols-[minmax(0,1fr)_auto] items-baseline gap-3"
-                        >
-                          <div className="truncate text-xs text-muted-foreground">
-                            {metric.label}
-                          </div>
-                          <div
-                            className={cn(
-                              "text-sm font-medium tabular-nums",
-                              getBacktestPerformanceToneClassName(
-                                metric.label,
-                                metric.value
-                              )
-                            )}
-                          >
-                            {metric.value}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
+              {performanceGroups.map((group) => (
+                <div key={group.title} className="flex min-w-0 flex-col gap-2">
+                  <div className="text-xs font-medium text-muted-foreground">
+                    {group.title}
                   </div>
-                )
-              })}
+                  <div className="flex flex-col gap-1.5">
+                    {group.metrics.map((metric) => (
+                      <div
+                        key={metric.label}
+                        className="grid grid-cols-[minmax(0,1fr)_auto] items-baseline gap-3"
+                      >
+                        <div className="truncate text-xs text-muted-foreground">
+                          {metric.label}
+                        </div>
+                        <div
+                          className={cn(
+                            "text-sm font-medium tabular-nums",
+                            getBacktestPerformanceToneClassName(
+                              metric.label,
+                              metric.value
+                            )
+                          )}
+                        >
+                          {metric.value}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
             </div>
           </CardContent>
         </Card>
@@ -706,15 +896,20 @@ function getSignedValueClassName(value: string) {
 }
 
 function getBacktestPerformanceToneClassName(label: string, value: string) {
-  if (label === "持仓收益" || label === "年化收益") {
-    return "text-[color:var(--portfolio-up)]"
+  if (value === "—") {
+    return "text-foreground"
+  }
+
+  if (
+    label === "持仓收益" ||
+    label === "年化收益" ||
+    label === "Alpha" ||
+    label === "超额收益"
+  ) {
+    return getSignedValueClassName(value)
   }
 
   if (label === "最大回撤") {
-    return "text-[color:var(--portfolio-down)]"
-  }
-
-  if (label === "超额收益") {
     return getSignedValueClassName(value)
   }
 
@@ -740,85 +935,302 @@ function buildRebalanceTradeSections(trades: BacktestRebalanceTrade[]) {
   }))
 }
 
-function buildBacktestRebalanceRecords(): BacktestRebalanceRecord[] {
-  return buildTradingDates("2025-01-02", 252).map((date, dayIndex) => {
-    const buyCount = 1 + (dayIndex % 3 === 0 ? 1 : 0)
-    const holdCount = 2 + (dayIndex % 4)
-    const sellCount = dayIndex < 8 ? 1 : 1 + (dayIndex % 4 === 0 ? 1 : 0)
-    const buys = Array.from({ length: buyCount }, (_, index) =>
-      buildBacktestTrade("buy", dayIndex, index)
+function BacktestStatusAlert({
+  backtestValidationError,
+  createError,
+  hasPendingConfigChange,
+  isMarketTemplateError,
+  optionsError,
+  run,
+  runError,
+}: {
+  backtestValidationError: string | null
+  createError: unknown
+  hasPendingConfigChange: boolean
+  isMarketTemplateError: boolean
+  optionsError: unknown
+  run: StrategyBacktestRunRecord | null
+  runError: unknown
+}) {
+  if (isMarketTemplateError) {
+    return (
+      <Alert variant="destructive">
+        <AlertTitle>市场费率模板不可用</AlertTitle>
+        <AlertDescription>无法生成 Step5 回测执行配置。</AlertDescription>
+      </Alert>
     )
-    const holds = Array.from({ length: holdCount }, (_, index) =>
-      buildBacktestTrade("hold", dayIndex, index + buyCount)
-    )
-    const sells = Array.from({ length: sellCount }, (_, index) =>
-      buildBacktestTrade("sell", dayIndex, index + buyCount + holdCount)
-    )
+  }
 
-    return {
-      date,
-      trades: [...buys, ...holds, ...sells],
-    }
-  })
+  if (backtestValidationError) {
+    return (
+      <Alert variant="destructive">
+        <AlertTitle>回测配置未通过校验</AlertTitle>
+        <AlertDescription>{backtestValidationError}</AlertDescription>
+      </Alert>
+    )
+  }
+
+  if (optionsError) {
+    return (
+      <Alert variant="destructive">
+        <AlertTitle>回测选项加载失败</AlertTitle>
+        <AlertDescription>{formatErrorMessage(optionsError)}</AlertDescription>
+      </Alert>
+    )
+  }
+
+  if (createError) {
+    return (
+      <Alert variant="destructive">
+        <AlertTitle>回测任务提交失败</AlertTitle>
+        <AlertDescription>{formatErrorMessage(createError)}</AlertDescription>
+      </Alert>
+    )
+  }
+
+  if (runError) {
+    return (
+      <Alert variant="destructive">
+        <AlertTitle>回测任务状态加载失败</AlertTitle>
+        <AlertDescription>{formatErrorMessage(runError)}</AlertDescription>
+      </Alert>
+    )
+  }
+
+  if (run && isStrategyBacktestFailedStatus(run.status)) {
+    return (
+      <Alert variant="destructive">
+        <AlertTitle>{getStrategyBacktestStatusLabel(run.status)}</AlertTitle>
+        <AlertDescription>
+          {run.error_message || "后端未返回失败原因。"}
+        </AlertDescription>
+      </Alert>
+    )
+  }
+
+  if (run && !isStrategyBacktestTerminalStatus(run.status)) {
+    return (
+      <Alert>
+        <AlertTitle>{getStrategyBacktestStatusLabel(run.status)}</AlertTitle>
+        <AlertDescription>
+          回测任务已进入异步队列，页面会自动刷新状态。
+        </AlertDescription>
+      </Alert>
+    )
+  }
+
+  if (hasPendingConfigChange) {
+    return (
+      <Alert>
+        <AlertTitle>配置已变更</AlertTitle>
+        <AlertDescription>
+          当前展示结果不再匹配所选周期、基准或策略配置，需要重新回测。
+        </AlertDescription>
+      </Alert>
+    )
+  }
+
+  return null
 }
 
-function buildBacktestTrade(
-  direction: BacktestTradeDirection,
-  dayIndex: number,
-  offset: number
-): BacktestRebalanceTrade {
-  const candidate =
-    backtestTradeCandidates[
-      (dayIndex * 3 + offset * 5) % backtestTradeCandidates.length
-    ]
-  const costPrice =
-    candidate.basePrice * (0.96 + ((dayIndex + offset) % 9) / 50)
-  const change =
-    direction === "buy"
-      ? 0
-      : Math.sin((dayIndex + offset) * 0.71) * 0.075 + (dayIndex % 5) * 0.006
-  const currentPrice = costPrice * (1 + change)
-  const contribution =
-    direction === "buy" ? 0 : change * (0.08 + ((dayIndex + offset) % 4) * 0.02)
+function isStrategyBacktestTerminalStatus(
+  status: StrategyBacktestRunStatus
+): boolean {
+  return (
+    status === "succeeded" ||
+    status === "cancelled" ||
+    isStrategyBacktestFailedStatus(status)
+  )
+}
 
+function isStrategyBacktestFailedStatus(status: StrategyBacktestRunStatus) {
+  return status.startsWith("failed_")
+}
+
+function getStrategyBacktestStatusLabel(status?: StrategyBacktestRunStatus) {
+  const labels: Record<StrategyBacktestRunStatus, string> = {
+    calculating_nav: "计算净值中",
+    cancelled: "已取消",
+    compiling_signals: "编译信号中",
+    computing_performance: "计算业绩中",
+    created: "已创建",
+    failed_compile: "信号编译失败",
+    failed_market_data: "行情数据失败",
+    failed_simulation: "组合回测失败",
+    failed_validation: "参数校验失败",
+    failed_write: "结果写入失败",
+    loading_market_data: "加载行情中",
+    queued: "排队中",
+    running_clickhouse: "执行信号查询中",
+    succeeded: "回测完成",
+    writing_results: "写入结果中",
+  }
+
+  return status ? labels[status] : "回测中"
+}
+
+function hasStrategyBacktestConfigChanged(
+  run: StrategyBacktestRunRecord | null,
+  draft: BacktestExecutionDraft | null,
+  period: BacktestPeriod,
+  benchmark: BacktestBenchmark
+) {
+  if (!run || !draft) {
+    return false
+  }
+
+  return (
+    run.period_key !== period ||
+    run.benchmark_security_code !== benchmark ||
+    run.rule_hash !== draft.rule_hash ||
+    run.execution_config_hash !== draft.execution_config_hash
+  )
+}
+
+function mapStrategyBacktestNavPoints(
+  points: StrategyBacktestNavPoint[]
+): BacktestNetValuePoint[] {
+  return points.map((point) => ({
+    benchmark:
+      typeof point.benchmark_nav === "number" ? point.benchmark_nav : null,
+    strategy: point.strategy_nav,
+    time: point.trade_date,
+  }))
+}
+
+function mapApiBacktestRebalanceRecord(
+  record: ApiBacktestRebalanceRecord
+): BacktestRebalanceRecord {
   return {
-    changePercent: formatSignedPercent(change),
-    contribution: formatSignedPercent(contribution),
-    costPrice: formatCurrency(costPrice),
-    currentPrice: formatCurrency(currentPrice),
-    direction,
-    holdingDays:
-      direction === "buy"
-        ? "0天"
-        : `${8 + ((dayIndex * 7 + offset * 3) % 96)}天`,
-    securityCode: candidate.securityCode,
-    securityName: candidate.securityName,
+    buyCount: record.buy_count,
+    date: record.trade_date,
+    holdCount: record.hold_count,
+    positionCount: record.position_count,
+    sellCount: record.sell_count,
+    trades: record.rows.map((row) => ({
+      changePercent: formatOptionalSignedPercent(row.change_pct),
+      contribution: formatOptionalSignedPercent(row.contribution_pct),
+      costPrice: formatOptionalCurrency(row.cost_price),
+      currentPrice: formatOptionalCurrency(row.current_price),
+      direction: row.direction,
+      holdingDays:
+        typeof row.holding_days === "number" ? `${row.holding_days}天` : "—",
+      securityCode: row.security_code,
+      securityName: row.security_name?.trim() || row.security_code,
+    })),
   }
 }
 
-function buildTradingDates(startDate: string, count: number) {
-  const dates: string[] = []
-  const date = new Date(`${startDate}T00:00:00Z`)
-
-  while (dates.length < count) {
-    const day = date.getUTCDay()
-
-    if (day !== 0 && day !== 6) {
-      dates.push(formatIsoDate(date))
-    }
-
-    date.setUTCDate(date.getUTCDate() + 1)
-  }
-
-  return dates
+function buildBacktestPerformanceGroups(
+  performance: StrategyBacktestPerformanceView | null,
+  latestExcessReturn: string
+): BacktestPerformanceGroup[] {
+  return [
+    {
+      title: "收益指标",
+      metrics: [
+        {
+          label: "持仓收益",
+          value: formatOptionalSignedPercent(
+            readPerformanceMetric(performance, "holding_period_return")
+          ),
+        },
+        {
+          label: "年化收益",
+          value: formatOptionalSignedPercent(
+            readPerformanceMetric(performance, "annualized_return")
+          ),
+        },
+        { label: "超额收益", value: latestExcessReturn || "—" },
+        {
+          label: "日胜率",
+          value: formatOptionalPercent(performance?.daily_win_rate.value),
+        },
+      ],
+    },
+    {
+      title: "风险指标",
+      metrics: [
+        {
+          label: "最大回撤",
+          value: formatOptionalDrawdown(
+            readPerformanceMetric(performance, "max_drawdown")
+          ),
+        },
+        {
+          label: "年化波动率",
+          value: formatOptionalPercent(
+            readPerformanceMetric(performance, "annualized_volatility")
+          ),
+        },
+        {
+          label: "下行波动率",
+          value: formatOptionalPercent(
+            readPerformanceMetric(performance, "downside_deviation")
+          ),
+        },
+      ],
+    },
+    {
+      title: "性价比",
+      metrics: [
+        {
+          label: "Sharpe Ratio",
+          value: formatOptionalRatio(
+            readPerformanceMetric(performance, "sharpe_ratio")
+          ),
+        },
+        {
+          label: "Sortino Ratio",
+          value: formatOptionalRatio(
+            readPerformanceMetric(performance, "sortino_ratio")
+          ),
+        },
+        {
+          label: "Calmar Ratio",
+          value: formatOptionalRatio(
+            readPerformanceMetric(performance, "calmar_ratio")
+          ),
+        },
+        {
+          label: "Treynor Ratio",
+          value: formatOptionalRatio(
+            readPerformanceMetric(performance, "treynor_ratio")
+          ),
+        },
+      ],
+    },
+    {
+      title: "相对市场",
+      metrics: [
+        {
+          label: "Alpha",
+          value: formatOptionalSignedPercent(
+            readPerformanceMetric(performance, "alpha")
+          ),
+        },
+        {
+          label: "Beta",
+          value: formatOptionalRatio(readPerformanceMetric(performance, "beta")),
+        },
+        {
+          label: "Information Ratio",
+          value: formatOptionalRatio(
+            readPerformanceMetric(performance, "information_ratio")
+          ),
+        },
+      ],
+    },
+  ]
 }
 
-function formatIsoDate(date: Date) {
-  const year = date.getUTCFullYear()
-  const month = String(date.getUTCMonth() + 1).padStart(2, "0")
-  const day = String(date.getUTCDate()).padStart(2, "0")
+function readPerformanceMetric(
+  performance: StrategyBacktestPerformanceView | null,
+  key: string
+) {
+  const value = performance?.metric[key]
 
-  return `${year}-${month}-${day}`
+  return typeof value === "number" && Number.isFinite(value) ? value : null
 }
 
 function formatCompactDate(date: string) {
@@ -829,6 +1241,12 @@ function formatCompactDate(date: string) {
 
 function formatCurrency(value: number) {
   return `¥${value.toFixed(2)}`
+}
+
+function formatOptionalCurrency(value: number | null | undefined) {
+  return typeof value === "number" && Number.isFinite(value)
+    ? formatCurrency(value)
+    : "—"
 }
 
 function formatUiPercent(value: number) {
@@ -843,6 +1261,36 @@ function formatSignedPercent(value: number) {
   const sign = value > 0 ? "+" : ""
 
   return `${sign}${(value * 100).toFixed(2)}%`
+}
+
+function formatOptionalSignedPercent(value: number | null | undefined) {
+  return typeof value === "number" && Number.isFinite(value)
+    ? formatSignedPercent(value)
+    : "—"
+}
+
+function formatOptionalPercent(value: number | null | undefined) {
+  return typeof value === "number" && Number.isFinite(value)
+    ? `${(value * 100).toFixed(2)}%`
+    : "—"
+}
+
+function formatOptionalDrawdown(value: number | null | undefined) {
+  if (typeof value !== "number" || !Number.isFinite(value)) {
+    return "—"
+  }
+
+  if (value === 0) {
+    return "0.00%"
+  }
+
+  return `-${(Math.abs(value) * 100).toFixed(2)}%`
+}
+
+function formatOptionalRatio(value: number | null | undefined) {
+  return typeof value === "number" && Number.isFinite(value)
+    ? value.toFixed(2)
+    : "—"
 }
 
 function formatErrorMessage(error: unknown) {
@@ -863,7 +1311,7 @@ function BacktestNetValueChart({
   useEffect(() => {
     const container = containerRef.current
 
-    if (!container) {
+    if (!container || points.length === 0) {
       return
     }
 
@@ -918,10 +1366,12 @@ function BacktestNetValueChart({
       }))
     )
     benchmarkSeries.setData(
-      points.map((point) => ({
-        time: point.time,
-        value: point.benchmark,
-      }))
+      points
+        .filter((point) => typeof point.benchmark === "number")
+        .map((point) => ({
+          time: point.time,
+          value: point.benchmark as number,
+        }))
     )
     chart.timeScale().fitContent()
 
@@ -1054,8 +1504,73 @@ export function StrategyPage() {
       commissionRateMaxPercent
       ? `佣金率不能高于市场模板上限 ${formatUiPercent(commissionRateMaxPercent)}`
       : null
-  const backtestValidationError = transactionFeeValidationError
-  const isBacktestValidationPending = false
+  const backtestValidateDraft = useMemo<{
+    error: string | null
+    request: StrategyBacktestValidateRequest | null
+  }>(() => {
+    if (transactionFeeValidationError) {
+      return { error: transactionFeeValidationError, request: null }
+    }
+    if (!previewSnapshot) {
+      return { error: null, request: null }
+    }
+    if (previewSnapshot.stale) {
+      return {
+        error: "股池预览已过期，需要先更新股池再执行回测",
+        request: null,
+      }
+    }
+    if (!defaultMarketTemplateQuery.data) {
+      return { error: null, request: null }
+    }
+
+    try {
+      return {
+        error: null,
+        request: buildStrategyBacktestValidateRequest({
+          marketTemplate: defaultMarketTemplateQuery.data,
+          previewSnapshot,
+          settings: effectiveSimulationSettings,
+        }),
+      }
+    } catch (error) {
+      return { error: formatErrorMessage(error), request: null }
+    }
+  }, [
+    defaultMarketTemplateQuery.data,
+    effectiveSimulationSettings,
+    previewSnapshot,
+    transactionFeeValidationError,
+  ])
+  const backtestDraftQuery = useStrategyBacktestValidateQuery(
+    backtestValidateDraft.request
+  )
+  const backtestExecutionDraft = useMemo<BacktestExecutionDraft | null>(() => {
+    if (!backtestValidateDraft.request || !backtestDraftQuery.data) {
+      return null
+    }
+
+    return toBacktestExecutionDraft({
+      createdAt: backtestDraftQuery.dataUpdatedAt
+        ? new Date(backtestDraftQuery.dataUpdatedAt).toISOString()
+        : new Date().toISOString(),
+      request: backtestValidateDraft.request,
+      response: backtestDraftQuery.data,
+    })
+  }, [
+    backtestDraftQuery.data,
+    backtestDraftQuery.dataUpdatedAt,
+    backtestValidateDraft.request,
+  ])
+  const backtestValidationError =
+    backtestValidateDraft.error ??
+    (backtestDraftQuery.isError
+      ? formatErrorMessage(backtestDraftQuery.error)
+      : null)
+  const isBacktestValidationPending = Boolean(
+    backtestValidateDraft.request &&
+      (backtestDraftQuery.isLoading || backtestDraftQuery.isFetching)
+  )
   const canEditConditions = strategyCatalogOptions.length > 0
   const canEditWeights = hasRealScoringCatalog
 
@@ -1364,7 +1879,9 @@ export function StrategyPage() {
   )
   const canEnterBacktest = Boolean(
     canEnterSimulation &&
-    !transactionFeeValidationError
+      backtestExecutionDraft &&
+      !backtestValidationError &&
+      !isBacktestValidationPending
   )
 
   return (
@@ -1493,8 +2010,15 @@ export function StrategyPage() {
                 />
               ) : activeStep === "backtest" ? (
                 <BacktestPanel
+                  backtestExecutionDraft={backtestExecutionDraft}
+                  backtestValidationError={backtestValidationError}
                   benchmark={backtestBenchmark}
+                  isBacktestValidationPending={isBacktestValidationPending}
+                  isMarketTemplateError={defaultMarketTemplateQuery.isError}
+                  isMarketTemplateLoading={defaultMarketTemplateQuery.isLoading}
                   period={backtestPeriod}
+                  previewSnapshot={previewSnapshot}
+                  settings={effectiveSimulationSettings}
                   onBenchmarkChange={setBacktestBenchmark}
                   onPeriodChange={setBacktestPeriod}
                 />
@@ -1604,33 +2128,7 @@ export function StrategyPage() {
               </>
             ) : null}
 
-            {activeStep === "backtest" ? (
-              <>
-                <Separator />
-
-                <div
-                  className={cn(
-                    "grid shrink-0 grid-cols-1 gap-y-2 bg-background pt-4",
-                    splitStepLayoutClassName,
-                    "xl:gap-x-0"
-                  )}
-                >
-                  <div className="flex flex-wrap items-center gap-2">
-                    <Button
-                      variant="default"
-                      size="lg"
-                      className="w-full sm:w-48"
-                      disabled
-                      type="button"
-                    >
-                      运行策略待接入
-                    </Button>
-                  </div>
-                  <div className="hidden xl:block" />
-                  <div className="hidden xl:block" />
-                </div>
-              </>
-            ) : null}
+            {activeStep === "backtest" ? <Separator /> : null}
           </div>
         </main>
       </div>

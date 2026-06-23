@@ -4,8 +4,9 @@ use axum::extract::{Path, Query, State};
 use axum::http::StatusCode;
 use axum::routing::{get, patch, post};
 use axum::{Json, Router};
-use chrono::NaiveDate;
+use chrono::{Months, NaiveDate, Utc};
 use serde::{Deserialize, Serialize};
+use serde_json::{Value, json};
 use tower_http::cors::CorsLayer;
 
 use crate::clickhouse::{
@@ -13,19 +14,27 @@ use crate::clickhouse::{
     TrendIndicatorRow,
 };
 use crate::domain::RuleVersionSpec;
-use crate::domain::metric::{MetricDefinition, ValueKind};
+use crate::domain::metric::{MetricCatalog, MetricDefinition, ValueKind};
 use crate::error::{RearviewError, RearviewResult};
 use crate::planner::{CompiledQuery, QueryPlanner, QuerySettings};
+use crate::portfolio_performance::BenchmarkReturn;
 use crate::postgres::{
-    BuySignalRecord, NewAccountTemplate, NewPortfolioRun, NewRuleSet, NewRuleVersion, NewRun, Page,
-    PatchAccountTemplate, PlannedChunk, PoolMemberRecord, PortfolioClosedTradeFilter,
-    PortfolioEventFilter, PortfolioOrderFilter, PortfolioPositionFilter, PortfolioRunListFilter,
-    PortfolioTargetFilter, PortfolioTradeFilter, PortfolioTradeMetricFilter, ResultRowsFilter,
-    ResultRowsSort, RuleSetListFilter, RuleVersionListFilter, RunListFilter, plan_date_chunks,
+    BuySignalRecord, NewAccountTemplate, NewPortfolioRun, NewRuleSet, NewRuleVersion, NewRun,
+    NewStrategyBacktestRun, Page, PatchAccountTemplate, PlannedChunk, PoolMemberRecord,
+    PortfolioClosedTradeFilter, PortfolioClosedTradeRecord, PortfolioEventFilter,
+    PortfolioNavRecord, PortfolioOrderFilter, PortfolioPerformanceMetricRecord,
+    PortfolioPerformanceMetricStatusRecord, PortfolioPositionFilter, PortfolioPositionRecord,
+    PortfolioRunListFilter, PortfolioTargetFilter, PortfolioTradeFilter,
+    PortfolioTradeMetricFilter, PortfolioTradeRecord, ResultRowsFilter, ResultRowsSort,
+    RuleSetListFilter, RuleVersionListFilter, RunListFilter, StrategyBacktestRunRecord,
+    plan_date_chunks,
 };
 use crate::service::AppState;
 use crate::service::runner::execute_run;
-use crate::strategy_backtest::{StrategyBacktestDraftResponse, StrategyBacktestValidateRequest};
+use crate::strategy_backtest::{
+    BacktestDateRange, BacktestExecutionConfig, BacktestExecutionSummary,
+    StrategyBacktestDraftResponse, StrategyBacktestValidateRequest, hash_json,
+};
 
 pub fn routes() -> Router<AppState> {
     Router::new()
@@ -110,6 +119,58 @@ pub fn routes() -> Router<AppState> {
         .route(
             "/rearview/strategy-backtests/validate",
             post(validate_strategy_backtest),
+        )
+        .route(
+            "/rearview/strategy-backtests/options",
+            get(get_strategy_backtest_options),
+        )
+        .route(
+            "/rearview/strategy-backtests",
+            post(create_strategy_backtest),
+        )
+        .route(
+            "/rearview/strategy-backtests/{strategy_backtest_run_id}",
+            get(get_strategy_backtest),
+        )
+        .route(
+            "/rearview/strategy-backtests/{strategy_backtest_run_id}/nav",
+            get(list_strategy_backtest_nav),
+        )
+        .route(
+            "/rearview/strategy-backtests/{strategy_backtest_run_id}/rebalance-records",
+            get(list_strategy_backtest_rebalance_records),
+        )
+        .route(
+            "/rearview/strategy-backtests/{strategy_backtest_run_id}/targets",
+            get(list_strategy_backtest_targets),
+        )
+        .route(
+            "/rearview/strategy-backtests/{strategy_backtest_run_id}/orders",
+            get(list_strategy_backtest_orders),
+        )
+        .route(
+            "/rearview/strategy-backtests/{strategy_backtest_run_id}/trades",
+            get(list_strategy_backtest_trades),
+        )
+        .route(
+            "/rearview/strategy-backtests/{strategy_backtest_run_id}/positions",
+            get(list_strategy_backtest_positions),
+        )
+        .route(
+            "/rearview/strategy-backtests/{strategy_backtest_run_id}/events",
+            get(list_strategy_backtest_events),
+        )
+        .route(
+            "/rearview/strategy-backtests/{strategy_backtest_run_id}/performance",
+            get(get_strategy_backtest_performance),
+        )
+        .route(
+            "/rearview/strategy-backtests/{strategy_backtest_run_id}/closed-trades",
+            get(list_strategy_backtest_closed_trades),
+        )
+        .route(
+            "/rearview/strategy-backtests/{strategy_backtest_run_id}/trade-metrics",
+            get(list_strategy_backtest_trade_metrics),
         )
         .route("/rearview/strategy-preview", post(preview_strategy))
         .route(
@@ -355,6 +416,555 @@ async fn validate_strategy_backtest(
     Json(request): Json<StrategyBacktestValidateRequest>,
 ) -> RearviewResult<Json<StrategyBacktestDraftResponse>> {
     Ok(Json(request.validate(&state.catalog)?))
+}
+
+async fn get_strategy_backtest_options(
+    State(state): State<AppState>,
+    Query(query): Query<StrategyBacktestOptionsQuery>,
+) -> RearviewResult<Json<StrategyBacktestOptionsResponse>> {
+    let benchmark_security_code =
+        non_empty(query.benchmark_security_code).unwrap_or_else(default_benchmark);
+    validate_strategy_backtest_benchmark(&benchmark_security_code)?;
+    let as_of_date = query.as_of_date.unwrap_or_else(|| Utc::now().date_naive());
+    let resolution =
+        resolve_strategy_backtest_range(&state, &benchmark_security_code, as_of_date).await?;
+    let benchmark_options = strategy_backtest_benchmark_options(&benchmark_security_code, true);
+
+    Ok(Json(StrategyBacktestOptionsResponse {
+        default_period_key: "1y".to_string(),
+        default_benchmark_security_code: default_benchmark(),
+        selected_benchmark_security_code: benchmark_security_code,
+        as_of_date,
+        latest_available_trade_date: resolution.latest_available_trade_date,
+        period_options: resolution.period_options,
+        benchmark_options,
+        range_resolution_snapshot: resolution.range_resolution_snapshot,
+    }))
+}
+
+async fn create_strategy_backtest(
+    State(state): State<AppState>,
+    Json(request): Json<StrategyBacktestCreateRequest>,
+) -> RearviewResult<(StatusCode, Json<StrategyBacktestRunResponse>)> {
+    validate_strategy_backtest_period_key(&request.period_key)?;
+    validate_strategy_backtest_benchmark(&request.benchmark_security_code)?;
+    let range_as_of_date = Utc::now().date_naive();
+    let resolution =
+        resolve_strategy_backtest_range(&state, &request.benchmark_security_code, range_as_of_date)
+            .await?;
+    let period_option = resolution
+        .period_options
+        .iter()
+        .find(|option| option.period_key == request.period_key)
+        .ok_or_else(|| {
+            RearviewError::Validation(format!(
+                "period_key is not available for resolved range: {}",
+                request.period_key
+            ))
+        })?;
+
+    let validate_request = StrategyBacktestValidateRequest {
+        rule: request.rule.clone(),
+        preview_id: request.preview_id.clone(),
+        preview_range: request.preview_range.clone(),
+        execution_config: request.execution_config.clone(),
+        range: Some(BacktestDateRange {
+            start_date: period_option.resolved_start_date,
+            end_date: period_option.resolved_end_date,
+        }),
+        benchmark: Some(request.benchmark_security_code.clone()),
+    };
+    let draft = validate_request.validate(&state.catalog)?;
+    if let Some(rule_hash) = &request.rule_hash
+        && rule_hash != &draft.rule_hash
+    {
+        return Err(RearviewError::Validation(
+            "rule_hash does not match server canonical hash".to_string(),
+        ));
+    }
+    if let Some(execution_config_hash) = &request.execution_config_hash
+        && execution_config_hash != &draft.execution_config_hash
+    {
+        return Err(RearviewError::Validation(
+            "execution_config_hash does not match server canonical hash".to_string(),
+        ));
+    }
+    if let Some(top_n) = request.top_n
+        && top_n != draft.execution_config.signal_policy.buy_signal_top_n
+    {
+        return Err(RearviewError::Validation(
+            "top_n must match execution_config.signal_policy.buy_signal_top_n".to_string(),
+        ));
+    }
+
+    let rule_snapshot = serde_json::to_value(&request.rule)?;
+    let execution_config = serde_json::to_value(&draft.execution_config)?;
+    let preview_range = request
+        .preview_range
+        .as_ref()
+        .map(serde_json::to_value)
+        .transpose()?;
+    let catalog_hash = Some(hash_catalog(&state.catalog)?);
+    let data_preflight_snapshot = build_strategy_backtest_preflight_snapshot(
+        &request,
+        period_option,
+        &resolution,
+        &draft,
+        &catalog_hash,
+    );
+    let ui_display_snapshot = request.ui_display_snapshot.unwrap_or_else(|| json!({}));
+    let request_hash = hash_json(&json!({
+        "rule_hash": &draft.rule_hash,
+        "execution_config_hash": &draft.execution_config_hash,
+        "period_key": &request.period_key,
+        "start_date": period_option.resolved_start_date,
+        "end_date": period_option.resolved_end_date,
+        "benchmark_security_code": &request.benchmark_security_code,
+    }))?;
+    let client_request_id = non_empty(request.client_request_id);
+    if let Some(client_request_id) = &client_request_id
+        && let Some(existing) = state
+            .postgres
+            .get_strategy_backtest_run_by_client_request_id(client_request_id)
+            .await?
+    {
+        if existing.request_hash == request_hash {
+            return Ok((
+                StatusCode::ACCEPTED,
+                Json(strategy_backtest_run_response(existing)?),
+            ));
+        }
+        return Err(RearviewError::Validation(
+            "client_request_id already exists for a different strategy backtest request"
+                .to_string(),
+        ));
+    }
+
+    let record = state
+        .postgres
+        .create_strategy_backtest_run(NewStrategyBacktestRun {
+            rule_snapshot,
+            rule_hash: draft.rule_hash,
+            execution_config,
+            execution_config_hash: draft.execution_config_hash,
+            catalog_hash,
+            data_preflight_snapshot,
+            preview_id: request.preview_id,
+            preview_range,
+            period_key: request.period_key,
+            range_as_of_date: Some(range_as_of_date),
+            range_resolution_snapshot: resolution.range_resolution_snapshot.clone(),
+            start_date: period_option.resolved_start_date,
+            end_date: period_option.resolved_end_date,
+            benchmark_security_code: request.benchmark_security_code,
+            ui_display_snapshot,
+            client_request_id,
+            request_hash,
+            subject: state.config.nats.portfolio_request_subject.clone(),
+        })
+        .await?;
+
+    Ok((
+        StatusCode::ACCEPTED,
+        Json(strategy_backtest_run_response(record)?),
+    ))
+}
+
+async fn get_strategy_backtest(
+    State(state): State<AppState>,
+    Path(strategy_backtest_run_id): Path<String>,
+) -> RearviewResult<Json<StrategyBacktestRunResponse>> {
+    let record = state
+        .postgres
+        .get_strategy_backtest_run(&strategy_backtest_run_id)
+        .await?;
+    Ok(Json(strategy_backtest_run_response(record)?))
+}
+
+async fn list_strategy_backtest_nav(
+    State(state): State<AppState>,
+    Path(strategy_backtest_run_id): Path<String>,
+    Query(query): Query<PortfolioNavQuery>,
+) -> RearviewResult<Json<Vec<StrategyBacktestNavPoint>>> {
+    let run = state
+        .postgres
+        .get_strategy_backtest_run(&strategy_backtest_run_id)
+        .await?;
+    let attempt_id =
+        resolve_strategy_backtest_result_attempt(&run, query.result_attempt_id.as_deref())?;
+    let nav = state
+        .clickhouse
+        .query_portfolio_nav(&strategy_backtest_run_id, &attempt_id)
+        .await?;
+    let benchmark_returns = state
+        .clickhouse
+        .query_mart_benchmark_returns(
+            &run.benchmark_security_code,
+            run.start_date,
+            run.end_date,
+            &format!("strategy-backtest-{strategy_backtest_run_id}-nav-benchmark"),
+        )
+        .await?;
+    Ok(Json(strategy_backtest_nav_points(nav, benchmark_returns)))
+}
+
+async fn list_strategy_backtest_rebalance_records(
+    State(state): State<AppState>,
+    Path(strategy_backtest_run_id): Path<String>,
+    Query(query): Query<StrategyBacktestRebalanceQuery>,
+) -> RearviewResult<Json<StrategyBacktestRebalanceRecordsResponse>> {
+    let run = state
+        .postgres
+        .get_strategy_backtest_run(&strategy_backtest_run_id)
+        .await?;
+    let attempt_id =
+        resolve_strategy_backtest_result_attempt(&run, query.result_attempt_id.as_deref())?;
+    let nav = state
+        .clickhouse
+        .query_portfolio_nav(&strategy_backtest_run_id, &attempt_id)
+        .await?;
+    let selected_trade_date = query
+        .trade_date
+        .or_else(|| {
+            nav.iter()
+                .rev()
+                .find(|row| row.position_count > 0 || row.turnover > 0.0)
+                .map(|row| row.trade_date)
+        })
+        .or_else(|| nav.last().map(|row| row.trade_date))
+        .ok_or_else(|| {
+            RearviewError::NotFound(format!(
+                "no nav rows for strategy backtest: {strategy_backtest_run_id}"
+            ))
+        })?;
+    let selected_nav = nav.iter().find(|row| row.trade_date == selected_trade_date);
+    let page = Page {
+        limit: 500,
+        offset: 0,
+    };
+    let trades = state
+        .clickhouse
+        .query_portfolio_trades(
+            &PortfolioTradeFilter {
+                portfolio_run_id: strategy_backtest_run_id.clone(),
+                trade_date: Some(selected_trade_date),
+                security_code: None,
+                page,
+            },
+            &attempt_id,
+        )
+        .await?;
+    let positions = state
+        .clickhouse
+        .query_portfolio_positions(
+            &PortfolioPositionFilter {
+                portfolio_run_id: strategy_backtest_run_id.clone(),
+                trade_date: Some(selected_trade_date),
+                security_code: None,
+                page,
+            },
+            &attempt_id,
+        )
+        .await?;
+    let closed_trades = state
+        .clickhouse
+        .query_portfolio_closed_trades(
+            &PortfolioClosedTradeFilter {
+                portfolio_run_id: strategy_backtest_run_id.clone(),
+                security_code: None,
+                exit_date: Some(selected_trade_date),
+                page,
+            },
+            &attempt_id,
+        )
+        .await?;
+    let security_codes = trades
+        .items
+        .iter()
+        .map(|trade| trade.security_code.clone())
+        .chain(
+            positions
+                .items
+                .iter()
+                .map(|position| position.security_code.clone()),
+        )
+        .chain(
+            closed_trades
+                .items
+                .iter()
+                .map(|closed| closed.security_code.clone()),
+        )
+        .collect::<BTreeSet<_>>()
+        .into_iter()
+        .collect::<Vec<_>>();
+    let display = security_display_map(
+        &state,
+        &security_codes,
+        &format!("strategy-backtest-{strategy_backtest_run_id}-rebalance-display"),
+    )
+    .await;
+    let total_equity = selected_nav.map(|row| row.total_equity);
+    let rows = build_strategy_backtest_rebalance_rows(
+        trades.items,
+        positions.items,
+        closed_trades.items,
+        &display,
+        total_equity,
+    );
+    let buy_count = rows.iter().filter(|row| row.direction == "buy").count();
+    let hold_count = rows.iter().filter(|row| row.direction == "hold").count();
+    let sell_count = rows.iter().filter(|row| row.direction == "sell").count();
+    let records = nav
+        .into_iter()
+        .map(|row| StrategyBacktestRebalanceRecord {
+            trade_date: row.trade_date,
+            position_count: row.position_count,
+            buy_count: if row.trade_date == selected_trade_date {
+                buy_count
+            } else {
+                0
+            },
+            hold_count: if row.trade_date == selected_trade_date {
+                hold_count
+            } else {
+                0
+            },
+            sell_count: if row.trade_date == selected_trade_date {
+                sell_count
+            } else {
+                0
+            },
+            rows: if row.trade_date == selected_trade_date {
+                rows.clone()
+            } else {
+                Vec::new()
+            },
+        })
+        .collect();
+    Ok(Json(StrategyBacktestRebalanceRecordsResponse {
+        selected_trade_date,
+        records,
+    }))
+}
+
+async fn list_strategy_backtest_targets(
+    State(state): State<AppState>,
+    Path(strategy_backtest_run_id): Path<String>,
+    Query(query): Query<PortfolioTargetQuery>,
+) -> RearviewResult<Json<impl Serialize>> {
+    let run = state
+        .postgres
+        .get_strategy_backtest_run(&strategy_backtest_run_id)
+        .await?;
+    let attempt_id =
+        resolve_strategy_backtest_result_attempt(&run, query.result_attempt_id.as_deref())?;
+    Ok(Json(
+        state
+            .clickhouse
+            .query_portfolio_targets(
+                &PortfolioTargetFilter {
+                    portfolio_run_id: strategy_backtest_run_id,
+                    signal_date: query.signal_date,
+                    page: page(query.limit, query.offset)?,
+                },
+                &attempt_id,
+            )
+            .await?,
+    ))
+}
+
+async fn list_strategy_backtest_orders(
+    State(state): State<AppState>,
+    Path(strategy_backtest_run_id): Path<String>,
+    Query(query): Query<PortfolioOrderQuery>,
+) -> RearviewResult<Json<impl Serialize>> {
+    let run = state
+        .postgres
+        .get_strategy_backtest_run(&strategy_backtest_run_id)
+        .await?;
+    let attempt_id =
+        resolve_strategy_backtest_result_attempt(&run, query.result_attempt_id.as_deref())?;
+    Ok(Json(
+        state
+            .clickhouse
+            .query_portfolio_orders(
+                &PortfolioOrderFilter {
+                    portfolio_run_id: strategy_backtest_run_id,
+                    execution_date: query.execution_date,
+                    security_code: non_empty(query.security_code),
+                    page: page(query.limit, query.offset)?,
+                },
+                &attempt_id,
+            )
+            .await?,
+    ))
+}
+
+async fn list_strategy_backtest_trades(
+    State(state): State<AppState>,
+    Path(strategy_backtest_run_id): Path<String>,
+    Query(query): Query<PortfolioTradeQuery>,
+) -> RearviewResult<Json<impl Serialize>> {
+    let run = state
+        .postgres
+        .get_strategy_backtest_run(&strategy_backtest_run_id)
+        .await?;
+    let attempt_id =
+        resolve_strategy_backtest_result_attempt(&run, query.result_attempt_id.as_deref())?;
+    Ok(Json(
+        state
+            .clickhouse
+            .query_portfolio_trades(
+                &PortfolioTradeFilter {
+                    portfolio_run_id: strategy_backtest_run_id,
+                    trade_date: query.trade_date,
+                    security_code: non_empty(query.security_code),
+                    page: page(query.limit, query.offset)?,
+                },
+                &attempt_id,
+            )
+            .await?,
+    ))
+}
+
+async fn list_strategy_backtest_positions(
+    State(state): State<AppState>,
+    Path(strategy_backtest_run_id): Path<String>,
+    Query(query): Query<PortfolioPositionQuery>,
+) -> RearviewResult<Json<impl Serialize>> {
+    let run = state
+        .postgres
+        .get_strategy_backtest_run(&strategy_backtest_run_id)
+        .await?;
+    let attempt_id =
+        resolve_strategy_backtest_result_attempt(&run, query.result_attempt_id.as_deref())?;
+    Ok(Json(
+        state
+            .clickhouse
+            .query_portfolio_positions(
+                &PortfolioPositionFilter {
+                    portfolio_run_id: strategy_backtest_run_id,
+                    trade_date: query.trade_date,
+                    security_code: non_empty(query.security_code),
+                    page: page(query.limit, query.offset)?,
+                },
+                &attempt_id,
+            )
+            .await?,
+    ))
+}
+
+async fn list_strategy_backtest_events(
+    State(state): State<AppState>,
+    Path(strategy_backtest_run_id): Path<String>,
+    Query(query): Query<PortfolioEventQuery>,
+) -> RearviewResult<Json<impl Serialize>> {
+    let run = state
+        .postgres
+        .get_strategy_backtest_run(&strategy_backtest_run_id)
+        .await?;
+    let attempt_id =
+        resolve_strategy_backtest_result_attempt(&run, query.result_attempt_id.as_deref())?;
+    Ok(Json(
+        state
+            .clickhouse
+            .query_portfolio_events(
+                &PortfolioEventFilter {
+                    portfolio_run_id: strategy_backtest_run_id,
+                    trade_date: query.trade_date,
+                    event_type: non_empty(query.event_type),
+                    page: page(query.limit, query.offset)?,
+                },
+                &attempt_id,
+            )
+            .await?,
+    ))
+}
+
+async fn get_strategy_backtest_performance(
+    State(state): State<AppState>,
+    Path(strategy_backtest_run_id): Path<String>,
+    Query(query): Query<PortfolioPerformanceQuery>,
+) -> RearviewResult<Json<StrategyBacktestPerformanceView>> {
+    let run = state
+        .postgres
+        .get_strategy_backtest_run(&strategy_backtest_run_id)
+        .await?;
+    let attempt_id =
+        resolve_strategy_backtest_result_attempt(&run, query.result_attempt_id.as_deref())?;
+    let security_code = non_empty(query.security_code).unwrap_or(run.benchmark_security_code);
+    let window_key = non_empty(query.window_key).unwrap_or_else(default_metric_window);
+    let performance = state
+        .clickhouse
+        .query_portfolio_performance(
+            &strategy_backtest_run_id,
+            &attempt_id,
+            &security_code,
+            &window_key,
+        )
+        .await?;
+    let nav = state
+        .clickhouse
+        .query_portfolio_nav(&strategy_backtest_run_id, &attempt_id)
+        .await?;
+    Ok(Json(StrategyBacktestPerformanceView {
+        metric: performance.metric,
+        statuses: performance.statuses,
+        daily_win_rate: daily_win_rate(&nav),
+    }))
+}
+
+async fn list_strategy_backtest_closed_trades(
+    State(state): State<AppState>,
+    Path(strategy_backtest_run_id): Path<String>,
+    Query(query): Query<PortfolioClosedTradeQuery>,
+) -> RearviewResult<Json<impl Serialize>> {
+    let run = state
+        .postgres
+        .get_strategy_backtest_run(&strategy_backtest_run_id)
+        .await?;
+    let attempt_id =
+        resolve_strategy_backtest_result_attempt(&run, query.result_attempt_id.as_deref())?;
+    Ok(Json(
+        state
+            .clickhouse
+            .query_portfolio_closed_trades(
+                &PortfolioClosedTradeFilter {
+                    portfolio_run_id: strategy_backtest_run_id,
+                    security_code: non_empty(query.security_code),
+                    exit_date: query.exit_date,
+                    page: page(query.limit, query.offset)?,
+                },
+                &attempt_id,
+            )
+            .await?,
+    ))
+}
+
+async fn list_strategy_backtest_trade_metrics(
+    State(state): State<AppState>,
+    Path(strategy_backtest_run_id): Path<String>,
+    Query(query): Query<PortfolioTradeMetricQuery>,
+) -> RearviewResult<Json<impl Serialize>> {
+    let run = state
+        .postgres
+        .get_strategy_backtest_run(&strategy_backtest_run_id)
+        .await?;
+    let attempt_id =
+        resolve_strategy_backtest_result_attempt(&run, query.result_attempt_id.as_deref())?;
+    Ok(Json(
+        state
+            .clickhouse
+            .query_portfolio_trade_metrics(
+                &PortfolioTradeMetricFilter {
+                    portfolio_run_id: strategy_backtest_run_id,
+                    window_key: non_empty(query.window_key),
+                    page: page(query.limit, query.offset)?,
+                },
+                &attempt_id,
+            )
+            .await?,
+    ))
 }
 
 async fn list_portfolio_runs(
@@ -1366,6 +1976,145 @@ struct CreatePortfolioRunRequest {
     source_run_id: String,
     #[serde(default)]
     account_template_id: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+struct StrategyBacktestOptionsQuery {
+    #[serde(default)]
+    benchmark_security_code: Option<String>,
+    #[serde(default)]
+    as_of_date: Option<NaiveDate>,
+}
+
+#[derive(Debug, Deserialize)]
+struct StrategyBacktestCreateRequest {
+    rule: RuleVersionSpec,
+    period_key: String,
+    benchmark_security_code: String,
+    execution_config: BacktestExecutionConfig,
+    #[serde(default)]
+    preview_id: Option<String>,
+    #[serde(default)]
+    preview_range: Option<BacktestDateRange>,
+    #[serde(default)]
+    top_n: Option<u32>,
+    #[serde(default)]
+    rule_hash: Option<String>,
+    #[serde(default)]
+    execution_config_hash: Option<String>,
+    #[serde(default)]
+    client_request_id: Option<String>,
+    #[serde(default)]
+    ui_display_snapshot: Option<Value>,
+    #[serde(default)]
+    range_hint: Option<BacktestDateRange>,
+}
+
+#[derive(Debug, Serialize)]
+struct StrategyBacktestOptionsResponse {
+    default_period_key: String,
+    default_benchmark_security_code: String,
+    selected_benchmark_security_code: String,
+    as_of_date: NaiveDate,
+    latest_available_trade_date: NaiveDate,
+    period_options: Vec<StrategyBacktestPeriodOption>,
+    benchmark_options: Vec<StrategyBacktestBenchmarkOption>,
+    range_resolution_snapshot: Value,
+}
+
+#[derive(Debug, Clone, Serialize)]
+struct StrategyBacktestPeriodOption {
+    period_key: String,
+    label: String,
+    resolved_start_date: NaiveDate,
+    resolved_end_date: NaiveDate,
+    latest_available_trade_date: NaiveDate,
+    benchmark_security_code: String,
+    range_resolution_snapshot: Value,
+}
+
+#[derive(Debug, Serialize)]
+struct StrategyBacktestBenchmarkOption {
+    security_code: String,
+    label: String,
+    is_default: bool,
+    availability_status: String,
+}
+
+#[derive(Debug, Serialize)]
+struct StrategyBacktestRunResponse {
+    #[serde(flatten)]
+    record: StrategyBacktestRunRecord,
+    config_summary: BacktestExecutionSummary,
+}
+
+#[derive(Debug, Serialize)]
+struct StrategyBacktestNavPoint {
+    trade_date: NaiveDate,
+    strategy_nav: f64,
+    benchmark_nav: Option<f64>,
+    excess_return: Option<f64>,
+}
+
+#[derive(Debug, Serialize)]
+struct StrategyBacktestPerformanceView {
+    metric: PortfolioPerformanceMetricRecord,
+    statuses: Vec<PortfolioPerformanceMetricStatusRecord>,
+    daily_win_rate: StrategyBacktestDailyWinRate,
+}
+
+#[derive(Debug, Serialize)]
+struct StrategyBacktestDailyWinRate {
+    value: Option<f64>,
+    observation_count: usize,
+    winning_day_count: usize,
+}
+
+#[derive(Debug, Deserialize)]
+struct StrategyBacktestRebalanceQuery {
+    #[serde(default)]
+    result_attempt_id: Option<String>,
+    #[serde(default)]
+    trade_date: Option<NaiveDate>,
+}
+
+#[derive(Debug, Serialize)]
+struct StrategyBacktestRebalanceRecordsResponse {
+    selected_trade_date: NaiveDate,
+    records: Vec<StrategyBacktestRebalanceRecord>,
+}
+
+#[derive(Debug, Serialize)]
+struct StrategyBacktestRebalanceRecord {
+    trade_date: NaiveDate,
+    position_count: i32,
+    buy_count: usize,
+    hold_count: usize,
+    sell_count: usize,
+    rows: Vec<StrategyBacktestRebalanceRow>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+struct StrategyBacktestRebalanceRow {
+    direction: String,
+    security_code: String,
+    security_name: Option<String>,
+    quantity: f64,
+    holding_days: Option<i32>,
+    change_pct: Option<f64>,
+    cost_price: Option<f64>,
+    current_price: Option<f64>,
+    contribution_pct: Option<f64>,
+    reason: Option<String>,
+}
+
+#[derive(Debug)]
+struct StrategyBacktestRangeResolution {
+    latest_available_trade_date: NaiveDate,
+    period_options: Vec<StrategyBacktestPeriodOption>,
+    trade_date_count: usize,
+    benchmark_return_count: usize,
+    range_resolution_snapshot: Value,
 }
 
 #[derive(Debug, Deserialize)]
@@ -2424,6 +3173,219 @@ fn default_metric_window() -> String {
     "full_period".to_string()
 }
 
+fn validate_strategy_backtest_period_key(period_key: &str) -> RearviewResult<()> {
+    if matches!(period_key, "1y" | "2y" | "3y") {
+        Ok(())
+    } else {
+        Err(RearviewError::Validation(format!(
+            "period_key must be one of 1y, 2y, or 3y: {period_key}"
+        )))
+    }
+}
+
+fn validate_strategy_backtest_benchmark(security_code: &str) -> RearviewResult<()> {
+    if strategy_backtest_benchmark_label(security_code).is_some() {
+        Ok(())
+    } else {
+        Err(RearviewError::Validation(format!(
+            "unsupported benchmark_security_code: {security_code}"
+        )))
+    }
+}
+
+fn strategy_backtest_benchmark_options(
+    selected_security_code: &str,
+    selected_available: bool,
+) -> Vec<StrategyBacktestBenchmarkOption> {
+    strategy_backtest_benchmark_allowlist()
+        .iter()
+        .map(|(security_code, label)| StrategyBacktestBenchmarkOption {
+            security_code: (*security_code).to_string(),
+            label: (*label).to_string(),
+            is_default: *security_code == "000300.SH",
+            availability_status: if *security_code == selected_security_code {
+                if selected_available {
+                    "available".to_string()
+                } else {
+                    "unavailable".to_string()
+                }
+            } else {
+                "not_checked".to_string()
+            },
+        })
+        .collect()
+}
+
+fn strategy_backtest_benchmark_label(security_code: &str) -> Option<&'static str> {
+    strategy_backtest_benchmark_allowlist()
+        .iter()
+        .find_map(|(candidate, label)| (*candidate == security_code).then_some(*label))
+}
+
+fn strategy_backtest_benchmark_allowlist() -> &'static [(&'static str, &'static str)] {
+    &[
+        ("000903.SH", "中证A100"),
+        ("000300.SH", "沪深300"),
+        ("000905.SH", "中证500"),
+        ("000906.SH", "中证800"),
+        ("000852.SH", "中证1000"),
+        ("399311.SZ", "国证1000"),
+    ]
+}
+
+async fn resolve_strategy_backtest_range(
+    state: &AppState,
+    benchmark_security_code: &str,
+    as_of_date: NaiveDate,
+) -> RearviewResult<StrategyBacktestRangeResolution> {
+    let earliest_date = as_of_date
+        .checked_sub_months(Months::new(36))
+        .ok_or_else(|| {
+            RearviewError::Validation(format!(
+                "could not resolve 3y range before as_of_date {as_of_date}"
+            ))
+        })?;
+    let query_suffix = format!("{benchmark_security_code}-{as_of_date}");
+    let trade_dates = state
+        .clickhouse
+        .query_trade_dates(
+            earliest_date,
+            as_of_date,
+            &format!("strategy-backtest-options-trade-dates-{query_suffix}"),
+        )
+        .await?;
+    if trade_dates.is_empty() {
+        return Err(RearviewError::Validation(format!(
+            "no trade dates available between {earliest_date} and {as_of_date}"
+        )));
+    }
+    let benchmark_returns = state
+        .clickhouse
+        .query_mart_benchmark_returns(
+            benchmark_security_code,
+            earliest_date,
+            as_of_date,
+            &format!("strategy-backtest-options-benchmark-{query_suffix}"),
+        )
+        .await?;
+    let benchmark_dates = benchmark_returns
+        .iter()
+        .filter(|row| row.return_daily.is_some())
+        .map(|row| row.trade_date)
+        .collect::<BTreeSet<_>>();
+    let latest_available_trade_date = trade_dates
+        .iter()
+        .rev()
+        .copied()
+        .find(|date| benchmark_dates.contains(date))
+        .ok_or_else(|| {
+            RearviewError::Validation(format!(
+                "benchmark {benchmark_security_code} has no usable returns through {as_of_date}"
+            ))
+        })?;
+    let mut period_options = Vec::new();
+    for (period_key, label, years) in [
+        ("1y", "近一年", 1_u32),
+        ("2y", "近两年", 2_u32),
+        ("3y", "近三年", 3_u32),
+    ] {
+        let target_start = latest_available_trade_date
+            .checked_sub_months(Months::new(years * 12))
+            .ok_or_else(|| {
+                RearviewError::Validation(format!(
+                    "could not resolve {period_key} start before {latest_available_trade_date}"
+                ))
+            })?;
+        let resolved_start_date = trade_dates
+            .iter()
+            .copied()
+            .find(|date| *date >= target_start && *date <= latest_available_trade_date)
+            .ok_or_else(|| {
+                RearviewError::Validation(format!(
+                    "no trade date available for {period_key} start on or after {target_start}"
+                ))
+            })?;
+        let range_resolution_snapshot = json!({
+            "period_key": period_key,
+            "as_of_date": as_of_date,
+            "target_start_date": target_start,
+            "resolved_start_date": resolved_start_date,
+            "resolved_end_date": latest_available_trade_date,
+            "benchmark_security_code": benchmark_security_code,
+            "method": "quote_trade_dates_intersect_benchmark_returns",
+        });
+        period_options.push(StrategyBacktestPeriodOption {
+            period_key: period_key.to_string(),
+            label: label.to_string(),
+            resolved_start_date,
+            resolved_end_date: latest_available_trade_date,
+            latest_available_trade_date,
+            benchmark_security_code: benchmark_security_code.to_string(),
+            range_resolution_snapshot,
+        });
+    }
+    let range_resolution_snapshot = json!({
+        "as_of_date": as_of_date,
+        "earliest_query_date": earliest_date,
+        "latest_available_trade_date": latest_available_trade_date,
+        "benchmark_security_code": benchmark_security_code,
+        "trade_date_count": trade_dates.len(),
+        "benchmark_return_count": benchmark_returns.len(),
+        "usable_benchmark_return_count": benchmark_dates.len(),
+        "method": "quote_trade_dates_intersect_benchmark_returns",
+    });
+    Ok(StrategyBacktestRangeResolution {
+        latest_available_trade_date,
+        period_options,
+        trade_date_count: trade_dates.len(),
+        benchmark_return_count: benchmark_returns.len(),
+        range_resolution_snapshot,
+    })
+}
+
+fn strategy_backtest_run_response(
+    record: StrategyBacktestRunRecord,
+) -> RearviewResult<StrategyBacktestRunResponse> {
+    let execution_config =
+        serde_json::from_value::<BacktestExecutionConfig>(record.execution_config.clone())?;
+    let config_summary = execution_config.summary()?;
+    Ok(StrategyBacktestRunResponse {
+        record,
+        config_summary,
+    })
+}
+
+fn build_strategy_backtest_preflight_snapshot(
+    request: &StrategyBacktestCreateRequest,
+    period_option: &StrategyBacktestPeriodOption,
+    resolution: &StrategyBacktestRangeResolution,
+    draft: &StrategyBacktestDraftResponse,
+    catalog_hash: &Option<String>,
+) -> Value {
+    json!({
+        "period_key": request.period_key,
+        "range_hint": request.range_hint,
+        "resolved_start_date": period_option.resolved_start_date,
+        "resolved_end_date": period_option.resolved_end_date,
+        "latest_available_trade_date": resolution.latest_available_trade_date,
+        "resolved_trading_date_count": resolution.trade_date_count,
+        "benchmark_security_code": request.benchmark_security_code,
+        "benchmark_return_count": resolution.benchmark_return_count,
+        "risk_free_tenor": "CN_10Y",
+        "risk_free_return_count": null,
+        "catalog_hash": catalog_hash,
+        "required_metrics": [],
+        "required_marts": [],
+        "execution_summary": draft.summary,
+        "range_resolution_snapshot": period_option.range_resolution_snapshot,
+    })
+}
+
+fn hash_catalog(catalog: &MetricCatalog) -> RearviewResult<String> {
+    let metrics = catalog.iter().collect::<Vec<_>>();
+    hash_json(&metrics)
+}
+
 fn default_rebalance_policy() -> serde_json::Value {
     serde_json::json!({
         "frequency": "signal_day",
@@ -2802,6 +3764,177 @@ async fn resolve_result_attempt(
                 "no result attempt for portfolio run: {portfolio_run_id}"
             ))
         })
+}
+
+fn resolve_strategy_backtest_result_attempt(
+    run: &StrategyBacktestRunRecord,
+    override_attempt: Option<&str>,
+) -> RearviewResult<String> {
+    if let Some(attempt) = override_attempt {
+        return Ok(attempt.to_string());
+    }
+    run.current_result_attempt_id.clone().ok_or_else(|| {
+        RearviewError::NotFound(format!(
+            "no result attempt for strategy backtest: {}",
+            run.strategy_backtest_run_id
+        ))
+    })
+}
+
+fn strategy_backtest_nav_points(
+    nav: Vec<PortfolioNavRecord>,
+    benchmark_returns: Vec<BenchmarkReturn>,
+) -> Vec<StrategyBacktestNavPoint> {
+    let returns_by_date = benchmark_returns
+        .into_iter()
+        .map(|row| (row.trade_date, row.return_daily))
+        .collect::<BTreeMap<_, _>>();
+    let mut benchmark_nav = 1.0_f64;
+    let mut benchmark_available = true;
+    nav.into_iter()
+        .enumerate()
+        .map(|(index, row)| {
+            let point_benchmark_nav = if index == 0 {
+                Some(1.0)
+            } else if benchmark_available {
+                match returns_by_date.get(&row.trade_date).copied().flatten() {
+                    Some(return_daily) => {
+                        benchmark_nav *= 1.0 + return_daily;
+                        Some(benchmark_nav)
+                    }
+                    None => {
+                        benchmark_available = false;
+                        None
+                    }
+                }
+            } else {
+                None
+            };
+            StrategyBacktestNavPoint {
+                trade_date: row.trade_date,
+                strategy_nav: row.nav,
+                benchmark_nav: point_benchmark_nav,
+                excess_return: point_benchmark_nav.map(|value| row.nav - value),
+            }
+        })
+        .collect()
+}
+
+fn daily_win_rate(nav: &[PortfolioNavRecord]) -> StrategyBacktestDailyWinRate {
+    let mut observation_count = 0_usize;
+    let mut winning_day_count = 0_usize;
+    for row in nav {
+        if let Some(daily_return) = row.daily_return {
+            observation_count += 1;
+            if daily_return > 0.0 {
+                winning_day_count += 1;
+            }
+        }
+    }
+    StrategyBacktestDailyWinRate {
+        value: (observation_count > 0).then(|| winning_day_count as f64 / observation_count as f64),
+        observation_count,
+        winning_day_count,
+    }
+}
+
+fn build_strategy_backtest_rebalance_rows(
+    trades: Vec<PortfolioTradeRecord>,
+    positions: Vec<PortfolioPositionRecord>,
+    closed_trades: Vec<PortfolioClosedTradeRecord>,
+    display: &BTreeMap<String, SecurityDisplayRow>,
+    total_equity: Option<f64>,
+) -> Vec<StrategyBacktestRebalanceRow> {
+    let position_by_code = positions
+        .iter()
+        .map(|position| (position.security_code.clone(), position))
+        .collect::<BTreeMap<_, _>>();
+    let buy_codes = trades
+        .iter()
+        .filter(|trade| trade.side.eq_ignore_ascii_case("buy"))
+        .map(|trade| trade.security_code.clone())
+        .collect::<BTreeSet<_>>();
+    let sell_codes = trades
+        .iter()
+        .filter(|trade| trade.side.eq_ignore_ascii_case("sell"))
+        .map(|trade| trade.security_code.clone())
+        .collect::<BTreeSet<_>>();
+    let mut rows = Vec::new();
+
+    for trade in trades
+        .iter()
+        .filter(|trade| trade.side.eq_ignore_ascii_case("buy"))
+    {
+        let position = position_by_code.get(&trade.security_code).copied();
+        rows.push(StrategyBacktestRebalanceRow {
+            direction: "buy".to_string(),
+            security_code: trade.security_code.clone(),
+            security_name: security_display_name(display, &trade.security_code),
+            quantity: trade.quantity,
+            holding_days: position.map(|position| position.holding_days),
+            change_pct: position.map(|position| position.unrealized_return),
+            cost_price: position
+                .map(|position| position.average_entry_price)
+                .or(Some(trade.execution_price)),
+            current_price: position.map(|position| position.close_price),
+            contribution_pct: position
+                .and_then(|position| contribution_pct(position.unrealized_pnl, total_equity)),
+            reason: Some(trade.reason.clone()),
+        });
+    }
+
+    for position in positions.iter().filter(|position| {
+        !buy_codes.contains(&position.security_code)
+            && !sell_codes.contains(&position.security_code)
+    }) {
+        rows.push(StrategyBacktestRebalanceRow {
+            direction: "hold".to_string(),
+            security_code: position.security_code.clone(),
+            security_name: security_display_name(display, &position.security_code),
+            quantity: position.quantity,
+            holding_days: Some(position.holding_days),
+            change_pct: Some(position.unrealized_return),
+            cost_price: Some(position.average_entry_price),
+            current_price: Some(position.close_price),
+            contribution_pct: contribution_pct(position.unrealized_pnl, total_equity),
+            reason: None,
+        });
+    }
+
+    for closed in closed_trades {
+        rows.push(StrategyBacktestRebalanceRow {
+            direction: "sell".to_string(),
+            security_code: closed.security_code.clone(),
+            security_name: security_display_name(display, &closed.security_code),
+            quantity: closed.quantity,
+            holding_days: i32::try_from(closed.holding_days).ok(),
+            change_pct: closed.realized_return,
+            cost_price: Some(closed.entry_gross_amount / closed.quantity),
+            current_price: Some(closed.exit_gross_amount / closed.quantity),
+            contribution_pct: contribution_pct(closed.realized_pnl, total_equity),
+            reason: Some(closed.exit_reason),
+        });
+    }
+
+    rows
+}
+
+fn security_display_name(
+    display: &BTreeMap<String, SecurityDisplayRow>,
+    security_code: &str,
+) -> Option<String> {
+    display
+        .get(security_code)
+        .and_then(|row| row.security_name.clone())
+}
+
+fn contribution_pct(pnl: f64, total_equity: Option<f64>) -> Option<f64> {
+    let total_equity = total_equity?;
+    if total_equity == 0.0 {
+        None
+    } else {
+        Some(pnl / total_equity)
+    }
 }
 
 #[cfg(test)]

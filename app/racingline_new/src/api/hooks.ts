@@ -2,8 +2,14 @@ import { keepPreviousData, useMutation, useQuery } from "@tanstack/react-query"
 
 import { queryKeys } from "@/api/queryKeys"
 import {
+  createStrategyBacktest,
   explainRule,
+  getStrategyBacktest,
+  getStrategyBacktestOptions,
+  getStrategyBacktestPerformance,
   getDefaultMarketFeeTemplate,
+  listStrategyBacktestNav,
+  listStrategyBacktestRebalanceRecords,
   listMetrics,
   previewStrategy,
   previewStrategyPoolPage,
@@ -15,6 +21,7 @@ import type {
   MetricsQuery,
   RuleVersionSpec,
   SecurityAnalysisRequest,
+  StrategyBacktestCreateRequest,
   StrategyBacktestValidateRequest,
   StrategyPreviewPoolPageRequest,
   StrategyPreviewRequest,
@@ -80,6 +87,103 @@ export function useStrategyBacktestValidateQuery(
         throw new Error("strategy backtest validate request is missing")
       }
       return validateStrategyBacktest(request)
+    },
+    retry: 1,
+  })
+}
+
+export function useStrategyBacktestOptionsQuery(benchmarkSecurityCode: string) {
+  return useQuery({
+    queryKey: queryKeys.strategyBacktestOptions(benchmarkSecurityCode),
+    queryFn: () => getStrategyBacktestOptions(benchmarkSecurityCode),
+    retry: 1,
+    staleTime: 30_000,
+  })
+}
+
+export function useStrategyBacktestCreateMutation() {
+  return useMutation({
+    mutationFn: (request: StrategyBacktestCreateRequest) =>
+      createStrategyBacktest(request),
+  })
+}
+
+export function useStrategyBacktestQuery(strategyBacktestRunId: string | null) {
+  return useQuery({
+    enabled: Boolean(strategyBacktestRunId),
+    queryKey: queryKeys.strategyBacktest(strategyBacktestRunId),
+    queryFn: () => {
+      if (!strategyBacktestRunId) {
+        throw new Error("strategy backtest run id is missing")
+      }
+      return getStrategyBacktest(strategyBacktestRunId)
+    },
+    refetchInterval: (query) => {
+      const status = query.state.data?.status
+      return status &&
+        !status.startsWith("failed_") &&
+        status !== "succeeded" &&
+        status !== "cancelled"
+        ? 2_000
+        : false
+    },
+    retry: 1,
+  })
+}
+
+export function useStrategyBacktestNavQuery(
+  strategyBacktestRunId: string | null,
+  enabled: boolean
+) {
+  return useQuery({
+    enabled: Boolean(strategyBacktestRunId && enabled),
+    queryKey: queryKeys.strategyBacktestNav(strategyBacktestRunId),
+    queryFn: () => {
+      if (!strategyBacktestRunId) {
+        throw new Error("strategy backtest run id is missing")
+      }
+      return listStrategyBacktestNav(strategyBacktestRunId)
+    },
+    retry: 1,
+  })
+}
+
+export function useStrategyBacktestRebalanceRecordsQuery(
+  strategyBacktestRunId: string | null,
+  tradeDate: string | null,
+  enabled: boolean
+) {
+  return useQuery({
+    enabled: Boolean(strategyBacktestRunId && enabled),
+    queryKey: queryKeys.strategyBacktestRebalanceRecords(
+      strategyBacktestRunId,
+      tradeDate
+    ),
+    queryFn: () => {
+      if (!strategyBacktestRunId) {
+        throw new Error("strategy backtest run id is missing")
+      }
+      return listStrategyBacktestRebalanceRecords(
+        strategyBacktestRunId,
+        tradeDate
+      )
+    },
+    retry: 1,
+  })
+}
+
+export function useStrategyBacktestPerformanceQuery(
+  strategyBacktestRunId: string | null,
+  enabled: boolean
+) {
+  return useQuery({
+    enabled: Boolean(strategyBacktestRunId && enabled),
+    queryKey: queryKeys.strategyBacktestPerformance(strategyBacktestRunId),
+    queryFn: () => {
+      if (!strategyBacktestRunId) {
+        throw new Error("strategy backtest run id is missing")
+      }
+      return getStrategyBacktestPerformance(strategyBacktestRunId)
     },
     retry: 1,
   })

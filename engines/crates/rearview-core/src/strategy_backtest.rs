@@ -467,7 +467,7 @@ fn validate_cash_reserve_pct(value: f64) -> RearviewResult<()> {
     }
 }
 
-fn hash_json(value: &impl Serialize) -> RearviewResult<String> {
+pub fn hash_json(value: &impl Serialize) -> RearviewResult<String> {
     let value = serde_json::to_value(value)?;
     let canonical = canonicalize_json(value);
     let bytes = serde_json::to_vec(&canonical)?;

@@ -7,7 +7,13 @@ import type {
   RuleVersionSpec,
   SecurityAnalysisRequest,
   SecurityAnalysisResponse,
+  StrategyBacktestCreateRequest,
   StrategyBacktestDraftResponse,
+  StrategyBacktestNavPoint,
+  StrategyBacktestOptionsResponse,
+  StrategyBacktestPerformanceView,
+  StrategyBacktestRebalanceRecordsResponse,
+  StrategyBacktestRunRecord,
   StrategyBacktestValidateRequest,
   StrategyPreviewPoolPageRequest,
   StrategyPreviewPoolPageResponse,
@@ -71,6 +77,51 @@ export function validateStrategyBacktest(
   return requestJson<StrategyBacktestDraftResponse>(
     "/rearview/strategy-backtests/validate",
     jsonBody(request)
+  )
+}
+
+export function getStrategyBacktestOptions(benchmarkSecurityCode: string) {
+  return requestJson<StrategyBacktestOptionsResponse>(
+    buildPath("/rearview/strategy-backtests/options", {
+      benchmark_security_code: benchmarkSecurityCode,
+    })
+  )
+}
+
+export function createStrategyBacktest(request: StrategyBacktestCreateRequest) {
+  return requestJson<StrategyBacktestRunRecord>(
+    "/rearview/strategy-backtests",
+    jsonBody(request)
+  )
+}
+
+export function getStrategyBacktest(strategyBacktestRunId: string) {
+  return requestJson<StrategyBacktestRunRecord>(
+    `/rearview/strategy-backtests/${strategyBacktestRunId}`
+  )
+}
+
+export function listStrategyBacktestNav(strategyBacktestRunId: string) {
+  return requestJson<StrategyBacktestNavPoint[]>(
+    `/rearview/strategy-backtests/${strategyBacktestRunId}/nav`
+  )
+}
+
+export function listStrategyBacktestRebalanceRecords(
+  strategyBacktestRunId: string,
+  tradeDate?: string | null
+) {
+  return requestJson<StrategyBacktestRebalanceRecordsResponse>(
+    buildPath(
+      `/rearview/strategy-backtests/${strategyBacktestRunId}/rebalance-records`,
+      { trade_date: tradeDate ?? undefined }
+    )
+  )
+}
+
+export function getStrategyBacktestPerformance(strategyBacktestRunId: string) {
+  return requestJson<StrategyBacktestPerformanceView>(
+    `/rearview/strategy-backtests/${strategyBacktestRunId}/performance`
   )
 }
 

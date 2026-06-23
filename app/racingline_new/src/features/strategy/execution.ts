@@ -5,6 +5,7 @@ import type {
   BacktestExecutionConfig,
   MarketFeeTemplateRecord,
   RuleVersionSpec,
+  StrategyBacktestCreateRequest,
   StrategyBacktestDraftResponse,
   StrategyBacktestValidateRequest,
 } from "@/types/rearview"
@@ -17,16 +18,7 @@ export type BacktestExecutionDraft = StrategyBacktestDraftResponse & {
   stale: boolean
 }
 
-export type BacktestExecutionRequestDraft = {
-  rule: RuleVersionSpec
-  start_date: string
-  end_date: string
-  benchmark: string
-  top_n: number
-  execution_config: BacktestExecutionConfig
-  rule_hash: string
-  execution_config_hash: string
-}
+export type BacktestExecutionRequestDraft = StrategyBacktestCreateRequest
 
 export class StrategyBacktestExecutionError extends Error {
   constructor(message: string) {
@@ -205,13 +197,13 @@ export function buildBacktestExecutionRequestDraft({
 
   return {
     rule: draft.appliedRuleSpec,
-    start_date: range.start_date,
-    end_date: range.end_date,
-    benchmark,
+    period_key: period,
+    benchmark_security_code: benchmark,
     top_n: draft.execution_config.signal_policy.buy_signal_top_n,
     execution_config: draft.execution_config,
     rule_hash: draft.rule_hash,
     execution_config_hash: draft.execution_config_hash,
+    range_hint: range,
   }
 }
 

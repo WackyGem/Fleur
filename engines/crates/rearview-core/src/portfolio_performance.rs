@@ -48,10 +48,18 @@ pub struct PerformanceMetricConfig {
 
 impl PerformanceMetricConfig {
     pub fn default_full_period(portfolio_run_id: &str, result_attempt_id: &str) -> Self {
+        Self::full_period_with_benchmark(portfolio_run_id, result_attempt_id, "000300.SH")
+    }
+
+    pub fn full_period_with_benchmark(
+        portfolio_run_id: &str,
+        result_attempt_id: &str,
+        benchmark_security_code: &str,
+    ) -> Self {
         let mut config = Self {
             portfolio_run_id: portfolio_run_id.to_string(),
             result_attempt_id: result_attempt_id.to_string(),
-            security_code: "000300.SH".to_string(),
+            security_code: benchmark_security_code.to_string(),
             window_key: "full_period".to_string(),
             window_start: None,
             window_end: None,
