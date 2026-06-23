@@ -1,6 +1,6 @@
 # RFC 0028: Racingline 策略回测 Step 5 异步执行方案
 
-状态：Proposed
+状态：Implemented
 领域：racingline, rearview
 关联系统：racingline, rearview, data-platform
 代码根：app/racingline_new/, engines/crates/rearview-core/, engines/crates/rearview-server/, engines/crates/rearview-portfolio-worker/, pipeline/migrate/

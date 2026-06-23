@@ -215,20 +215,58 @@ describe("buildBacktestExecutionRequestDraft", () => {
       buildBacktestExecutionRequestDraft({
         benchmark: "000300.SH",
         draft,
-        now: new Date("2026-06-22T12:00:00Z"),
         period: "2y",
+        rangeHint: {
+          end_date: "2026-06-01",
+          start_date: "2024-06-03",
+        },
       })
     ).toMatchObject({
       benchmark_security_code: "000300.SH",
       execution_config_hash: "execution-hash",
       period_key: "2y",
       range_hint: {
-        end_date: "2026-06-22",
-        start_date: "2024-06-22",
+        end_date: "2026-06-01",
+        start_date: "2024-06-03",
       },
       rule_hash: "rule-hash",
       top_n: 5,
     })
+  })
+
+  it("omits range_hint when options have not resolved a dynamic range", () => {
+    const request = buildStrategyBacktestValidateRequest({
+      marketTemplate,
+      previewSnapshot: previewSnapshot(false),
+      settings,
+    })
+    const draft = toBacktestExecutionDraft({
+      createdAt: "2026-06-22T00:00:00.000Z",
+      request,
+      response: {
+        execution_config: request.execution_config,
+        execution_config_hash: "execution-hash",
+        preview_id: "preview-1",
+        preview_range: request.preview_range,
+        rule_hash: "rule-hash",
+        summary: {
+          buy_signal_top_n: 5,
+          enabled_exit_rule_count: 3,
+          implicit_cash_reserve_pct: 0.5,
+          max_positions: 8,
+          target_weight_per_position_pct: 0.1,
+        },
+        warnings: [],
+      },
+    })
+
+    expect(
+      buildBacktestExecutionRequestDraft({
+        benchmark: "000300.SH",
+        draft,
+        period: "1y",
+      })
+    ).not.toHaveProperty("range_hint")
   })
 })
 

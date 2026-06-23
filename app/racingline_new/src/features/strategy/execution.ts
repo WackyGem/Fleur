@@ -185,16 +185,14 @@ export function toBacktestExecutionDraft({
 export function buildBacktestExecutionRequestDraft({
   benchmark,
   draft,
-  now,
   period,
+  rangeHint,
 }: {
   benchmark: string
   draft: BacktestExecutionDraft
-  now?: Date
   period: BacktestPeriodValue
+  rangeHint?: BacktestDateRange | null
 }): BacktestExecutionRequestDraft {
-  const range = buildBacktestDateRange(period, now)
-
   return {
     rule: draft.appliedRuleSpec,
     period_key: period,
@@ -203,7 +201,7 @@ export function buildBacktestExecutionRequestDraft({
     execution_config: draft.execution_config,
     rule_hash: draft.rule_hash,
     execution_config_hash: draft.execution_config_hash,
-    range_hint: range,
+    ...(rangeHint ? { range_hint: rangeHint } : {}),
   }
 }
 

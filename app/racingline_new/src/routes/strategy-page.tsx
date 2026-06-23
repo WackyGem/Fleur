@@ -572,6 +572,9 @@ function BacktestPanel({
   )
   const selectedPeriodOption =
     periodOptions.find((option) => option.value === period) ?? periodOptions[0]
+  const selectedPeriodApiOption = optionsQuery.data?.period_options.find(
+    (option) => option.period_key === period
+  )
   const selectedBenchmarkOption =
     benchmarkOptions.find((option) => option.securityCode === benchmark) ??
     benchmarkOptions[0]
@@ -633,7 +636,7 @@ function BacktestPanel({
       isMarketTemplateError ||
       optionsQuery.isLoading ||
       optionsQuery.isError ||
-      selectedBenchmarkOption?.availabilityStatus !== "available" ||
+      selectedBenchmarkOption?.availabilityStatus === "unavailable" ||
       createBacktestMutation.isPending ||
       isRunInProgress
   )
@@ -660,6 +663,12 @@ function BacktestPanel({
         benchmark,
         draft: backtestExecutionDraft,
         period,
+        rangeHint: selectedPeriodApiOption
+          ? {
+              end_date: selectedPeriodApiOption.resolved_end_date,
+              start_date: selectedPeriodApiOption.resolved_start_date,
+            }
+          : null,
       }),
       client_request_id: createId("strategy-backtest"),
       preview_id: previewSnapshot.previewId,
@@ -756,7 +765,7 @@ function BacktestPanel({
                     {benchmarkOptions.map((option) => (
                       <SelectItem
                         key={option.securityCode}
-                        disabled={option.availabilityStatus !== "available"}
+                        disabled={option.availabilityStatus === "unavailable"}
                         value={option.securityCode}
                       >
                         {option.label}
