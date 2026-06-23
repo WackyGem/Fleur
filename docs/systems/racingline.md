@@ -1,6 +1,6 @@
 # System: Racingline
 
-状态：策略创建 Step 4 漂移修正已实现，组合净值第一版实施中（2026-06-23）
+状态：策略创建 Step 4 漂移修正已实现，Step 5 异步回测 RFC 已落地且真实执行待实现（2026-06-23）
 
 ## 代码根
 
@@ -21,7 +21,7 @@
 6. Step 4 使用 Rearview 默认市场费率模板初始化费用草稿，只展示用户可编辑的佣金率、印花税、过户费和单一成交滑点；摘要展示建仓参数、风险规则和 Step 3 timeline 的近三月 `pool_count` 票池走势，不展示 Rearview draft/hash/Preview debug 字段。
 7. Step 4 编辑期间不自动调用 backtest validate；点击「进入回测」时才把 Step 3 applied snapshot 和 Step 4 当前表单映射为 snake_case `BacktestExecutionConfig`，调用 `POST /rearview/strategy-backtests/validate` 获取 canonical config、`rule_hash`、`execution_config_hash` 和仓位摘要。
 8. Step 4/5 gate 只允许非 stale Step 3 applied preview snapshot 和成功的 Rearview draft 进入；Step 1/2 修改后必须重新更新股池。Step 4 支持受控趋势指标止损，第一版语义为收盘价跌破所选 trend metric 时卖出。
-9. Step 5 只消费 `BacktestExecutionDraft`、回测区间和 benchmark，展示 request draft、hash 和 config 摘要；真实回测执行按钮保持 disabled，不展示静态净值、持仓或绩效样例。
+9. Step 5 当前实现仍为占位；[RFC 0028](../RFC/0028-racingline-strategy-backtest-step5.md) 规定正式实现必须消费非 stale `BacktestExecutionDraft`、回测区间和 benchmark，创建 Rearview 异步 backtest run，轮询状态，并展示 worker 写入的净值、持仓、成交和绩效指标。
 10. 展示 run、chunk 和 day 粒度进度。
 11. 按交易日展示股票池、TopN 买入信号、score breakdown 和 selected metrics。
 12. 用 UI 明确区分运行时结果快照和当前 mart 查询值。
@@ -145,6 +145,7 @@ cargo test --workspace
 | [../RFC/0025-racingline-strategy-weight-configuration-step2.md](../RFC/0025-racingline-strategy-weight-configuration-step2.md) | 从 `/strategies` Step 2 权重配置切入，把权重草稿落到 `RuleVersionSpec.scoring.rules`，并定义点击股池预览时才执行选股、评分和排名的 Implemented RFC |
 | [../RFC/0026-racingline-strategy-pool-preview-step3.md](../RFC/0026-racingline-strategy-pool-preview-step3.md) | 从 `/strategies` Step 3 股池预览切入，补齐 preview snapshot、结果解释、候选池分页、证券显示和 preview-only 个股上下文的 Implemented RFC |
 | [../RFC/0027-racingline-strategy-simulation-position-step4.md](../RFC/0027-racingline-strategy-simulation-position-step4.md) | `/strategies` Step 4 模拟建仓、默认市场费率模板、BacktestExecutionDraft 和 Step 5 handoff 边界 |
+| [../RFC/0028-racingline-strategy-backtest-step5.md](../RFC/0028-racingline-strategy-backtest-step5.md) | `/strategies` Step 5 策略回测异步执行、backtest run control plane、NATS worker 和组合绩效指标设计 |
 | [../plans/archive/0050-racingline-strategy-simulation-position-step4-implementation-plan.md](../plans/archive/0050-racingline-strategy-simulation-position-step4-implementation-plan.md) | Step 4 execution draft、Rearview validate contract、stale gate 和 Step 5 contract handoff 已完成计划 |
 | [../jobs/reports/2026-06-23-racingline-strategy-step4-draft-handoff.md](../jobs/reports/2026-06-23-racingline-strategy-step4-draft-handoff.md) | Step 4 draft handoff、stale gate、fee template error path 和质量门禁验收报告 |
 | [../debt/0006-2026-06-23-strategies-step4-implemennt-drift.md](../debt/0006-2026-06-23-strategies-step4-implemennt-drift.md) | Step 4 模拟建仓实现漂移和修复方案，已 resolved |

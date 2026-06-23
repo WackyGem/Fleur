@@ -86,5 +86,6 @@
 - [用户逻辑：Racingline 策略研究工作台](user-logic.md)
 - [Q&A 0003: Racingline 策略研究工作台两入口导航与首屏承载](0003-racingline-strategy-lab-two-entry-navigation.md)
 - [RFC 0023: Racingline 前端原型驱动开发流程](../RFC/0023-racingline-frontend-prototype-led-development.md)
+- [RFC 0028: Racingline 策略回测 Step 5 异步执行方案](../RFC/0028-racingline-strategy-backtest-step5.md)
 - [System: Racingline](../systems/racingline.md)
 - [Plan 0041: Racingline 虚拟账户、组合运行、NATS worker、明细账本和净值曲线第一版实施计划](../plans/0041-racingline-virtual-account-portfolio-rebalancing-implementation-plan.md)
