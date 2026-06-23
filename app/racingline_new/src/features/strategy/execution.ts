@@ -95,6 +95,7 @@ export function simulationSettingsToBacktestExecutionConfig(
   }
 
   const buyTopN = Math.max(1, Math.floor(settings.buyTopN))
+  const maxPositions = Math.max(1, Math.floor(settings.maxPositions))
 
   return {
     market: "CN_A_SHARE",
@@ -108,7 +109,7 @@ export function simulationSettingsToBacktestExecutionConfig(
     },
     rebalance_policy: {
       target_weighting: "equal_weight_capped",
-      max_positions: buyTopN,
+      max_positions: maxPositions,
       single_position_limit_pct: percentToDecimal(
         settings.singlePositionLimitPercent
       ),

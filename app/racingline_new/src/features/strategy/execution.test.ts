@@ -57,6 +57,7 @@ const marketTemplate: MarketFeeTemplateRecord = {
 const settings: SimulationSettings = {
   initialCapital: 1_000_000,
   buyTopN: 5,
+  maxPositions: 8,
   singlePositionLimitPercent: 10,
   transactionFees: {
     commissionRatePercent: 0.01,
@@ -103,7 +104,7 @@ describe("simulationSettingsToBacktestExecutionConfig", () => {
     )
 
     expect(config.signal_policy.buy_signal_top_n).toBe(5)
-    expect(config.rebalance_policy.max_positions).toBe(5)
+    expect(config.rebalance_policy.max_positions).toBe(8)
     expect(config.rebalance_policy.single_position_limit_pct).toBe(0.1)
     expect(config.fee_profile.commission_rate).toBe(0.0001)
     expect(config.fee_profile.commission_rate_max).toBe(0.003)
@@ -199,7 +200,7 @@ describe("buildBacktestExecutionRequestDraft", () => {
         buy_signal_top_n: 5,
         enabled_exit_rule_count: 3,
         implicit_cash_reserve_pct: 0.5,
-        max_positions: 5,
+        max_positions: 8,
         target_weight_per_position_pct: 0.1,
       },
       warnings: [],

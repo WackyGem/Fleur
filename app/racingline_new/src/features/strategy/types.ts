@@ -63,6 +63,7 @@ export type ScaledWeightIndicator = WeightIndicator & {
 export type SimulationSettings = {
   initialCapital: number
   buyTopN: number
+  maxPositions: number
   singlePositionLimitPercent: number
   transactionFees: {
     commissionRatePercent: number

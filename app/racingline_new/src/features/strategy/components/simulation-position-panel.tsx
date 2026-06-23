@@ -58,23 +58,13 @@ import {
   type PoolCountTrendPoint,
 } from "@/features/strategy/pool-count-trend"
 import type { PreviewSnapshot } from "@/features/strategy/preview"
-import type {
-  SimulationSettings,
-  StrategyConditionGroup,
-  WeightIndicator,
-} from "@/features/strategy/types"
-import {
-  getCatalog,
-  getCatalogMetricsByType,
-  getScaledWeightIndicators,
-} from "@/features/strategy/utils"
+import type { SimulationSettings } from "@/features/strategy/types"
+import { getCatalog, getCatalogMetricsByType } from "@/features/strategy/utils"
 import { cn } from "@/lib/utils"
 
 type SimulationPositionPanelProps = {
-  appliedWeightIndicators: WeightIndicator[]
   backtestValidationError: string | null
   commissionRateMaxPercent: number | null
-  conditionGroups: StrategyConditionGroup[]
   isBacktestValidationPending: boolean
   isMarketTemplateError: boolean
   isMarketTemplateLoading: boolean
@@ -96,6 +86,11 @@ type NumberInputFieldProps = {
   step?: number
   suffix?: string
   value: number
+}
+
+type ReadonlySelectFieldProps = {
+  label: string
+  value: string
 }
 
 type RiskRuleRowProps = {
@@ -155,6 +150,8 @@ const settingControlGridClassName =
   "grid gap-2 md:grid-cols-[6.5rem_10rem_minmax(0,1fr)] md:items-center"
 const transactionFeeRowClassName =
   "grid gap-2 py-2 md:grid-cols-[11rem_6.5rem_10rem_minmax(0,1fr)] md:items-center"
+const buyRuleLabel = "T+1日开盘价买入"
+const rebalanceRuleLabel = "仓位空余按信号调入"
 
 const transactionFeeRows: TransactionFeeRow[] = [
   {
@@ -185,10 +182,8 @@ const transactionFeeRows: TransactionFeeRow[] = [
 ]
 
 function SimulationPositionPanel({
-  appliedWeightIndicators,
   backtestValidationError,
   commissionRateMaxPercent,
-  conditionGroups,
   isBacktestValidationPending,
   isMarketTemplateError,
   isMarketTemplateLoading,
@@ -199,18 +194,12 @@ function SimulationPositionPanel({
   settings,
 }: SimulationPositionPanelProps) {
   const activeRiskRows = buildRiskSummaryRows(settings)
-  const maxPositions = Math.max(1, Math.floor(settings.buyTopN))
+  const maxPositions = Math.max(1, Math.floor(settings.maxPositions))
   const targetWeight = Math.min(
     1 / maxPositions,
     settings.singlePositionLimitPercent / 100
   )
   const perPositionCapital = settings.initialCapital * Math.max(0, targetWeight)
-  const groupCount = conditionGroups.length
-  const conditionCount = conditionGroups.reduce(
-    (total, group) => total + group.conditions.length,
-    0
-  )
-  const { indicators } = getScaledWeightIndicators(appliedWeightIndicators)
   const poolCountTrend = buildPoolCountTrendData(previewSnapshot)
   const latestPoolCount = poolCountTrend.at(-1)?.count ?? 0
 
@@ -256,7 +245,7 @@ function SimulationPositionPanel({
             <CardContent className="px-0">
               <FieldSet>
                 <FieldLegend className="sr-only">仓位管理</FieldLegend>
-                <FieldGroup className="grid max-w-[48rem] gap-3 md:grid-cols-[12rem_12rem_19rem]">
+                <FieldGroup className="grid max-w-[54rem] gap-3 md:grid-cols-3">
                   <NumberInputField
                     label="初始金额"
                     min={0}
@@ -269,17 +258,21 @@ function SimulationPositionPanel({
                   />
 
                   <NumberInputField
-                    label="买入信号 Top N"
+                    label="最大持仓"
                     min={1}
-                    onValueChange={(buyTopN) => updateSettings({ buyTopN })}
+                    onValueChange={(maxPositions) =>
+                      updateSettings({
+                        maxPositions: Math.max(1, Math.floor(maxPositions)),
+                      })
+                    }
                     step={1}
                     suffix="只"
-                    value={settings.buyTopN}
+                    value={settings.maxPositions}
                   />
 
                   <Field>
                     <FieldLabel>单票上限</FieldLabel>
-                    <div className="grid grid-cols-[minmax(0,1fr)_8rem] items-center gap-3">
+                    <div className="grid grid-cols-[minmax(0,1fr)_7rem] items-center gap-3">
                       <Slider
                         aria-label="单票仓位上限"
                         max={100}
@@ -317,6 +310,26 @@ function SimulationPositionPanel({
                       </InputGroup>
                     </div>
                   </Field>
+
+                  <NumberInputField
+                    label="买入信号 Top N"
+                    min={1}
+                    onValueChange={(buyTopN) =>
+                      updateSettings({
+                        buyTopN: Math.max(1, Math.floor(buyTopN)),
+                      })
+                    }
+                    step={1}
+                    suffix="只"
+                    value={settings.buyTopN}
+                  />
+
+                  <ReadonlySelectField label="买入规则" value={buyRuleLabel} />
+
+                  <ReadonlySelectField
+                    label="调仓规则"
+                    value={rebalanceRuleLabel}
+                  />
                 </FieldGroup>
               </FieldSet>
             </CardContent>
@@ -491,15 +504,46 @@ function SimulationPositionPanel({
               <SummaryMetric label="最大持仓" value={`${maxPositions} 只`} />
               <SummaryMetric
                 label="单票上限"
-                value={formatPercent(settings.singlePositionLimitPercent)}
-              />
-              <SummaryMetric
-                label="单票金额"
                 value={formatCurrency(perPositionCapital)}
               />
               <SummaryMetric
-                label="卖出规则"
-                value={`${activeRiskRows.length} 条`}
+                label="买入规则"
+                value={buyRuleLabel}
+                valueClassName="whitespace-normal break-words leading-snug"
+              />
+              <SummaryMetric
+                label="调仓规则"
+                value={rebalanceRuleLabel}
+                valueClassName="whitespace-normal break-words leading-snug"
+              />
+            </div>
+
+            <Separator />
+
+            <div className="grid grid-cols-2 gap-2">
+              <SummaryMetric
+                label="佣金率"
+                value={formatFeePercent(
+                  settings.transactionFees.commissionRatePercent
+                )}
+              />
+              <SummaryMetric
+                label="卖出印花税"
+                value={formatFeePercent(
+                  settings.transactionFees.stampDutyRatePercent
+                )}
+              />
+              <SummaryMetric
+                label="过户费"
+                value={formatFeePercent(
+                  settings.transactionFees.transferFeeRatePercent
+                )}
+              />
+              <SummaryMetric
+                label="成交滑点"
+                value={formatFeePercent(
+                  settings.transactionFees.slippageRatePercent
+                )}
               />
             </div>
 
@@ -511,46 +555,6 @@ function SimulationPositionPanel({
                 <Badge variant="secondary">最近 {latestPoolCount} 只</Badge>
               </div>
               <PoolCountTrendChart data={poolCountTrend} />
-            </div>
-
-            <Separator />
-
-            <div className="grid grid-cols-2 gap-2">
-              <SummaryMetric
-                label="佣金率"
-                value={formatPercent(
-                  settings.transactionFees.commissionRatePercent
-                )}
-              />
-              <SummaryMetric
-                label="卖出印花税"
-                value={formatPercent(
-                  settings.transactionFees.stampDutyRatePercent
-                )}
-              />
-              <SummaryMetric
-                label="过户费"
-                value={formatPercent(
-                  settings.transactionFees.transferFeeRatePercent
-                )}
-              />
-              <SummaryMetric
-                label="成交滑点"
-                value={formatPercent(
-                  settings.transactionFees.slippageRatePercent
-                )}
-              />
-            </div>
-
-            <Separator />
-
-            <div className="grid grid-cols-2 gap-2">
-              <SummaryMetric label="指标组" value={`${groupCount} 组`} />
-              <SummaryMetric label="选股条件" value={`${conditionCount} 条`} />
-              <SummaryMetric
-                label="权重指标"
-                value={`${indicators.length} 条`}
-              />
             </div>
 
             <Separator />
@@ -624,6 +628,24 @@ function NumberInputField({
           <InputGroupAddon align="inline-end">{suffix}</InputGroupAddon>
         ) : null}
       </InputGroup>
+    </Field>
+  )
+}
+
+function ReadonlySelectField({ label, value }: ReadonlySelectFieldProps) {
+  return (
+    <Field data-disabled>
+      <FieldLabel>{label}</FieldLabel>
+      <Select value={value}>
+        <SelectTrigger className="w-full bg-background" disabled>
+          <SelectValue>{value}</SelectValue>
+        </SelectTrigger>
+        <SelectContent align="start" className="bg-background">
+          <SelectGroup>
+            <SelectItem value={value}>{value}</SelectItem>
+          </SelectGroup>
+        </SelectContent>
+      </Select>
     </Field>
   )
 }
@@ -770,7 +792,7 @@ function TransactionFeeRowField({
 }) {
   const note =
     row.key === "commissionRatePercent" && maxRate !== null
-      ? `模板上限 ${formatPercent(maxRate)}`
+      ? `模板上限 ${formatFeePercent(maxRate)}`
       : row.note
 
   return (
@@ -1137,11 +1159,26 @@ function PoolCountTrendChart({ data }: { data: PoolCountTrendPoint[] }) {
   )
 }
 
-function SummaryMetric({ label, value }: { label: string; value: string }) {
+function SummaryMetric({
+  className,
+  label,
+  value,
+  valueClassName,
+}: {
+  className?: string
+  label: string
+  value: string
+  valueClassName?: string
+}) {
   return (
-    <div className="min-w-0 px-1 py-1">
+    <div className={cn("min-w-0 px-1 py-1", className)}>
       <div className="text-xs text-muted-foreground">{label}</div>
-      <div className="mt-1 truncate text-sm font-medium tabular-nums">
+      <div
+        className={cn(
+          "mt-1 text-sm font-medium tabular-nums",
+          valueClassName ?? "truncate"
+        )}
+      >
         {value}
       </div>
     </div>
@@ -1187,6 +1224,10 @@ function formatCurrency(value: number) {
 
 function formatPercent(value: number) {
   return `${Number.isInteger(value) ? value : value.toFixed(1)}%`
+}
+
+function formatFeePercent(value: number) {
+  return `${value.toFixed(3)}%`
 }
 
 function formatErrorMessage(error: unknown) {
