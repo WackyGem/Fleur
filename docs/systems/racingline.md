@@ -58,6 +58,14 @@ make racingline-dev
 
 该命令会先按端口清理已启动的 Rearview 和 Racingline dev 进程，再启动 Docker dev 依赖服务、等待 PostgreSQL/ClickHouse、执行 PostgreSQL migrations、同步 Rearview metric catalog，最后同时启动 Rearview server `http://127.0.0.1:34057`、Rearview portfolio worker 与前端 `http://127.0.0.1:5173/`。
 
+只启动 `app/racingline_new` 与 Rearview HTTP server，用于策略创建工作台手工复验：
+
+```bash
+make racingline-new-rearview-dev
+```
+
+该命令同样清理前后端监听端口、准备 Docker dev 依赖、迁移和 metric catalog，并会停止残留的 Rearview portfolio worker；不会启动旧 `app/racingline/` 或 portfolio worker。
+
 单独启动或清理：
 
 ```bash

@@ -60,6 +60,14 @@ make racingline-dev
 make rearview-dev
 ```
 
+只启动 `app/racingline_new` 和 Rearview HTTP 服务、用于策略创建工作台手工复验：
+
+```bash
+make racingline-new-rearview-dev
+```
+
+该命令会清理前后端端口并停止残留 portfolio worker，但不会启动新的 `rearview-portfolio-worker`。
+
 `make racingline-dev-stop` 只清理前后端 dev server 端口；停止 Docker 依赖服务仍使用 `make dev-down`。
 
 手动展开步骤：
