@@ -251,6 +251,10 @@ type BacktestPerformanceGroup = {
   metrics: { label: string; value: string }[]
   title: string
 }
+type BacktestConfigSummaryGroup = {
+  items: { label: string; value: string }[]
+  title: string
+}
 
 function buildPreviewWeightIndicators(weightIndicators: WeightIndicator[]) {
   const source =
@@ -421,6 +425,13 @@ function BacktestPanel({
       ),
     [latestExcessReturn, performanceQuery.data]
   )
+  const configSummaryGroups = useMemo(
+    () =>
+      backtestExecutionDraft
+        ? buildBacktestConfigSummaryGroups(backtestExecutionDraft)
+        : [],
+    [backtestExecutionDraft]
+  )
   const actionDisabled = Boolean(
     !previewSnapshot ||
       previewSnapshot.stale ||
@@ -586,6 +597,47 @@ function BacktestPanel({
             run={currentRun}
             runError={runQuery.error}
           />
+
+          <section className="flex flex-col gap-3 xl:pr-4">
+            <div className="text-sm font-medium">执行配置</div>
+            {isBacktestValidationPending ? (
+              <Skeleton className="h-28 w-full" />
+            ) : configSummaryGroups.length > 0 ? (
+              <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+                {configSummaryGroups.map((group) => (
+                  <div key={group.title} className="flex min-w-0 flex-col gap-2">
+                    <div className="text-xs font-medium text-muted-foreground">
+                      {group.title}
+                    </div>
+                    <div className="flex flex-col gap-1.5">
+                      {group.items.map((item) => (
+                        <div
+                          key={`${group.title}-${item.label}`}
+                          className="grid grid-cols-[minmax(0,1fr)_auto] items-baseline gap-3"
+                        >
+                          <div className="truncate text-xs text-muted-foreground">
+                            {item.label}
+                          </div>
+                          <div className="max-w-44 truncate text-xs font-medium tabular-nums">
+                            {item.value}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <Empty className="min-h-28 border">
+                <EmptyHeader>
+                  <EmptyTitle>暂无执行配置</EmptyTitle>
+                  <EmptyDescription>
+                    Step 4 校验通过后会展示本次回测使用的 canonical 配置。
+                  </EmptyDescription>
+                </EmptyHeader>
+              </Empty>
+            )}
+          </section>
 
           <Separator className="bg-border/60" />
 
@@ -935,6 +987,124 @@ function buildRebalanceTradeSections(trades: BacktestRebalanceTrade[]) {
   }))
 }
 
+function buildBacktestConfigSummaryGroups(
+  draft: BacktestExecutionDraft
+): BacktestConfigSummaryGroup[] {
+  const config = draft.execution_config
+  const summary = draft.summary
+
+  return [
+    {
+      title: "仓位",
+      items: [
+        { label: "初始金额", value: formatCurrency(config.account.initial_cash) },
+        {
+          label: "单票上限",
+          value: formatDecimalPercent(
+            config.rebalance_policy.single_position_limit_pct
+          ),
+        },
+        {
+          label: "目标单票",
+          value: formatDecimalPercent(summary.target_weight_per_position_pct),
+        },
+      ],
+    },
+    {
+      title: "买入和调仓",
+      items: [
+        {
+          label: "每日候选 TopN",
+          value: `${config.signal_policy.buy_signal_top_n}只`,
+        },
+        {
+          label: "最大持仓",
+          value: `${config.rebalance_policy.max_positions}只`,
+        },
+        { label: "买入规则", value: formatSignalTiming(config.signal_policy.signal_timing) },
+        {
+          label: "调仓规则",
+          value: formatRebalancePolicy(config.rebalance_policy.target_weighting),
+        },
+      ],
+    },
+    {
+      title: "费率",
+      items: [
+        {
+          label: "佣金",
+          value: formatDecimalPercent(config.fee_profile.commission_rate),
+        },
+        {
+          label: "最低佣金",
+          value: formatCurrency(config.fee_profile.min_commission),
+        },
+        {
+          label: "印花税",
+          value: formatDecimalPercent(config.fee_profile.stamp_duty_rate_sell),
+        },
+        {
+          label: "过户费",
+          value: formatDecimalPercent(config.fee_profile.transfer_fee_rate),
+        },
+        {
+          label: "滑点",
+          value: `买${formatBpsPercent(config.slippage_profile.buy_bps)} / 卖${formatBpsPercent(config.slippage_profile.sell_bps)}`,
+        },
+      ],
+    },
+    {
+      title: "风控",
+      items: buildExitRuleSummaryItems(config.risk_exit_policy.exit_rules),
+    },
+  ]
+}
+
+function buildExitRuleSummaryItems(
+  rules: BacktestExecutionDraft["execution_config"]["risk_exit_policy"]["exit_rules"]
+) {
+  if (rules.length === 0) {
+    return [{ label: "卖出规则", value: "未启用" }]
+  }
+
+  return rules.map((rule, index) => ({
+    label: `卖出规则 ${index + 1}`,
+    value: formatExitRule(rule),
+  }))
+}
+
+function formatSignalTiming(timing: string) {
+  if (timing === "close_confirm_next_open") {
+    return "T+1日开盘价买入"
+  }
+
+  return timing
+}
+
+function formatRebalancePolicy(policy: string) {
+  if (policy === "equal_weight_capped") {
+    return "仓位空余按信号调入"
+  }
+
+  return policy
+}
+
+function formatExitRule(
+  rule: BacktestExecutionDraft["execution_config"]["risk_exit_policy"]["exit_rules"][number]
+) {
+  if (rule.type === "fixed_stop_loss") {
+    return `固定止损 ${formatDecimalPercent(rule.loss_pct)}`
+  }
+  if (rule.type === "take_profit") {
+    return `止盈 ${formatDecimalPercent(rule.profit_pct)}`
+  }
+  if (rule.type === "time_stop_loss") {
+    return `时间止损 ${rule.holding_days}天 / ${formatDecimalPercent(rule.max_return_pct)}`
+  }
+
+  return `指标止损 跌破 ${rule.metric}`
+}
+
 function BacktestStatusAlert({
   backtestValidationError,
   createError,
@@ -1251,6 +1421,14 @@ function formatOptionalCurrency(value: number | null | undefined) {
 
 function formatUiPercent(value: number) {
   return `${Number(value.toFixed(3))}%`
+}
+
+function formatDecimalPercent(value: number) {
+  return `${(value * 100).toFixed(2)}%`
+}
+
+function formatBpsPercent(value: number) {
+  return `${(value / 100).toFixed(2)}%`
 }
 
 function formatNetValue(value: number) {

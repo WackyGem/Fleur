@@ -505,12 +505,34 @@ async fn create_strategy_backtest(
         .map(serde_json::to_value)
         .transpose()?;
     let catalog_hash = Some(hash_catalog(&state.catalog)?);
+    let risk_free_tenor = "1y";
+    let (risk_free_return_count, risk_free_preflight_error) = match state
+        .clickhouse
+        .query_mart_risk_free_rates(
+            risk_free_tenor,
+            period_option.resolved_start_date,
+            period_option.resolved_end_date,
+            &format!(
+                "strategy-backtest-preflight-risk-free-{}-{}",
+                request.benchmark_security_code, request.period_key
+            ),
+        )
+        .await
+    {
+        Ok(rows) => (Some(rows.len()), None),
+        Err(error) => (None, Some(error.to_string())),
+    };
     let data_preflight_snapshot = build_strategy_backtest_preflight_snapshot(
         &request,
         period_option,
         &resolution,
         &draft,
         &catalog_hash,
+        StrategyBacktestRiskFreePreflight {
+            tenor: risk_free_tenor,
+            return_count: risk_free_return_count,
+            error: risk_free_preflight_error,
+        },
     );
     let ui_display_snapshot = request.ui_display_snapshot.unwrap_or_else(|| json!({}));
     let request_hash = hash_json(&json!({
@@ -534,7 +556,7 @@ async fn create_strategy_backtest(
                 Json(strategy_backtest_run_response(existing)?),
             ));
         }
-        return Err(RearviewError::Validation(
+        return Err(RearviewError::Conflict(
             "client_request_id already exists for a different strategy backtest request"
                 .to_string(),
         ));
@@ -3355,12 +3377,19 @@ fn strategy_backtest_run_response(
     })
 }
 
+struct StrategyBacktestRiskFreePreflight<'a> {
+    tenor: &'a str,
+    return_count: Option<usize>,
+    error: Option<String>,
+}
+
 fn build_strategy_backtest_preflight_snapshot(
     request: &StrategyBacktestCreateRequest,
     period_option: &StrategyBacktestPeriodOption,
     resolution: &StrategyBacktestRangeResolution,
     draft: &StrategyBacktestDraftResponse,
     catalog_hash: &Option<String>,
+    risk_free: StrategyBacktestRiskFreePreflight<'_>,
 ) -> Value {
     json!({
         "period_key": request.period_key,
@@ -3371,8 +3400,9 @@ fn build_strategy_backtest_preflight_snapshot(
         "resolved_trading_date_count": resolution.trade_date_count,
         "benchmark_security_code": request.benchmark_security_code,
         "benchmark_return_count": resolution.benchmark_return_count,
-        "risk_free_tenor": "CN_10Y",
-        "risk_free_return_count": null,
+        "risk_free_tenor": risk_free.tenor,
+        "risk_free_return_count": risk_free.return_count,
+        "risk_free_preflight_error": risk_free.error,
         "catalog_hash": catalog_hash,
         "required_metrics": [],
         "required_marts": [],

@@ -1,19 +1,32 @@
-import { buildPath, jsonBody, requestJson } from "@/api/client"
+import {
+  buildPath,
+  jsonBody,
+  requestJson,
+  type QueryParams,
+} from "@/api/client"
 import type {
   MarketFeeTemplateRecord,
   ExplainResponse,
+  ListResult,
   MetricDefinition,
   MetricsQuery,
   RuleVersionSpec,
   SecurityAnalysisRequest,
   SecurityAnalysisResponse,
+  StrategyBacktestClosedTradeRecord,
   StrategyBacktestCreateRequest,
   StrategyBacktestDraftResponse,
+  StrategyBacktestEventRecord,
   StrategyBacktestNavPoint,
+  StrategyBacktestOrderRecord,
   StrategyBacktestOptionsResponse,
   StrategyBacktestPerformanceView,
+  StrategyBacktestPositionRecord,
   StrategyBacktestRebalanceRecordsResponse,
   StrategyBacktestRunRecord,
+  StrategyBacktestTargetRecord,
+  StrategyBacktestTradeMetricRecord,
+  StrategyBacktestTradeRecord,
   StrategyBacktestValidateRequest,
   StrategyPreviewPoolPageRequest,
   StrategyPreviewPoolPageResponse,
@@ -119,9 +132,81 @@ export function listStrategyBacktestRebalanceRecords(
   )
 }
 
+export function listStrategyBacktestTargets(
+  strategyBacktestRunId: string,
+  query: QueryParams = {}
+) {
+  return requestJson<ListResult<StrategyBacktestTargetRecord>>(
+    buildPath(`/rearview/strategy-backtests/${strategyBacktestRunId}/targets`, query)
+  )
+}
+
+export function listStrategyBacktestOrders(
+  strategyBacktestRunId: string,
+  query: QueryParams = {}
+) {
+  return requestJson<ListResult<StrategyBacktestOrderRecord>>(
+    buildPath(`/rearview/strategy-backtests/${strategyBacktestRunId}/orders`, query)
+  )
+}
+
+export function listStrategyBacktestTrades(
+  strategyBacktestRunId: string,
+  query: QueryParams = {}
+) {
+  return requestJson<ListResult<StrategyBacktestTradeRecord>>(
+    buildPath(`/rearview/strategy-backtests/${strategyBacktestRunId}/trades`, query)
+  )
+}
+
+export function listStrategyBacktestPositions(
+  strategyBacktestRunId: string,
+  query: QueryParams = {}
+) {
+  return requestJson<ListResult<StrategyBacktestPositionRecord>>(
+    buildPath(
+      `/rearview/strategy-backtests/${strategyBacktestRunId}/positions`,
+      query
+    )
+  )
+}
+
+export function listStrategyBacktestEvents(
+  strategyBacktestRunId: string,
+  query: QueryParams = {}
+) {
+  return requestJson<ListResult<StrategyBacktestEventRecord>>(
+    buildPath(`/rearview/strategy-backtests/${strategyBacktestRunId}/events`, query)
+  )
+}
+
 export function getStrategyBacktestPerformance(strategyBacktestRunId: string) {
   return requestJson<StrategyBacktestPerformanceView>(
     `/rearview/strategy-backtests/${strategyBacktestRunId}/performance`
+  )
+}
+
+export function listStrategyBacktestClosedTrades(
+  strategyBacktestRunId: string,
+  query: QueryParams = {}
+) {
+  return requestJson<ListResult<StrategyBacktestClosedTradeRecord>>(
+    buildPath(
+      `/rearview/strategy-backtests/${strategyBacktestRunId}/closed-trades`,
+      query
+    )
+  )
+}
+
+export function listStrategyBacktestTradeMetrics(
+  strategyBacktestRunId: string,
+  query: QueryParams = {}
+) {
+  return requestJson<ListResult<StrategyBacktestTradeMetricRecord>>(
+    buildPath(
+      `/rearview/strategy-backtests/${strategyBacktestRunId}/trade-metrics`,
+      query
+    )
   )
 }
 

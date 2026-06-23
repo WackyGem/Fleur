@@ -2,6 +2,7 @@ import type {
   MetricsQuery,
   StrategyBacktestValidateRequest,
 } from "@/types/rearview"
+import type { QueryParams } from "@/api/client"
 
 export const queryKeys = {
   metrics: (query: MetricsQuery = {}) => ["metrics", query] as const,
@@ -28,6 +29,47 @@ export const queryKeys = {
     ] as const,
   strategyBacktestPerformance: (strategyBacktestRunId: string | null) =>
     ["strategy-backtests", strategyBacktestRunId, "performance"] as const,
+  strategyBacktestTargets: (
+    strategyBacktestRunId: string | null,
+    query: QueryParams = {}
+  ) => ["strategy-backtests", strategyBacktestRunId, "targets", query] as const,
+  strategyBacktestOrders: (
+    strategyBacktestRunId: string | null,
+    query: QueryParams = {}
+  ) => ["strategy-backtests", strategyBacktestRunId, "orders", query] as const,
+  strategyBacktestTrades: (
+    strategyBacktestRunId: string | null,
+    query: QueryParams = {}
+  ) => ["strategy-backtests", strategyBacktestRunId, "trades", query] as const,
+  strategyBacktestPositions: (
+    strategyBacktestRunId: string | null,
+    query: QueryParams = {}
+  ) =>
+    ["strategy-backtests", strategyBacktestRunId, "positions", query] as const,
+  strategyBacktestEvents: (
+    strategyBacktestRunId: string | null,
+    query: QueryParams = {}
+  ) => ["strategy-backtests", strategyBacktestRunId, "events", query] as const,
+  strategyBacktestClosedTrades: (
+    strategyBacktestRunId: string | null,
+    query: QueryParams = {}
+  ) =>
+    [
+      "strategy-backtests",
+      strategyBacktestRunId,
+      "closed-trades",
+      query,
+    ] as const,
+  strategyBacktestTradeMetrics: (
+    strategyBacktestRunId: string | null,
+    query: QueryParams = {}
+  ) =>
+    [
+      "strategy-backtests",
+      strategyBacktestRunId,
+      "trade-metrics",
+      query,
+    ] as const,
   previewTimeline: (previewId: string, startDate: string, endDate: string) =>
     ["preview-timeline", previewId, startDate, endDate] as const,
   previewPoolPage: (

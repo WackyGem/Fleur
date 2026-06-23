@@ -8,8 +8,15 @@ import {
   getStrategyBacktestOptions,
   getStrategyBacktestPerformance,
   getDefaultMarketFeeTemplate,
+  listStrategyBacktestClosedTrades,
+  listStrategyBacktestEvents,
   listStrategyBacktestNav,
+  listStrategyBacktestOrders,
+  listStrategyBacktestPositions,
   listStrategyBacktestRebalanceRecords,
+  listStrategyBacktestTargets,
+  listStrategyBacktestTradeMetrics,
+  listStrategyBacktestTrades,
   listMetrics,
   previewStrategy,
   previewStrategyPoolPage,
@@ -27,6 +34,7 @@ import type {
   StrategyPreviewRequest,
   StrategyPreviewTimelineRequest,
 } from "@/types/rearview"
+import type { QueryParams } from "@/api/client"
 
 export function useMetricsQuery(query: MetricsQuery = {}) {
   return useQuery({
@@ -184,6 +192,138 @@ export function useStrategyBacktestPerformanceQuery(
         throw new Error("strategy backtest run id is missing")
       }
       return getStrategyBacktestPerformance(strategyBacktestRunId)
+    },
+    retry: 1,
+  })
+}
+
+export function useStrategyBacktestTargetsQuery(
+  strategyBacktestRunId: string | null,
+  enabled: boolean,
+  query: QueryParams = {}
+) {
+  return useQuery({
+    enabled: Boolean(strategyBacktestRunId && enabled),
+    queryKey: queryKeys.strategyBacktestTargets(strategyBacktestRunId, query),
+    queryFn: () => {
+      if (!strategyBacktestRunId) {
+        throw new Error("strategy backtest run id is missing")
+      }
+      return listStrategyBacktestTargets(strategyBacktestRunId, query)
+    },
+    retry: 1,
+  })
+}
+
+export function useStrategyBacktestOrdersQuery(
+  strategyBacktestRunId: string | null,
+  enabled: boolean,
+  query: QueryParams = {}
+) {
+  return useQuery({
+    enabled: Boolean(strategyBacktestRunId && enabled),
+    queryKey: queryKeys.strategyBacktestOrders(strategyBacktestRunId, query),
+    queryFn: () => {
+      if (!strategyBacktestRunId) {
+        throw new Error("strategy backtest run id is missing")
+      }
+      return listStrategyBacktestOrders(strategyBacktestRunId, query)
+    },
+    retry: 1,
+  })
+}
+
+export function useStrategyBacktestTradesQuery(
+  strategyBacktestRunId: string | null,
+  enabled: boolean,
+  query: QueryParams = {}
+) {
+  return useQuery({
+    enabled: Boolean(strategyBacktestRunId && enabled),
+    queryKey: queryKeys.strategyBacktestTrades(strategyBacktestRunId, query),
+    queryFn: () => {
+      if (!strategyBacktestRunId) {
+        throw new Error("strategy backtest run id is missing")
+      }
+      return listStrategyBacktestTrades(strategyBacktestRunId, query)
+    },
+    retry: 1,
+  })
+}
+
+export function useStrategyBacktestPositionsQuery(
+  strategyBacktestRunId: string | null,
+  enabled: boolean,
+  query: QueryParams = {}
+) {
+  return useQuery({
+    enabled: Boolean(strategyBacktestRunId && enabled),
+    queryKey: queryKeys.strategyBacktestPositions(strategyBacktestRunId, query),
+    queryFn: () => {
+      if (!strategyBacktestRunId) {
+        throw new Error("strategy backtest run id is missing")
+      }
+      return listStrategyBacktestPositions(strategyBacktestRunId, query)
+    },
+    retry: 1,
+  })
+}
+
+export function useStrategyBacktestEventsQuery(
+  strategyBacktestRunId: string | null,
+  enabled: boolean,
+  query: QueryParams = {}
+) {
+  return useQuery({
+    enabled: Boolean(strategyBacktestRunId && enabled),
+    queryKey: queryKeys.strategyBacktestEvents(strategyBacktestRunId, query),
+    queryFn: () => {
+      if (!strategyBacktestRunId) {
+        throw new Error("strategy backtest run id is missing")
+      }
+      return listStrategyBacktestEvents(strategyBacktestRunId, query)
+    },
+    retry: 1,
+  })
+}
+
+export function useStrategyBacktestClosedTradesQuery(
+  strategyBacktestRunId: string | null,
+  enabled: boolean,
+  query: QueryParams = {}
+) {
+  return useQuery({
+    enabled: Boolean(strategyBacktestRunId && enabled),
+    queryKey: queryKeys.strategyBacktestClosedTrades(
+      strategyBacktestRunId,
+      query
+    ),
+    queryFn: () => {
+      if (!strategyBacktestRunId) {
+        throw new Error("strategy backtest run id is missing")
+      }
+      return listStrategyBacktestClosedTrades(strategyBacktestRunId, query)
+    },
+    retry: 1,
+  })
+}
+
+export function useStrategyBacktestTradeMetricsQuery(
+  strategyBacktestRunId: string | null,
+  enabled: boolean,
+  query: QueryParams = {}
+) {
+  return useQuery({
+    enabled: Boolean(strategyBacktestRunId && enabled),
+    queryKey: queryKeys.strategyBacktestTradeMetrics(
+      strategyBacktestRunId,
+      query
+    ),
+    queryFn: () => {
+      if (!strategyBacktestRunId) {
+        throw new Error("strategy backtest run id is missing")
+      }
+      return listStrategyBacktestTradeMetrics(strategyBacktestRunId, query)
     },
     retry: 1,
   })

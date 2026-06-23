@@ -542,7 +542,9 @@ fn strategy_backtest_as_portfolio_run(
 
 fn strategy_backtest_failure_status(error: &RearviewError) -> &'static str {
     match error {
-        RearviewError::Validation(_) | RearviewError::MetricCatalog(_) => "failed_validation",
+        RearviewError::Validation(_)
+        | RearviewError::Conflict(_)
+        | RearviewError::MetricCatalog(_) => "failed_validation",
         RearviewError::Planner(_) => "failed_compile",
         RearviewError::ClickHouse(_) | RearviewError::Http(_) => "failed_market_data",
         RearviewError::Postgres(_) | RearviewError::Nats(_) => "failed_write",
@@ -718,7 +720,7 @@ fn next_trade_date(trade_dates: &[NaiveDate], signal_date: NaiveDate) -> Option<
 
 fn portfolio_failure_status(error: &RearviewError) -> &'static str {
     match error {
-        RearviewError::Validation(_) => "failed_validation",
+        RearviewError::Validation(_) | RearviewError::Conflict(_) => "failed_validation",
         RearviewError::ClickHouse(_) => "failed_market_data",
         RearviewError::Postgres(_) => "failed_write",
         RearviewError::Config(_)

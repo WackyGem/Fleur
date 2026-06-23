@@ -323,6 +323,9 @@ export type BacktestExecutionSummary = {
   enabled_exit_rule_count: number
 }
 
+export type StrategyBacktestConfigSummary = BacktestExecutionSummary
+export type StrategyBacktestProgress = JsonRecord
+
 export type StrategyBacktestDraftResponse = {
   preview_id?: string
   preview_range?: BacktestDateRange
@@ -428,14 +431,14 @@ export type StrategyBacktestRunRecord = {
   claimed_at?: string | null
   heartbeat_at?: string | null
   claim_expires_at?: string | null
-  progress: JsonValue
+  progress: StrategyBacktestProgress
   summary: JsonValue
   signal_summary: JsonValue
   data_coverage_summary: JsonValue
   error_type?: string | null
   error_message?: string | null
   current_result_attempt_id?: string | null
-  config_summary: BacktestExecutionSummary
+  config_summary: StrategyBacktestConfigSummary
 }
 
 export type StrategyBacktestNavPoint = {
@@ -480,6 +483,125 @@ export type StrategyBacktestPerformanceView = {
     observation_count: number
     winning_day_count: number
   }
+}
+
+export type StrategyBacktestTargetRecord = {
+  portfolio_run_id: string
+  signal_date: string
+  execution_date: string
+  security_code: string
+  source_rank?: number | null
+  source_score?: number | null
+  target_weight: number
+  target_amount: number
+  target_quantity?: number | null
+  target_reason: string
+}
+
+export type StrategyBacktestOrderRecord = {
+  portfolio_order_id: string
+  portfolio_run_id: string
+  order_seq: number
+  signal_date?: string | null
+  execution_date: string
+  security_code: string
+  side: string
+  order_quantity: number
+  order_amount: number
+  reference_price?: number | null
+  reason: string
+  status: string
+  event_ref?: string | null
+}
+
+export type StrategyBacktestTradeRecord = {
+  portfolio_trade_id: string
+  portfolio_run_id: string
+  trade_seq: number
+  portfolio_order_id?: string | null
+  trade_date: string
+  signal_date?: string | null
+  security_code: string
+  side: string
+  quantity: number
+  reference_price: number
+  execution_price: number
+  gross_amount: number
+  commission: number
+  stamp_duty: number
+  transfer_fee: number
+  total_fee: number
+  slippage_cost: number
+  reason: string
+}
+
+export type StrategyBacktestPositionRecord = {
+  portfolio_run_id: string
+  trade_date: string
+  security_code: string
+  quantity: number
+  cost_basis: number
+  average_entry_price: number
+  close_price: number
+  market_value: number
+  unrealized_pnl: number
+  unrealized_return: number
+  holding_days: number
+  is_stale_price: boolean
+}
+
+export type StrategyBacktestEventRecord = {
+  portfolio_event_id: string
+  portfolio_run_id: string
+  event_seq: number
+  trade_date?: string | null
+  security_code?: string | null
+  event_type: string
+  severity: string
+  message: string
+  payload: JsonValue
+}
+
+export type StrategyBacktestClosedTradeRecord = {
+  portfolio_run_id: string
+  result_attempt_id: string
+  closed_trade_id: string
+  closed_trade_seq: number
+  position_lot_id: string
+  entry_trade_seq: number
+  exit_trade_seq: number
+  security_code: string
+  entry_date: string
+  exit_date: string
+  quantity: number
+  entry_gross_amount: number
+  exit_gross_amount: number
+  entry_fee: number
+  exit_fee: number
+  total_fee: number
+  realized_pnl: number
+  realized_return?: number | null
+  holding_days: number
+  exit_reason: string
+}
+
+export type StrategyBacktestTradeMetricRecord = {
+  portfolio_run_id: string
+  result_attempt_id: string
+  window_key: string
+  window_start?: string | null
+  window_end?: string | null
+  closed_trade_count: number
+  winning_trade_count: number
+  losing_trade_count: number
+  breakeven_trade_count: number
+  win_rate_closed_trades?: number | null
+  average_win_return?: number | null
+  average_loss_return?: number | null
+  profit_loss_ratio?: number | null
+  average_holding_days?: number | null
+  largest_win_return?: number | null
+  largest_loss_return?: number | null
 }
 
 export type Adjustment = "forward_adjusted" | "backward_adjusted" | "unadjusted"

@@ -11,6 +11,8 @@ pub enum RearviewError {
     Config(String),
     #[error("not found: {0}")]
     NotFound(String),
+    #[error("conflict: {0}")]
+    Conflict(String),
     #[error("validation error: {0}")]
     Validation(String),
     #[error("metric catalog error: {0}")]
@@ -43,6 +45,7 @@ impl RearviewError {
     pub fn status_code(&self) -> StatusCode {
         match self {
             Self::NotFound(_) => StatusCode::NOT_FOUND,
+            Self::Conflict(_) => StatusCode::CONFLICT,
             Self::Config(_)
             | Self::Postgres(_)
             | Self::ClickHouse(_)
@@ -60,6 +63,7 @@ impl RearviewError {
         match self {
             Self::Config(_) => "config",
             Self::NotFound(_) => "not_found",
+            Self::Conflict(_) => "conflict",
             Self::Validation(_) => "validation",
             Self::MetricCatalog(_) => "metric_catalog",
             Self::Planner(_) => "planner",
