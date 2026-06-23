@@ -1,4 +1,4 @@
-import { formatComparableIndicator } from "@/features/strategy/utils"
+import { formatWeightIndicator } from "@/features/strategy/utils"
 import type { ConditionFilterPath } from "@/features/strategy/adapters"
 import type {
   StrategyConditionGroup,
@@ -245,7 +245,7 @@ function buildScoringRuleLabels(weightIndicators: WeightIndicator[]) {
   return Object.fromEntries(
     weightIndicators.map((indicator, index) => [
       `weight:${indicator.id}:${index + 1}`,
-      formatComparableIndicator(indicator),
+      formatWeightIndicator(indicator),
     ])
   )
 }

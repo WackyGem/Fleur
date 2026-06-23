@@ -2637,6 +2637,13 @@ pub struct PortfolioTradeRecord {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PortfolioRebalanceTradeCountRecord {
+    pub trade_date: NaiveDate,
+    pub buy_count: i32,
+    pub sell_count: i32,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PortfolioPositionRecord {
     pub portfolio_run_id: String,
     pub trade_date: NaiveDate,

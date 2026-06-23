@@ -20,11 +20,14 @@ import { ComparisonFields } from "@/features/strategy/components/comparison-fiel
 import { WeightScoreSlider } from "@/features/strategy/components/weight-score-slider"
 import type {
   IndicatorCatalog,
+  WeightExtraCondition,
   WeightIndicator,
 } from "@/features/strategy/types"
 import {
   clampScore,
-  formatComparableIndicator,
+  createComparableIndicator,
+  createId,
+  formatWeightIndicator,
   getScaledWeightIndicators,
 } from "@/features/strategy/utils"
 
@@ -55,52 +58,114 @@ function WeightIndicatorsPanel({
             <AddDashedButton label="新增指标权重" onClick={onAddIndicator} />
           ) : (
             <div className="flex flex-col gap-2">
-              <FieldGroup className="gap-2">
+              <FieldGroup className="gap-3">
                 {weightIndicators.map((indicator) => {
                   const clampedScore = clampScore(indicator.score)
+                  const extraConditions = indicator.extraConditions ?? []
+                  const updateExtraCondition = (
+                    conditionId: string,
+                    patch: Partial<WeightExtraCondition>
+                  ) => {
+                    onUpdateIndicator(indicator.id, {
+                      extraConditions: extraConditions.map((condition) =>
+                        condition.id === conditionId
+                          ? { ...condition, ...patch }
+                          : condition
+                      ),
+                    })
+                  }
+                  const removeExtraCondition = (conditionId: string) => {
+                    onUpdateIndicator(indicator.id, {
+                      extraConditions: extraConditions.filter(
+                        (condition) => condition.id !== conditionId
+                      ),
+                    })
+                  }
+                  const addExtraCondition = () => {
+                    onUpdateIndicator(indicator.id, {
+                      extraConditions: [
+                        ...extraConditions,
+                        {
+                          id: createId("weight-condition"),
+                          ...createComparableIndicator(catalogOptions),
+                        },
+                      ],
+                    })
+                  }
 
                   return (
-                    <ComparisonFields
+                    <div
                       key={indicator.id}
-                      catalogOptions={catalogOptions}
-                      className="bg-muted/10 p-2 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)_minmax(0,0.8fr)_auto_minmax(0,1fr)_minmax(0,1.1fr)_minmax(16rem,1.4fr)_5rem_auto]"
-                      value={indicator}
-                      onChange={(patch) =>
-                        onUpdateIndicator(indicator.id, patch)
-                      }
-                      onRemove={() => onRemoveIndicator(indicator.id)}
-                      removeLabel="删除权重指标"
+                      className="flex flex-col gap-2 bg-muted/10 p-2"
                     >
-                      <Field>
-                        <FieldLabel>权重得分</FieldLabel>
-                        <div className="flex h-10 items-center gap-3">
-                          <WeightScoreSlider
-                            value={clampedScore}
-                            onValueChange={(nextValue) => {
-                              onUpdateIndicator(indicator.id, {
-                                score: clampScore(nextValue),
-                              })
-                            }}
-                          />
-                        </div>
-                      </Field>
+                      <ComparisonFields
+                        catalogOptions={catalogOptions}
+                        className="lg:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)_minmax(0,0.8fr)_auto_minmax(0,1fr)_minmax(0,1.1fr)_minmax(16rem,1.4fr)_5rem_auto]"
+                        value={indicator}
+                        onChange={(patch) =>
+                          onUpdateIndicator(indicator.id, patch)
+                        }
+                        onRemove={() => onRemoveIndicator(indicator.id)}
+                        removeLabel="删除权重指标"
+                      >
+                        <Field>
+                          <FieldLabel>权重得分</FieldLabel>
+                          <div className="flex h-10 items-center gap-3">
+                            <WeightScoreSlider
+                              value={clampedScore}
+                              onValueChange={(nextValue) => {
+                                onUpdateIndicator(indicator.id, {
+                                  score: clampScore(nextValue),
+                                })
+                              }}
+                            />
+                          </div>
+                        </Field>
 
-                      <Field>
-                        <FieldLabel>分数</FieldLabel>
-                        <Input
-                          className="text-center"
-                          value={String(indicator.score)}
-                          onChange={(event) =>
-                            onUpdateIndicator(indicator.id, {
-                              score: Number(event.target.value),
-                            })
+                        <Field>
+                          <FieldLabel>分数</FieldLabel>
+                          <Input
+                            className="text-center"
+                            value={String(indicator.score)}
+                            onChange={(event) =>
+                              onUpdateIndicator(indicator.id, {
+                                score: Number(event.target.value),
+                              })
+                            }
+                            min={0}
+                            max={100}
+                            type="number"
+                          />
+                        </Field>
+                      </ComparisonFields>
+
+                      {extraConditions.map((condition) => (
+                        <ComparisonFields
+                          key={condition.id}
+                          catalogOptions={catalogOptions}
+                          className="border-l-2 border-border/70 pl-2 lg:grid-cols-[4rem_minmax(0,1fr)_minmax(0,1.2fr)_minmax(0,0.8fr)_auto_minmax(0,1fr)_minmax(0,1.1fr)_minmax(16rem,1.4fr)_auto]"
+                          value={condition}
+                          onChange={(patch) =>
+                            updateExtraCondition(condition.id, patch)
                           }
-                          min={0}
-                          max={100}
-                          type="number"
-                        />
-                      </Field>
-                    </ComparisonFields>
+                          onRemove={() => removeExtraCondition(condition.id)}
+                          removeLabel="删除附加条件"
+                        >
+                          <Field>
+                            <FieldLabel>逻辑</FieldLabel>
+                            <div className="flex h-10 items-center text-xs font-medium text-muted-foreground">
+                              且
+                            </div>
+                          </Field>
+                        </ComparisonFields>
+                      ))}
+
+                      <AddDashedButton
+                        className="h-9 bg-transparent text-xs"
+                        label="新增附加条件"
+                        onClick={addExtraCondition}
+                      />
+                    </div>
                   )
                 })}
               </FieldGroup>
@@ -154,7 +219,7 @@ function WeightScaleSummary({
             indicators.map((indicator) => (
               <TableRow key={indicator.id} className="hover:bg-transparent">
                 <TableCell className="max-w-[36rem] truncate font-medium">
-                  {formatComparableIndicator(indicator)}
+                  {formatWeightIndicator(indicator)}
                 </TableCell>
                 <TableCell className="w-36 text-left tabular-nums">
                   {indicator.scaledScore.toFixed(1)}

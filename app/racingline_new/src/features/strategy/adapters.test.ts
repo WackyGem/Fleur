@@ -13,6 +13,7 @@ import type {
   ConditionOperator,
   StrategyCondition,
   StrategyConditionGroup,
+  WeightExtraCondition,
   WeightIndicator,
 } from "@/features/strategy/types"
 import type {
@@ -63,6 +64,13 @@ const catalog = [
     labelZh: "MA20",
     ops: crossingOps,
     sortOrder: 70,
+  }),
+  metric("price_ma_60", {
+    cross: "prev_price_ma_60",
+    displayGroup: "trend",
+    labelZh: "MA60",
+    ops: crossingOps,
+    sortOrder: 80,
   }),
   metric("prev_price_ma_5", {
     allowFilter: false,
@@ -224,6 +232,60 @@ describe("buildStrategyWeightScoring", () => {
     expect(result.scoring.rules[0]).toMatchObject({
       condition: compare("price_ma_5", "lt", multiplyOperand("price_ma_20", 0.6)),
     })
+  })
+
+  it("builds mutually exclusive segmented scoring conditions", () => {
+    const result = buildStrategyWeightScoring(
+      [
+        weight("w1", "kdj_j_value", "gte", "-15", 15, {
+          extraConditions: [
+            extraCondition("w1-extra", "kdj_j_value", "lt", "-10"),
+          ],
+        }),
+      ],
+      catalog
+    )
+
+    expect(result.scoring.rules[0]).toMatchObject({
+      condition: all([
+        compare("kdj_j_value", "gte", numberOperand(-15)),
+        compare("kdj_j_value", "lt", numberOperand(-10)),
+      ]),
+    })
+  })
+
+  it("builds chained metric scoring comparisons", () => {
+    const result = buildStrategyWeightScoring(
+      [
+        weight("w1", "close_price", "gt", "0", 15, {
+          compareMetric: "price_ma_20",
+          extraConditions: [
+            extraCondition("w1-extra", "close_price", "lt", "0", {
+              compareMetric: "price_ma_60",
+              target: "metric",
+            }),
+          ],
+          target: "metric",
+        }),
+      ],
+      catalog
+    )
+
+    expect(result.scoring.rules[0]).toMatchObject({
+      condition: all([
+        compare("close_price", "gt", {
+          type: "metric",
+          name: "price_ma_20",
+        }),
+        compare("close_price", "lt", {
+          type: "metric",
+          name: "price_ma_60",
+        }),
+      ]),
+    })
+    expect(result.outputMetrics).toEqual(
+      expect.arrayContaining(["close_price", "price_ma_20", "price_ma_60"])
+    )
   })
 
   it("adds scoring metrics and crossing previous metrics to output metrics", () => {
@@ -660,12 +722,40 @@ function weight(
   }
 }
 
+function extraCondition(
+  id: string,
+  metricName: string,
+  operator: ConditionOperator,
+  value: string,
+  overrides: Partial<WeightExtraCondition> = {}
+): WeightExtraCondition {
+  return {
+    catalogId: "test",
+    metric: metricName,
+    target: "value",
+    operator,
+    value,
+    valueEnd: "",
+    compareCatalogId: "test",
+    compareMetric: "close_price",
+    id,
+    ...overrides,
+  }
+}
+
 function compare(metricName: string, op: Operator, right: unknown) {
   return {
     type: "compare",
     left: { type: "metric", name: metricName },
     op,
     right,
+  }
+}
+
+function all(conditions: unknown[]) {
+  return {
+    type: "all",
+    conditions,
   }
 }
 

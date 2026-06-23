@@ -890,7 +890,14 @@ ORDER BY trade_date
 FORMAT JSONEachRow"#
         );
         let body = self
-            .execute_text(&sql, "rearview-portfolio-read-nav")
+            .execute_text(
+                &sql,
+                &portfolio_read_query_id(
+                    "rearview-portfolio-read-nav",
+                    portfolio_run_id,
+                    result_attempt_id,
+                ),
+            )
             .await?;
         parse_json_each_row(&body)
     }
@@ -924,7 +931,14 @@ FORMAT JSONEachRow"#,
             offset = filter.page.offset
         );
         let body = self
-            .execute_text(&sql, "rearview-portfolio-read-targets")
+            .execute_text(
+                &sql,
+                &portfolio_read_query_id(
+                    "rearview-portfolio-read-targets",
+                    &filter.portfolio_run_id,
+                    result_attempt_id,
+                ),
+            )
             .await?;
         let rows: Vec<crate::postgres::PortfolioTargetRecord> = parse_json_each_row(&body)?;
         Ok(crate::postgres::ListResult::from_rows(rows, filter.page))
@@ -967,7 +981,14 @@ FORMAT JSONEachRow"#,
             offset = filter.page.offset
         );
         let body = self
-            .execute_text(&sql, "rearview-portfolio-read-orders")
+            .execute_text(
+                &sql,
+                &portfolio_read_query_id(
+                    "rearview-portfolio-read-orders",
+                    &filter.portfolio_run_id,
+                    result_attempt_id,
+                ),
+            )
             .await?;
         let rows: Vec<crate::postgres::PortfolioOrderRecord> = parse_json_each_row(&body)?;
         Ok(crate::postgres::ListResult::from_rows(rows, filter.page))
@@ -1011,10 +1032,52 @@ FORMAT JSONEachRow"#,
             offset = filter.page.offset
         );
         let body = self
-            .execute_text(&sql, "rearview-portfolio-read-trades")
+            .execute_text(
+                &sql,
+                &portfolio_read_query_id(
+                    "rearview-portfolio-read-trades",
+                    &filter.portfolio_run_id,
+                    result_attempt_id,
+                ),
+            )
             .await?;
         let rows: Vec<crate::postgres::PortfolioTradeRecord> = parse_json_each_row(&body)?;
         Ok(crate::postgres::ListResult::from_rows(rows, filter.page))
+    }
+
+    pub async fn query_portfolio_rebalance_trade_counts(
+        &self,
+        portfolio_run_id: &str,
+        result_attempt_id: &str,
+    ) -> RearviewResult<Vec<crate::postgres::PortfolioRebalanceTradeCountRecord>> {
+        let database = &self.config.portfolio_database;
+        validate_identifier(database)?;
+        let run_id = quote_string_literal(portfolio_run_id);
+        let attempt = quote_string_literal(result_attempt_id);
+        let sql = format!(
+            r#"
+SELECT
+    trade_date,
+    toInt32(countDistinctIf(security_code, lower(side) = 'buy')) AS buy_count,
+    toInt32(countDistinctIf(security_code, lower(side) = 'sell')) AS sell_count
+FROM {database}.portfolio_trade
+WHERE portfolio_run_id = {run_id}
+  AND result_attempt_id = {attempt}
+GROUP BY trade_date
+ORDER BY trade_date
+FORMAT JSONEachRow"#
+        );
+        let body = self
+            .execute_text(
+                &sql,
+                &portfolio_read_query_id(
+                    "rearview-portfolio-read-rebalance-counts",
+                    portfolio_run_id,
+                    result_attempt_id,
+                ),
+            )
+            .await?;
+        parse_json_each_row(&body)
     }
 
     pub async fn query_portfolio_positions(
@@ -1039,7 +1102,14 @@ WHERE portfolio_run_id = {run_id}
 FORMAT JSONEachRow"#
                 );
                 let body = self
-                    .execute_text(&max_sql, "rearview-portfolio-read-max-date")
+                    .execute_text(
+                        &max_sql,
+                        &portfolio_read_query_id(
+                            "rearview-portfolio-read-max-date",
+                            &filter.portfolio_run_id,
+                            result_attempt_id,
+                        ),
+                    )
                     .await?;
                 #[derive(Deserialize)]
                 struct MaxDateRow {
@@ -1078,7 +1148,14 @@ FORMAT JSONEachRow"#,
             offset = filter.page.offset
         );
         let body = self
-            .execute_text(&sql, "rearview-portfolio-read-positions")
+            .execute_text(
+                &sql,
+                &portfolio_read_query_id(
+                    "rearview-portfolio-read-positions",
+                    &filter.portfolio_run_id,
+                    result_attempt_id,
+                ),
+            )
             .await?;
         let rows: Vec<crate::postgres::PortfolioPositionRecord> = parse_json_each_row(&body)?;
         Ok(crate::postgres::ListResult::from_rows(rows, filter.page))
@@ -1117,7 +1194,14 @@ FORMAT JSONEachRow"#,
             offset = filter.page.offset
         );
         let body = self
-            .execute_text(&sql, "rearview-portfolio-read-events")
+            .execute_text(
+                &sql,
+                &portfolio_read_query_id(
+                    "rearview-portfolio-read-events",
+                    &filter.portfolio_run_id,
+                    result_attempt_id,
+                ),
+            )
             .await?;
         // payload is stored as String in ClickHouse; parse it back to Value.
         #[derive(Deserialize)]
@@ -1181,7 +1265,14 @@ LIMIT 1
 FORMAT JSONEachRow"#
         );
         let body = self
-            .execute_text(&sql, "rearview-portfolio-read-performance")
+            .execute_text(
+                &sql,
+                &portfolio_read_query_id(
+                    "rearview-portfolio-read-performance",
+                    portfolio_run_id,
+                    result_attempt_id,
+                ),
+            )
             .await?;
         let metric =
             parse_json_each_row::<crate::postgres::PortfolioPerformanceMetricRecord>(&body)?
@@ -1206,7 +1297,14 @@ ORDER BY metric_name
 FORMAT JSONEachRow"#
         );
         let body = self
-            .execute_text(&status_sql, "rearview-portfolio-read-performance-status")
+            .execute_text(
+                &status_sql,
+                &portfolio_read_query_id(
+                    "rearview-portfolio-read-performance-status",
+                    portfolio_run_id,
+                    result_attempt_id,
+                ),
+            )
             .await?;
         let statuses =
             parse_json_each_row::<crate::postgres::PortfolioPerformanceMetricStatusRecord>(&body)?;
@@ -1254,7 +1352,14 @@ FORMAT JSONEachRow"#,
             offset = filter.page.offset
         );
         let body = self
-            .execute_text(&sql, "rearview-portfolio-read-closed-trades")
+            .execute_text(
+                &sql,
+                &portfolio_read_query_id(
+                    "rearview-portfolio-read-closed-trades",
+                    &filter.portfolio_run_id,
+                    result_attempt_id,
+                ),
+            )
             .await?;
         let rows = parse_json_each_row::<crate::postgres::PortfolioClosedTradeRecord>(&body)?;
         Ok(crate::postgres::ListResult::from_rows(rows, filter.page))
@@ -1295,7 +1400,14 @@ FORMAT JSONEachRow"#,
             offset = filter.page.offset
         );
         let body = self
-            .execute_text(&sql, "rearview-portfolio-read-trade-metrics")
+            .execute_text(
+                &sql,
+                &portfolio_read_query_id(
+                    "rearview-portfolio-read-trade-metrics",
+                    &filter.portfolio_run_id,
+                    result_attempt_id,
+                ),
+            )
             .await?;
         let rows = parse_json_each_row::<crate::postgres::PortfolioTradeMetricRecord>(&body)?;
         Ok(crate::postgres::ListResult::from_rows(rows, filter.page))
@@ -1319,6 +1431,17 @@ FORMAT JSONEachRow"#,
         }
         Ok(body)
     }
+}
+
+fn portfolio_read_query_id(
+    prefix: &str,
+    portfolio_run_id: &str,
+    result_attempt_id: &str,
+) -> String {
+    format!(
+        "{prefix}-{portfolio_run_id}-{result_attempt_id}-{}",
+        ulid::Ulid::new()
+    )
 }
 
 fn validate_identifier(identifier: &str) -> RearviewResult<()> {

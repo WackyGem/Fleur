@@ -202,6 +202,28 @@ const defaultSimulationSettings: SimulationSettings = {
   },
 }
 
+const step5AcceptanceSimulationSettings: SimulationSettings = {
+  ...defaultSimulationSettings,
+  fixedStopLoss: {
+    ...defaultSimulationSettings.fixedStopLoss,
+    enabled: true,
+  },
+  indicatorStopLoss: {
+    ...defaultSimulationSettings.indicatorStopLoss,
+    enabled: true,
+    catalogId: "trend",
+    metric: "price_ma_10",
+  },
+  takeProfit: {
+    ...defaultSimulationSettings.takeProfit,
+    enabled: true,
+  },
+  timeStopLoss: {
+    ...defaultSimulationSettings.timeStopLoss,
+    enabled: true,
+  },
+}
+
 const backtestPeriodOptions = [
   { value: "1y", label: "近一年" },
   { value: "2y", label: "近两年" },
@@ -262,11 +284,180 @@ function buildPreviewWeightIndicators(weightIndicators: WeightIndicator[]) {
       ? weightIndicators
       : defaultPreviewWeightIndicators
 
-  return source.map((indicator) => ({ ...indicator }))
+  return source.map(cloneWeightIndicator)
+}
+
+function getStep5AcceptanceFixtureStep(): Step | null {
+  if (!import.meta.env.DEV || typeof window === "undefined") {
+    return null
+  }
+
+  const params = new URLSearchParams(window.location.search)
+  if (params.get("fixture") !== "step5-acceptance") {
+    return null
+  }
+
+  const step = params.get("step")
+  return isStep(step) ? step : "indicators"
+}
+
+function isStep(value: string | null): value is Step {
+  return (
+    value === "indicators" ||
+    value === "weights" ||
+    value === "preview" ||
+    value === "simulation" ||
+    value === "backtest"
+  )
+}
+
+function buildStep5AcceptanceConditionGroups(): StrategyConditionGroup[] {
+  return [
+    {
+      id: "acceptance-group-low-reversal",
+      name: "低位反转验收",
+      conditions: [
+        acceptanceCondition("acceptance-filter-kdj-j", "momentum", "kdj_j_value", "lt", "13"),
+        acceptanceCondition("acceptance-filter-amplitude", "quotes", "pct_amplitude", "lt", "4"),
+        acceptanceCondition("acceptance-filter-pct-change-lower", "quotes", "pct_change", "gt", "-2"),
+        acceptanceCondition("acceptance-filter-pct-change-upper", "quotes", "pct_change", "lt", "2"),
+        acceptanceCondition("acceptance-filter-volume-prev", "quotes", "volume", "lt", "0", {
+          compareCatalogId: "quotes",
+          compareMetric: "prev_volume",
+          compareMultiplier: "0.8",
+          target: "metric",
+        }),
+        acceptanceCondition("acceptance-filter-ema-combo", "trend", "price_ema2_10", "gt", "0", {
+          compareCatalogId: "trend",
+          compareMetric: "price_avg_ma_14_28_57_114",
+          target: "metric",
+        }),
+        acceptanceCondition("acceptance-filter-down-streak", "pattern", "close_down_streak_days", "lt", "4"),
+        acceptanceCondition("acceptance-filter-close-combo", "quotes", "close_price_forward_adj", "gt", "0", {
+          compareCatalogId: "trend",
+          compareMetric: "price_avg_ma_3_6_12_24",
+          target: "metric",
+        }),
+        acceptanceCondition("acceptance-filter-ma60-ma114", "trend", "price_ma_60", "gt", "0", {
+          compareCatalogId: "trend",
+          compareMetric: "price_ma_114",
+          target: "metric",
+        }),
+        acceptanceCondition("acceptance-filter-ma114-ma250", "trend", "price_ma_114", "gt", "0", {
+          compareCatalogId: "trend",
+          compareMetric: "price_ma_250",
+          target: "metric",
+        }),
+      ],
+    },
+  ]
+}
+
+function buildStep5AcceptanceWeightIndicators(): WeightIndicator[] {
+  return [
+    acceptanceWeight("acceptance-score-kdj-deep", "momentum", "kdj_j_value", "lt", "-15", 25),
+    acceptanceWeight("acceptance-score-kdj-mild", "momentum", "kdj_j_value", "gte", "-15", 15, {
+      extraConditions: [
+        acceptanceExtraCondition("acceptance-score-kdj-mild-upper", "momentum", "kdj_j_value", "lt", "-10"),
+      ],
+    }),
+    acceptanceWeight("acceptance-score-volume-ma5", "quotes", "volume", "lt", "0", 20, {
+      compareCatalogId: "volume",
+      compareMetric: "volume_ma_5",
+      compareMultiplier: "0.6",
+      target: "metric",
+    }),
+    acceptanceWeight("acceptance-score-close-between-ma", "quotes", "close_price_forward_adj", "gt", "0", 15, {
+      compareCatalogId: "trend",
+      compareMetric: "price_ma_20",
+      extraConditions: [
+        acceptanceExtraCondition("acceptance-score-close-below-ma60", "quotes", "close_price_forward_adj", "lt", "0", {
+          compareCatalogId: "trend",
+          compareMetric: "price_ma_60",
+          target: "metric",
+        }),
+      ],
+      target: "metric",
+    }),
+    acceptanceWeight("acceptance-score-n-structure", "pattern", "n_structure_20_second_low_ratio", "gt", "1", 15),
+    acceptanceWeight("acceptance-score-boll-lower", "quotes", "close_price_forward_adj", "lt", "0", 15, {
+      compareCatalogId: "trend",
+      compareMetric: "boll_lower_20_2",
+      target: "metric",
+    }),
+    acceptanceWeight("acceptance-score-rsi", "momentum", "rsi_6", "lt", "25", 5),
+  ]
+}
+
+function acceptanceCondition(
+  id: string,
+  catalogId: string,
+  metric: string,
+  operator: StrategyCondition["operator"],
+  value: string,
+  overrides: Partial<StrategyCondition> = {}
+): StrategyCondition {
+  return {
+    catalogId,
+    compareCatalogId: catalogId,
+    compareMetric: metric,
+    compareMultiplier: "1",
+    id,
+    logic: "and",
+    metric,
+    operator,
+    target: "value",
+    value,
+    valueEnd: "",
+    ...overrides,
+  }
+}
+
+function acceptanceWeight(
+  id: string,
+  catalogId: string,
+  metric: string,
+  operator: StrategyCondition["operator"],
+  value: string,
+  score: number,
+  overrides: Partial<WeightIndicator> = {}
+): WeightIndicator {
+  return {
+    ...acceptanceCondition(id, catalogId, metric, operator, value, overrides),
+    extraConditions: overrides.extraConditions ?? [],
+    score,
+  }
+}
+
+function acceptanceExtraCondition(
+  id: string,
+  catalogId: string,
+  metric: string,
+  operator: StrategyCondition["operator"],
+  value: string,
+  overrides: Partial<WeightIndicator> = {}
+): NonNullable<WeightIndicator["extraConditions"]>[number] {
+  return acceptanceCondition(
+    id,
+    catalogId,
+    metric,
+    operator,
+    value,
+    overrides
+  )
 }
 
 function cloneWeightIndicators(weightIndicators: WeightIndicator[]) {
-  return weightIndicators.map((indicator) => ({ ...indicator }))
+  return weightIndicators.map(cloneWeightIndicator)
+}
+
+function cloneWeightIndicator(indicator: WeightIndicator): WeightIndicator {
+  return {
+    ...indicator,
+    extraConditions: indicator.extraConditions?.map((condition) => ({
+      ...condition,
+    })),
+  }
 }
 
 function buildPreviewRequestRange(previewRange: PreviewRange) {
@@ -442,6 +633,7 @@ function BacktestPanel({
       isMarketTemplateError ||
       optionsQuery.isLoading ||
       optionsQuery.isError ||
+      selectedBenchmarkOption?.availabilityStatus !== "available" ||
       createBacktestMutation.isPending ||
       isRunInProgress
   )
@@ -1648,6 +1840,11 @@ export function StrategyPage() {
   const [isOpeningPreview, setIsOpeningPreview] = useState(false)
   const [previewSnapshot, setPreviewSnapshot] =
     useState<PreviewSnapshot | null>(null)
+  const step5AcceptanceFixtureStep = useMemo(
+    () => getStep5AcceptanceFixtureStep(),
+    []
+  )
+  const hasAppliedStep5AcceptanceFixture = useRef(false)
   const effectiveSimulationSettings = useMemo(() => {
     if (!defaultMarketTemplateQuery.data || hasEditedTransactionFees) {
       return simulationSettings
@@ -1751,6 +1948,34 @@ export function StrategyPage() {
   )
   const canEditConditions = strategyCatalogOptions.length > 0
   const canEditWeights = hasRealScoringCatalog
+
+  useEffect(() => {
+    if (
+      !step5AcceptanceFixtureStep ||
+      hasAppliedStep5AcceptanceFixture.current ||
+      !hasRealMetricsCatalog ||
+      !hasRealScoringCatalog
+    ) {
+      return
+    }
+
+    hasAppliedStep5AcceptanceFixture.current = true
+    const fixtureWeights = buildStep5AcceptanceWeightIndicators()
+    setConditionGroups(buildStep5AcceptanceConditionGroups())
+    setWeightIndicators(fixtureWeights)
+    setPreviewAppliedWeightIndicators(cloneWeightIndicators(fixtureWeights))
+    setSimulationSettings(step5AcceptanceSimulationSettings)
+    setHasEditedTransactionFees(false)
+    setBacktestPeriod("1y")
+    setBacktestBenchmark("000300.SH")
+    setPreviewSnapshot(null)
+    setPreviewAdapterError(null)
+    setActiveStep(step5AcceptanceFixtureStep)
+  }, [
+    hasRealMetricsCatalog,
+    hasRealScoringCatalog,
+    step5AcceptanceFixtureStep,
+  ])
 
   function markRuleDraftChanged() {
     setPreviewAdapterError(null)

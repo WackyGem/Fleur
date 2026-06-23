@@ -228,11 +228,11 @@ export function buildStrategyWeightScoring(
   const rules = weightedScores
     .filter((item) => item.score > 0)
     .map((item, ruleIndex) => {
-      const condition = buildComparableFilterExpr(item.indicator, metricIndex, {
-        capability: "scoring",
-        itemId: item.indicator.id,
-      })
+      const condition = buildWeightScoringCondition(item.indicator, metricIndex)
       collectComparableOutputMetrics(item.indicator, metricIndex, output)
+      for (const extraCondition of item.indicator.extraConditions ?? []) {
+        collectComparableOutputMetrics(extraCondition, metricIndex, output)
+      }
       weightPaths.push({
         path: `scoring.rules.${ruleIndex}.condition`,
         weightId: item.indicator.id,
@@ -260,6 +260,33 @@ export function buildStrategyWeightScoring(
       },
     },
     weightPaths,
+  }
+}
+
+function buildWeightScoringCondition(
+  indicator: WeightIndicator,
+  metricIndex: MetricIndex
+): FilterExpr {
+  const conditions = [
+    buildComparableFilterExpr(indicator, metricIndex, {
+      capability: "scoring",
+      itemId: indicator.id,
+    }),
+    ...(indicator.extraConditions ?? []).map((condition) =>
+      buildComparableFilterExpr(condition, metricIndex, {
+        capability: "scoring",
+        itemId: condition.id,
+      })
+    ),
+  ]
+
+  if (conditions.length === 1) {
+    return conditions[0]
+  }
+
+  return {
+    type: "all",
+    conditions,
   }
 }
 

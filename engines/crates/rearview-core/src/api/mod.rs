@@ -645,6 +645,13 @@ async fn list_strategy_backtest_rebalance_records(
         .clickhouse
         .query_portfolio_nav(&strategy_backtest_run_id, &attempt_id)
         .await?;
+    let trade_counts = state
+        .clickhouse
+        .query_portfolio_rebalance_trade_counts(&strategy_backtest_run_id, &attempt_id)
+        .await?
+        .into_iter()
+        .map(|row| (row.trade_date, row))
+        .collect::<BTreeMap<_, _>>();
     let selected_trade_date = query
         .trade_date
         .or_else(|| {
@@ -733,34 +740,29 @@ async fn list_strategy_backtest_rebalance_records(
         &display,
         total_equity,
     );
-    let buy_count = rows.iter().filter(|row| row.direction == "buy").count();
-    let hold_count = rows.iter().filter(|row| row.direction == "hold").count();
-    let sell_count = rows.iter().filter(|row| row.direction == "sell").count();
     let records = nav
         .into_iter()
-        .map(|row| StrategyBacktestRebalanceRecord {
-            trade_date: row.trade_date,
-            position_count: row.position_count,
-            buy_count: if row.trade_date == selected_trade_date {
-                buy_count
-            } else {
-                0
-            },
-            hold_count: if row.trade_date == selected_trade_date {
-                hold_count
-            } else {
-                0
-            },
-            sell_count: if row.trade_date == selected_trade_date {
-                sell_count
-            } else {
-                0
-            },
-            rows: if row.trade_date == selected_trade_date {
-                rows.clone()
-            } else {
-                Vec::new()
-            },
+        .map(|row| {
+            let trade_count = trade_counts.get(&row.trade_date);
+            let buy_count_i32 = trade_count.map_or(0, |count| count.buy_count);
+            let sell_count_i32 = trade_count.map_or(0, |count| count.sell_count);
+            let hold_count_i32 = row.position_count.saturating_sub(buy_count_i32);
+            let buy_count = usize::try_from(buy_count_i32).unwrap_or_default();
+            let hold_count = usize::try_from(hold_count_i32).unwrap_or_default();
+            let sell_count = usize::try_from(sell_count_i32).unwrap_or_default();
+
+            StrategyBacktestRebalanceRecord {
+                trade_date: row.trade_date,
+                position_count: row.position_count,
+                buy_count,
+                hold_count,
+                sell_count,
+                rows: if row.trade_date == selected_trade_date {
+                    rows.clone()
+                } else {
+                    Vec::new()
+                },
+            }
         })
         .collect();
     Ok(Json(StrategyBacktestRebalanceRecordsResponse {

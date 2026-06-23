@@ -57,7 +57,7 @@ import { StrategySplitPanel } from "@/features/strategy/components/strategy-spli
 import { WeightScoreSlider } from "@/features/strategy/components/weight-score-slider"
 import {
   clampScore,
-  formatComparableIndicator,
+  formatWeightIndicator,
 } from "@/features/strategy/utils"
 import type { ChartSeriesRow, SecurityAnalysisResponse } from "@/types/rearview"
 
@@ -886,9 +886,9 @@ function CompactWeightTuningSection({
               >
                 <div
                   className="truncate text-xs text-muted-foreground"
-                  title={formatComparableIndicator(indicator)}
+                  title={formatWeightIndicator(indicator)}
                 >
-                  {formatComparableIndicator(indicator)}
+                  {formatWeightIndicator(indicator)}
                 </div>
                 <WeightScoreSlider
                   className="[&_[data-slot=slider-range]]:bg-muted-foreground/35 [&_[data-slot=slider-thumb]]:size-2 [&_[data-slot=slider-thumb]]:border-muted-foreground/35 [&_[data-slot=slider-thumb]]:bg-background [&_[data-slot=slider-track]]:h-0.5 [&_[data-slot=slider-track]]:bg-muted/70"

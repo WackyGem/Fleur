@@ -52,7 +52,12 @@ export type StrategyConditionGroup = {
 
 export type WeightIndicator = ComparableIndicator & {
   id: string
+  extraConditions?: WeightExtraCondition[]
   score: number
+}
+
+export type WeightExtraCondition = ComparableIndicator & {
+  id: string
 }
 
 export type ScaledWeightIndicator = WeightIndicator & {

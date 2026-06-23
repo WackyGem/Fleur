@@ -83,6 +83,7 @@ export function createWeightIndicator(
   return {
     id: createId("weight"),
     ...createComparableIndicator(catalogOptions),
+    extraConditions: [],
     score: 50,
   }
 }
@@ -124,6 +125,17 @@ export function formatComparableIndicator(indicator: ComparableIndicator) {
   }
 
   return `${indicator.metric} ${operatorLabel} ${indicator.value}`
+}
+
+export function formatWeightIndicator(indicator: WeightIndicator) {
+  const conditions = [
+    formatComparableIndicator(indicator),
+    ...(indicator.extraConditions ?? []).map((condition) =>
+      formatComparableIndicator(condition)
+    ),
+  ]
+
+  return conditions.join(" 且 ")
 }
 
 export function getCatalog(
