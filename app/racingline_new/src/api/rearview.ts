@@ -1,11 +1,14 @@
 import { buildPath, jsonBody, requestJson } from "@/api/client"
 import type {
+  MarketFeeTemplateRecord,
   ExplainResponse,
   MetricDefinition,
   MetricsQuery,
   RuleVersionSpec,
   SecurityAnalysisRequest,
   SecurityAnalysisResponse,
+  StrategyBacktestDraftResponse,
+  StrategyBacktestValidateRequest,
   StrategyPreviewPoolPageRequest,
   StrategyPreviewPoolPageResponse,
   StrategyPreviewRequest,
@@ -52,6 +55,21 @@ export function previewStrategyPoolPage(
 ) {
   return requestJson<StrategyPreviewPoolPageResponse>(
     "/rearview/strategy-preview/pool-page",
+    jsonBody(request)
+  )
+}
+
+export function getDefaultMarketFeeTemplate(market = "CN_A_SHARE") {
+  return requestJson<MarketFeeTemplateRecord>(
+    buildPath("/rearview/market-fee-templates/default", { market })
+  )
+}
+
+export function validateStrategyBacktest(
+  request: StrategyBacktestValidateRequest
+) {
+  return requestJson<StrategyBacktestDraftResponse>(
+    "/rearview/strategy-backtests/validate",
     jsonBody(request)
   )
 }

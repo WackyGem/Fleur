@@ -1,7 +1,15 @@
-import type { MetricsQuery } from "@/types/rearview"
+import type {
+  MetricsQuery,
+  StrategyBacktestValidateRequest,
+} from "@/types/rearview"
 
 export const queryKeys = {
   metrics: (query: MetricsQuery = {}) => ["metrics", query] as const,
+  defaultMarketFeeTemplate: (market: string) =>
+    ["market-fee-templates", "default", market] as const,
+  strategyBacktestValidate: (
+    request: StrategyBacktestValidateRequest | null
+  ) => ["strategy-backtests", "validate", request] as const,
   previewTimeline: (previewId: string, startDate: string, endDate: string) =>
     ["preview-timeline", previewId, startDate, endDate] as const,
   previewPoolPage: (

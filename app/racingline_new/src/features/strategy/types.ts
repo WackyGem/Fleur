@@ -66,7 +66,10 @@ export type SimulationSettings = {
   singlePositionLimitPercent: number
   transactionFees: {
     commissionRatePercent: number
-    slippageRatePercent: number
+    commissionRateMaxPercent: number
+    minCommission: number
+    buySlippageRatePercent: number
+    sellSlippageRatePercent: number
     stampDutyRatePercent: number
     transferFeeRatePercent: number
   }

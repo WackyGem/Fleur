@@ -211,6 +211,124 @@ export type StrategyPreviewPoolPageResponse = {
   has_more: boolean
 }
 
+export type FeeProfile = {
+  commission_rate: number
+  commission_rate_max: number
+  min_commission: number
+  stamp_duty_rate_sell: number
+  transfer_fee_rate: number
+  [key: string]: JsonValue
+}
+
+export type SlippageProfile = {
+  mode?: string
+  buy_bps: number
+  sell_bps: number
+  [key: string]: JsonValue | undefined
+}
+
+export type MarketFeeTemplateRecord = {
+  market_fee_template_id: string
+  market: string
+  name: string
+  currency: string
+  fee_profile: FeeProfile
+  slippage_profile: SlippageProfile
+  is_default: boolean
+  status: string
+}
+
+export type BacktestDateRange = {
+  start_date: string
+  end_date: string
+}
+
+export type BacktestExecutionConfig = {
+  market: "CN_A_SHARE"
+  account: BacktestAccountConfig
+  signal_policy: BacktestSignalPolicy
+  rebalance_policy: BacktestRebalancePolicy
+  fee_profile: FeeProfile
+  slippage_profile: BacktestSlippageProfile
+  risk_exit_policy: BacktestRiskExitPolicy
+  price_basis: "backward_adjusted"
+}
+
+export type BacktestAccountConfig = {
+  initial_cash: number
+  currency: "CNY"
+}
+
+export type BacktestSignalPolicy = {
+  buy_signal_top_n: number
+  signal_timing: "close_confirm_next_open"
+}
+
+export type BacktestRebalancePolicy = {
+  target_weighting: "equal_weight_capped"
+  max_positions: number
+  single_position_limit_pct: number
+  cash_reserve_pct: number
+  lot_size: 100
+  min_trade_lots: 1
+  empty_signal_action: "hold"
+}
+
+export type BacktestSlippageProfile = {
+  mode: "bps"
+  buy_bps: number
+  sell_bps: number
+}
+
+export type BacktestRiskExitPolicy = {
+  trigger_timing: "close_confirm_next_open"
+  exit_rules: ExitRuleConfig[]
+}
+
+export type ExitRuleConfig =
+  | {
+      type: "fixed_stop_loss"
+      loss_pct: number
+    }
+  | {
+      type: "take_profit"
+      profit_pct: number
+    }
+  | {
+      type: "time_stop_loss"
+      holding_days: number
+      max_return_pct: number
+    }
+
+export type StrategyBacktestValidateRequest = {
+  rule: RuleVersionSpec
+  preview_id?: string
+  preview_range?: BacktestDateRange
+  execution_config: BacktestExecutionConfig
+  range?: BacktestDateRange
+  benchmark?: string
+}
+
+export type BacktestExecutionSummary = {
+  buy_signal_top_n: number
+  max_positions: number
+  target_weight_per_position_pct: number
+  implicit_cash_reserve_pct: number
+  enabled_exit_rule_count: number
+}
+
+export type StrategyBacktestDraftResponse = {
+  preview_id?: string
+  preview_range?: BacktestDateRange
+  range?: BacktestDateRange
+  benchmark?: string
+  execution_config: BacktestExecutionConfig
+  rule_hash: string
+  execution_config_hash: string
+  summary: BacktestExecutionSummary
+  warnings: string[]
+}
+
 export type Adjustment = "forward_adjusted" | "backward_adjusted" | "unadjusted"
 
 export type ChartOhlc = {

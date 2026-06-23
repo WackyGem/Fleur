@@ -11,12 +11,12 @@
 | [0042](0042-chinabond-government-bond-s3-raw-implementation-plan.md) | Proposed | ChinaBond 国债收益率曲线 Dagster 年分区 S3 Parquet raw 接入与 2006-2026 回填计划 |
 | [0043](0043-portfolio-data-plane-clickhouse-phase1-implementation-plan.md) | Proposed | 组合数据面迁移 ClickHouse 第一阶段：结果事实存储迁移、result_attempt_id 幂等重算、worker 切换写入目标、API 切换读取源 |
 | [0044](0044-portfolio-performance-metrics-implementation-plan.md) | Proposed | 组合绩效指标、int/mart risk-free 与 benchmark 输入、metric config、worker 写入 fleur_calculation、dbt thin wrapper/ranking 和 closed trade ledger 实施计划 |
-| [0050](0050-racingline-strategy-simulation-position-step4-implementation-plan.md) | Proposed | Racingline 策略创建 Step 4 模拟建仓：BacktestExecutionDraft、默认市场费率模板、stale gate、UI 语义收敛和 Step 5 contract handoff 实施计划 |
 
 ## Recently Completed
 
 | Plan | 状态 | 说明 |
 |---|---|---|
+| [0050](archive/0050-racingline-strategy-simulation-position-step4-implementation-plan.md) | Completed | Racingline 策略创建 Step 4 模拟建仓：BacktestExecutionDraft、默认市场费率模板、stale gate、UI 语义收敛和 Step 5 contract handoff；验收见 [2026-06-23 report](../jobs/reports/2026-06-23-racingline-strategy-step4-draft-handoff.md) |
 | [0049](archive/0049-racingline-strategy-step3-drift2-remediation-plan.md) | Completed | Racingline Step 3 股池预览二次漂移修正：板块展示、全复权 MA、量柱、动态近一年窗口、Step 3 权重微调和下钻性能优化；验收见 [2026-06-22 report](../jobs/reports/2026-06-22-racingline-strategy-step3-drift2-remediation.md) |
 | [0048](archive/0048-racingline-strategy-step3-drift-remediation-plan.md) | Completed | Racingline Step 3 股池预览漂移修正：职责收缩、near-year timeline、10 条分页、K 线复权/MA 和 Step1/Step2 展示语义拆分；验收见 [2026-06-22 report](../jobs/reports/2026-06-22-racingline-strategy-step3-drift-remediation.md) |
 | [0047](archive/0047-racingline-strategy-pool-preview-step3-implementation-plan.md) | Completed | Racingline 股池预览 Step 3：真实接口基线、PreviewSnapshot、结果解释、完整候选池分页、证券显示和 preview-only 个股上下文；验收见 [2026-06-22 report](../jobs/reports/2026-06-22-racingline-strategy-step3-preview.md) |

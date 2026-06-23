@@ -2,7 +2,7 @@
 
 日期：2026-06-22
 
-状态：Proposed
+状态：Completed
 
 领域：racingline, rearview
 
@@ -18,15 +18,16 @@
 
 关联文档：
 
-- [RFC 0027: Racingline 模拟建仓 Step 4 实现方案](../RFC/0027-racingline-strategy-simulation-position-step4.md)
-- [RFC 0026: Racingline 股池预览 Step 3 实现方案](../RFC/0026-racingline-strategy-pool-preview-step3.md)
-- [RFC 0025: Racingline 策略权重配置 Step 2 实现方案](../RFC/0025-racingline-strategy-weight-configuration-step2.md)
-- [RFC 0024: Racingline 策略选股 Step 1 实现切入方案](../RFC/0024-racingline-strategy-selection-step1.md)
-- [RFC 0021: Racingline 虚拟账户与组合调仓净值](../RFC/0021-racingline-virtual-account-portfolio-rebalancing.md)
-- [Plan 0041: Racingline 虚拟账户与组合调仓净值实施计划](0041-racingline-virtual-account-portfolio-rebalancing-implementation-plan.md)
-- [System: Racingline](../systems/racingline.md)
-- [System: Rearview](../systems/rearview.md)
-- [Q&A 0004: Racingline 原型看板到策略创建闭环用户故事](../Q&A/0004-racingline-prototype-dashboard-to-strategy-loop.md)
+- [RFC 0027: Racingline 模拟建仓 Step 4 实现方案](../../RFC/0027-racingline-strategy-simulation-position-step4.md)
+- [RFC 0026: Racingline 股池预览 Step 3 实现方案](../../RFC/0026-racingline-strategy-pool-preview-step3.md)
+- [RFC 0025: Racingline 策略权重配置 Step 2 实现方案](../../RFC/0025-racingline-strategy-weight-configuration-step2.md)
+- [RFC 0024: Racingline 策略选股 Step 1 实现切入方案](../../RFC/0024-racingline-strategy-selection-step1.md)
+- [RFC 0021: Racingline 虚拟账户与组合调仓净值](../../RFC/0021-racingline-virtual-account-portfolio-rebalancing.md)
+- [Plan 0041: Racingline 虚拟账户与组合调仓净值实施计划](../0041-racingline-virtual-account-portfolio-rebalancing-implementation-plan.md)
+- [Step 4 Draft Handoff 报告](../../jobs/reports/2026-06-23-racingline-strategy-step4-draft-handoff.md)
+- [System: Racingline](../../systems/racingline.md)
+- [System: Rearview](../../systems/rearview.md)
+- [Q&A 0004: Racingline 原型看板到策略创建闭环用户故事](../../Q&A/0004-racingline-prototype-dashboard-to-strategy-loop.md)
 
 ## 目标
 
@@ -558,6 +559,6 @@ playwright-cli attach --cdp="${PLAYWRIGHT_CDP_ENDPOINT:-http://127.0.0.1:9222}"
 ## 完成后的维护动作
 
 1. 新增验收报告到 `docs/jobs/reports/`。
-2. 更新 [System: Racingline](../systems/racingline.md)，说明 `/strategies` Step 4 已生成 `BacktestExecutionDraft`。
-3. 如果后端新增 Step 5 API，更新 [System: Rearview](../systems/rearview.md) 和 `engines/README.md`。
+2. 更新 [System: Racingline](../../systems/racingline.md)，说明 `/strategies` Step 4 已生成 `BacktestExecutionDraft`。
+3. 如果后端新增 Step 5 API，更新 [System: Rearview](../../systems/rearview.md) 和 `engines/README.md`。
 4. 计划完成后移入 `docs/plans/archive/`，并在 `docs/plans/README.md` 的 Recently Completed 中记录报告链接。

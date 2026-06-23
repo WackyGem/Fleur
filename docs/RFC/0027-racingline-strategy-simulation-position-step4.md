@@ -1,10 +1,11 @@
 # RFC 0027: Racingline 模拟建仓 Step 4 实现方案
 
-状态：Proposed
+状态：Implemented
 领域：racingline, rearview
 关联系统：racingline, rearview
 代码根：app/racingline_new/, app/racingline/, engines/crates/rearview-core/, engines/crates/rearview-server/, engines/crates/rearview-portfolio-worker/
 需求入口：docs/intake/racingline.md
+实现报告：docs/jobs/reports/2026-06-23-racingline-strategy-step4-draft-handoff.md
 
 ## 摘要
 

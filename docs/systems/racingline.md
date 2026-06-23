@@ -1,6 +1,6 @@
 # System: Racingline
 
-状态：组合净值第一版实施中（2026-06-22）
+状态：策略创建 Step 4 draft handoff 已实现，组合净值第一版实施中（2026-06-23）
 
 ## 代码根
 
@@ -18,18 +18,21 @@
 3. 在 `app/racingline_new` 的 `/strategies` 中支持 Step 1 记录筛选条件、Step 2 记录评分规则、Step 3 点击股池预览后执行真实选股/评分/排名。
 4. Step 3 使用 Rearview preview-only API 展示 applied preview snapshot、动态近一年交易日股池概览、10 条分页候选股、rank、score、Step 2 得分项、Step 1 指标列、证券交易板块、K 线复权、MA5/MA10/MA30 和成交量柱；不展示 raw debug 面板。
 5. Step 3 允许在行情/估值下方微调 Step 2 权重草稿；权重变化只标记 preview stale，必须点击“更新股池”并由 Rearview 重新 preview 后才替换 applied snapshot。
-6. 展示 run、chunk 和 day 粒度进度。
-7. 按交易日展示股票池、TopN 买入信号、score breakdown 和 selected metrics。
-8. 用 UI 明确区分运行时结果快照和当前 mart 查询值。
-9. 从 run result 的 `Open` 进入 `/runs/:runId/securities/:securityCode` 个股分析页，提供结果列表、日 K 线、MA5/MA10/MA30、KDJ/RSI/MACD/BOLL 和右侧 mart 指标面板。
-10. 提供虚拟账户模板表单，使用 Rearview 默认市场费率模板预填初始资金、费率、滑点和卖出规则。
-11. 提供 `/portfolios` 和 `/portfolios/:portfolioRunId`，展示组合运行状态、净值曲线、summary、参数、持仓、成交、订单、调仓目标和事件。
+6. Step 4 使用 Rearview 默认市场费率模板初始化费用草稿，把 `SimulationSettings` 通过薄 adapter 映射为 snake_case `BacktestExecutionConfig`，再调用 `POST /rearview/strategy-backtests/validate` 获取 canonical config、`rule_hash`、`execution_config_hash` 和仓位摘要；Step 4 不执行回测。
+7. Step 4/5 gate 只允许非 stale Step 3 applied preview snapshot 和成功的 Rearview draft 进入；Step 1/2 修改后必须重新更新股池。
+8. Step 5 只消费 `BacktestExecutionDraft`、回测区间和 benchmark，展示 request draft、hash 和 config 摘要；真实回测执行按钮保持 disabled，不展示静态净值、持仓或绩效样例。
+9. 展示 run、chunk 和 day 粒度进度。
+10. 按交易日展示股票池、TopN 买入信号、score breakdown 和 selected metrics。
+11. 用 UI 明确区分运行时结果快照和当前 mart 查询值。
+12. 从 run result 的 `Open` 进入 `/runs/:runId/securities/:securityCode` 个股分析页，提供结果列表、日 K 线、MA5/MA10/MA30、KDJ/RSI/MACD/BOLL 和右侧 mart 指标面板。
+13. 提供虚拟账户模板表单，使用 Rearview 默认市场费率模板预填初始资金、费率、滑点和卖出规则。
+14. 提供 `/portfolios` 和 `/portfolios/:portfolioRunId`，展示组合运行状态、净值曲线、summary、参数、持仓、成交、订单、调仓目标和事件。
 
 ## 非职责
 
 1. 不实现 Rearview 规则编译、ClickHouse 查询、PostgreSQL 写入或业务状态机。
 2. 不直接访问 ClickHouse 或 PostgreSQL。
-3. 不在浏览器内计算权威成交、持仓、费用、滑点或净值；组合账本以 Rearview PostgreSQL API 为准。
+3. 不在浏览器内计算权威成交、持仓、费用、滑点、净值、绩效或 backtest hash；组合账本和 Step 4 canonical draft 以 Rearview API 为准。
 4. 第一版不引入登录入口、认证/鉴权、用户隔离或权限系统。
 
 ## 技术栈
@@ -132,6 +135,9 @@ cargo test --workspace
 | [../RFC/0024-racingline-strategy-selection-step1.md](../RFC/0024-racingline-strategy-selection-step1.md) | 从 `/strategies` Step 1 策略选股切入，接通 metric catalog、RuleVersionSpec 和 explain 的 Proposed RFC |
 | [../RFC/0025-racingline-strategy-weight-configuration-step2.md](../RFC/0025-racingline-strategy-weight-configuration-step2.md) | 从 `/strategies` Step 2 权重配置切入，把权重草稿落到 `RuleVersionSpec.scoring.rules`，并定义点击股池预览时才执行选股、评分和排名的 Implemented RFC |
 | [../RFC/0026-racingline-strategy-pool-preview-step3.md](../RFC/0026-racingline-strategy-pool-preview-step3.md) | 从 `/strategies` Step 3 股池预览切入，补齐 preview snapshot、结果解释、候选池分页、证券显示和 preview-only 个股上下文的 Implemented RFC |
+| [../RFC/0027-racingline-strategy-simulation-position-step4.md](../RFC/0027-racingline-strategy-simulation-position-step4.md) | `/strategies` Step 4 模拟建仓、默认市场费率模板、BacktestExecutionDraft 和 Step 5 handoff 边界 |
+| [../plans/archive/0050-racingline-strategy-simulation-position-step4-implementation-plan.md](../plans/archive/0050-racingline-strategy-simulation-position-step4-implementation-plan.md) | Step 4 execution draft、Rearview validate contract、stale gate 和 Step 5 contract handoff 已完成计划 |
+| [../jobs/reports/2026-06-23-racingline-strategy-step4-draft-handoff.md](../jobs/reports/2026-06-23-racingline-strategy-step4-draft-handoff.md) | Step 4 draft handoff、stale gate、fee template error path 和质量门禁验收报告 |
 | [../plans/archive/0045-racingline-strategy-selection-step1-gap-closure-plan.md](../plans/archive/0045-racingline-strategy-selection-step1-gap-closure-plan.md) | 策略选股 Step 1 缺口填补实施计划归档 |
 | [../plans/archive/0046-racingline-strategy-weight-configuration-step2-implementation-plan.md](../plans/archive/0046-racingline-strategy-weight-configuration-step2-implementation-plan.md) | 策略权重配置 Step 2、preview-only API 和真实股池预览实施计划归档 |
 | [../plans/archive/0047-racingline-strategy-pool-preview-step3-implementation-plan.md](../plans/archive/0047-racingline-strategy-pool-preview-step3-implementation-plan.md) | 策略股池预览 Step 3、PreviewSnapshot、全池分页和 preview security analysis 实施计划归档 |

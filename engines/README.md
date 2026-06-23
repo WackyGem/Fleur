@@ -139,6 +139,7 @@ cargo run -p rearview-portfolio-worker -- run
 | `GET` | `/rearview/runs/{run_id}/pool?trade_date=YYYY-MM-DD` | 查询某日股票池 |
 | `GET` | `/rearview/runs/{run_id}/signals?trade_date=YYYY-MM-DD` | 查询某日 TopN 买入信号 |
 | `POST` | `/rearview/explain` | 校验规则并返回所需 mart、列、SQL hash；带日期时返回 chunk plan |
+| `POST` | `/rearview/strategy-backtests/validate` | 校验 transient `RuleVersionSpec + BacktestExecutionConfig`，返回 canonical config、rule hash、execution config hash 和执行摘要；不创建 run 或 portfolio run |
 | `GET` | `/rearview/market-fee-templates/default?market=CN_A_SHARE` | 查询默认市场费率和滑点模板 |
 | `GET` | `/rearview/rule-sets/{rule_set_id}/account-templates` | 查询策略虚拟账户模板 |
 | `POST` | `/rearview/rule-sets/{rule_set_id}/account-templates` | 创建策略虚拟账户模板 |

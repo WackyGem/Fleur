@@ -3,16 +3,19 @@ import { keepPreviousData, useMutation, useQuery } from "@tanstack/react-query"
 import { queryKeys } from "@/api/queryKeys"
 import {
   explainRule,
+  getDefaultMarketFeeTemplate,
   listMetrics,
   previewStrategy,
   previewStrategyPoolPage,
   securityAnalysis,
   previewStrategyTimeline,
+  validateStrategyBacktest,
 } from "@/api/rearview"
 import type {
   MetricsQuery,
   RuleVersionSpec,
   SecurityAnalysisRequest,
+  StrategyBacktestValidateRequest,
   StrategyPreviewPoolPageRequest,
   StrategyPreviewRequest,
   StrategyPreviewTimelineRequest,
@@ -48,6 +51,37 @@ export function useStrategyPreviewTimelineMutation() {
   return useMutation({
     mutationFn: (request: StrategyPreviewTimelineRequest) =>
       previewStrategyTimeline(request),
+  })
+}
+
+export function useDefaultMarketFeeTemplateQuery(market = "CN_A_SHARE") {
+  return useQuery({
+    queryKey: queryKeys.defaultMarketFeeTemplate(market),
+    queryFn: () => getDefaultMarketFeeTemplate(market),
+    retry: 1,
+  })
+}
+
+export function useStrategyBacktestValidateMutation() {
+  return useMutation({
+    mutationFn: (request: StrategyBacktestValidateRequest) =>
+      validateStrategyBacktest(request),
+  })
+}
+
+export function useStrategyBacktestValidateQuery(
+  request: StrategyBacktestValidateRequest | null
+) {
+  return useQuery({
+    enabled: Boolean(request),
+    queryKey: queryKeys.strategyBacktestValidate(request),
+    queryFn: () => {
+      if (!request) {
+        throw new Error("strategy backtest validate request is missing")
+      }
+      return validateStrategyBacktest(request)
+    },
+    retry: 1,
   })
 }
 
