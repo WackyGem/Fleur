@@ -368,7 +368,7 @@ function toMetricOption(metric: MetricDefinition): MetricOption {
     defaultOutput: metric.default_output,
     description: metric.description,
     id: metric.logical_metric,
-    label: metric.display?.label_zh ?? metric.logical_metric,
+    label: metric.logical_metric,
     previousMetric: metric.cross?.previous_metric,
     sourceMetric: metric,
     supportsCrossing: Boolean(metric.cross?.previous_metric),
@@ -573,7 +573,28 @@ function buildRightOperand(
       "对比指标"
     )
     validateMetricOperandPair(leftMetric, rightMetric, op, options.itemId)
-    return { type: "metric", name: rightMetric.logical_metric }
+    const rightOperand: Operand = {
+      type: "metric",
+      name: rightMetric.logical_metric,
+    }
+    const multiplier = parseCompareMultiplier(
+      indicator.compareMultiplier,
+      options.itemId
+    )
+    if (multiplier === 1) {
+      return rightOperand
+    }
+    if (!isNumericKind(leftMetric.value_kind) || !isNumericKind(rightMetric.value_kind)) {
+      throw new StrategyRuleSpecError("指标倍数只支持数值指标", {
+        conditionId: options.itemId,
+      })
+    }
+    return {
+      type: "binary",
+      op: "multiply",
+      left: rightOperand,
+      right: { type: "number", value: multiplier },
+    }
   }
 
   if (op === "crosses_above" || op === "crosses_below") {
@@ -699,6 +720,15 @@ function parseNumber(value: string, conditionId?: string) {
   }
 
   return numberValue
+}
+
+function parseCompareMultiplier(value: string | undefined, conditionId?: string) {
+  const normalized = value?.trim()
+  if (!normalized) {
+    return 1
+  }
+
+  return parseNumber(normalized, conditionId)
 }
 
 function parseBool(value: string, conditionId?: string) {

@@ -36,6 +36,7 @@ export type ComparableIndicator = {
   valueEnd: string
   compareCatalogId: string
   compareMetric: string
+  compareMultiplier?: string
 }
 
 export type StrategyCondition = ComparableIndicator & {

@@ -745,6 +745,14 @@ fn validate_input(input: &PortfolioSimulationInput) -> RearviewResult<()> {
             "lot_size and min_trade_lots must be greater than 0".to_string(),
         ));
     }
+    for signal in &input.signals {
+        if signal.execution_date <= signal.signal_date {
+            return Err(RearviewError::Validation(format!(
+                "signal execution_date must be after signal_date: {} {} -> {}",
+                signal.security_code, signal.signal_date, signal.execution_date
+            )));
+        }
+    }
     for rule in &input.exit_rules {
         if let ExitRule::IndicatorStopLoss { metric } = rule
             && !is_supported_indicator_stop_loss_metric(metric)
@@ -1067,7 +1075,10 @@ mod tests {
         let mut input = fixture_input();
         input.max_positions = 2;
         input.exit_rules = Vec::new();
-        input.signals = vec![signal(d1, d1, "AAA", 1), signal(d2, d2, "AAA", 1)];
+        input.signals = vec![
+            next_open_signal(d1, "AAA", 1),
+            next_open_signal(d2, "AAA", 1),
+        ];
         input.prices = vec![price(d1, "AAA", 10.0, 10.0), price(d2, "AAA", 10.0, 10.0)];
 
         let output = simulate_portfolio(&input).expect("simulation should succeed");
@@ -1089,15 +1100,15 @@ mod tests {
         input.max_positions = 5;
         input.exit_rules = Vec::new();
         input.signals = vec![
-            signal(d1, d1, "AAA", 1),
-            signal(d1, d1, "BBB", 2),
-            signal(d1, d1, "CCC", 3),
-            signal(d2, d2, "DDD", 1),
-            signal(d2, d2, "EEE", 2),
-            signal(d2, d2, "FFF", 3),
-            signal(d2, d2, "GGG", 4),
-            signal(d2, d2, "HHH", 5),
-            signal(d2, d2, "III", 6),
+            next_open_signal(d1, "AAA", 1),
+            next_open_signal(d1, "BBB", 2),
+            next_open_signal(d1, "CCC", 3),
+            next_open_signal(d2, "DDD", 1),
+            next_open_signal(d2, "EEE", 2),
+            next_open_signal(d2, "FFF", 3),
+            next_open_signal(d2, "GGG", 4),
+            next_open_signal(d2, "HHH", 5),
+            next_open_signal(d2, "III", 6),
         ];
         input.prices = [
             "AAA", "BBB", "CCC", "DDD", "EEE", "FFF", "GGG", "HHH", "III",
@@ -1130,7 +1141,7 @@ mod tests {
         let mut input = fixture_input();
         input.end_date = d2;
         input.exit_rules = Vec::new();
-        input.signals = vec![signal(d1, d1, "AAA", 1), signal(d2, d3, "BBB", 1)];
+        input.signals = vec![next_open_signal(d1, "AAA", 1), signal(d2, d3, "BBB", 1)];
         input.prices = vec![
             price(d1, "AAA", 10.0, 10.0),
             price(d2, "AAA", 10.0, 10.0),
@@ -1225,7 +1236,7 @@ mod tests {
             holding_days: 2,
             max_return_pct: 0.20,
         }];
-        input.signals = vec![signal(d1, d1, "AAA", 1)];
+        input.signals = vec![next_open_signal(d1, "AAA", 1)];
         input.prices = vec![
             price(d1, "AAA", 10.0, 10.0),
             price(d2, "AAA", 10.0, 10.0),
@@ -1253,7 +1264,7 @@ mod tests {
         input.exit_rules = vec![ExitRule::IndicatorStopLoss {
             metric: "price_ma_10".to_string(),
         }];
-        input.signals = vec![signal(d1, d1, "AAA", 1)];
+        input.signals = vec![next_open_signal(d1, "AAA", 1)];
         input.prices = vec![
             price(d1, "AAA", 10.0, 10.0),
             price_with_metric(d2, "AAA", 10.0, 9.0, "price_ma_10", Some(10.0)),
@@ -1280,7 +1291,7 @@ mod tests {
         input.exit_rules = vec![ExitRule::IndicatorStopLoss {
             metric: "price_avg_ma_3_6_12_24".to_string(),
         }];
-        input.signals = vec![signal(d1, d1, "AAA", 1)];
+        input.signals = vec![next_open_signal(d1, "AAA", 1)];
         input.prices = vec![
             price(d1, "AAA", 10.0, 10.0),
             price_with_metric(d2, "AAA", 10.0, 9.0, "price_avg_ma_3_6_12_24", Some(10.0)),
@@ -1307,7 +1318,7 @@ mod tests {
         input.exit_rules = vec![ExitRule::IndicatorStopLoss {
             metric: "price_ema2_10".to_string(),
         }];
-        input.signals = vec![signal(d1, d1, "AAA", 1)];
+        input.signals = vec![next_open_signal(d1, "AAA", 1)];
         input.prices = vec![
             price(d1, "AAA", 10.0, 10.0),
             price_with_metric(d2, "AAA", 10.0, 9.0, "price_ema2_10", Some(10.0)),
@@ -1334,7 +1345,7 @@ mod tests {
         input.exit_rules = vec![ExitRule::IndicatorStopLoss {
             metric: "price_ma_10".to_string(),
         }];
-        input.signals = vec![signal(d1, d1, "AAA", 1)];
+        input.signals = vec![next_open_signal(d1, "AAA", 1)];
         input.prices = vec![
             price(d1, "AAA", 10.0, 10.0),
             price(d2, "AAA", 10.0, 9.0),
@@ -1363,7 +1374,7 @@ mod tests {
         input.initial_cash = 2_000.0;
         input.max_positions = 1;
         input.exit_rules = Vec::new();
-        input.signals = vec![signal(d1, d1, "AAA", 1)];
+        input.signals = vec![next_open_signal(d1, "AAA", 1)];
         input.prices = vec![
             price(d1, "AAA", 10.0, 10.0),
             price(d2, "AAA", 10.0, 5.0),
@@ -1393,6 +1404,21 @@ mod tests {
         assert_eq!(first_nav.cash_balance, input.initial_cash);
         assert_eq!(first_nav.position_market_value, 0.0);
         assert_eq!(first_nav.position_count, 0);
+    }
+
+    #[test]
+    fn simulation_should_reject_same_day_execution_signal() {
+        let d1 = date(2024, 1, 2);
+        let mut input = fixture_input();
+        input.signals = vec![signal(d1, d1, "AAA", 1)];
+
+        let error = simulate_portfolio(&input).expect_err("same-day signal should be rejected");
+
+        assert!(
+            error
+                .to_string()
+                .contains("execution_date must be after signal_date")
+        );
     }
 
     #[test]
@@ -1461,10 +1487,10 @@ mod tests {
             },
             exit_rules: vec![ExitRule::TakeProfit { profit_pct: 0.10 }],
             signals: vec![
-                signal(d1, d1, "AAA", 1),
-                signal(d1, d1, "BBB", 2),
-                signal(d2, d2, "AAA", 1),
-                signal(d3, d3, "CCC", 1),
+                next_open_signal(d1, "AAA", 1),
+                next_open_signal(d1, "BBB", 2),
+                next_open_signal(d2, "AAA", 1),
+                next_open_signal(d3, "CCC", 1),
             ],
             prices: vec![
                 price(d1, "AAA", 10.0, 12.0),
@@ -1478,6 +1504,21 @@ mod tests {
                 price(d3, "CCC", 30.0, 30.0),
             ],
         }
+    }
+
+    fn next_open_signal(
+        execution_date: NaiveDate,
+        security_code: &str,
+        rank: u32,
+    ) -> BuySignalInput {
+        signal(
+            execution_date
+                .pred_opt()
+                .expect("fixture execution date should have a previous date"),
+            execution_date,
+            security_code,
+            rank,
+        )
     }
 
     fn signal(

@@ -455,6 +455,19 @@ function ComparisonFields({
               </SelectContent>
             </Select>
           </Field>
+
+          {metric.valueType === "number" && !isCrossingOperator(value.operator) ? (
+            <Field>
+              <FieldLabel>对比倍数</FieldLabel>
+              <Input
+                value={value.compareMultiplier ?? "1"}
+                onChange={(event) =>
+                  onChange({ compareMultiplier: event.target.value })
+                }
+                type="number"
+              />
+            </Field>
+          ) : null}
         </>
       )}
 

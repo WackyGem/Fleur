@@ -63,6 +63,7 @@ export function createComparableIndicator(
     valueEnd: "",
     compareCatalogId: compareMetric.catalogId,
     compareMetric: compareMetric.metricId,
+    compareMultiplier: "1",
   }
 }
 
@@ -110,7 +111,12 @@ export function formatComparableIndicator(indicator: ComparableIndicator) {
   }
 
   if (indicator.target === "metric") {
-    return `${indicator.metric} ${operatorLabel} ${indicator.compareMetric}`
+    const multiplier = normalizeCompareMultiplier(indicator.compareMultiplier)
+    const compareLabel =
+      multiplier === "1"
+        ? indicator.compareMetric
+        : `${indicator.compareMetric} * ${multiplier}`
+    return `${indicator.metric} ${operatorLabel} ${compareLabel}`
   }
 
   if (indicator.operator === "between") {
@@ -313,7 +319,13 @@ export function getComparableMetricPatch(
     value: getCompatibleValue(indicator.value, nextMetric.valueType),
     compareCatalogId: compatibleCompare.catalogId,
     compareMetric: compatibleCompare.metricId,
+    compareMultiplier: indicator.compareMultiplier ?? "1",
   }
+}
+
+function normalizeCompareMultiplier(value: string | undefined) {
+  const normalized = value?.trim()
+  return normalized && normalized.length > 0 ? normalized : "1"
 }
 
 export function getScaledWeightIndicators(weightIndicators: WeightIndicator[]) {

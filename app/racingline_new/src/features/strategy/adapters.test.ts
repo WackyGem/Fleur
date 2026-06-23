@@ -126,7 +126,7 @@ describe("buildStrategyMetricCatalog", () => {
       .flatMap((group) => group.metrics)
       .find((item) => item.id === "kdj_j_value")
 
-    expect(ma5?.label).toBe("MA5")
+    expect(ma5?.label).toBe("price_ma_5")
     expect(ma5?.allowedOps).toContain("crosses_above")
     expect(kdj?.allowedOps).not.toContain("crosses_above")
   })
@@ -207,6 +207,23 @@ describe("buildStrategyWeightScoring", () => {
         catalog
       )
     ).toThrow(StrategyRuleSpecError)
+  })
+
+  it("builds metric comparison multipliers for scoring", () => {
+    const result = buildStrategyWeightScoring(
+      [
+        weight("w1", "price_ma_5", "lt", "0", 50, {
+          compareMetric: "price_ma_20",
+          compareMultiplier: "0.6",
+          target: "metric",
+        }),
+      ],
+      catalog
+    )
+
+    expect(result.scoring.rules[0]).toMatchObject({
+      condition: compare("price_ma_5", "lt", multiplyOperand("price_ma_20", 0.6)),
+    })
   })
 
   it("adds scoring metrics and crossing previous metrics to output metrics", () => {
@@ -294,6 +311,28 @@ describe("buildStrategySelectionRuleSpec", () => {
       type: "all",
       conditions: [
         compare("price_ma_5", "gt", { type: "metric", name: "price_ma_20" }),
+      ],
+    })
+  })
+
+  it("builds metric comparison multipliers", () => {
+    const { rule } = buildStrategySelectionRuleSpec(
+      [
+        group([
+          condition("a", "price_ma_5", "lt", "0", {
+            compareMetric: "price_ma_20",
+            compareMultiplier: "0.8",
+            target: "metric",
+          }),
+        ]),
+      ],
+      catalog
+    )
+
+    expect(rule.pool_filters).toEqual({
+      type: "all",
+      conditions: [
+        compare("price_ma_5", "lt", multiplyOperand("price_ma_20", 0.8)),
       ],
     })
   })
@@ -634,5 +673,14 @@ function numberOperand(value: number) {
   return {
     type: "number",
     value,
+  }
+}
+
+function multiplyOperand(metricName: string, multiplier: number) {
+  return {
+    type: "binary",
+    op: "multiply",
+    left: { type: "metric", name: metricName },
+    right: numberOperand(multiplier),
   }
 }

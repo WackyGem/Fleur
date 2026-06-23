@@ -3290,6 +3290,29 @@ async fn resolve_strategy_backtest_range(
             &format!("strategy-backtest-options-benchmark-{query_suffix}"),
         )
         .await?;
+    build_strategy_backtest_range_resolution(
+        benchmark_security_code,
+        as_of_date,
+        earliest_date,
+        trade_dates,
+        benchmark_returns,
+    )
+}
+
+fn build_strategy_backtest_range_resolution(
+    benchmark_security_code: &str,
+    as_of_date: NaiveDate,
+    earliest_date: NaiveDate,
+    mut trade_dates: Vec<NaiveDate>,
+    benchmark_returns: Vec<BenchmarkReturn>,
+) -> RearviewResult<StrategyBacktestRangeResolution> {
+    trade_dates.sort_unstable();
+    trade_dates.dedup();
+    if trade_dates.is_empty() {
+        return Err(RearviewError::Validation(format!(
+            "no trade dates available between {earliest_date} and {as_of_date}"
+        )));
+    }
     let benchmark_dates = benchmark_returns
         .iter()
         .filter(|row| row.return_daily.is_some())
@@ -4158,6 +4181,84 @@ mod tests {
         assert_eq!(values.get("30").copied().flatten(), Some(12.0));
     }
 
+    #[test]
+    fn strategy_backtest_range_should_fall_back_when_as_of_has_no_trade_date() {
+        let resolution = build_strategy_backtest_range_resolution(
+            "000300.SH",
+            date("2026-06-23"),
+            date("2023-06-23"),
+            vec![
+                date("2023-06-23"),
+                date("2024-06-24"),
+                date("2025-06-23"),
+                date("2026-06-22"),
+            ],
+            vec![benchmark_return("2026-06-22", Some(0.01))],
+        )
+        .expect("range should resolve to latest usable trade date");
+
+        assert_eq!(resolution.latest_available_trade_date, date("2026-06-22"));
+    }
+
+    #[test]
+    fn strategy_backtest_range_should_fall_back_when_benchmark_lacks_latest_return() {
+        let resolution = build_strategy_backtest_range_resolution(
+            "000300.SH",
+            date("2026-06-23"),
+            date("2023-06-23"),
+            vec![
+                date("2023-06-23"),
+                date("2024-06-24"),
+                date("2025-06-23"),
+                date("2026-06-22"),
+                date("2026-06-23"),
+            ],
+            vec![
+                benchmark_return("2026-06-22", Some(0.01)),
+                benchmark_return("2026-06-23", None),
+            ],
+        )
+        .expect("range should resolve to latest shared quote and benchmark date");
+
+        assert_eq!(resolution.latest_available_trade_date, date("2026-06-22"));
+    }
+
+    #[test]
+    fn strategy_backtest_range_should_resolve_period_starts_to_trade_dates() {
+        let resolution = build_strategy_backtest_range_resolution(
+            "000300.SH",
+            date("2026-06-23"),
+            date("2023-06-23"),
+            vec![
+                date("2023-06-23"),
+                date("2024-06-24"),
+                date("2025-06-23"),
+                date("2026-06-22"),
+            ],
+            vec![benchmark_return("2026-06-22", Some(0.01))],
+        )
+        .expect("range should resolve all period options");
+
+        assert_eq!(
+            period_option(&resolution, "1y").resolved_start_date,
+            date("2025-06-23")
+        );
+        assert_eq!(
+            period_option(&resolution, "2y").resolved_start_date,
+            date("2024-06-24")
+        );
+        assert_eq!(
+            period_option(&resolution, "3y").resolved_start_date,
+            date("2023-06-23")
+        );
+        assert!(
+            resolution
+                .period_options
+                .iter()
+                .all(|option| option.resolved_start_date <= option.resolved_end_date)
+        );
+    }
+
     fn preview_request(start_date: &str, end_date: &str, top_n: u32) -> StrategyPreviewRequest {
         StrategyPreviewRequest {
             rule: RuleVersionSpec {
@@ -4266,6 +4367,24 @@ mod tests {
             macd_dea: None,
             macd_histogram: None,
         }
+    }
+
+    fn benchmark_return(trade_date: &str, return_daily: Option<f64>) -> BenchmarkReturn {
+        BenchmarkReturn {
+            trade_date: date(trade_date),
+            return_daily,
+        }
+    }
+
+    fn period_option<'a>(
+        resolution: &'a StrategyBacktestRangeResolution,
+        period_key: &str,
+    ) -> &'a StrategyBacktestPeriodOption {
+        resolution
+            .period_options
+            .iter()
+            .find(|option| option.period_key == period_key)
+            .expect("period option should exist")
     }
 
     fn date(value: &str) -> NaiveDate {
