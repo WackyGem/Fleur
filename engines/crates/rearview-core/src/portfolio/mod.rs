@@ -8,6 +8,7 @@ use crate::{RearviewError, RearviewResult};
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PortfolioSimulationInput {
     pub start_date: NaiveDate,
+    pub end_date: NaiveDate,
     pub initial_cash: f64,
     pub max_positions: usize,
     pub single_position_limit_pct: Option<f64>,
@@ -345,7 +346,6 @@ pub fn simulate_portfolio(
 
     let mut cash = input.initial_cash;
     let mut positions: BTreeMap<String, PositionState> = BTreeMap::new();
-    let mut bought_history: BTreeSet<String> = BTreeSet::new();
     let mut pending_sells: BTreeMap<NaiveDate, Vec<PendingSell>> = BTreeMap::new();
     let mut previous_total_equity = Some(input.initial_cash);
     let mut max_equity = input.initial_cash;
@@ -378,6 +378,9 @@ pub fn simulate_portfolio(
     for (trade_day_index, trade_date) in trade_dates.into_iter().enumerate() {
         if trade_date <= input.start_date {
             continue;
+        }
+        if trade_date > input.end_date {
+            break;
         }
         let mut day_fee = 0.0;
         let mut day_turnover = 0.0;
@@ -462,7 +465,6 @@ pub fn simulate_portfolio(
                 }
                 if held.contains(&signal.security_code)
                     || positions.contains_key(&signal.security_code)
-                    || bought_history.contains(&signal.security_code)
                 {
                     continue;
                 }
@@ -584,7 +586,6 @@ pub fn simulate_portfolio(
                         entry_trade_index: trade_day_index,
                     },
                 );
-                bought_history.insert(signal.security_code.clone());
                 filled_slots += 1;
             }
         }
@@ -720,6 +721,11 @@ fn validate_input(input: &PortfolioSimulationInput) -> RearviewResult<()> {
     if input.max_positions == 0 {
         return Err(RearviewError::Validation(
             "max_positions must be greater than 0".to_string(),
+        ));
+    }
+    if input.end_date < input.start_date {
+        return Err(RearviewError::Validation(
+            "end_date must be greater than or equal to start_date".to_string(),
         ));
     }
     if !(0.0..1.0).contains(&input.cash_reserve_pct) {
@@ -1040,7 +1046,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn fills_vacant_slots_by_rank_and_does_not_repeat_existing_positions() {
+    fn simulation_should_allow_reentry_after_security_is_sold() {
         let input = fixture_input();
 
         let output = simulate_portfolio(&input).expect("simulation should succeed");
@@ -1051,20 +1057,120 @@ mod tests {
             .filter(|trade| trade.side == OrderSide::Buy)
             .map(|trade| trade.security_code.as_str())
             .collect();
-        assert_eq!(bought_codes, ["AAA", "BBB", "CCC"]);
+        assert_eq!(bought_codes, ["AAA", "BBB", "AAA"]);
+    }
+
+    #[test]
+    fn simulation_should_not_repeat_current_positions() {
+        let d1 = date(2024, 1, 2);
+        let d2 = date(2024, 1, 3);
+        let mut input = fixture_input();
+        input.max_positions = 2;
+        input.exit_rules = Vec::new();
+        input.signals = vec![signal(d1, d1, "AAA", 1), signal(d2, d2, "AAA", 1)];
+        input.prices = vec![price(d1, "AAA", 10.0, 10.0), price(d2, "AAA", 10.0, 10.0)];
+
+        let output = simulate_portfolio(&input).expect("simulation should succeed");
+
+        let aaa_buy_count = output
+            .trades
+            .iter()
+            .filter(|trade| trade.security_code == "AAA" && trade.side == OrderSide::Buy)
+            .count();
+        assert_eq!(aaa_buy_count, 1);
+    }
+
+    #[test]
+    fn simulation_should_cap_buys_by_vacant_slots_after_daily_top_n_candidates() {
+        let d1 = date(2024, 1, 2);
+        let d2 = date(2024, 1, 3);
+        let mut input = fixture_input();
+        input.initial_cash = 200_000.0;
+        input.max_positions = 5;
+        input.exit_rules = Vec::new();
+        input.signals = vec![
+            signal(d1, d1, "AAA", 1),
+            signal(d1, d1, "BBB", 2),
+            signal(d1, d1, "CCC", 3),
+            signal(d2, d2, "DDD", 1),
+            signal(d2, d2, "EEE", 2),
+            signal(d2, d2, "FFF", 3),
+            signal(d2, d2, "GGG", 4),
+            signal(d2, d2, "HHH", 5),
+            signal(d2, d2, "III", 6),
+        ];
+        input.prices = [
+            "AAA", "BBB", "CCC", "DDD", "EEE", "FFF", "GGG", "HHH", "III",
+        ]
+        .into_iter()
+        .flat_map(|security_code| {
+            [
+                price(d1, security_code, 10.0, 10.0),
+                price(d2, security_code, 10.0, 10.0),
+            ]
+        })
+        .collect();
+
+        let output = simulate_portfolio(&input).expect("simulation should succeed");
+
+        let bought_codes: Vec<_> = output
+            .trades
+            .iter()
+            .filter(|trade| trade.side == OrderSide::Buy)
+            .map(|trade| trade.security_code.as_str())
+            .collect();
+        assert_eq!(bought_codes, ["AAA", "BBB", "CCC", "DDD", "EEE"]);
+    }
+
+    #[test]
+    fn simulation_should_not_output_rows_after_end_date() {
+        let d1 = date(2024, 1, 2);
+        let d2 = date(2024, 1, 3);
+        let d3 = date(2024, 1, 4);
+        let mut input = fixture_input();
+        input.end_date = d2;
+        input.exit_rules = Vec::new();
+        input.signals = vec![signal(d1, d1, "AAA", 1), signal(d2, d3, "BBB", 1)];
+        input.prices = vec![
+            price(d1, "AAA", 10.0, 10.0),
+            price(d2, "AAA", 10.0, 10.0),
+            price(d3, "AAA", 10.0, 10.0),
+            price(d3, "BBB", 10.0, 10.0),
+        ];
+
+        let output = simulate_portfolio(&input).expect("simulation should succeed");
+
+        assert!(
+            output
+                .nav
+                .iter()
+                .all(|row| row.trade_date <= input.end_date)
+        );
+        assert!(
+            output
+                .trades
+                .iter()
+                .all(|trade| trade.trade_date <= input.end_date)
+        );
+        assert!(
+            !output
+                .trades
+                .iter()
+                .any(|trade| trade.security_code == "BBB")
+        );
+    }
+
+    #[test]
+    fn fills_orders_in_lot_size_and_records_take_profit_sell() {
+        let input = fixture_input();
+
+        let output = simulate_portfolio(&input).expect("simulation should succeed");
+
         assert!(
             output
                 .trades
                 .iter()
                 .all(|trade| trade.quantity % 100.0 == 0.0)
-        );
-        assert_eq!(
-            output
-                .orders
-                .iter()
-                .filter(|order| order.security_code == "AAA" && order.side == OrderSide::Buy)
-                .count(),
-            1
         );
         assert!(
             output
@@ -1114,6 +1220,7 @@ mod tests {
         let d4 = date(2024, 1, 10);
         let mut input = fixture_input();
         input.max_positions = 1;
+        input.end_date = d4;
         input.exit_rules = vec![ExitRule::TimeStopLoss {
             holding_days: 2,
             max_return_pct: 0.20,
@@ -1334,6 +1441,7 @@ mod tests {
         let d3 = date(2024, 1, 4);
         PortfolioSimulationInput {
             start_date: date(2024, 1, 1),
+            end_date: d3,
             initial_cash: 20_000.0,
             max_positions: 2,
             single_position_limit_pct: None,

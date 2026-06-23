@@ -1,4 +1,4 @@
-use chrono::{Datelike, NaiveDate};
+use chrono::{DateTime, Datelike, NaiveDate, Utc};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use sqlx::postgres::PgPoolOptions;
@@ -34,7 +34,7 @@ impl RearviewPg {
             sqlx::query_scalar("select version_num from alembic_version limit 1")
                 .fetch_optional(&self.pool)
                 .await?;
-        if version.as_deref() != Some("0006_portfolio_metric_config") {
+        if version.as_deref() != Some("0007_strategy_backtest_control_plane") {
             return Err(RearviewError::Config(format!(
                 "rearview schema version is not compatible: {:?}",
                 version
@@ -54,6 +54,9 @@ impl RearviewPg {
             "portfolio_run",
             "portfolio_metric_config",
             "portfolio_task_outbox",
+            "strategy_backtest_run",
+            "strategy_backtest_task_outbox",
+            "strategy_backtest_metric_config",
         ];
         let rows = sqlx::query(
             r#"
@@ -690,6 +693,439 @@ impl RearviewPg {
         .bind(&config.config_hash)
         .execute(&self.pool)
         .await?;
+        Ok(())
+    }
+
+    pub async fn create_strategy_backtest_run(
+        &self,
+        input: NewStrategyBacktestRun,
+    ) -> RearviewResult<StrategyBacktestRunRecord> {
+        let strategy_backtest_run_id = Uuid::new_v4().to_string();
+        let outbox_id = Uuid::new_v4().to_string();
+        let payload = serde_json::json!({
+            "kind": "strategy_backtest",
+            "run_id": strategy_backtest_run_id,
+            "requested_at": "database_created_at"
+        });
+        let required_metrics = serde_json::json!([]);
+        let required_marts = serde_json::json!([]);
+
+        let mut transaction = self.pool.begin().await?;
+        sqlx::query(
+            r#"
+            insert into strategy_backtest_run (
+                strategy_backtest_run_id,
+                rule_snapshot,
+                rule_hash,
+                execution_config,
+                execution_config_hash,
+                catalog_hash,
+                required_metrics,
+                required_marts,
+                data_preflight_snapshot,
+                preview_id,
+                preview_range,
+                period_key,
+                range_as_of_date,
+                range_resolved_at,
+                range_resolution_snapshot,
+                start_date,
+                end_date,
+                benchmark_security_code,
+                price_basis,
+                ui_display_snapshot,
+                client_request_id,
+                request_hash,
+                status,
+                dispatch_status
+            )
+            values (
+                $1, $2::jsonb, $3, $4::jsonb, $5, $6, $7::jsonb, $8::jsonb,
+                $9::jsonb, $10, $11::jsonb, $12, $13, now(), $14::jsonb,
+                $15, $16, $17, 'backward_adjusted', $18::jsonb, $19, $20,
+                'queued', 'pending'
+            )
+            "#,
+        )
+        .bind(&strategy_backtest_run_id)
+        .bind(&input.rule_snapshot)
+        .bind(&input.rule_hash)
+        .bind(&input.execution_config)
+        .bind(&input.execution_config_hash)
+        .bind(&input.catalog_hash)
+        .bind(&required_metrics)
+        .bind(&required_marts)
+        .bind(&input.data_preflight_snapshot)
+        .bind(&input.preview_id)
+        .bind(&input.preview_range)
+        .bind(&input.period_key)
+        .bind(input.range_as_of_date)
+        .bind(&input.range_resolution_snapshot)
+        .bind(input.start_date)
+        .bind(input.end_date)
+        .bind(&input.benchmark_security_code)
+        .bind(&input.ui_display_snapshot)
+        .bind(&input.client_request_id)
+        .bind(&input.request_hash)
+        .execute(&mut *transaction)
+        .await?;
+
+        sqlx::query(
+            r#"
+            insert into strategy_backtest_task_outbox (
+                outbox_id,
+                strategy_backtest_run_id,
+                subject,
+                payload,
+                status
+            )
+            values ($1, $2, $3, $4::jsonb, 'pending')
+            "#,
+        )
+        .bind(&outbox_id)
+        .bind(&strategy_backtest_run_id)
+        .bind(&input.subject)
+        .bind(&payload)
+        .execute(&mut *transaction)
+        .await?;
+        transaction.commit().await?;
+        self.get_strategy_backtest_run(&strategy_backtest_run_id)
+            .await
+    }
+
+    pub async fn get_strategy_backtest_run(
+        &self,
+        strategy_backtest_run_id: &str,
+    ) -> RearviewResult<StrategyBacktestRunRecord> {
+        let row = sqlx::query(
+            r#"
+            select strategy_backtest_run_id, rule_snapshot, rule_hash,
+                   execution_config, execution_config_hash, catalog_hash,
+                   compiled_sql_hash, required_metrics, required_marts,
+                   data_preflight_snapshot, preview_id, preview_range,
+                   period_key, range_as_of_date, range_resolved_at,
+                   range_resolution_snapshot, start_date, end_date,
+                   benchmark_security_code, price_basis, ui_display_snapshot,
+                   client_request_id, request_hash, status, dispatch_status,
+                   nats_stream_sequence, worker_attempt_no, claimed_at,
+                   heartbeat_at, claim_expires_at, progress, summary,
+                   signal_summary, data_coverage_summary, error_type,
+                   error_message, current_result_attempt_id
+            from strategy_backtest_run
+            where strategy_backtest_run_id = $1
+            "#,
+        )
+        .bind(strategy_backtest_run_id)
+        .fetch_optional(&self.pool)
+        .await?
+        .ok_or_else(|| {
+            RearviewError::Validation(format!(
+                "strategy_backtest_run not found: {strategy_backtest_run_id}"
+            ))
+        })?;
+        Ok(strategy_backtest_run_from_row(&row))
+    }
+
+    pub async fn claim_strategy_backtest_run(
+        &self,
+        strategy_backtest_run_id: &str,
+        lease_seconds: i32,
+    ) -> RearviewResult<Option<StrategyBacktestRunRecord>> {
+        if lease_seconds <= 0 {
+            return Err(RearviewError::Validation(
+                "lease_seconds must be greater than 0".to_string(),
+            ));
+        }
+        let row = sqlx::query(
+            r#"
+            update strategy_backtest_run
+            set status = 'compiling_signals',
+                worker_attempt_no = worker_attempt_no + 1,
+                claimed_at = now(),
+                heartbeat_at = now(),
+                claim_expires_at = now() + ($2::text || ' seconds')::interval,
+                error_type = null,
+                error_message = null,
+                started_at = coalesce(started_at, now()),
+                updated_at = now()
+            where strategy_backtest_run_id = $1
+              and status in ('created', 'queued', 'compiling_signals', 'running_clickhouse',
+                             'loading_market_data', 'calculating_nav', 'computing_performance',
+                             'writing_results')
+              and (claim_expires_at is null or claim_expires_at <= now())
+            returning strategy_backtest_run_id, rule_snapshot, rule_hash,
+                      execution_config, execution_config_hash, catalog_hash,
+                      compiled_sql_hash, required_metrics, required_marts,
+                      data_preflight_snapshot, preview_id, preview_range,
+                      period_key, range_as_of_date, range_resolved_at,
+                      range_resolution_snapshot, start_date, end_date,
+                      benchmark_security_code, price_basis, ui_display_snapshot,
+                      client_request_id, request_hash, status, dispatch_status,
+                      nats_stream_sequence, worker_attempt_no, claimed_at,
+                      heartbeat_at, claim_expires_at, progress, summary,
+                      signal_summary, data_coverage_summary, error_type,
+                      error_message, current_result_attempt_id
+            "#,
+        )
+        .bind(strategy_backtest_run_id)
+        .bind(lease_seconds)
+        .fetch_optional(&self.pool)
+        .await?;
+        Ok(row.map(|row| strategy_backtest_run_from_row(&row)))
+    }
+
+    pub async fn update_strategy_backtest_progress(
+        &self,
+        strategy_backtest_run_id: &str,
+        status: &str,
+        progress: &Value,
+    ) -> RearviewResult<()> {
+        sqlx::query(
+            r#"
+            update strategy_backtest_run
+            set status = $2,
+                progress = $3::jsonb,
+                heartbeat_at = now(),
+                updated_at = now()
+            where strategy_backtest_run_id = $1
+            "#,
+        )
+        .bind(strategy_backtest_run_id)
+        .bind(status)
+        .bind(progress)
+        .execute(&self.pool)
+        .await?;
+        Ok(())
+    }
+
+    pub async fn finalize_strategy_backtest_run_to_clickhouse(
+        &self,
+        strategy_backtest_run_id: &str,
+        result_attempt_id: &str,
+        summary: &Value,
+    ) -> RearviewResult<()> {
+        sqlx::query(
+            r#"
+            update strategy_backtest_run
+            set status = 'succeeded',
+                current_result_attempt_id = $2,
+                summary = $3::jsonb,
+                error_type = null,
+                error_message = null,
+                claim_expires_at = null,
+                completed_at = now(),
+                updated_at = now()
+            where strategy_backtest_run_id = $1
+            "#,
+        )
+        .bind(strategy_backtest_run_id)
+        .bind(result_attempt_id)
+        .bind(summary)
+        .execute(&self.pool)
+        .await?;
+        Ok(())
+    }
+
+    pub async fn fail_strategy_backtest_run(
+        &self,
+        strategy_backtest_run_id: &str,
+        status: &str,
+        error: &RearviewError,
+    ) -> RearviewResult<()> {
+        sqlx::query(
+            r#"
+            update strategy_backtest_run
+            set status = $2,
+                error_type = $3,
+                error_message = $4,
+                claim_expires_at = null,
+                completed_at = now(),
+                updated_at = now()
+            where strategy_backtest_run_id = $1
+            "#,
+        )
+        .bind(strategy_backtest_run_id)
+        .bind(status)
+        .bind(error.error_type())
+        .bind(error.to_string())
+        .execute(&self.pool)
+        .await?;
+        Ok(())
+    }
+
+    pub async fn insert_strategy_backtest_metric_config(
+        &self,
+        config: &PerformanceMetricConfig,
+    ) -> RearviewResult<()> {
+        let annualization_days = i32::try_from(config.annualization_days).map_err(|error| {
+            RearviewError::Validation(format!("annualization_days is out of range: {error}"))
+        })?;
+        let min_observations = i32::try_from(config.min_observations).map_err(|error| {
+            RearviewError::Validation(format!("min_observations is out of range: {error}"))
+        })?;
+        let config_version = i32::try_from(config.config_version).map_err(|error| {
+            RearviewError::Validation(format!("config_version is out of range: {error}"))
+        })?;
+
+        sqlx::query(
+            r#"
+            insert into strategy_backtest_metric_config (
+                strategy_backtest_run_id,
+                result_attempt_id,
+                security_code,
+                window_key,
+                window_start,
+                window_end,
+                annualization_days,
+                min_observations,
+                portfolio_return_basis,
+                benchmark_return_basis,
+                risk_free_tenor,
+                risk_free_daily_method,
+                risk_free_fill_strategy,
+                benchmark_fill_strategy,
+                mar,
+                mar_basis,
+                alignment_strategy,
+                first_day_return_handling,
+                zero_division_policy,
+                config_version,
+                config_hash
+            )
+            values (
+                $1, $2, $3, $4, $5, $6, $7, $8, $9, $10,
+                $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21
+            )
+            on conflict (strategy_backtest_run_id, result_attempt_id, security_code, window_key)
+            do nothing
+            "#,
+        )
+        .bind(&config.portfolio_run_id)
+        .bind(&config.result_attempt_id)
+        .bind(&config.security_code)
+        .bind(&config.window_key)
+        .bind(config.window_start)
+        .bind(config.window_end)
+        .bind(annualization_days)
+        .bind(min_observations)
+        .bind(&config.portfolio_return_basis)
+        .bind(&config.benchmark_return_basis)
+        .bind(&config.risk_free_tenor)
+        .bind(&config.risk_free_daily_method)
+        .bind(&config.risk_free_fill_strategy)
+        .bind(&config.benchmark_fill_strategy)
+        .bind(config.mar)
+        .bind(&config.mar_basis)
+        .bind(&config.alignment_strategy)
+        .bind(&config.first_day_return_handling)
+        .bind(&config.zero_division_policy)
+        .bind(config_version)
+        .bind(&config.config_hash)
+        .execute(&self.pool)
+        .await?;
+        Ok(())
+    }
+
+    pub async fn list_pending_strategy_backtest_outbox(
+        &self,
+        limit: i64,
+    ) -> RearviewResult<Vec<StrategyBacktestOutboxRecord>> {
+        let rows = sqlx::query(
+            r#"
+            select outbox_id, strategy_backtest_run_id, subject, payload, status, attempt_count
+            from strategy_backtest_task_outbox
+            where status in ('pending', 'failed')
+            order by created_at, outbox_id
+            limit $1
+            "#,
+        )
+        .bind(limit)
+        .fetch_all(&self.pool)
+        .await?;
+        Ok(rows
+            .into_iter()
+            .map(|row| StrategyBacktestOutboxRecord {
+                outbox_id: row.get("outbox_id"),
+                strategy_backtest_run_id: row.get("strategy_backtest_run_id"),
+                subject: row.get("subject"),
+                payload: row.get("payload"),
+                status: row.get("status"),
+                attempt_count: row.get("attempt_count"),
+            })
+            .collect())
+    }
+
+    pub async fn mark_strategy_backtest_outbox_published(
+        &self,
+        outbox_id: &str,
+        strategy_backtest_run_id: &str,
+        stream_sequence: i64,
+    ) -> RearviewResult<()> {
+        let mut transaction = self.pool.begin().await?;
+        sqlx::query(
+            r#"
+            update strategy_backtest_task_outbox
+            set status = 'published',
+                nats_stream_sequence = $2,
+                published_at = now(),
+                updated_at = now()
+            where outbox_id = $1
+            "#,
+        )
+        .bind(outbox_id)
+        .bind(stream_sequence)
+        .execute(&mut *transaction)
+        .await?;
+        sqlx::query(
+            r#"
+            update strategy_backtest_run
+            set dispatch_status = 'published',
+                nats_stream_sequence = $2,
+                updated_at = now()
+            where strategy_backtest_run_id = $1
+            "#,
+        )
+        .bind(strategy_backtest_run_id)
+        .bind(stream_sequence)
+        .execute(&mut *transaction)
+        .await?;
+        transaction.commit().await?;
+        Ok(())
+    }
+
+    pub async fn mark_strategy_backtest_outbox_failed(
+        &self,
+        outbox_id: &str,
+        strategy_backtest_run_id: &str,
+        error_message: &str,
+    ) -> RearviewResult<()> {
+        let mut transaction = self.pool.begin().await?;
+        sqlx::query(
+            r#"
+            update strategy_backtest_task_outbox
+            set status = 'failed',
+                attempt_count = attempt_count + 1,
+                last_error = $2,
+                updated_at = now()
+            where outbox_id = $1
+            "#,
+        )
+        .bind(outbox_id)
+        .bind(error_message)
+        .execute(&mut *transaction)
+        .await?;
+        sqlx::query(
+            r#"
+            update strategy_backtest_run
+            set dispatch_status = 'publish_failed',
+                updated_at = now()
+            where strategy_backtest_run_id = $1
+            "#,
+        )
+        .bind(strategy_backtest_run_id)
+        .execute(&mut *transaction)
+        .await?;
+        transaction.commit().await?;
         Ok(())
     }
 
@@ -1927,6 +2363,28 @@ pub struct NewPortfolioRun {
 }
 
 #[derive(Debug, Clone)]
+pub struct NewStrategyBacktestRun {
+    pub rule_snapshot: Value,
+    pub rule_hash: String,
+    pub execution_config: Value,
+    pub execution_config_hash: String,
+    pub catalog_hash: Option<String>,
+    pub data_preflight_snapshot: Value,
+    pub preview_id: Option<String>,
+    pub preview_range: Option<Value>,
+    pub period_key: String,
+    pub range_as_of_date: Option<NaiveDate>,
+    pub range_resolution_snapshot: Value,
+    pub start_date: NaiveDate,
+    pub end_date: NaiveDate,
+    pub benchmark_security_code: String,
+    pub ui_display_snapshot: Value,
+    pub client_request_id: Option<String>,
+    pub request_hash: String,
+    pub subject: String,
+}
+
+#[derive(Debug, Clone)]
 pub struct NewAccountTemplate {
     pub rule_set_id: String,
     pub market_fee_template_id: Option<String>,
@@ -1998,6 +2456,47 @@ pub struct PortfolioRunRecord {
     pub dispatch_status: String,
     pub nats_stream_sequence: Option<i64>,
     pub summary: Value,
+    pub error_type: Option<String>,
+    pub error_message: Option<String>,
+    pub current_result_attempt_id: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct StrategyBacktestRunRecord {
+    pub strategy_backtest_run_id: String,
+    pub rule_snapshot: Value,
+    pub rule_hash: String,
+    pub execution_config: Value,
+    pub execution_config_hash: String,
+    pub catalog_hash: Option<String>,
+    pub compiled_sql_hash: Option<String>,
+    pub required_metrics: Value,
+    pub required_marts: Value,
+    pub data_preflight_snapshot: Value,
+    pub preview_id: Option<String>,
+    pub preview_range: Option<Value>,
+    pub period_key: String,
+    pub range_as_of_date: Option<NaiveDate>,
+    pub range_resolved_at: Option<DateTime<Utc>>,
+    pub range_resolution_snapshot: Value,
+    pub start_date: NaiveDate,
+    pub end_date: NaiveDate,
+    pub benchmark_security_code: String,
+    pub price_basis: String,
+    pub ui_display_snapshot: Value,
+    pub client_request_id: Option<String>,
+    pub request_hash: String,
+    pub status: String,
+    pub dispatch_status: String,
+    pub nats_stream_sequence: Option<i64>,
+    pub worker_attempt_no: i32,
+    pub claimed_at: Option<DateTime<Utc>>,
+    pub heartbeat_at: Option<DateTime<Utc>>,
+    pub claim_expires_at: Option<DateTime<Utc>>,
+    pub progress: Value,
+    pub summary: Value,
+    pub signal_summary: Value,
+    pub data_coverage_summary: Value,
     pub error_type: Option<String>,
     pub error_message: Option<String>,
     pub current_result_attempt_id: Option<String>,
@@ -2223,6 +2722,16 @@ pub struct PortfolioOutboxRecord {
 }
 
 #[derive(Debug, Clone, Serialize)]
+pub struct StrategyBacktestOutboxRecord {
+    pub outbox_id: String,
+    pub strategy_backtest_run_id: String,
+    pub subject: String,
+    pub payload: Value,
+    pub status: String,
+    pub attempt_count: i32,
+}
+
+#[derive(Debug, Clone, Serialize)]
 pub struct RuleSetRecord {
     pub rule_set_id: String,
     pub name: String,
@@ -2378,6 +2887,48 @@ fn portfolio_run_from_row(row: &sqlx::postgres::PgRow) -> PortfolioRunRecord {
         dispatch_status: row.get("dispatch_status"),
         nats_stream_sequence: row.get("nats_stream_sequence"),
         summary: row.get("summary"),
+        error_type: row.get("error_type"),
+        error_message: row.get("error_message"),
+        current_result_attempt_id: row.get("current_result_attempt_id"),
+    }
+}
+
+fn strategy_backtest_run_from_row(row: &sqlx::postgres::PgRow) -> StrategyBacktestRunRecord {
+    StrategyBacktestRunRecord {
+        strategy_backtest_run_id: row.get("strategy_backtest_run_id"),
+        rule_snapshot: row.get("rule_snapshot"),
+        rule_hash: row.get("rule_hash"),
+        execution_config: row.get("execution_config"),
+        execution_config_hash: row.get("execution_config_hash"),
+        catalog_hash: row.get("catalog_hash"),
+        compiled_sql_hash: row.get("compiled_sql_hash"),
+        required_metrics: row.get("required_metrics"),
+        required_marts: row.get("required_marts"),
+        data_preflight_snapshot: row.get("data_preflight_snapshot"),
+        preview_id: row.get("preview_id"),
+        preview_range: row.get("preview_range"),
+        period_key: row.get("period_key"),
+        range_as_of_date: row.get("range_as_of_date"),
+        range_resolved_at: row.get("range_resolved_at"),
+        range_resolution_snapshot: row.get("range_resolution_snapshot"),
+        start_date: row.get("start_date"),
+        end_date: row.get("end_date"),
+        benchmark_security_code: row.get("benchmark_security_code"),
+        price_basis: row.get("price_basis"),
+        ui_display_snapshot: row.get("ui_display_snapshot"),
+        client_request_id: row.get("client_request_id"),
+        request_hash: row.get("request_hash"),
+        status: row.get("status"),
+        dispatch_status: row.get("dispatch_status"),
+        nats_stream_sequence: row.get("nats_stream_sequence"),
+        worker_attempt_no: row.get("worker_attempt_no"),
+        claimed_at: row.get("claimed_at"),
+        heartbeat_at: row.get("heartbeat_at"),
+        claim_expires_at: row.get("claim_expires_at"),
+        progress: row.get("progress"),
+        summary: row.get("summary"),
+        signal_summary: row.get("signal_summary"),
+        data_coverage_summary: row.get("data_coverage_summary"),
         error_type: row.get("error_type"),
         error_message: row.get("error_message"),
         current_result_attempt_id: row.get("current_result_attempt_id"),

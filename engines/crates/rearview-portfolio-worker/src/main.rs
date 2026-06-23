@@ -254,6 +254,7 @@ async fn build_simulation_input(
         .await?;
     Ok(PortfolioSimulationInput {
         start_date: run.start_date,
+        end_date: run.end_date,
         initial_cash: account_snapshot.initial_cash,
         max_positions: execution_snapshot.rebalance_policy.max_positions,
         single_position_limit_pct: execution_snapshot

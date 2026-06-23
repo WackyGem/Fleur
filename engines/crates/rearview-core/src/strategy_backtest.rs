@@ -198,13 +198,6 @@ impl BacktestExecutionConfig {
         if self.slippage_profile.mode.trim().is_empty() {
             self.slippage_profile.mode = default_slippage_mode();
         }
-        self.rebalance_policy.max_positions = usize::try_from(self.signal_policy.buy_signal_top_n)
-            .map_err(|error| {
-                RearviewError::Validation(format!(
-                    "execution_config.signal_policy.buy_signal_top_n is invalid: {error}"
-                ))
-            })?;
-
         self.validate()?;
         Ok(self)
     }
@@ -239,18 +232,6 @@ impl BacktestExecutionConfig {
         if self.rebalance_policy.max_positions == 0 {
             return Err(RearviewError::Validation(
                 "execution_config.rebalance_policy.max_positions must be greater than 0"
-                    .to_string(),
-            ));
-        }
-        if self.rebalance_policy.max_positions
-            != usize::try_from(self.signal_policy.buy_signal_top_n).map_err(|error| {
-                RearviewError::Validation(format!(
-                    "execution_config.signal_policy.buy_signal_top_n is invalid: {error}"
-                ))
-            })?
-        {
-            return Err(RearviewError::Validation(
-                "execution_config.rebalance_policy.max_positions must match buy_signal_top_n"
                     .to_string(),
             ));
         }
@@ -550,6 +531,17 @@ mod tests {
 
         assert_eq!(summary.target_weight_per_position_pct, 0.05);
         assert_eq!(summary.implicit_cash_reserve_pct, 0.0);
+    }
+
+    #[test]
+    fn canonicalized_should_preserve_independent_top_n_and_max_positions() {
+        let mut config = fixture_config(3, 0.10);
+        config.rebalance_policy.max_positions = 5;
+
+        let canonical = config.canonicalized().unwrap();
+
+        assert_eq!(canonical.signal_policy.buy_signal_top_n, 3);
+        assert_eq!(canonical.rebalance_policy.max_positions, 5);
     }
 
     #[test]
