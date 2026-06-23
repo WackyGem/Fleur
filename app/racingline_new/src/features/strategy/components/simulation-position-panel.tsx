@@ -51,19 +51,26 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { indicatorCatalog } from "@/features/strategy/catalog"
 import { StrategySplitPanel } from "@/features/strategy/components/strategy-split-panel"
 import {
   buildPoolCountTrendData,
   type PoolCountTrendPoint,
 } from "@/features/strategy/pool-count-trend"
 import type { PreviewSnapshot } from "@/features/strategy/preview"
-import type { SimulationSettings } from "@/features/strategy/types"
-import { getCatalog, getCatalogMetricsByType } from "@/features/strategy/utils"
+import type {
+  IndicatorCatalog,
+  SimulationSettings,
+} from "@/features/strategy/types"
+import {
+  getCatalog,
+  getCatalogMetricsByType,
+  getTrendMovingAverageCatalogs,
+} from "@/features/strategy/utils"
 import { cn } from "@/lib/utils"
 
 type SimulationPositionPanelProps = {
   backtestValidationError: string | null
+  catalogOptions: IndicatorCatalog[]
   commissionRateMaxPercent: number | null
   isBacktestValidationPending: boolean
   isMarketTemplateError: boolean
@@ -127,18 +134,6 @@ type TransactionFeeRow = {
   step: number
 }
 
-const trendCatalog =
-  indicatorCatalog.find((catalog) => catalog.id === "trend") ??
-  indicatorCatalog[0]
-const trendNumericCatalogs = [
-  {
-    ...trendCatalog,
-    metrics: trendCatalog.metrics.filter(
-      (metric) => metric.valueType === "number"
-    ),
-  },
-]
-
 const sectionCardClassName = "bg-transparent ring-0"
 const configSectionCardClassName = cn(sectionCardClassName, "xl:pr-4")
 const configSeparatorClassName = "bg-border/60 md:ml-[11rem] md:max-w-[37rem]"
@@ -183,6 +178,7 @@ const transactionFeeRows: TransactionFeeRow[] = [
 
 function SimulationPositionPanel({
   backtestValidationError,
+  catalogOptions,
   commissionRateMaxPercent,
   isBacktestValidationPending,
   isMarketTemplateError,
@@ -424,6 +420,7 @@ function SimulationPositionPanel({
                     title="指标止损"
                   >
                     <IndicatorStopLossFields
+                      catalogOptions={catalogOptions}
                       disabled={!settings.indicatorStopLoss.enabled}
                       settings={settings}
                       onSettingsChange={(patch) =>
@@ -849,24 +846,35 @@ function RiskRuleRow({
 }
 
 function IndicatorStopLossFields({
+  catalogOptions,
   disabled,
   onSettingsChange,
   settings,
 }: {
+  catalogOptions: IndicatorCatalog[]
   disabled: boolean
   onSettingsChange: (
     patch: Partial<SimulationSettings["indicatorStopLoss"]>
   ) => void
   settings: SimulationSettings
 }) {
+  const trendMovingAverageCatalogs =
+    getTrendMovingAverageCatalogs(catalogOptions)
+
+  if (trendMovingAverageCatalogs.length === 0) {
+    return (
+      <div className="text-xs text-muted-foreground">暂无可用趋势均线指标</div>
+    )
+  }
+
   const selectedCatalog = getCatalog(
     settings.indicatorStopLoss.catalogId,
-    trendNumericCatalogs
+    trendMovingAverageCatalogs
   )
   const selectedMetrics = getCatalogMetricsByType(
     selectedCatalog.id,
     "number",
-    trendNumericCatalogs
+    trendMovingAverageCatalogs
   )
   const selectedMetric =
     selectedMetrics.find(
@@ -888,7 +896,7 @@ function IndicatorStopLossFields({
             const metrics = getCatalogMetricsByType(
               catalogId,
               "number",
-              trendNumericCatalogs
+              trendMovingAverageCatalogs
             )
             const metric = metrics[0]
             if (metric) {
@@ -904,7 +912,7 @@ function IndicatorStopLossFields({
           <SelectContent align="start" className="min-w-72 bg-background">
             <SelectGroup>
               <SelectLabel>指标来源</SelectLabel>
-              {trendNumericCatalogs.map((catalog) => (
+              {trendMovingAverageCatalogs.map((catalog) => (
                 <SelectItem key={catalog.id} value={catalog.id}>
                   <span className="truncate text-xs font-medium">
                     {catalog.label}

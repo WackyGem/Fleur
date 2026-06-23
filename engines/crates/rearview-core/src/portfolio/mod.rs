@@ -71,17 +71,39 @@ pub struct PriceBar {
     #[serde(default)]
     pub close_price_forward_adj: Option<f64>,
     #[serde(default)]
+    pub price_ma_3: Option<f64>,
+    #[serde(default)]
     pub price_ma_5: Option<f64>,
+    #[serde(default)]
+    pub price_ma_6: Option<f64>,
     #[serde(default)]
     pub price_ma_10: Option<f64>,
     #[serde(default)]
+    pub price_ma_12: Option<f64>,
+    #[serde(default)]
+    pub price_ma_14: Option<f64>,
+    #[serde(default)]
     pub price_ma_20: Option<f64>,
+    #[serde(default)]
+    pub price_ma_24: Option<f64>,
+    #[serde(default)]
+    pub price_ma_28: Option<f64>,
     #[serde(default)]
     pub price_ma_30: Option<f64>,
     #[serde(default)]
+    pub price_ma_57: Option<f64>,
+    #[serde(default)]
     pub price_ma_60: Option<f64>,
     #[serde(default)]
+    pub price_ma_114: Option<f64>,
+    #[serde(default)]
     pub price_ma_250: Option<f64>,
+    #[serde(default)]
+    pub price_avg_ma_3_6_12_24: Option<f64>,
+    #[serde(default)]
+    pub price_avg_ma_14_28_57_114: Option<f64>,
+    #[serde(default)]
+    pub price_ema2_10: Option<f64>,
     #[serde(default)]
     pub boll_lower_20_2: Option<f64>,
 }
@@ -954,13 +976,23 @@ fn missing_indicator_stop_loss_metric<'a>(
 
 fn trend_metric_value(price_bar: &PriceBar, metric: &str) -> Option<f64> {
     match metric {
+        "price_ma_3" => price_bar.price_ma_3,
         "price_ma_5" => price_bar.price_ma_5,
+        "price_ma_6" => price_bar.price_ma_6,
         "price_ma_10" => price_bar.price_ma_10,
+        "price_ma_12" => price_bar.price_ma_12,
+        "price_ma_14" => price_bar.price_ma_14,
         "price_ma_20" => price_bar.price_ma_20,
+        "price_ma_24" => price_bar.price_ma_24,
+        "price_ma_28" => price_bar.price_ma_28,
         "price_ma_30" => price_bar.price_ma_30,
+        "price_ma_57" => price_bar.price_ma_57,
         "price_ma_60" => price_bar.price_ma_60,
+        "price_ma_114" => price_bar.price_ma_114,
         "price_ma_250" => price_bar.price_ma_250,
-        "boll_lower_20_2" => price_bar.boll_lower_20_2,
+        "price_avg_ma_3_6_12_24" => price_bar.price_avg_ma_3_6_12_24,
+        "price_avg_ma_14_28_57_114" => price_bar.price_avg_ma_14_28_57_114,
+        "price_ema2_10" => price_bar.price_ema2_10,
         _ => None,
     }
 }
@@ -968,13 +1000,23 @@ fn trend_metric_value(price_bar: &PriceBar, metric: &str) -> Option<f64> {
 fn is_supported_indicator_stop_loss_metric(metric: &str) -> bool {
     matches!(
         metric,
-        "price_ma_5"
+        "price_ma_3"
+            | "price_ma_5"
+            | "price_ma_6"
             | "price_ma_10"
+            | "price_ma_12"
+            | "price_ma_14"
             | "price_ma_20"
+            | "price_ma_24"
+            | "price_ma_28"
             | "price_ma_30"
+            | "price_ma_57"
             | "price_ma_60"
+            | "price_ma_114"
             | "price_ma_250"
-            | "boll_lower_20_2"
+            | "price_avg_ma_3_6_12_24"
+            | "price_avg_ma_14_28_57_114"
+            | "price_ema2_10"
     )
 }
 
@@ -1108,6 +1150,60 @@ mod tests {
         input.prices = vec![
             price(d1, "AAA", 10.0, 10.0),
             price_with_metric(d2, "AAA", 10.0, 9.0, "price_ma_10", Some(10.0)),
+            price(d3, "AAA", 9.0, 9.0),
+        ];
+
+        let output = simulate_portfolio(&input).expect("simulation should succeed");
+
+        assert!(output.trades.iter().any(|trade| {
+            trade.security_code == "AAA"
+                && trade.side == OrderSide::Sell
+                && trade.reason == OrderReason::IndicatorStopLoss
+                && trade.trade_date == d3
+        }));
+    }
+
+    #[test]
+    fn indicator_stop_loss_sells_when_close_is_below_ma_combo() {
+        let d1 = date(2024, 1, 2);
+        let d2 = date(2024, 1, 3);
+        let d3 = date(2024, 1, 4);
+        let mut input = fixture_input();
+        input.max_positions = 1;
+        input.exit_rules = vec![ExitRule::IndicatorStopLoss {
+            metric: "price_avg_ma_3_6_12_24".to_string(),
+        }];
+        input.signals = vec![signal(d1, d1, "AAA", 1)];
+        input.prices = vec![
+            price(d1, "AAA", 10.0, 10.0),
+            price_with_metric(d2, "AAA", 10.0, 9.0, "price_avg_ma_3_6_12_24", Some(10.0)),
+            price(d3, "AAA", 9.0, 9.0),
+        ];
+
+        let output = simulate_portfolio(&input).expect("simulation should succeed");
+
+        assert!(output.trades.iter().any(|trade| {
+            trade.security_code == "AAA"
+                && trade.side == OrderSide::Sell
+                && trade.reason == OrderReason::IndicatorStopLoss
+                && trade.trade_date == d3
+        }));
+    }
+
+    #[test]
+    fn indicator_stop_loss_sells_when_close_is_below_ema() {
+        let d1 = date(2024, 1, 2);
+        let d2 = date(2024, 1, 3);
+        let d3 = date(2024, 1, 4);
+        let mut input = fixture_input();
+        input.max_positions = 1;
+        input.exit_rules = vec![ExitRule::IndicatorStopLoss {
+            metric: "price_ema2_10".to_string(),
+        }];
+        input.signals = vec![signal(d1, d1, "AAA", 1)];
+        input.prices = vec![
+            price(d1, "AAA", 10.0, 10.0),
+            price_with_metric(d2, "AAA", 10.0, 9.0, "price_ema2_10", Some(10.0)),
             price(d3, "AAA", 9.0, 9.0),
         ];
 
@@ -1298,12 +1394,23 @@ mod tests {
             open_price_backward_adj: Some(open),
             close_price_backward_adj: Some(close),
             close_price_forward_adj: None,
+            price_ma_3: None,
             price_ma_5: None,
+            price_ma_6: None,
             price_ma_10: None,
+            price_ma_12: None,
+            price_ma_14: None,
             price_ma_20: None,
+            price_ma_24: None,
+            price_ma_28: None,
             price_ma_30: None,
+            price_ma_57: None,
             price_ma_60: None,
+            price_ma_114: None,
             price_ma_250: None,
+            price_avg_ma_3_6_12_24: None,
+            price_avg_ma_14_28_57_114: None,
+            price_ema2_10: None,
             boll_lower_20_2: None,
         }
     }
@@ -1319,6 +1426,8 @@ mod tests {
         let mut bar = price(trade_date, security_code, open, close);
         match metric {
             "price_ma_10" => bar.price_ma_10 = value,
+            "price_avg_ma_3_6_12_24" => bar.price_avg_ma_3_6_12_24 = value,
+            "price_ema2_10" => bar.price_ema2_10 = value,
             other => panic!("unsupported test metric: {other}"),
         }
         bar

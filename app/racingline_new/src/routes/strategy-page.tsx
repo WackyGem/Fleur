@@ -994,6 +994,10 @@ export function StrategyPage() {
   const hasRealScoringCatalog =
     metricsQuery.isSuccess && strategyScoringCatalog.length > 0
   const strategyCatalogOptions = hasRealMetricsCatalog ? strategyCatalog : []
+  const strategyStopLossCatalogOptions =
+    strategyCatalogOptions.length > 0
+      ? strategyCatalogOptions
+      : strategyScoringCatalog
   const [activeStep, setActiveStep] = useState<Step>("indicators")
   const [conditionGroups, setConditionGroups] = useState<
     StrategyConditionGroup[]
@@ -1474,6 +1478,7 @@ export function StrategyPage() {
               ) : activeStep === "simulation" ? (
                 <SimulationPositionPanel
                   backtestValidationError={backtestValidationError}
+                  catalogOptions={strategyStopLossCatalogOptions}
                   commissionRateMaxPercent={commissionRateMaxPercent}
                   isBacktestValidationPending={isBacktestValidationPending}
                   isMarketTemplateError={defaultMarketTemplateQuery.isError}

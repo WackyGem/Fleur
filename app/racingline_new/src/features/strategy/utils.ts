@@ -22,6 +22,8 @@ const defaultOperatorPreference: ConditionOperator[] = [
   "gt",
   "is_null",
 ]
+const trendMovingAverageMetricPattern =
+  /^(?:price_ma_\d+|price_avg_ma_\d+(?:_\d+)+|price_ema\d+_\d+)$/
 
 export function createId(prefix: string) {
   if (globalThis.crypto?.randomUUID) {
@@ -242,6 +244,24 @@ export function getCatalogMetricsByType(
   )
 }
 
+export function getTrendMovingAverageCatalogs(
+  catalogOptions: IndicatorCatalog[] = indicatorCatalog
+): IndicatorCatalog[] {
+  return getCatalogOptions(catalogOptions).flatMap((catalog) => {
+    if (!isTrendCatalog(catalog)) {
+      return []
+    }
+
+    const metrics = catalog.metrics.filter(
+      (metric) =>
+        metric.valueType === "number" &&
+        trendMovingAverageMetricPattern.test(metric.id)
+    )
+
+    return metrics.length > 0 ? [{ ...catalog, metrics }] : []
+  })
+}
+
 export function getCompatibleValue(value: string, valueType: MetricValueType) {
   if (valueType === "boolean") {
     return value === "true" || value === "false" ? value : "false"
@@ -328,6 +348,13 @@ export function getScaledWeightIndicators(weightIndicators: WeightIndicator[]) {
 
 function getCatalogOptions(catalogOptions: IndicatorCatalog[]) {
   return catalogOptions.length > 0 ? catalogOptions : indicatorCatalog
+}
+
+function isTrendCatalog(catalog: IndicatorCatalog) {
+  return (
+    catalog.id === "trend" ||
+    catalog.source === "mart_stock_trend_indicator_daily"
+  )
 }
 
 function getDefaultOperator(metric: MetricOption): ConditionOperator {

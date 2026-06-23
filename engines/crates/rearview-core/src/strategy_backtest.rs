@@ -7,13 +7,23 @@ use crate::domain::{RuleHash, RuleVersionSpec};
 use crate::{RearviewError, RearviewResult};
 
 const TREND_STOP_LOSS_METRICS: &[&str] = &[
+    "price_ma_3",
     "price_ma_5",
+    "price_ma_6",
     "price_ma_10",
+    "price_ma_12",
+    "price_ma_14",
     "price_ma_20",
+    "price_ma_24",
+    "price_ma_28",
     "price_ma_30",
+    "price_ma_57",
     "price_ma_60",
+    "price_ma_114",
     "price_ma_250",
-    "boll_lower_20_2",
+    "price_avg_ma_3_6_12_24",
+    "price_avg_ma_14_28_57_114",
+    "price_ema2_10",
 ];
 
 #[derive(Debug, Clone, Deserialize)]
@@ -557,6 +567,27 @@ mod tests {
     }
 
     #[test]
+    fn canonicalized_should_accept_main_chart_moving_average_stop_loss() {
+        for metric in [
+            "price_ma_3",
+            "price_avg_ma_3_6_12_24",
+            "price_avg_ma_14_28_57_114",
+            "price_ema2_10",
+        ] {
+            let mut config = fixture_config(10, 0.10);
+            config.risk_exit_policy.exit_rules = vec![ExitRuleConfig::IndicatorStopLoss {
+                source: "trend".to_string(),
+                metric: metric.to_string(),
+                operator: "close_below_metric".to_string(),
+            }];
+
+            config
+                .canonicalized()
+                .unwrap_or_else(|error| panic!("{metric} should be accepted: {error}"));
+        }
+    }
+
+    #[test]
     fn canonicalized_should_reject_non_trend_indicator_stop_loss() {
         let mut config = fixture_config(10, 0.10);
         config.risk_exit_policy.exit_rules = vec![ExitRuleConfig::IndicatorStopLoss {
@@ -576,6 +607,20 @@ mod tests {
         config.risk_exit_policy.exit_rules = vec![ExitRuleConfig::IndicatorStopLoss {
             source: "trend".to_string(),
             metric: "unknown_metric".to_string(),
+            operator: "close_below_metric".to_string(),
+        }];
+
+        let error = config.canonicalized().unwrap_err();
+
+        assert!(error.to_string().contains("metric"));
+    }
+
+    #[test]
+    fn canonicalized_should_reject_boll_indicator_stop_loss() {
+        let mut config = fixture_config(10, 0.10);
+        config.risk_exit_policy.exit_rules = vec![ExitRuleConfig::IndicatorStopLoss {
+            source: "trend".to_string(),
+            metric: "boll_lower_20_2".to_string(),
             operator: "close_below_metric".to_string(),
         }];
 

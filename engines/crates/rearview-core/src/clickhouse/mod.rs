@@ -837,12 +837,23 @@ SELECT
     q.open_price_backward_adj AS open_price_backward_adj,
     q.close_price_backward_adj AS close_price_backward_adj,
     q.close_price_forward_adj AS close_price_forward_adj,
+    t.price_ma_3 AS price_ma_3,
     t.price_ma_5 AS price_ma_5,
+    t.price_ma_6 AS price_ma_6,
     t.price_ma_10 AS price_ma_10,
+    t.price_ma_12 AS price_ma_12,
+    t.price_ma_14 AS price_ma_14,
     t.price_ma_20 AS price_ma_20,
+    t.price_ma_24 AS price_ma_24,
+    t.price_ma_28 AS price_ma_28,
     t.price_ma_30 AS price_ma_30,
+    t.price_ma_57 AS price_ma_57,
     t.price_ma_60 AS price_ma_60,
+    t.price_ma_114 AS price_ma_114,
     t.price_ma_250 AS price_ma_250,
+    t.price_avg_ma_3_6_12_24 AS price_avg_ma_3_6_12_24,
+    t.price_avg_ma_14_28_57_114 AS price_avg_ma_14_28_57_114,
+    t.price_ema2_10 AS price_ema2_10,
     t.boll_lower_20_2 AS boll_lower_20_2
 FROM {database}.`mart_stock_quotes_daily` AS q
 LEFT JOIN {database}.`mart_stock_trend_indicator_daily` AS t

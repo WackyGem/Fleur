@@ -1,6 +1,7 @@
 import type {
   ConditionOperator,
   IndicatorCatalog,
+  MetricOption,
   MetricValueType,
   Step,
 } from "@/features/strategy/types"
@@ -22,6 +23,19 @@ const crossingOps: ConditionOperator[] = [
   "crosses_above",
   "crosses_below",
 ]
+
+const priceMaWindows = [3, 5, 6, 10, 12, 14, 20, 24, 28, 30, 57, 60, 114, 250]
+
+function priceMaMetric(window: number): MetricOption {
+  return {
+    id: `price_ma_${window}`,
+    label: `price_ma_${window}`,
+    valueType: "number",
+    allowedOps: crossingOps,
+    previousMetric: `prev_price_ma_${window}`,
+    supportsCrossing: true,
+  }
+}
 
 export const indicatorCatalog: IndicatorCatalog[] = [
   {
@@ -60,52 +74,29 @@ export const indicatorCatalog: IndicatorCatalog[] = [
     label: "趋势均线",
     source: "mart_stock_trend_indicator_daily",
     metrics: [
+      ...priceMaWindows.map(priceMaMetric),
       {
-        id: "price_ma_5",
-        label: "price_ma_5",
+        id: "price_avg_ma_3_6_12_24",
+        label: "price_avg_ma_3_6_12_24",
         valueType: "number",
         allowedOps: crossingOps,
-        previousMetric: "prev_price_ma_5",
+        previousMetric: "prev_price_avg_ma_3_6_12_24",
         supportsCrossing: true,
       },
       {
-        id: "price_ma_10",
-        label: "price_ma_10",
+        id: "price_avg_ma_14_28_57_114",
+        label: "price_avg_ma_14_28_57_114",
         valueType: "number",
         allowedOps: crossingOps,
-        previousMetric: "prev_price_ma_10",
+        previousMetric: "prev_price_avg_ma_14_28_57_114",
         supportsCrossing: true,
       },
       {
-        id: "price_ma_20",
-        label: "price_ma_20",
+        id: "price_ema2_10",
+        label: "price_ema2_10",
         valueType: "number",
         allowedOps: crossingOps,
-        previousMetric: "prev_price_ma_20",
-        supportsCrossing: true,
-      },
-      {
-        id: "price_ma_30",
-        label: "price_ma_30",
-        valueType: "number",
-        allowedOps: crossingOps,
-        previousMetric: "prev_price_ma_30",
-        supportsCrossing: true,
-      },
-      {
-        id: "price_ma_60",
-        label: "price_ma_60",
-        valueType: "number",
-        allowedOps: crossingOps,
-        previousMetric: "prev_price_ma_60",
-        supportsCrossing: true,
-      },
-      {
-        id: "price_ma_250",
-        label: "price_ma_250",
-        valueType: "number",
-        allowedOps: crossingOps,
-        previousMetric: "prev_price_ma_250",
+        previousMetric: "prev_price_ema2_10",
         supportsCrossing: true,
       },
       {
