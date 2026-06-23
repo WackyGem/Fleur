@@ -76,7 +76,7 @@ git diff --check
 - Network 可见 `GET /rearview/market-fee-templates/default?market=CN_A_SHARE => 200`。
 - Network 可见 `POST /rearview/strategy-backtests/validate => 200`。
 - Step 4 显示 `Rearview 回测草稿`、`Draft ready`、Preview ID、Preview 区间、草稿 Hash、Top 10、最大持仓 10 只、单票目标 10%、现金保留 0%。
-- Step 4 没有“近三月信号数”或本地趋势图。
+- Step 4 没有近三月票池数或本地趋势图。
 - 指标止损 checkbox 为 disabled，并提示 Rearview 当前只开放固定止损、固定止盈和时间止损。
 - 「进入回测」只在 draft ready 后启用。
 - Step 5 显示回测区间、benchmark、TopN、Rule hash、Execution config hash、Price basis 和 Signal timing。

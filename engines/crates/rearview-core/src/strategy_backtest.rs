@@ -6,6 +6,16 @@ use crate::domain::metric::MetricCatalog;
 use crate::domain::{RuleHash, RuleVersionSpec};
 use crate::{RearviewError, RearviewResult};
 
+const TREND_STOP_LOSS_METRICS: &[&str] = &[
+    "price_ma_5",
+    "price_ma_10",
+    "price_ma_20",
+    "price_ma_30",
+    "price_ma_60",
+    "price_ma_250",
+    "boll_lower_20_2",
+];
+
 #[derive(Debug, Clone, Deserialize)]
 pub struct StrategyBacktestValidateRequest {
     pub rule: RuleVersionSpec,
@@ -104,7 +114,11 @@ pub enum ExitRuleConfig {
     },
     IndicatorStopLoss {
         #[serde(default)]
-        metric: Option<String>,
+        source: String,
+        #[serde(default)]
+        metric: String,
+        #[serde(default)]
+        operator: String,
     },
 }
 
@@ -365,10 +379,29 @@ impl ExitRuleConfig {
                     *max_return_pct,
                 )
             }
-            Self::IndicatorStopLoss { .. } => Err(RearviewError::Validation(
-                "execution_config.risk_exit_policy.indicator_stop_loss is not supported"
-                    .to_string(),
-            )),
+            Self::IndicatorStopLoss {
+                source,
+                metric,
+                operator,
+            } => {
+                validate_exact_string(
+                    "execution_config.risk_exit_policy.indicator_stop_loss.source",
+                    source,
+                    "trend",
+                )?;
+                validate_exact_string(
+                    "execution_config.risk_exit_policy.indicator_stop_loss.operator",
+                    operator,
+                    "close_below_metric",
+                )?;
+                if TREND_STOP_LOSS_METRICS.contains(&metric.as_str()) {
+                    Ok(())
+                } else {
+                    Err(RearviewError::Validation(format!(
+                        "execution_config.risk_exit_policy.indicator_stop_loss.metric is not supported: {metric}"
+                    )))
+                }
+            }
         }
     }
 }
@@ -510,15 +543,59 @@ mod tests {
     }
 
     #[test]
-    fn canonicalized_should_reject_indicator_stop_loss() {
+    fn canonicalized_should_accept_trend_indicator_stop_loss() {
         let mut config = fixture_config(10, 0.10);
         config.risk_exit_policy.exit_rules = vec![ExitRuleConfig::IndicatorStopLoss {
-            metric: Some("price_ma_10".to_string()),
+            source: "trend".to_string(),
+            metric: "price_ma_10".to_string(),
+            operator: "close_below_metric".to_string(),
+        }];
+
+        let canonical = config.canonicalized().unwrap();
+
+        assert_eq!(canonical.risk_exit_policy.exit_rules.len(), 1);
+    }
+
+    #[test]
+    fn canonicalized_should_reject_non_trend_indicator_stop_loss() {
+        let mut config = fixture_config(10, 0.10);
+        config.risk_exit_policy.exit_rules = vec![ExitRuleConfig::IndicatorStopLoss {
+            source: "momentum".to_string(),
+            metric: "price_ma_10".to_string(),
+            operator: "close_below_metric".to_string(),
         }];
 
         let error = config.canonicalized().unwrap_err();
 
-        assert!(error.to_string().contains("indicator_stop_loss"));
+        assert!(error.to_string().contains("source"));
+    }
+
+    #[test]
+    fn canonicalized_should_reject_unknown_indicator_stop_loss_metric() {
+        let mut config = fixture_config(10, 0.10);
+        config.risk_exit_policy.exit_rules = vec![ExitRuleConfig::IndicatorStopLoss {
+            source: "trend".to_string(),
+            metric: "unknown_metric".to_string(),
+            operator: "close_below_metric".to_string(),
+        }];
+
+        let error = config.canonicalized().unwrap_err();
+
+        assert!(error.to_string().contains("metric"));
+    }
+
+    #[test]
+    fn canonicalized_should_reject_unsupported_indicator_stop_loss_operator() {
+        let mut config = fixture_config(10, 0.10);
+        config.risk_exit_policy.exit_rules = vec![ExitRuleConfig::IndicatorStopLoss {
+            source: "trend".to_string(),
+            metric: "price_ma_10".to_string(),
+            operator: "close_above_metric".to_string(),
+        }];
+
+        let error = config.canonicalized().unwrap_err();
+
+        assert!(error.to_string().contains("operator"));
     }
 
     #[test]
@@ -544,6 +621,22 @@ mod tests {
 
         assert_eq!(first.rule_hash, second.rule_hash);
         assert_ne!(first.execution_config_hash, second.execution_config_hash);
+    }
+
+    #[test]
+    fn validate_request_should_accept_trend_indicator_stop_loss() {
+        let catalog = fixture_catalog();
+        let mut request = fixture_request();
+        request.execution_config.risk_exit_policy.exit_rules =
+            vec![ExitRuleConfig::IndicatorStopLoss {
+                source: "trend".to_string(),
+                metric: "price_ma_10".to_string(),
+                operator: "close_below_metric".to_string(),
+            }];
+
+        let response = request.validate(&catalog).unwrap();
+
+        assert_eq!(response.summary.enabled_exit_rule_count, 1);
     }
 
     fn fixture_request() -> StrategyBacktestValidateRequest {

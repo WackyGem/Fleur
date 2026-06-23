@@ -7,7 +7,7 @@ import { securityAnalysis } from "@/api/rearview"
 import {
   useDefaultMarketFeeTemplateQuery,
   useMetricsQuery,
-  useStrategyBacktestValidateQuery,
+  useStrategyBacktestValidateMutation,
   useStrategyPreviewMutation,
   useStrategyPreviewTimelineMutation,
 } from "@/api/hooks"
@@ -95,7 +95,7 @@ const stepContent: Record<Step, { description: string; title: string }> = {
   },
   backtest: {
     title: "策略回测",
-    description: "调整回测配置，查看净值走势、持仓记录与策略业绩",
+    description: "确认回测区间、基准和 canonical 输入",
   },
 }
 
@@ -146,10 +146,7 @@ const defaultSimulationSettings: SimulationSettings = {
     stampDutyRatePercent: 0.05,
     transferFeeRatePercent: 0.001,
     commissionRatePercent: 0.01,
-    commissionRateMaxPercent: 0.3,
-    minCommission: 5,
-    buySlippageRatePercent: 0.1,
-    sellSlippageRatePercent: 0.1,
+    slippageRatePercent: 0.1,
   },
   fixedStopLoss: {
     enabled: false,
@@ -327,7 +324,8 @@ function BacktestPanel({
             <Alert>
               <AlertTitle>缺少回测执行草稿</AlertTitle>
               <AlertDescription>
-                回到 Step 4，等待 Rearview 完成 execution config 校验后再进入回测配置。
+                回到 Step 4，等待 Rearview 完成 execution config
+                校验后再进入回测配置。
               </AlertDescription>
             </Alert>
           ) : (
@@ -497,8 +495,14 @@ function formatDecimalPercent(value: number) {
   return `${Number((value * 100).toFixed(2))}%`
 }
 
+function formatUiPercent(value: number) {
+  return `${Number(value.toFixed(3))}%`
+}
+
 function formatHash(value: string) {
-  return value.length <= 16 ? value : `${value.slice(0, 10)}...${value.slice(-6)}`
+  return value.length <= 16
+    ? value
+    : `${value.slice(0, 10)}...${value.slice(-6)}`
 }
 
 function formatExitRule(
@@ -509,6 +513,9 @@ function formatExitRule(
   }
   if (rule.type === "take_profit") {
     return `固定止盈 ${formatDecimalPercent(rule.profit_pct)}`
+  }
+  if (rule.type === "indicator_stop_loss") {
+    return `指标止损 ${rule.metric}`
   }
 
   return `时间止损 ${rule.holding_days} 天 / ${formatDecimalPercent(rule.max_return_pct)}`
@@ -590,6 +597,9 @@ export function StrategyPage() {
   const [isOpeningPreview, setIsOpeningPreview] = useState(false)
   const [previewSnapshot, setPreviewSnapshot] =
     useState<PreviewSnapshot | null>(null)
+  const [backtestExecutionDraft, setBacktestExecutionDraft] =
+    useState<BacktestExecutionDraft | null>(null)
+  const backtestValidateMutation = useStrategyBacktestValidateMutation()
   const effectiveSimulationSettings = useMemo(() => {
     if (!defaultMarketTemplateQuery.data || hasEditedTransactionFees) {
       return simulationSettings
@@ -613,69 +623,31 @@ export function StrategyPage() {
     hasEditedTransactionFees,
     simulationSettings,
   ])
-  const backtestValidateRequestState = useMemo(() => {
-    if (!previewSnapshot || previewSnapshot.stale) {
-      return { error: null, request: null }
-    }
-    if (!defaultMarketTemplateQuery.data) {
-      return { error: null, request: null }
-    }
-
-    try {
-      return {
-        error: null,
-        request: buildStrategyBacktestValidateRequest({
-          marketTemplate: defaultMarketTemplateQuery.data,
-          previewSnapshot,
-          settings: effectiveSimulationSettings,
-        }),
-      }
-    } catch (error) {
-      return {
-        error: formatErrorMessage(error),
-        request: null,
-      }
-    }
-  }, [
-    defaultMarketTemplateQuery.data,
-    effectiveSimulationSettings,
-    previewSnapshot,
-  ])
-  const backtestValidateQuery = useStrategyBacktestValidateQuery(
-    backtestValidateRequestState.request
-  )
-  const backtestExecutionDraft = useMemo<BacktestExecutionDraft | null>(() => {
-    if (
-      !backtestValidateRequestState.request ||
-      !backtestValidateQuery.data
-    ) {
-      return null
-    }
-
-    return toBacktestExecutionDraft({
-      createdAt: new Date(backtestValidateQuery.dataUpdatedAt).toISOString(),
-      request: backtestValidateRequestState.request,
-      response: backtestValidateQuery.data,
-    })
-  }, [
-    backtestValidateQuery.data,
-    backtestValidateQuery.dataUpdatedAt,
-    backtestValidateRequestState.request,
-  ])
+  const commissionRateMaxPercent =
+    defaultMarketTemplateQuery.data?.fee_profile.commission_rate_max ===
+    undefined
+      ? null
+      : defaultMarketTemplateQuery.data.fee_profile.commission_rate_max * 100
+  const transactionFeeValidationError =
+    commissionRateMaxPercent !== null &&
+    effectiveSimulationSettings.transactionFees.commissionRatePercent >
+      commissionRateMaxPercent
+      ? `佣金率不能高于市场模板上限 ${formatUiPercent(commissionRateMaxPercent)}`
+      : null
   const backtestValidationError =
-    backtestValidateRequestState.error ??
-    (backtestValidateQuery.isError
-      ? formatErrorMessage(backtestValidateQuery.error)
+    transactionFeeValidationError ??
+    (backtestValidateMutation.isError
+      ? formatErrorMessage(backtestValidateMutation.error)
       : null)
-  const isBacktestValidationPending = Boolean(
-    backtestValidateRequestState.request && backtestValidateQuery.isFetching
-  )
+  const isBacktestValidationPending = backtestValidateMutation.isPending
   const canEditConditions = strategyCatalogOptions.length > 0
   const canEditWeights = hasRealScoringCatalog
 
   function markRuleDraftChanged() {
     setPreviewAdapterError(null)
     setPreviewSnapshot(markPreviewSnapshotStale)
+    setBacktestExecutionDraft(null)
+    backtestValidateMutation.reset()
   }
 
   function handleSimulationSettingsChange(nextSettings: SimulationSettings) {
@@ -688,6 +660,8 @@ export function StrategyPage() {
       setHasEditedTransactionFees(true)
     }
     setSimulationSettings(nextSettings)
+    setBacktestExecutionDraft(null)
+    backtestValidateMutation.reset()
   }
 
   function handleBack() {
@@ -825,7 +799,9 @@ export function StrategyPage() {
     setIsOpeningPreview(true)
     previewMutation.reset()
     previewTimelineMutation.reset()
+    backtestValidateMutation.reset()
     setPreviewAdapterError(null)
+    setBacktestExecutionDraft(null)
 
     try {
       if (!metricsQuery.data || metricsQuery.data.length === 0) {
@@ -935,6 +911,37 @@ export function StrategyPage() {
     }
   }
 
+  async function openBacktest() {
+    if (!canEnterBacktest) {
+      return
+    }
+    if (!previewSnapshot || !defaultMarketTemplateQuery.data) {
+      return
+    }
+
+    backtestValidateMutation.reset()
+
+    try {
+      const request = buildStrategyBacktestValidateRequest({
+        marketTemplate: defaultMarketTemplateQuery.data,
+        previewSnapshot,
+        settings: effectiveSimulationSettings,
+      })
+      const response = await backtestValidateMutation.mutateAsync(request)
+
+      setBacktestExecutionDraft(
+        toBacktestExecutionDraft({
+          createdAt: new Date().toISOString(),
+          request,
+          response,
+        })
+      )
+      setActiveStep("backtest")
+    } catch {
+      setBacktestExecutionDraft(null)
+    }
+  }
+
   function changeStep(step: Step) {
     if (step === "preview") {
       void openPreview()
@@ -943,7 +950,8 @@ export function StrategyPage() {
     if (step === "simulation" && !canEnterSimulation) {
       return
     }
-    if (step === "backtest" && !canEnterBacktest) {
+    if (step === "backtest") {
+      void openBacktest()
       return
     }
 
@@ -969,11 +977,11 @@ export function StrategyPage() {
   )
   const canEnterBacktest = Boolean(
     canEnterSimulation &&
-      backtestExecutionDraft &&
-      !backtestValidationError &&
-      !isBacktestValidationPending &&
-      !defaultMarketTemplateQuery.isLoading &&
-      !defaultMarketTemplateQuery.isError
+    !transactionFeeValidationError &&
+    !isBacktestValidationPending &&
+    !defaultMarketTemplateQuery.isLoading &&
+    !defaultMarketTemplateQuery.isError &&
+    defaultMarketTemplateQuery.data
   )
 
   return (
@@ -1088,8 +1096,8 @@ export function StrategyPage() {
                 <SimulationPositionPanel
                   appliedWeightIndicators={previewAppliedWeightIndicators}
                   backtestValidationError={backtestValidationError}
+                  commissionRateMaxPercent={commissionRateMaxPercent}
                   conditionGroups={conditionGroups}
-                  executionDraft={backtestExecutionDraft}
                   isBacktestValidationPending={isBacktestValidationPending}
                   isMarketTemplateError={defaultMarketTemplateQuery.isError}
                   isMarketTemplateLoading={defaultMarketTemplateQuery.isLoading}
@@ -1196,7 +1204,7 @@ export function StrategyPage() {
                           size="lg"
                           className="w-full sm:w-48"
                           disabled={!canEnterBacktest}
-                          onClick={() => setActiveStep("backtest")}
+                          onClick={() => void openBacktest()}
                           type="button"
                         >
                           {isBacktestValidationPending ? (

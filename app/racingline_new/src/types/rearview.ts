@@ -299,6 +299,12 @@ export type ExitRuleConfig =
       holding_days: number
       max_return_pct: number
     }
+  | {
+      type: "indicator_stop_loss"
+      source: "trend"
+      metric: string
+      operator: "close_below_metric"
+    }
 
 export type StrategyBacktestValidateRequest = {
   rule: RuleVersionSpec

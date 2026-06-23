@@ -1,6 +1,6 @@
 # System: Racingline
 
-状态：策略创建 Step 4 draft handoff 已实现，组合净值第一版实施中（2026-06-23）
+状态：策略创建 Step 4 漂移修正已实现，组合净值第一版实施中（2026-06-23）
 
 ## 代码根
 
@@ -18,15 +18,16 @@
 3. 在 `app/racingline_new` 的 `/strategies` 中支持 Step 1 记录筛选条件、Step 2 记录评分规则、Step 3 点击股池预览后执行真实选股/评分/排名。
 4. Step 3 使用 Rearview preview-only API 展示 applied preview snapshot、动态近一年交易日股池概览、10 条分页候选股、rank、score、Step 2 得分项、Step 1 指标列、证券交易板块、K 线复权、MA5/MA10/MA30 和成交量柱；不展示 raw debug 面板。
 5. Step 3 允许在行情/估值下方微调 Step 2 权重草稿；权重变化只标记 preview stale，必须点击“更新股池”并由 Rearview 重新 preview 后才替换 applied snapshot。
-6. Step 4 使用 Rearview 默认市场费率模板初始化费用草稿，把 `SimulationSettings` 通过薄 adapter 映射为 snake_case `BacktestExecutionConfig`，再调用 `POST /rearview/strategy-backtests/validate` 获取 canonical config、`rule_hash`、`execution_config_hash` 和仓位摘要；Step 4 不执行回测。
-7. Step 4/5 gate 只允许非 stale Step 3 applied preview snapshot 和成功的 Rearview draft 进入；Step 1/2 修改后必须重新更新股池。
-8. Step 5 只消费 `BacktestExecutionDraft`、回测区间和 benchmark，展示 request draft、hash 和 config 摘要；真实回测执行按钮保持 disabled，不展示静态净值、持仓或绩效样例。
-9. 展示 run、chunk 和 day 粒度进度。
-10. 按交易日展示股票池、TopN 买入信号、score breakdown 和 selected metrics。
-11. 用 UI 明确区分运行时结果快照和当前 mart 查询值。
-12. 从 run result 的 `Open` 进入 `/runs/:runId/securities/:securityCode` 个股分析页，提供结果列表、日 K 线、MA5/MA10/MA30、KDJ/RSI/MACD/BOLL 和右侧 mart 指标面板。
-13. 提供虚拟账户模板表单，使用 Rearview 默认市场费率模板预填初始资金、费率、滑点和卖出规则。
-14. 提供 `/portfolios` 和 `/portfolios/:portfolioRunId`，展示组合运行状态、净值曲线、summary、参数、持仓、成交、订单、调仓目标和事件。
+6. Step 4 使用 Rearview 默认市场费率模板初始化费用草稿，只展示用户可编辑的佣金率、印花税、过户费和单一成交滑点；摘要展示建仓参数、风险规则和 Step 3 timeline 的近三月 `pool_count` 票池走势，不展示 Rearview draft/hash/Preview debug 字段。
+7. Step 4 编辑期间不自动调用 backtest validate；点击「进入回测」时才把 Step 3 applied snapshot 和 Step 4 当前表单映射为 snake_case `BacktestExecutionConfig`，调用 `POST /rearview/strategy-backtests/validate` 获取 canonical config、`rule_hash`、`execution_config_hash` 和仓位摘要。
+8. Step 4/5 gate 只允许非 stale Step 3 applied preview snapshot 和成功的 Rearview draft 进入；Step 1/2 修改后必须重新更新股池。Step 4 支持受控趋势指标止损，第一版语义为收盘价跌破所选 trend metric 时卖出。
+9. Step 5 只消费 `BacktestExecutionDraft`、回测区间和 benchmark，展示 request draft、hash 和 config 摘要；真实回测执行按钮保持 disabled，不展示静态净值、持仓或绩效样例。
+10. 展示 run、chunk 和 day 粒度进度。
+11. 按交易日展示股票池、TopN 买入信号、score breakdown 和 selected metrics。
+12. 用 UI 明确区分运行时结果快照和当前 mart 查询值。
+13. 从 run result 的 `Open` 进入 `/runs/:runId/securities/:securityCode` 个股分析页，提供结果列表、日 K 线、MA5/MA10/MA30、KDJ/RSI/MACD/BOLL 和右侧 mart 指标面板。
+14. 提供虚拟账户模板表单，使用 Rearview 默认市场费率模板预填初始资金、费率、滑点和卖出规则。
+15. 提供 `/portfolios` 和 `/portfolios/:portfolioRunId`，展示组合运行状态、净值曲线、summary、参数、持仓、成交、订单、调仓目标和事件。
 
 ## 非职责
 
@@ -138,6 +139,8 @@ cargo test --workspace
 | [../RFC/0027-racingline-strategy-simulation-position-step4.md](../RFC/0027-racingline-strategy-simulation-position-step4.md) | `/strategies` Step 4 模拟建仓、默认市场费率模板、BacktestExecutionDraft 和 Step 5 handoff 边界 |
 | [../plans/archive/0050-racingline-strategy-simulation-position-step4-implementation-plan.md](../plans/archive/0050-racingline-strategy-simulation-position-step4-implementation-plan.md) | Step 4 execution draft、Rearview validate contract、stale gate 和 Step 5 contract handoff 已完成计划 |
 | [../jobs/reports/2026-06-23-racingline-strategy-step4-draft-handoff.md](../jobs/reports/2026-06-23-racingline-strategy-step4-draft-handoff.md) | Step 4 draft handoff、stale gate、fee template error path 和质量门禁验收报告 |
+| [../debt/0006-2026-06-23-strategies-step4-implemennt-drift.md](../debt/0006-2026-06-23-strategies-step4-implemennt-drift.md) | Step 4 模拟建仓实现漂移和修复方案，已 resolved |
+| [../jobs/reports/2026-06-23-racingline-strategy-step4-drift-remediation.md](../jobs/reports/2026-06-23-racingline-strategy-step4-drift-remediation.md) | Step 4 漂移修正后的 UI、validate 时机、近三月票池数和趋势指标止损验收报告 |
 | [../plans/archive/0045-racingline-strategy-selection-step1-gap-closure-plan.md](../plans/archive/0045-racingline-strategy-selection-step1-gap-closure-plan.md) | 策略选股 Step 1 缺口填补实施计划归档 |
 | [../plans/archive/0046-racingline-strategy-weight-configuration-step2-implementation-plan.md](../plans/archive/0046-racingline-strategy-weight-configuration-step2-implementation-plan.md) | 策略权重配置 Step 2、preview-only API 和真实股池预览实施计划归档 |
 | [../plans/archive/0047-racingline-strategy-pool-preview-step3-implementation-plan.md](../plans/archive/0047-racingline-strategy-pool-preview-step3-implementation-plan.md) | 策略股池预览 Step 3、PreviewSnapshot、全池分页和 preview security analysis 实施计划归档 |

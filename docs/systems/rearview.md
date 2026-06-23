@@ -22,7 +22,7 @@
 6. 提供 preview-only 策略检查 API：`POST /rearview/strategy-preview/timeline`、`POST /rearview/strategy-preview`、`POST /rearview/strategy-preview/pool-page` 和 `POST /rearview/strategy-preview/security-analysis`；这些接口不创建 rule set、rule version、run 或 portfolio run。
 7. Preview rows、pool page 和 preview security analysis 通过 `mart_stock_basic_snapshot` 补齐 `security_name`、`exchange_code` 和交易板块 `security_board`。
 8. Preview security analysis 支持 `include_quote_rows=false`，在保留 membership 校验、`selected_quote` 和 chart series 的同时省略完整 `quote_rows` payload；MA5/MA10/MA30 固定使用前复权指标基准并可叠加到任意 OHLC 复权模式。
-9. 提供 draft-only 策略回测校验 API：`POST /rearview/strategy-backtests/validate`，接收 transient `RuleVersionSpec + BacktestExecutionConfig`，返回 canonical config、`rule_hash`、`execution_config_hash` 和仓位/退出规则摘要；该接口不创建 rule set、rule version、run、portfolio run，不写结果事实，也不发 NATS。
+9. 提供 draft-only 策略回测校验 API：`POST /rearview/strategy-backtests/validate`，接收 transient `RuleVersionSpec + BacktestExecutionConfig`，返回 canonical config、`rule_hash`、`execution_config_hash` 和仓位/退出规则摘要；该接口不创建 rule set、rule version、run、portfolio run，不写结果事实，也不发 NATS。第一版支持受控 trend indicator stop loss，只接受 `source = "trend"`、allowlisted trend metric 和 `operator = "close_below_metric"`。
 10. 提供虚拟账户模板、默认市场费率模板、组合运行、组合净值和目标/订单/成交/持仓/事件明细 API。
 11. Portfolio simulation engine 支持 `single_position_limit_pct` 一等字段；当该字段存在时，后端使用 `min((1 - cash_reserve_pct) / max_positions, single_position_limit_pct)` 计算单票目标权重，cap 留下的资金保留为现金。
 12. 通过 PostgreSQL outbox 和 NATS JetStream 分发组合净值计算任务，由 `rearview-portfolio-worker` 幂等写回组合账本。
@@ -112,6 +112,8 @@ uv run alembic upgrade head
 | [../plans/0041-racingline-virtual-account-portfolio-rebalancing-implementation-plan.md](../plans/0041-racingline-virtual-account-portfolio-rebalancing-implementation-plan.md) | 虚拟账户、组合运行、worker 和 Racingline 组合页面当前实施计划 |
 | [../plans/archive/0050-racingline-strategy-simulation-position-step4-implementation-plan.md](../plans/archive/0050-racingline-strategy-simulation-position-step4-implementation-plan.md) | Racingline Step 4 模拟建仓 execution draft、Rearview validate contract 和前端 gate 已完成计划 |
 | [../jobs/reports/2026-06-23-racingline-strategy-step4-draft-handoff.md](../jobs/reports/2026-06-23-racingline-strategy-step4-draft-handoff.md) | Strategy backtest validate contract、Step 4 handoff 和浏览器验收报告 |
+| [../debt/0006-2026-06-23-strategies-step4-implemennt-drift.md](../debt/0006-2026-06-23-strategies-step4-implemennt-drift.md) | Step 4 模拟建仓实现漂移和修复方案，已 resolved |
+| [../jobs/reports/2026-06-23-racingline-strategy-step4-drift-remediation.md](../jobs/reports/2026-06-23-racingline-strategy-step4-drift-remediation.md) | Rearview trend indicator stop loss validation、worker 转换和 portfolio engine 执行验收报告 |
 | [../plans/archive/0046-racingline-strategy-weight-configuration-step2-implementation-plan.md](../plans/archive/0046-racingline-strategy-weight-configuration-step2-implementation-plan.md) | Rearview preview-only API、`[0, 100]` scoring clamp 和策略权重配置 Step 2 实施计划归档 |
 | [../plans/archive/0047-racingline-strategy-pool-preview-step3-implementation-plan.md](../plans/archive/0047-racingline-strategy-pool-preview-step3-implementation-plan.md) | Step 3 preview snapshot、全池分页、证券显示和 preview security analysis 实施计划归档 |
 | [../plans/archive/0048-racingline-strategy-step3-drift-remediation-plan.md](../plans/archive/0048-racingline-strategy-step3-drift-remediation-plan.md) | Step 3 preview timeline、10 条分页、K 线复权/MA 和 UI 职责收缩实施计划归档 |

@@ -196,6 +196,8 @@ pub struct TrendIndicatorRow {
     #[serde(default, deserialize_with = "deserialize_optional_f64")]
     pub price_ma_60: Option<f64>,
     #[serde(default, deserialize_with = "deserialize_optional_f64")]
+    pub price_ma_250: Option<f64>,
+    #[serde(default, deserialize_with = "deserialize_optional_f64")]
     pub price_avg_ma_3_6_12_24: Option<f64>,
     #[serde(default, deserialize_with = "deserialize_optional_f64")]
     pub price_avg_ma_14_28_57_114: Option<f64>,
@@ -830,14 +832,24 @@ FORMAT JSONEachRow"#
         let sql = format!(
             r#"
 SELECT
-    security_code,
-    trade_date,
-    open_price_backward_adj,
-    close_price_backward_adj
-FROM {database}.`mart_stock_quotes_daily`
-WHERE trade_date BETWEEN toDate('{start_date}') AND toDate('{end_date}')
-  AND security_code IN ({securities})
-ORDER BY trade_date ASC, security_code ASC
+    q.security_code AS security_code,
+    q.trade_date AS trade_date,
+    q.open_price_backward_adj AS open_price_backward_adj,
+    q.close_price_backward_adj AS close_price_backward_adj,
+    q.close_price_forward_adj AS close_price_forward_adj,
+    t.price_ma_5 AS price_ma_5,
+    t.price_ma_10 AS price_ma_10,
+    t.price_ma_20 AS price_ma_20,
+    t.price_ma_30 AS price_ma_30,
+    t.price_ma_60 AS price_ma_60,
+    t.price_ma_250 AS price_ma_250,
+    t.boll_lower_20_2 AS boll_lower_20_2
+FROM {database}.`mart_stock_quotes_daily` AS q
+LEFT JOIN {database}.`mart_stock_trend_indicator_daily` AS t
+    ON q.security_code = t.security_code AND q.trade_date = t.trade_date
+WHERE q.trade_date BETWEEN toDate('{start_date}') AND toDate('{end_date}')
+  AND q.security_code IN ({securities})
+ORDER BY q.trade_date ASC, q.security_code ASC
 FORMAT JSONEachRow"#
         );
         let body = self.execute_text(&sql, query_id).await?;
@@ -1489,6 +1501,7 @@ fn trend_select_columns() -> &'static str {
     price_ma_20,
     price_ma_30,
     price_ma_60,
+    price_ma_250,
     price_avg_ma_3_6_12_24,
     price_avg_ma_14_28_57_114,
     price_ema2_10,

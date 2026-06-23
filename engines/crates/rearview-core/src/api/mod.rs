@@ -3092,6 +3092,7 @@ mod tests {
             price_ma_20: None,
             price_ma_30: Some(12.0),
             price_ma_60: None,
+            price_ma_250: None,
             price_avg_ma_3_6_12_24: None,
             price_avg_ma_14_28_57_114: None,
             price_ema2_10: None,

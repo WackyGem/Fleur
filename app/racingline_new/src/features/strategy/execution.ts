@@ -38,22 +38,24 @@ export class StrategyBacktestExecutionError extends Error {
 export function marketTemplateToTransactionFees(
   template: MarketFeeTemplateRecord
 ): SimulationSettings["transactionFees"] {
+  const slippageRatePercent = bpsToPercent(
+    Math.max(
+      template.slippage_profile.buy_bps,
+      template.slippage_profile.sell_bps
+    )
+  )
+
   return {
     commissionRatePercent: decimalToPercent(
       template.fee_profile.commission_rate
     ),
-    commissionRateMaxPercent: decimalToPercent(
-      template.fee_profile.commission_rate_max
-    ),
-    minCommission: template.fee_profile.min_commission,
     stampDutyRatePercent: decimalToPercent(
       template.fee_profile.stamp_duty_rate_sell
     ),
     transferFeeRatePercent: decimalToPercent(
       template.fee_profile.transfer_fee_rate
     ),
-    buySlippageRatePercent: bpsToPercent(template.slippage_profile.buy_bps),
-    sellSlippageRatePercent: bpsToPercent(template.slippage_profile.sell_bps),
+    slippageRatePercent,
   }
 }
 
@@ -63,12 +65,9 @@ export function areTransactionFeesEqual(
 ) {
   return (
     left.commissionRatePercent === right.commissionRatePercent &&
-    left.commissionRateMaxPercent === right.commissionRateMaxPercent &&
-    left.minCommission === right.minCommission &&
     left.stampDutyRatePercent === right.stampDutyRatePercent &&
     left.transferFeeRatePercent === right.transferFeeRatePercent &&
-    left.buySlippageRatePercent === right.buySlippageRatePercent &&
-    left.sellSlippageRatePercent === right.sellSlippageRatePercent
+    left.slippageRatePercent === right.slippageRatePercent
   )
 }
 
@@ -84,9 +83,14 @@ export function simulationSettingsToBacktestExecutionConfig(
   if (marketTemplate.currency !== "CNY") {
     throw new StrategyBacktestExecutionError("模拟建仓第一版只支持 CNY 账户")
   }
-  if (settings.indicatorStopLoss.enabled) {
+  const commissionRateMaxPercent = decimalToPercent(
+    marketTemplate.fee_profile.commission_rate_max
+  )
+  if (
+    settings.transactionFees.commissionRatePercent > commissionRateMaxPercent
+  ) {
     throw new StrategyBacktestExecutionError(
-      "指标止损尚未接入 Rearview portfolio engine，不能进入回测草稿"
+      `佣金率不能高于市场模板上限 ${formatPercent(commissionRateMaxPercent)}`
     )
   }
 
@@ -117,10 +121,8 @@ export function simulationSettingsToBacktestExecutionConfig(
       commission_rate: percentToDecimal(
         settings.transactionFees.commissionRatePercent
       ),
-      commission_rate_max: percentToDecimal(
-        settings.transactionFees.commissionRateMaxPercent
-      ),
-      min_commission: settings.transactionFees.minCommission,
+      commission_rate_max: marketTemplate.fee_profile.commission_rate_max,
+      min_commission: marketTemplate.fee_profile.min_commission,
       stamp_duty_rate_sell: percentToDecimal(
         settings.transactionFees.stampDutyRatePercent
       ),
@@ -130,8 +132,8 @@ export function simulationSettingsToBacktestExecutionConfig(
     },
     slippage_profile: {
       mode: "bps",
-      buy_bps: percentToBps(settings.transactionFees.buySlippageRatePercent),
-      sell_bps: percentToBps(settings.transactionFees.sellSlippageRatePercent),
+      buy_bps: percentToBps(settings.transactionFees.slippageRatePercent),
+      sell_bps: percentToBps(settings.transactionFees.slippageRatePercent),
     },
     risk_exit_policy: {
       trigger_timing: "close_confirm_next_open",
@@ -259,6 +261,14 @@ function buildExitRules(
       ),
     })
   }
+  if (settings.indicatorStopLoss.enabled) {
+    rules.push({
+      type: "indicator_stop_loss",
+      source: "trend",
+      metric: settings.indicatorStopLoss.metric,
+      operator: "close_below_metric",
+    })
+  }
 
   return rules
 }
@@ -277,6 +287,10 @@ function decimalToPercent(value: number) {
 
 function bpsToPercent(value: number) {
   return roundNumber(value / 100)
+}
+
+function formatPercent(value: number) {
+  return `${Number.isInteger(value) ? value : value.toFixed(3)}%`
 }
 
 function roundNumber(value: number) {

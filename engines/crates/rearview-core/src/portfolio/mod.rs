@@ -36,7 +36,7 @@ pub struct SlippageProfile {
     pub sell_bps: f64,
 }
 
-#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum ExitRule {
     FixedStopLoss {
         loss_pct: f64,
@@ -47,6 +47,9 @@ pub enum ExitRule {
     TimeStopLoss {
         holding_days: u32,
         max_return_pct: f64,
+    },
+    IndicatorStopLoss {
+        metric: String,
     },
 }
 
@@ -65,6 +68,22 @@ pub struct PriceBar {
     pub trade_date: NaiveDate,
     pub open_price_backward_adj: Option<f64>,
     pub close_price_backward_adj: Option<f64>,
+    #[serde(default)]
+    pub close_price_forward_adj: Option<f64>,
+    #[serde(default)]
+    pub price_ma_5: Option<f64>,
+    #[serde(default)]
+    pub price_ma_10: Option<f64>,
+    #[serde(default)]
+    pub price_ma_20: Option<f64>,
+    #[serde(default)]
+    pub price_ma_30: Option<f64>,
+    #[serde(default)]
+    pub price_ma_60: Option<f64>,
+    #[serde(default)]
+    pub price_ma_250: Option<f64>,
+    #[serde(default)]
+    pub boll_lower_20_2: Option<f64>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -120,6 +139,7 @@ pub enum OrderSide {
 pub enum OrderReason {
     Rebalance,
     FixedStopLoss,
+    IndicatorStopLoss,
     TakeProfit,
     TimeStopLoss,
 }
@@ -195,6 +215,7 @@ pub struct PortfolioEventRow {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum PortfolioEventType {
     PriceMissing,
+    IndicatorMissing,
     CashInsufficientForMinLot,
     TargetAmountBelowMinLot,
 }
@@ -250,6 +271,7 @@ pub fn order_reason_str(reason: OrderReason) -> &'static str {
     match reason {
         OrderReason::Rebalance => "rebalance",
         OrderReason::FixedStopLoss => "fixed_stop_loss",
+        OrderReason::IndicatorStopLoss => "indicator_stop_loss",
         OrderReason::TakeProfit => "take_profit",
         OrderReason::TimeStopLoss => "time_stop_loss",
     }
@@ -267,6 +289,7 @@ pub fn order_status_str(status: OrderStatus) -> &'static str {
 pub fn portfolio_event_type_str(event_type: PortfolioEventType) -> &'static str {
     match event_type {
         PortfolioEventType::PriceMissing => "price_missing",
+        PortfolioEventType::IndicatorMissing => "indicator_missing",
         PortfolioEventType::CashInsufficientForMinLot => "cash_insufficient_for_min_lot",
         PortfolioEventType::TargetAmountBelowMinLot => "target_amount_below_min_lot",
     }
@@ -473,7 +496,10 @@ pub fn simulate_portfolio(
                             PortfolioEventType::TargetAmountBelowMinLot => {
                                 OrderStatus::SkippedBelowMinLot
                             }
-                            PortfolioEventType::PriceMissing => OrderStatus::SkippedPriceMissing,
+                            PortfolioEventType::PriceMissing
+                            | PortfolioEventType::IndicatorMissing => {
+                                OrderStatus::SkippedPriceMissing
+                            }
                         },
                         Some(reference_price),
                     ));
@@ -608,9 +634,20 @@ pub fn simulate_portfolio(
         });
 
         for (security_code, position) in &positions {
-            if let Some(close_price) = close_price(&prices, trade_date, security_code)
+            if let Some(price_bar) = prices.get(&(trade_date, security_code.clone()))
+                && let Some(metric) = missing_indicator_stop_loss_metric(input, price_bar)
+            {
+                events.push(event(
+                    &mut event_seq,
+                    trade_date,
+                    Some(security_code.clone()),
+                    PortfolioEventType::IndicatorMissing,
+                    &format!("indicator stop loss skipped because {metric} is missing"),
+                ));
+            }
+            if let Some(price_bar) = prices.get(&(trade_date, security_code.clone()))
                 && let Some(reason) =
-                    triggered_exit_reason(input, position, close_price, trade_day_index)
+                    triggered_exit_reason(input, position, price_bar, trade_day_index)
             {
                 pending_sells
                     .entry(next_trade_date(&prices, trade_date))
@@ -679,6 +716,15 @@ fn validate_input(input: &PortfolioSimulationInput) -> RearviewResult<()> {
         return Err(RearviewError::Validation(
             "lot_size and min_trade_lots must be greater than 0".to_string(),
         ));
+    }
+    for rule in &input.exit_rules {
+        if let ExitRule::IndicatorStopLoss { metric } = rule
+            && !is_supported_indicator_stop_loss_metric(metric)
+        {
+            return Err(RearviewError::Validation(format!(
+                "indicator stop loss metric is not supported: {metric}"
+            )));
+        }
     }
     Ok(())
 }
@@ -849,30 +895,87 @@ fn event(
 fn triggered_exit_reason(
     input: &PortfolioSimulationInput,
     position: &PositionState,
-    close_price: f64,
+    price_bar: &PriceBar,
     trade_day_index: usize,
 ) -> Option<OrderReason> {
+    let close_price = price_bar.close_price_backward_adj?;
     let unrealized_return = close_price / position.average_entry_price - 1.0;
     for rule in &input.exit_rules {
-        match *rule {
-            ExitRule::FixedStopLoss { loss_pct } if unrealized_return <= -loss_pct => {
+        match rule {
+            ExitRule::FixedStopLoss { loss_pct } if unrealized_return <= -*loss_pct => {
                 return Some(OrderReason::FixedStopLoss);
             }
-            ExitRule::TakeProfit { profit_pct } if unrealized_return >= profit_pct => {
+            ExitRule::TakeProfit { profit_pct } if unrealized_return >= *profit_pct => {
                 return Some(OrderReason::TakeProfit);
             }
             ExitRule::TimeStopLoss {
                 holding_days: rule_holding_days,
                 max_return_pct,
-            } if holding_days(position.entry_trade_index, trade_day_index) >= rule_holding_days
-                && unrealized_return < max_return_pct =>
+            } if holding_days(position.entry_trade_index, trade_day_index)
+                >= *rule_holding_days
+                && unrealized_return < *max_return_pct =>
             {
                 return Some(OrderReason::TimeStopLoss);
+            }
+            ExitRule::IndicatorStopLoss { metric }
+                if indicator_close_price(price_bar)
+                    .zip(trend_metric_value(price_bar, metric))
+                    .is_some_and(|(indicator_close, value)| indicator_close < value) =>
+            {
+                return Some(OrderReason::IndicatorStopLoss);
             }
             _ => {}
         }
     }
     None
+}
+
+fn indicator_close_price(price_bar: &PriceBar) -> Option<f64> {
+    price_bar
+        .close_price_forward_adj
+        .or(price_bar.close_price_backward_adj)
+}
+
+fn missing_indicator_stop_loss_metric<'a>(
+    input: &'a PortfolioSimulationInput,
+    price_bar: &PriceBar,
+) -> Option<&'a str> {
+    indicator_close_price(price_bar)?;
+    input.exit_rules.iter().find_map(|rule| {
+        if let ExitRule::IndicatorStopLoss { metric } = rule
+            && trend_metric_value(price_bar, metric).is_none()
+        {
+            Some(metric.as_str())
+        } else {
+            None
+        }
+    })
+}
+
+fn trend_metric_value(price_bar: &PriceBar, metric: &str) -> Option<f64> {
+    match metric {
+        "price_ma_5" => price_bar.price_ma_5,
+        "price_ma_10" => price_bar.price_ma_10,
+        "price_ma_20" => price_bar.price_ma_20,
+        "price_ma_30" => price_bar.price_ma_30,
+        "price_ma_60" => price_bar.price_ma_60,
+        "price_ma_250" => price_bar.price_ma_250,
+        "boll_lower_20_2" => price_bar.boll_lower_20_2,
+        _ => None,
+    }
+}
+
+fn is_supported_indicator_stop_loss_metric(metric: &str) -> bool {
+    matches!(
+        metric,
+        "price_ma_5"
+            | "price_ma_10"
+            | "price_ma_20"
+            | "price_ma_30"
+            | "price_ma_60"
+            | "price_ma_250"
+            | "boll_lower_20_2"
+    )
 }
 
 fn next_trade_date(
@@ -989,6 +1092,63 @@ mod tests {
             .find(|trade| trade.side == OrderSide::Sell)
             .expect("time stop should sell after two trading holding days");
         assert_eq!(sell_trade.trade_date, d4);
+    }
+
+    #[test]
+    fn indicator_stop_loss_sells_when_close_is_below_metric() {
+        let d1 = date(2024, 1, 2);
+        let d2 = date(2024, 1, 3);
+        let d3 = date(2024, 1, 4);
+        let mut input = fixture_input();
+        input.max_positions = 1;
+        input.exit_rules = vec![ExitRule::IndicatorStopLoss {
+            metric: "price_ma_10".to_string(),
+        }];
+        input.signals = vec![signal(d1, d1, "AAA", 1)];
+        input.prices = vec![
+            price(d1, "AAA", 10.0, 10.0),
+            price_with_metric(d2, "AAA", 10.0, 9.0, "price_ma_10", Some(10.0)),
+            price(d3, "AAA", 9.0, 9.0),
+        ];
+
+        let output = simulate_portfolio(&input).expect("simulation should succeed");
+
+        assert!(output.trades.iter().any(|trade| {
+            trade.security_code == "AAA"
+                && trade.side == OrderSide::Sell
+                && trade.reason == OrderReason::IndicatorStopLoss
+                && trade.trade_date == d3
+        }));
+    }
+
+    #[test]
+    fn indicator_stop_loss_does_not_sell_when_metric_is_missing() {
+        let d1 = date(2024, 1, 2);
+        let d2 = date(2024, 1, 3);
+        let d3 = date(2024, 1, 4);
+        let mut input = fixture_input();
+        input.max_positions = 1;
+        input.exit_rules = vec![ExitRule::IndicatorStopLoss {
+            metric: "price_ma_10".to_string(),
+        }];
+        input.signals = vec![signal(d1, d1, "AAA", 1)];
+        input.prices = vec![
+            price(d1, "AAA", 10.0, 10.0),
+            price(d2, "AAA", 10.0, 9.0),
+            price(d3, "AAA", 9.0, 9.0),
+        ];
+
+        let output = simulate_portfolio(&input).expect("simulation should succeed");
+
+        assert!(!output.trades.iter().any(|trade| {
+            trade.security_code == "AAA"
+                && trade.side == OrderSide::Sell
+                && trade.reason == OrderReason::IndicatorStopLoss
+        }));
+        assert!(output.events.iter().any(|event| {
+            event.security_code.as_deref() == Some("AAA")
+                && event.event_type == PortfolioEventType::IndicatorMissing
+        }));
     }
 
     #[test]
@@ -1137,7 +1297,31 @@ mod tests {
             trade_date,
             open_price_backward_adj: Some(open),
             close_price_backward_adj: Some(close),
+            close_price_forward_adj: None,
+            price_ma_5: None,
+            price_ma_10: None,
+            price_ma_20: None,
+            price_ma_30: None,
+            price_ma_60: None,
+            price_ma_250: None,
+            boll_lower_20_2: None,
         }
+    }
+
+    fn price_with_metric(
+        trade_date: NaiveDate,
+        security_code: &str,
+        open: f64,
+        close: f64,
+        metric: &str,
+        value: Option<f64>,
+    ) -> PriceBar {
+        let mut bar = price(trade_date, security_code, open, close);
+        match metric {
+            "price_ma_10" => bar.price_ma_10 = value,
+            other => panic!("unsupported test metric: {other}"),
+        }
+        bar
     }
 
     fn date(year: i32, month: u32, day: u32) -> NaiveDate {

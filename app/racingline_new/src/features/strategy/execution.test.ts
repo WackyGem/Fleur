@@ -60,12 +60,9 @@ const settings: SimulationSettings = {
   singlePositionLimitPercent: 10,
   transactionFees: {
     commissionRatePercent: 0.01,
-    commissionRateMaxPercent: 0.3,
-    minCommission: 5,
     stampDutyRatePercent: 0.05,
     transferFeeRatePercent: 0.001,
-    buySlippageRatePercent: 0.1,
-    sellSlippageRatePercent: 0.12,
+    slippageRatePercent: 0.12,
   },
   fixedStopLoss: {
     enabled: true,
@@ -91,12 +88,9 @@ describe("marketTemplateToTransactionFees", () => {
   it("converts template decimals and bps into UI percentages", () => {
     expect(marketTemplateToTransactionFees(marketTemplate)).toEqual({
       commissionRatePercent: 0.01,
-      commissionRateMaxPercent: 0.3,
-      minCommission: 5,
       stampDutyRatePercent: 0.05,
       transferFeeRatePercent: 0.001,
-      buySlippageRatePercent: 0.1,
-      sellSlippageRatePercent: 0.12,
+      slippageRatePercent: 0.12,
     })
   })
 })
@@ -111,9 +105,12 @@ describe("simulationSettingsToBacktestExecutionConfig", () => {
     expect(config.signal_policy.buy_signal_top_n).toBe(5)
     expect(config.rebalance_policy.max_positions).toBe(5)
     expect(config.rebalance_policy.single_position_limit_pct).toBe(0.1)
+    expect(config.fee_profile.commission_rate).toBe(0.0001)
+    expect(config.fee_profile.commission_rate_max).toBe(0.003)
+    expect(config.fee_profile.min_commission).toBe(5)
     expect(config.fee_profile.stamp_duty_rate_sell).toBe(0.0005)
     expect(config.fee_profile.transfer_fee_rate).toBe(0.00001)
-    expect(config.slippage_profile.buy_bps).toBe(10)
+    expect(config.slippage_profile.buy_bps).toBe(12)
     expect(config.slippage_profile.sell_bps).toBe(12)
     expect(config.risk_exit_policy.exit_rules).toEqual([
       { type: "fixed_stop_loss", loss_pct: 0.08 },
@@ -122,19 +119,39 @@ describe("simulationSettingsToBacktestExecutionConfig", () => {
     ])
   })
 
-  it("rejects indicator stop loss before it can be serialized", () => {
+  it("serializes trend indicator stop loss", () => {
+    const config = simulationSettingsToBacktestExecutionConfig(
+      {
+        ...settings,
+        indicatorStopLoss: {
+          ...settings.indicatorStopLoss,
+          enabled: true,
+        },
+      },
+      marketTemplate
+    )
+
+    expect(config.risk_exit_policy.exit_rules.at(-1)).toEqual({
+      type: "indicator_stop_loss",
+      source: "trend",
+      metric: "price_ma_10",
+      operator: "close_below_metric",
+    })
+  })
+
+  it("rejects commission rates above the template max", () => {
     expect(() =>
       simulationSettingsToBacktestExecutionConfig(
         {
           ...settings,
-          indicatorStopLoss: {
-            ...settings.indicatorStopLoss,
-            enabled: true,
+          transactionFees: {
+            ...settings.transactionFees,
+            commissionRatePercent: 0.31,
           },
         },
         marketTemplate
       )
-    ).toThrow("指标止损")
+    ).toThrow("佣金率")
   })
 })
 
@@ -213,12 +230,12 @@ describe("buildBacktestExecutionRequestDraft", () => {
 
 describe("buildBacktestDateRange", () => {
   it("builds UTC date ranges for period presets", () => {
-    expect(buildBacktestDateRange("1y", new Date("2026-06-22T23:59:00Z"))).toEqual(
-      {
-        start_date: "2025-06-22",
-        end_date: "2026-06-22",
-      }
-    )
+    expect(
+      buildBacktestDateRange("1y", new Date("2026-06-22T23:59:00Z"))
+    ).toEqual({
+      start_date: "2025-06-22",
+      end_date: "2026-06-22",
+    })
   })
 })
 

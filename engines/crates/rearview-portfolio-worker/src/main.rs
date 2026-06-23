@@ -340,12 +340,9 @@ impl RiskExitPolicy {
         self.exit_rules
             .into_iter()
             .map(|rule| {
-                let rule_type = rule
-                    .get("type")
-                    .and_then(Value::as_str)
-                    .ok_or_else(|| {
-                        RearviewError::Validation("exit rule type is required".to_string())
-                    })?;
+                let rule_type = rule.get("type").and_then(Value::as_str).ok_or_else(|| {
+                    RearviewError::Validation("exit rule type is required".to_string())
+                })?;
                 match rule_type {
                     "fixed_stop_loss" => Ok(ExitRule::FixedStopLoss {
                         loss_pct: read_pct(&rule, "loss_pct")?,
@@ -357,9 +354,13 @@ impl RiskExitPolicy {
                         holding_days: read_u32(&rule, "holding_days")?,
                         max_return_pct: read_pct(&rule, "max_return_pct")?,
                     }),
-                    "indicator_stop_loss" => Err(RearviewError::Validation(
-                        "indicator_stop_loss is not supported until indicator inputs are available for portfolio worker".to_string(),
-                    )),
+                    "indicator_stop_loss" => {
+                        validate_exact_str(&rule, "source", "trend")?;
+                        validate_exact_str(&rule, "operator", "close_below_metric")?;
+                        Ok(ExitRule::IndicatorStopLoss {
+                            metric: read_str(&rule, "metric")?.to_string(),
+                        })
+                    }
                     other => Err(RearviewError::Validation(format!(
                         "unsupported exit rule type: {other}"
                     ))),
@@ -382,6 +383,23 @@ fn read_u32(rule: &Value, key: &str) -> RearviewResult<u32> {
         .ok_or_else(|| RearviewError::Validation(format!("exit rule {key} is required")))?;
     u32::try_from(value)
         .map_err(|error| RearviewError::Validation(format!("exit rule {key} is invalid: {error}")))
+}
+
+fn read_str<'a>(rule: &'a Value, key: &str) -> RearviewResult<&'a str> {
+    rule.get(key)
+        .and_then(Value::as_str)
+        .ok_or_else(|| RearviewError::Validation(format!("exit rule {key} is required")))
+}
+
+fn validate_exact_str(rule: &Value, key: &str, expected: &str) -> RearviewResult<()> {
+    let value = read_str(rule, key)?;
+    if value == expected {
+        Ok(())
+    } else {
+        Err(RearviewError::Validation(format!(
+            "exit rule {key} must be {expected}"
+        )))
+    }
 }
 
 fn default_lot_size() -> u32 {
@@ -436,17 +454,38 @@ mod tests {
     use super::*;
 
     #[test]
-    fn exit_rules_should_reject_indicator_stop_loss_until_worker_inputs_exist() {
+    fn exit_rules_should_convert_indicator_stop_loss() {
         let policy = RiskExitPolicy {
             exit_rules: vec![serde_json::json!({
                 "type": "indicator_stop_loss",
-                "indicator_metric": "price_ma_20"
+                "source": "trend",
+                "metric": "price_ma_20",
+                "operator": "close_below_metric"
+            })],
+        };
+
+        let rules = policy.exit_rules().expect("indicator rule should convert");
+
+        assert!(matches!(
+            rules.as_slice(),
+            [ExitRule::IndicatorStopLoss { metric }] if metric == "price_ma_20"
+        ));
+    }
+
+    #[test]
+    fn exit_rules_should_reject_non_trend_indicator_stop_loss() {
+        let policy = RiskExitPolicy {
+            exit_rules: vec![serde_json::json!({
+                "type": "indicator_stop_loss",
+                "source": "momentum",
+                "metric": "rsi_6",
+                "operator": "close_below_metric"
             })],
         };
 
         let error = policy
             .exit_rules()
-            .expect_err("indicator stop loss should not be silently ignored");
+            .expect_err("non-trend indicator stop loss should be rejected");
 
         assert!(matches!(error, RearviewError::Validation(_)));
     }

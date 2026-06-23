@@ -19,6 +19,7 @@ import { Checkbox } from "@/components/ui/checkbox"
 import {
   Field,
   FieldContent,
+  FieldDescription,
   FieldGroup,
   FieldLabel,
   FieldLegend,
@@ -30,6 +31,15 @@ import {
   InputGroupAddon,
   InputGroupInput,
 } from "@/components/ui/input-group"
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectLabel,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import { Separator } from "@/components/ui/separator"
 import { Slider } from "@/components/ui/slider"
 import { Skeleton } from "@/components/ui/skeleton"
@@ -41,22 +51,30 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
+import { indicatorCatalog } from "@/features/strategy/catalog"
 import { StrategySplitPanel } from "@/features/strategy/components/strategy-split-panel"
-import type { BacktestExecutionDraft } from "@/features/strategy/execution"
+import {
+  buildPoolCountTrendData,
+  type PoolCountTrendPoint,
+} from "@/features/strategy/pool-count-trend"
 import type { PreviewSnapshot } from "@/features/strategy/preview"
 import type {
   SimulationSettings,
   StrategyConditionGroup,
   WeightIndicator,
 } from "@/features/strategy/types"
-import { getScaledWeightIndicators } from "@/features/strategy/utils"
+import {
+  getCatalog,
+  getCatalogMetricsByType,
+  getScaledWeightIndicators,
+} from "@/features/strategy/utils"
 import { cn } from "@/lib/utils"
 
 type SimulationPositionPanelProps = {
   appliedWeightIndicators: WeightIndicator[]
   backtestValidationError: string | null
+  commissionRateMaxPercent: number | null
   conditionGroups: StrategyConditionGroup[]
-  executionDraft: BacktestExecutionDraft | null
   isBacktestValidationPending: boolean
   isMarketTemplateError: boolean
   isMarketTemplateLoading: boolean
@@ -68,7 +86,9 @@ type SimulationPositionPanelProps = {
 }
 
 type NumberInputFieldProps = {
+  ariaInvalid?: boolean
   disabled?: boolean
+  invalid?: boolean
   label: string
   max?: number
   min?: number
@@ -107,13 +127,22 @@ type TransactionFeeSettingsKey = keyof SimulationSettings["transactionFees"]
 type TransactionFeeRow = {
   direction: string
   key: TransactionFeeSettingsKey
-  max?: number
-  min?: number
   name: string
-  note: string
+  note?: string
   step: number
-  suffix: string
 }
+
+const trendCatalog =
+  indicatorCatalog.find((catalog) => catalog.id === "trend") ??
+  indicatorCatalog[0]
+const trendNumericCatalogs = [
+  {
+    ...trendCatalog,
+    metrics: trendCatalog.metrics.filter(
+      (metric) => metric.valueType === "number"
+    ),
+  },
+]
 
 const sectionCardClassName = "bg-transparent ring-0"
 const configSectionCardClassName = cn(sectionCardClassName, "xl:pr-4")
@@ -132,66 +161,34 @@ const transactionFeeRows: TransactionFeeRow[] = [
     direction: "卖出",
     key: "stampDutyRatePercent",
     name: "印花税",
-    note: "",
     step: 0.001,
-    suffix: "%",
   },
   {
     direction: "双向",
     key: "transferFeeRatePercent",
     name: "过户费",
-    note: "",
     step: 0.001,
-    suffix: "%",
   },
   {
     direction: "双向",
     key: "commissionRatePercent",
     name: "佣金",
-    note: "",
     step: 0.001,
-    suffix: "%",
   },
   {
     direction: "双向",
-    key: "commissionRateMaxPercent",
-    name: "佣金上限",
-    note: "单笔佣金率封顶",
+    key: "slippageRatePercent",
+    name: "成交滑点",
+    note: "买入上浮，卖出下浮",
     step: 0.001,
-    suffix: "%",
-  },
-  {
-    direction: "双向",
-    key: "minCommission",
-    min: 0,
-    name: "最低佣金",
-    note: "按单笔成交金额计",
-    step: 0.1,
-    suffix: "元",
-  },
-  {
-    direction: "买入",
-    key: "buySlippageRatePercent",
-    name: "买入滑点",
-    note: "买入按参考价上浮",
-    step: 0.001,
-    suffix: "%",
-  },
-  {
-    direction: "双向",
-    key: "sellSlippageRatePercent",
-    name: "卖出滑点",
-    note: "卖出按参考价下浮",
-    step: 0.001,
-    suffix: "%",
   },
 ]
 
 function SimulationPositionPanel({
   appliedWeightIndicators,
   backtestValidationError,
+  commissionRateMaxPercent,
   conditionGroups,
-  executionDraft,
   isBacktestValidationPending,
   isMarketTemplateError,
   isMarketTemplateLoading,
@@ -202,24 +199,20 @@ function SimulationPositionPanel({
   settings,
 }: SimulationPositionPanelProps) {
   const activeRiskRows = buildRiskSummaryRows(settings)
-  const executionSummary = executionDraft?.summary
-  const targetWeight = executionSummary?.target_weight_per_position_pct ?? null
-  const implicitCashReserve =
-    executionSummary?.implicit_cash_reserve_pct ?? null
-  const perPositionCapital =
-    targetWeight === null ? null : settings.initialCapital * targetWeight
-  const maxPositions = executionSummary?.max_positions ?? settings.buyTopN
+  const maxPositions = Math.max(1, Math.floor(settings.buyTopN))
+  const targetWeight = Math.min(
+    1 / maxPositions,
+    settings.singlePositionLimitPercent / 100
+  )
+  const perPositionCapital = settings.initialCapital * Math.max(0, targetWeight)
   const groupCount = conditionGroups.length
   const conditionCount = conditionGroups.reduce(
     (total, group) => total + group.conditions.length,
     0
   )
   const { indicators } = getScaledWeightIndicators(appliedWeightIndicators)
-  const previewStatus = previewSnapshot
-    ? previewSnapshot.stale
-      ? "已过期"
-      : "可用"
-    : "未生成"
+  const poolCountTrend = buildPoolCountTrendData(previewSnapshot)
+  const latestPoolCount = poolCountTrend.at(-1)?.count ?? 0
 
   function updateSettings(patch: Partial<SimulationSettings>) {
     onSettingsChange({ ...settings, ...patch })
@@ -337,6 +330,7 @@ function SimulationPositionPanel({
             </CardHeader>
             <CardContent className="px-0">
               <TransactionFeeList
+                commissionRateMaxPercent={commissionRateMaxPercent}
                 fees={settings.transactionFees}
                 isTemplateError={isMarketTemplateError}
                 isTemplateLoading={isMarketTemplateLoading}
@@ -410,14 +404,19 @@ function SimulationPositionPanel({
                   <Separator className={configSeparatorClassName} />
 
                   <RiskRuleRow
-                    checked={false}
-                    disabled
-                    onCheckedChange={() => undefined}
+                    checked={settings.indicatorStopLoss.enabled}
+                    onCheckedChange={(enabled) =>
+                      updateRiskSettings("indicatorStopLoss", { enabled })
+                    }
                     title="指标止损"
                   >
-                    <div className="text-xs text-muted-foreground">
-                      Rearview 当前只开放固定止损、固定止盈和时间止损，指标止损暂不进入回测草稿。
-                    </div>
+                    <IndicatorStopLossFields
+                      disabled={!settings.indicatorStopLoss.enabled}
+                      settings={settings}
+                      onSettingsChange={(patch) =>
+                        updateRiskSettings("indicatorStopLoss", patch)
+                      }
+                    />
                   </RiskRuleRow>
                   <Separator className={configSeparatorClassName} />
 
@@ -468,12 +467,11 @@ function SimulationPositionPanel({
         <Card className={cn("h-fit py-0", sectionCardClassName)}>
           <CardHeader>
             <CardTitle>建仓摘要</CardTitle>
-            <CardDescription>Rearview 回测草稿</CardDescription>
+            <CardDescription>当前模拟参数</CardDescription>
           </CardHeader>
           <CardContent className="flex flex-col gap-4">
-            <BacktestDraftState
+            <SimulationGateState
               backtestValidationError={backtestValidationError}
-              executionDraft={executionDraft}
               isBacktestValidationPending={isBacktestValidationPending}
               isMarketTemplateError={isMarketTemplateError}
               isMarketTemplateLoading={isMarketTemplateLoading}
@@ -487,77 +485,32 @@ function SimulationPositionPanel({
                 value={formatCurrency(settings.initialCapital)}
               />
               <SummaryMetric
-                label="账户币种"
-                value={executionDraft?.execution_config.account.currency ?? "CNY"}
-              />
-              <SummaryMetric
                 label="买入信号"
                 value={`Top ${settings.buyTopN}`}
               />
+              <SummaryMetric label="最大持仓" value={`${maxPositions} 只`} />
               <SummaryMetric
-                label="最大持仓"
-                value={`${maxPositions} 只`}
-              />
-              <SummaryMetric
-                label="单票目标"
-                value={
-                  targetWeight === null
-                    ? "待校验"
-                    : formatDecimalPercent(targetWeight)
-                }
+                label="单票上限"
+                value={formatPercent(settings.singlePositionLimitPercent)}
               />
               <SummaryMetric
                 label="单票金额"
-                value={
-                  perPositionCapital === null
-                    ? "待校验"
-                    : formatCurrency(perPositionCapital)
-                }
-              />
-              <SummaryMetric
-                label="现金保留"
-                value={
-                  implicitCashReserve === null
-                    ? "待校验"
-                    : formatDecimalPercent(implicitCashReserve)
-                }
+                value={formatCurrency(perPositionCapital)}
               />
               <SummaryMetric
                 label="卖出规则"
-                value={`${executionSummary?.enabled_exit_rule_count ?? activeRiskRows.length} 条`}
+                value={`${activeRiskRows.length} 条`}
               />
             </div>
 
             <Separator />
 
-            <div className="grid grid-cols-2 gap-2">
-              <SummaryMetric
-                label="Preview"
-                value={previewSnapshot?.previewId ?? "未生成"}
-              />
-              <SummaryMetric label="Preview 状态" value={previewStatus} />
-              <SummaryMetric
-                label="Preview 区间"
-                value={
-                  previewSnapshot
-                    ? `${previewSnapshot.range.startDate} 至 ${previewSnapshot.range.endDate}`
-                    : "未生成"
-                }
-              />
-              <SummaryMetric
-                label="草稿 Hash"
-                value={
-                  executionDraft
-                    ? compactHash(executionDraft.execution_config_hash)
-                    : "待校验"
-                }
-              />
-              <SummaryMetric label="指标组" value={`${groupCount} 组`} />
-              <SummaryMetric label="选股条件" value={`${conditionCount} 条`} />
-              <SummaryMetric
-                label="权重指标"
-                value={`${indicators.length} 条`}
-              />
+            <div className="flex flex-col gap-2">
+              <div className="flex items-center justify-between gap-2">
+                <div className="text-sm font-medium">近三月票池数</div>
+                <Badge variant="secondary">最近 {latestPoolCount} 只</Badge>
+              </div>
+              <PoolCountTrendChart data={poolCountTrend} />
             </div>
 
             <Separator />
@@ -565,37 +518,38 @@ function SimulationPositionPanel({
             <div className="grid grid-cols-2 gap-2">
               <SummaryMetric
                 label="佣金率"
-                value={formatPercent(settings.transactionFees.commissionRatePercent)}
-              />
-              <SummaryMetric
-                label="佣金上限"
                 value={formatPercent(
-                  settings.transactionFees.commissionRateMaxPercent
+                  settings.transactionFees.commissionRatePercent
                 )}
-              />
-              <SummaryMetric
-                label="最低佣金"
-                value={formatCurrency(settings.transactionFees.minCommission)}
               />
               <SummaryMetric
                 label="卖出印花税"
-                value={formatPercent(settings.transactionFees.stampDutyRatePercent)}
+                value={formatPercent(
+                  settings.transactionFees.stampDutyRatePercent
+                )}
               />
               <SummaryMetric
                 label="过户费"
-                value={formatPercent(settings.transactionFees.transferFeeRatePercent)}
-              />
-              <SummaryMetric
-                label="买入滑点"
                 value={formatPercent(
-                  settings.transactionFees.buySlippageRatePercent
+                  settings.transactionFees.transferFeeRatePercent
                 )}
               />
               <SummaryMetric
-                label="卖出滑点"
+                label="成交滑点"
                 value={formatPercent(
-                  settings.transactionFees.sellSlippageRatePercent
+                  settings.transactionFees.slippageRatePercent
                 )}
+              />
+            </div>
+
+            <Separator />
+
+            <div className="grid grid-cols-2 gap-2">
+              <SummaryMetric label="指标组" value={`${groupCount} 组`} />
+              <SummaryMetric label="选股条件" value={`${conditionCount} 条`} />
+              <SummaryMetric
+                label="权重指标"
+                value={`${indicators.length} 条`}
               />
             </div>
 
@@ -675,7 +629,9 @@ function NumberInputField({
 }
 
 function CompactNumberInput({
+  ariaInvalid = false,
   disabled = false,
+  invalid = false,
   label,
   max,
   min,
@@ -685,10 +641,14 @@ function CompactNumberInput({
   value,
 }: NumberInputFieldProps) {
   return (
-    <Field data-disabled={disabled ? true : undefined}>
+    <Field
+      data-disabled={disabled ? true : undefined}
+      data-invalid={invalid ? true : undefined}
+    >
       <FieldLabel className="sr-only">{label}</FieldLabel>
       <InputGroup className="bg-background">
         <InputGroupInput
+          aria-invalid={ariaInvalid}
           aria-label={label}
           disabled={disabled}
           inputMode="decimal"
@@ -719,6 +679,7 @@ function SettingRow({ children, label }: SettingRowProps) {
 }
 
 function TransactionFeeList({
+  commissionRateMaxPercent,
   fees,
   isTemplateError,
   isTemplateLoading,
@@ -726,6 +687,7 @@ function TransactionFeeList({
   onRateChange,
   templateError,
 }: {
+  commissionRateMaxPercent: number | null
   fees: SimulationSettings["transactionFees"]
   isTemplateError: boolean
   isTemplateLoading: boolean
@@ -766,26 +728,69 @@ function TransactionFeeList({
             {index > 0 ? (
               <Separator className={configSeparatorClassName} />
             ) : null}
-            <div className={transactionFeeRowClassName}>
-              <div className="text-xs font-medium">{row.name}</div>
-              <div className="text-xs text-muted-foreground">
-                {row.direction}
-              </div>
-              <CompactNumberInput
-                label={`${row.name}费率`}
-                max={row.max}
-                min={row.min ?? 0}
-                onValueChange={(value) => onRateChange(row.key, value)}
-                step={row.step}
-                suffix={row.suffix}
-                value={fees[row.key]}
+            {row.key === "commissionRatePercent" ? (
+              <TransactionFeeRowField
+                fee={fees[row.key]}
+                isInvalid={
+                  commissionRateMaxPercent !== null &&
+                  fees[row.key] > commissionRateMaxPercent
+                }
+                maxRate={commissionRateMaxPercent}
+                row={row}
+                onRateChange={onRateChange}
               />
-              <div className="text-xs text-muted-foreground">{row.note}</div>
-            </div>
+            ) : (
+              <TransactionFeeRowField
+                fee={fees[row.key]}
+                isInvalid={false}
+                maxRate={null}
+                row={row}
+                onRateChange={onRateChange}
+              />
+            )}
           </div>
         ))}
       </FieldGroup>
     </FieldSet>
+  )
+}
+
+function TransactionFeeRowField({
+  fee,
+  isInvalid,
+  maxRate,
+  onRateChange,
+  row,
+}: {
+  fee: number
+  isInvalid: boolean
+  maxRate: number | null
+  onRateChange: (key: TransactionFeeSettingsKey, value: number) => void
+  row: TransactionFeeRow
+}) {
+  const note =
+    row.key === "commissionRatePercent" && maxRate !== null
+      ? `模板上限 ${formatPercent(maxRate)}`
+      : row.note
+
+  return (
+    <div className={transactionFeeRowClassName}>
+      <div className="text-xs font-medium">{row.name}</div>
+      <div className="text-xs text-muted-foreground">{row.direction}</div>
+      <CompactNumberInput
+        ariaInvalid={isInvalid}
+        invalid={isInvalid}
+        label={`${row.name}费率`}
+        min={0}
+        onValueChange={(value) => onRateChange(row.key, value)}
+        step={row.step}
+        suffix="%"
+        value={fee}
+      />
+      <FieldDescription className={cn(isInvalid && "text-destructive")}>
+        {isInvalid ? "高于市场模板佣金上限" : note}
+      </FieldDescription>
+    </div>
   )
 }
 
@@ -821,9 +826,109 @@ function RiskRuleRow({
   )
 }
 
-function BacktestDraftState({
+function IndicatorStopLossFields({
+  disabled,
+  onSettingsChange,
+  settings,
+}: {
+  disabled: boolean
+  onSettingsChange: (
+    patch: Partial<SimulationSettings["indicatorStopLoss"]>
+  ) => void
+  settings: SimulationSettings
+}) {
+  const selectedCatalog = getCatalog(
+    settings.indicatorStopLoss.catalogId,
+    trendNumericCatalogs
+  )
+  const selectedMetrics = getCatalogMetricsByType(
+    selectedCatalog.id,
+    "number",
+    trendNumericCatalogs
+  )
+  const selectedMetric =
+    selectedMetrics.find(
+      (metric) => metric.id === settings.indicatorStopLoss.metric
+    ) ?? selectedMetrics[0]
+
+  return (
+    <div className="grid gap-2 md:grid-cols-[6.5rem_10rem_10rem] md:items-center">
+      <div className="text-xs text-muted-foreground">收盘价跌破</div>
+      <Field data-disabled={disabled ? true : undefined}>
+        <FieldLabel className="sr-only">指标类型</FieldLabel>
+        <Select
+          value={selectedCatalog.id}
+          onValueChange={(catalogId) => {
+            if (!catalogId) {
+              return
+            }
+
+            const metrics = getCatalogMetricsByType(
+              catalogId,
+              "number",
+              trendNumericCatalogs
+            )
+            const metric = metrics[0]
+            if (metric) {
+              onSettingsChange({ catalogId, metric: metric.id })
+            }
+          }}
+        >
+          <SelectTrigger className="w-full bg-background" disabled={disabled}>
+            <SelectValue>
+              <span className="truncate">{selectedCatalog.label}</span>
+            </SelectValue>
+          </SelectTrigger>
+          <SelectContent align="start" className="min-w-72 bg-background">
+            <SelectGroup>
+              <SelectLabel>指标来源</SelectLabel>
+              {trendNumericCatalogs.map((catalog) => (
+                <SelectItem key={catalog.id} value={catalog.id}>
+                  <span className="truncate text-xs font-medium">
+                    {catalog.label}
+                  </span>
+                </SelectItem>
+              ))}
+            </SelectGroup>
+          </SelectContent>
+        </Select>
+      </Field>
+
+      <Field data-disabled={disabled ? true : undefined}>
+        <FieldLabel className="sr-only">止损指标</FieldLabel>
+        <Select
+          value={selectedMetric?.id ?? settings.indicatorStopLoss.metric}
+          onValueChange={(metric) => {
+            if (metric) {
+              onSettingsChange({ metric })
+            }
+          }}
+        >
+          <SelectTrigger className="w-full bg-background" disabled={disabled}>
+            <SelectValue>
+              <span className="truncate">
+                {selectedMetric?.label ?? settings.indicatorStopLoss.metric}
+              </span>
+            </SelectValue>
+          </SelectTrigger>
+          <SelectContent align="start" className="min-w-72 bg-background">
+            <SelectGroup>
+              <SelectLabel>{selectedCatalog.source}</SelectLabel>
+              {selectedMetrics.map((metric) => (
+                <SelectItem key={metric.id} value={metric.id}>
+                  <span className="truncate text-xs">{metric.label}</span>
+                </SelectItem>
+              ))}
+            </SelectGroup>
+          </SelectContent>
+        </Select>
+      </Field>
+    </div>
+  )
+}
+
+function SimulationGateState({
   backtestValidationError,
-  executionDraft,
   isBacktestValidationPending,
   isMarketTemplateError,
   isMarketTemplateLoading,
@@ -831,7 +936,6 @@ function BacktestDraftState({
   previewSnapshot,
 }: {
   backtestValidationError: string | null
-  executionDraft: BacktestExecutionDraft | null
   isBacktestValidationPending: boolean
   isMarketTemplateError: boolean
   isMarketTemplateLoading: boolean
@@ -843,7 +947,7 @@ function BacktestDraftState({
       <Alert>
         <AlertTitle>需要股池预览</AlertTitle>
         <AlertDescription>
-          先在 Step 3 更新股池，Step 4 才能生成回测执行草稿。
+          先在 Step 3 更新股池，Step 4 才能进入回测。
         </AlertDescription>
       </Alert>
     )
@@ -875,7 +979,9 @@ function BacktestDraftState({
     return (
       <Alert variant="destructive">
         <AlertTitle>默认费率不可用</AlertTitle>
-        <AlertDescription>{formatErrorMessage(marketTemplateError)}</AlertDescription>
+        <AlertDescription>
+          {formatErrorMessage(marketTemplateError)}
+        </AlertDescription>
       </Alert>
     )
   }
@@ -883,7 +989,7 @@ function BacktestDraftState({
   if (backtestValidationError) {
     return (
       <Alert variant="destructive">
-        <AlertTitle>回测草稿校验失败</AlertTitle>
+        <AlertTitle>进入回测失败</AlertTitle>
         <AlertDescription>{backtestValidationError}</AlertDescription>
       </Alert>
     )
@@ -892,31 +998,141 @@ function BacktestDraftState({
   if (isBacktestValidationPending) {
     return (
       <Alert>
-        <AlertTitle>正在生成回测草稿</AlertTitle>
-        <AlertDescription>
-          Rearview 正在校验 canonical config 和执行参数 hash。
-        </AlertDescription>
+        <AlertTitle>正在进入回测</AlertTitle>
+        <AlertDescription>Rearview 正在校验当前建仓参数。</AlertDescription>
       </Alert>
     )
   }
 
-  if (!executionDraft) {
+  return null
+}
+
+function PoolCountTrendChart({ data }: { data: PoolCountTrendPoint[] }) {
+  if (data.length === 0) {
     return (
-      <Alert>
-        <AlertTitle>待生成回测草稿</AlertTitle>
-        <AlertDescription>
-          修改参数后需要等待 Rearview 返回新的 canonical draft。
-        </AlertDescription>
-      </Alert>
+      <div className="flex h-38 items-center text-xs text-muted-foreground">
+        暂无票池走势。
+      </div>
     )
   }
+
+  const width = 320
+  const height = 152
+  const padding = {
+    top: 12,
+    right: 10,
+    bottom: 24,
+    left: 28,
+  }
+  const chartWidth = width - padding.left - padding.right
+  const chartHeight = height - padding.top - padding.bottom
+  const maxCount = Math.max(1, ...data.map((item) => item.count))
+  const points = data.map((item, index) => {
+    const x = padding.left + (index / Math.max(1, data.length - 1)) * chartWidth
+    const y = padding.top + chartHeight - (item.count / maxCount) * chartHeight
+
+    return { ...item, x, y }
+  })
+  const linePath = points
+    .map((point, index) => `${index === 0 ? "M" : "L"} ${point.x} ${point.y}`)
+    .join(" ")
+  const areaPath = `${linePath} L ${padding.left + chartWidth} ${
+    padding.top + chartHeight
+  } L ${padding.left} ${padding.top + chartHeight} Z`
+  const guideRows = [maxCount, Math.round(maxCount / 2), 0]
 
   return (
-    <div className="flex items-center justify-between gap-2">
-      <div className="text-xs text-muted-foreground">
-        规则和建仓参数已由 Rearview 校验
-      </div>
-      <Badge variant="secondary">Draft ready</Badge>
+    <div className="py-2">
+      <svg
+        aria-label="近三个月股票池数量走势"
+        className="h-38 w-full"
+        role="img"
+        viewBox={`0 0 ${width} ${height}`}
+      >
+        <g className="text-border" stroke="currentColor" strokeWidth="1">
+          {guideRows.map((value) => {
+            const y =
+              padding.top + chartHeight - (value / maxCount) * chartHeight
+            return (
+              <line
+                key={value}
+                x1={padding.left}
+                x2={padding.left + chartWidth}
+                y1={y}
+                y2={y}
+                vectorEffect="non-scaling-stroke"
+              />
+            )
+          })}
+        </g>
+
+        <path className="fill-primary/10" d={areaPath} />
+        <path
+          className="text-primary"
+          d={linePath}
+          fill="none"
+          stroke="currentColor"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth="2"
+          vectorEffect="non-scaling-stroke"
+        />
+
+        {points.map((point, index) =>
+          index === points.length - 1 || index % 4 === 0 ? (
+            <circle
+              key={`${point.label}-${point.count}`}
+              className="fill-background text-primary"
+              cx={point.x}
+              cy={point.y}
+              r="3"
+              stroke="currentColor"
+              strokeWidth="2"
+              vectorEffect="non-scaling-stroke"
+            />
+          ) : null
+        )}
+
+        <g className="text-muted-foreground" fill="currentColor">
+          {guideRows.map((value) => {
+            const y =
+              padding.top + chartHeight - (value / maxCount) * chartHeight
+            return (
+              <text
+                key={`label-${value}`}
+                dominantBaseline="middle"
+                fontSize="10"
+                textAnchor="end"
+                x={padding.left - 6}
+                y={y}
+              >
+                {value}
+              </text>
+            )
+          })}
+          {points.map((point, index) =>
+            index === 0 ||
+            index === Math.floor(points.length / 2) ||
+            index === points.length - 1 ? (
+              <text
+                key={point.label}
+                fontSize="10"
+                textAnchor={
+                  index === 0
+                    ? "start"
+                    : index === points.length - 1
+                      ? "end"
+                      : "middle"
+                }
+                x={point.x}
+                y={height - 6}
+              >
+                {point.label}
+              </text>
+            ) : null
+          )}
+        </g>
+      </svg>
     </div>
   )
 }
@@ -948,6 +1164,13 @@ function buildRiskSummaryRows(settings: SimulationSettings): SummaryRow[] {
     })
   }
 
+  if (settings.indicatorStopLoss.enabled) {
+    rows.push({
+      condition: "指标止损",
+      trigger: `收盘价跌破 ${settings.indicatorStopLoss.metric}`,
+    })
+  }
+
   if (settings.timeStopLoss.enabled) {
     rows.push({
       condition: "时间止损",
@@ -964,14 +1187,6 @@ function formatCurrency(value: number) {
 
 function formatPercent(value: number) {
   return `${Number.isInteger(value) ? value : value.toFixed(1)}%`
-}
-
-function formatDecimalPercent(value: number) {
-  return `${Number((value * 100).toFixed(2))}%`
-}
-
-function compactHash(value: string) {
-  return value.length <= 12 ? value : `${value.slice(0, 8)}...${value.slice(-4)}`
 }
 
 function formatErrorMessage(error: unknown) {
