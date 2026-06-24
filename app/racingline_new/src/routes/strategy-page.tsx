@@ -11,7 +11,7 @@ import { createChart, LineSeries } from "lightweight-charts"
 import { useQueryClient } from "@tanstack/react-query"
 
 import { queryKeys } from "@/api/queryKeys"
-import { securityAnalysis } from "@/api/rearview"
+import { getStrategyBacktest, securityAnalysis } from "@/api/rearview"
 import {
   useDefaultMarketFeeTemplateQuery,
   useMetricsQuery,
@@ -33,6 +33,13 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
 import { Field, FieldGroup, FieldLabel } from "@/components/ui/field"
 import {
   Empty,
@@ -104,12 +111,15 @@ import { cn } from "@/lib/utils"
 import type {
   StrategyBacktestNavPoint,
   StrategyBacktestPerformanceView,
+  StrategyBacktestCreateRequest,
   StrategyBacktestRebalanceRecord as ApiBacktestRebalanceRecord,
   StrategyBacktestRunRecord,
   StrategyBacktestRunStatus,
   StrategyBacktestValidateRequest,
 } from "@/types/rearview"
 import { Play } from "lucide-react"
+
+type BacktestLaunchPhase = "querying" | "queued" | "running" | "completed"
 
 const stepContent: Record<Step, { description: string; title: string }> = {
   indicators: {
@@ -454,10 +464,72 @@ function buildPreviewRequestRange(previewRange: PreviewRange) {
   }
 }
 
+function buildStrategyBacktestCreateRequest({
+  backtestExecutionDraft,
+  benchmark,
+  period,
+  previewSnapshot,
+  rangeHint,
+  selectedBenchmarkLabel,
+  selectedPeriodDescription,
+  selectedPeriodLabel,
+  settings,
+}: {
+  backtestExecutionDraft: BacktestExecutionDraft
+  benchmark: BacktestBenchmark
+  period: BacktestPeriod
+  previewSnapshot: PreviewSnapshot
+  rangeHint?: { end_date: string; start_date: string } | null
+  selectedBenchmarkLabel: string
+  selectedPeriodDescription: string | null
+  selectedPeriodLabel: string
+  settings: SimulationSettings
+}): StrategyBacktestCreateRequest {
+  return {
+    ...buildBacktestExecutionRequestDraft({
+      benchmark,
+      draft: backtestExecutionDraft,
+      period,
+      rangeHint,
+    }),
+    client_request_id: createId("strategy-backtest"),
+    preview_id: previewSnapshot.previewId,
+    preview_range: {
+      end_date: previewSnapshot.range.endDate,
+      start_date: previewSnapshot.range.startDate,
+    },
+    ui_display_snapshot: {
+      benchmark: {
+        label: selectedBenchmarkLabel,
+        security_code: benchmark,
+      },
+      period: {
+        key: period,
+        label: selectedPeriodLabel,
+        resolved_range: selectedPeriodDescription,
+      },
+      preview: {
+        created_at: previewSnapshot.createdAt,
+        preview_id: previewSnapshot.previewId,
+        selected_trade_date: previewSnapshot.range.selectedTradeDate ?? null,
+      },
+      simulation: {
+        buy_signal_top_n: settings.buyTopN,
+        initial_capital: settings.initialCapital,
+        max_positions: settings.maxPositions,
+        single_position_limit_pct: settings.singlePositionLimitPercent,
+        stop_loss_rule_count:
+          backtestExecutionDraft.summary.enabled_exit_rule_count,
+      },
+    },
+  }
+}
+
 function BacktestPanel({
   backtestExecutionDraft,
   backtestValidationError,
   benchmark,
+  initialRun,
   isBacktestValidationPending,
   isMarketTemplateError,
   isMarketTemplateLoading,
@@ -470,6 +542,7 @@ function BacktestPanel({
   backtestExecutionDraft: BacktestExecutionDraft | null
   backtestValidationError: string | null
   benchmark: BacktestBenchmark
+  initialRun: StrategyBacktestRunRecord | null
   isBacktestValidationPending: boolean
   isMarketTemplateError: boolean
   isMarketTemplateLoading: boolean
@@ -479,7 +552,9 @@ function BacktestPanel({
   previewSnapshot: PreviewSnapshot | null
   settings: SimulationSettings
 }) {
-  const [activeRunId, setActiveRunId] = useState<string | null>(null)
+  const [activeRunId, setActiveRunId] = useState<string | null>(
+    initialRun?.strategy_backtest_run_id ?? null
+  )
   const [selectedRebalanceDate, setSelectedRebalanceDate] = useState<
     string | null
   >(null)
@@ -490,6 +565,7 @@ function BacktestPanel({
   const runQuery = useStrategyBacktestQuery(activeRunId)
   const currentRun =
     runQuery.data ??
+    (initialRun?.strategy_backtest_run_id === activeRunId ? initialRun : null) ??
     (createBacktestMutation.data?.strategy_backtest_run_id === activeRunId
       ? createBacktestMutation.data
       : null)
@@ -652,49 +728,22 @@ function BacktestPanel({
       return
     }
 
-    const request = {
-      ...buildBacktestExecutionRequestDraft({
-        benchmark,
-        draft: backtestExecutionDraft,
-        period,
-        rangeHint: selectedPeriodApiOption
-          ? {
-              end_date: selectedPeriodApiOption.resolved_end_date,
-              start_date: selectedPeriodApiOption.resolved_start_date,
-            }
-          : null,
-      }),
-      client_request_id: createId("strategy-backtest"),
-      preview_id: previewSnapshot.previewId,
-      preview_range: {
-        end_date: previewSnapshot.range.endDate,
-        start_date: previewSnapshot.range.startDate,
-      },
-      ui_display_snapshot: {
-        benchmark: {
-          label: selectedBenchmarkLabel,
-          security_code: benchmark,
-        },
-        period: {
-          key: period,
-          label: selectedPeriodLabel,
-          resolved_range: selectedPeriodOption?.description ?? null,
-        },
-        preview: {
-          created_at: previewSnapshot.createdAt,
-          preview_id: previewSnapshot.previewId,
-          selected_trade_date: previewSnapshot.range.selectedTradeDate ?? null,
-        },
-        simulation: {
-          buy_signal_top_n: settings.buyTopN,
-          initial_capital: settings.initialCapital,
-          max_positions: settings.maxPositions,
-          single_position_limit_pct: settings.singlePositionLimitPercent,
-          stop_loss_rule_count:
-            backtestExecutionDraft.summary.enabled_exit_rule_count,
-        },
-      },
-    }
+    const request = buildStrategyBacktestCreateRequest({
+      backtestExecutionDraft,
+      benchmark,
+      period,
+      previewSnapshot,
+      rangeHint: selectedPeriodApiOption
+        ? {
+            end_date: selectedPeriodApiOption.resolved_end_date,
+            start_date: selectedPeriodApiOption.resolved_start_date,
+          }
+        : null,
+      selectedBenchmarkLabel,
+      selectedPeriodDescription: selectedPeriodOption?.description ?? null,
+      selectedPeriodLabel,
+      settings,
+    })
     const run = await createBacktestMutation.mutateAsync(request)
     setActiveRunId(run.strategy_backtest_run_id)
     setSelectedRebalanceDate(null)
@@ -708,10 +757,7 @@ function BacktestPanel({
     selectedPeriodLabel,
     selectedPeriodOption?.description,
     selectedPeriodApiOption,
-    settings.buyTopN,
-    settings.initialCapital,
-    settings.maxPositions,
-    settings.singlePositionLimitPercent,
+    settings,
   ])
 
   const autoBacktestSignature =
@@ -1253,17 +1299,45 @@ function BacktestStatusAlert({
   }
 
   if (hasPendingConfigChange) {
-    return (
-      <Alert>
-        <AlertTitle>配置已变更</AlertTitle>
-        <AlertDescription>
-          当前展示结果不再匹配所选周期、基准或策略配置，需要重新回测。
-        </AlertDescription>
-      </Alert>
-    )
+    return <PendingConfigChangeToast />
   }
 
   return null
+}
+
+function PendingConfigChangeToast() {
+  const [visible, setVisible] = useState(true)
+  const [isLeaving, setIsLeaving] = useState(false)
+
+  useEffect(() => {
+    const leaveTimeoutId = window.setTimeout(() => setIsLeaving(true), 5_000)
+    const removeTimeoutId = window.setTimeout(() => setVisible(false), 5_250)
+
+    return () => {
+      window.clearTimeout(leaveTimeoutId)
+      window.clearTimeout(removeTimeoutId)
+    }
+  }, [])
+
+  if (!visible) {
+    return null
+  }
+
+  return (
+    <Alert
+      className={cn(
+        "fixed top-[4.5rem] right-4 left-4 w-auto shadow-lg duration-200 sm:left-auto sm:w-96",
+        isLeaving
+          ? "animate-out fade-out-0 slide-out-to-right-4"
+          : "animate-in fade-in-0 slide-in-from-right-4"
+      )}
+    >
+      <AlertTitle>配置已变更</AlertTitle>
+      <AlertDescription>
+        当前展示结果不再匹配所选周期、基准或策略配置，需要重新回测。
+      </AlertDescription>
+    </Alert>
+  )
 }
 
 function isStrategyBacktestTerminalStatus(
@@ -1656,6 +1730,75 @@ function MetricsCatalogState({
   return null
 }
 
+function waitForBacktestPollingInterval() {
+  return new Promise((resolve) => window.setTimeout(resolve, 1_000))
+}
+
+function waitForBacktestCompletedMessage() {
+  return new Promise((resolve) => window.setTimeout(resolve, 600))
+}
+
+async function waitForBacktestTerminalRun({
+  onStatus,
+  runId,
+}: {
+  onStatus: (run: StrategyBacktestRunRecord) => void
+  runId: string
+}) {
+  let currentRun = await getStrategyBacktest(runId)
+  onStatus(currentRun)
+
+  while (!isStrategyBacktestTerminalStatus(currentRun.status)) {
+    await waitForBacktestPollingInterval()
+    currentRun = await getStrategyBacktest(runId)
+    onStatus(currentRun)
+  }
+
+  return currentRun
+}
+
+function getBacktestLaunchDescription(phase: BacktestLaunchPhase) {
+  if (phase === "querying") {
+    return "执行信号查询中"
+  }
+  if (phase === "queued") {
+    return "回测任务已进入异步队列"
+  }
+  if (phase === "running") {
+    return "回测任务执行中"
+  }
+
+  return "回测任务已完成"
+}
+
+function getBacktestLaunchTitle(phase: BacktestLaunchPhase) {
+  if (phase === "querying") {
+    return "正在提交回测任务"
+  }
+  if (phase === "queued") {
+    return "任务已提交"
+  }
+  if (phase === "running") {
+    return "等待回测完成"
+  }
+
+  return "回测完成"
+}
+
+function getBacktestLaunchDetail(phase: BacktestLaunchPhase) {
+  if (phase === "querying") {
+    return "系统正在查询本次策略信号。"
+  }
+  if (phase === "queued") {
+    return "任务正在排队，完成后自动进入 Step5。"
+  }
+  if (phase === "running") {
+    return "后端正在计算净值、调仓记录和策略业绩。"
+  }
+
+  return "即将进入 Step5 查看回测结果。"
+}
+
 export function StrategyPage() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
@@ -1664,6 +1807,7 @@ export function StrategyPage() {
     useDefaultMarketFeeTemplateQuery("CN_A_SHARE")
   const previewMutation = useStrategyPreviewMutation()
   const previewTimelineMutation = useStrategyPreviewTimelineMutation()
+  const initialBacktestMutation = useStrategyBacktestCreateMutation()
   const strategyCatalog = useMemo(
     () => buildStrategyMetricCatalog(metricsQuery.data ?? []),
     [metricsQuery.data]
@@ -1697,6 +1841,15 @@ export function StrategyPage() {
   const [backtestPeriod, setBacktestPeriod] = useState<BacktestPeriod>("1y")
   const [backtestBenchmark, setBacktestBenchmark] =
     useState<BacktestBenchmark>("000300.SH")
+  const [initialBacktestRun, setInitialBacktestRun] =
+    useState<StrategyBacktestRunRecord | null>(null)
+  const [backtestLaunchDialogOpen, setBacktestLaunchDialogOpen] =
+    useState(false)
+  const [backtestLaunchPhase, setBacktestLaunchPhase] =
+    useState<BacktestLaunchPhase>("querying")
+  const [backtestLaunchError, setBacktestLaunchError] = useState<string | null>(
+    null
+  )
   const [previewAdapterError, setPreviewAdapterError] = useState<string | null>(
     null
   )
@@ -1842,6 +1995,8 @@ export function StrategyPage() {
 
   function markRuleDraftChanged() {
     setPreviewAdapterError(null)
+    setBacktestLaunchError(null)
+    setInitialBacktestRun(null)
     setPreviewSnapshot(markPreviewSnapshotStale)
   }
 
@@ -1854,6 +2009,8 @@ export function StrategyPage() {
     ) {
       setHasEditedTransactionFees(true)
     }
+    setBacktestLaunchError(null)
+    setInitialBacktestRun(null)
     setSimulationSettings(nextSettings)
   }
 
@@ -2102,12 +2259,73 @@ export function StrategyPage() {
     }
   }
 
-  function openBacktest() {
-    if (!canEnterBacktest) {
+  async function openBacktest() {
+    if (
+      !canEnterBacktest ||
+      !backtestExecutionDraft ||
+      !previewSnapshot
+    ) {
       return
     }
 
-    setActiveStep("backtest")
+    setBacktestLaunchError(null)
+    setBacktestLaunchPhase("querying")
+    setBacktestLaunchDialogOpen(true)
+    setInitialBacktestRun(null)
+
+    try {
+      const selectedPeriodOption =
+        backtestPeriodOptions.find((option) => option.value === backtestPeriod) ??
+        backtestPeriodOptions[0]
+      const selectedBenchmarkOption =
+        backtestBenchmarkOptions.find(
+          (option) => option.securityCode === backtestBenchmark
+        ) ?? backtestBenchmarkOptions[0]
+      const request = buildStrategyBacktestCreateRequest({
+        backtestExecutionDraft,
+        benchmark: backtestBenchmark,
+        period: backtestPeriod,
+        previewSnapshot,
+        rangeHint: null,
+        selectedBenchmarkLabel: selectedBenchmarkOption.label,
+        selectedPeriodDescription: null,
+        selectedPeriodLabel: selectedPeriodOption.label,
+        settings: effectiveSimulationSettings,
+      })
+      const run = await initialBacktestMutation.mutateAsync(request)
+
+      setBacktestLaunchPhase("queued")
+      setInitialBacktestRun(run)
+      queryClient.setQueryData(
+        queryKeys.strategyBacktest(run.strategy_backtest_run_id),
+        run
+      )
+
+      const terminalRun = await waitForBacktestTerminalRun({
+        runId: run.strategy_backtest_run_id,
+        onStatus: (nextRun) => {
+          queryClient.setQueryData(
+            queryKeys.strategyBacktest(nextRun.strategy_backtest_run_id),
+            nextRun
+          )
+          setInitialBacktestRun(nextRun)
+          setBacktestLaunchPhase(
+            isStrategyBacktestTerminalStatus(nextRun.status)
+              ? "completed"
+              : "running"
+          )
+        },
+      })
+
+      setInitialBacktestRun(terminalRun)
+      setBacktestLaunchPhase("completed")
+      await waitForBacktestCompletedMessage()
+      setBacktestLaunchDialogOpen(false)
+      setActiveStep("backtest")
+    } catch (error) {
+      setBacktestLaunchDialogOpen(false)
+      setBacktestLaunchError(formatErrorMessage(error))
+    }
   }
 
   function changeStep(step: Step) {
@@ -2119,7 +2337,7 @@ export function StrategyPage() {
       return
     }
     if (step === "backtest") {
-      openBacktest()
+      void openBacktest()
       return
     }
 
@@ -2147,11 +2365,33 @@ export function StrategyPage() {
     canEnterSimulation &&
       backtestExecutionDraft &&
       !backtestValidationError &&
-      !isBacktestValidationPending
+      !isBacktestValidationPending &&
+      !initialBacktestMutation.isPending
   )
 
   return (
     <section className="min-h-[calc(100svh-8rem)]">
+      <Dialog open={backtestLaunchDialogOpen}>
+        <DialogContent showCloseButton={false}>
+          <DialogHeader>
+            <DialogTitle>策略回测准备中</DialogTitle>
+            <DialogDescription>
+              {getBacktestLaunchDescription(backtestLaunchPhase)}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex items-center gap-3 bg-muted p-3">
+            <Spinner />
+            <div className="flex min-w-0 flex-col gap-1">
+              <span className="text-xs font-medium">
+                {getBacktestLaunchTitle(backtestLaunchPhase)}
+              </span>
+              <span className="truncate text-xs text-muted-foreground">
+                {getBacktestLaunchDetail(backtestLaunchPhase)}
+              </span>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
       <div className="grid min-h-[calc(100svh-8rem)] grid-cols-1 lg:grid-cols-[1fr_9fr]">
         <StrategyStepSidebar
           activeStep={activeStep}
@@ -2260,6 +2500,7 @@ export function StrategyPage() {
                 />
               ) : activeStep === "simulation" ? (
                 <SimulationPositionPanel
+                  backtestLaunchError={backtestLaunchError}
                   backtestValidationError={backtestValidationError}
                   catalogOptions={strategyStopLossCatalogOptions}
                   commissionRateMaxPercent={commissionRateMaxPercent}
@@ -2279,6 +2520,7 @@ export function StrategyPage() {
                   backtestExecutionDraft={backtestExecutionDraft}
                   backtestValidationError={backtestValidationError}
                   benchmark={backtestBenchmark}
+                  initialRun={initialBacktestRun}
                   isBacktestValidationPending={isBacktestValidationPending}
                   isMarketTemplateError={defaultMarketTemplateQuery.isError}
                   isMarketTemplateLoading={defaultMarketTemplateQuery.isLoading}
@@ -2375,10 +2617,11 @@ export function StrategyPage() {
                           size="lg"
                           className="w-full sm:w-48"
                           disabled={!canEnterBacktest}
-                          onClick={openBacktest}
+                          onClick={() => void openBacktest()}
                           type="button"
                         >
-                          {isBacktestValidationPending ? (
+                          {isBacktestValidationPending ||
+                          initialBacktestMutation.isPending ? (
                             <Spinner data-icon="inline-start" />
                           ) : (
                             <Play data-icon="inline-start" />

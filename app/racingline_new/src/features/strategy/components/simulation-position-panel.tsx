@@ -69,6 +69,7 @@ import {
 import { cn } from "@/lib/utils"
 
 type SimulationPositionPanelProps = {
+  backtestLaunchError: string | null
   backtestValidationError: string | null
   catalogOptions: IndicatorCatalog[]
   commissionRateMaxPercent: number | null
@@ -177,6 +178,7 @@ const transactionFeeRows: TransactionFeeRow[] = [
 ]
 
 function SimulationPositionPanel({
+  backtestLaunchError,
   backtestValidationError,
   catalogOptions,
   commissionRateMaxPercent,
@@ -481,6 +483,7 @@ function SimulationPositionPanel({
           </CardHeader>
           <CardContent className="flex flex-col gap-4">
             <SimulationGateState
+              backtestLaunchError={backtestLaunchError}
               backtestValidationError={backtestValidationError}
               isBacktestValidationPending={isBacktestValidationPending}
               isMarketTemplateError={isMarketTemplateError}
@@ -958,6 +961,7 @@ function IndicatorStopLossFields({
 }
 
 function SimulationGateState({
+  backtestLaunchError,
   backtestValidationError,
   isBacktestValidationPending,
   isMarketTemplateError,
@@ -965,6 +969,7 @@ function SimulationGateState({
   marketTemplateError,
   previewSnapshot,
 }: {
+  backtestLaunchError: string | null
   backtestValidationError: string | null
   isBacktestValidationPending: boolean
   isMarketTemplateError: boolean
@@ -1021,6 +1026,15 @@ function SimulationGateState({
       <Alert variant="destructive">
         <AlertTitle>进入回测失败</AlertTitle>
         <AlertDescription>{backtestValidationError}</AlertDescription>
+      </Alert>
+    )
+  }
+
+  if (backtestLaunchError) {
+    return (
+      <Alert variant="destructive">
+        <AlertTitle>回测任务提交失败</AlertTitle>
+        <AlertDescription>{backtestLaunchError}</AlertDescription>
       </Alert>
     )
   }
