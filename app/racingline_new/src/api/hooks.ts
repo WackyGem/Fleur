@@ -2,8 +2,12 @@ import { keepPreviousData, useMutation, useQuery } from "@tanstack/react-query"
 
 import { queryKeys } from "@/api/queryKeys"
 import {
+  createStrategyPortfolio,
   createStrategyBacktest,
   explainRule,
+  getStrategyPortfolio,
+  getStrategyPortfolioDashboard,
+  getStrategyPortfolioPerformance,
   getStrategyBacktest,
   getStrategyBacktestOptions,
   getStrategyBacktestPerformance,
@@ -17,6 +21,11 @@ import {
   listStrategyBacktestTargets,
   listStrategyBacktestTradeMetrics,
   listStrategyBacktestTrades,
+  listStrategyPortfolioNav,
+  listStrategyPortfolioPositions,
+  listStrategyPortfolioRebalanceRecords,
+  listStrategyPortfolioSignals,
+  listStrategyPortfolioSignalTimeline,
   listMetrics,
   previewStrategy,
   previewStrategyPoolPage,
@@ -30,6 +39,7 @@ import type {
   SecurityAnalysisRequest,
   StrategyBacktestCreateRequest,
   StrategyBacktestValidateRequest,
+  StrategyPortfolioCreateRequest,
   StrategyPreviewPoolPageRequest,
   StrategyPreviewRequest,
   StrategyPreviewTimelineRequest,
@@ -113,6 +123,138 @@ export function useStrategyBacktestCreateMutation() {
   return useMutation({
     mutationFn: (request: StrategyBacktestCreateRequest) =>
       createStrategyBacktest(request),
+  })
+}
+
+export function useStrategyPortfolioCreateMutation() {
+  return useMutation({
+    mutationFn: (request: StrategyPortfolioCreateRequest) =>
+      createStrategyPortfolio(request),
+  })
+}
+
+export function useStrategyPortfolioDashboardQuery() {
+  return useQuery({
+    queryKey: queryKeys.strategyPortfolioDashboard(),
+    queryFn: () => getStrategyPortfolioDashboard(),
+    retry: 1,
+  })
+}
+
+export function useStrategyPortfolioQuery(strategyPortfolioId: string | null) {
+  return useQuery({
+    enabled: Boolean(strategyPortfolioId),
+    queryKey: queryKeys.strategyPortfolio(strategyPortfolioId),
+    queryFn: () => {
+      if (!strategyPortfolioId) {
+        throw new Error("strategy portfolio id is missing")
+      }
+      return getStrategyPortfolio(strategyPortfolioId)
+    },
+    retry: 1,
+  })
+}
+
+export function useStrategyPortfolioNavQuery(strategyPortfolioId: string | null) {
+  return useQuery({
+    enabled: Boolean(strategyPortfolioId),
+    queryKey: queryKeys.strategyPortfolioNav(strategyPortfolioId),
+    queryFn: () => {
+      if (!strategyPortfolioId) {
+        throw new Error("strategy portfolio id is missing")
+      }
+      return listStrategyPortfolioNav(strategyPortfolioId)
+    },
+    retry: 1,
+  })
+}
+
+export function useStrategyPortfolioPerformanceQuery(
+  strategyPortfolioId: string | null
+) {
+  return useQuery({
+    enabled: Boolean(strategyPortfolioId),
+    queryKey: queryKeys.strategyPortfolioPerformance(strategyPortfolioId),
+    queryFn: () => {
+      if (!strategyPortfolioId) {
+        throw new Error("strategy portfolio id is missing")
+      }
+      return getStrategyPortfolioPerformance(strategyPortfolioId)
+    },
+    retry: 1,
+  })
+}
+
+export function useStrategyPortfolioSignalTimelineQuery(
+  strategyPortfolioId: string | null
+) {
+  return useQuery({
+    enabled: Boolean(strategyPortfolioId),
+    queryKey: queryKeys.strategyPortfolioSignalTimeline(strategyPortfolioId),
+    queryFn: () => {
+      if (!strategyPortfolioId) {
+        throw new Error("strategy portfolio id is missing")
+      }
+      return listStrategyPortfolioSignalTimeline(strategyPortfolioId)
+    },
+    retry: 1,
+  })
+}
+
+export function useStrategyPortfolioSignalsQuery(
+  strategyPortfolioId: string | null,
+  tradeDate: string | null
+) {
+  const query = tradeDate ? { signal_date: tradeDate, limit: 200 } : { limit: 200 }
+  return useQuery({
+    enabled: Boolean(strategyPortfolioId),
+    queryKey: queryKeys.strategyPortfolioSignals(strategyPortfolioId, query),
+    queryFn: () => {
+      if (!strategyPortfolioId) {
+        throw new Error("strategy portfolio id is missing")
+      }
+      return listStrategyPortfolioSignals(strategyPortfolioId, query)
+    },
+    retry: 1,
+  })
+}
+
+export function useStrategyPortfolioPositionsQuery(
+  strategyPortfolioId: string | null,
+  tradeDate: string | null
+) {
+  const query = tradeDate ? { trade_date: tradeDate, limit: 200 } : { limit: 200 }
+  return useQuery({
+    enabled: Boolean(strategyPortfolioId),
+    queryKey: queryKeys.strategyPortfolioPositions(strategyPortfolioId, query),
+    queryFn: () => {
+      if (!strategyPortfolioId) {
+        throw new Error("strategy portfolio id is missing")
+      }
+      return listStrategyPortfolioPositions(strategyPortfolioId, query)
+    },
+    retry: 1,
+  })
+}
+
+export function useStrategyPortfolioRebalanceRecordsQuery(
+  strategyPortfolioId: string | null,
+  tradeDate: string | null
+) {
+  return useQuery({
+    enabled: Boolean(strategyPortfolioId),
+    queryKey: queryKeys.strategyPortfolioRebalanceRecords(
+      strategyPortfolioId,
+      tradeDate
+    ),
+    queryFn: () => {
+      if (!strategyPortfolioId) {
+        throw new Error("strategy portfolio id is missing")
+      }
+      return listStrategyPortfolioRebalanceRecords(strategyPortfolioId, tradeDate)
+    },
+    placeholderData: keepPreviousData,
+    retry: 1,
   })
 }
 

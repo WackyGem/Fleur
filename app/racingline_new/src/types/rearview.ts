@@ -448,6 +448,146 @@ export type StrategyBacktestNavPoint = {
   excess_return?: number | null
 }
 
+export type StrategyPortfolioLiveStatus =
+  | "pending_first_run"
+  | "queued"
+  | "running"
+  | "succeeded"
+  | "failed"
+
+export type StrategyPortfolioCurveSource =
+  | "source_backtest"
+  | "live_daily_run"
+
+export type StrategyPortfolioRecord = {
+  strategy_portfolio_id: string
+  portfolio_code: string
+  name: string
+  status: "active" | "archived"
+  rule_snapshot: JsonValue
+  rule_hash: string
+  execution_config: BacktestExecutionConfig
+  execution_config_hash: string
+  benchmark_security_code: string
+  price_basis: "backward_adjusted"
+  catalog_hash?: string | null
+  required_metrics: JsonValue
+  required_marts: JsonValue
+  source_strategy_backtest_run_id: string
+  source_result_attempt_id: string
+  source_period_key: StrategyBacktestPeriodKey
+  source_start_date: string
+  source_end_date: string
+  live_start_date: string
+  latest_daily_run_id?: string | null
+  current_result_attempt_id?: string | null
+  ui_display_snapshot: JsonValue
+  client_request_id?: string | null
+  request_hash: string
+  created_at: string
+  updated_at: string
+  archived_at?: string | null
+  live_status: StrategyPortfolioLiveStatus
+}
+
+export type StrategyPortfolioCreateRequest = {
+  source_strategy_backtest_run_id: string
+  source_result_attempt_id: string
+  name: string
+  client_request_id?: string
+}
+
+export type StrategyPortfolioDashboardCard = {
+  strategy_portfolio_id: string
+  portfolio_code: string
+  name: string
+  status: "active" | "archived"
+  live_status: StrategyPortfolioLiveStatus
+  curve_source: StrategyPortfolioCurveSource
+  latest_daily_run_id?: string | null
+  current_result_attempt_id?: string | null
+  source_strategy_backtest_run_id: string
+  source_result_attempt_id: string
+  source_period_key: StrategyBacktestPeriodKey
+  source_start_date: string
+  source_end_date: string
+  live_start_date: string
+  source_backtest_summary: JsonValue
+  live_summary?: JsonValue | null
+  ui_display_snapshot: JsonValue
+  latest_nav?: number | null
+  recent_change?: number | null
+  returns: {
+    label: string
+    value?: number | null
+    kind: "percent" | "ratio"
+    tone?: "up" | "down" | "neutral"
+  }[]
+  risk: {
+    label: string
+    value?: number | null
+    kind: "percent" | "ratio"
+    tone?: "up" | "down" | "neutral"
+  }[]
+  efficiency: {
+    label: string
+    value?: number | null
+    kind: "percent" | "ratio"
+    tone?: "up" | "down" | "neutral"
+  }[]
+  relative: {
+    label: string
+    value?: number | null
+    kind: "percent" | "ratio"
+    tone?: "up" | "down" | "neutral"
+  }[]
+  today_signals: {
+    code: string
+    name: string
+    score: number
+  }[]
+  curve: {
+    time: string
+    nav: number
+    benchmark: number
+  }[]
+  created_at: string
+  updated_at: string
+}
+
+export type StrategyPortfolioDashboardResponse = {
+  portfolios: StrategyPortfolioDashboardCard[]
+}
+
+export type StrategyPortfolioNavResponse = {
+  source: StrategyPortfolioCurveSource
+  points: StrategyBacktestNavPoint[]
+}
+
+export type StrategyPortfolioPerformanceView = StrategyBacktestPerformanceView & {
+  source: StrategyPortfolioCurveSource
+}
+
+export type StrategyPortfolioListResult<T> = ListResult<T> & {
+  source: StrategyPortfolioCurveSource
+}
+
+export type StrategyPortfolioSignalTimelinePoint = {
+  trade_date: string
+  target_count: number
+  signal_count?: number | null
+}
+
+export type StrategyPortfolioSignalTimelineResponse = {
+  source: StrategyPortfolioCurveSource
+  trade_dates: StrategyPortfolioSignalTimelinePoint[]
+}
+
+export type StrategyPortfolioRebalanceRecordsResponse =
+  StrategyBacktestRebalanceRecordsResponse & {
+    source: StrategyPortfolioCurveSource
+  }
+
 export type StrategyBacktestRebalanceRow = {
   direction: "buy" | "hold" | "sell"
   security_code: string
@@ -490,6 +630,7 @@ export type StrategyBacktestTargetRecord = {
   signal_date: string
   execution_date: string
   security_code: string
+  security_name?: string | null
   source_rank?: number | null
   source_score?: number | null
   target_weight: number

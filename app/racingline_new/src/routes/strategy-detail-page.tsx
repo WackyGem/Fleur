@@ -33,25 +33,30 @@ import {
 } from "@/components/ui/table"
 import { NavBenchmarkChart } from "@/components/racingline/dashboard/portfolio-overview-board"
 import {
-  portfolioCards,
   formatMetricValue,
   getMetricToneClassName,
   type Metric,
 } from "@/components/racingline/dashboard/portfolio-data"
+import {
+  useStrategyPortfolioNavQuery,
+  useStrategyPortfolioPerformanceQuery,
+  useStrategyPortfolioPositionsQuery,
+  useStrategyPortfolioQuery,
+  useStrategyPortfolioRebalanceRecordsQuery,
+  useStrategyPortfolioSignalsQuery,
+  useStrategyPortfolioSignalTimelineQuery,
+} from "@/api/hooks"
 import { cn } from "@/lib/utils"
+import type {
+  StrategyBacktestNavPoint,
+  StrategyBacktestRebalanceRecord,
+  StrategyBacktestTargetRecord,
+  StrategyPortfolioPerformanceView,
+  StrategyPortfolioRecord,
+  StrategyPortfolioSignalTimelinePoint,
+} from "@/types/rearview"
 
 type DetailTradeDirection = "buy" | "hold" | "sell"
-
-type HoldingRow = {
-  code: string
-  name: string
-  weight: number
-  cost: number
-  price: number
-  change: number
-  contribution: number
-  holdingDays: number
-}
 
 type DetailTrade = {
   changePercent: string
@@ -88,117 +93,51 @@ type SignalPool = {
   stocks: SignalStock[]
 }
 
-const holdingsByPortfolioId: Record<string, HoldingRow[]> = {
-  "dividend-low-vol-rotation": [
-    {
-      code: "600036.SH",
-      name: "招商银行",
-      weight: 0.18,
-      cost: 37.24,
-      price: 39.18,
-      change: 0.0521,
-      contribution: 0.0094,
-      holdingDays: 42,
-    },
-    {
-      code: "601318.SH",
-      name: "中国平安",
-      weight: 0.16,
-      cost: 48.66,
-      price: 51.02,
-      change: 0.0485,
-      contribution: 0.0078,
-      holdingDays: 31,
-    },
-    {
-      code: "600900.SH",
-      name: "长江电力",
-      weight: 0.14,
-      cost: 27.18,
-      price: 28.05,
-      change: 0.032,
-      contribution: 0.0045,
-      holdingDays: 56,
-    },
-    {
-      code: "601988.SH",
-      name: "中国银行",
-      weight: 0.11,
-      cost: 4.62,
-      price: 4.74,
-      change: 0.026,
-      contribution: 0.0029,
-      holdingDays: 23,
-    },
-  ],
-  "growth-trend-enhanced": [
-    {
-      code: "688981.SH",
-      name: "中芯国际",
-      weight: 0.17,
-      cost: 84.32,
-      price: 91.08,
-      change: 0.0802,
-      contribution: 0.0136,
-      holdingDays: 18,
-    },
-    {
-      code: "300750.SZ",
-      name: "宁德时代",
-      weight: 0.16,
-      cost: 246.7,
-      price: 259.16,
-      change: 0.0505,
-      contribution: 0.0081,
-      holdingDays: 21,
-    },
-    {
-      code: "002475.SZ",
-      name: "立讯精密",
-      weight: 0.13,
-      cost: 39.12,
-      price: 41.28,
-      change: 0.0552,
-      contribution: 0.0072,
-      holdingDays: 14,
-    },
-    {
-      code: "600276.SH",
-      name: "恒瑞医药",
-      weight: 0.1,
-      cost: 47.35,
-      price: 45.86,
-      change: -0.0315,
-      contribution: -0.0032,
-      holdingDays: 9,
-    },
-  ],
-}
-
-const detailTradeCandidates = [
-  { securityCode: "600519.SH", securityName: "贵州茅台", basePrice: 1518.6 },
-  { securityCode: "688981.SH", securityName: "中芯国际", basePrice: 86.4 },
-  { securityCode: "300750.SZ", securityName: "宁德时代", basePrice: 248.2 },
-  { securityCode: "600036.SH", securityName: "招商银行", basePrice: 38.1 },
-  { securityCode: "601318.SH", securityName: "中国平安", basePrice: 49.8 },
-  { securityCode: "600900.SH", securityName: "长江电力", basePrice: 27.6 },
-  { securityCode: "002475.SZ", securityName: "立讯精密", basePrice: 40.4 },
-  { securityCode: "600276.SH", securityName: "恒瑞医药", basePrice: 46.9 },
-  { securityCode: "601988.SH", securityName: "中国银行", basePrice: 4.7 },
-  { securityCode: "000333.SZ", securityName: "美的集团", basePrice: 68.5 },
-]
-
 function StrategyDetailPage() {
   const { portfolioId } = useParams()
   const [selectedSignalDate, setSelectedSignalDate] = useState("")
   const [selectedRebalanceDate, setSelectedRebalanceDate] = useState("")
   const rebalanceDateScrollerRef = useRef<HTMLDivElement | null>(null)
-  const portfolio = portfolioCards.find((item) => item.id === portfolioId)
-  const holdings = portfolio ? (holdingsByPortfolioId[portfolio.id] ?? []) : []
-  const signalPools = portfolio ? buildStrategySignalPools(portfolio.id) : []
-  const records = portfolio
-    ? buildDetailRebalanceRecords(holdings, portfolio.backtestDays)
-    : []
+  const strategyPortfolioId = portfolioId ?? null
+  const portfolioQuery = useStrategyPortfolioQuery(strategyPortfolioId)
+  const navQuery = useStrategyPortfolioNavQuery(strategyPortfolioId)
+  const performanceQuery =
+    useStrategyPortfolioPerformanceQuery(strategyPortfolioId)
+  const signalTimelineQuery =
+    useStrategyPortfolioSignalTimelineQuery(strategyPortfolioId)
+  const latestSignalDate =
+    selectedSignalDate ||
+    signalTimelineQuery.data?.trade_dates.at(-1)?.trade_date ||
+    null
+  const signalsQuery = useStrategyPortfolioSignalsQuery(
+    strategyPortfolioId,
+    latestSignalDate
+  )
+  const latestNavDate = navQuery.data?.points.at(-1)?.trade_date ?? null
+  const positionsQuery = useStrategyPortfolioPositionsQuery(
+    strategyPortfolioId,
+    latestNavDate
+  )
+  const rebalanceRecordsQuery = useStrategyPortfolioRebalanceRecordsQuery(
+    strategyPortfolioId,
+    selectedRebalanceDate || null
+  )
+  const portfolio = portfolioQuery.data
+    ? buildDetailPortfolioView(
+        portfolioQuery.data,
+        navQuery.data?.points ?? [],
+        performanceQuery.data ?? null
+      )
+    : null
+  const signalPools = buildSignalPoolsFromApi(
+    signalTimelineQuery.data?.trade_dates ?? [],
+    latestSignalDate,
+    signalsQuery.data?.items ?? []
+  )
+  const records = (rebalanceRecordsQuery.data?.records ?? []).map(
+    mapApiRebalanceRecord
+  )
+  const livePositionCount = positionsQuery.data?.items.length ?? null
 
   useEffect(() => {
     const scroller = rebalanceDateScrollerRef.current
@@ -210,12 +149,25 @@ function StrategyDetailPage() {
     scroller.scrollLeft = scroller.scrollWidth
   }, [records.length])
 
-  if (!portfolio) {
+  if (portfolioQuery.isLoading) {
+    return (
+      <Empty className="min-h-[calc(100svh-8rem)] border border-dashed border-border/70">
+        <EmptyHeader>
+          <EmptyTitle>策略加载中</EmptyTitle>
+          <EmptyDescription>正在从 Rearview 读取策略组合。</EmptyDescription>
+        </EmptyHeader>
+      </Empty>
+    )
+  }
+
+  if (portfolioQuery.isError || !portfolio) {
     return (
       <Empty className="min-h-[calc(100svh-8rem)] border border-dashed border-border/70">
         <EmptyHeader>
           <EmptyTitle>未找到策略</EmptyTitle>
-          <EmptyDescription>该策略可能已删除或链接已经失效。</EmptyDescription>
+          <EmptyDescription>
+            该策略可能已删除、链接已经失效或 Rearview API 不可用。
+          </EmptyDescription>
         </EmptyHeader>
         <EmptyContent>
           <Button
@@ -242,14 +194,14 @@ function StrategyDetailPage() {
   const latestPoint = portfolio.curve.at(-1)
   const previousPoint = portfolio.curve.at(-2)
   const latestStrategyReturn =
-    latestPoint && previousPoint ? latestPoint.nav / previousPoint.nav - 1 : 0
+    latestPoint && previousPoint ? latestPoint.nav / previousPoint.nav - 1 : null
   const latestBenchmarkReturn =
     latestPoint && previousPoint
       ? latestPoint.benchmark / previousPoint.benchmark - 1
-      : 0
+      : null
   const latestExcessReturn = latestPoint
     ? latestPoint.nav - latestPoint.benchmark
-    : 0
+    : null
   const returnMetrics = buildReturnMetrics(
     portfolio.returns,
     latestExcessReturn
@@ -279,6 +231,9 @@ function StrategyDetailPage() {
         <div className="flex min-w-0 flex-1 items-center gap-3 overflow-hidden text-xs text-muted-foreground tabular-nums">
           <span className="shrink-0">建仓: {portfolio.startDate}</span>
           <span className="shrink-0">运行: {portfolio.simulationDays} 天</span>
+          {livePositionCount !== null ? (
+            <span className="shrink-0">持仓: {livePositionCount} 只</span>
+          ) : null}
         </div>
         <Dialog>
           <DialogTrigger
@@ -430,18 +385,18 @@ function StrategyDetailPage() {
                     <>
                       <DetailSummaryMetric
                         label="策略净值"
-                        value={portfolio.latestNav.toFixed(4)}
-                        detail={formatSignedPercent(latestStrategyReturn)}
+                        value={latestPoint.nav.toFixed(4)}
+                        detail={formatOptionalSignedPercent(latestStrategyReturn)}
                         detailClassName={getSignedValueClassName(
-                          formatSignedPercent(latestStrategyReturn)
+                          formatOptionalSignedPercent(latestStrategyReturn)
                         )}
                       />
                       <DetailSummaryMetric
                         label="基准净值"
                         value={latestPoint.benchmark.toFixed(4)}
-                        detail={formatSignedPercent(latestBenchmarkReturn)}
+                        detail={formatOptionalSignedPercent(latestBenchmarkReturn)}
                         detailClassName={getSignedValueClassName(
-                          formatSignedPercent(latestBenchmarkReturn)
+                          formatOptionalSignedPercent(latestBenchmarkReturn)
                         )}
                       />
                     </>
@@ -475,11 +430,22 @@ function StrategyDetailPage() {
                   </div>
                 </div>
               </div>
-              <NavBenchmarkChart
-                className="h-60"
-                height={240}
-                points={portfolio.curve}
-              />
+              {portfolio.curve.length > 0 ? (
+                <NavBenchmarkChart
+                  className="h-60"
+                  height={240}
+                  points={portfolio.curve}
+                />
+              ) : (
+                <Empty className="h-60 border">
+                  <EmptyHeader>
+                    <EmptyTitle>暂无净值数据</EmptyTitle>
+                    <EmptyDescription>
+                      当前组合尚未产生可展示的净值曲线。
+                    </EmptyDescription>
+                  </EmptyHeader>
+                </Empty>
+              )}
             </section>
 
             <Separator className="bg-border/60" />
@@ -819,16 +785,182 @@ function SignalCountChart({
   return <div ref={containerRef} className="h-56 w-full cursor-crosshair" />
 }
 
-function buildReturnMetrics(metrics: Metric[], excessReturn: number): Metric[] {
+function buildDetailPortfolioView(
+  record: StrategyPortfolioRecord,
+  navPoints: StrategyBacktestNavPoint[],
+  performance: StrategyPortfolioPerformanceView | null
+) {
+  const curve = navPoints
+    .filter((point) => typeof point.benchmark_nav === "number")
+    .map((point) => ({
+      benchmark: point.benchmark_nav as number,
+      nav: point.strategy_nav,
+      time: point.trade_date,
+    }))
+  const latestPoint = curve.at(-1)
+
+  return {
+    id: record.strategy_portfolio_id,
+    name: record.name,
+    startDate: record.live_start_date,
+    simulationDays: latestPoint
+      ? daysBetween(record.live_start_date, latestPoint.time)
+      : 0,
+    latestNav: latestPoint?.nav ?? null,
+    returns: [
+      metricFromPerformance("持仓收益", performance, "holding_period_return"),
+      metricFromPerformance("年化收益", performance, "annualized_return"),
+    ],
+    risk: [
+      metricFromPerformance("最大回撤", performance, "max_drawdown", "down"),
+      metricFromPerformance(
+        "年化波动率",
+        performance,
+        "annualized_volatility"
+      ),
+      metricFromPerformance("下行波动率", performance, "downside_deviation"),
+    ],
+    efficiency: [
+      ratioMetricFromPerformance("Sharpe Ratio", performance, "sharpe_ratio"),
+      ratioMetricFromPerformance("Sortino Ratio", performance, "sortino_ratio"),
+      ratioMetricFromPerformance("Calmar Ratio", performance, "calmar_ratio"),
+      ratioMetricFromPerformance("Treynor Ratio", performance, "treynor_ratio"),
+    ],
+    relative: [
+      metricFromPerformance("Alpha", performance, "alpha"),
+      ratioMetricFromPerformance("Beta", performance, "beta"),
+      ratioMetricFromPerformance(
+        "Information Ratio",
+        performance,
+        "information_ratio"
+      ),
+    ],
+    benchmarkSecurityCode: record.benchmark_security_code,
+    curve,
+  }
+}
+
+function metricFromPerformance(
+  label: string,
+  performance: StrategyPortfolioPerformanceView | null,
+  key: string,
+  fallbackTone?: Metric["tone"]
+): Metric {
+  const value = readPerformanceMetric(performance, key)
+
+  return {
+    label,
+    value,
+    kind: "percent",
+    tone:
+      fallbackTone ??
+      (typeof value === "number" ? (value >= 0 ? "up" : "down") : "neutral"),
+  }
+}
+
+function ratioMetricFromPerformance(
+  label: string,
+  performance: StrategyPortfolioPerformanceView | null,
+  key: string
+): Metric {
+  return {
+    label,
+    value: readPerformanceMetric(performance, key),
+    kind: "ratio",
+    tone: "neutral",
+  }
+}
+
+function readPerformanceMetric(
+  performance: StrategyPortfolioPerformanceView | null,
+  key: string
+) {
+  const value = performance?.metric[key]
+
+  return typeof value === "number" && Number.isFinite(value) ? value : null
+}
+
+function buildSignalPoolsFromApi(
+  timeline: StrategyPortfolioSignalTimelinePoint[],
+  selectedDate: string | null,
+  signals: StrategyBacktestTargetRecord[]
+): SignalPool[] {
+  return timeline.map((point) => ({
+    date: point.trade_date,
+    signalCount: point.signal_count ?? point.target_count,
+    stocks:
+      point.trade_date === selectedDate
+        ? signals
+            .map(mapApiSignalTarget)
+            .filter((stock): stock is SignalStock => stock !== null)
+        : [],
+  }))
+}
+
+function mapApiSignalTarget(
+  target: StrategyBacktestTargetRecord
+): SignalStock | null {
+  if (typeof target.source_score !== "number") {
+    return null
+  }
+
+  return {
+    code: target.security_code,
+    name: target.security_name?.trim() || target.security_code,
+    score: target.source_score,
+    scoreItems: [],
+  }
+}
+
+function mapApiRebalanceRecord(
+  record: StrategyBacktestRebalanceRecord
+): DetailRebalanceRecord {
+  return {
+    date: record.trade_date,
+    trades: record.rows.map((row) => ({
+      changePercent: formatOptionalSignedPercent(row.change_pct),
+      contribution: formatOptionalSignedPercent(row.contribution_pct),
+      costPrice: formatOptionalCurrency(row.cost_price),
+      currentPrice: formatOptionalCurrency(row.current_price),
+      direction: row.direction,
+      holdingDays:
+        typeof row.holding_days === "number" ? `${row.holding_days}天` : "—",
+      rebalanceReason: row.reason ?? "",
+      securityCode: row.security_code,
+      securityName: row.security_name?.trim() || row.security_code,
+    })),
+  }
+}
+
+function daysBetween(startDate: string, endDate: string) {
+  const start = new Date(`${startDate}T00:00:00Z`).getTime()
+  const end = new Date(`${endDate}T00:00:00Z`).getTime()
+
+  if (!Number.isFinite(start) || !Number.isFinite(end) || end < start) {
+    return 0
+  }
+
+  return Math.floor((end - start) / 86_400_000) + 1
+}
+
+function buildReturnMetrics(
+  metrics: Metric[],
+  excessReturn: number | null
+): Metric[] {
   const excessMetric: Metric = {
     label: "超额收益",
     value: excessReturn,
     kind: "percent",
-    tone: excessReturn >= 0 ? "up" : "down",
+    tone:
+      typeof excessReturn === "number"
+        ? excessReturn >= 0
+          ? "up"
+          : "down"
+        : "neutral",
   }
   const winRateMetric: Metric = {
     label: "日胜率",
-    value: 0.584,
+    value: null,
     kind: "percent",
     tone: "neutral",
   }
@@ -836,61 +968,6 @@ function buildReturnMetrics(metrics: Metric[], excessReturn: number): Metric[] {
   return [metrics[0], excessMetric, ...metrics.slice(1), winRateMetric].filter(
     (metric): metric is Metric => Boolean(metric)
   )
-}
-
-function buildStrategySignalPools(portfolioId: string): SignalPool[] {
-  const dates = buildTradingDates("2025-09-08", 63)
-  const portfolioOffset = portfolioId.length % 7
-
-  return dates.map((date, dayIndex) => {
-    const dateSeed = getDateSeed(date) + portfolioOffset
-    const signalCount =
-      22 +
-      ((dateSeed + dayIndex * 3) % 11) +
-      Math.round(Math.sin(dayIndex * 0.42) * 4)
-    const poolSize = 5 + ((dateSeed + dayIndex) % 5)
-    const stocks = detailTradeCandidates
-      .map((candidate, candidateIndex) => {
-        const scoreItems = buildSignalScoreItems(dateSeed, candidateIndex)
-        const score = clampPreviewScore(
-          54 +
-            signalCount * 0.48 +
-            scoreItems.reduce((total, item) => total + item.score, 0) * 0.26 +
-            Math.sin((dayIndex + candidateIndex) * 0.68) * 7
-        )
-
-        return {
-          code: candidate.securityCode,
-          name: candidate.securityName,
-          score,
-          scoreItems,
-        }
-      })
-      .sort((a, b) => b.score - a.score)
-      .slice(0, poolSize)
-
-    return {
-      date,
-      signalCount,
-      stocks,
-    }
-  })
-}
-
-function buildSignalScoreItems(
-  dateSeed: number,
-  candidateIndex: number
-): SignalScoreItem[] {
-  const labels = ["趋势强度", "资金确认", "波动过滤"]
-
-  return labels.map((label, index) => ({
-    label,
-    score: Number(
-      (8.6 + ((dateSeed + candidateIndex * 13 + index * 17) % 46) / 10).toFixed(
-        1
-      )
-    ),
-  }))
 }
 
 function formatSignalScoreItems(scoreItems: SignalScoreItem[]) {
@@ -901,107 +978,6 @@ function formatSignalScoreItems(scoreItems: SignalScoreItem[]) {
   return scoreItems
     .map((item) => `${item.label} ${item.score.toFixed(1)}`)
     .join(" / ")
-}
-
-function buildDetailRebalanceRecords(
-  holdings: HoldingRow[],
-  backtestDays: number
-): DetailRebalanceRecord[] {
-  const dates = buildTradingDates("2025-01-02", Math.min(backtestDays, 252))
-
-  return dates.map((date, dayIndex) => {
-    const buyCount = 1 + (dayIndex % 4 === 0 ? 1 : 0)
-    const holdCount = Math.max(2, holdings.length + (dayIndex % 3) - 1)
-    const sellCount = 1 + (dayIndex % 5 === 0 ? 1 : 0)
-    const buys = Array.from({ length: buyCount }, (_, index) =>
-      buildDetailTrade("buy", holdings, dayIndex, index)
-    )
-    const holds = Array.from({ length: holdCount }, (_, index) =>
-      buildDetailTrade("hold", holdings, dayIndex, index + buyCount)
-    )
-    const sells = Array.from({ length: sellCount }, (_, index) =>
-      buildDetailTrade("sell", holdings, dayIndex, index + buyCount + holdCount)
-    )
-
-    return {
-      date,
-      trades: [...buys, ...holds, ...sells],
-    }
-  })
-}
-
-function buildDetailTrade(
-  direction: DetailTradeDirection,
-  holdings: HoldingRow[],
-  dayIndex: number,
-  offset: number
-): DetailTrade {
-  const holding = holdings[(dayIndex + offset) % holdings.length]
-  const fallback =
-    detailTradeCandidates[
-      (dayIndex * 3 + offset * 5) % detailTradeCandidates.length
-    ]
-  const candidate = holding
-    ? {
-        securityCode: holding.code,
-        securityName: holding.name,
-        basePrice: holding.cost,
-      }
-    : fallback
-  const costPrice =
-    candidate.basePrice * (0.96 + ((dayIndex + offset) % 9) / 50)
-  const change =
-    direction === "buy"
-      ? 0
-      : Math.sin((dayIndex + offset) * 0.71) * 0.075 + (dayIndex % 5) * 0.006
-  const currentPrice = costPrice * (1 + change)
-  const contribution =
-    direction === "buy" ? 0 : change * (0.08 + ((dayIndex + offset) % 4) * 0.02)
-
-  return {
-    changePercent: formatSignedPercent(change),
-    contribution: formatSignedPercent(contribution),
-    costPrice: formatCurrency(costPrice),
-    currentPrice: formatCurrency(currentPrice),
-    direction,
-    holdingDays:
-      direction === "buy"
-        ? "0天"
-        : `${8 + ((dayIndex * 7 + offset * 3) % 96)}天`,
-    rebalanceReason: getRebalanceReason(direction, dayIndex, offset),
-    securityCode: candidate.securityCode,
-    securityName: candidate.securityName,
-  }
-}
-
-function getRebalanceReason(
-  direction: DetailTradeDirection,
-  dayIndex: number,
-  offset: number
-) {
-  if (direction === "buy") {
-    const reasons = [
-      "买入信号进入Top10",
-      "动量排名上升",
-      "低波因子改善",
-      "景气度信号增强",
-    ]
-
-    return reasons[(dayIndex + offset) % reasons.length]
-  }
-
-  if (direction === "sell") {
-    const reasons = [
-      "跌破MA10",
-      "固定止盈触发",
-      "持仓到期未达阈值",
-      "排名跌出持仓池",
-    ]
-
-    return reasons[(dayIndex + offset) % reasons.length]
-  }
-
-  return ""
 }
 
 function buildRebalanceTradeSections(trades: DetailTrade[]) {
@@ -1027,31 +1003,6 @@ function formatTradeDirection(direction: DetailTradeDirection) {
   return "调出"
 }
 
-function buildTradingDates(startDate: string, count: number) {
-  const dates: string[] = []
-  const date = new Date(`${startDate}T00:00:00Z`)
-
-  while (dates.length < count) {
-    const day = date.getUTCDay()
-
-    if (day !== 0 && day !== 6) {
-      dates.push(formatIsoDate(date))
-    }
-
-    date.setUTCDate(date.getUTCDate() + 1)
-  }
-
-  return dates
-}
-
-function formatIsoDate(date: Date) {
-  const year = date.getUTCFullYear()
-  const month = String(date.getUTCMonth() + 1).padStart(2, "0")
-  const day = String(date.getUTCDate()).padStart(2, "0")
-
-  return `${year}-${month}-${day}`
-}
-
 function formatCompactDate(date: string) {
   const [, month, day] = date.split("-")
 
@@ -1062,18 +1013,22 @@ function formatCurrency(value: number) {
   return `¥${value.toFixed(2)}`
 }
 
+function formatOptionalCurrency(value: number | null | undefined) {
+  return typeof value === "number" && Number.isFinite(value)
+    ? formatCurrency(value)
+    : "—"
+}
+
 function formatSignedPercent(value: number) {
   const sign = value > 0 ? "+" : ""
 
   return `${sign}${(value * 100).toFixed(2)}%`
 }
 
-function getDateSeed(date: string) {
-  return Array.from(date).reduce((total, char) => total + char.charCodeAt(0), 0)
-}
-
-function clampPreviewScore(score: number) {
-  return Math.min(99, Math.max(0, Number(score.toFixed(1))))
+function formatOptionalSignedPercent(value: number | null | undefined) {
+  return typeof value === "number" && Number.isFinite(value)
+    ? formatSignedPercent(value)
+    : "—"
 }
 
 function getScoreBadgeVariant(score: number) {

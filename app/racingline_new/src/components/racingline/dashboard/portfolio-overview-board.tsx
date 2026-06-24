@@ -15,7 +15,6 @@ import {
 } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
 import {
-  portfolioCards,
   formatChangeValue,
   formatMetricValue,
   getChangeToneClassName,
@@ -26,6 +25,8 @@ import {
   type PortfolioCardData,
   type SignalStock,
 } from "@/components/racingline/dashboard/portfolio-data"
+import { useStrategyPortfolioDashboardQuery } from "@/api/hooks"
+import type { StrategyPortfolioDashboardCard } from "@/types/rearview"
 import {
   Table,
   TableBody,
@@ -143,6 +144,11 @@ function MetricSection({
         {title}
       </div>
       <div className="flex flex-col gap-1">
+        {metrics.length === 0 ? (
+          <div className="border-b border-border/50 py-1 text-xs text-muted-foreground">
+            暂无真实指标
+          </div>
+        ) : null}
         {metrics.map((metric) => (
           <div
             key={metric.label}
@@ -245,7 +251,9 @@ function PortfolioOverviewCard({
                 {formatChangeValue(portfolio.recentChange)}
               </div>
               <div className="text-xl leading-none font-medium tabular-nums">
-                {portfolio.latestNav.toFixed(4)}
+                {portfolio.latestNav === null
+                  ? "--"
+                  : portfolio.latestNav.toFixed(4)}
               </div>
             </div>
           </CardAction>
@@ -279,7 +287,13 @@ function PortfolioOverviewCard({
           </div>
 
           <div className="overflow-hidden rounded-md border border-border/70 bg-muted/15 px-2 py-2">
-            <NavBenchmarkChart points={portfolio.curve} />
+            {portfolio.curve.length > 0 ? (
+              <NavBenchmarkChart points={portfolio.curve} />
+            ) : (
+              <div className="flex h-38 items-center justify-center text-xs text-muted-foreground">
+                净值曲线暂不可用
+              </div>
+            )}
           </div>
         </div>
       </CardContent>
@@ -310,7 +324,58 @@ function CreatePortfolioCard() {
   )
 }
 
+function daysBetween(startDate: string, endDate: string) {
+  const start = new Date(`${startDate}T00:00:00Z`).getTime()
+  const end = new Date(`${endDate}T00:00:00Z`).getTime()
+
+  if (!Number.isFinite(start) || !Number.isFinite(end) || end < start) {
+    return 0
+  }
+
+  return Math.floor((end - start) / 86_400_000) + 1
+}
+
+function mapStrategyPortfolioCard(
+  card: StrategyPortfolioDashboardCard
+): PortfolioCardData {
+  const latestCurvePoint = card.curve.at(-1)
+
+  return {
+    id: card.strategy_portfolio_id,
+    name: card.name,
+    startDate: card.live_start_date,
+    backtestDays: daysBetween(card.source_start_date, card.source_end_date),
+    simulationDays:
+      card.live_status === "pending_first_run" || !latestCurvePoint
+        ? 0
+        : daysBetween(card.live_start_date, latestCurvePoint.time),
+    latestNav: card.latest_nav ?? null,
+    recentChange: card.recent_change ?? null,
+    returns: card.returns.map(mapDashboardMetric),
+    risk: card.risk.map(mapDashboardMetric),
+    efficiency: card.efficiency.map(mapDashboardMetric),
+    relative: card.relative.map(mapDashboardMetric),
+    todaySignals: card.today_signals,
+    curve: card.curve,
+  }
+}
+
+function mapDashboardMetric(
+  metric: StrategyPortfolioDashboardCard["returns"][number]
+): Metric {
+  return {
+    kind: metric.kind,
+    label: metric.label,
+    tone: metric.tone,
+    value: metric.value ?? null,
+  }
+}
+
 export function PortfolioOverviewBoard() {
+  const dashboardQuery = useStrategyPortfolioDashboardQuery()
+  const portfolios =
+    dashboardQuery.data?.portfolios.map(mapStrategyPortfolioCard) ?? []
+
   return (
     <section className="mx-auto flex min-h-[calc(100svh-8rem)] w-full max-w-[72rem] flex-col gap-4">
       <div className="flex h-9 items-center gap-4">
@@ -329,7 +394,17 @@ export function PortfolioOverviewBoard() {
       </div>
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2 2xl:grid-cols-4">
-        {portfolioCards.map((portfolio) => (
+        {dashboardQuery.isLoading ? (
+          <div className="flex min-h-[34rem] items-center justify-center border border-border/70 bg-muted/10 px-6 py-8 text-center text-sm text-muted-foreground">
+            策略组合加载中
+          </div>
+        ) : null}
+        {dashboardQuery.isError ? (
+          <div className="flex min-h-[34rem] items-center justify-center border border-border/70 bg-muted/10 px-6 py-8 text-center text-sm text-muted-foreground">
+            策略组合加载失败
+          </div>
+        ) : null}
+        {portfolios.map((portfolio) => (
           <Link
             key={portfolio.id}
             to={`/dashboard/strategies/${portfolio.id}`}

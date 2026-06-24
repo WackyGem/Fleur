@@ -9,6 +9,7 @@ from scheduler.defs.baostock.definitions import baostock_bundle
 from scheduler.defs.clickhouse.definitions import CLICKHOUSE_RAW_ASSETS, CLICKHOUSE_RAW_JOBS
 from scheduler.defs.dbt_jobs import TRANSFORMATION_JOBS, TRANSFORMATION_SCHEDULES
 from scheduler.defs.io_managers.s3_io_manager import S3IOManager
+from scheduler.defs.rearview.definitions import REARVIEW_DEFS
 from scheduler.defs.resources.baostock import BaostockClientFactoryResource
 from scheduler.defs.resources.clickhouse import ClickHouseResource
 from scheduler.defs.resources.database import IndustryImageRepositoryResource
@@ -61,4 +62,4 @@ def defs() -> dg.Definitions:
     dbt_defs = component_tree.build_defs("dbt")
     furnace_defs = component_tree.build_defs("furnace")
 
-    return dg.Definitions.merge(base_defs, dbt_defs, furnace_defs)
+    return dg.Definitions.merge(base_defs, dbt_defs, furnace_defs, REARVIEW_DEFS)

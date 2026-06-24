@@ -11,6 +11,11 @@ from scheduler.defs.dbt_jobs import (
 )
 from scheduler.defs.definitions import SOURCE_BUNDLES
 from scheduler.defs.definitions import defs as scheduler_defs
+from scheduler.defs.rearview.assets import REARVIEW_ASSETS
+from scheduler.defs.rearview.definitions import (
+    STRATEGY_PORTFOLIO_DAILY_RUN_JOB,
+    STRATEGY_PORTFOLIO_DAILY_RUN_SCHEDULE,
+)
 
 from scheduler import definitions as top_level_definitions
 
@@ -44,6 +49,7 @@ def test_registered_definitions_match_source_bundles() -> None:
     expected_jobs = {job.name for bundle in SOURCE_BUNDLES for job in bundle.jobs}
     expected_clickhouse_assets = {asset_key(asset) for asset in CLICKHOUSE_RAW_ASSETS}
     expected_clickhouse_jobs = {job.name for job in CLICKHOUSE_RAW_JOBS}
+    expected_rearview_assets = {asset_key(asset) for asset in REARVIEW_ASSETS}
     expected_transformation_jobs = {job.name for job in TRANSFORMATION_JOBS}
     expected_transformation_schedules = {schedule.name for schedule in TRANSFORMATION_SCHEDULES}
     expected_schedules = {
@@ -61,12 +67,22 @@ def test_registered_definitions_match_source_bundles() -> None:
     assert "fleur_calculation/calc_stock_boll_daily" in registered_asset_keys
     assert "fleur_calculation/calc_stock_macd_daily" in registered_asset_keys
     assert "fleur_calculation/calc_stock_price_pattern_daily" in registered_asset_keys
-    assert len(registered_asset_keys) == len(expected_assets | expected_clickhouse_assets) + 47
+    assert "rearview/strategy_portfolio_daily_runs" in registered_asset_keys
+    assert registered_asset_keys >= expected_rearview_assets
+    assert (
+        len(registered_asset_keys)
+        == len(expected_assets | expected_clickhouse_assets | expected_rearview_assets) + 57
+    )
     assert {job.name for job in loaded_defs.jobs or []} == (
-        expected_jobs | expected_clickhouse_jobs | expected_transformation_jobs
+        expected_jobs
+        | expected_clickhouse_jobs
+        | expected_transformation_jobs
+        | {STRATEGY_PORTFOLIO_DAILY_RUN_JOB.name}
     )
     assert {schedule.name for schedule in loaded_defs.schedules or []} == (
-        expected_schedules | expected_transformation_schedules
+        expected_schedules
+        | expected_transformation_schedules
+        | {STRATEGY_PORTFOLIO_DAILY_RUN_SCHEDULE.name}
     )
     assert {sensor.name for sensor in loaded_defs.sensors or []} == {"slack_asset_failure_sensor"}
     assert set(loaded_defs.resources) >= {
@@ -80,6 +96,7 @@ def test_registered_definitions_match_source_bundles() -> None:
         "clickhouse",
         "slack",
         "furnace_cli",
+        "rearview_api",
     }
 
 
@@ -107,13 +124,13 @@ def test_dbt_assets_are_registered_with_raw_lineage_and_checks() -> None:
     int_macd_key = dg.AssetKey("int_stock_macd_daily")
     int_price_pattern_key = dg.AssetKey("int_stock_price_pattern_daily")
     mart_key = dg.AssetKey("mart_stock_quotes_daily")
-    mart_trend_key = dg.AssetKey("mart_stock_trend_indicator")
-    mart_momentum_key = dg.AssetKey("mart_stock_momentum_indicator")
-    mart_volume_key = dg.AssetKey("mart_stock_volume_indicator")
+    mart_trend_key = dg.AssetKey("mart_stock_trend_indicator_daily")
+    mart_momentum_key = dg.AssetKey("mart_stock_momentum_indicator_daily")
+    mart_volume_key = dg.AssetKey("mart_stock_volume_indicator_daily")
     dbt_asset_def = next(asset for asset in loaded_defs.assets or [] if stg_ths_key in asset.keys)
 
-    assert len(dbt_asset_def.keys) == 41
-    assert len(dbt_asset_def.check_keys) == 310
+    assert len(dbt_asset_def.keys) == 51
+    assert len(dbt_asset_def.check_keys) == 383
     assert "stg_ths__limit_up_pool_compacted" in loaded_asset_keys
     assert "int_stock_kdj_daily" in loaded_asset_keys
     assert "int_stock_ma_daily" in loaded_asset_keys
@@ -122,9 +139,9 @@ def test_dbt_assets_are_registered_with_raw_lineage_and_checks() -> None:
     assert "int_stock_macd_daily" in loaded_asset_keys
     assert "int_stock_price_pattern_daily" in loaded_asset_keys
     assert "mart_stock_quotes_daily" in loaded_asset_keys
-    assert "mart_stock_trend_indicator" in loaded_asset_keys
-    assert "mart_stock_momentum_indicator" in loaded_asset_keys
-    assert "mart_stock_volume_indicator" in loaded_asset_keys
+    assert "mart_stock_trend_indicator_daily" in loaded_asset_keys
+    assert "mart_stock_momentum_indicator_daily" in loaded_asset_keys
+    assert "mart_stock_volume_indicator_daily" in loaded_asset_keys
     assert dbt_asset_def.specs_by_key[stg_ths_key].group_name == "dbt_staging"
     assert dbt_asset_def.specs_by_key[int_kdj_key].group_name == "dbt_intermediate"
     assert dbt_asset_def.specs_by_key[int_ma_key].group_name == "dbt_intermediate"

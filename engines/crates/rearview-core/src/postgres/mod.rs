@@ -10,6 +10,7 @@ use crate::domain::{MetricCatalog, RuleDependencySnapshot, RuleHash, RuleVersion
 use crate::error::{RearviewError, RearviewResult};
 use crate::portfolio::BuySignalInput;
 use crate::portfolio_performance::PerformanceMetricConfig;
+use crate::strategy_portfolio::{new_strategy_portfolio_daily_run_id, new_strategy_portfolio_id};
 
 #[derive(Clone)]
 pub struct RearviewPg {
@@ -34,7 +35,7 @@ impl RearviewPg {
             sqlx::query_scalar("select version_num from alembic_version limit 1")
                 .fetch_optional(&self.pool)
                 .await?;
-        if version.as_deref() != Some("0007_strategy_backtest_cp") {
+        if version.as_deref() != Some("0008_strategy_portfolio_cp") {
             return Err(RearviewError::Config(format!(
                 "rearview schema version is not compatible: {:?}",
                 version
@@ -57,6 +58,9 @@ impl RearviewPg {
             "strategy_backtest_run",
             "strategy_backtest_task_outbox",
             "strategy_backtest_metric_config",
+            "strategy_portfolio",
+            "strategy_portfolio_daily_run",
+            "strategy_portfolio_daily_task_outbox",
         ];
         let rows = sqlx::query(
             r#"
@@ -1204,6 +1208,589 @@ impl RearviewPg {
             "#,
         )
         .bind(strategy_backtest_run_id)
+        .execute(&mut *transaction)
+        .await?;
+        transaction.commit().await?;
+        Ok(())
+    }
+
+    pub async fn create_strategy_portfolio(
+        &self,
+        input: NewStrategyPortfolio,
+    ) -> RearviewResult<StrategyPortfolioRecord> {
+        if input.name.trim().is_empty() {
+            return Err(RearviewError::Validation(
+                "strategy portfolio name must not be empty".to_string(),
+            ));
+        }
+        let strategy_portfolio_id = new_strategy_portfolio_id();
+        sqlx::query(
+            r#"
+            insert into strategy_portfolio (
+                strategy_portfolio_id,
+                portfolio_code,
+                name,
+                status,
+                rule_snapshot,
+                rule_hash,
+                execution_config,
+                execution_config_hash,
+                benchmark_security_code,
+                price_basis,
+                catalog_hash,
+                required_metrics,
+                required_marts,
+                source_strategy_backtest_run_id,
+                source_result_attempt_id,
+                source_period_key,
+                source_start_date,
+                source_end_date,
+                live_start_date,
+                ui_display_snapshot,
+                client_request_id,
+                request_hash
+            )
+            values (
+                $1, $2, $3, 'active', $4::jsonb, $5, $6::jsonb, $7, $8,
+                'backward_adjusted', $9, $10::jsonb, $11::jsonb, $12, $13,
+                $14, $15, $16, $17, $18::jsonb, $19, $20
+            )
+            "#,
+        )
+        .bind(&strategy_portfolio_id)
+        .bind(&input.portfolio_code)
+        .bind(input.name.trim())
+        .bind(&input.rule_snapshot)
+        .bind(&input.rule_hash)
+        .bind(&input.execution_config)
+        .bind(&input.execution_config_hash)
+        .bind(&input.benchmark_security_code)
+        .bind(&input.catalog_hash)
+        .bind(&input.required_metrics)
+        .bind(&input.required_marts)
+        .bind(&input.source_strategy_backtest_run_id)
+        .bind(&input.source_result_attempt_id)
+        .bind(&input.source_period_key)
+        .bind(input.source_start_date)
+        .bind(input.source_end_date)
+        .bind(input.live_start_date)
+        .bind(&input.ui_display_snapshot)
+        .bind(&input.client_request_id)
+        .bind(&input.request_hash)
+        .execute(&self.pool)
+        .await?;
+
+        self.get_strategy_portfolio(&strategy_portfolio_id).await
+    }
+
+    pub async fn get_strategy_portfolio(
+        &self,
+        strategy_portfolio_id: &str,
+    ) -> RearviewResult<StrategyPortfolioRecord> {
+        let row = sqlx::query(
+            r#"
+            select strategy_portfolio_id, portfolio_code, name, status, rule_snapshot,
+                   rule_hash, execution_config, execution_config_hash,
+                   benchmark_security_code, price_basis, catalog_hash, required_metrics,
+                   required_marts, source_strategy_backtest_run_id, source_result_attempt_id,
+                   source_period_key, source_start_date, source_end_date, live_start_date,
+                   latest_daily_run_id, current_result_attempt_id, ui_display_snapshot,
+                   client_request_id, request_hash, created_at, updated_at, archived_at
+            from strategy_portfolio
+            where strategy_portfolio_id = $1
+            "#,
+        )
+        .bind(strategy_portfolio_id)
+        .fetch_optional(&self.pool)
+        .await?
+        .ok_or_else(|| {
+            RearviewError::NotFound(format!(
+                "strategy_portfolio not found: {strategy_portfolio_id}"
+            ))
+        })?;
+        Ok(strategy_portfolio_from_row(&row))
+    }
+
+    pub async fn get_strategy_portfolio_by_client_request_id(
+        &self,
+        client_request_id: &str,
+    ) -> RearviewResult<Option<StrategyPortfolioRecord>> {
+        let row = sqlx::query(
+            r#"
+            select strategy_portfolio_id, portfolio_code, name, status, rule_snapshot,
+                   rule_hash, execution_config, execution_config_hash,
+                   benchmark_security_code, price_basis, catalog_hash, required_metrics,
+                   required_marts, source_strategy_backtest_run_id, source_result_attempt_id,
+                   source_period_key, source_start_date, source_end_date, live_start_date,
+                   latest_daily_run_id, current_result_attempt_id, ui_display_snapshot,
+                   client_request_id, request_hash, created_at, updated_at, archived_at
+            from strategy_portfolio
+            where client_request_id = $1
+            order by created_at
+            limit 1
+            "#,
+        )
+        .bind(client_request_id)
+        .fetch_optional(&self.pool)
+        .await?;
+        Ok(row.map(|row| strategy_portfolio_from_row(&row)))
+    }
+
+    pub async fn list_active_strategy_portfolios(
+        &self,
+    ) -> RearviewResult<Vec<StrategyPortfolioRecord>> {
+        let rows = sqlx::query(
+            r#"
+            select strategy_portfolio_id, portfolio_code, name, status, rule_snapshot,
+                   rule_hash, execution_config, execution_config_hash,
+                   benchmark_security_code, price_basis, catalog_hash, required_metrics,
+                   required_marts, source_strategy_backtest_run_id, source_result_attempt_id,
+                   source_period_key, source_start_date, source_end_date, live_start_date,
+                   latest_daily_run_id, current_result_attempt_id, ui_display_snapshot,
+                   client_request_id, request_hash, created_at, updated_at, archived_at
+            from strategy_portfolio
+            where status = 'active'
+            order by created_at desc, strategy_portfolio_id
+            "#,
+        )
+        .fetch_all(&self.pool)
+        .await?;
+        Ok(rows
+            .into_iter()
+            .map(|row| strategy_portfolio_from_row(&row))
+            .collect())
+    }
+
+    pub async fn archive_strategy_portfolio(
+        &self,
+        strategy_portfolio_id: &str,
+    ) -> RearviewResult<StrategyPortfolioRecord> {
+        let row = sqlx::query(
+            r#"
+            update strategy_portfolio
+            set status = 'archived',
+                archived_at = coalesce(archived_at, now()),
+                updated_at = now()
+            where strategy_portfolio_id = $1
+            returning strategy_portfolio_id, portfolio_code, name, status, rule_snapshot,
+                      rule_hash, execution_config, execution_config_hash,
+                      benchmark_security_code, price_basis, catalog_hash, required_metrics,
+                      required_marts, source_strategy_backtest_run_id, source_result_attempt_id,
+                      source_period_key, source_start_date, source_end_date, live_start_date,
+                      latest_daily_run_id, current_result_attempt_id, ui_display_snapshot,
+                      client_request_id, request_hash, created_at, updated_at, archived_at
+            "#,
+        )
+        .bind(strategy_portfolio_id)
+        .fetch_optional(&self.pool)
+        .await?
+        .ok_or_else(|| {
+            RearviewError::NotFound(format!(
+                "strategy_portfolio not found: {strategy_portfolio_id}"
+            ))
+        })?;
+        Ok(strategy_portfolio_from_row(&row))
+    }
+
+    pub async fn create_strategy_portfolio_daily_runs_for_trade_date(
+        &self,
+        trade_date: NaiveDate,
+        subject: &str,
+    ) -> RearviewResult<StrategyPortfolioDailyRunBatchRecord> {
+        let portfolios = self.list_active_strategy_portfolios().await?;
+        let eligible = portfolios
+            .iter()
+            .filter(|portfolio| portfolio.live_start_date <= trade_date)
+            .collect::<Vec<_>>();
+        let mut created_daily_run_ids = Vec::new();
+        let mut skipped_run_count = 0_usize;
+        let mut transaction = self.pool.begin().await?;
+
+        for portfolio in &eligible {
+            let daily_run_id = new_strategy_portfolio_daily_run_id();
+            let insert_result = sqlx::query(
+                r#"
+                insert into strategy_portfolio_daily_run (
+                    strategy_portfolio_daily_run_id,
+                    strategy_portfolio_id,
+                    run_start_date,
+                    trade_date,
+                    status,
+                    dispatch_status
+                )
+                values ($1, $2, $3, $4, 'queued', 'pending')
+                on conflict (strategy_portfolio_id, trade_date) do nothing
+                "#,
+            )
+            .bind(&daily_run_id)
+            .bind(&portfolio.strategy_portfolio_id)
+            .bind(portfolio.live_start_date)
+            .bind(trade_date)
+            .execute(&mut *transaction)
+            .await?;
+
+            if insert_result.rows_affected() == 0 {
+                skipped_run_count += 1;
+                continue;
+            }
+
+            let outbox_id = Uuid::new_v4().to_string();
+            let payload = serde_json::json!({
+                "kind": "strategy_portfolio_daily_run",
+                "daily_run_id": daily_run_id,
+                "requested_at": "database_created_at"
+            });
+            sqlx::query(
+                r#"
+                insert into strategy_portfolio_daily_task_outbox (
+                    outbox_id,
+                    strategy_portfolio_daily_run_id,
+                    subject,
+                    payload,
+                    status
+                )
+                values ($1, $2, $3, $4::jsonb, 'pending')
+                "#,
+            )
+            .bind(&outbox_id)
+            .bind(&daily_run_id)
+            .bind(subject)
+            .bind(&payload)
+            .execute(&mut *transaction)
+            .await?;
+            created_daily_run_ids.push(daily_run_id);
+        }
+
+        transaction.commit().await?;
+        Ok(StrategyPortfolioDailyRunBatchRecord {
+            trade_date,
+            active_portfolio_count: i32::try_from(eligible.len()).map_err(|error| {
+                RearviewError::Validation(format!(
+                    "active portfolio count is out of range: {error}"
+                ))
+            })?,
+            created_run_count: i32::try_from(created_daily_run_ids.len()).map_err(|error| {
+                RearviewError::Validation(format!("created run count is out of range: {error}"))
+            })?,
+            skipped_run_count: i32::try_from(skipped_run_count).map_err(|error| {
+                RearviewError::Validation(format!("skipped run count is out of range: {error}"))
+            })?,
+            daily_run_ids: created_daily_run_ids,
+        })
+    }
+
+    pub async fn get_strategy_portfolio_daily_run(
+        &self,
+        strategy_portfolio_daily_run_id: &str,
+    ) -> RearviewResult<StrategyPortfolioDailyRunRecord> {
+        let row = sqlx::query(
+            r#"
+            select strategy_portfolio_daily_run_id, strategy_portfolio_id, run_start_date,
+                   trade_date, status, dispatch_status, nats_stream_sequence,
+                   worker_attempt_no, claimed_at, heartbeat_at, claim_expires_at,
+                   progress, summary, signal_summary, data_coverage_summary,
+                   error_type, error_message, current_result_attempt_id,
+                   created_at, updated_at, started_at, completed_at
+            from strategy_portfolio_daily_run
+            where strategy_portfolio_daily_run_id = $1
+            "#,
+        )
+        .bind(strategy_portfolio_daily_run_id)
+        .fetch_optional(&self.pool)
+        .await?
+        .ok_or_else(|| {
+            RearviewError::NotFound(format!(
+                "strategy_portfolio_daily_run not found: {strategy_portfolio_daily_run_id}"
+            ))
+        })?;
+        Ok(strategy_portfolio_daily_run_from_row(&row))
+    }
+
+    pub async fn claim_strategy_portfolio_daily_run(
+        &self,
+        strategy_portfolio_daily_run_id: &str,
+        lease_seconds: i32,
+    ) -> RearviewResult<Option<StrategyPortfolioDailyRunRecord>> {
+        if lease_seconds <= 0 {
+            return Err(RearviewError::Validation(
+                "lease_seconds must be greater than 0".to_string(),
+            ));
+        }
+        let row = sqlx::query(
+            r#"
+            update strategy_portfolio_daily_run
+            set status = 'compiling_signals',
+                worker_attempt_no = worker_attempt_no + 1,
+                claimed_at = now(),
+                heartbeat_at = now(),
+                claim_expires_at = now() + ($2::text || ' seconds')::interval,
+                error_type = null,
+                error_message = null,
+                started_at = coalesce(started_at, now()),
+                updated_at = now()
+            where strategy_portfolio_daily_run_id = $1
+              and status in ('created', 'queued', 'compiling_signals', 'running_clickhouse',
+                             'loading_market_data', 'calculating_nav', 'computing_performance',
+                             'writing_results')
+              and (claim_expires_at is null or claim_expires_at <= now())
+            returning strategy_portfolio_daily_run_id, strategy_portfolio_id, run_start_date,
+                      trade_date, status, dispatch_status, nats_stream_sequence,
+                      worker_attempt_no, claimed_at, heartbeat_at, claim_expires_at,
+                      progress, summary, signal_summary, data_coverage_summary,
+                      error_type, error_message, current_result_attempt_id,
+                      created_at, updated_at, started_at, completed_at
+            "#,
+        )
+        .bind(strategy_portfolio_daily_run_id)
+        .bind(lease_seconds)
+        .fetch_optional(&self.pool)
+        .await?;
+        Ok(row.map(|row| strategy_portfolio_daily_run_from_row(&row)))
+    }
+
+    pub async fn update_strategy_portfolio_daily_progress(
+        &self,
+        strategy_portfolio_daily_run_id: &str,
+        status: &str,
+        progress: &Value,
+    ) -> RearviewResult<()> {
+        sqlx::query(
+            r#"
+            update strategy_portfolio_daily_run
+            set status = $2,
+                progress = $3::jsonb,
+                heartbeat_at = now(),
+                updated_at = now()
+            where strategy_portfolio_daily_run_id = $1
+            "#,
+        )
+        .bind(strategy_portfolio_daily_run_id)
+        .bind(status)
+        .bind(progress)
+        .execute(&self.pool)
+        .await?;
+        Ok(())
+    }
+
+    pub async fn update_strategy_portfolio_daily_signal_materialization(
+        &self,
+        strategy_portfolio_daily_run_id: &str,
+        signal_summary: &Value,
+    ) -> RearviewResult<()> {
+        sqlx::query(
+            r#"
+            update strategy_portfolio_daily_run
+            set signal_summary = $2::jsonb,
+                heartbeat_at = now(),
+                updated_at = now()
+            where strategy_portfolio_daily_run_id = $1
+            "#,
+        )
+        .bind(strategy_portfolio_daily_run_id)
+        .bind(signal_summary)
+        .execute(&self.pool)
+        .await?;
+        Ok(())
+    }
+
+    pub async fn update_strategy_portfolio_daily_data_coverage(
+        &self,
+        strategy_portfolio_daily_run_id: &str,
+        data_coverage_summary: &Value,
+    ) -> RearviewResult<()> {
+        sqlx::query(
+            r#"
+            update strategy_portfolio_daily_run
+            set data_coverage_summary = $2::jsonb,
+                heartbeat_at = now(),
+                updated_at = now()
+            where strategy_portfolio_daily_run_id = $1
+            "#,
+        )
+        .bind(strategy_portfolio_daily_run_id)
+        .bind(data_coverage_summary)
+        .execute(&self.pool)
+        .await?;
+        Ok(())
+    }
+
+    pub async fn finalize_strategy_portfolio_daily_run_to_clickhouse(
+        &self,
+        strategy_portfolio_daily_run_id: &str,
+        result_attempt_id: &str,
+        summary: &Value,
+    ) -> RearviewResult<()> {
+        let mut transaction = self.pool.begin().await?;
+        let row = sqlx::query(
+            r#"
+            update strategy_portfolio_daily_run
+            set status = 'succeeded',
+                current_result_attempt_id = $2,
+                summary = $3::jsonb,
+                error_type = null,
+                error_message = null,
+                claim_expires_at = null,
+                completed_at = now(),
+                updated_at = now()
+            where strategy_portfolio_daily_run_id = $1
+            returning strategy_portfolio_id
+            "#,
+        )
+        .bind(strategy_portfolio_daily_run_id)
+        .bind(result_attempt_id)
+        .bind(summary)
+        .fetch_optional(&mut *transaction)
+        .await?
+        .ok_or_else(|| {
+            RearviewError::NotFound(format!(
+                "strategy_portfolio_daily_run not found: {strategy_portfolio_daily_run_id}"
+            ))
+        })?;
+        let strategy_portfolio_id: String = row.get("strategy_portfolio_id");
+
+        sqlx::query(
+            r#"
+            update strategy_portfolio
+            set latest_daily_run_id = $2,
+                current_result_attempt_id = $3,
+                updated_at = now()
+            where strategy_portfolio_id = $1
+            "#,
+        )
+        .bind(&strategy_portfolio_id)
+        .bind(strategy_portfolio_daily_run_id)
+        .bind(result_attempt_id)
+        .execute(&mut *transaction)
+        .await?;
+        transaction.commit().await?;
+        Ok(())
+    }
+
+    pub async fn fail_strategy_portfolio_daily_run(
+        &self,
+        strategy_portfolio_daily_run_id: &str,
+        status: &str,
+        error: &RearviewError,
+    ) -> RearviewResult<()> {
+        sqlx::query(
+            r#"
+            update strategy_portfolio_daily_run
+            set status = $2,
+                error_type = $3,
+                error_message = $4,
+                claim_expires_at = null,
+                completed_at = now(),
+                updated_at = now()
+            where strategy_portfolio_daily_run_id = $1
+            "#,
+        )
+        .bind(strategy_portfolio_daily_run_id)
+        .bind(status)
+        .bind(error.error_type())
+        .bind(error.to_string())
+        .execute(&self.pool)
+        .await?;
+        Ok(())
+    }
+
+    pub async fn list_pending_strategy_portfolio_daily_outbox(
+        &self,
+        limit: i64,
+    ) -> RearviewResult<Vec<StrategyPortfolioDailyOutboxRecord>> {
+        let rows = sqlx::query(
+            r#"
+            select outbox_id, strategy_portfolio_daily_run_id, subject, payload,
+                   status, attempt_count
+            from strategy_portfolio_daily_task_outbox
+            where status in ('pending', 'failed')
+            order by created_at, outbox_id
+            limit $1
+            "#,
+        )
+        .bind(limit)
+        .fetch_all(&self.pool)
+        .await?;
+        Ok(rows
+            .into_iter()
+            .map(|row| StrategyPortfolioDailyOutboxRecord {
+                outbox_id: row.get("outbox_id"),
+                strategy_portfolio_daily_run_id: row.get("strategy_portfolio_daily_run_id"),
+                subject: row.get("subject"),
+                payload: row.get("payload"),
+                status: row.get("status"),
+                attempt_count: row.get("attempt_count"),
+            })
+            .collect())
+    }
+
+    pub async fn mark_strategy_portfolio_daily_outbox_published(
+        &self,
+        outbox_id: &str,
+        strategy_portfolio_daily_run_id: &str,
+        stream_sequence: i64,
+    ) -> RearviewResult<()> {
+        let mut transaction = self.pool.begin().await?;
+        sqlx::query(
+            r#"
+            update strategy_portfolio_daily_task_outbox
+            set status = 'published',
+                nats_stream_sequence = $2,
+                published_at = now(),
+                updated_at = now()
+            where outbox_id = $1
+            "#,
+        )
+        .bind(outbox_id)
+        .bind(stream_sequence)
+        .execute(&mut *transaction)
+        .await?;
+        sqlx::query(
+            r#"
+            update strategy_portfolio_daily_run
+            set dispatch_status = 'published',
+                nats_stream_sequence = $2,
+                updated_at = now()
+            where strategy_portfolio_daily_run_id = $1
+            "#,
+        )
+        .bind(strategy_portfolio_daily_run_id)
+        .bind(stream_sequence)
+        .execute(&mut *transaction)
+        .await?;
+        transaction.commit().await?;
+        Ok(())
+    }
+
+    pub async fn mark_strategy_portfolio_daily_outbox_failed(
+        &self,
+        outbox_id: &str,
+        strategy_portfolio_daily_run_id: &str,
+        error_message: &str,
+    ) -> RearviewResult<()> {
+        let mut transaction = self.pool.begin().await?;
+        sqlx::query(
+            r#"
+            update strategy_portfolio_daily_task_outbox
+            set status = 'failed',
+                attempt_count = attempt_count + 1,
+                last_error = $2,
+                updated_at = now()
+            where outbox_id = $1
+            "#,
+        )
+        .bind(outbox_id)
+        .bind(error_message)
+        .execute(&mut *transaction)
+        .await?;
+        sqlx::query(
+            r#"
+            update strategy_portfolio_daily_run
+            set dispatch_status = 'publish_failed',
+                updated_at = now()
+            where strategy_portfolio_daily_run_id = $1
+            "#,
+        )
+        .bind(strategy_portfolio_daily_run_id)
         .execute(&mut *transaction)
         .await?;
         transaction.commit().await?;
@@ -2466,6 +3053,29 @@ pub struct NewStrategyBacktestRun {
 }
 
 #[derive(Debug, Clone)]
+pub struct NewStrategyPortfolio {
+    pub portfolio_code: String,
+    pub name: String,
+    pub rule_snapshot: Value,
+    pub rule_hash: String,
+    pub execution_config: Value,
+    pub execution_config_hash: String,
+    pub benchmark_security_code: String,
+    pub catalog_hash: Option<String>,
+    pub required_metrics: Value,
+    pub required_marts: Value,
+    pub source_strategy_backtest_run_id: String,
+    pub source_result_attempt_id: String,
+    pub source_period_key: String,
+    pub source_start_date: NaiveDate,
+    pub source_end_date: NaiveDate,
+    pub live_start_date: NaiveDate,
+    pub ui_display_snapshot: Value,
+    pub client_request_id: Option<String>,
+    pub request_hash: String,
+}
+
+#[derive(Debug, Clone)]
 pub struct NewAccountTemplate {
     pub rule_set_id: String,
     pub market_fee_template_id: Option<String>,
@@ -2581,6 +3191,72 @@ pub struct StrategyBacktestRunRecord {
     pub error_type: Option<String>,
     pub error_message: Option<String>,
     pub current_result_attempt_id: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct StrategyPortfolioRecord {
+    pub strategy_portfolio_id: String,
+    pub portfolio_code: String,
+    pub name: String,
+    pub status: String,
+    pub rule_snapshot: Value,
+    pub rule_hash: String,
+    pub execution_config: Value,
+    pub execution_config_hash: String,
+    pub benchmark_security_code: String,
+    pub price_basis: String,
+    pub catalog_hash: Option<String>,
+    pub required_metrics: Value,
+    pub required_marts: Value,
+    pub source_strategy_backtest_run_id: String,
+    pub source_result_attempt_id: String,
+    pub source_period_key: String,
+    pub source_start_date: NaiveDate,
+    pub source_end_date: NaiveDate,
+    pub live_start_date: NaiveDate,
+    pub latest_daily_run_id: Option<String>,
+    pub current_result_attempt_id: Option<String>,
+    pub ui_display_snapshot: Value,
+    pub client_request_id: Option<String>,
+    pub request_hash: String,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+    pub archived_at: Option<DateTime<Utc>>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct StrategyPortfolioDailyRunRecord {
+    pub strategy_portfolio_daily_run_id: String,
+    pub strategy_portfolio_id: String,
+    pub run_start_date: NaiveDate,
+    pub trade_date: NaiveDate,
+    pub status: String,
+    pub dispatch_status: String,
+    pub nats_stream_sequence: Option<i64>,
+    pub worker_attempt_no: i32,
+    pub claimed_at: Option<DateTime<Utc>>,
+    pub heartbeat_at: Option<DateTime<Utc>>,
+    pub claim_expires_at: Option<DateTime<Utc>>,
+    pub progress: Value,
+    pub summary: Value,
+    pub signal_summary: Value,
+    pub data_coverage_summary: Value,
+    pub error_type: Option<String>,
+    pub error_message: Option<String>,
+    pub current_result_attempt_id: Option<String>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+    pub started_at: Option<DateTime<Utc>>,
+    pub completed_at: Option<DateTime<Utc>>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct StrategyPortfolioDailyRunBatchRecord {
+    pub trade_date: NaiveDate,
+    pub active_portfolio_count: i32,
+    pub created_run_count: i32,
+    pub skipped_run_count: i32,
+    pub daily_run_ids: Vec<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -2820,6 +3496,16 @@ pub struct StrategyBacktestOutboxRecord {
 }
 
 #[derive(Debug, Clone, Serialize)]
+pub struct StrategyPortfolioDailyOutboxRecord {
+    pub outbox_id: String,
+    pub strategy_portfolio_daily_run_id: String,
+    pub subject: String,
+    pub payload: Value,
+    pub status: String,
+    pub attempt_count: i32,
+}
+
+#[derive(Debug, Clone, Serialize)]
 pub struct RuleSetRecord {
     pub rule_set_id: String,
     pub name: String,
@@ -3020,6 +3706,67 @@ fn strategy_backtest_run_from_row(row: &sqlx::postgres::PgRow) -> StrategyBackte
         error_type: row.get("error_type"),
         error_message: row.get("error_message"),
         current_result_attempt_id: row.get("current_result_attempt_id"),
+    }
+}
+
+fn strategy_portfolio_from_row(row: &sqlx::postgres::PgRow) -> StrategyPortfolioRecord {
+    StrategyPortfolioRecord {
+        strategy_portfolio_id: row.get("strategy_portfolio_id"),
+        portfolio_code: row.get("portfolio_code"),
+        name: row.get("name"),
+        status: row.get("status"),
+        rule_snapshot: row.get("rule_snapshot"),
+        rule_hash: row.get("rule_hash"),
+        execution_config: row.get("execution_config"),
+        execution_config_hash: row.get("execution_config_hash"),
+        benchmark_security_code: row.get("benchmark_security_code"),
+        price_basis: row.get("price_basis"),
+        catalog_hash: row.get("catalog_hash"),
+        required_metrics: row.get("required_metrics"),
+        required_marts: row.get("required_marts"),
+        source_strategy_backtest_run_id: row.get("source_strategy_backtest_run_id"),
+        source_result_attempt_id: row.get("source_result_attempt_id"),
+        source_period_key: row.get("source_period_key"),
+        source_start_date: row.get("source_start_date"),
+        source_end_date: row.get("source_end_date"),
+        live_start_date: row.get("live_start_date"),
+        latest_daily_run_id: row.get("latest_daily_run_id"),
+        current_result_attempt_id: row.get("current_result_attempt_id"),
+        ui_display_snapshot: row.get("ui_display_snapshot"),
+        client_request_id: row.get("client_request_id"),
+        request_hash: row.get("request_hash"),
+        created_at: row.get("created_at"),
+        updated_at: row.get("updated_at"),
+        archived_at: row.get("archived_at"),
+    }
+}
+
+fn strategy_portfolio_daily_run_from_row(
+    row: &sqlx::postgres::PgRow,
+) -> StrategyPortfolioDailyRunRecord {
+    StrategyPortfolioDailyRunRecord {
+        strategy_portfolio_daily_run_id: row.get("strategy_portfolio_daily_run_id"),
+        strategy_portfolio_id: row.get("strategy_portfolio_id"),
+        run_start_date: row.get("run_start_date"),
+        trade_date: row.get("trade_date"),
+        status: row.get("status"),
+        dispatch_status: row.get("dispatch_status"),
+        nats_stream_sequence: row.get("nats_stream_sequence"),
+        worker_attempt_no: row.get("worker_attempt_no"),
+        claimed_at: row.get("claimed_at"),
+        heartbeat_at: row.get("heartbeat_at"),
+        claim_expires_at: row.get("claim_expires_at"),
+        progress: row.get("progress"),
+        summary: row.get("summary"),
+        signal_summary: row.get("signal_summary"),
+        data_coverage_summary: row.get("data_coverage_summary"),
+        error_type: row.get("error_type"),
+        error_message: row.get("error_message"),
+        current_result_attempt_id: row.get("current_result_attempt_id"),
+        created_at: row.get("created_at"),
+        updated_at: row.get("updated_at"),
+        started_at: row.get("started_at"),
+        completed_at: row.get("completed_at"),
     }
 }
 

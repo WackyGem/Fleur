@@ -4,7 +4,7 @@ use axum::extract::{Path, Query, State};
 use axum::http::StatusCode;
 use axum::routing::{get, patch, post};
 use axum::{Json, Router};
-use chrono::{Months, NaiveDate, Utc};
+use chrono::{DateTime, Days, Months, NaiveDate, Utc};
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
 use tower_http::cors::CorsLayer;
@@ -20,14 +20,14 @@ use crate::planner::{CompiledQuery, QueryPlanner, QuerySettings};
 use crate::portfolio_performance::BenchmarkReturn;
 use crate::postgres::{
     BuySignalRecord, NewAccountTemplate, NewPortfolioRun, NewRuleSet, NewRuleVersion, NewRun,
-    NewStrategyBacktestRun, Page, PatchAccountTemplate, PlannedChunk, PoolMemberRecord,
-    PortfolioClosedTradeFilter, PortfolioClosedTradeRecord, PortfolioEventFilter,
+    NewStrategyBacktestRun, NewStrategyPortfolio, Page, PatchAccountTemplate, PlannedChunk,
+    PoolMemberRecord, PortfolioClosedTradeFilter, PortfolioClosedTradeRecord, PortfolioEventFilter,
     PortfolioNavRecord, PortfolioOrderFilter, PortfolioPerformanceMetricRecord,
     PortfolioPerformanceMetricStatusRecord, PortfolioPositionFilter, PortfolioPositionRecord,
-    PortfolioRunListFilter, PortfolioTargetFilter, PortfolioTradeFilter,
+    PortfolioRunListFilter, PortfolioTargetFilter, PortfolioTargetRecord, PortfolioTradeFilter,
     PortfolioTradeMetricFilter, PortfolioTradeRecord, ResultRowsFilter, ResultRowsSort,
     RuleSetListFilter, RuleVersionListFilter, RunListFilter, StrategyBacktestRunRecord,
-    plan_date_chunks,
+    StrategyPortfolioRecord, plan_date_chunks,
 };
 use crate::service::AppState;
 use crate::service::runner::execute_run;
@@ -35,6 +35,7 @@ use crate::strategy_backtest::{
     BacktestDateRange, BacktestExecutionConfig, BacktestExecutionSummary,
     StrategyBacktestDraftResponse, StrategyBacktestValidateRequest, hash_json,
 };
+use crate::strategy_portfolio::new_portfolio_code;
 
 pub fn routes() -> Router<AppState> {
     Router::new()
@@ -171,6 +172,50 @@ pub fn routes() -> Router<AppState> {
         .route(
             "/rearview/strategy-backtests/{strategy_backtest_run_id}/trade-metrics",
             get(list_strategy_backtest_trade_metrics),
+        )
+        .route(
+            "/rearview/strategy-portfolios",
+            post(create_strategy_portfolio),
+        )
+        .route(
+            "/rearview/strategy-portfolios/dashboard",
+            get(get_strategy_portfolio_dashboard),
+        )
+        .route(
+            "/rearview/strategy-portfolios/daily-runs",
+            post(create_strategy_portfolio_daily_runs),
+        )
+        .route(
+            "/rearview/strategy-portfolios/{strategy_portfolio_id}/nav",
+            get(list_strategy_portfolio_nav),
+        )
+        .route(
+            "/rearview/strategy-portfolios/{strategy_portfolio_id}/performance",
+            get(get_strategy_portfolio_performance),
+        )
+        .route(
+            "/rearview/strategy-portfolios/{strategy_portfolio_id}/signals",
+            get(list_strategy_portfolio_signals),
+        )
+        .route(
+            "/rearview/strategy-portfolios/{strategy_portfolio_id}/targets",
+            get(list_strategy_portfolio_signals),
+        )
+        .route(
+            "/rearview/strategy-portfolios/{strategy_portfolio_id}/signal-timeline",
+            get(list_strategy_portfolio_signal_timeline),
+        )
+        .route(
+            "/rearview/strategy-portfolios/{strategy_portfolio_id}/positions",
+            get(list_strategy_portfolio_positions),
+        )
+        .route(
+            "/rearview/strategy-portfolios/{strategy_portfolio_id}/rebalance-records",
+            get(list_strategy_portfolio_rebalance_records),
+        )
+        .route(
+            "/rearview/strategy-portfolios/{strategy_portfolio_id}",
+            get(get_strategy_portfolio).patch(patch_strategy_portfolio),
         )
         .route("/rearview/strategy-preview", post(preview_strategy))
         .route(
@@ -989,6 +1034,519 @@ async fn list_strategy_backtest_trade_metrics(
             )
             .await?,
     ))
+}
+
+async fn create_strategy_portfolio(
+    State(state): State<AppState>,
+    Json(request): Json<StrategyPortfolioCreateRequest>,
+) -> RearviewResult<(StatusCode, Json<StrategyPortfolioResponse>)> {
+    let name = non_empty(Some(request.name)).ok_or_else(|| {
+        RearviewError::Validation("strategy portfolio name must not be empty".to_string())
+    })?;
+    let source_run = state
+        .postgres
+        .get_strategy_backtest_run(&request.source_strategy_backtest_run_id)
+        .await?;
+    if source_run.status != "succeeded" {
+        return Err(RearviewError::Conflict(format!(
+            "source strategy backtest must be succeeded, got {}",
+            source_run.status
+        )));
+    }
+    let Some(current_attempt_id) = source_run.current_result_attempt_id.as_deref() else {
+        return Err(RearviewError::Conflict(
+            "source strategy backtest has no current_result_attempt_id".to_string(),
+        ));
+    };
+    if current_attempt_id != request.source_result_attempt_id {
+        return Err(RearviewError::Conflict(
+            "source_result_attempt_id does not match source strategy backtest".to_string(),
+        ));
+    }
+
+    let live_start_date =
+        resolve_strategy_portfolio_live_start_date(&state, source_run.end_date).await?;
+    let request_hash = hash_json(&json!({
+        "source_strategy_backtest_run_id": &source_run.strategy_backtest_run_id,
+        "source_result_attempt_id": &request.source_result_attempt_id,
+        "name": &name,
+    }))?;
+    let client_request_id = non_empty(request.client_request_id);
+    if let Some(client_request_id) = &client_request_id
+        && let Some(existing) = state
+            .postgres
+            .get_strategy_portfolio_by_client_request_id(client_request_id)
+            .await?
+    {
+        if existing.request_hash == request_hash {
+            return Ok((
+                StatusCode::CREATED,
+                Json(strategy_portfolio_response(existing)),
+            ));
+        }
+        return Err(RearviewError::Conflict(
+            "client_request_id already exists for a different strategy portfolio request"
+                .to_string(),
+        ));
+    }
+
+    for _ in 0..5 {
+        let portfolio_code = new_portfolio_code(Utc::now());
+        let result = state
+            .postgres
+            .create_strategy_portfolio(NewStrategyPortfolio {
+                portfolio_code,
+                name: name.clone(),
+                rule_snapshot: source_run.rule_snapshot.clone(),
+                rule_hash: source_run.rule_hash.clone(),
+                execution_config: source_run.execution_config.clone(),
+                execution_config_hash: source_run.execution_config_hash.clone(),
+                benchmark_security_code: source_run.benchmark_security_code.clone(),
+                catalog_hash: source_run.catalog_hash.clone(),
+                required_metrics: source_run.required_metrics.clone(),
+                required_marts: source_run.required_marts.clone(),
+                source_strategy_backtest_run_id: source_run.strategy_backtest_run_id.clone(),
+                source_result_attempt_id: request.source_result_attempt_id.clone(),
+                source_period_key: source_run.period_key.clone(),
+                source_start_date: source_run.start_date,
+                source_end_date: source_run.end_date,
+                live_start_date,
+                ui_display_snapshot: source_run.ui_display_snapshot.clone(),
+                client_request_id: client_request_id.clone(),
+                request_hash: request_hash.clone(),
+            })
+            .await;
+        match result {
+            Ok(record) => {
+                return Ok((
+                    StatusCode::CREATED,
+                    Json(strategy_portfolio_response(record)),
+                ));
+            }
+            Err(error)
+                if postgres_unique_constraint(&error) == Some("uq_strategy_portfolio_code") =>
+            {
+                continue;
+            }
+            Err(error) => return Err(error),
+        }
+    }
+
+    Err(RearviewError::Conflict(
+        "could not allocate unique portfolio_code after 5 attempts".to_string(),
+    ))
+}
+
+async fn get_strategy_portfolio_dashboard(
+    State(state): State<AppState>,
+) -> RearviewResult<Json<StrategyPortfolioDashboardResponse>> {
+    let portfolios = state.postgres.list_active_strategy_portfolios().await?;
+    let mut cards = Vec::with_capacity(portfolios.len());
+    for portfolio in portfolios {
+        let source_run = state
+            .postgres
+            .get_strategy_backtest_run(&portfolio.source_strategy_backtest_run_id)
+            .await?;
+        let (live_status, curve_source, live_summary) =
+            if let Some(latest_daily_run_id) = portfolio.latest_daily_run_id.as_deref() {
+                let daily_run = state
+                    .postgres
+                    .get_strategy_portfolio_daily_run(latest_daily_run_id)
+                    .await?;
+                (
+                    strategy_portfolio_live_status(&daily_run.status),
+                    "live_daily_run".to_string(),
+                    Some(daily_run.summary),
+                )
+            } else {
+                (
+                    "pending_first_run".to_string(),
+                    "source_backtest".to_string(),
+                    None,
+                )
+            };
+        let resolved =
+            resolve_strategy_portfolio_result(&state, &portfolio.strategy_portfolio_id).await?;
+        let dashboard = strategy_portfolio_dashboard_read_model(
+            &state,
+            &resolved,
+            &format!(
+                "strategy-portfolio-{}-dashboard",
+                portfolio.strategy_portfolio_id
+            ),
+        )
+        .await?;
+        cards.push(StrategyPortfolioDashboardCard {
+            strategy_portfolio_id: portfolio.strategy_portfolio_id,
+            portfolio_code: portfolio.portfolio_code,
+            name: portfolio.name,
+            status: portfolio.status,
+            live_status,
+            curve_source,
+            latest_daily_run_id: portfolio.latest_daily_run_id,
+            current_result_attempt_id: portfolio.current_result_attempt_id,
+            source_strategy_backtest_run_id: portfolio.source_strategy_backtest_run_id,
+            source_result_attempt_id: portfolio.source_result_attempt_id,
+            source_period_key: portfolio.source_period_key,
+            source_start_date: portfolio.source_start_date,
+            source_end_date: portfolio.source_end_date,
+            live_start_date: portfolio.live_start_date,
+            source_backtest_summary: source_run.summary,
+            live_summary,
+            ui_display_snapshot: portfolio.ui_display_snapshot,
+            latest_nav: dashboard.latest_nav,
+            recent_change: dashboard.recent_change,
+            returns: dashboard.returns,
+            risk: dashboard.risk,
+            efficiency: dashboard.efficiency,
+            relative: dashboard.relative,
+            today_signals: dashboard.today_signals,
+            curve: dashboard.curve,
+            created_at: portfolio.created_at,
+            updated_at: portfolio.updated_at,
+        });
+    }
+    Ok(Json(StrategyPortfolioDashboardResponse {
+        portfolios: cards,
+    }))
+}
+
+async fn get_strategy_portfolio(
+    State(state): State<AppState>,
+    Path(strategy_portfolio_id): Path<String>,
+) -> RearviewResult<Json<StrategyPortfolioResponse>> {
+    let record = state
+        .postgres
+        .get_strategy_portfolio(&strategy_portfolio_id)
+        .await?;
+    Ok(Json(strategy_portfolio_response(record)))
+}
+
+async fn patch_strategy_portfolio(
+    State(state): State<AppState>,
+    Path(strategy_portfolio_id): Path<String>,
+    Json(request): Json<PatchStrategyPortfolioRequest>,
+) -> RearviewResult<Json<StrategyPortfolioResponse>> {
+    if request.status != "archived" {
+        return Err(RearviewError::Validation(
+            "only status=archived is supported".to_string(),
+        ));
+    }
+    let record = state
+        .postgres
+        .archive_strategy_portfolio(&strategy_portfolio_id)
+        .await?;
+    Ok(Json(strategy_portfolio_response(record)))
+}
+
+async fn create_strategy_portfolio_daily_runs(
+    State(state): State<AppState>,
+    Json(request): Json<StrategyPortfolioDailyRunsCreateRequest>,
+) -> RearviewResult<(StatusCode, Json<StrategyPortfolioDailyRunsCreateResponse>)> {
+    let record = state
+        .postgres
+        .create_strategy_portfolio_daily_runs_for_trade_date(
+            request.trade_date,
+            &state.config.nats.portfolio_request_subject,
+        )
+        .await?;
+    Ok((
+        StatusCode::ACCEPTED,
+        Json(StrategyPortfolioDailyRunsCreateResponse {
+            trade_date: record.trade_date,
+            active_portfolio_count: record.active_portfolio_count,
+            created_run_count: record.created_run_count,
+            skipped_run_count: record.skipped_run_count,
+            daily_run_ids: record.daily_run_ids,
+            client_request_id: request.client_request_id,
+        }),
+    ))
+}
+
+async fn list_strategy_portfolio_nav(
+    State(state): State<AppState>,
+    Path(strategy_portfolio_id): Path<String>,
+) -> RearviewResult<Json<StrategyPortfolioNavResponse>> {
+    let resolved = resolve_strategy_portfolio_result(&state, &strategy_portfolio_id).await?;
+    let nav = state
+        .clickhouse
+        .query_portfolio_nav(&resolved.portfolio_run_id, &resolved.result_attempt_id)
+        .await?;
+    let benchmark_returns = state
+        .clickhouse
+        .query_mart_benchmark_returns(
+            &resolved.benchmark_security_code,
+            resolved.start_date,
+            resolved.end_date,
+            &format!("strategy-portfolio-{strategy_portfolio_id}-nav-benchmark"),
+        )
+        .await?;
+    Ok(Json(StrategyPortfolioNavResponse {
+        source: resolved.source,
+        points: strategy_backtest_nav_points(nav, benchmark_returns),
+    }))
+}
+
+async fn get_strategy_portfolio_performance(
+    State(state): State<AppState>,
+    Path(strategy_portfolio_id): Path<String>,
+    Query(query): Query<PortfolioPerformanceQuery>,
+) -> RearviewResult<Json<StrategyPortfolioPerformanceView>> {
+    let resolved = resolve_strategy_portfolio_result(&state, &strategy_portfolio_id).await?;
+    let security_code = non_empty(query.security_code).unwrap_or(resolved.benchmark_security_code);
+    let window_key = non_empty(query.window_key).unwrap_or_else(default_metric_window);
+    let performance = state
+        .clickhouse
+        .query_portfolio_performance(
+            &resolved.portfolio_run_id,
+            &resolved.result_attempt_id,
+            &security_code,
+            &window_key,
+        )
+        .await?;
+    let nav = state
+        .clickhouse
+        .query_portfolio_nav(&resolved.portfolio_run_id, &resolved.result_attempt_id)
+        .await?;
+    Ok(Json(StrategyPortfolioPerformanceView {
+        source: resolved.source,
+        metric: performance.metric,
+        statuses: performance.statuses,
+        daily_win_rate: daily_win_rate(&nav),
+    }))
+}
+
+async fn list_strategy_portfolio_signals(
+    State(state): State<AppState>,
+    Path(strategy_portfolio_id): Path<String>,
+    Query(query): Query<PortfolioTargetQuery>,
+) -> RearviewResult<Json<StrategyPortfolioListResult<StrategyPortfolioTargetRecord>>> {
+    let resolved = resolve_strategy_portfolio_result(&state, &strategy_portfolio_id).await?;
+    let result = state
+        .clickhouse
+        .query_portfolio_targets(
+            &PortfolioTargetFilter {
+                portfolio_run_id: resolved.portfolio_run_id,
+                signal_date: query.signal_date,
+                page: page(query.limit, query.offset)?,
+            },
+            &resolved.result_attempt_id,
+        )
+        .await?;
+    let items = strategy_portfolio_target_records(
+        &state,
+        result.items,
+        &format!("strategy-portfolio-{strategy_portfolio_id}-signals-display"),
+    )
+    .await?;
+    Ok(Json(StrategyPortfolioListResult {
+        source: resolved.source,
+        items,
+        limit: result.limit,
+        offset: result.offset,
+        has_more: result.has_more,
+    }))
+}
+
+async fn list_strategy_portfolio_signal_timeline(
+    State(state): State<AppState>,
+    Path(strategy_portfolio_id): Path<String>,
+) -> RearviewResult<Json<StrategyPortfolioSignalTimelineResponse>> {
+    let resolved = resolve_strategy_portfolio_result(&state, &strategy_portfolio_id).await?;
+    let result = state
+        .clickhouse
+        .query_portfolio_targets(
+            &PortfolioTargetFilter {
+                portfolio_run_id: resolved.portfolio_run_id,
+                signal_date: None,
+                page: Page {
+                    limit: 5_000,
+                    offset: 0,
+                },
+            },
+            &resolved.result_attempt_id,
+        )
+        .await?;
+    let mut counts = BTreeMap::<NaiveDate, usize>::new();
+    for target in result.items {
+        *counts.entry(target.signal_date).or_default() += 1;
+    }
+    let trade_dates = counts
+        .into_iter()
+        .map(
+            |(trade_date, target_count)| StrategyPortfolioSignalTimelinePoint {
+                trade_date,
+                target_count,
+                signal_count: None,
+            },
+        )
+        .collect();
+    Ok(Json(StrategyPortfolioSignalTimelineResponse {
+        source: resolved.source,
+        trade_dates,
+    }))
+}
+
+async fn list_strategy_portfolio_positions(
+    State(state): State<AppState>,
+    Path(strategy_portfolio_id): Path<String>,
+    Query(query): Query<PortfolioPositionQuery>,
+) -> RearviewResult<Json<StrategyPortfolioListResult<PortfolioPositionRecord>>> {
+    let resolved = resolve_strategy_portfolio_result(&state, &strategy_portfolio_id).await?;
+    let result = state
+        .clickhouse
+        .query_portfolio_positions(
+            &PortfolioPositionFilter {
+                portfolio_run_id: resolved.portfolio_run_id,
+                trade_date: query.trade_date,
+                security_code: non_empty(query.security_code),
+                page: page(query.limit, query.offset)?,
+            },
+            &resolved.result_attempt_id,
+        )
+        .await?;
+    Ok(Json(StrategyPortfolioListResult {
+        source: resolved.source,
+        items: result.items,
+        limit: result.limit,
+        offset: result.offset,
+        has_more: result.has_more,
+    }))
+}
+
+async fn list_strategy_portfolio_rebalance_records(
+    State(state): State<AppState>,
+    Path(strategy_portfolio_id): Path<String>,
+    Query(query): Query<StrategyBacktestRebalanceQuery>,
+) -> RearviewResult<Json<StrategyPortfolioRebalanceRecordsResponse>> {
+    let resolved = resolve_strategy_portfolio_result(&state, &strategy_portfolio_id).await?;
+    let nav = state
+        .clickhouse
+        .query_portfolio_nav(&resolved.portfolio_run_id, &resolved.result_attempt_id)
+        .await?;
+    let trade_counts = state
+        .clickhouse
+        .query_portfolio_rebalance_trade_counts(
+            &resolved.portfolio_run_id,
+            &resolved.result_attempt_id,
+        )
+        .await?
+        .into_iter()
+        .map(|row| (row.trade_date, row))
+        .collect::<BTreeMap<_, _>>();
+    let selected_trade_date = query
+        .trade_date
+        .or_else(|| {
+            nav.iter()
+                .rev()
+                .find(|row| row.position_count > 0 || row.turnover > 0.0)
+                .map(|row| row.trade_date)
+        })
+        .or_else(|| nav.last().map(|row| row.trade_date))
+        .ok_or_else(|| {
+            RearviewError::NotFound(format!(
+                "no nav rows for strategy portfolio: {strategy_portfolio_id}"
+            ))
+        })?;
+    let selected_nav = nav.iter().find(|row| row.trade_date == selected_trade_date);
+    let page = Page {
+        limit: 500,
+        offset: 0,
+    };
+    let trades = state
+        .clickhouse
+        .query_portfolio_trades(
+            &PortfolioTradeFilter {
+                portfolio_run_id: resolved.portfolio_run_id.clone(),
+                trade_date: Some(selected_trade_date),
+                security_code: None,
+                page,
+            },
+            &resolved.result_attempt_id,
+        )
+        .await?;
+    let positions = state
+        .clickhouse
+        .query_portfolio_positions(
+            &PortfolioPositionFilter {
+                portfolio_run_id: resolved.portfolio_run_id.clone(),
+                trade_date: Some(selected_trade_date),
+                security_code: None,
+                page,
+            },
+            &resolved.result_attempt_id,
+        )
+        .await?;
+    let closed_trades = state
+        .clickhouse
+        .query_portfolio_closed_trades(
+            &PortfolioClosedTradeFilter {
+                portfolio_run_id: resolved.portfolio_run_id.clone(),
+                security_code: None,
+                exit_date: Some(selected_trade_date),
+                page,
+            },
+            &resolved.result_attempt_id,
+        )
+        .await?;
+    let security_codes = trades
+        .items
+        .iter()
+        .map(|trade| trade.security_code.clone())
+        .chain(
+            positions
+                .items
+                .iter()
+                .map(|position| position.security_code.clone()),
+        )
+        .chain(
+            closed_trades
+                .items
+                .iter()
+                .map(|closed| closed.security_code.clone()),
+        )
+        .collect::<BTreeSet<_>>()
+        .into_iter()
+        .collect::<Vec<_>>();
+    let display = security_display_map(
+        &state,
+        &security_codes,
+        &format!("strategy-portfolio-{strategy_portfolio_id}-rebalance-display"),
+    )
+    .await;
+    let rows = build_strategy_backtest_rebalance_rows(
+        trades.items,
+        positions.items,
+        closed_trades.items,
+        &display,
+        selected_nav.map(|row| row.total_equity),
+    );
+    let records = nav
+        .into_iter()
+        .map(|row| {
+            let trade_count = trade_counts.get(&row.trade_date);
+            let buy_count_i32 = trade_count.map_or(0, |count| count.buy_count);
+            let sell_count_i32 = trade_count.map_or(0, |count| count.sell_count);
+            let hold_count_i32 = row.position_count.saturating_sub(buy_count_i32);
+            StrategyBacktestRebalanceRecord {
+                trade_date: row.trade_date,
+                position_count: row.position_count,
+                buy_count: usize::try_from(buy_count_i32).unwrap_or_default(),
+                hold_count: usize::try_from(hold_count_i32).unwrap_or_default(),
+                sell_count: usize::try_from(sell_count_i32).unwrap_or_default(),
+                rows: if row.trade_date == selected_trade_date {
+                    rows.clone()
+                } else {
+                    Vec::new()
+                },
+            }
+        })
+        .collect();
+    Ok(Json(StrategyPortfolioRebalanceRecordsResponse {
+        source: resolved.source,
+        selected_trade_date,
+        records,
+    }))
 }
 
 async fn list_portfolio_runs(
@@ -2132,6 +2690,175 @@ struct StrategyBacktestRebalanceRow {
     reason: Option<String>,
 }
 
+#[derive(Debug, Deserialize)]
+struct StrategyPortfolioCreateRequest {
+    source_strategy_backtest_run_id: String,
+    source_result_attempt_id: String,
+    name: String,
+    #[serde(default)]
+    client_request_id: Option<String>,
+}
+
+#[derive(Debug, Serialize)]
+struct StrategyPortfolioResponse {
+    #[serde(flatten)]
+    record: StrategyPortfolioRecord,
+    live_status: String,
+}
+
+#[derive(Debug, Serialize)]
+struct StrategyPortfolioDashboardResponse {
+    portfolios: Vec<StrategyPortfolioDashboardCard>,
+}
+
+#[derive(Debug, Serialize)]
+struct StrategyPortfolioDashboardCard {
+    strategy_portfolio_id: String,
+    portfolio_code: String,
+    name: String,
+    status: String,
+    live_status: String,
+    curve_source: String,
+    latest_daily_run_id: Option<String>,
+    current_result_attempt_id: Option<String>,
+    source_strategy_backtest_run_id: String,
+    source_result_attempt_id: String,
+    source_period_key: String,
+    source_start_date: NaiveDate,
+    source_end_date: NaiveDate,
+    live_start_date: NaiveDate,
+    source_backtest_summary: Value,
+    live_summary: Option<Value>,
+    ui_display_snapshot: Value,
+    latest_nav: Option<f64>,
+    recent_change: Option<f64>,
+    returns: Vec<StrategyPortfolioDashboardMetric>,
+    risk: Vec<StrategyPortfolioDashboardMetric>,
+    efficiency: Vec<StrategyPortfolioDashboardMetric>,
+    relative: Vec<StrategyPortfolioDashboardMetric>,
+    today_signals: Vec<StrategyPortfolioDashboardSignal>,
+    curve: Vec<StrategyPortfolioDashboardCurvePoint>,
+    created_at: DateTime<Utc>,
+    updated_at: DateTime<Utc>,
+}
+
+#[derive(Debug, Serialize)]
+struct StrategyPortfolioDashboardMetric {
+    label: &'static str,
+    value: Option<f64>,
+    kind: &'static str,
+    tone: &'static str,
+}
+
+#[derive(Debug, Serialize)]
+struct StrategyPortfolioDashboardSignal {
+    code: String,
+    name: String,
+    score: f64,
+}
+
+#[derive(Debug, Serialize)]
+struct StrategyPortfolioDashboardCurvePoint {
+    time: NaiveDate,
+    nav: f64,
+    benchmark: f64,
+}
+
+#[derive(Debug, Deserialize)]
+struct PatchStrategyPortfolioRequest {
+    status: String,
+}
+
+#[derive(Debug, Deserialize)]
+struct StrategyPortfolioDailyRunsCreateRequest {
+    trade_date: NaiveDate,
+    #[serde(default)]
+    client_request_id: Option<String>,
+}
+
+#[derive(Debug, Serialize)]
+struct StrategyPortfolioDailyRunsCreateResponse {
+    trade_date: NaiveDate,
+    active_portfolio_count: i32,
+    created_run_count: i32,
+    skipped_run_count: i32,
+    daily_run_ids: Vec<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    client_request_id: Option<String>,
+}
+
+#[derive(Debug, Serialize)]
+struct StrategyPortfolioNavResponse {
+    source: String,
+    points: Vec<StrategyBacktestNavPoint>,
+}
+
+#[derive(Debug, Serialize)]
+struct StrategyPortfolioPerformanceView {
+    source: String,
+    metric: PortfolioPerformanceMetricRecord,
+    statuses: Vec<PortfolioPerformanceMetricStatusRecord>,
+    daily_win_rate: StrategyBacktestDailyWinRate,
+}
+
+#[derive(Debug, Serialize)]
+struct StrategyPortfolioListResult<T> {
+    source: String,
+    items: Vec<T>,
+    limit: i64,
+    offset: i64,
+    has_more: bool,
+}
+
+#[derive(Debug, Serialize)]
+struct StrategyPortfolioTargetRecord {
+    #[serde(flatten)]
+    target: PortfolioTargetRecord,
+    security_name: Option<String>,
+}
+
+#[derive(Debug, Serialize)]
+struct StrategyPortfolioSignalTimelineResponse {
+    source: String,
+    trade_dates: Vec<StrategyPortfolioSignalTimelinePoint>,
+}
+
+#[derive(Debug, Serialize)]
+struct StrategyPortfolioSignalTimelinePoint {
+    trade_date: NaiveDate,
+    target_count: usize,
+    signal_count: Option<usize>,
+}
+
+#[derive(Debug, Serialize)]
+struct StrategyPortfolioRebalanceRecordsResponse {
+    source: String,
+    selected_trade_date: NaiveDate,
+    records: Vec<StrategyBacktestRebalanceRecord>,
+}
+
+#[derive(Debug)]
+struct StrategyPortfolioResolvedResult {
+    source: String,
+    portfolio_run_id: String,
+    result_attempt_id: String,
+    benchmark_security_code: String,
+    start_date: NaiveDate,
+    end_date: NaiveDate,
+}
+
+#[derive(Debug)]
+struct StrategyPortfolioDashboardReadModel {
+    latest_nav: Option<f64>,
+    recent_change: Option<f64>,
+    returns: Vec<StrategyPortfolioDashboardMetric>,
+    risk: Vec<StrategyPortfolioDashboardMetric>,
+    efficiency: Vec<StrategyPortfolioDashboardMetric>,
+    relative: Vec<StrategyPortfolioDashboardMetric>,
+    today_signals: Vec<StrategyPortfolioDashboardSignal>,
+    curve: Vec<StrategyPortfolioDashboardCurvePoint>,
+}
+
 #[derive(Debug)]
 struct StrategyBacktestRangeResolution {
     latest_available_trade_date: NaiveDate,
@@ -3126,6 +3853,46 @@ async fn security_display_map(
     }
 }
 
+async fn required_security_display_map(
+    state: &AppState,
+    security_codes: &[String],
+    query_id: &str,
+) -> RearviewResult<BTreeMap<String, SecurityDisplayRow>> {
+    let rows = state
+        .clickhouse
+        .query_security_display_rows(security_codes, query_id)
+        .await?;
+    Ok(rows
+        .into_iter()
+        .map(|row| (row.security_code.clone(), row))
+        .collect())
+}
+
+async fn strategy_portfolio_target_records(
+    state: &AppState,
+    targets: Vec<PortfolioTargetRecord>,
+    query_id: &str,
+) -> RearviewResult<Vec<StrategyPortfolioTargetRecord>> {
+    let security_codes = collect_portfolio_target_security_codes(&targets);
+    let display_by_code = required_security_display_map(state, &security_codes, query_id).await?;
+    Ok(targets
+        .into_iter()
+        .map(|target| StrategyPortfolioTargetRecord {
+            security_name: security_display_name(&display_by_code, &target.security_code),
+            target,
+        })
+        .collect())
+}
+
+fn collect_portfolio_target_security_codes(targets: &[PortfolioTargetRecord]) -> Vec<String> {
+    targets
+        .iter()
+        .map(|target| target.security_code.clone())
+        .collect::<BTreeSet<_>>()
+        .into_iter()
+        .collect()
+}
+
 async fn security_display_for_one(
     state: &AppState,
     security_code: &str,
@@ -3400,6 +4167,332 @@ fn strategy_backtest_run_response(
         record,
         config_summary,
     })
+}
+
+fn strategy_portfolio_response(record: StrategyPortfolioRecord) -> StrategyPortfolioResponse {
+    let live_status =
+        if record.latest_daily_run_id.is_some() && record.current_result_attempt_id.is_some() {
+            "succeeded".to_string()
+        } else {
+            "pending_first_run".to_string()
+        };
+    StrategyPortfolioResponse {
+        record,
+        live_status,
+    }
+}
+
+async fn resolve_strategy_portfolio_result(
+    state: &AppState,
+    strategy_portfolio_id: &str,
+) -> RearviewResult<StrategyPortfolioResolvedResult> {
+    let portfolio = state
+        .postgres
+        .get_strategy_portfolio(strategy_portfolio_id)
+        .await?;
+    if let (Some(latest_daily_run_id), Some(result_attempt_id)) = (
+        portfolio.latest_daily_run_id.as_deref(),
+        portfolio.current_result_attempt_id.as_deref(),
+    ) {
+        let daily_run = state
+            .postgres
+            .get_strategy_portfolio_daily_run(latest_daily_run_id)
+            .await?;
+        return Ok(StrategyPortfolioResolvedResult {
+            source: "live_daily_run".to_string(),
+            portfolio_run_id: daily_run.strategy_portfolio_daily_run_id,
+            result_attempt_id: result_attempt_id.to_string(),
+            benchmark_security_code: portfolio.benchmark_security_code,
+            start_date: daily_run.run_start_date,
+            end_date: daily_run.trade_date,
+        });
+    }
+
+    Ok(StrategyPortfolioResolvedResult {
+        source: "source_backtest".to_string(),
+        portfolio_run_id: portfolio.source_strategy_backtest_run_id,
+        result_attempt_id: portfolio.source_result_attempt_id,
+        benchmark_security_code: portfolio.benchmark_security_code,
+        start_date: portfolio.source_start_date,
+        end_date: portfolio.source_end_date,
+    })
+}
+
+async fn strategy_portfolio_dashboard_read_model(
+    state: &AppState,
+    resolved: &StrategyPortfolioResolvedResult,
+    query_id_prefix: &str,
+) -> RearviewResult<StrategyPortfolioDashboardReadModel> {
+    let nav = state
+        .clickhouse
+        .query_portfolio_nav(&resolved.portfolio_run_id, &resolved.result_attempt_id)
+        .await?;
+    let latest_nav = nav.last().map(|row| row.nav);
+    let recent_change = nav.last().and_then(|row| row.daily_return);
+    let daily_win_rate = daily_win_rate(&nav).value;
+    let benchmark_returns = state
+        .clickhouse
+        .query_mart_benchmark_returns(
+            &resolved.benchmark_security_code,
+            resolved.start_date,
+            resolved.end_date,
+            &format!("{query_id_prefix}-benchmark"),
+        )
+        .await?;
+    let nav_points = strategy_backtest_nav_points(nav, benchmark_returns);
+    let excess_return = nav_points
+        .iter()
+        .rev()
+        .find_map(|point| point.excess_return);
+    let curve = nav_points
+        .into_iter()
+        .filter_map(|point| {
+            point
+                .benchmark_nav
+                .map(|benchmark| StrategyPortfolioDashboardCurvePoint {
+                    time: point.trade_date,
+                    nav: point.strategy_nav,
+                    benchmark,
+                })
+        })
+        .collect();
+
+    let performance = optional_portfolio_performance_metric(
+        state,
+        &resolved.portfolio_run_id,
+        &resolved.result_attempt_id,
+        &resolved.benchmark_security_code,
+        &default_metric_window(),
+    )
+    .await?;
+    let (returns, risk, efficiency, relative) =
+        dashboard_metrics(performance.as_ref(), excess_return, daily_win_rate);
+    let targets = state
+        .clickhouse
+        .query_portfolio_latest_targets(&resolved.portfolio_run_id, &resolved.result_attempt_id, 5)
+        .await?;
+    let security_codes = collect_portfolio_target_security_codes(&targets);
+    let display_by_code = required_security_display_map(
+        state,
+        &security_codes,
+        &format!("{query_id_prefix}-display"),
+    )
+    .await?;
+    let today_signals = targets
+        .into_iter()
+        .filter_map(|target| {
+            target
+                .source_score
+                .map(|score| StrategyPortfolioDashboardSignal {
+                    name: security_display_name(&display_by_code, &target.security_code)
+                        .unwrap_or_else(|| target.security_code.clone()),
+                    code: target.security_code,
+                    score,
+                })
+        })
+        .collect();
+
+    Ok(StrategyPortfolioDashboardReadModel {
+        latest_nav,
+        recent_change,
+        returns,
+        risk,
+        efficiency,
+        relative,
+        today_signals,
+        curve,
+    })
+}
+
+async fn optional_portfolio_performance_metric(
+    state: &AppState,
+    portfolio_run_id: &str,
+    result_attempt_id: &str,
+    security_code: &str,
+    window_key: &str,
+) -> RearviewResult<Option<PortfolioPerformanceMetricRecord>> {
+    match state
+        .clickhouse
+        .query_portfolio_performance(
+            portfolio_run_id,
+            result_attempt_id,
+            security_code,
+            window_key,
+        )
+        .await
+    {
+        Ok(response) => Ok(Some(response.metric)),
+        Err(RearviewError::NotFound(_)) => Ok(None),
+        Err(err) => Err(err),
+    }
+}
+
+fn dashboard_metrics(
+    performance: Option<&PortfolioPerformanceMetricRecord>,
+    excess_return: Option<f64>,
+    daily_win_rate: Option<f64>,
+) -> (
+    Vec<StrategyPortfolioDashboardMetric>,
+    Vec<StrategyPortfolioDashboardMetric>,
+    Vec<StrategyPortfolioDashboardMetric>,
+    Vec<StrategyPortfolioDashboardMetric>,
+) {
+    let metric = |label, value, kind, tone| StrategyPortfolioDashboardMetric {
+        label,
+        value,
+        kind,
+        tone,
+    };
+    let signed_tone = |value: Option<f64>| match value {
+        Some(value) if value > 0.0 => "up",
+        Some(value) if value < 0.0 => "down",
+        _ => "neutral",
+    };
+    let returns = vec![
+        metric(
+            "持仓收益",
+            performance.and_then(|metric| metric.holding_period_return),
+            "percent",
+            signed_tone(performance.and_then(|metric| metric.holding_period_return)),
+        ),
+        metric(
+            "超额收益",
+            excess_return,
+            "percent",
+            signed_tone(excess_return),
+        ),
+        metric(
+            "年化收益",
+            performance.and_then(|metric| metric.annualized_return),
+            "percent",
+            signed_tone(performance.and_then(|metric| metric.annualized_return)),
+        ),
+        metric("日胜率", daily_win_rate, "percent", "neutral"),
+    ];
+    let risk = vec![
+        metric(
+            "最大回撤",
+            performance.and_then(|metric| metric.max_drawdown),
+            "percent",
+            "down",
+        ),
+        metric(
+            "年化波动率",
+            performance.and_then(|metric| metric.annualized_volatility),
+            "percent",
+            "neutral",
+        ),
+        metric(
+            "下行波动率",
+            performance.and_then(|metric| metric.downside_deviation),
+            "percent",
+            "neutral",
+        ),
+    ];
+    let efficiency = vec![
+        metric(
+            "Sharpe Ratio",
+            performance.and_then(|metric| metric.sharpe_ratio),
+            "ratio",
+            "neutral",
+        ),
+        metric(
+            "Sortino Ratio",
+            performance.and_then(|metric| metric.sortino_ratio),
+            "ratio",
+            "neutral",
+        ),
+        metric(
+            "Calmar Ratio",
+            performance.and_then(|metric| metric.calmar_ratio),
+            "ratio",
+            "neutral",
+        ),
+        metric(
+            "Treynor Ratio",
+            performance.and_then(|metric| metric.treynor_ratio),
+            "ratio",
+            "neutral",
+        ),
+    ];
+    let relative = vec![
+        metric(
+            "Alpha",
+            performance.and_then(|metric| metric.alpha),
+            "percent",
+            signed_tone(performance.and_then(|metric| metric.alpha)),
+        ),
+        metric(
+            "Beta",
+            performance.and_then(|metric| metric.beta),
+            "ratio",
+            "neutral",
+        ),
+        metric(
+            "Information Ratio",
+            performance.and_then(|metric| metric.information_ratio),
+            "ratio",
+            "neutral",
+        ),
+    ];
+    (returns, risk, efficiency, relative)
+}
+
+fn strategy_portfolio_live_status(status: &str) -> String {
+    match status {
+        "queued" | "created" => "queued",
+        "compiling_signals"
+        | "running_clickhouse"
+        | "loading_market_data"
+        | "calculating_nav"
+        | "computing_performance"
+        | "writing_results" => "running",
+        "succeeded" => "succeeded",
+        _ if status.starts_with("failed_") => "failed",
+        _ => "running",
+    }
+    .to_string()
+}
+
+fn postgres_unique_constraint(error: &RearviewError) -> Option<&str> {
+    match error {
+        RearviewError::Postgres(sqlx::Error::Database(database_error)) => {
+            database_error.constraint()
+        }
+        _ => None,
+    }
+}
+
+async fn resolve_strategy_portfolio_live_start_date(
+    state: &AppState,
+    source_end_date: NaiveDate,
+) -> RearviewResult<NaiveDate> {
+    let start_date = source_end_date
+        .checked_add_days(Days::new(1))
+        .ok_or_else(|| {
+            RearviewError::Validation(format!(
+                "could not resolve next date after source_end_date {source_end_date}"
+            ))
+        })?;
+    let end_date = source_end_date
+        .checked_add_days(Days::new(45))
+        .ok_or_else(|| {
+            RearviewError::Validation(format!(
+                "could not resolve trading-date search window after {source_end_date}"
+            ))
+        })?;
+    let trade_dates = state
+        .clickhouse
+        .query_trade_dates(
+            start_date,
+            end_date,
+            &format!("strategy-portfolio-live-start-{source_end_date}"),
+        )
+        .await?;
+    Ok(trade_dates
+        .into_iter()
+        .find(|date| *date > source_end_date)
+        .unwrap_or(source_end_date))
 }
 
 struct StrategyBacktestRiskFreePreflight<'a> {

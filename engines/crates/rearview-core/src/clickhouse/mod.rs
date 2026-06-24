@@ -944,6 +944,48 @@ FORMAT JSONEachRow"#,
         Ok(crate::postgres::ListResult::from_rows(rows, filter.page))
     }
 
+    pub async fn query_portfolio_latest_targets(
+        &self,
+        portfolio_run_id: &str,
+        result_attempt_id: &str,
+        limit: usize,
+    ) -> RearviewResult<Vec<crate::postgres::PortfolioTargetRecord>> {
+        let database = &self.config.portfolio_database;
+        validate_identifier(database)?;
+        let run_id = quote_string_literal(portfolio_run_id);
+        let attempt = quote_string_literal(result_attempt_id);
+        let sql = format!(
+            r#"
+WITH latest_signal_date AS (
+    SELECT max(signal_date) AS signal_date
+    FROM {database}.portfolio_target
+    WHERE portfolio_run_id = {run_id}
+      AND result_attempt_id = {attempt}
+)
+SELECT portfolio_run_id, signal_date, execution_date, security_code,
+       source_rank, source_score, target_weight, target_amount,
+       target_quantity, target_reason
+FROM {database}.portfolio_target
+WHERE portfolio_run_id = {run_id}
+  AND result_attempt_id = {attempt}
+  AND signal_date = (SELECT signal_date FROM latest_signal_date)
+ORDER BY source_rank, security_code
+LIMIT {limit}
+FORMAT JSONEachRow"#
+        );
+        let body = self
+            .execute_text(
+                &sql,
+                &portfolio_read_query_id(
+                    "rearview-portfolio-read-latest-targets",
+                    portfolio_run_id,
+                    result_attempt_id,
+                ),
+            )
+            .await?;
+        parse_json_each_row(&body)
+    }
+
     pub async fn query_portfolio_orders(
         &self,
         filter: &crate::postgres::PortfolioOrderFilter,

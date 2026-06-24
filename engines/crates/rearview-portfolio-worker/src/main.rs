@@ -15,7 +15,8 @@ use rearview_core::portfolio::{
 use rearview_core::portfolio_performance::{PerformanceMetricConfig, compute_performance_metric};
 use rearview_core::portfolio_trade_metrics::compute_trade_calculation_outputs;
 use rearview_core::postgres::{
-    PortfolioRunRecord, RearviewPg, StrategyBacktestRunRecord, plan_date_chunks,
+    PortfolioRunRecord, RearviewPg, StrategyBacktestRunRecord, StrategyPortfolioDailyRunRecord,
+    StrategyPortfolioRecord, plan_date_chunks,
 };
 use rearview_core::service::catalog::load_catalog_from_policy;
 use rearview_core::strategy_backtest::hash_json;
@@ -73,6 +74,16 @@ async fn run() -> RearviewResult<()> {
             RearviewTaskMessage::StrategyBacktest { run_id } => {
                 handle_strategy_backtest_task(&config, &postgres, &clickhouse, &catalog, &run_id)
                     .await?
+            }
+            RearviewTaskMessage::StrategyPortfolioDailyRun { daily_run_id } => {
+                handle_strategy_portfolio_daily_run_task(
+                    &config,
+                    &postgres,
+                    &clickhouse,
+                    &catalog,
+                    &daily_run_id,
+                )
+                .await?
             }
         }
         message
@@ -150,6 +161,46 @@ async fn handle_strategy_backtest_task(
             postgres
                 .fail_strategy_backtest_run(
                     &claimed_run.strategy_backtest_run_id,
+                    strategy_backtest_failure_status(&error),
+                    &error,
+                )
+                .await
+        }
+    }
+}
+
+async fn handle_strategy_portfolio_daily_run_task(
+    config: &AppConfig,
+    postgres: &RearviewPg,
+    clickhouse: &ClickHouseClient,
+    catalog: &MetricCatalog,
+    strategy_portfolio_daily_run_id: &str,
+) -> RearviewResult<()> {
+    let run = postgres
+        .get_strategy_portfolio_daily_run(strategy_portfolio_daily_run_id)
+        .await?;
+    if is_terminal_status(&run.status) {
+        return Ok(());
+    }
+    let Some(claimed_run) = postgres
+        .claim_strategy_portfolio_daily_run(strategy_portfolio_daily_run_id, 900)
+        .await?
+    else {
+        return Ok(());
+    };
+    match process_strategy_portfolio_daily_run(config, postgres, clickhouse, catalog, &claimed_run)
+        .await
+    {
+        Ok(()) => Ok(()),
+        Err(error) => {
+            error!(
+                strategy_portfolio_daily_run_id = claimed_run.strategy_portfolio_daily_run_id,
+                error = %error,
+                "strategy portfolio daily run failed"
+            );
+            postgres
+                .fail_strategy_portfolio_daily_run(
+                    &claimed_run.strategy_portfolio_daily_run_id,
                     strategy_backtest_failure_status(&error),
                     &error,
                 )
@@ -340,6 +391,194 @@ async fn process_strategy_backtest_run(
     Ok(())
 }
 
+async fn process_strategy_portfolio_daily_run(
+    config: &AppConfig,
+    postgres: &RearviewPg,
+    clickhouse: &ClickHouseClient,
+    catalog: &MetricCatalog,
+    run: &StrategyPortfolioDailyRunRecord,
+) -> RearviewResult<()> {
+    let portfolio = postgres
+        .get_strategy_portfolio(&run.strategy_portfolio_id)
+        .await?;
+    let execution_config =
+        serde_json::from_value::<StrategyExecutionConfig>(portfolio.execution_config.clone())?;
+    let materialized = materialize_strategy_portfolio_daily_run_signals(
+        config,
+        postgres,
+        clickhouse,
+        catalog,
+        &portfolio,
+        run,
+        &execution_config,
+    )
+    .await?;
+    postgres
+        .update_strategy_portfolio_daily_progress(
+            &run.strategy_portfolio_daily_run_id,
+            "loading_market_data",
+            &json!({
+                "stage": "loading_market_data",
+                "security_count": materialized.security_codes.len(),
+            }),
+        )
+        .await?;
+    let prices = clickhouse
+        .query_portfolio_price_bars(
+            &materialized.security_codes,
+            run.run_start_date,
+            run.trade_date,
+            &format!(
+                "strategy-portfolio-daily-{}-prices",
+                run.strategy_portfolio_daily_run_id
+            ),
+        )
+        .await?;
+    let data_coverage_summary = json!({
+        "price_bar_count": prices.len(),
+        "price_bar_security_count": materialized.security_codes.len(),
+        "start_date": run.run_start_date,
+        "end_date": run.trade_date,
+        "indicator_stop_loss_metrics": execution_config.risk_exit_policy.indicator_metrics()?,
+    });
+    postgres
+        .update_strategy_portfolio_daily_data_coverage(
+            &run.strategy_portfolio_daily_run_id,
+            &data_coverage_summary,
+        )
+        .await?;
+    postgres
+        .update_strategy_portfolio_daily_progress(
+            &run.strategy_portfolio_daily_run_id,
+            "calculating_nav",
+            &json!({
+                "stage": "calculating_nav",
+                "signal_count": materialized.signals.len(),
+                "price_bar_count": prices.len(),
+            }),
+        )
+        .await?;
+    let input = PortfolioSimulationInput {
+        start_date: run.run_start_date,
+        end_date: run.trade_date,
+        initial_cash: execution_config.account.initial_cash,
+        max_positions: execution_config.rebalance_policy.max_positions,
+        single_position_limit_pct: execution_config.rebalance_policy.single_position_limit_pct,
+        cash_reserve_pct: execution_config.rebalance_policy.cash_reserve_pct,
+        lot_size: execution_config.rebalance_policy.lot_size,
+        min_trade_lots: execution_config.rebalance_policy.min_trade_lots,
+        fee_profile: execution_config.fee_profile,
+        slippage_profile: execution_config.slippage_profile,
+        exit_rules: execution_config.risk_exit_policy.exit_rules()?,
+        signals: materialized.signals,
+        prices,
+    };
+    let output = simulate_portfolio(&input)?;
+
+    postgres
+        .update_strategy_portfolio_daily_progress(
+            &run.strategy_portfolio_daily_run_id,
+            "computing_performance",
+            &json!({
+                "stage": "computing_performance",
+                "nav_points": output.nav.len(),
+                "trade_count": output.trades.len(),
+            }),
+        )
+        .await?;
+    let result_attempt_id = ulid::Ulid::new().to_string();
+    let metric_config = PerformanceMetricConfig::full_period_with_benchmark(
+        &run.strategy_portfolio_daily_run_id,
+        &result_attempt_id,
+        &portfolio.benchmark_security_code,
+    );
+    let benchmark_returns = clickhouse
+        .query_mart_benchmark_returns(
+            &metric_config.security_code,
+            run.run_start_date,
+            run.trade_date,
+            &format!("strategy-portfolio-daily-{result_attempt_id}-benchmark"),
+        )
+        .await?;
+    let risk_free_rates = clickhouse
+        .query_mart_risk_free_rates(
+            &metric_config.risk_free_tenor,
+            run.run_start_date,
+            run.trade_date,
+            &format!("strategy-portfolio-daily-{result_attempt_id}-risk-free"),
+        )
+        .await?;
+    let (performance_metric, performance_metric_statuses) = compute_performance_metric(
+        &metric_config,
+        &output.nav,
+        &benchmark_returns,
+        &risk_free_rates,
+    );
+    let (closed_trades, trade_metrics) = compute_trade_calculation_outputs(
+        &run.strategy_portfolio_daily_run_id,
+        &result_attempt_id,
+        &output,
+    );
+    let calculation_batch = CalculationWriteBatch {
+        performance_metrics: vec![performance_metric],
+        performance_metric_statuses,
+        closed_trades,
+        trade_metrics,
+    };
+
+    postgres
+        .update_strategy_portfolio_daily_progress(
+            &run.strategy_portfolio_daily_run_id,
+            "writing_results",
+            &json!({
+                "stage": "writing_results",
+                "result_attempt_id": &result_attempt_id,
+            }),
+        )
+        .await?;
+    let write_result: RearviewResult<()> = async {
+        let portfolio_run = strategy_portfolio_daily_as_portfolio_run(&portfolio, run)?;
+        let batch = clickhouse
+            .write_portfolio_result_facts(&portfolio_run, &result_attempt_id, &output)
+            .await?;
+        clickhouse
+            .write_portfolio_calculation_outputs(&result_attempt_id, &calculation_batch)
+            .await?;
+        clickhouse
+            .write_portfolio_run_snapshot(&result_attempt_id, &batch.run_snapshot)
+            .await?;
+        Ok(())
+    }
+    .await;
+    if let Err(error) = write_result {
+        postgres
+            .fail_strategy_portfolio_daily_run(
+                &run.strategy_portfolio_daily_run_id,
+                "failed_write",
+                &error,
+            )
+            .await?;
+        return Ok(());
+    }
+
+    postgres
+        .finalize_strategy_portfolio_daily_run_to_clickhouse(
+            &run.strategy_portfolio_daily_run_id,
+            &result_attempt_id,
+            &serde_json::to_value(&output.summary)?,
+        )
+        .await?;
+    info!(
+        strategy_portfolio_daily_run_id = run.strategy_portfolio_daily_run_id,
+        strategy_portfolio_id = portfolio.strategy_portfolio_id,
+        result_attempt_id = result_attempt_id,
+        nav_points = output.nav.len(),
+        trades = output.trades.len(),
+        "strategy portfolio daily run succeeded"
+    );
+    Ok(())
+}
+
 async fn materialize_strategy_backtest_signals(
     config: &AppConfig,
     postgres: &RearviewPg,
@@ -493,6 +732,159 @@ async fn materialize_strategy_backtest_signals(
     })
 }
 
+async fn materialize_strategy_portfolio_daily_run_signals(
+    config: &AppConfig,
+    postgres: &RearviewPg,
+    clickhouse: &ClickHouseClient,
+    catalog: &MetricCatalog,
+    portfolio: &StrategyPortfolioRecord,
+    run: &StrategyPortfolioDailyRunRecord,
+    execution_config: &StrategyExecutionConfig,
+) -> RearviewResult<MaterializedSignals> {
+    postgres
+        .update_strategy_portfolio_daily_progress(
+            &run.strategy_portfolio_daily_run_id,
+            "compiling_signals",
+            &json!({"stage": "compiling_signals"}),
+        )
+        .await?;
+    let rule = serde_json::from_value::<RuleVersionSpec>(portfolio.rule_snapshot.clone())?;
+    let trade_dates = clickhouse
+        .query_trade_dates(
+            run.run_start_date,
+            run.trade_date,
+            &format!(
+                "strategy-portfolio-daily-{}-trade-dates",
+                run.strategy_portfolio_daily_run_id
+            ),
+        )
+        .await?;
+    if trade_dates.len() < 2 {
+        return Err(RearviewError::Validation(format!(
+            "strategy portfolio daily run range must contain at least two trade dates: {} to {}",
+            run.run_start_date, run.trade_date
+        )));
+    }
+
+    let planner = QueryPlanner::new(catalog.clone());
+    let settings = QuerySettings {
+        max_execution_time_seconds: config.clickhouse.max_execution_time_seconds,
+        max_rows_to_read: config.clickhouse.max_rows_to_read,
+        max_bytes_to_read: config.clickhouse.max_bytes_to_read,
+    };
+    let chunks = plan_date_chunks(
+        run.run_start_date,
+        run.trade_date,
+        config.chunk_small_range_trading_days,
+    )?;
+    let top_n = execution_config.signal_policy.buy_signal_top_n;
+    let mut compiled_hashes = Vec::with_capacity(chunks.len());
+    let mut required_metrics = BTreeSet::new();
+    let mut required_marts = BTreeSet::new();
+    let mut signals = Vec::new();
+    let mut security_codes = BTreeSet::new();
+    let mut signal_dates = BTreeSet::new();
+    let mut generated_candidate_count = 0_usize;
+    let mut top_n_candidate_count = 0_usize;
+    let mut dropped_no_next_trade_date = 0_usize;
+    let mut dropped_after_end_date = 0_usize;
+
+    for chunk in chunks {
+        postgres
+            .update_strategy_portfolio_daily_progress(
+                &run.strategy_portfolio_daily_run_id,
+                "running_clickhouse",
+                &json!({
+                    "stage": "running_clickhouse",
+                    "chunk_no": chunk.chunk_no,
+                    "chunk_start_date": chunk.start_date,
+                    "chunk_end_date": chunk.end_date,
+                    "generated_signal_count": signals.len(),
+                }),
+            )
+            .await?;
+        let compiled = planner.compile(
+            &rule,
+            Some(chunk.start_date),
+            Some(chunk.end_date),
+            top_n,
+            settings,
+        )?;
+        compiled_hashes.push(compiled.sql_hash.clone());
+        required_metrics.extend(compiled.required_metrics.iter().cloned());
+        required_marts.extend(compiled.required_marts.iter().cloned());
+        let rows = clickhouse
+            .query_screening_rows(
+                &compiled.sql,
+                &format!(
+                    "strategy-portfolio-daily-{}-chunk-{}",
+                    run.strategy_portfolio_daily_run_id, chunk.chunk_no
+                ),
+            )
+            .await?;
+        generated_candidate_count += rows.len();
+        for row in rows {
+            signal_dates.insert(row.trade_date);
+            if !row.is_buy_signal || row.signal_rank > top_n {
+                continue;
+            }
+            top_n_candidate_count += 1;
+            let Some(execution_date) = next_trade_date(&trade_dates, row.trade_date) else {
+                dropped_no_next_trade_date += 1;
+                continue;
+            };
+            if execution_date > run.trade_date {
+                dropped_after_end_date += 1;
+                continue;
+            }
+            security_codes.insert(row.security_code.clone());
+            signals.push(BuySignalInput {
+                signal_date: row.trade_date,
+                execution_date,
+                security_code: row.security_code,
+                rank: row.signal_rank,
+                score: row.score,
+            });
+        }
+    }
+
+    signals.sort_by_key(|signal| {
+        (
+            signal.execution_date,
+            signal.rank,
+            signal.security_code.clone(),
+        )
+    });
+    let required_metrics = required_metrics.into_iter().collect::<Vec<_>>();
+    let required_marts = required_marts.into_iter().collect::<Vec<_>>();
+    let signal_summary = json!({
+        "signal_date_count": signal_dates.len(),
+        "generated_candidate_count": generated_candidate_count,
+        "top_n_candidate_count": top_n_candidate_count,
+        "executable_signal_count": signals.len(),
+        "dropped_signal_count": dropped_no_next_trade_date + dropped_after_end_date,
+        "dropped_signal_reasons": {
+            "no_next_trade_date": dropped_no_next_trade_date,
+            "execution_date_after_end_date": dropped_after_end_date,
+        },
+        "buy_signal_top_n": top_n,
+        "compiled_sql_hash": combined_hash(&compiled_hashes)?,
+        "required_metrics": required_metrics,
+        "required_marts": required_marts,
+    });
+    postgres
+        .update_strategy_portfolio_daily_signal_materialization(
+            &run.strategy_portfolio_daily_run_id,
+            &signal_summary,
+        )
+        .await?;
+
+    Ok(MaterializedSignals {
+        signals,
+        security_codes: security_codes.into_iter().collect(),
+    })
+}
+
 fn strategy_backtest_as_portfolio_run(
     run: &StrategyBacktestRunRecord,
 ) -> RearviewResult<PortfolioRunRecord> {
@@ -530,6 +922,53 @@ fn strategy_backtest_as_portfolio_run(
         price_basis: run.price_basis.clone(),
         start_date: run.start_date,
         end_date: run.end_date,
+        status: run.status.clone(),
+        dispatch_status: run.dispatch_status.clone(),
+        nats_stream_sequence: run.nats_stream_sequence,
+        summary: run.summary.clone(),
+        error_type: run.error_type.clone(),
+        error_message: run.error_message.clone(),
+        current_result_attempt_id: run.current_result_attempt_id.clone(),
+    })
+}
+
+fn strategy_portfolio_daily_as_portfolio_run(
+    portfolio: &StrategyPortfolioRecord,
+    run: &StrategyPortfolioDailyRunRecord,
+) -> RearviewResult<PortfolioRunRecord> {
+    let account_snapshot = portfolio
+        .execution_config
+        .get("account")
+        .cloned()
+        .unwrap_or_else(|| json!({}));
+    let execution_snapshot = json!({
+        "source_kind": "strategy_portfolio_daily_run",
+        "strategy_portfolio_id": &portfolio.strategy_portfolio_id,
+        "strategy_portfolio_daily_run_id": &run.strategy_portfolio_daily_run_id,
+        "source_strategy_backtest_run_id": &portfolio.source_strategy_backtest_run_id,
+        "source_result_attempt_id": &portfolio.source_result_attempt_id,
+        "rule_hash": &portfolio.rule_hash,
+        "execution_config_hash": &portfolio.execution_config_hash,
+        "benchmark_security_code": &portfolio.benchmark_security_code,
+        "catalog_hash": &portfolio.catalog_hash,
+        "required_metrics": &portfolio.required_metrics,
+        "required_marts": &portfolio.required_marts,
+        "source_period_key": &portfolio.source_period_key,
+        "run_start_date": run.run_start_date,
+        "trade_date": run.trade_date,
+        "execution_config": &portfolio.execution_config,
+    });
+    Ok(PortfolioRunRecord {
+        portfolio_run_id: run.strategy_portfolio_daily_run_id.clone(),
+        source_run_id: portfolio.source_strategy_backtest_run_id.clone(),
+        rule_version_id: "strategy_portfolio_daily_run".to_string(),
+        rule_hash: portfolio.rule_hash.clone(),
+        account_template_id: None,
+        account_snapshot,
+        execution_snapshot,
+        price_basis: portfolio.price_basis.clone(),
+        start_date: run.run_start_date,
+        end_date: run.trade_date,
         status: run.status.clone(),
         dispatch_status: run.dispatch_status.clone(),
         nats_stream_sequence: run.nats_stream_sequence,

@@ -28,6 +28,21 @@ impl StrategyBacktestTaskMessage {
     }
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct StrategyPortfolioDailyRunTaskMessage {
+    pub kind: String,
+    pub daily_run_id: String,
+}
+
+impl StrategyPortfolioDailyRunTaskMessage {
+    pub fn new(daily_run_id: impl Into<String>) -> Self {
+        Self {
+            kind: "strategy_portfolio_daily_run".to_string(),
+            daily_run_id: daily_run_id.into(),
+        }
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum RearviewTaskMessage {
     PortfolioRun {
@@ -36,6 +51,9 @@ pub enum RearviewTaskMessage {
     },
     StrategyBacktest {
         run_id: String,
+    },
+    StrategyPortfolioDailyRun {
+        daily_run_id: String,
     },
 }
 
@@ -56,6 +74,17 @@ impl<'de> Deserialize<'de> for RearviewTaskMessage {
                     .ok_or_else(|| de::Error::custom("strategy_backtest run_id is required"))?;
                 Ok(Self::StrategyBacktest {
                     run_id: run_id.to_string(),
+                })
+            }
+            Some("strategy_portfolio_daily_run") => {
+                let daily_run_id = object
+                    .get("daily_run_id")
+                    .and_then(Value::as_str)
+                    .ok_or_else(|| {
+                        de::Error::custom("strategy_portfolio_daily_run daily_run_id is required")
+                    })?;
+                Ok(Self::StrategyPortfolioDailyRun {
+                    daily_run_id: daily_run_id.to_string(),
                 })
             }
             Some("portfolio_run") => {
@@ -139,6 +168,14 @@ pub async fn publish_strategy_backtest_task(
     publish_task_payload(jetstream, config, payload).await
 }
 
+pub async fn publish_strategy_portfolio_daily_run_task(
+    jetstream: &jetstream::Context,
+    config: &NatsConfig,
+    payload: &StrategyPortfolioDailyRunTaskMessage,
+) -> RearviewResult<u64> {
+    publish_task_payload(jetstream, config, payload).await
+}
+
 async fn publish_task_payload<T: Serialize>(
     jetstream: &jetstream::Context,
     config: &NatsConfig,
@@ -190,6 +227,23 @@ mod tests {
             message,
             RearviewTaskMessage::StrategyBacktest {
                 run_id: "backtest-1".to_string()
+            }
+        );
+    }
+
+    #[test]
+    fn task_message_should_parse_strategy_portfolio_daily_run_payload() {
+        let payload = serde_json::json!({
+            "kind": "strategy_portfolio_daily_run",
+            "daily_run_id": "daily-1"
+        });
+
+        let message = serde_json::from_value::<RearviewTaskMessage>(payload).unwrap();
+
+        assert_eq!(
+            message,
+            RearviewTaskMessage::StrategyPortfolioDailyRun {
+                daily_run_id: "daily-1".to_string()
             }
         );
     }

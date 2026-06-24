@@ -70,6 +70,35 @@ export const queryKeys = {
       "trade-metrics",
       query,
     ] as const,
+  strategyPortfolioDashboard: () =>
+    ["strategy-portfolios", "dashboard"] as const,
+  strategyPortfolio: (strategyPortfolioId: string | null) =>
+    ["strategy-portfolios", strategyPortfolioId] as const,
+  strategyPortfolioNav: (strategyPortfolioId: string | null) =>
+    ["strategy-portfolios", strategyPortfolioId, "nav"] as const,
+  strategyPortfolioPerformance: (strategyPortfolioId: string | null) =>
+    ["strategy-portfolios", strategyPortfolioId, "performance"] as const,
+  strategyPortfolioSignals: (
+    strategyPortfolioId: string | null,
+    query: QueryParams = {}
+  ) => ["strategy-portfolios", strategyPortfolioId, "signals", query] as const,
+  strategyPortfolioSignalTimeline: (strategyPortfolioId: string | null) =>
+    ["strategy-portfolios", strategyPortfolioId, "signal-timeline"] as const,
+  strategyPortfolioPositions: (
+    strategyPortfolioId: string | null,
+    query: QueryParams = {}
+  ) =>
+    ["strategy-portfolios", strategyPortfolioId, "positions", query] as const,
+  strategyPortfolioRebalanceRecords: (
+    strategyPortfolioId: string | null,
+    tradeDate?: string | null
+  ) =>
+    [
+      "strategy-portfolios",
+      strategyPortfolioId,
+      "rebalance-records",
+      tradeDate ?? null,
+    ] as const,
   previewTimeline: (previewId: string, startDate: string, endDate: string) =>
     ["preview-timeline", previewId, startDate, endDate] as const,
   previewPoolPage: (

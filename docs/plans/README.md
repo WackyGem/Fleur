@@ -16,6 +16,7 @@
 
 | Plan | 状态 | 说明 |
 |---|---|---|
+| [0052](archive/0052-racingline-strategy-portfolio-publish-dashboard-dagster-plan.md) | Completed | Racingline 策略组合发布、看板真实数据、Rearview daily run control plane、worker 全窗口重算和 Dagster 日运行资产；验收见 [2026-06-24 report](../jobs/reports/2026-06-24-racingline-strategy-portfolio-publish-dashboard-dagster.md) |
 | [0050](archive/0050-racingline-strategy-simulation-position-step4-implementation-plan.md) | Completed | Racingline 策略创建 Step 4 模拟建仓：BacktestExecutionDraft、默认市场费率模板、stale gate、UI 语义收敛和 Step 5 contract handoff；验收见 [2026-06-23 report](../jobs/reports/2026-06-23-racingline-strategy-step4-draft-handoff.md) |
 | [0051](archive/0051-racingline-strategy-backtest-step5-implementation-plan.md) | Completed | Racingline 策略回测 Step 5：异步 backtest run、transient signal materialization、NATS worker、ClickHouse 结果复用、真实 Step 5 UI、动态周期和 rerun 闭环；验收见 [2026-06-23 report](../jobs/reports/2026-06-23-racingline-strategy-step5-backtest.md) |
 | [0049](archive/0049-racingline-strategy-step3-drift2-remediation-plan.md) | Completed | Racingline Step 3 股池预览二次漂移修正：板块展示、全复权 MA、量柱、动态近一年窗口、Step 3 权重微调和下钻性能优化；验收见 [2026-06-22 report](../jobs/reports/2026-06-22-racingline-strategy-step3-drift2-remediation.md) |

@@ -22,6 +22,7 @@ import {
   useStrategyBacktestQuery,
   useStrategyBacktestRebalanceRecordsQuery,
   useStrategyBacktestValidateQuery,
+  useStrategyPortfolioCreateMutation,
   useStrategyPreviewMutation,
   useStrategyPreviewTimelineMutation,
 } from "@/api/hooks"
@@ -41,6 +42,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { Field, FieldGroup, FieldLabel } from "@/components/ui/field"
+import { Input } from "@/components/ui/input"
 import {
   Empty,
   EmptyDescription,
@@ -106,6 +108,8 @@ import {
   createCondition,
   createId,
   createWeightIndicator,
+  formatComparableIndicator,
+  formatWeightIndicator,
 } from "@/features/strategy/utils"
 import { cn } from "@/lib/utils"
 import type {
@@ -214,28 +218,6 @@ const defaultSimulationSettings: SimulationSettings = {
   },
 }
 
-const step5AcceptanceSimulationSettings: SimulationSettings = {
-  ...defaultSimulationSettings,
-  fixedStopLoss: {
-    ...defaultSimulationSettings.fixedStopLoss,
-    enabled: true,
-  },
-  indicatorStopLoss: {
-    ...defaultSimulationSettings.indicatorStopLoss,
-    enabled: true,
-    catalogId: "trend",
-    metric: "price_ma_10",
-  },
-  takeProfit: {
-    ...defaultSimulationSettings.takeProfit,
-    enabled: true,
-  },
-  timeStopLoss: {
-    ...defaultSimulationSettings.timeStopLoss,
-    enabled: true,
-  },
-}
-
 const backtestPeriodOptions = [
   { value: "1y", label: "近一年" },
   { value: "2y", label: "近两年" },
@@ -293,144 +275,6 @@ function buildPreviewWeightIndicators(weightIndicators: WeightIndicator[]) {
       : defaultPreviewWeightIndicators
 
   return source.map(cloneWeightIndicator)
-}
-
-function getStep5AcceptanceFixtureStep(): Step | null {
-  if (!import.meta.env.DEV || typeof window === "undefined") {
-    return null
-  }
-
-  const params = new URLSearchParams(window.location.search)
-  if (params.get("fixture") !== "step5-acceptance") {
-    return null
-  }
-
-  const step = params.get("step")
-  return isStep(step) ? step : "indicators"
-}
-
-function isStep(value: string | null): value is Step {
-  return (
-    value === "indicators" ||
-    value === "weights" ||
-    value === "preview" ||
-    value === "simulation" ||
-    value === "backtest"
-  )
-}
-
-function buildStep5AcceptanceConditionGroups(): StrategyConditionGroup[] {
-  return [
-    {
-      id: "acceptance-group-low-reversal",
-      name: "低位反转验收",
-      conditions: [
-        acceptanceCondition("acceptance-filter-kdj-j", "momentum", "kdj_j_value", "lt", "13"),
-        acceptanceCondition("acceptance-filter-amplitude", "quotes", "pct_amplitude", "lt", "4"),
-        acceptanceCondition("acceptance-filter-pct-change-lower", "quotes", "pct_change", "gt", "-2"),
-        acceptanceCondition("acceptance-filter-pct-change-upper", "quotes", "pct_change", "lt", "2"),
-        acceptanceCondition("acceptance-filter-volume-prev", "quotes", "volume", "lt", "0", {
-          compareCatalogId: "quotes",
-          compareMetric: "prev_volume",
-          compareMultiplier: "0.8",
-          target: "metric",
-        }),
-        acceptanceCondition("acceptance-filter-ema-combo", "trend", "price_ema2_10", "gt", "0", {
-          compareCatalogId: "trend",
-          compareMetric: "price_avg_ma_14_28_57_114",
-          target: "metric",
-        }),
-        acceptanceCondition("acceptance-filter-down-streak", "pattern", "close_down_streak_days", "lt", "4"),
-        acceptanceCondition("acceptance-filter-close-combo", "quotes", "close_price_forward_adj", "gt", "0", {
-          compareCatalogId: "trend",
-          compareMetric: "price_avg_ma_3_6_12_24",
-          target: "metric",
-        }),
-        acceptanceCondition("acceptance-filter-ma60-ma114", "trend", "price_ma_60", "gt", "0", {
-          compareCatalogId: "trend",
-          compareMetric: "price_ma_114",
-          target: "metric",
-        }),
-        acceptanceCondition("acceptance-filter-ma114-ma250", "trend", "price_ma_114", "gt", "0", {
-          compareCatalogId: "trend",
-          compareMetric: "price_ma_250",
-          target: "metric",
-        }),
-      ],
-    },
-  ]
-}
-
-function buildStep5AcceptanceWeightIndicators(): WeightIndicator[] {
-  return [
-    acceptanceWeight("acceptance-score-kdj-deep", "momentum", "kdj_j_value", "lt", "-15", 25),
-    acceptanceWeight("acceptance-score-kdj-mild", "momentum", "kdj_j_value", "between", "-15", 15, {
-      valueEnd: "-10",
-    }),
-    acceptanceWeight("acceptance-score-volume-ma5", "quotes", "volume", "lt", "0", 20, {
-      compareCatalogId: "volume",
-      compareMetric: "volume_ma_5",
-      compareMultiplier: "0.6",
-      target: "metric",
-    }),
-    acceptanceWeight("acceptance-score-close-above-ma20", "quotes", "close_price_forward_adj", "gt", "0", 15, {
-      compareCatalogId: "trend",
-      compareMetric: "price_ma_20",
-      target: "metric",
-    }),
-    acceptanceWeight("acceptance-score-close-below-ma60", "quotes", "close_price_forward_adj", "lt", "0", 15, {
-      compareCatalogId: "trend",
-      compareMetric: "price_ma_60",
-      target: "metric",
-    }),
-    acceptanceWeight("acceptance-score-n-structure", "pattern", "n_structure_20_second_low_ratio", "gt", "1", 15),
-    acceptanceWeight("acceptance-score-boll-lower", "quotes", "close_price_forward_adj", "lt", "0", 15, {
-      compareCatalogId: "trend",
-      compareMetric: "boll_lower_20_2",
-      target: "metric",
-    }),
-    acceptanceWeight("acceptance-score-rsi", "momentum", "rsi_6", "lt", "25", 5),
-  ]
-}
-
-function acceptanceCondition(
-  id: string,
-  catalogId: string,
-  metric: string,
-  operator: StrategyCondition["operator"],
-  value: string,
-  overrides: Partial<StrategyCondition> = {}
-): StrategyCondition {
-  return {
-    catalogId,
-    compareCatalogId: catalogId,
-    compareMetric: metric,
-    compareMultiplier: "1",
-    id,
-    logic: "and",
-    metric,
-    operator,
-    target: "value",
-    value,
-    valueEnd: "",
-    ...overrides,
-  }
-}
-
-function acceptanceWeight(
-  id: string,
-  catalogId: string,
-  metric: string,
-  operator: StrategyCondition["operator"],
-  value: string,
-  score: number,
-  overrides: Partial<WeightIndicator> = {}
-): WeightIndicator {
-  return {
-    ...acceptanceCondition(id, catalogId, metric, operator, value, overrides),
-    extraConditions: overrides.extraConditions ?? [],
-    score,
-  }
 }
 
 function cloneWeightIndicators(weightIndicators: WeightIndicator[]) {
@@ -535,6 +379,7 @@ function BacktestPanel({
   isMarketTemplateLoading,
   onBenchmarkChange,
   onPeriodChange,
+  onRunChange,
   period,
   previewSnapshot,
   settings,
@@ -548,6 +393,7 @@ function BacktestPanel({
   isMarketTemplateLoading: boolean
   onBenchmarkChange: (benchmark: BacktestBenchmark) => void
   onPeriodChange: (period: BacktestPeriod) => void
+  onRunChange: (run: StrategyBacktestRunRecord) => void
   period: BacktestPeriod
   previewSnapshot: PreviewSnapshot | null
   settings: SimulationSettings
@@ -722,6 +568,11 @@ function BacktestPanel({
     isRunInProgress ||
     isBacktestValidationPending ||
     optionsQuery.isLoading
+  useEffect(() => {
+    if (runQuery.data) {
+      onRunChange(runQuery.data)
+    }
+  }, [onRunChange, runQuery.data])
 
   const runBacktest = useCallback(async () => {
     if (!backtestExecutionDraft || !previewSnapshot) {
@@ -745,12 +596,14 @@ function BacktestPanel({
       settings,
     })
     const run = await createBacktestMutation.mutateAsync(request)
+    onRunChange(run)
     setActiveRunId(run.strategy_backtest_run_id)
     setSelectedRebalanceDate(null)
   }, [
     backtestExecutionDraft,
     benchmark,
     createBacktestMutation,
+    onRunChange,
     period,
     previewSnapshot,
     selectedBenchmarkLabel,
@@ -1074,6 +927,7 @@ function BacktestPanel({
               </Empty>
             )}
           </section>
+
         </div>
       }
       aside={
@@ -1808,6 +1662,7 @@ export function StrategyPage() {
   const previewMutation = useStrategyPreviewMutation()
   const previewTimelineMutation = useStrategyPreviewTimelineMutation()
   const initialBacktestMutation = useStrategyBacktestCreateMutation()
+  const createPortfolioMutation = useStrategyPortfolioCreateMutation()
   const strategyCatalog = useMemo(
     () => buildStrategyMetricCatalog(metricsQuery.data ?? []),
     [metricsQuery.data]
@@ -1850,17 +1705,14 @@ export function StrategyPage() {
   const [backtestLaunchError, setBacktestLaunchError] = useState<string | null>(
     null
   )
+  const [publishDialogOpen, setPublishDialogOpen] = useState(false)
+  const [portfolioName, setPortfolioName] = useState("")
   const [previewAdapterError, setPreviewAdapterError] = useState<string | null>(
     null
   )
   const [isOpeningPreview, setIsOpeningPreview] = useState(false)
   const [previewSnapshot, setPreviewSnapshot] =
     useState<PreviewSnapshot | null>(null)
-  const step5AcceptanceFixtureStep = useMemo(
-    () => getStep5AcceptanceFixtureStep(),
-    []
-  )
-  const hasAppliedStep5AcceptanceFixture = useRef(false)
   const effectiveSimulationSettings = useMemo(() => {
     if (!defaultMarketTemplateQuery.data || hasEditedTransactionFees) {
       return simulationSettings
@@ -1964,34 +1816,83 @@ export function StrategyPage() {
   )
   const canEditConditions = strategyCatalogOptions.length > 0
   const canEditWeights = hasRealScoringCatalog
-
-  useEffect(() => {
-    if (
-      !step5AcceptanceFixtureStep ||
-      hasAppliedStep5AcceptanceFixture.current ||
-      !hasRealMetricsCatalog ||
-      !hasRealScoringCatalog
-    ) {
-      return
-    }
-
-    hasAppliedStep5AcceptanceFixture.current = true
-    const fixtureWeights = buildStep5AcceptanceWeightIndicators()
-    setConditionGroups(buildStep5AcceptanceConditionGroups())
-    setWeightIndicators(fixtureWeights)
-    setPreviewAppliedWeightIndicators(cloneWeightIndicators(fixtureWeights))
-    setSimulationSettings(step5AcceptanceSimulationSettings)
-    setHasEditedTransactionFees(false)
-    setBacktestPeriod("1y")
-    setBacktestBenchmark("000300.SH")
-    setPreviewSnapshot(null)
-    setPreviewAdapterError(null)
-    setActiveStep(step5AcceptanceFixtureStep)
-  }, [
-    hasRealMetricsCatalog,
-    hasRealScoringCatalog,
-    step5AcceptanceFixtureStep,
-  ])
+  const canReuseInitialBacktestRun = Boolean(
+    initialBacktestRun &&
+      !hasStrategyBacktestConfigChanged(
+        initialBacktestRun,
+        backtestExecutionDraft,
+        backtestPeriod,
+        backtestBenchmark
+      )
+  )
+  const canPublishPortfolio = Boolean(
+    initialBacktestRun?.status === "succeeded" &&
+      initialBacktestRun.current_result_attempt_id &&
+      canReuseInitialBacktestRun
+  )
+  const selectedBacktestPeriodLabel =
+    backtestPeriodOptions.find((option) => option.value === backtestPeriod)
+      ?.label ?? backtestPeriod
+  const selectedBacktestBenchmarkLabel =
+    backtestBenchmarkOptions.find(
+      (option) => option.securityCode === backtestBenchmark
+    )?.label ?? backtestBenchmark
+  const publishBacktestRunId = canPublishPortfolio
+    ? initialBacktestRun?.strategy_backtest_run_id ?? null
+    : null
+  const publishNavQuery = useStrategyBacktestNavQuery(
+    publishBacktestRunId,
+    canPublishPortfolio
+  )
+  const publishPerformanceQuery = useStrategyBacktestPerformanceQuery(
+    publishBacktestRunId,
+    canPublishPortfolio
+  )
+  const publishNavPoints = useMemo(
+    () => mapStrategyBacktestNavPoints(publishNavQuery.data ?? []),
+    [publishNavQuery.data]
+  )
+  const publishLatestNetValuePoint = publishNavPoints.at(-1) ?? null
+  const publishLatestExcessReturn =
+    publishLatestNetValuePoint && publishLatestNetValuePoint.benchmark !== null
+      ? formatSignedPercent(
+          publishLatestNetValuePoint.strategy -
+            publishLatestNetValuePoint.benchmark
+        )
+      : ""
+  const publishPerformanceGroups = useMemo(
+    () =>
+      buildBacktestPerformanceGroups(
+        publishPerformanceQuery.data ?? null,
+        publishLatestExcessReturn
+      ),
+    [publishLatestExcessReturn, publishPerformanceQuery.data]
+  )
+  const publishConditionRows = useMemo(
+    () =>
+      conditionGroups.flatMap((group, groupIndex) =>
+        group.conditions.map((condition, conditionIndex) => ({
+          id: condition.id,
+          expression: formatComparableIndicator(condition),
+          groupLabel: group.name || `指标组 ${groupIndex + 1}`,
+          logicLabel:
+            conditionIndex === 0
+              ? "组内起始"
+              : condition.logic.toUpperCase(),
+        }))
+      ),
+    [conditionGroups]
+  )
+  const publishScoringRows = useMemo(
+    () =>
+      weightIndicators.map((indicator, index) => ({
+        id: indicator.id,
+        expression: formatWeightIndicator(indicator),
+        index: index + 1,
+        score: indicator.score,
+      })),
+    [weightIndicators]
+  )
 
   function markRuleDraftChanged() {
     setPreviewAdapterError(null)
@@ -2015,6 +1916,27 @@ export function StrategyPage() {
   }
 
   function handleBack() {
+    navigate("/dashboard", { viewTransition: true })
+  }
+
+  async function publishPortfolio() {
+    if (
+      !initialBacktestRun?.current_result_attempt_id ||
+      !portfolioName.trim()
+    ) {
+      return
+    }
+
+    await createPortfolioMutation.mutateAsync({
+      client_request_id: `strategy-portfolio-${initialBacktestRun.strategy_backtest_run_id}-${initialBacktestRun.current_result_attempt_id}`,
+      name: portfolioName.trim(),
+      source_result_attempt_id: initialBacktestRun.current_result_attempt_id,
+      source_strategy_backtest_run_id: initialBacktestRun.strategy_backtest_run_id,
+    })
+    await queryClient.invalidateQueries({
+      queryKey: queryKeys.strategyPortfolioDashboard(),
+    })
+    setPublishDialogOpen(false)
     navigate("/dashboard", { viewTransition: true })
   }
 
@@ -2268,6 +2190,12 @@ export function StrategyPage() {
       return
     }
 
+    if (canReuseInitialBacktestRun) {
+      setBacktestLaunchError(null)
+      setActiveStep("backtest")
+      return
+    }
+
     setBacktestLaunchError(null)
     setBacktestLaunchPhase("querying")
     setBacktestLaunchDialogOpen(true)
@@ -2353,7 +2281,7 @@ export function StrategyPage() {
     activeStep === "preview" ||
     activeStep === "simulation" ||
     activeStep === "backtest"
-  const showStepActions = activeStep !== "backtest"
+  const showStepActions = true
   const canEnterSimulation = Boolean(
     previewSnapshot &&
     !previewSnapshot.stale &&
@@ -2529,9 +2457,446 @@ export function StrategyPage() {
                   settings={effectiveSimulationSettings}
                   onBenchmarkChange={setBacktestBenchmark}
                   onPeriodChange={setBacktestPeriod}
+                  onRunChange={setInitialBacktestRun}
                 />
               ) : null}
             </div>
+
+            <Dialog open={publishDialogOpen} onOpenChange={setPublishDialogOpen}>
+              <DialogContent className="max-h-[calc(100svh-4rem)] overflow-y-auto sm:max-w-5xl">
+                <DialogHeader>
+                  <DialogTitle>建立策略组合</DialogTitle>
+                  <DialogDescription>
+                    确认配置并填写策略名称，发布后返回看板。
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="flex flex-col gap-4 text-xs">
+                  <FieldGroup className="grid gap-3 md:grid-cols-[minmax(12rem,1fr)_minmax(18rem,2fr)] md:items-end">
+                    <Field>
+                      <FieldLabel>策略名称</FieldLabel>
+                      <Input
+                        value={portfolioName}
+                        onChange={(event) => setPortfolioName(event.target.value)}
+                        placeholder="请输入策略名称"
+                      />
+                    </Field>
+                    <div className="grid grid-cols-2 gap-2 md:grid-cols-4">
+                      <div className="border border-border/70 p-2">
+                        <div className="text-muted-foreground">条件指标</div>
+                        <div className="mt-1 text-sm font-medium">
+                          {publishConditionRows.length} 条
+                        </div>
+                      </div>
+                      <div className="border border-border/70 p-2">
+                        <div className="text-muted-foreground">评分项</div>
+                        <div className="mt-1 text-sm font-medium">
+                          {publishScoringRows.length} 项
+                        </div>
+                      </div>
+                      <div className="border border-border/70 p-2">
+                        <div className="text-muted-foreground">候选 / 持仓</div>
+                        <div className="mt-1 text-sm font-medium">
+                          {effectiveSimulationSettings.buyTopN} /{" "}
+                          {effectiveSimulationSettings.maxPositions}
+                        </div>
+                      </div>
+                      <div className="border border-border/70 p-2">
+                        <div className="text-muted-foreground">回测结束日</div>
+                        <div className="mt-1 text-sm font-medium">
+                          {initialBacktestRun?.end_date ?? "—"}
+                        </div>
+                      </div>
+                    </div>
+                  </FieldGroup>
+
+                  <div className="grid gap-3 xl:grid-cols-[1.05fr_0.95fr]">
+                    <Card>
+                      <CardHeader className="pb-2">
+                        <CardTitle className="text-sm">条件指标</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="max-h-64 overflow-y-auto border border-border/70">
+                          <Table>
+                            <TableHeader>
+                              <TableRow>
+                                <TableHead className="h-8">分组</TableHead>
+                                <TableHead className="h-8">关系</TableHead>
+                                <TableHead className="h-8">条件表达式</TableHead>
+                              </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                              {publishConditionRows.length > 0 ? (
+                                publishConditionRows.map((row) => (
+                                  <TableRow key={row.id}>
+                                    <TableCell className="py-1.5">
+                                      {row.groupLabel}
+                                    </TableCell>
+                                    <TableCell className="py-1.5">
+                                      {row.logicLabel}
+                                    </TableCell>
+                                    <TableCell className="py-1.5 font-mono text-[11px]">
+                                      {row.expression}
+                                    </TableCell>
+                                  </TableRow>
+                                ))
+                              ) : (
+                                <TableRow>
+                                  <TableCell
+                                    className="py-4 text-center text-muted-foreground"
+                                    colSpan={3}
+                                  >
+                                    暂无条件指标
+                                  </TableCell>
+                                </TableRow>
+                              )}
+                            </TableBody>
+                          </Table>
+                        </div>
+                      </CardContent>
+                    </Card>
+
+                    <Card>
+                      <CardHeader className="pb-2">
+                        <CardTitle className="text-sm">评分项</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="max-h-64 overflow-y-auto border border-border/70">
+                          <Table>
+                            <TableHeader>
+                              <TableRow>
+                                <TableHead className="h-8">序号</TableHead>
+                                <TableHead className="h-8">得分</TableHead>
+                                <TableHead className="h-8">评分条件</TableHead>
+                              </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                              {publishScoringRows.length > 0 ? (
+                                publishScoringRows.map((row) => (
+                                  <TableRow key={row.id}>
+                                    <TableCell className="py-1.5">
+                                      {row.index}
+                                    </TableCell>
+                                    <TableCell className="py-1.5 font-medium">
+                                      +{row.score}
+                                    </TableCell>
+                                    <TableCell className="py-1.5 font-mono text-[11px]">
+                                      {row.expression}
+                                    </TableCell>
+                                  </TableRow>
+                                ))
+                              ) : (
+                                <TableRow>
+                                  <TableCell
+                                    className="py-4 text-center text-muted-foreground"
+                                    colSpan={3}
+                                  >
+                                    暂无评分项
+                                  </TableCell>
+                                </TableRow>
+                              )}
+                            </TableBody>
+                          </Table>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </div>
+
+                  <div className="grid gap-3 xl:grid-cols-[0.95fr_1.05fr]">
+                    <Card>
+                      <CardHeader className="pb-2">
+                        <CardTitle className="text-sm">建仓摘要</CardTitle>
+                      </CardHeader>
+                      <CardContent className="grid grid-cols-2 gap-2 md:grid-cols-3">
+                        <div>
+                          <div className="text-muted-foreground">初始资金</div>
+                          <div className="mt-1 font-medium">
+                            {formatCurrency(
+                              effectiveSimulationSettings.initialCapital
+                            )}
+                          </div>
+                        </div>
+                        <div>
+                          <div className="text-muted-foreground">每日候选</div>
+                          <div className="mt-1 font-medium">
+                            Top {effectiveSimulationSettings.buyTopN}
+                          </div>
+                        </div>
+                        <div>
+                          <div className="text-muted-foreground">最大持仓</div>
+                          <div className="mt-1 font-medium">
+                            {effectiveSimulationSettings.maxPositions} 只
+                          </div>
+                        </div>
+                        <div>
+                          <div className="text-muted-foreground">单票上限</div>
+                          <div className="mt-1 font-medium">
+                            {formatUiPercent(
+                              effectiveSimulationSettings.singlePositionLimitPercent
+                            )}
+                          </div>
+                        </div>
+                        <div>
+                          <div className="text-muted-foreground">佣金率</div>
+                          <div className="mt-1 font-medium">
+                            {formatUiPercent(
+                              effectiveSimulationSettings.transactionFees
+                                .commissionRatePercent
+                            )}
+                          </div>
+                        </div>
+                        <div>
+                          <div className="text-muted-foreground">滑点</div>
+                          <div className="mt-1 font-medium">
+                            {formatUiPercent(
+                              effectiveSimulationSettings.transactionFees
+                                .slippageRatePercent
+                            )}
+                          </div>
+                        </div>
+                        <div>
+                          <div className="text-muted-foreground">印花税</div>
+                          <div className="mt-1 font-medium">
+                            {formatUiPercent(
+                              effectiveSimulationSettings.transactionFees
+                                .stampDutyRatePercent
+                            )}
+                          </div>
+                        </div>
+                        <div>
+                          <div className="text-muted-foreground">过户费</div>
+                          <div className="mt-1 font-medium">
+                            {formatUiPercent(
+                              effectiveSimulationSettings.transactionFees
+                                .transferFeeRatePercent
+                            )}
+                          </div>
+                        </div>
+                        <div>
+                          <div className="text-muted-foreground">风控规则</div>
+                          <div className="mt-1 font-medium">
+                            {backtestExecutionDraft?.summary
+                              .enabled_exit_rule_count ?? 0}{" "}
+                            条启用
+                          </div>
+                        </div>
+                        <div className="col-span-2 md:col-span-3">
+                          <div className="text-muted-foreground">风控摘要</div>
+                          <div className="mt-1 leading-5">
+                            固定止损{" "}
+                            {effectiveSimulationSettings.fixedStopLoss.enabled
+                              ? formatUiPercent(
+                                  effectiveSimulationSettings.fixedStopLoss
+                                    .lossPercent
+                                )
+                              : "未启用"}
+                            ，止盈{" "}
+                            {effectiveSimulationSettings.takeProfit.enabled
+                              ? formatUiPercent(
+                                  effectiveSimulationSettings.takeProfit
+                                    .profitPercent
+                                )
+                              : "未启用"}
+                            ，时间止损{" "}
+                            {effectiveSimulationSettings.timeStopLoss.enabled
+                              ? `${effectiveSimulationSettings.timeStopLoss.holdingDays} 天`
+                              : "未启用"}
+                            ，指标止损{" "}
+                            {effectiveSimulationSettings.indicatorStopLoss.enabled
+                              ? effectiveSimulationSettings.indicatorStopLoss.metric
+                              : "未启用"}
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+
+                    <Card>
+                      <CardHeader className="pb-2">
+                        <CardTitle className="text-sm">回测业绩</CardTitle>
+                      </CardHeader>
+                      <CardContent className="flex flex-col gap-3">
+                        {publishNavQuery.isLoading ||
+                        publishPerformanceQuery.isLoading ? (
+                          <Skeleton className="h-28 w-full" />
+                        ) : (
+                          <>
+                            <div className="grid grid-cols-2 gap-2 md:grid-cols-4">
+                              <div>
+                                <div className="text-muted-foreground">
+                                  最新交易日
+                                </div>
+                                <div className="mt-1 font-medium">
+                                  {publishLatestNetValuePoint?.time ?? "—"}
+                                </div>
+                              </div>
+                              <div>
+                                <div className="text-muted-foreground">
+                                  策略净值
+                                </div>
+                                <div className="mt-1 font-medium">
+                                  {publishLatestNetValuePoint
+                                    ? formatNetValue(
+                                        publishLatestNetValuePoint.strategy
+                                      )
+                                    : "—"}
+                                </div>
+                              </div>
+                              <div>
+                                <div className="text-muted-foreground">
+                                  基准净值
+                                </div>
+                                <div className="mt-1 font-medium">
+                                  {publishLatestNetValuePoint?.benchmark !== null &&
+                                  publishLatestNetValuePoint?.benchmark !==
+                                    undefined
+                                    ? formatNetValue(
+                                        publishLatestNetValuePoint.benchmark
+                                      )
+                                    : "—"}
+                                </div>
+                              </div>
+                              <div>
+                                <div className="text-muted-foreground">
+                                  日胜率
+                                </div>
+                                <div className="mt-1 font-medium">
+                                  {formatOptionalPercent(
+                                    publishPerformanceQuery.data?.daily_win_rate
+                                      .value
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                            <div className="grid gap-2 md:grid-cols-2">
+                              {publishPerformanceGroups.map((group) => (
+                                <div
+                                  className="border border-border/70 p-2"
+                                  key={group.title}
+                                >
+                                  <div className="mb-1 font-medium">
+                                    {group.title}
+                                  </div>
+                                  <div className="grid grid-cols-2 gap-x-3 gap-y-1">
+                                    {group.metrics.map((metric) => (
+                                      <Fragment
+                                        key={`${group.title}-${metric.label}`}
+                                      >
+                                        <div className="text-muted-foreground">
+                                          {metric.label}
+                                        </div>
+                                        <div className="text-right font-medium">
+                                          {metric.value}
+                                        </div>
+                                      </Fragment>
+                                    ))}
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                            <div className="text-muted-foreground">
+                              日胜率样本{" "}
+                              {publishPerformanceQuery.data?.daily_win_rate
+                                .winning_day_count ?? "—"}{" "}
+                              /{" "}
+                              {publishPerformanceQuery.data?.daily_win_rate
+                                .observation_count ?? "—"}
+                            </div>
+                          </>
+                        )}
+                        {publishNavQuery.isError ||
+                        publishPerformanceQuery.isError ? (
+                          <Alert variant="destructive">
+                            <AlertTitle>回测业绩读取失败</AlertTitle>
+                            <AlertDescription>
+                              {publishNavQuery.isError
+                                ? formatErrorMessage(publishNavQuery.error)
+                                : formatErrorMessage(
+                                    publishPerformanceQuery.error
+                                  )}
+                            </AlertDescription>
+                          </Alert>
+                        ) : null}
+                      </CardContent>
+                    </Card>
+                  </div>
+
+                  <Card>
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-sm">回测快照</CardTitle>
+                    </CardHeader>
+                    <CardContent className="grid gap-2 md:grid-cols-3">
+                      <div>
+                        <div className="text-muted-foreground">周期 / 基准</div>
+                        <div className="mt-1 font-medium">
+                          {selectedBacktestPeriodLabel} /{" "}
+                          {selectedBacktestBenchmarkLabel}
+                        </div>
+                      </div>
+                      <div>
+                        <div className="text-muted-foreground">回测区间</div>
+                        <div className="mt-1 font-medium">
+                          {initialBacktestRun
+                            ? `${initialBacktestRun.start_date} - ${initialBacktestRun.end_date}`
+                            : "—"}
+                        </div>
+                      </div>
+                      <div>
+                        <div className="text-muted-foreground">当前结果</div>
+                        <div className="mt-1 font-medium">
+                          {initialBacktestRun?.current_result_attempt_id ?? "—"}
+                        </div>
+                      </div>
+                      <div className="md:col-span-2">
+                        <div className="text-muted-foreground">回测 Run ID</div>
+                        <div className="mt-1 break-all font-mono text-[11px]">
+                          {initialBacktestRun?.strategy_backtest_run_id ?? "—"}
+                        </div>
+                      </div>
+                      <div>
+                        <div className="text-muted-foreground">股池预览</div>
+                        <div className="mt-1 font-medium">
+                          {previewSnapshot?.range.selectedTradeDate ??
+                            previewSnapshot?.range.endDate ??
+                            "—"}
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  {createPortfolioMutation.isError ? (
+                    <Alert variant="destructive">
+                      <AlertTitle>组合创建失败</AlertTitle>
+                      <AlertDescription>
+                        {formatErrorMessage(createPortfolioMutation.error)}
+                      </AlertDescription>
+                    </Alert>
+                  ) : null}
+
+                  <div className="flex justify-end gap-2">
+                    <Button
+                      variant="outline"
+                      type="button"
+                      onClick={() => setPublishDialogOpen(false)}
+                    >
+                      取消
+                    </Button>
+                    <Button
+                      disabled={
+                        !portfolioName.trim() ||
+                        !canPublishPortfolio ||
+                        createPortfolioMutation.isPending
+                      }
+                      type="button"
+                      onClick={() => void publishPortfolio()}
+                    >
+                      {createPortfolioMutation.isPending ? (
+                        <Spinner data-icon="inline-start" />
+                      ) : null}
+                      确定
+                    </Button>
+                  </div>
+                </div>
+              </DialogContent>
+            </Dialog>
 
             {showStepActions ? (
               <>
@@ -2632,12 +2997,30 @@ export function StrategyPage() {
                       <div className="hidden xl:block" />
                       <div className="hidden xl:block" />
                     </>
+                  ) : activeStep === "backtest" ? (
+                    <>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <Button
+                          variant="default"
+                          size="lg"
+                          className="w-full sm:w-48"
+                          disabled={!canPublishPortfolio}
+                          onClick={() => {
+                            setPortfolioName("策略组合")
+                            setPublishDialogOpen(true)
+                          }}
+                          type="button"
+                        >
+                          建立组合
+                        </Button>
+                      </div>
+                      <div className="hidden xl:block" />
+                      <div className="hidden xl:block" />
+                    </>
                   ) : null}
                 </div>
               </>
             ) : null}
-
-            {activeStep === "backtest" ? <Separator /> : null}
           </div>
         </main>
       </div>

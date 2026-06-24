@@ -28,6 +28,14 @@ import type {
   StrategyBacktestTradeMetricRecord,
   StrategyBacktestTradeRecord,
   StrategyBacktestValidateRequest,
+  StrategyPortfolioCreateRequest,
+  StrategyPortfolioDashboardResponse,
+  StrategyPortfolioListResult,
+  StrategyPortfolioNavResponse,
+  StrategyPortfolioPerformanceView,
+  StrategyPortfolioRecord,
+  StrategyPortfolioRebalanceRecordsResponse,
+  StrategyPortfolioSignalTimelineResponse,
   StrategyPreviewPoolPageRequest,
   StrategyPreviewPoolPageResponse,
   StrategyPreviewRequest,
@@ -206,6 +214,78 @@ export function listStrategyBacktestTradeMetrics(
     buildPath(
       `/rearview/strategy-backtests/${strategyBacktestRunId}/trade-metrics`,
       query
+    )
+  )
+}
+
+export function createStrategyPortfolio(request: StrategyPortfolioCreateRequest) {
+  return requestJson<StrategyPortfolioRecord>(
+    "/rearview/strategy-portfolios",
+    jsonBody(request)
+  )
+}
+
+export function getStrategyPortfolioDashboard() {
+  return requestJson<StrategyPortfolioDashboardResponse>(
+    "/rearview/strategy-portfolios/dashboard"
+  )
+}
+
+export function getStrategyPortfolio(strategyPortfolioId: string) {
+  return requestJson<StrategyPortfolioRecord>(
+    `/rearview/strategy-portfolios/${strategyPortfolioId}`
+  )
+}
+
+export function listStrategyPortfolioNav(strategyPortfolioId: string) {
+  return requestJson<StrategyPortfolioNavResponse>(
+    `/rearview/strategy-portfolios/${strategyPortfolioId}/nav`
+  )
+}
+
+export function getStrategyPortfolioPerformance(strategyPortfolioId: string) {
+  return requestJson<StrategyPortfolioPerformanceView>(
+    `/rearview/strategy-portfolios/${strategyPortfolioId}/performance`
+  )
+}
+
+export function listStrategyPortfolioSignals(
+  strategyPortfolioId: string,
+  query: QueryParams = {}
+) {
+  return requestJson<StrategyPortfolioListResult<StrategyBacktestTargetRecord>>(
+    buildPath(`/rearview/strategy-portfolios/${strategyPortfolioId}/signals`, query)
+  )
+}
+
+export function listStrategyPortfolioSignalTimeline(
+  strategyPortfolioId: string
+) {
+  return requestJson<StrategyPortfolioSignalTimelineResponse>(
+    `/rearview/strategy-portfolios/${strategyPortfolioId}/signal-timeline`
+  )
+}
+
+export function listStrategyPortfolioPositions(
+  strategyPortfolioId: string,
+  query: QueryParams = {}
+) {
+  return requestJson<StrategyPortfolioListResult<StrategyBacktestPositionRecord>>(
+    buildPath(
+      `/rearview/strategy-portfolios/${strategyPortfolioId}/positions`,
+      query
+    )
+  )
+}
+
+export function listStrategyPortfolioRebalanceRecords(
+  strategyPortfolioId: string,
+  tradeDate?: string | null
+) {
+  return requestJson<StrategyPortfolioRebalanceRecordsResponse>(
+    buildPath(
+      `/rearview/strategy-portfolios/${strategyPortfolioId}/rebalance-records`,
+      { trade_date: tradeDate ?? undefined }
     )
   )
 }
