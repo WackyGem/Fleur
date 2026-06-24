@@ -109,7 +109,7 @@ function ConditionGroupsPanel({
 
                         <ComparisonFields
                           catalogOptions={catalogOptions}
-                          className="bg-muted/10 p-2 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)_minmax(0,0.8fr)_auto_minmax(0,1fr)_minmax(0,1.1fr)_auto]"
+                          className="bg-muted/10 p-2 lg:grid-cols-[minmax(7.5rem,0.9fr)_minmax(9rem,1.15fr)_minmax(6.5rem,0.72fr)_5.25rem_minmax(7.5rem,0.9fr)_minmax(9rem,1.05fr)_4.75rem_2.25rem]"
                           value={condition}
                           onChange={(patch) =>
                             onUpdateCondition(group.id, condition.id, patch)

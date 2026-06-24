@@ -476,7 +476,7 @@ function ComparisonFields({
       <Button
         variant="ghost"
         size="icon-sm"
-        className="text-muted-foreground hover:text-foreground"
+        className="text-muted-foreground hover:text-foreground lg:[grid-column-start:-2] lg:justify-self-end"
         onClick={onRemove}
         aria-label={removeLabel}
         type="button"

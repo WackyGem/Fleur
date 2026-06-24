@@ -1,8 +1,9 @@
 use std::path::{Path, PathBuf};
 
+use async_nats::jetstream;
 use rearview_core::api;
 use rearview_core::clickhouse::ClickHouseClient;
-use rearview_core::config::{AppConfig, load_dotenv_if_present};
+use rearview_core::config::{AppConfig, NatsConfig, load_dotenv_if_present};
 use rearview_core::nats::{
     PortfolioTaskMessage, StrategyBacktestTaskMessage, connect_jetstream, ensure_portfolio_stream,
     publish_portfolio_task, publish_strategy_backtest_task,
@@ -65,31 +66,58 @@ async fn serve() -> RearviewResult<()> {
     Ok(())
 }
 
-async fn run_outbox_dispatcher(
-    postgres: RearviewPg,
-    nats_config: rearview_core::config::NatsConfig,
-) {
+async fn run_outbox_dispatcher(postgres: RearviewPg, nats_config: NatsConfig) {
+    let mut jetstream = loop {
+        match connect_outbox_jetstream(&nats_config).await {
+            Ok(jetstream) => break jetstream,
+            Err(error) => {
+                error!(error = %error, "outbox dispatcher failed to connect to nats");
+                sleep(Duration::from_secs(5)).await;
+            }
+        }
+    };
+
     loop {
-        match dispatch_outbox_once(&postgres, &nats_config).await {
+        match dispatch_outbox_once(&postgres, &nats_config, &jetstream).await {
             Ok(dispatched) => {
                 if dispatched == 0 {
                     sleep(Duration::from_secs(2)).await;
                 }
             }
             Err(error) => {
+                let should_reconnect = matches!(error, RearviewError::Nats(_));
                 error!(error = %error, "outbox dispatcher iteration failed");
+                if should_reconnect {
+                    jetstream = loop {
+                        match connect_outbox_jetstream(&nats_config).await {
+                            Ok(jetstream) => break jetstream,
+                            Err(error) => {
+                                error!(
+                                    error = %error,
+                                    "outbox dispatcher failed to reconnect to nats"
+                                );
+                                sleep(Duration::from_secs(5)).await;
+                            }
+                        }
+                    };
+                }
                 sleep(Duration::from_secs(5)).await;
             }
         }
     }
 }
 
-async fn dispatch_outbox_once(
-    postgres: &RearviewPg,
-    nats_config: &rearview_core::config::NatsConfig,
-) -> RearviewResult<usize> {
+async fn connect_outbox_jetstream(nats_config: &NatsConfig) -> RearviewResult<jetstream::Context> {
     let jetstream = connect_jetstream(nats_config).await?;
     ensure_portfolio_stream(&jetstream, nats_config).await?;
+    Ok(jetstream)
+}
+
+async fn dispatch_outbox_once(
+    postgres: &RearviewPg,
+    nats_config: &NatsConfig,
+    jetstream: &jetstream::Context,
+) -> RearviewResult<usize> {
     let mut dispatched = 0;
     let records = postgres.list_pending_portfolio_outbox(50).await?;
     for record in records {

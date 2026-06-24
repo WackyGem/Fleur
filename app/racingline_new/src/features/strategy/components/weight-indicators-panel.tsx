@@ -18,15 +18,9 @@ import {
 import { AddDashedButton } from "@/features/strategy/components/add-dashed-button"
 import { ComparisonFields } from "@/features/strategy/components/comparison-fields"
 import { WeightScoreSlider } from "@/features/strategy/components/weight-score-slider"
-import type {
-  IndicatorCatalog,
-  WeightExtraCondition,
-  WeightIndicator,
-} from "@/features/strategy/types"
+import type { IndicatorCatalog, WeightIndicator } from "@/features/strategy/types"
 import {
   clampScore,
-  createComparableIndicator,
-  createId,
   formatWeightIndicator,
   getScaledWeightIndicators,
 } from "@/features/strategy/utils"
@@ -61,37 +55,6 @@ function WeightIndicatorsPanel({
               <FieldGroup className="gap-3">
                 {weightIndicators.map((indicator) => {
                   const clampedScore = clampScore(indicator.score)
-                  const extraConditions = indicator.extraConditions ?? []
-                  const updateExtraCondition = (
-                    conditionId: string,
-                    patch: Partial<WeightExtraCondition>
-                  ) => {
-                    onUpdateIndicator(indicator.id, {
-                      extraConditions: extraConditions.map((condition) =>
-                        condition.id === conditionId
-                          ? { ...condition, ...patch }
-                          : condition
-                      ),
-                    })
-                  }
-                  const removeExtraCondition = (conditionId: string) => {
-                    onUpdateIndicator(indicator.id, {
-                      extraConditions: extraConditions.filter(
-                        (condition) => condition.id !== conditionId
-                      ),
-                    })
-                  }
-                  const addExtraCondition = () => {
-                    onUpdateIndicator(indicator.id, {
-                      extraConditions: [
-                        ...extraConditions,
-                        {
-                          id: createId("weight-condition"),
-                          ...createComparableIndicator(catalogOptions),
-                        },
-                      ],
-                    })
-                  }
 
                   return (
                     <div
@@ -138,33 +101,6 @@ function WeightIndicatorsPanel({
                           />
                         </Field>
                       </ComparisonFields>
-
-                      {extraConditions.map((condition) => (
-                        <ComparisonFields
-                          key={condition.id}
-                          catalogOptions={catalogOptions}
-                          className="border-l-2 border-border/70 pl-2 lg:grid-cols-[4rem_minmax(0,1fr)_minmax(0,1.2fr)_minmax(0,0.8fr)_auto_minmax(0,1fr)_minmax(0,1.1fr)_minmax(16rem,1.4fr)_auto]"
-                          value={condition}
-                          onChange={(patch) =>
-                            updateExtraCondition(condition.id, patch)
-                          }
-                          onRemove={() => removeExtraCondition(condition.id)}
-                          removeLabel="删除附加条件"
-                        >
-                          <Field>
-                            <FieldLabel>逻辑</FieldLabel>
-                            <div className="flex h-10 items-center text-xs font-medium text-muted-foreground">
-                              且
-                            </div>
-                          </Field>
-                        </ComparisonFields>
-                      ))}
-
-                      <AddDashedButton
-                        className="h-9 bg-transparent text-xs"
-                        label="新增附加条件"
-                        onClick={addExtraCondition}
-                      />
                     </div>
                   )
                 })}

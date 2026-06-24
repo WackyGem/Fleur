@@ -132,7 +132,7 @@ export function useStrategyBacktestQuery(strategyBacktestRunId: string | null) {
         !status.startsWith("failed_") &&
         status !== "succeeded" &&
         status !== "cancelled"
-        ? 2_000
+        ? 1_000
         : false
     },
     retry: 1,
@@ -176,6 +176,7 @@ export function useStrategyBacktestRebalanceRecordsQuery(
         tradeDate
       )
     },
+    placeholderData: keepPreviousData,
     retry: 1,
   })
 }

@@ -1617,6 +1617,7 @@ dependencies = [
 name = "rearview-server"
 version = "0.1.0"
 dependencies = [
+ "async-nats",
  "axum",
  "rearview-core",
  "serde_json",
