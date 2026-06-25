@@ -64,18 +64,18 @@ Step 4 使用默认仓位、费率和全部风控：
 
 ## 浏览器截图证据
 
-截图目录：[docs/references/screenshots/racingline/2026-06-23/](../../references/screenshots/racingline/2026-06-23/)
+截图目录：[assets/2026-06-23/](assets/2026-06-23/)
 
 | 截图 | 证据 |
 |---|---|
-| [step5-acceptance-01-step1-filters.png](../../references/screenshots/racingline/2026-06-23/step5-acceptance-01-step1-filters.png) | Step 1 10 条 canonical 过滤条件 |
-| [step5-acceptance-02-step2-scoring.png](../../references/screenshots/racingline/2026-06-23/step5-acceptance-02-step2-scoring.png) | Step 2 7 条得分条件，包含互斥 KDJ 分段和字段间比较 |
-| [step5-acceptance-03-step3-preview.png](../../references/screenshots/racingline/2026-06-23/step5-acceptance-03-step3-preview.png) | Step 3 preview 成功，进入非 stale snapshot |
-| [step5-acceptance-04-step4-defaults-risk.png](../../references/screenshots/racingline/2026-06-23/step5-acceptance-04-step4-defaults-risk.png) | Step 4 默认仓位、默认费率和全部风控 |
-| [step5-acceptance-05-step5-running.png](../../references/screenshots/racingline/2026-06-23/step5-acceptance-05-step5-running.png) | Step 5 创建真实 run 后进入 queued/running 状态 |
-| [step5-acceptance-06-step5-succeeded-nav.png](../../references/screenshots/racingline/2026-06-23/step5-acceptance-06-step5-succeeded-nav.png) | Step 5 succeeded 后展示真实策略净值和 benchmark 净值 |
-| [step5-acceptance-07-step5-rebalance-performance.png](../../references/screenshots/racingline/2026-06-23/step5-acceptance-07-step5-rebalance-performance.png) | Step 5 调仓记录、证券名称、收益贡献和策略业绩侧栏 |
-| [step5-acceptance-08-step5-rerun.png](../../references/screenshots/racingline/2026-06-23/step5-acceptance-08-step5-rerun.png) | 修改周期和 benchmark 后展示历史快照/配置已变更，并提供重新回测 |
+| [step5-acceptance-01-step1-filters.png](assets/2026-06-23/step5-acceptance-01-step1-filters.png) | Step 1 10 条 canonical 过滤条件 |
+| [step5-acceptance-02-step2-scoring.png](assets/2026-06-23/step5-acceptance-02-step2-scoring.png) | Step 2 7 条得分条件，包含互斥 KDJ 分段和字段间比较 |
+| [step5-acceptance-03-step3-preview.png](assets/2026-06-23/step5-acceptance-03-step3-preview.png) | Step 3 preview 成功，进入非 stale snapshot |
+| [step5-acceptance-04-step4-defaults-risk.png](assets/2026-06-23/step5-acceptance-04-step4-defaults-risk.png) | Step 4 默认仓位、默认费率和全部风控 |
+| [step5-acceptance-05-step5-running.png](assets/2026-06-23/step5-acceptance-05-step5-running.png) | Step 5 创建真实 run 后进入 queued/running 状态 |
+| [step5-acceptance-06-step5-succeeded-nav.png](assets/2026-06-23/step5-acceptance-06-step5-succeeded-nav.png) | Step 5 succeeded 后展示真实策略净值和 benchmark 净值 |
+| [step5-acceptance-07-step5-rebalance-performance.png](assets/2026-06-23/step5-acceptance-07-step5-rebalance-performance.png) | Step 5 调仓记录、证券名称、收益贡献和策略业绩侧栏 |
+| [step5-acceptance-08-step5-rerun.png](assets/2026-06-23/step5-acceptance-08-step5-rerun.png) | 修改周期和 benchmark 后展示历史快照/配置已变更，并提供重新回测 |
 
 ## Run 结果
 

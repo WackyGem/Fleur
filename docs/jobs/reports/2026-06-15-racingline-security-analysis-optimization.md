@@ -51,8 +51,8 @@ http://127.0.0.1:5173/runs/a4470e63-6fd3-46ce-9dab-8802c84cef26/securities/00229
 
 | 文件 | 视口 | 结论 |
 |---|---|---|
-| [../references/screenshots/racingline/2026-06-15/security-analysis-desktop-1440x1000.png](../../references/screenshots/racingline/2026-06-15/security-analysis-desktop-1440x1000.png) | 1440x1000 | 三栏布局可扫描，toolbar 和 overlay 控制可用，图表非空 |
-| [../references/screenshots/racingline/2026-06-15/security-analysis-mobile-375x900.png](../../references/screenshots/racingline/2026-06-15/security-analysis-mobile-375x900.png) | 375x900 | Chart tab 可用，页面无横向溢出，图表非空 |
+| [assets/2026-06-15-racingline-security-analysis-desktop.png](assets/2026-06-15-racingline-security-analysis-desktop.png) | 1440x1000 | 三栏布局可扫描，toolbar 和 overlay 控制可用，图表非空 |
+| [assets/2026-06-15-racingline-security-analysis-mobile.png](assets/2026-06-15-racingline-security-analysis-mobile.png) | 375x900 | Chart tab 可用，页面无横向溢出，图表非空 |
 
 ## Network 和 Console
 
