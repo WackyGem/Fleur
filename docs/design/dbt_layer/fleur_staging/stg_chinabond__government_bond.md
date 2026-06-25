@@ -8,7 +8,7 @@
 - Raw source：`source('raw', 'chinabond__government_bond')`
 - 数据契约：`pipeline/contracts/datasets/chinabond__government_bond.yml`
 - 目标位置：`pipeline/elt/models/staging/chinabond/stg_chinabond__government_bond.sql`
-- 实施计划：`docs/plans/0042-chinabond-government-bond-s3-raw-implementation-plan.md`
+- 实施计划：`docs/plans/archive/0042-chinabond-government-bond-s3-raw-implementation-plan.md`
 
 ## 1. 模型定位
 

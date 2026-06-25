@@ -59,7 +59,7 @@ git diff --check
 |---|---|
 | [../jobs/README.md](../jobs/README.md) | jobs runbook 和 reports 入口 |
 | [../jobs/dagster-backfill-2026.md](../jobs/dagster-backfill-2026.md) | Dagster 回填入口 |
-| [../optimize/docs-governance-inventory-2026-06-10.md](../optimize/docs-governance-inventory-2026-06-10.md) | docs governance 盘点和治理记录 |
+| [../optimize/archive/docs-governance-inventory-2026-06-10.md](../optimize/archive/docs-governance-inventory-2026-06-10.md) | docs governance 盘点和治理记录 |
 | [../RFC/0018-rust-stock-screening-service.md](../RFC/0018-rust-stock-screening-service.md) | Rearview database target 和部署顺序背景 |
 | [../systems/rearview.md](rearview.md) | Rearview 系统地图 |
 

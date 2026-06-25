@@ -411,5 +411,5 @@ uv run dbt build --select <affected_models> --project-dir elt --profiles-dir elt
 - `pipeline/elt/models/intermediate/*.sql`
 - `pipeline/elt/models/intermediate/*.yml`
 - `pipeline/elt/metadata/field_glossary.yml`
-- 配套文档：`docs/debt/0003-2026-06-21-mart-field-style-consistency.md`
+- 配套文档：`docs/debt/archive/0003-2026-06-21-mart-field-style-consistency.md`
 - 分支：`refactor/int-mart-field-consistency`

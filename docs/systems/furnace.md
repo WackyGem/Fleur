@@ -71,7 +71,7 @@ uv run pytest scheduler/tests/unit/furnace/test_furnace_definitions.py scheduler
 | [../ADR/0010-technical-indicator-field-naming.md](../ADR/0010-technical-indicator-field-naming.md) | 技术指标字段命名决策 |
 | [../jobs/reports/2026-06-07-furnace-kdj-smoke-run.md](../jobs/reports/2026-06-07-furnace-kdj-smoke-run.md) | KDJ 冒烟运行记录 |
 | [../jobs/reports/2026-06-09-furnace-price-pattern-full-market-validation.md](../jobs/reports/2026-06-09-furnace-price-pattern-full-market-validation.md) | 价格行为结构全市场验证 |
-| [../optimize/engines-rust-quality-structure-optimization-2026-06-08.md](../optimize/engines-rust-quality-structure-optimization-2026-06-08.md) | engines Rust 质量结构审计 |
+| [../optimize/archive/engines-rust-quality-structure-optimization-2026-06-08.md](../optimize/archive/engines-rust-quality-structure-optimization-2026-06-08.md) | engines Rust 质量结构审计 |
 
 ## 待决问题
 

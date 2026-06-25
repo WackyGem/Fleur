@@ -450,7 +450,7 @@ cargo test --workspace
 
 ## Resolution 2026-06-22
 
-已按 [Plan 0048](../plans/archive/0048-racingline-strategy-step3-drift-remediation-plan.md) 完成修正，并在 [Step3 Drift Remediation report](../jobs/reports/2026-06-22-racingline-strategy-step3-drift-remediation.md) 中记录命令和浏览器证据。
+已按 [Plan 0048](../../plans/archive/0048-racingline-strategy-step3-drift-remediation-plan.md) 完成修正，并在 [Step3 Drift Remediation report](../../jobs/reports/2026-06-22-racingline-strategy-step3-drift-remediation.md) 中记录命令和浏览器证据。
 
 实际落地：
 

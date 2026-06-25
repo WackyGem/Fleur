@@ -4,7 +4,7 @@
 领域：rearview
 关联系统：rearview, data-platform, racingline
 代码根：engines/crates/rearview-core/, engines/crates/rearview-portfolio-worker/, pipeline/elt/, pipeline/migrate/
-需求入口：docs/Q&A/0001-postgresql-control-plane-clickhouse-portfolio-data-plane.md, docs/Q&A/0002-portfolio-metrics.md
+输入材料：docs/Q&A/0001-postgresql-control-plane-clickhouse-portfolio-data-plane.md, docs/Q&A/0002-portfolio-metrics.md
 
 ## 摘要
 
@@ -325,7 +325,7 @@ worker 权威计算使用此口径；口径变更必须同步更新 `portfolio_m
 3. worker 改为写 ClickHouse 结果事实 + 回写 PostgreSQL 控制状态。
 4. Rearview API 从 ClickHouse 读取结果。
 
-本阶段只做存储迁移和幂等，不碰绩效指标计算；明细见 [Plan 0043](../plans/0043-portfolio-data-plane-clickhouse-phase1-implementation-plan.md)。
+本阶段只做存储迁移和幂等，不碰绩效指标计算；明细见 [Plan 0043](../plans/archive/0043-portfolio-data-plane-clickhouse-phase1-implementation-plan.md)。
 
 ### 第二阶段：绩效指标与 mart 输入（Plan 0044，待立项）
 

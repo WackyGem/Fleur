@@ -14,7 +14,7 @@ Step 4 第一版实现完成了 Rearview draft validation、canonical hash 和 S
 1. 后端 draft contract 的技术细节过早暴露到 Step 4 UI，导致“模拟建仓”看起来像后端校验面板。
 2. 为了对齐 Plan 0050，删除或禁用了原型中仍应保留的用户输入能力，包括近三月票池数折线图、趋势指标止损、单一滑点输入，以及更轻量的费用表单。
 
-本 debt 记录这些偏移，并给出修复方案。已按本文方案完成实现和验收，见 [Step 4 Drift Remediation report](../jobs/reports/2026-06-23-racingline-strategy-step4-drift-remediation.md)。修复时不应简单回退到旧实现，也不应把后端能力缺口强行转嫁给前端。正确方向是：
+本 debt 记录这些偏移，并给出修复方案。已按本文方案完成实现和验收，见 [Step 4 Drift Remediation report](../../jobs/reports/2026-06-23-racingline-strategy-step4-drift-remediation.md)。修复时不应简单回退到旧实现，也不应把后端能力缺口强行转嫁给前端。正确方向是：
 
 - Step 4 面向用户表达建仓参数和风险管理，不展示 Rearview draft/hash/preview debug 信息。
 - Step 4 编辑期间不自动触发后端 backtest validate；只有点击「策略回测」或「进入回测」时才生成回测条件并校验。
@@ -452,4 +452,4 @@ playwright-cli attach --cdp="${PLAYWRIGHT_CDP_ENDPOINT:-http://127.0.0.1:9222}"
 4. 补趋势指标止损的前后端 contract、worker 和 portfolio engine。
 5. 完成浏览器验收和 job report。
 
-完成记录见 [2026-06-23 Step4 Drift Remediation report](../jobs/reports/2026-06-23-racingline-strategy-step4-drift-remediation.md)。后续真实回测执行 API、worker 结果落表、benchmark 绩效和回测结果页不属于本 debt，继续由组合净值和回测执行相关计划承接。
+完成记录见 [2026-06-23 Step4 Drift Remediation report](../../jobs/reports/2026-06-23-racingline-strategy-step4-drift-remediation.md)。后续真实回测执行 API、worker 结果落表、benchmark 绩效和回测结果页不属于本 debt，继续由组合净值和回测执行相关计划承接。

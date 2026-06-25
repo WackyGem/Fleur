@@ -4,17 +4,16 @@
 
 ## Active Plans
 
-| Plan | 状态 | 说明 |
-|---|---|---|
-| [0023](0023-contract-driven-parquet-schema-adapter-backfill-test-plan.md) | Proposed | Contract-driven Parquet schema adapter 合入后的 dev 环境重置、小批量回填和全量回填准入计划 |
-| [0042](0042-chinabond-government-bond-s3-raw-implementation-plan.md) | Proposed | ChinaBond 国债收益率曲线 Dagster 年分区 S3 Parquet raw 接入与 2006-2026 回填计划 |
-| [0043](0043-portfolio-data-plane-clickhouse-phase1-implementation-plan.md) | Proposed | 组合数据面迁移 ClickHouse 第一阶段：结果事实存储迁移、result_attempt_id 幂等重算、worker 切换写入目标、API 切换读取源 |
-| [0044](0044-portfolio-performance-metrics-implementation-plan.md) | Proposed | 组合绩效指标、int/mart risk-free 与 benchmark 输入、metric config、worker 写入 fleur_calculation、dbt thin wrapper/ranking 和 closed trade ledger 实施计划 |
+当前没有 active plans。历史计划见 [archive/](archive/)。
 
 ## Recently Completed
 
 | Plan | 状态 | 说明 |
 |---|---|---|
+| [0044](archive/0044-portfolio-performance-metrics-implementation-plan.md) | Archived | 组合绩效指标、int/mart risk-free 与 benchmark 输入、metric config、worker 写入 fleur_calculation、dbt thin wrapper/ranking 和 closed trade ledger 实施计划 |
+| [0043](archive/0043-portfolio-data-plane-clickhouse-phase1-implementation-plan.md) | Archived | 组合数据面迁移 ClickHouse 第一阶段：结果事实存储迁移、result_attempt_id 幂等重算、worker 切换写入目标、API 切换读取源 |
+| [0042](archive/0042-chinabond-government-bond-s3-raw-implementation-plan.md) | Archived | ChinaBond 国债收益率曲线 Dagster 年分区 S3 Parquet raw 接入与 2006-2026 回填计划 |
+| [0023](archive/0023-contract-driven-parquet-schema-adapter-backfill-test-plan.md) | Archived | Contract-driven Parquet schema adapter 合入后的 dev 环境重置、小批量回填和全量回填准入计划 |
 | [0053](archive/0053-racingline-legacy-cleanup-and-rename-plan.md) | Completed | Racingline 旧工程清理、`app/racingline_new` 重命名为 `app/racingline`、Makefile 和当前事实文档收敛；验收见 [2026-06-25 report](../jobs/reports/2026-06-25-racingline-legacy-cleanup-rename.md) |
 | [0052](archive/0052-racingline-strategy-portfolio-publish-dashboard-dagster-plan.md) | Completed | Racingline 策略组合发布、看板真实数据、Rearview daily run control plane、worker 全窗口重算和 Dagster 日运行资产；验收见 [2026-06-24 report](../jobs/reports/2026-06-24-racingline-strategy-portfolio-publish-dashboard-dagster.md) |
 | [0050](archive/0050-racingline-strategy-simulation-position-step4-implementation-plan.md) | Completed | Racingline 策略创建 Step 4 模拟建仓：BacktestExecutionDraft、默认市场费率模板、stale gate、UI 语义收敛和 Step 5 contract handoff；验收见 [2026-06-23 report](../jobs/reports/2026-06-23-racingline-strategy-step4-draft-handoff.md) |

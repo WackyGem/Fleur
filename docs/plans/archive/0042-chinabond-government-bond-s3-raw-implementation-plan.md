@@ -2,7 +2,7 @@
 
 日期：2026-06-16
 
-状态：Proposed
+状态：Archived
 
 关联文档：
 
@@ -12,7 +12,7 @@
 - `docs/ADR/0007-dbt-staging-cleaning-boundary.md`
 - `docs/ADR/0008-raw-source-profiling-before-dbt-staging.md`
 - `docs/plans/archive/0017-dagster-clickhouse-raw-sync-implementation-plan.md`
-- `docs/plans/0023-contract-driven-parquet-schema-adapter-backfill-test-plan.md`
+- `docs/plans/archive/0023-contract-driven-parquet-schema-adapter-backfill-test-plan.md`
 - `docs/systems/data-platform.md`
 - `docs/architecture/scheduler-module-boundaries.md`
 

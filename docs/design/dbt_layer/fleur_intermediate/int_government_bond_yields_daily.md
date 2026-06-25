@@ -7,7 +7,7 @@
 - Staging model：`ref('stg_chinabond__government_bond')`
 - Staging 设计：`docs/design/dbt_layer/fleur_staging/stg_chinabond__government_bond.md`
 - 目标位置：`pipeline/elt/models/intermediate/int_government_bond_yields_daily.sql`
-- 实施计划：`docs/plans/0042-chinabond-government-bond-s3-raw-implementation-plan.md`
+- 实施计划：`docs/plans/archive/0042-chinabond-government-bond-s3-raw-implementation-plan.md`
 - 关联 Q&A：`docs/Q&A/0001-postgresql-control-plane-clickhouse-portfolio-data-plane.md`
 
 ## 1. 模型定位

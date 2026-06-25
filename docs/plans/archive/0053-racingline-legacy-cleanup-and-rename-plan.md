@@ -16,7 +16,7 @@
 - `app/racingline_new/`
 - `Makefile`
 
-需求入口：[docs/intake/racingline.md](../../intake/racingline.md)
+系统地图：[docs/systems/racingline.md](../../systems/racingline.md)
 
 ## 背景
 
@@ -147,7 +147,7 @@
 | 文档 | 当前问题 | 处理 |
 |---|---|---|
 | `AGENTS.md` | Racingline 路径写作 `app/racingline/`，但运行说明仍受系统地图影响 | 保持路径，必要时更新 `make racingline-dev` 描述 |
-| `docs/intake/racingline.md` | 仍以旧 `app/racingline/` 第一版创建口径描述验证要求 | 更新为重命名后的唯一前端入口和新验证命令 |
+| `docs/systems/racingline.md` | 仍以旧 `app/racingline/` 第一版创建口径描述验证要求 | 更新为重命名后的唯一前端入口和新验证命令 |
 | `docs/systems/README.md` | Racingline 当前代码根已是 `app/racingline/`，不需结构性变化 | 如角色描述需要从旧选股工作台改成策略工作台则同步 |
 | `docs/systems/racingline.md` | 同时列出 `app/racingline/` 和 `app/racingline_new/`，运行入口也包含 `racingline-new-rearview-dev` | 收敛为单代码根 `app/racingline/` |
 | `docs/systems/rearview.md` | 仍列出 `make racingline-new-rearview-dev` | 删除或改为已归并说明 |
@@ -159,7 +159,7 @@
 
 1. `docs/jobs/reports/**` 中的历史验收报告。
 2. `docs/plans/archive/**` 中已完成或归档计划。
-3. `docs/debt/**` 中已 resolved 的漂移记录，除非它们被当前系统地图引用为当前事实。
+3. `docs/debt/archive/**` 中已 resolved 的漂移记录，除非它们被当前系统地图引用为当前事实。
 4. 历史 RFC 中作为背景或迁移来源的 `app/racingline_new/` 描述，但需要避免“当前仍并行”的误导性语句。
 
 ## 实施阶段
@@ -325,7 +325,7 @@ rg -n "racingline_new|racingline-new|RACINGLINE_NEW|app/racingline_new" --glob '
    - 接口依赖改为 strategy preview、strategy backtest、strategy portfolio 和 security analysis API。
    - 运行命令去掉 `make racingline-new-rearview-dev`。
    - 质量门禁只保留 `cd app/racingline && npm run lint && npm run typecheck && npm test && npm run build`。
-2. 更新 `docs/intake/racingline.md`：
+2. 更新 `docs/systems/racingline.md`：
    - 不再描述 `app/racingline/` “创建前/第一版”。
    - 验证要求只指向重命名后的正式目录。
 3. 更新 `docs/systems/rearview.md`：

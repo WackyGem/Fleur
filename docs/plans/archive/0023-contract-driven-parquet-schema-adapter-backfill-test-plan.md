@@ -2,11 +2,11 @@
 
 日期：2026-06-01
 
-状态：Proposed
+状态：Archived
 
 关联文档：
 
-- `docs/plans/0022-contract-driven-parquet-schema-adapter-implementation-plan.md`
+- `docs/plans/archive/0022-contract-driven-parquet-schema-adapter-implementation-plan.md`
 - `docs/RFC/0011-contract-driven-parquet-schema-adapter.md`
 - `docs/skills/fleur-dagster-backfill-runbook/SKILL.md`
 - `docs/skills/fleur-dagster-backfill-runbook/references/backfill-matrix.md`
@@ -296,7 +296,7 @@ UTC time: YYYY-MM-DDTHH:MM:SSZ
 
 ## Scope
 
-- Plan: `docs/plans/0023-contract-driven-parquet-schema-adapter-backfill-test-plan.md`
+- Plan: `docs/plans/archive/0023-contract-driven-parquet-schema-adapter-backfill-test-plan.md`
 - Failed asset/job:
 - Partition or config:
 - Run ID:

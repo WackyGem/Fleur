@@ -10,7 +10,7 @@
 
 代码根：`app/racingline/`
 
-需求入口：`docs/intake/racingline.md`
+系统地图：`docs/systems/racingline.md`
 
 完成报告：
 

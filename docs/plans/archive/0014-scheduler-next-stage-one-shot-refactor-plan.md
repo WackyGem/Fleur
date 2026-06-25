@@ -4,7 +4,7 @@
 
 关联设计文档：
 
-- `docs/optimize/scheduler-2026-05-31-next-stage-maintainability-optimization.md`
+- `docs/optimize/archive/scheduler-2026-05-31-next-stage-maintainability-optimization.md`
 
 ## 1. 目标
 
@@ -572,7 +572,7 @@ uv run pytest scheduler/tests --cov=scheduler/src/scheduler --cov-report=term-mi
 只有满足以下条件，本轮一刀切重构才算完成：
 
 - 本文阶段 A 到 G 全部完成。
-- `docs/optimize/scheduler-2026-05-31-next-stage-maintainability-optimization.md` 中的最终目标形态全部可在代码中验证。
+- `docs/optimize/archive/scheduler-2026-05-31-next-stage-maintainability-optimization.md` 中的最终目标形态全部可在代码中验证。
 - 不存在为了兼容旧路径、旧 metadata、旧测试而保留的桥接层。
 - 架构边界测试可以阻止主要反模式回归。
 - 最小验证门禁全部通过。

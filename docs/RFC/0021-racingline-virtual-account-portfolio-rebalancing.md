@@ -4,7 +4,7 @@
 领域：racingline
 关联系统：racingline, rearview, data-platform
 代码根：app/racingline/, engines/crates/rearview-core/, engines/crates/rearview-server/, engines/crates/rearview-portfolio-worker/, pipeline/migrate/
-需求入口：docs/intake/racingline.md
+系统地图：docs/systems/racingline.md
 
 ## 摘要
 

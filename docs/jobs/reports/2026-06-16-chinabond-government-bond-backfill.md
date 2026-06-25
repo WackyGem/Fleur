@@ -4,7 +4,7 @@ UTC time: 2026-06-16T20:22:16Z
 
 ## Scope
 
-- Plan: `docs/plans/0042-chinabond-government-bond-s3-raw-implementation-plan.md`
+- Plan: `docs/plans/archive/0042-chinabond-government-bond-s3-raw-implementation-plan.md`
 - Dataset: `chinabond__government_bond`
 - Source asset: `source/chinabond__government_bond`
 - Raw asset: `clickhouse/raw/chinabond__government_bond`

@@ -7,7 +7,7 @@
 - Intermediate model：`ref('int_stock_price_pattern_daily')`
 - Furnace price-pattern 计划：`docs/plans/archive/0031-furnace-price-action-structure-technical-indicators-implementation-plan.md`
 - Furnace 全市场验收：`docs/jobs/reports/2026-06-09-furnace-price-pattern-full-market-validation.md`
-- ClickHouse 排序键优化：`docs/optimize/0001-clickhouse-date-first-order-by-optimization.md`
+- ClickHouse 排序键优化：`docs/optimize/archive/0001-clickhouse-date-first-order-by-optimization.md`
 - 目标 SQL：`pipeline/elt/models/marts/mart_stock_price_pattern_daily.sql`
 - 目标 YAML：`pipeline/elt/models/marts/mart_stock_price_pattern_daily.yml`
 

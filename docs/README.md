@@ -1,20 +1,8 @@
 # mono-fleur Docs
 
-本目录是项目记录系统。新需求先走领域 intake，再按系统地图确认当前事实，最后进入决策、计划或历史材料。
+本目录是项目记录系统。新需求先从系统地图确认当前事实，再进入决策、计划、运行记录或历史材料。
 
 ## 快速入口
-
-### 按需求投递
-
-| 需要投递 | 入口 |
-|---|---|
-| 需求分流总入口 | [intake/README.md](intake/README.md) |
-| 数据平台需求 | [intake/data-platform.md](intake/data-platform.md) |
-| 数据治理需求 | [intake/data-governance.md](intake/data-governance.md) |
-| Furnace 计算引擎需求 | [intake/furnace.md](intake/furnace.md) |
-| Rearview 后端需求 | [intake/rearview.md](intake/rearview.md) |
-| Racingline 前端需求 | [intake/racingline.md](intake/racingline.md) |
-| 部署和运行需求 | [intake/deploy-ops.md](intake/deploy-ops.md) |
 
 ### 按系统查事实
 
@@ -36,6 +24,7 @@
 | 长期架构决策 | [ADR/README.md](ADR/README.md) |
 | 方案讨论和历史设计 | [RFC/](RFC/) |
 | 活跃执行计划 | [plans/README.md](plans/README.md) |
+| 技术债 | [debt/README.md](debt/README.md) |
 | Dagster 回填、运行和 lineage 记录 | [jobs/README.md](jobs/README.md) |
 | dbt 模型设计 | [design/README.md](design/README.md) |
 | 接口、数据字典和 raw profiling | [references/README.md](references/README.md) |
@@ -47,19 +36,19 @@
 
 | 目录 | 角色 | 当前性 |
 |---|---|---|
-| `intake/` | 按领域分流新需求，并决定是否进入 RFC、plan、ADR、systems、jobs 或 references | 当前需求入口 |
 | `systems/` | 按系统和产品线组织当前事实、代码根、运行入口和质量门禁 | 当前事实入口 |
 | `architecture/` | 当前架构和边界 | 当前事实 |
 | `ADR/` | 长期决策 | 当前或明确标注状态 |
 | `RFC/` | 设计讨论和历史方案 | 活跃 RFC 在顶层，历史进 `archive/` |
 | `plans/` | 仍需执行的计划 | 顶层只放 active plans |
 | `plans/archive/` | 完成、废弃或被替代的计划 | 历史参考 |
+| `debt/` | 技术债和实现漂移记录入口 | 历史参考 |
 | `jobs/` | runbook、snapshot 和运行报告入口 | 当前入口 |
 | `jobs/reports/` | 实际运行事实 | 历史事实 |
 | `design/` | dbt 模型设计和字段语义 | 当前事实 |
 | `references/` | 外部接口、raw profile、data dict | 可查事实 |
 | `Q&A/` | 设计问答、临时讨论和待升级为 RFC/ADR 的架构判断 | Proposed 或 Temporary |
-| `optimize/` | 质量扫描和治理建议 | 建议或审计结果 |
+| `optimize/` | 质量扫描、维护性审计和治理建议入口 | 历史参考 |
 | `skills/` | 可复用 agent 操作流程 | 当前 runbook |
 
 ## 状态约定
@@ -74,7 +63,7 @@
 - `Superseded`：被新文档替代。
 - `Archived`：历史参考。
 
-历史文档不要作为当前事实引用。引用历史方案时，同时链接当前 intake、系统地图、代码、ADR、architecture 文档或运行报告作为证据。
+历史文档不要作为当前事实引用。引用历史方案时，同时链接当前系统地图、代码、ADR、architecture 文档或运行报告作为证据。
 
 ## 最小校验
 

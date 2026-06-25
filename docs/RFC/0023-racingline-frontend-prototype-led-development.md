@@ -4,7 +4,7 @@
 领域：racingline
 关联系统：racingline
 代码根：app/racingline/
-需求入口：docs/intake/racingline.md
+系统地图：docs/systems/racingline.md
 
 ## 摘要
 
@@ -247,7 +247,7 @@ npm run build
 
 ## 相关文档
 
-- [docs/intake/racingline.md](../intake/racingline.md)
+- [docs/systems/racingline.md](../systems/racingline.md)
 - [docs/systems/racingline.md](../systems/racingline.md)
 - [docs/Q&A/0003-racingline-strategy-lab-two-entry-navigation.md](../Q&A/0003-racingline-strategy-lab-two-entry-navigation.md)
 - [docs/ADR/0011-racingline-frontend-technology-stack.md](../ADR/0011-racingline-frontend-technology-stack.md)

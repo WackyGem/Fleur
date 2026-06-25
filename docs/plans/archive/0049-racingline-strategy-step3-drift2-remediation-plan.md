@@ -6,7 +6,7 @@
 
 关联文档：
 
-- [Debt 0005: Strategies Step 3 股池预览二次实现漂移](../../debt/0005-2026-06-22-strategies-step3-implemennt-drift2.md)
+- [Debt 0005: Strategies Step 3 股池预览二次实现漂移](../../debt/archive/0005-2026-06-22-strategies-step3-implemennt-drift2.md)
 - [RFC 0026: Racingline 股池预览 Step 3 实现方案](../../RFC/0026-racingline-strategy-pool-preview-step3.md)
 - [RFC 0025: Racingline 策略权重配置 Step 2 实现方案](../../RFC/0025-racingline-strategy-weight-configuration-step2.md)
 - [Plan 0048: Racingline Step 3 股池预览漂移修正实施计划](0048-racingline-strategy-step3-drift-remediation-plan.md)

@@ -77,7 +77,7 @@
 | 实际运行事实 | `docs/jobs/reports/` | 命令、时间、范围、结果 |
 | 接口和数据事实 | `docs/references/` | OpenAPI、remote endpoint、raw profile、data dict |
 | dbt 模型设计 | `docs/design/dbt_layer/` | 每个模型的设计和字段语义 |
-| 质量审计和治理建议 | `docs/optimize/` | 质量扫描、后续优化方向 |
+| 质量审计和治理建议 | `docs/optimize/archive/` | 质量扫描、后续优化方向 |
 
 其他文档引用事实时，应链接到权威位置，不复制长段规则。
 
@@ -201,7 +201,7 @@ docs/
 
 完成标准：
 
-1. 形成一份 inventory 表，记录到本计划的执行报告或 `docs/optimize/`。
+1. 形成一份 inventory 表，记录到本计划的执行报告或 `docs/optimize/archive/`。
 2. 所有待归档、待补入口、待加状态的文档有清单。
 
 验证：
@@ -280,7 +280,7 @@ find docs/plans/archive -maxdepth 1 -type f | sort
 
 - `docs/RFC/`
 - `docs/RFC/archive/`
-- `docs/optimize/`
+- `docs/optimize/archive/`
 - `docs/jobs/`
 - `docs/jobs/reports/`
 
@@ -288,7 +288,7 @@ find docs/plans/archive -maxdepth 1 -type f | sort
 
 1. 对活跃 RFC 标注当前状态：仍在指导实现、已完成、已被 ADR 接收、或仅历史参考。
 2. 已被 ADR 或 plan 完成吸收的 RFC 移入 archive，文首保留当前入口链接。
-3. `docs/optimize/` 保留质量审计和治理建议，已转为执行计划的文档要指向对应 plan。
+3. `docs/optimize/archive/` 保留质量审计和治理建议，已转为执行计划的文档要指向对应 plan。
 4. `docs/jobs/README.md` 区分：
    - runbook：可复用操作步骤。
    - snapshot：某一时点的 definitions、lineage、状态盘点。
@@ -390,7 +390,7 @@ git diff --check
 
 1. 大型迁移完成当天，`Completed` plan 可以短暂停留在顶层，等待同一 PR 归档。
 2. 历史文档可以保留原格式，只要 archive 入口或文首状态说明足够清楚。
-3. 一次性调查笔记可以先落 `docs/optimize/`，但若产生执行动作，应升级为 plan。
+3. 一次性调查笔记可以先落 `docs/optimize/archive/`，但若产生执行动作，应升级为 plan。
 4. 外部接口样例、图片和生成数据字典不强制使用 plan 模板。
 
 ## 8. 验证命令
