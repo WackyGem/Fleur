@@ -2,11 +2,11 @@
 
 日期：2026-06-25
 
-状态：Proposed
+状态：Completed
 
 ## 背景
 
-[RFC 0030](../RFC/archive/0030-racingline-step2-step3-preview-latency-slimming.md) 已确认：`/strategies` 从 Step 2「权重配置」点击「股池预览」到进入 Step 3 时，当前把一次用户动作串成 `timeline -> preview -> security-analysis prefetch -> setActiveStep("preview")`，并在 `previewSnapshot` 写入后自动触发 `strategy-backtests/validate`。
+[RFC 0030](../../RFC/archive/0030-racingline-step2-step3-preview-latency-slimming.md) 已确认：`/strategies` 从 Step 2「权重配置」点击「股池预览」到进入 Step 3 时，当前把一次用户动作串成 `timeline -> preview -> security-analysis prefetch -> setActiveStep("preview")`，并在 `previewSnapshot` 写入后自动触发 `strategy-backtests/validate`。
 
 Step 3 首屏的最小必要信息只有近一年 timeline 和最新可展示交易日的前 N 个候选股。个股 K 线分析、KDJ/RSI/MACD/BOLL 宽响应和 Step 5 回测校验都不是进入 Step 3 的必要条件。本计划把 RFC 的减法方案拆成可执行阶段：先建立观测，再降低用户感知延时，再收敛首屏接口和 Step 3 chart context，最后只在数据证明仍慢时做 ClickHouse 查询或表结构优化。
 
@@ -31,22 +31,22 @@ Step 3 首屏的最小必要信息只有近一年 timeline 和最新可展示交
 
 | 文档 | 用途 |
 |---|---|
-| [RFC 0030](../RFC/archive/0030-racingline-step2-step3-preview-latency-slimming.md) | 设计依据、依赖分析和目标调用图 |
-| [Racingline 系统地图](../systems/racingline.md) | 前端职责、运行入口和质量门禁 |
-| [Rearview 系统地图](../systems/rearview.md) | Rearview API、ClickHouse mart 依赖和质量门禁 |
-| [Plan 0047](archive/0047-racingline-strategy-pool-preview-step3-implementation-plan.md) | Step 3 preview 原始实现计划 |
-| [Plan 0049](archive/0049-racingline-strategy-step3-drift2-remediation-plan.md) | Step 3 MA、量柱和 analysis payload 历史修正 |
+| [RFC 0030](../../RFC/archive/0030-racingline-step2-step3-preview-latency-slimming.md) | 设计依据、依赖分析和目标调用图 |
+| [Racingline 系统地图](../../systems/racingline.md) | 前端职责、运行入口和质量门禁 |
+| [Rearview 系统地图](../../systems/rearview.md) | Rearview API、ClickHouse mart 依赖和质量门禁 |
+| [Plan 0047](0047-racingline-strategy-pool-preview-step3-implementation-plan.md) | Step 3 preview 原始实现计划 |
+| [Plan 0049](0049-racingline-strategy-step3-drift2-remediation-plan.md) | Step 3 MA、量柱和 analysis payload 历史修正 |
 
 ## 当前事实基线
 
 | 区域 | 当前事实 |
 |---|---|
-| Step 2 到 Step 3 入口 | [strategy-page.tsx](../../app/racingline/src/routes/strategy-page.tsx) 的 `openPreview()` 串行调用 timeline、preview，并 `await prefetchInitialSecurityAnalysis()` 后才 `setActiveStep("preview")` |
-| Step 3 analysis query | [stock-pool-preview-workbench.tsx](../../app/racingline/src/features/strategy/components/stock-pool-preview-workbench.tsx) 使用 `usePreviewSecurityAnalysisQuery()`，当前请求通用 `/rearview/security-analysis` |
+| Step 2 到 Step 3 入口 | [strategy-page.tsx](../../../app/racingline/src/routes/strategy-page.tsx) 的 `openPreview()` 串行调用 timeline、preview，并 `await prefetchInitialSecurityAnalysis()` 后才 `setActiveStep("preview")` |
+| Step 3 analysis query | [stock-pool-preview-workbench.tsx](../../../app/racingline/src/features/strategy/components/stock-pool-preview-workbench.tsx) 使用 `usePreviewSecurityAnalysisQuery()`，当前请求通用 `/rearview/security-analysis` |
 | Step 3 pool-page query | `useStrategyPreviewPoolPageQuery()` 只在本地没有 page 0、切换日期、翻页或搜索时需要 |
-| Backtest validate | [strategy-page.tsx](../../app/racingline/src/routes/strategy-page.tsx) 中 `useStrategyBacktestValidateQuery(backtestValidateDraft.request)` 在 `previewSnapshot` 存在后自动触发 |
-| Rearview routes | [api/mod.rs](../../engines/crates/rearview-core/src/api/mod.rs) 已有 `/rearview/strategy-preview/timeline`、`/rearview/strategy-preview`、`/rearview/strategy-preview/pool-page`、`/rearview/security-analysis` 和 `/rearview/strategy-preview/security-analysis` |
-| Analysis 查询 | [clickhouse/mod.rs](../../engines/crates/rearview-core/src/clickhouse/mod.rs) 当前 analysis helpers 包含 `quote_select_columns()`、`chart_quote_select_columns()`、`trend_select_columns()` 和 `query_analysis_momentum_rows()` |
+| Backtest validate | [strategy-page.tsx](../../../app/racingline/src/routes/strategy-page.tsx) 中 `useStrategyBacktestValidateQuery(backtestValidateDraft.request)` 在 `previewSnapshot` 存在后自动触发 |
+| Rearview routes | [api/mod.rs](../../../engines/crates/rearview-core/src/api/mod.rs) 已有 `/rearview/strategy-preview/timeline`、`/rearview/strategy-preview`、`/rearview/strategy-preview/pool-page`、`/rearview/security-analysis` 和 `/rearview/strategy-preview/security-analysis` |
+| Analysis 查询 | [clickhouse/mod.rs](../../../engines/crates/rearview-core/src/clickhouse/mod.rs) 当前 analysis helpers 包含 `quote_select_columns()`、`chart_quote_select_columns()`、`trend_select_columns()` 和 `query_analysis_momentum_rows()` |
 | Step 3 实际消费字段 | 当前页面消费 `security_name/security_code/security_board`、`chart.series[].ohlc`、`volume`、`ma[5/10/30]`、`chart.ma.available_windows` 和右侧面板 14 个 `selected_quote` 字段 |
 
 ## 目标调用图
@@ -172,7 +172,7 @@ Step 4/5 gate
    - 抽取 timeline 与 latest preview 的公共 validate/catalog traversal。
    - 若抽取会扩大改动面，先保守只合并前端 round trip，并把共享 planning 作为后续子任务。
 3. 前端新增 API wrapper 和 query/mutation：
-   - 在 [rearview.ts](../../app/racingline/src/api/rearview.ts) 增加 `openStrategyPreview()`。
+   - 在 [rearview.ts](../../../app/racingline/src/api/rearview.ts) 增加 `openStrategyPreview()`。
    - 在 query key 中保留 `preview_id`、range 和 rule hash 语义。
    - `openPreview()` 改为调用 `strategy-preview/open`，并复用现有 `PreviewSnapshot` 结构。
 4. 保留旧接口兼容期：

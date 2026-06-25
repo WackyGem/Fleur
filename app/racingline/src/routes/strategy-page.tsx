@@ -11,7 +11,7 @@ import { createChart, LineSeries } from "lightweight-charts"
 import { useQueryClient } from "@tanstack/react-query"
 
 import { queryKeys } from "@/api/queryKeys"
-import { getStrategyBacktest, previewChartContext } from "@/api/rearview"
+import { getStrategyBacktest } from "@/api/rearview"
 import {
   useDefaultMarketFeeTemplateQuery,
   useMetricsQuery,
@@ -233,7 +233,6 @@ const backtestBenchmarkOptions = [
 ] as const
 
 const splitStepLayoutClassName = strategySplitPanelColumnsClassName
-const previewAnalysisMaWindows = "5,10,30"
 
 function createPreviewTimingLogger() {
   const enabled =
@@ -2170,7 +2169,6 @@ export function StrategyPage() {
       timing.mark("setPreviewSnapshot")
       setActiveStep("preview")
       timing.mark('setActiveStep("preview")')
-      void prefetchInitialPreviewChartContext(nextPreviewSnapshot, timing)
     } catch (error) {
       timing.mark("openPreview:error")
       setPreviewAdapterError(formatErrorMessage(error))
@@ -2180,47 +2178,6 @@ export function StrategyPage() {
     } finally {
       timing.flush()
       setIsOpeningPreview(false)
-    }
-  }
-
-  async function prefetchInitialPreviewChartContext(
-    snapshot: PreviewSnapshot,
-    timing = createPreviewTimingLogger()
-  ) {
-    const latestTradeDate = snapshot.result.trade_dates.at(-1)
-    const firstSignal = latestTradeDate?.signals[0]
-
-    if (!latestTradeDate || !firstSignal) {
-      timing.mark("chart-context-prefetch:skipped")
-      timing.flush()
-      return
-    }
-
-    const request = {
-      adjustment: "forward_adjusted" as const,
-      lookback_trading_days: 240,
-      ma_windows: previewAnalysisMaWindows,
-      security_code: firstSignal.security_code,
-      trade_date: latestTradeDate.trade_date,
-    }
-
-    const queryKey = queryKeys.previewChartContext(
-      snapshot.previewId,
-      request.trade_date,
-      request.security_code,
-      request.adjustment,
-      request.ma_windows
-    )
-
-    try {
-      timing.mark("chart-context-prefetch:start")
-      queryClient.setQueryData(queryKey, await previewChartContext(request))
-      timing.mark("chart-context-prefetch:success")
-    } catch {
-      timing.mark("chart-context-prefetch:error")
-      // Step3 will issue the same request through useQuery and retry normally.
-    } finally {
-      timing.flush()
     }
   }
 

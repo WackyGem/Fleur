@@ -809,12 +809,6 @@ function buildOutputMetrics(
 ) {
   const output = new Set<string>()
 
-  for (const metric of metricIndex.values()) {
-    if (metric.default_output) {
-      output.add(metric.logical_metric)
-    }
-  }
-
   for (const group of conditionGroups) {
     for (const condition of group.conditions) {
       const leftMetric = metricIndex.get(condition.metric)
