@@ -101,6 +101,8 @@ export const queryKeys = {
     ] as const,
   previewTimeline: (previewId: string, startDate: string, endDate: string) =>
     ["preview-timeline", previewId, startDate, endDate] as const,
+  previewOpen: (startDate: string, endDate: string, rowLimit: number) =>
+    ["preview-open", startDate, endDate, rowLimit] as const,
   previewPoolPage: (
     previewId: string,
     tradeDate: string,
@@ -123,5 +125,20 @@ export const queryKeys = {
       adjustment,
       maWindows,
       includeQuoteRows,
+    ] as const,
+  previewChartContext: (
+    previewId: string,
+    tradeDate: string,
+    securityCode: string,
+    adjustment: string,
+    maWindows: string
+  ) =>
+    [
+      "preview-chart-context",
+      previewId,
+      tradeDate,
+      securityCode,
+      adjustment,
+      maWindows,
     ] as const,
 }

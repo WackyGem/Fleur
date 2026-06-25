@@ -10,6 +10,8 @@ import type {
   ListResult,
   MetricDefinition,
   MetricsQuery,
+  PreviewChartContextRequest,
+  PreviewChartContextResponse,
   RuleVersionSpec,
   SecurityAnalysisRequest,
   SecurityAnalysisResponse,
@@ -38,6 +40,8 @@ import type {
   StrategyPortfolioSignalTimelineResponse,
   StrategyPreviewPoolPageRequest,
   StrategyPreviewPoolPageResponse,
+  StrategyPreviewOpenRequest,
+  StrategyPreviewOpenResponse,
   StrategyPreviewRequest,
   StrategyPreviewResponse,
   StrategyPreviewTimelineRequest,
@@ -77,12 +81,29 @@ export function previewStrategyTimeline(
   )
 }
 
+export function openStrategyPreview(request: StrategyPreviewOpenRequest) {
+  return requestJson<StrategyPreviewOpenResponse>(
+    "/rearview/strategy-preview/open",
+    jsonBody(request)
+  )
+}
+
 export function previewStrategyPoolPage(
   request: StrategyPreviewPoolPageRequest
 ) {
   return requestJson<StrategyPreviewPoolPageResponse>(
     "/rearview/strategy-preview/pool-page",
     jsonBody(request)
+  )
+}
+
+export function previewChartContext(
+  request: PreviewChartContextRequest,
+  signal?: AbortSignal
+) {
+  return requestJson<PreviewChartContextResponse>(
+    "/rearview/strategy-preview/chart-context",
+    { ...jsonBody(request), signal }
   )
 }
 

@@ -7,7 +7,7 @@ import {
 } from "lightweight-charts"
 
 import {
-  usePreviewSecurityAnalysisQuery,
+  usePreviewChartContextQuery,
   useStrategyPreviewPoolPageQuery,
 } from "@/api/hooks"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
@@ -59,7 +59,10 @@ import {
   clampScore,
   formatWeightIndicator,
 } from "@/features/strategy/utils"
-import type { ChartSeriesRow, SecurityAnalysisResponse } from "@/types/rearview"
+import type {
+  PreviewChartContextResponse,
+  PreviewChartContextSeriesRow,
+} from "@/types/rearview"
 
 type StockPoolPreviewWorkbenchProps = {
   appliedWeightIndicators: WeightIndicator[]
@@ -179,14 +182,13 @@ function StockPoolPreviewWorkbench({
     previewSnapshot && selectedDailyPool && selectedStock
       ? {
           adjustment: adjustmentMode,
-          include_quote_rows: false,
           lookback_trading_days: 240,
           ma_windows: maWindows,
           security_code: selectedStock.code,
           trade_date: selectedDailyPool.date,
         }
       : null
-  const analysisQuery = usePreviewSecurityAnalysisQuery(
+  const analysisQuery = usePreviewChartContextQuery(
     previewSnapshot?.previewId ?? null,
     analysisRequest
   )
@@ -292,7 +294,7 @@ function KLinePanel({
   stock,
 }: {
   adjustmentMode: (typeof adjustmentOptions)[number]["value"]
-  analysis: SecurityAnalysisResponse | null
+  analysis: PreviewChartContextResponse | null
   error: unknown
   isPending: boolean
   onAdjustmentModeChange: (
@@ -438,7 +440,7 @@ function CandlestickChart({
   series,
   visibleTrendLines,
 }: {
-  series: ChartSeriesRow[]
+  series: PreviewChartContextSeriesRow[]
   visibleTrendLines: string[]
 }) {
   const containerRef = useRef<HTMLDivElement | null>(null)
@@ -534,7 +536,7 @@ function CandlestickChart({
         series
           .map((row) => {
             const value =
-              row.ma?.[window] ?? row.price_overlays?.[`price_ma_${window}`]
+              row.ma?.[window]
 
             return typeof value === "number"
               ? {
@@ -776,7 +778,7 @@ function KeyDataPanel({
   onUpdateWeightIndicator,
   weightIndicators,
 }: {
-  analysis: SecurityAnalysisResponse | null
+  analysis: PreviewChartContextResponse | null
   analysisError: unknown
   isAnalysisPending: boolean
   onUpdateWeightIndicator: (

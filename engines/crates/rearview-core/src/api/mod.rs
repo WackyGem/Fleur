@@ -1,13 +1,18 @@
 use std::collections::{BTreeMap, BTreeSet};
+use std::time::Instant;
 
-use axum::extract::{Path, Query, State};
-use axum::http::StatusCode;
+use axum::body::Body;
+use axum::extract::{MatchedPath, Path, Query, State};
+use axum::http::{Request, StatusCode};
+use axum::middleware::{self, Next};
+use axum::response::Response;
 use axum::routing::{get, patch, post};
 use axum::{Json, Router};
 use chrono::{DateTime, Days, Months, NaiveDate, Utc};
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
 use tower_http::cors::CorsLayer;
+use tracing::info;
 
 use crate::clickhouse::{
     AnalysisQuoteAdjustment, MomentumIndicatorRow, QuoteMartRow, SecurityDisplayRow,
@@ -230,7 +235,37 @@ pub fn routes() -> Router<AppState> {
             "/rearview/strategy-preview/security-analysis",
             post(preview_strategy_security_analysis),
         )
+        .route(
+            "/rearview/strategy-preview/open",
+            post(open_strategy_preview),
+        )
+        .route(
+            "/rearview/strategy-preview/chart-context",
+            post(preview_strategy_chart_context),
+        )
+        .layer(middleware::from_fn(log_http_request))
         .layer(CorsLayer::permissive())
+}
+
+async fn log_http_request(request: Request<Body>, next: Next) -> Response {
+    let method = request.method().clone();
+    let route = request
+        .extensions()
+        .get::<MatchedPath>()
+        .map(MatchedPath::as_str)
+        .unwrap_or_else(|| request.uri().path())
+        .to_string();
+    let started_at = Instant::now();
+    let response = next.run(request).await;
+    let status = response.status();
+    info!(
+        method = %method,
+        route = %route,
+        status = status.as_u16(),
+        elapsed_ms = started_at.elapsed().as_millis(),
+        "rearview http request"
+    );
+    response
 }
 
 async fn healthz() -> Json<HealthResponse> {
@@ -2309,6 +2344,92 @@ async fn preview_strategy_timeline(
     }))
 }
 
+async fn open_strategy_preview(
+    State(state): State<AppState>,
+    Json(request): Json<StrategyPreviewOpenRequest>,
+) -> RearviewResult<Json<StrategyPreviewOpenResponse>> {
+    let request = request.into_parts()?;
+    let planner = QueryPlanner::new(state.catalog.clone());
+    let settings = QuerySettings {
+        max_execution_time_seconds: state.config.clickhouse.max_execution_time_seconds,
+        max_rows_to_read: state.config.clickhouse.max_rows_to_read,
+        max_bytes_to_read: state.config.clickhouse.max_bytes_to_read,
+    };
+    let timeline_compiled = planner.compile_preview_timeline(
+        &request.rule,
+        request.start_date,
+        request.end_date,
+        settings,
+    )?;
+    let preview_id = ulid::Ulid::new().to_string();
+    let timeline_query_id = format!("rearview-preview-open-timeline-{preview_id}");
+    let timeline_rows = state
+        .clickhouse
+        .query_preview_timeline_rows(&timeline_compiled.sql, &timeline_query_id)
+        .await?;
+    let timeline_trade_dates = timeline_rows
+        .into_iter()
+        .map(|row| StrategyPreviewTimelineTradeDate {
+            trade_date: row.trade_date,
+            pool_count: row.pool_count,
+        })
+        .collect::<Vec<_>>();
+
+    let mut compiled_for_response = timeline_compiled;
+    let latest = if let Some(latest_timeline_row) = timeline_trade_dates.last() {
+        let latest_trade_date = latest_timeline_row.trade_date;
+        let latest_pool_count = latest_timeline_row.pool_count;
+        let latest_compiled = planner.compile_preview(
+            &request.rule,
+            latest_trade_date,
+            latest_trade_date,
+            request.preview_row_limit,
+            settings,
+        )?;
+        let latest_query_id = format!("rearview-preview-open-latest-{preview_id}");
+        let rows = state
+            .clickhouse
+            .query_screening_rows(&latest_compiled.sql, &latest_query_id)
+            .await?;
+        let display_by_code = security_display_map(
+            &state,
+            &collect_security_codes(&rows),
+            &format!("{latest_query_id}-display"),
+        )
+        .await;
+        let mut latest_trade_dates =
+            build_strategy_preview_trade_dates(rows, request.preview_row_limit, &display_by_code)?;
+        compiled_for_response = latest_compiled;
+        Some(
+            latest_trade_dates
+                .pop()
+                .unwrap_or(StrategyPreviewTradeDate {
+                    trade_date: latest_trade_date,
+                    pool_count: latest_pool_count,
+                    signals: Vec::new(),
+                }),
+        )
+    } else {
+        None
+    };
+
+    Ok(Json(StrategyPreviewOpenResponse {
+        preview_id,
+        sql_hash: compiled_for_response.sql_hash,
+        required_metrics: compiled_for_response.required_metrics,
+        required_marts: compiled_for_response.required_marts,
+        required_columns: compiled_for_response.required_columns,
+        timeline: StrategyPreviewOpenTimeline {
+            start_date: request.start_date,
+            end_date: request.end_date,
+            trade_dates: timeline_trade_dates,
+        },
+        latest,
+        preview_row_limit: request.preview_row_limit,
+        top_n: request.preview_row_limit,
+    }))
+}
+
 async fn preview_strategy_pool_page(
     State(state): State<AppState>,
     Json(request): Json<StrategyPreviewPoolPageRequest>,
@@ -2517,6 +2638,93 @@ async fn preview_strategy_security_analysis(
         state.config.clickhouse.marts_database.clone(),
     );
     Ok(Json(response))
+}
+
+async fn preview_strategy_chart_context(
+    State(state): State<AppState>,
+    Json(request): Json<StrategyPreviewChartContextRequest>,
+) -> RearviewResult<Json<PreviewChartContextResponse>> {
+    let request = request.into_parts()?;
+    let query_id_prefix = format!(
+        "rearview-preview-chart-context-{}-{}-{}",
+        ulid::Ulid::new(),
+        request.security_code,
+        request.analysis.trade_date
+    );
+    let display = security_display_for_one(
+        &state,
+        &request.security_code,
+        &format!("{query_id_prefix}-display"),
+    )
+    .await;
+    let security_name = display
+        .as_ref()
+        .and_then(|display| display.security_name.clone());
+    let security_board = display
+        .as_ref()
+        .and_then(|display| display.security_board.clone());
+    let quote_start_date = resolve_analysis_quote_start_date(
+        &state,
+        request.analysis.quote_start_date,
+        request.analysis.quote_end_date,
+        request.analysis.lookback_trading_days,
+        &format!("{query_id_prefix}-date-window"),
+    )
+    .await?;
+    let (quote_rows, selected_quote) = if let Some(quote_start_date) = quote_start_date {
+        let chart_query_id = format!("{query_id_prefix}-chart-quotes");
+        let selected_query_id = format!("{query_id_prefix}-selected-quote");
+        tokio::try_join!(
+            state.clickhouse.query_chart_context_chart_quote_rows(
+                &request.security_code,
+                quote_start_date,
+                request.analysis.quote_end_date,
+                request.analysis.adjustment.into(),
+                &chart_query_id,
+            ),
+            state.clickhouse.query_chart_context_selected_quote_row(
+                &request.security_code,
+                request.analysis.trade_date,
+                &selected_query_id,
+            )
+        )?
+    } else {
+        (Vec::new(), None)
+    };
+    let (chart_start_date, chart_end_date) = quote_rows
+        .first()
+        .zip(quote_rows.last())
+        .map(|(first, last)| (first.trade_date, last.trade_date))
+        .unwrap_or((
+            quote_start_date.unwrap_or(request.analysis.quote_end_date),
+            request.analysis.quote_end_date,
+        ));
+    let trend_rows = if quote_rows.is_empty() {
+        Vec::new()
+    } else {
+        state
+            .clickhouse
+            .query_chart_context_trend_rows(
+                &request.security_code,
+                chart_start_date,
+                chart_end_date,
+                &format!("{query_id_prefix}-trend"),
+            )
+            .await?
+    };
+
+    Ok(Json(build_preview_chart_context_response(
+        PreviewChartContextBuildInput {
+            security_code: request.security_code,
+            security_name,
+            security_board,
+            adjustment: request.analysis.adjustment,
+            ma_windows: request.analysis.ma_windows,
+        },
+        selected_quote,
+        quote_rows,
+        trend_rows,
+    )))
 }
 
 #[derive(Debug, Deserialize)]
@@ -3218,6 +3426,54 @@ struct SecurityAnalysisResponse {
 }
 
 #[derive(Debug, Serialize)]
+struct PreviewChartContextResponse {
+    security_code: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    security_name: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    security_board: Option<String>,
+    chart: PreviewChartContextChart,
+    selected_quote: Option<PreviewChartContextQuote>,
+}
+
+#[derive(Debug, Serialize)]
+struct PreviewChartContextChart {
+    ma: PreviewChartContextMaMetadata,
+    series: Vec<PreviewChartContextSeriesRow>,
+}
+
+#[derive(Debug, Serialize)]
+struct PreviewChartContextMaMetadata {
+    available_windows: Vec<u32>,
+}
+
+#[derive(Debug, Serialize)]
+struct PreviewChartContextSeriesRow {
+    trade_date: NaiveDate,
+    ohlc: Option<ChartOhlc>,
+    volume: Option<f64>,
+    ma: BTreeMap<String, Option<f64>>,
+}
+
+#[derive(Debug, Serialize)]
+struct PreviewChartContextQuote {
+    open_price: Option<f64>,
+    high_price: Option<f64>,
+    low_price: Option<f64>,
+    close_price: Option<f64>,
+    prev_close_price: Option<f64>,
+    pct_change: Option<f64>,
+    pct_amplitude: Option<f64>,
+    volume: Option<f64>,
+    amount: Option<f64>,
+    limit_up_price: Option<f64>,
+    limit_down_price: Option<f64>,
+    a_market_cap: Option<f64>,
+    pe_ttm: Option<f64>,
+    roe: Option<f64>,
+}
+
+#[derive(Debug, Serialize)]
 struct ResultSnapshot {
     rank: Option<i32>,
     signal_rank: Option<i32>,
@@ -3538,6 +3794,80 @@ struct StrategyPreviewResponse {
 }
 
 #[derive(Debug, Deserialize)]
+struct StrategyPreviewOpenRequest {
+    rule: RuleVersionSpec,
+    start_date: NaiveDate,
+    end_date: NaiveDate,
+    #[serde(default)]
+    preview_row_limit: Option<u32>,
+    #[serde(default)]
+    top_n: Option<u32>,
+}
+
+impl StrategyPreviewOpenRequest {
+    fn into_parts(self) -> RearviewResult<StrategyPreviewOpenRequestParts> {
+        const MAX_OPEN_DAYS: i64 = 370;
+        let preview_row_limit = self.preview_row_limit.or(self.top_n).unwrap_or(50);
+        if preview_row_limit == 0 {
+            return Err(RearviewError::Validation(
+                "preview_row_limit must be greater than 0".to_string(),
+            ));
+        }
+        if preview_row_limit > 500 {
+            return Err(RearviewError::Validation(
+                "preview_row_limit must not exceed 500".to_string(),
+            ));
+        }
+        if self.start_date > self.end_date {
+            return Err(RearviewError::Validation(
+                "start_date must be earlier than or equal to end_date".to_string(),
+            ));
+        }
+        let day_count = (self.end_date - self.start_date).num_days() + 1;
+        if day_count > MAX_OPEN_DAYS {
+            return Err(RearviewError::Validation(format!(
+                "preview open date range must not exceed {MAX_OPEN_DAYS} days"
+            )));
+        }
+
+        Ok(StrategyPreviewOpenRequestParts {
+            rule: self.rule,
+            start_date: self.start_date,
+            end_date: self.end_date,
+            preview_row_limit,
+        })
+    }
+}
+
+#[derive(Debug)]
+struct StrategyPreviewOpenRequestParts {
+    rule: RuleVersionSpec,
+    start_date: NaiveDate,
+    end_date: NaiveDate,
+    preview_row_limit: u32,
+}
+
+#[derive(Debug, Serialize)]
+struct StrategyPreviewOpenResponse {
+    preview_id: String,
+    sql_hash: String,
+    required_metrics: Vec<String>,
+    required_marts: Vec<String>,
+    required_columns: BTreeMap<String, Vec<String>>,
+    timeline: StrategyPreviewOpenTimeline,
+    latest: Option<StrategyPreviewTradeDate>,
+    preview_row_limit: u32,
+    top_n: u32,
+}
+
+#[derive(Debug, Serialize)]
+struct StrategyPreviewOpenTimeline {
+    start_date: NaiveDate,
+    end_date: NaiveDate,
+    trade_dates: Vec<StrategyPreviewTimelineTradeDate>,
+}
+
+#[derive(Debug, Deserialize)]
 struct StrategyPreviewTimelineRequest {
     rule: RuleVersionSpec,
     start_date: NaiveDate,
@@ -3775,6 +4105,57 @@ struct SecurityAnalysisContextRequestParts {
     security_code: String,
     analysis: SecurityAnalysisRequest,
     include_quote_rows: bool,
+}
+
+#[derive(Debug, Deserialize)]
+struct StrategyPreviewChartContextRequest {
+    trade_date: NaiveDate,
+    security_code: String,
+    #[serde(default)]
+    adjustment: Option<Adjustment>,
+    #[serde(default)]
+    lookback_trading_days: Option<u32>,
+    #[serde(default)]
+    ma_windows: Option<String>,
+}
+
+impl StrategyPreviewChartContextRequest {
+    fn into_parts(self) -> RearviewResult<StrategyPreviewChartContextRequestParts> {
+        let security_code = self.security_code.trim().to_string();
+        if security_code.is_empty() {
+            return Err(RearviewError::Validation(
+                "security_code must not be empty".to_string(),
+            ));
+        }
+        let analysis = SecurityAnalysisQuery {
+            trade_date: self.trade_date,
+            source: AnalysisSource::Preview,
+            adjustment: self.adjustment,
+            quote_end_date: None,
+            lookback_trading_days: self.lookback_trading_days,
+            quote_start_date: None,
+            ma_windows: self.ma_windows,
+        }
+        .into_request()?;
+        Ok(StrategyPreviewChartContextRequestParts {
+            security_code,
+            analysis,
+        })
+    }
+}
+
+#[derive(Debug)]
+struct StrategyPreviewChartContextRequestParts {
+    security_code: String,
+    analysis: SecurityAnalysisRequest,
+}
+
+struct PreviewChartContextBuildInput {
+    security_code: String,
+    security_name: Option<String>,
+    security_board: Option<String>,
+    adjustment: Adjustment,
+    ma_windows: Vec<u32>,
 }
 
 fn build_strategy_preview_trade_dates(
@@ -4667,6 +5048,67 @@ fn build_security_analysis_response(
     }
 }
 
+fn build_preview_chart_context_response(
+    input: PreviewChartContextBuildInput,
+    selected_quote: Option<QuoteMartRow>,
+    quote_rows: Vec<QuoteMartRow>,
+    trend_rows: Vec<TrendIndicatorRow>,
+) -> PreviewChartContextResponse {
+    let trend_by_date = trend_rows
+        .into_iter()
+        .map(|row| (row.trade_date, row))
+        .collect::<BTreeMap<_, _>>();
+    let series = quote_rows
+        .iter()
+        .map(|quote| {
+            let trend = trend_by_date.get(&quote.trade_date);
+            PreviewChartContextSeriesRow {
+                trade_date: quote.trade_date,
+                ohlc: ohlc_for_adjustment(quote, input.adjustment),
+                volume: quote.volume,
+                ma: ma_values(trend, &input.ma_windows),
+            }
+        })
+        .collect::<Vec<_>>();
+    let available_windows = input
+        .ma_windows
+        .iter()
+        .copied()
+        .filter(|window| {
+            let key = window.to_string();
+            series
+                .iter()
+                .any(|row| row.ma.get(&key).and_then(|value| *value).is_some())
+        })
+        .collect::<Vec<_>>();
+
+    PreviewChartContextResponse {
+        security_code: input.security_code,
+        security_name: input.security_name,
+        security_board: input.security_board,
+        chart: PreviewChartContextChart {
+            ma: PreviewChartContextMaMetadata { available_windows },
+            series,
+        },
+        selected_quote: selected_quote.map(|quote| PreviewChartContextQuote {
+            open_price: quote.open_price,
+            high_price: quote.high_price,
+            low_price: quote.low_price,
+            close_price: quote.close_price,
+            prev_close_price: quote.prev_close_price,
+            pct_change: quote.pct_change,
+            pct_amplitude: quote.pct_amplitude,
+            volume: quote.volume,
+            amount: quote.amount,
+            limit_up_price: quote.limit_up_price,
+            limit_down_price: quote.limit_down_price,
+            a_market_cap: quote.a_market_cap,
+            pe_ttm: quote.pe_ttm,
+            roe: quote.roe,
+        }),
+    }
+}
+
 fn ohlc_for_adjustment(row: &QuoteMartRow, adjustment: Adjustment) -> Option<ChartOhlc> {
     let (open, high, low, close) = match adjustment {
         Adjustment::ForwardAdjusted => (
@@ -5192,6 +5634,25 @@ mod tests {
     }
 
     #[test]
+    fn preview_open_request_should_accept_near_one_year_range() {
+        let request = preview_open_request("2025-06-01", "2026-06-01", 10);
+
+        let parts = request.into_parts().unwrap();
+
+        assert_eq!(parts.start_date, date("2025-06-01"));
+        assert_eq!(parts.end_date, date("2026-06-01"));
+    }
+
+    #[test]
+    fn preview_open_request_should_reject_range_above_one_year_window() {
+        let error = preview_open_request("2025-01-01", "2026-06-01", 10)
+            .into_parts()
+            .unwrap_err();
+
+        assert!(matches!(error, RearviewError::Validation(_)));
+    }
+
+    #[test]
     fn preview_pool_page_request_should_reject_non_score_sort() {
         let mut request = preview_pool_page_request();
         request.sort = Some("rank_asc".to_string());
@@ -5274,6 +5735,38 @@ mod tests {
         assert_eq!(values.get("5").copied().flatten(), Some(10.0));
         assert_eq!(values.get("10").copied().flatten(), Some(11.0));
         assert_eq!(values.get("30").copied().flatten(), Some(12.0));
+    }
+
+    #[test]
+    fn chart_context_response_should_exclude_legacy_indicator_fields() {
+        let quote = quote_row("000001.SZ", "2026-06-02");
+        let response = build_preview_chart_context_response(
+            PreviewChartContextBuildInput {
+                security_code: "000001.SZ".to_string(),
+                security_name: Some("平安银行".to_string()),
+                security_board: Some("szse_main_board".to_string()),
+                adjustment: Adjustment::ForwardAdjusted,
+                ma_windows: vec![5, 10, 30],
+            },
+            Some(quote.clone()),
+            vec![quote],
+            vec![trend_row("000001.SZ", date("2026-06-02"))],
+        );
+
+        let value = serde_json::to_value(response).unwrap();
+        let text = value.to_string();
+
+        assert!(!text.contains("kdj"));
+        assert!(!text.contains("rsi"));
+        assert!(!text.contains("macd"));
+        assert!(!text.contains("boll"));
+        assert!(!text.contains("price_overlays"));
+        assert!(!text.contains("indicator_panels"));
+        assert!(!text.contains("quote_rows"));
+        assert_eq!(
+            value["chart"]["ma"]["available_windows"],
+            json!([5, 10, 30])
+        );
     }
 
     #[test]
@@ -5395,6 +5888,20 @@ mod tests {
         }
     }
 
+    fn preview_open_request(
+        start_date: &str,
+        end_date: &str,
+        top_n: u32,
+    ) -> StrategyPreviewOpenRequest {
+        StrategyPreviewOpenRequest {
+            rule: preview_request(start_date, end_date, top_n).rule,
+            start_date: date(start_date),
+            end_date: date(end_date),
+            preview_row_limit: Some(top_n),
+            top_n: None,
+        }
+    }
+
     fn preview_pool_page_request() -> StrategyPreviewPoolPageRequest {
         StrategyPreviewPoolPageRequest {
             rule: preview_request("2026-06-01", "2026-06-01", 10).rule,
@@ -5462,6 +5969,33 @@ mod tests {
             macd_dea: None,
             macd_histogram: None,
         }
+    }
+
+    fn quote_row(security_code: &str, trade_date: &str) -> QuoteMartRow {
+        serde_json::from_value(json!({
+            "security_code": security_code,
+            "trade_date": trade_date,
+            "open_price": 10.0,
+            "high_price": 11.0,
+            "low_price": 9.0,
+            "close_price": 10.5,
+            "prev_close_price": 10.0,
+            "open_price_forward_adj": 10.0,
+            "high_price_forward_adj": 11.0,
+            "low_price_forward_adj": 9.0,
+            "close_price_forward_adj": 10.5,
+            "volume": 1000.0,
+            "amount": 10000.0,
+            "pct_amplitude": 0.02,
+            "pct_change": 0.01,
+            "limit_up_price": 11.0,
+            "limit_down_price": 9.0,
+            "a_market_cap": 100000000.0,
+            "pe_ttm": 12.0,
+            "roe": 0.1,
+            "kdj_j_value": 88.0
+        }))
+        .expect("quote row fixture should deserialize")
     }
 
     fn benchmark_return(trade_date: &str, return_daily: Option<f64>) -> BenchmarkReturn {

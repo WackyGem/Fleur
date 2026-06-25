@@ -11,7 +11,7 @@ import { createChart, LineSeries } from "lightweight-charts"
 import { useQueryClient } from "@tanstack/react-query"
 
 import { queryKeys } from "@/api/queryKeys"
-import { getStrategyBacktest, securityAnalysis } from "@/api/rearview"
+import { getStrategyBacktest, previewChartContext } from "@/api/rearview"
 import {
   useDefaultMarketFeeTemplateQuery,
   useMetricsQuery,
@@ -23,8 +23,7 @@ import {
   useStrategyBacktestRebalanceRecordsQuery,
   useStrategyBacktestValidateQuery,
   useStrategyPortfolioCreateMutation,
-  useStrategyPreviewMutation,
-  useStrategyPreviewTimelineMutation,
+  useStrategyPreviewOpenMutation,
 } from "@/api/hooks"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
@@ -235,6 +234,30 @@ const backtestBenchmarkOptions = [
 
 const splitStepLayoutClassName = strategySplitPanelColumnsClassName
 const previewAnalysisMaWindows = "5,10,30"
+
+function createPreviewTimingLogger() {
+  const enabled =
+    import.meta.env.DEV &&
+    import.meta.env.VITE_RACINGLINE_PREVIEW_TIMING === "1"
+  const startedAt = performance.now()
+  const marks: { elapsed_ms: number; label: string }[] = []
+
+  return {
+    flush() {
+      if (enabled) {
+        console.debug("[racingline-preview-timing]", marks)
+      }
+    },
+    mark(label: string) {
+      if (enabled) {
+        marks.push({
+          elapsed_ms: Math.round(performance.now() - startedAt),
+          label,
+        })
+      }
+    },
+  }
+}
 
 type BacktestPeriod = BacktestPeriodValue
 type BacktestBenchmark =
@@ -1659,8 +1682,7 @@ export function StrategyPage() {
   const metricsQuery = useMetricsQuery()
   const defaultMarketTemplateQuery =
     useDefaultMarketFeeTemplateQuery("CN_A_SHARE")
-  const previewMutation = useStrategyPreviewMutation()
-  const previewTimelineMutation = useStrategyPreviewTimelineMutation()
+  const previewOpenMutation = useStrategyPreviewOpenMutation()
   const initialBacktestMutation = useStrategyBacktestCreateMutation()
   const createPortfolioMutation = useStrategyPortfolioCreateMutation()
   const strategyCatalog = useMemo(
@@ -1785,8 +1807,11 @@ export function StrategyPage() {
     previewSnapshot,
     transactionFeeValidationError,
   ])
+  const shouldValidateBacktestDraft =
+    activeStep === "simulation" || activeStep === "backtest"
   const backtestDraftQuery = useStrategyBacktestValidateQuery(
-    backtestValidateDraft.request
+    backtestValidateDraft.request,
+    shouldValidateBacktestDraft
   )
   const backtestExecutionDraft = useMemo<BacktestExecutionDraft | null>(() => {
     if (!backtestValidateDraft.request || !backtestDraftQuery.data) {
@@ -2068,10 +2093,11 @@ export function StrategyPage() {
   async function openPreview(
     nextWeightIndicators: WeightIndicator[] = weightIndicators
   ) {
+    const timing = createPreviewTimingLogger()
     setIsOpeningPreview(true)
-    previewMutation.reset()
-    previewTimelineMutation.reset()
+    previewOpenMutation.reset()
     setPreviewAdapterError(null)
+    timing.mark("openPreview:start")
 
     try {
       if (!metricsQuery.data || metricsQuery.data.length === 0) {
@@ -2092,31 +2118,36 @@ export function StrategyPage() {
         previewWeights,
         metricsQuery.data
       )
-      const timeline = await previewTimelineMutation.mutateAsync({
+      const openedPreview = await previewOpenMutation.mutateAsync({
         end_date: requestRange.end_date,
+        preview_row_limit: requestRange.preview_row_limit,
         rule,
         start_date: requestRange.start_date,
       })
-      const latestTradeDate = timeline.trade_dates.at(-1)?.trade_date ?? null
-      const result = latestTradeDate
-        ? await previewMutation.mutateAsync({
-            end_date: latestTradeDate,
-            preview_row_limit: requestRange.preview_row_limit,
-            rule,
-            start_date: latestTradeDate,
-          })
-        : {
-            end_date: requestRange.end_date,
-            preview_id: timeline.preview_id,
-            preview_row_limit: requestRange.preview_row_limit,
-            required_columns: timeline.required_columns,
-            required_marts: timeline.required_marts,
-            required_metrics: timeline.required_metrics,
-            sql_hash: timeline.sql_hash,
-            start_date: requestRange.start_date,
-            top_n: rule.top_n_default,
-            trade_dates: [],
-          }
+      timing.mark("strategy-preview/open:success")
+      const latestTradeDate = openedPreview.latest?.trade_date ?? null
+      const timeline = {
+        end_date: openedPreview.timeline.end_date,
+        preview_id: openedPreview.preview_id,
+        required_columns: openedPreview.required_columns,
+        required_marts: openedPreview.required_marts,
+        required_metrics: openedPreview.required_metrics,
+        sql_hash: openedPreview.sql_hash,
+        start_date: openedPreview.timeline.start_date,
+        trade_dates: openedPreview.timeline.trade_dates,
+      }
+      const result = {
+        end_date: latestTradeDate ?? requestRange.end_date,
+        preview_id: openedPreview.preview_id,
+        preview_row_limit: openedPreview.preview_row_limit,
+        required_columns: openedPreview.required_columns,
+        required_marts: openedPreview.required_marts,
+        required_metrics: openedPreview.required_metrics,
+        sql_hash: openedPreview.sql_hash,
+        start_date: latestTradeDate ?? requestRange.start_date,
+        top_n: openedPreview.top_n,
+        trade_dates: openedPreview.latest ? [openedPreview.latest] : [],
+      }
 
       setPreviewAppliedWeightIndicators(previewWeights)
       const nextPreviewSnapshot = buildPreviewSnapshot({
@@ -2135,49 +2166,61 @@ export function StrategyPage() {
         timeline,
         weightIndicators: previewWeights,
       })
-      await prefetchInitialSecurityAnalysis(nextPreviewSnapshot)
       setPreviewSnapshot(nextPreviewSnapshot)
+      timing.mark("setPreviewSnapshot")
       setActiveStep("preview")
+      timing.mark('setActiveStep("preview")')
+      void prefetchInitialPreviewChartContext(nextPreviewSnapshot, timing)
     } catch (error) {
+      timing.mark("openPreview:error")
       setPreviewAdapterError(formatErrorMessage(error))
       if (error instanceof StrategyRuleSpecError) {
         return
       }
     } finally {
+      timing.flush()
       setIsOpeningPreview(false)
     }
   }
 
-  async function prefetchInitialSecurityAnalysis(snapshot: PreviewSnapshot) {
+  async function prefetchInitialPreviewChartContext(
+    snapshot: PreviewSnapshot,
+    timing = createPreviewTimingLogger()
+  ) {
     const latestTradeDate = snapshot.result.trade_dates.at(-1)
     const firstSignal = latestTradeDate?.signals[0]
 
     if (!latestTradeDate || !firstSignal) {
+      timing.mark("chart-context-prefetch:skipped")
+      timing.flush()
       return
     }
 
     const request = {
       adjustment: "forward_adjusted" as const,
-      include_quote_rows: false,
       lookback_trading_days: 240,
       ma_windows: previewAnalysisMaWindows,
       security_code: firstSignal.security_code,
       trade_date: latestTradeDate.trade_date,
     }
 
-    const queryKey = queryKeys.previewSecurityAnalysis(
+    const queryKey = queryKeys.previewChartContext(
       snapshot.previewId,
       request.trade_date,
       request.security_code,
       request.adjustment,
-      request.ma_windows,
-      request.include_quote_rows
+      request.ma_windows
     )
 
     try {
-      queryClient.setQueryData(queryKey, await securityAnalysis(request))
+      timing.mark("chart-context-prefetch:start")
+      queryClient.setQueryData(queryKey, await previewChartContext(request))
+      timing.mark("chart-context-prefetch:success")
     } catch {
+      timing.mark("chart-context-prefetch:error")
       // Step3 will issue the same request through useQuery and retry normally.
+    } finally {
+      timing.flush()
     }
   }
 
@@ -2275,8 +2318,7 @@ export function StrategyPage() {
   const content = stepContent[activeStep]
   const isPreviewPending =
     isOpeningPreview ||
-    previewMutation.isPending ||
-    previewTimelineMutation.isPending
+    previewOpenMutation.isPending
   const isSplitStep =
     activeStep === "preview" ||
     activeStep === "simulation" ||
@@ -2390,12 +2432,12 @@ export function StrategyPage() {
                       onRemoveIndicator={removeWeightIndicator}
                       onUpdateIndicator={updateWeightIndicator}
                     />
-                    {previewAdapterError || previewMutation.isError ? (
+                    {previewAdapterError || previewOpenMutation.isError ? (
                       <Alert variant="destructive" className="shrink-0">
                         <AlertTitle>股池预览失败</AlertTitle>
                         <AlertDescription>
                           {previewAdapterError ??
-                            formatErrorMessage(previewMutation.error)}
+                            formatErrorMessage(previewOpenMutation.error)}
                         </AlertDescription>
                       </Alert>
                     ) : null}
@@ -2414,11 +2456,9 @@ export function StrategyPage() {
                   conditionGroups={conditionGroups}
                   error={
                     previewAdapterError ??
-                    (previewMutation.isError
-                      ? formatErrorMessage(previewMutation.error)
-                      : previewTimelineMutation.isError
-                        ? formatErrorMessage(previewTimelineMutation.error)
-                        : null)
+                    (previewOpenMutation.isError
+                      ? formatErrorMessage(previewOpenMutation.error)
+                      : null)
                   }
                   isPending={isPreviewPending}
                   isStale={previewSnapshot?.stale ?? false}

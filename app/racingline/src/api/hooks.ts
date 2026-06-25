@@ -27,6 +27,8 @@ import {
   listStrategyPortfolioSignals,
   listStrategyPortfolioSignalTimeline,
   listMetrics,
+  openStrategyPreview,
+  previewChartContext,
   previewStrategy,
   previewStrategyPoolPage,
   securityAnalysis,
@@ -35,12 +37,14 @@ import {
 } from "@/api/rearview"
 import type {
   MetricsQuery,
+  PreviewChartContextRequest,
   RuleVersionSpec,
   SecurityAnalysisRequest,
   StrategyBacktestCreateRequest,
   StrategyBacktestValidateRequest,
   StrategyPortfolioCreateRequest,
   StrategyPreviewPoolPageRequest,
+  StrategyPreviewOpenRequest,
   StrategyPreviewRequest,
   StrategyPreviewTimelineRequest,
 } from "@/types/rearview"
@@ -79,6 +83,13 @@ export function useStrategyPreviewTimelineMutation() {
   })
 }
 
+export function useStrategyPreviewOpenMutation() {
+  return useMutation({
+    mutationFn: (request: StrategyPreviewOpenRequest) =>
+      openStrategyPreview(request),
+  })
+}
+
 export function useDefaultMarketFeeTemplateQuery(market = "CN_A_SHARE") {
   return useQuery({
     queryKey: queryKeys.defaultMarketFeeTemplate(market),
@@ -95,10 +106,11 @@ export function useStrategyBacktestValidateMutation() {
 }
 
 export function useStrategyBacktestValidateQuery(
-  request: StrategyBacktestValidateRequest | null
+  request: StrategyBacktestValidateRequest | null,
+  enabled = true
 ) {
   return useQuery({
-    enabled: Boolean(request),
+    enabled: Boolean(request && enabled),
     queryKey: queryKeys.strategyBacktestValidate(request),
     queryFn: () => {
       if (!request) {
@@ -517,6 +529,33 @@ export function usePreviewSecurityAnalysisQuery(
         throw new Error("preview security-analysis request is missing")
       }
       return securityAnalysis(request, signal)
+    },
+    placeholderData: keepPreviousData,
+    retry: 1,
+    staleTime: 30_000,
+  })
+}
+
+export function usePreviewChartContextQuery(
+  previewId: string | null,
+  request: PreviewChartContextRequest | null
+) {
+  return useQuery({
+    enabled: Boolean(previewId && request),
+    queryKey: request
+      ? queryKeys.previewChartContext(
+          previewId ?? "",
+          request.trade_date,
+          request.security_code,
+          request.adjustment ?? "",
+          request.ma_windows ?? ""
+        )
+      : queryKeys.previewChartContext("", "", "", "", ""),
+    queryFn: ({ signal }) => {
+      if (!request) {
+        throw new Error("preview chart-context request is missing")
+      }
+      return previewChartContext(request, signal)
     },
     placeholderData: keepPreviousData,
     retry: 1,
