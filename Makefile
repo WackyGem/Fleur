@@ -89,7 +89,7 @@ define stop-listening-port
 	fi
 endef
 
-.PHONY: help dev-up dev-down dev-logs wait-rustfs wait-postgres wait-clickhouse dagster-home docs-check check-defs materialize-trade-calendar dev-materialize-trade-calendar webui dbt-docs dbt-docs-serve rust-doc rust-doc-open rust-doc-serve rearview-migrate rearview-catalog-sync rearview-prepare rearview-dev racingline-frontend-dev racingline-dev racingline-dev-stop
+.PHONY: help dev-up dev-down dev-logs wait-rustfs wait-postgres wait-clickhouse dagster-home docs-check check-defs materialize-trade-calendar dev-materialize-trade-calendar webui dbt-docs dbt-docs-serve rust-doc rust-doc-open rust-doc-serve rearview-migrate rearview-catalog-sync rearview-prepare rearview-dev racingline-frontend-dev racingline-app-dev racingline-dev racingline-dev-stop
 
 help:
 	@printf '%s\n' 'Available targets:'
@@ -112,6 +112,7 @@ help:
 	@printf '  %-34s %s\n' 'rearview-catalog-sync' 'Sync Rearview metric catalog into PostgreSQL'
 	@printf '  %-34s %s\n' 'rearview-dev' 'Start Docker dev services + Rearview after clearing its port'
 	@printf '  %-34s %s\n' 'racingline-frontend-dev' 'Start Racingline Vite dev server after clearing its port'
+	@printf '  %-34s %s\n' 'racingline-app-dev' 'Start Rearview server/worker + Racingline using existing .env infrastructure'
 	@printf '  %-34s %s\n' 'racingline-dev' 'Start Docker dev services + Rearview server/worker + Racingline after clearing ports'
 	@printf '  %-34s %s\n' 'racingline-dev-stop' 'Stop Rearview/Racingline dev servers by listening port'
 
@@ -225,10 +226,9 @@ racingline-dev-stop:
 	printf 'Stopping existing Rearview portfolio worker process(es): %s\n' "$$pids"; \
 	kill $$pids 2>/dev/null || true
 
-racingline-dev:
+racingline-app-dev:
 	$(require-env-file)
 	$(MAKE) --no-print-directory racingline-dev-stop
-	$(MAKE) --no-print-directory rearview-prepare
 	@set -euo pipefail; \
 		backend_pid=''; \
 		worker_pid=''; \
@@ -278,6 +278,11 @@ racingline-dev:
 		status=$$?; \
 		set -e; \
 		exit "$$status"
+
+racingline-dev:
+	$(require-env-file)
+	$(MAKE) --no-print-directory rearview-prepare
+	$(MAKE) --no-print-directory racingline-app-dev
 
 webui: dagster-home
 	@printf 'Starting Dagster Web UI at http://%s:%s\n' '$(DAGSTER_WEBUI_HOST)' '$(DAGSTER_WEBUI_PORT)'
