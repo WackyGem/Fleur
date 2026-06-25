@@ -13,8 +13,8 @@ from scheduler.defs.definitions import SOURCE_BUNDLES
 from scheduler.defs.definitions import defs as scheduler_defs
 from scheduler.defs.rearview.assets import REARVIEW_ASSETS
 from scheduler.defs.rearview.definitions import (
+    PORTFOLIO_DAILY_RUN_SCHEDULE,
     STRATEGY_PORTFOLIO_DAILY_RUN_JOB,
-    STRATEGY_PORTFOLIO_DAILY_RUN_SCHEDULE,
 )
 
 from scheduler import definitions as top_level_definitions
@@ -82,7 +82,7 @@ def test_registered_definitions_match_source_bundles() -> None:
     assert {schedule.name for schedule in loaded_defs.schedules or []} == (
         expected_schedules
         | expected_transformation_schedules
-        | {STRATEGY_PORTFOLIO_DAILY_RUN_SCHEDULE.name}
+        | {PORTFOLIO_DAILY_RUN_SCHEDULE.name}
     )
     assert {sensor.name for sensor in loaded_defs.sensors or []} == {"slack_asset_failure_sensor"}
     assert set(loaded_defs.resources) >= {
@@ -316,6 +316,15 @@ def test_source_bundle_contracts_are_stable() -> None:
         "jobs": ["chinabond__government_bond_job"],
         "schedules": ["chinabond__government_bond_schedule"],
     }
+
+
+def test_chinabond_government_bond_schedule_runs_at_16_00_shanghai_time() -> None:
+    from scheduler.defs.sources.chinabond.definitions import (
+        chinabond__government_bond_schedule,
+    )
+
+    assert chinabond__government_bond_schedule.cron_schedule == "0 16 * * *"
+    assert chinabond__government_bond_schedule.execution_timezone == "Asia/Shanghai"
 
 
 def test_jiuyan_ocr_pipeline_includes_snapshot_and_schedule_limits_ocr_batch() -> None:

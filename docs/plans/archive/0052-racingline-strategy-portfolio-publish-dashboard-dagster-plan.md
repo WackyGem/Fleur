@@ -555,7 +555,7 @@ strategy_portfolio__daily_run_job
 6. 新增 schedule：
 
 ```text
-strategy_portfolio__daily_run_schedule
+portfolio__daily_run_schedule
 ```
 
 建议 cron：`0 20 * * *`，晚于当前 `stock__daily_build_schedule = 30 18 * * *`。

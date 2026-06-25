@@ -21,7 +21,7 @@
 - Step 5 支持基于成功 backtest result 建立正式 strategy portfolio，发布后返回 `/dashboard`。
 - Dashboard 首页不再依赖 `portfolioCards`；卡片净值、涨跌、绩效指标、信号和曲线由 Rearview dashboard API 返回。
 - Strategy detail 页不再依赖 `holdingsByPortfolioId`、`buildStrategySignalPools()`、`buildDetailRebalanceRecords()`、`detailTradeCandidates` 或 `buildTradingDates()`。
-- Dagster 注册稳定日分区 asset `rearview/strategy_portfolio_daily_runs`、job `strategy_portfolio__daily_run_job` 和 schedule `strategy_portfolio__daily_run_schedule`。
+- Dagster 注册稳定日分区 asset `rearview/strategy_portfolio_daily_runs`、job `strategy_portfolio__daily_run_job` 和 schedule `portfolio__daily_run_schedule`。
 
 ## 验证
 
@@ -61,7 +61,7 @@ uv run dg check defs
 uv run dg list defs --json
 ```
 
-结果：通过，已看到 `strategy_portfolio__daily_run_job`、`strategy_portfolio__daily_run_schedule` 和 `rearview_api` resource。
+结果：通过，已看到 `strategy_portfolio__daily_run_job`、`portfolio__daily_run_schedule` 和 `rearview_api` resource。
 
 ```bash
 cd pipeline/migrate

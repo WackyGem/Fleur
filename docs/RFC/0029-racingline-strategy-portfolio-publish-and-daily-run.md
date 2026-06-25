@@ -511,7 +511,7 @@ strategy_portfolio__daily_run_job
 新增 schedule：
 
 ```text
-strategy_portfolio__daily_run_schedule
+portfolio__daily_run_schedule
 ```
 
 调度策略：
@@ -594,7 +594,7 @@ Dagster schedule
 
 ## Dagster 验收标准
 
-1. `cd pipeline/scheduler && uv run dg list defs --json` 能看到 `rearview/strategy_portfolio_daily_runs` asset、`strategy_portfolio__daily_run_job` job 和 `strategy_portfolio__daily_run_schedule` schedule。
+1. `cd pipeline/scheduler && uv run dg list defs --json` 能看到 `rearview/strategy_portfolio_daily_runs` asset、`strategy_portfolio__daily_run_job` job 和 `portfolio__daily_run_schedule` schedule。
 2. Daily asset materialization metadata 包含 active portfolio 数量、created/skipped/succeeded/failed 计数和 trade date。
 3. 调度时间晚于数据准备链路；当上游缺失时失败可见。
 4. 不因为用户创建新组合而修改 Dagster definition。

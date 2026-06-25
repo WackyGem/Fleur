@@ -17,7 +17,7 @@ chinabond__government_bond_job = automation_schedules.build_asset_job(
 chinabond__government_bond_schedule = automation_schedules.build_year_refresh_schedule(
     name="chinabond__government_bond_schedule",
     job=chinabond__government_bond_job,
-    cron_schedule="30 18 * * *",
+    cron_schedule="0 16 * * *",
     asset_names=CHINABOND_DAILY_OP_NAMES,
     source="chinabond",
 )
