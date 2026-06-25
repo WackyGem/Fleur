@@ -25,6 +25,5 @@
       "@/*": ["./src/*"]
     }
   },
-  "include": ["src"],
-  "exclude": ["src/components/ui/spinner.tsx"]
+  "include": ["src"]
 }

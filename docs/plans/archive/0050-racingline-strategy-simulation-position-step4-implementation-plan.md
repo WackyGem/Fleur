@@ -23,7 +23,7 @@
 - [RFC 0025: Racingline 策略权重配置 Step 2 实现方案](../../RFC/0025-racingline-strategy-weight-configuration-step2.md)
 - [RFC 0024: Racingline 策略选股 Step 1 实现切入方案](../../RFC/0024-racingline-strategy-selection-step1.md)
 - [RFC 0021: Racingline 虚拟账户与组合调仓净值](../../RFC/0021-racingline-virtual-account-portfolio-rebalancing.md)
-- [Plan 0041: Racingline 虚拟账户与组合调仓净值实施计划](../0041-racingline-virtual-account-portfolio-rebalancing-implementation-plan.md)
+- [Plan 0041: Racingline 虚拟账户与组合调仓净值实施计划](0041-racingline-virtual-account-portfolio-rebalancing-implementation-plan.md)
 - [Step 4 Draft Handoff 报告](../../jobs/reports/2026-06-23-racingline-strategy-step4-draft-handoff.md)
 - [System: Racingline](../../systems/racingline.md)
 - [System: Rearview](../../systems/rearview.md)

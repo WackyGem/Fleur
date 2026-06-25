@@ -6,357 +6,14 @@ export type JsonValue =
   | JsonValue[]
   | { [key: string]: JsonValue }
 
-export type HealthResponse = {
-  status: string
-}
-
-export type RuleSetRecord = {
-  rule_set_id: string
-  name: string
-  description?: string | null
-  owner?: string | null
-  status: string
-  tags: JsonValue
-  current_version_id?: string | null
-}
-
-export type RuleVersionRecord = {
-  rule_version_id: string
-  rule_set_id: string
-  version_no: number
-  status: string
-  top_n_default: number
-  rule_hash: string
-}
-
-export type RunSummary = {
-  day_count?: number
-  pool_count?: number
-  signal_count?: number
-  [key: string]: JsonValue | undefined
-}
-
-export type RunRecord = {
-  run_id: string
-  rule_version_id: string
-  rule_set_id?: string | null
-  rule_set_name?: string | null
-  rule_hash: string
-  start_date: string
-  end_date: string
-  top_n: number
-  status: string
-  compiled_sql_hash?: string | null
-  summary: RunSummary
-  error_type?: string | null
-  error_message?: string | null
-}
-
-export type FeeProfile = {
-  commission_rate: number
-  commission_rate_max: number
-  min_commission: number
-  stamp_duty_rate_sell: number
-  transfer_fee_rate: number
-  [key: string]: JsonValue
-}
-
-export type SlippageProfile = {
-  mode?: string
-  buy_bps: number
-  sell_bps: number
-  [key: string]: JsonValue | undefined
-}
-
-export type MarketFeeTemplateRecord = {
-  market_fee_template_id: string
-  market: string
-  name: string
-  currency: string
-  fee_profile: FeeProfile
-  slippage_profile: SlippageProfile
-  is_default: boolean
-  status: string
-}
-
-export type AccountTemplateRecord = {
-  account_template_id: string
-  rule_set_id: string
-  market_fee_template_id?: string | null
-  name: string
-  initial_cash: number
-  currency: string
-  fee_profile: FeeProfile
-  slippage_profile: SlippageProfile
-  rebalance_policy: JsonRecord
-  risk_exit_policy: JsonRecord
-  is_default: boolean
-  status: string
-}
-
-export type PortfolioSummary = {
-  initial_cash?: number
-  ending_equity?: number
-  total_return?: number
-  max_drawdown?: number
-  trade_count?: number
-  total_fee?: number
-  warning_count?: number
-  [key: string]: JsonValue | undefined
-}
-
-export type PortfolioRunRecord = {
-  portfolio_run_id: string
-  source_run_id: string
-  rule_version_id: string
-  rule_hash: string
-  account_template_id?: string | null
-  account_snapshot: JsonRecord
-  execution_snapshot: JsonRecord
-  price_basis: "backward_adjusted"
-  start_date: string
-  end_date: string
-  status: string
-  dispatch_status: string
-  nats_stream_sequence?: number | null
-  summary: PortfolioSummary
-  error_type?: string | null
-  error_message?: string | null
-  current_result_attempt_id?: string | null
-}
-
-export type PortfolioNavRecord = {
-  portfolio_run_id: string
-  trade_date: string
-  cash_balance: number
-  position_market_value: number
-  total_equity: number
-  nav: number
-  daily_return?: number | null
-  drawdown: number
-  gross_exposure: number
-  position_count: number
-  turnover: number
-  fee_amount: number
-  warning_count: number
-}
-
-export type PortfolioTargetRecord = {
-  portfolio_run_id: string
-  signal_date: string
-  execution_date: string
-  security_code: string
-  source_rank?: number | null
-  source_score?: number | null
-  target_weight: number
-  target_amount: number
-  target_quantity?: number | null
-  target_reason: string
-}
-
-export type PortfolioOrderRecord = {
-  portfolio_order_id: string
-  portfolio_run_id: string
-  order_seq: number
-  signal_date?: string | null
-  execution_date: string
-  security_code: string
-  side: string
-  order_quantity: number
-  order_amount: number
-  reference_price?: number | null
-  reason: string
-  status: string
-  event_ref?: string | null
-}
-
-export type PortfolioTradeRecord = {
-  portfolio_trade_id: string
-  portfolio_run_id: string
-  trade_seq: number
-  portfolio_order_id?: string | null
-  trade_date: string
-  signal_date?: string | null
-  security_code: string
-  side: string
-  quantity: number
-  reference_price: number
-  execution_price: number
-  gross_amount: number
-  commission: number
-  stamp_duty: number
-  transfer_fee: number
-  total_fee: number
-  slippage_cost: number
-  reason: string
-}
-
-export type PortfolioPositionRecord = {
-  portfolio_run_id: string
-  trade_date: string
-  security_code: string
-  quantity: number
-  cost_basis: number
-  average_entry_price: number
-  close_price: number
-  market_value: number
-  unrealized_pnl: number
-  unrealized_return: number
-  holding_days: number
-  is_stale_price: boolean
-}
-
-export type PortfolioEventRecord = {
-  portfolio_event_id: string
-  portfolio_run_id: string
-  event_seq: number
-  trade_date?: string | null
-  security_code?: string | null
-  event_type: string
-  severity: string
-  message: string
-  payload: JsonRecord
-}
-
-export type PortfolioPerformanceMetricRecord = {
-  portfolio_run_id: string
-  result_attempt_id: string
-  security_code: string
-  window_key: string
-  window_start?: string | null
-  window_end?: string | null
-  config_hash: string
-  metric_status: string
-  observation_count: number
-  holding_period_return?: number | null
-  annualized_return?: number | null
-  annualized_volatility?: number | null
-  max_drawdown?: number | null
-  calmar_ratio?: number | null
-  downside_deviation?: number | null
-  sortino_ratio?: number | null
-  sharpe_ratio?: number | null
-  information_ratio?: number | null
-  beta?: number | null
-  alpha?: number | null
-  treynor_ratio?: number | null
-}
-
-export type PortfolioPerformanceMetricStatusRecord = {
-  portfolio_run_id: string
-  result_attempt_id: string
-  security_code: string
-  window_key: string
-  metric_name: string
-  metric_status: string
-  reason_code: string
-}
-
-export type PortfolioPerformanceResponse = {
-  metric: PortfolioPerformanceMetricRecord
-  statuses: PortfolioPerformanceMetricStatusRecord[]
-}
-
-export type PortfolioClosedTradeRecord = {
-  portfolio_run_id: string
-  result_attempt_id: string
-  closed_trade_id: string
-  closed_trade_seq: number
-  position_lot_id: string
-  entry_trade_seq: number
-  exit_trade_seq: number
-  security_code: string
-  entry_date: string
-  exit_date: string
-  quantity: number
-  entry_gross_amount: number
-  exit_gross_amount: number
-  entry_fee: number
-  exit_fee: number
-  total_fee: number
-  realized_pnl: number
-  realized_return?: number | null
-  holding_days: number
-  exit_reason: string
-}
-
-export type PortfolioTradeMetricRecord = {
-  portfolio_run_id: string
-  result_attempt_id: string
-  window_key: string
-  window_start?: string | null
-  window_end?: string | null
-  closed_trade_count: number
-  winning_trade_count: number
-  losing_trade_count: number
-  breakeven_trade_count: number
-  win_rate_closed_trades?: number | null
-  average_win_return?: number | null
-  average_loss_return?: number | null
-  profit_loss_ratio?: number | null
-  average_holding_days?: number | null
-  largest_win_return?: number | null
-  largest_loss_return?: number | null
-}
-
-export type RunChunkRecord = {
-  run_id: string
-  chunk_no: number
-  start_date: string
-  end_date: string
-  status: string
-  clickhouse_query_id?: string | null
-  elapsed_ms?: number | null
-  error_type?: string | null
-  error_message?: string | null
-}
-
-export type RunDayRecord = {
-  run_id: string
-  trade_date: string
-  status: string
-  universe_count?: number | null
-  pool_count?: number | null
-  signal_count?: number | null
-  error_type?: string | null
-  error_message?: string | null
-}
-
 export type JsonRecord = Record<string, JsonValue>
 
-export type PoolMemberRecord = {
-  run_id: string
-  trade_date: string
-  security_code: string
-  score?: number | null
-  signal_rank?: number | null
-  selected_metrics: JsonRecord
-  filter_snapshot: JsonValue
-}
-
-export type BuySignalRecord = {
-  run_id: string
-  trade_date: string
-  security_code: string
-  rank: number
-  score: number
-  score_breakdown: JsonRecord
-  selected_metrics: JsonRecord
-}
-
-export type MetricDefinition = {
-  logical_metric: string
-  mart_database: string
-  mart_table: string
-  column_name: string
-  value_kind: "numeric" | "integer" | "boolean" | "string" | "date"
-  allow_filter: boolean
-  allow_scoring: boolean
-  allowed_ops: Operator[]
-  null_policy: "no_match" | "match" | "error"
-  default_output: boolean
-  description?: string | null
-}
+export type MetricValueKind =
+  | "numeric"
+  | "integer"
+  | "boolean"
+  | "string"
+  | "date"
 
 export type Operator =
   | "eq"
@@ -367,13 +24,34 @@ export type Operator =
   | "gte"
   | "between"
   | "is_null"
+  | "crosses_above"
+  | "crosses_below"
 
-export type RuleVersionSpec = {
-  universe: UniverseSpec
-  pool_filters: FilterExpr
-  scoring: ScoringSpec
-  top_n_default: number
-  output_metrics: string[]
+export type MetricCross = {
+  previous_metric: string
+}
+
+export type MetricDisplay = {
+  group?: string | null
+  label_zh?: string | null
+  unit?: string | null
+  sort_order?: number | null
+}
+
+export type MetricDefinition = {
+  logical_metric: string
+  mart_database: string
+  mart_table: string
+  column_name: string
+  value_kind: MetricValueKind
+  allow_filter: boolean
+  allow_scoring: boolean
+  allowed_ops: Operator[]
+  null_policy: "no_match" | "match" | "error"
+  default_output: boolean
+  description?: string | null
+  cross?: MetricCross | null
+  display?: MetricDisplay | null
 }
 
 export type UniverseSpec = {
@@ -427,6 +105,14 @@ export type ScoreClamp = {
   max: number
 }
 
+export type RuleVersionSpec = {
+  universe: UniverseSpec
+  pool_filters: FilterExpr
+  scoring: ScoringSpec
+  top_n_default: number
+  output_metrics: string[]
+}
+
 export type ChunkPlanRecord = {
   chunk_no: number
   start_date: string
@@ -444,168 +130,622 @@ export type ExplainResponse = {
   [key: string]: JsonValue | string[] | ChunkPlanRecord[] | undefined
 }
 
-export type ListResult<T> = {
-  items: T[]
+export type StrategyPreviewRequest = {
+  rule: RuleVersionSpec
+  start_date: string
+  end_date: string
+  preview_row_limit: number
+  top_n?: number
+}
+
+export type StrategyPreviewSignal = {
+  security_code: string
+  security_name?: string | null
+  exchange_code?: string | null
+  security_board?: string | null
+  raw_score: number
+  score: number
+  signal_rank: number
+  is_buy_signal: boolean
+  score_breakdown: JsonValue
+  selected_metrics: JsonValue
+  raw_values: JsonValue
+}
+
+export type StrategyPreviewTradeDate = {
+  trade_date: string
+  pool_count: number
+  signals: StrategyPreviewSignal[]
+}
+
+export type StrategyPreviewResponse = {
+  preview_id: string
+  sql_hash: string
+  required_metrics: string[]
+  required_marts: string[]
+  required_columns: Record<string, string[]>
+  start_date: string
+  end_date: string
+  preview_row_limit: number
+  top_n: number
+  trade_dates: StrategyPreviewTradeDate[]
+}
+
+export type StrategyPreviewTimelineRequest = {
+  rule: RuleVersionSpec
+  start_date: string
+  end_date: string
+}
+
+export type StrategyPreviewTimelineTradeDate = {
+  trade_date: string
+  pool_count: number
+}
+
+export type StrategyPreviewTimelineResponse = {
+  preview_id: string
+  sql_hash: string
+  required_metrics: string[]
+  required_marts: string[]
+  required_columns: Record<string, string[]>
+  start_date: string
+  end_date: string
+  trade_dates: StrategyPreviewTimelineTradeDate[]
+}
+
+export type StrategyPreviewPoolPageRequest = {
+  rule: RuleVersionSpec
+  trade_date: string
+  limit: number
+  offset: number
+  sort?: "score_desc"
+  security_code?: string
+}
+
+export type StrategyPreviewPoolPageResponse = {
+  trade_date: string
+  pool_count: number
+  items: StrategyPreviewSignal[]
   limit: number
   offset: number
   has_more: boolean
-  total?: number
 }
 
-export type RunsQuery = {
-  status?: string
-  rule_set_id?: string
-  start_date?: string
-  end_date?: string
-  keyword?: string
-  limit?: number
-  offset?: number
+export type FeeProfile = {
+  commission_rate: number
+  commission_rate_max: number
+  min_commission: number
+  stamp_duty_rate_sell: number
+  transfer_fee_rate: number
+  [key: string]: JsonValue
 }
 
-export type PortfolioRunsQuery = {
-  source_run_id?: string
-  status?: string
-  dispatch_status?: string
-  limit?: number
-  offset?: number
+export type SlippageProfile = {
+  mode?: string
+  buy_bps: number
+  sell_bps: number
+  [key: string]: JsonValue | undefined
 }
 
-export type PortfolioTargetQuery = {
-  signal_date?: string
-  limit?: number
-  offset?: number
+export type MarketFeeTemplateRecord = {
+  market_fee_template_id: string
+  market: string
+  name: string
+  currency: string
+  fee_profile: FeeProfile
+  slippage_profile: SlippageProfile
+  is_default: boolean
+  status: string
 }
 
-export type PortfolioOrderQuery = {
-  execution_date?: string
-  security_code?: string
-  limit?: number
-  offset?: number
-}
-
-export type PortfolioTradeQuery = {
-  trade_date?: string
-  security_code?: string
-  limit?: number
-  offset?: number
-}
-
-export type PortfolioPositionQuery = {
-  trade_date?: string
-  security_code?: string
-  limit?: number
-  offset?: number
-}
-
-export type PortfolioEventQuery = {
-  trade_date?: string
-  event_type?: string
-  limit?: number
-  offset?: number
-}
-
-export type PortfolioPerformanceQuery = {
-  result_attempt_id?: string
-  security_code?: string
-  window_key?: string
-}
-
-export type PortfolioClosedTradeQuery = {
-  result_attempt_id?: string
-  security_code?: string
-  exit_date?: string
-  limit?: number
-  offset?: number
-}
-
-export type PortfolioTradeMetricQuery = {
-  result_attempt_id?: string
-  window_key?: string
-  limit?: number
-  offset?: number
-}
-
-export type RuleSetsQuery = {
-  status?: string
-  keyword?: string
-  limit?: number
-  offset?: number
-}
-
-export type RuleVersionsQuery = {
-  status?: string
-  limit?: number
-  offset?: number
-}
-
-export type MetricsQuery = {
-  mart_table?: string
-  value_kind?: string
-  allow_filter?: boolean
-  allow_scoring?: boolean
-  keyword?: string
-}
-
-export type ResultRowsQuery = {
-  trade_date: string
-  limit?: number
-  offset?: number
-  security_code?: string
-  sort?: string
-}
-
-export type AnalysisSource = "signals" | "pool"
-
-export type PriceAdjustment =
-  | "forward_adjusted"
-  | "backward_adjusted"
-  | "unadjusted"
-
-export type SecurityAnalysisQuery = {
-  trade_date: string
-  source: AnalysisSource
-  adjustment?: PriceAdjustment
-  quote_end_date?: string
-  lookback_trading_days?: number
-  quote_start_date?: string
-  ma_windows?: string
-}
-
-export type ResultSnapshot = {
-  rank?: number | null
-  signal_rank?: number | null
-  score?: number | null
-  score_breakdown?: JsonValue
-  selected_metrics: JsonRecord
-  filter_snapshot?: JsonValue
-}
-
-export type SourceMetadata = {
-  database: string
-  table: string
-  value_semantics: "current_mart_query" | string
-  adjustment?: PriceAdjustment | null
-}
-
-export type AdjustedQuoteSourceMetadata = {
-  database: string
-  table: string
-  value_semantics: "current_mart_query" | string
-  adjustment_fields: PriceAdjustment[]
-}
-
-export type AnalysisSources = {
-  quote: SourceMetadata
-  adjusted_quote: AdjustedQuoteSourceMetadata
-  trend: SourceMetadata
-  momentum: SourceMetadata
-}
-
-export type ChartWindow = {
+export type BacktestDateRange = {
   start_date: string
   end_date: string
-  lookback_trading_days: number
 }
+
+export type BacktestExecutionConfig = {
+  market: "CN_A_SHARE"
+  account: BacktestAccountConfig
+  signal_policy: BacktestSignalPolicy
+  rebalance_policy: BacktestRebalancePolicy
+  fee_profile: FeeProfile
+  slippage_profile: BacktestSlippageProfile
+  risk_exit_policy: BacktestRiskExitPolicy
+  price_basis: "backward_adjusted"
+}
+
+export type BacktestAccountConfig = {
+  initial_cash: number
+  currency: "CNY"
+}
+
+export type BacktestSignalPolicy = {
+  buy_signal_top_n: number
+  signal_timing: "close_confirm_next_open"
+}
+
+export type BacktestRebalancePolicy = {
+  target_weighting: "equal_weight_capped"
+  max_positions: number
+  single_position_limit_pct: number
+  cash_reserve_pct: number
+  lot_size: 100
+  min_trade_lots: 1
+  empty_signal_action: "hold"
+}
+
+export type BacktestSlippageProfile = {
+  mode: "bps"
+  buy_bps: number
+  sell_bps: number
+}
+
+export type BacktestRiskExitPolicy = {
+  trigger_timing: "close_confirm_next_open"
+  exit_rules: ExitRuleConfig[]
+}
+
+export type ExitRuleConfig =
+  | {
+      type: "fixed_stop_loss"
+      loss_pct: number
+    }
+  | {
+      type: "take_profit"
+      profit_pct: number
+    }
+  | {
+      type: "time_stop_loss"
+      holding_days: number
+      max_return_pct: number
+    }
+  | {
+      type: "indicator_stop_loss"
+      source: "trend"
+      metric: string
+      operator: "close_below_metric"
+    }
+
+export type StrategyBacktestValidateRequest = {
+  rule: RuleVersionSpec
+  preview_id?: string
+  preview_range?: BacktestDateRange
+  execution_config: BacktestExecutionConfig
+  range?: BacktestDateRange
+  benchmark?: string
+}
+
+export type BacktestExecutionSummary = {
+  buy_signal_top_n: number
+  max_positions: number
+  target_weight_per_position_pct: number
+  implicit_cash_reserve_pct: number
+  enabled_exit_rule_count: number
+}
+
+export type StrategyBacktestConfigSummary = BacktestExecutionSummary
+export type StrategyBacktestProgress = JsonRecord
+
+export type StrategyBacktestDraftResponse = {
+  preview_id?: string
+  preview_range?: BacktestDateRange
+  range?: BacktestDateRange
+  benchmark?: string
+  execution_config: BacktestExecutionConfig
+  rule_hash: string
+  execution_config_hash: string
+  summary: BacktestExecutionSummary
+  warnings: string[]
+}
+
+export type StrategyBacktestPeriodKey = "1y" | "2y" | "3y"
+
+export type StrategyBacktestBenchmarkOption = {
+  security_code: string
+  label: string
+  is_default: boolean
+  availability_status: string
+}
+
+export type StrategyBacktestPeriodOption = {
+  period_key: StrategyBacktestPeriodKey
+  label: string
+  resolved_start_date: string
+  resolved_end_date: string
+  latest_available_trade_date: string
+  benchmark_security_code: string
+  range_resolution_snapshot: JsonValue
+}
+
+export type StrategyBacktestOptionsResponse = {
+  default_period_key: StrategyBacktestPeriodKey
+  default_benchmark_security_code: string
+  selected_benchmark_security_code: string
+  as_of_date: string
+  latest_available_trade_date: string
+  period_options: StrategyBacktestPeriodOption[]
+  benchmark_options: StrategyBacktestBenchmarkOption[]
+  range_resolution_snapshot: JsonValue
+}
+
+export type StrategyBacktestCreateRequest = {
+  rule: RuleVersionSpec
+  period_key: StrategyBacktestPeriodKey
+  benchmark_security_code: string
+  execution_config: BacktestExecutionConfig
+  preview_id?: string
+  preview_range?: BacktestDateRange
+  top_n?: number
+  rule_hash?: string
+  execution_config_hash?: string
+  client_request_id?: string
+  ui_display_snapshot?: JsonRecord
+  range_hint?: BacktestDateRange
+}
+
+export type StrategyBacktestRunStatus =
+  | "created"
+  | "queued"
+  | "compiling_signals"
+  | "running_clickhouse"
+  | "loading_market_data"
+  | "calculating_nav"
+  | "computing_performance"
+  | "writing_results"
+  | "succeeded"
+  | "failed_validation"
+  | "failed_compile"
+  | "failed_market_data"
+  | "failed_simulation"
+  | "failed_write"
+  | "cancelled"
+
+export type StrategyBacktestRunRecord = {
+  strategy_backtest_run_id: string
+  rule_snapshot: JsonValue
+  rule_hash: string
+  execution_config: BacktestExecutionConfig
+  execution_config_hash: string
+  catalog_hash?: string | null
+  compiled_sql_hash?: string | null
+  required_metrics: JsonValue
+  required_marts: JsonValue
+  data_preflight_snapshot: JsonValue
+  preview_id?: string | null
+  preview_range?: JsonValue | null
+  period_key: StrategyBacktestPeriodKey
+  range_as_of_date?: string | null
+  range_resolved_at?: string | null
+  range_resolution_snapshot: JsonValue
+  start_date: string
+  end_date: string
+  benchmark_security_code: string
+  price_basis: "backward_adjusted"
+  ui_display_snapshot: JsonValue
+  client_request_id?: string | null
+  request_hash: string
+  status: StrategyBacktestRunStatus
+  dispatch_status: "pending" | "published" | "publish_failed"
+  nats_stream_sequence?: number | null
+  worker_attempt_no: number
+  claimed_at?: string | null
+  heartbeat_at?: string | null
+  claim_expires_at?: string | null
+  progress: StrategyBacktestProgress
+  summary: JsonValue
+  signal_summary: JsonValue
+  data_coverage_summary: JsonValue
+  error_type?: string | null
+  error_message?: string | null
+  current_result_attempt_id?: string | null
+  config_summary: StrategyBacktestConfigSummary
+}
+
+export type StrategyBacktestNavPoint = {
+  trade_date: string
+  strategy_nav: number
+  benchmark_nav?: number | null
+  excess_return?: number | null
+}
+
+export type StrategyPortfolioLiveStatus =
+  | "pending_first_run"
+  | "queued"
+  | "running"
+  | "succeeded"
+  | "failed"
+
+export type StrategyPortfolioCurveSource =
+  | "source_backtest"
+  | "live_daily_run"
+
+export type StrategyPortfolioRecord = {
+  strategy_portfolio_id: string
+  portfolio_code: string
+  name: string
+  status: "active" | "archived"
+  rule_snapshot: JsonValue
+  rule_hash: string
+  execution_config: BacktestExecutionConfig
+  execution_config_hash: string
+  benchmark_security_code: string
+  price_basis: "backward_adjusted"
+  catalog_hash?: string | null
+  required_metrics: JsonValue
+  required_marts: JsonValue
+  source_strategy_backtest_run_id: string
+  source_result_attempt_id: string
+  source_period_key: StrategyBacktestPeriodKey
+  source_start_date: string
+  source_end_date: string
+  live_start_date: string
+  latest_daily_run_id?: string | null
+  current_result_attempt_id?: string | null
+  ui_display_snapshot: JsonValue
+  client_request_id?: string | null
+  request_hash: string
+  created_at: string
+  updated_at: string
+  archived_at?: string | null
+  live_status: StrategyPortfolioLiveStatus
+}
+
+export type StrategyPortfolioCreateRequest = {
+  source_strategy_backtest_run_id: string
+  source_result_attempt_id: string
+  name: string
+  client_request_id?: string
+}
+
+export type StrategyPortfolioDashboardCard = {
+  strategy_portfolio_id: string
+  portfolio_code: string
+  name: string
+  status: "active" | "archived"
+  live_status: StrategyPortfolioLiveStatus
+  curve_source: StrategyPortfolioCurveSource
+  latest_daily_run_id?: string | null
+  current_result_attempt_id?: string | null
+  source_strategy_backtest_run_id: string
+  source_result_attempt_id: string
+  source_period_key: StrategyBacktestPeriodKey
+  source_start_date: string
+  source_end_date: string
+  live_start_date: string
+  source_backtest_summary: JsonValue
+  live_summary?: JsonValue | null
+  ui_display_snapshot: JsonValue
+  latest_nav?: number | null
+  recent_change?: number | null
+  returns: {
+    label: string
+    value?: number | null
+    kind: "percent" | "ratio"
+    tone?: "up" | "down" | "neutral"
+  }[]
+  risk: {
+    label: string
+    value?: number | null
+    kind: "percent" | "ratio"
+    tone?: "up" | "down" | "neutral"
+  }[]
+  efficiency: {
+    label: string
+    value?: number | null
+    kind: "percent" | "ratio"
+    tone?: "up" | "down" | "neutral"
+  }[]
+  relative: {
+    label: string
+    value?: number | null
+    kind: "percent" | "ratio"
+    tone?: "up" | "down" | "neutral"
+  }[]
+  today_signals: {
+    code: string
+    name: string
+    score: number
+  }[]
+  curve: {
+    time: string
+    nav: number
+    benchmark: number
+  }[]
+  created_at: string
+  updated_at: string
+}
+
+export type StrategyPortfolioDashboardResponse = {
+  portfolios: StrategyPortfolioDashboardCard[]
+}
+
+export type StrategyPortfolioNavResponse = {
+  source: StrategyPortfolioCurveSource
+  points: StrategyBacktestNavPoint[]
+}
+
+export type StrategyPortfolioPerformanceView = StrategyBacktestPerformanceView & {
+  source: StrategyPortfolioCurveSource
+}
+
+export type StrategyPortfolioListResult<T> = ListResult<T> & {
+  source: StrategyPortfolioCurveSource
+}
+
+export type StrategyPortfolioSignalTimelinePoint = {
+  trade_date: string
+  target_count: number
+  signal_count?: number | null
+}
+
+export type StrategyPortfolioSignalTimelineResponse = {
+  source: StrategyPortfolioCurveSource
+  trade_dates: StrategyPortfolioSignalTimelinePoint[]
+}
+
+export type StrategyPortfolioRebalanceRecordsResponse =
+  StrategyBacktestRebalanceRecordsResponse & {
+    source: StrategyPortfolioCurveSource
+  }
+
+export type StrategyBacktestRebalanceRow = {
+  direction: "buy" | "hold" | "sell"
+  security_code: string
+  security_name?: string | null
+  quantity: number
+  holding_days?: number | null
+  change_pct?: number | null
+  cost_price?: number | null
+  current_price?: number | null
+  contribution_pct?: number | null
+  reason?: string | null
+}
+
+export type StrategyBacktestRebalanceRecord = {
+  trade_date: string
+  position_count: number
+  buy_count: number
+  hold_count: number
+  sell_count: number
+  rows: StrategyBacktestRebalanceRow[]
+}
+
+export type StrategyBacktestRebalanceRecordsResponse = {
+  selected_trade_date: string
+  records: StrategyBacktestRebalanceRecord[]
+}
+
+export type StrategyBacktestPerformanceView = {
+  metric: JsonRecord
+  statuses: JsonRecord[]
+  daily_win_rate: {
+    value?: number | null
+    observation_count: number
+    winning_day_count: number
+  }
+}
+
+export type StrategyBacktestTargetRecord = {
+  portfolio_run_id: string
+  signal_date: string
+  execution_date: string
+  security_code: string
+  security_name?: string | null
+  source_rank?: number | null
+  source_score?: number | null
+  target_weight: number
+  target_amount: number
+  target_quantity?: number | null
+  target_reason: string
+}
+
+export type StrategyBacktestOrderRecord = {
+  portfolio_order_id: string
+  portfolio_run_id: string
+  order_seq: number
+  signal_date?: string | null
+  execution_date: string
+  security_code: string
+  side: string
+  order_quantity: number
+  order_amount: number
+  reference_price?: number | null
+  reason: string
+  status: string
+  event_ref?: string | null
+}
+
+export type StrategyBacktestTradeRecord = {
+  portfolio_trade_id: string
+  portfolio_run_id: string
+  trade_seq: number
+  portfolio_order_id?: string | null
+  trade_date: string
+  signal_date?: string | null
+  security_code: string
+  side: string
+  quantity: number
+  reference_price: number
+  execution_price: number
+  gross_amount: number
+  commission: number
+  stamp_duty: number
+  transfer_fee: number
+  total_fee: number
+  slippage_cost: number
+  reason: string
+}
+
+export type StrategyBacktestPositionRecord = {
+  portfolio_run_id: string
+  trade_date: string
+  security_code: string
+  quantity: number
+  cost_basis: number
+  average_entry_price: number
+  close_price: number
+  market_value: number
+  unrealized_pnl: number
+  unrealized_return: number
+  holding_days: number
+  is_stale_price: boolean
+}
+
+export type StrategyBacktestEventRecord = {
+  portfolio_event_id: string
+  portfolio_run_id: string
+  event_seq: number
+  trade_date?: string | null
+  security_code?: string | null
+  event_type: string
+  severity: string
+  message: string
+  payload: JsonValue
+}
+
+export type StrategyBacktestClosedTradeRecord = {
+  portfolio_run_id: string
+  result_attempt_id: string
+  closed_trade_id: string
+  closed_trade_seq: number
+  position_lot_id: string
+  entry_trade_seq: number
+  exit_trade_seq: number
+  security_code: string
+  entry_date: string
+  exit_date: string
+  quantity: number
+  entry_gross_amount: number
+  exit_gross_amount: number
+  entry_fee: number
+  exit_fee: number
+  total_fee: number
+  realized_pnl: number
+  realized_return?: number | null
+  holding_days: number
+  exit_reason: string
+}
+
+export type StrategyBacktestTradeMetricRecord = {
+  portfolio_run_id: string
+  result_attempt_id: string
+  window_key: string
+  window_start?: string | null
+  window_end?: string | null
+  closed_trade_count: number
+  winning_trade_count: number
+  losing_trade_count: number
+  breakeven_trade_count: number
+  win_rate_closed_trades?: number | null
+  average_win_return?: number | null
+  average_loss_return?: number | null
+  profit_loss_ratio?: number | null
+  average_holding_days?: number | null
+  largest_win_return?: number | null
+  largest_loss_return?: number | null
+}
+
+export type Adjustment = "forward_adjusted" | "backward_adjusted" | "unadjusted"
 
 export type ChartOhlc = {
   open: number
@@ -614,63 +754,16 @@ export type ChartOhlc = {
   close: number
 }
 
-export type KdjSeries = {
-  k?: number | null
-  d?: number | null
-  j?: number | null
-  rsv?: number | null
-}
-
-export type RsiSeries = {
-  "6"?: number | null
-  "12"?: number | null
-  "24"?: number | null
-}
-
-export type MacdSeries = {
-  dif?: number | null
-  dea?: number | null
-  histogram?: number | null
-}
-
-export type BollSeries = {
-  mid_20_2?: number | null
-  up_20_2?: number | null
-  dn_20_2?: number | null
-}
-
 export type ChartSeriesRow = {
   trade_date: string
   ohlc?: ChartOhlc | null
   volume?: number | null
-  ma: Record<string, number | null | undefined>
-  price_overlays?: Record<string, number | null | undefined>
-  kdj: KdjSeries
-  rsi: RsiSeries
-  macd: MacdSeries
-  boll: BollSeries
-}
-
-export type ChartMaMetadata = {
-  requested_windows: number[]
-  default_visible_windows: number[]
-  available_windows: number[]
-  adjustment: PriceAdjustment
-  status: "available" | "forward_adjusted_only" | string
-}
-
-export type ChartPriceOverlayMetadata = {
-  default_visible_keys: string[]
-  available_keys: string[]
-  adjustment: PriceAdjustment
-  status: "available" | "forward_adjusted_only" | string
-}
-
-export type ChartPayload = {
-  ma: ChartMaMetadata
-  price_overlays?: ChartPriceOverlayMetadata
-  indicator_panels: string[]
-  series: ChartSeriesRow[]
+  ma?: Record<string, number | null>
+  price_overlays?: Record<string, number | null>
+  kdj?: Record<string, number | null>
+  rsi?: Record<string, number | null>
+  macd?: Record<string, number | null>
+  boll?: Record<string, number | null>
 }
 
 export type QuoteMartRow = {
@@ -682,115 +775,89 @@ export type QuoteMartRow = {
   close_price?: number | null
   prev_close_price?: number | null
   prev_close_price_unadj?: number | null
-  open_price_forward_adj?: number | null
-  high_price_forward_adj?: number | null
-  low_price_forward_adj?: number | null
-  close_price_forward_adj?: number | null
-  prev_close_price_forward_adj?: number | null
-  open_price_backward_adj?: number | null
-  high_price_backward_adj?: number | null
-  low_price_backward_adj?: number | null
-  close_price_backward_adj?: number | null
-  prev_close_price_backward_adj?: number | null
-  forward_adjustment_factor?: number | null
-  forward_adjustment_ratio?: number | null
-  backward_adjustment_factor?: number | null
-  backward_adjustment_ratio?: number | null
-  prev_volume?: number | null
   volume?: number | null
   amount?: number | null
-  turnover_rate?: number | null
-  turnover_rate_actual?: number | null
   pct_amplitude?: number | null
   pct_change?: number | null
   limit_up_price?: number | null
   limit_down_price?: number | null
   a_market_cap?: number | null
-  a_float_market_cap?: number | null
-  a_free_float_market_cap?: number | null
-  a_shares?: number | null
-  a_float_shares?: number | null
-  a_free_float_shares?: number | null
-  pe_static?: number | null
   pe_ttm?: number | null
-  pe_forecast?: number | null
-  pb_mrq?: number | null
-  book_value_per_share?: number | null
   roe?: number | null
-  roa?: number | null
-  roaa?: number | null
-  roae?: number | null
-  dy_static?: number | null
-  dy_ttm?: number | null
-  is_suspend?: boolean | null
-  is_st?: boolean | null
-  kdj_rsv?: number | null
-  kdj_k_value?: number | null
-  kdj_d_value?: number | null
-  kdj_j_value?: number | null
+}
+
+export type SecurityAnalysisRequest = {
+  trade_date: string
+  security_code: string
+  adjustment?: Adjustment
+  quote_end_date?: string
+  quote_start_date?: string
+  lookback_trading_days?: number
+  ma_windows?: string
+  include_quote_rows?: boolean
+}
+
+export type ChartMaMetadata = {
+  requested_windows: number[]
+  default_visible_windows: number[]
+  available_windows: number[]
+  adjustment: Adjustment
+  basis_adjustment?: Adjustment
+  status: "available" | string
+}
+
+export type ChartPriceOverlayMetadata = {
+  default_visible_keys: string[]
+  available_keys: string[]
+  adjustment: Adjustment
+  status: "available" | "forward_adjusted_only" | string
 }
 
 export type SecurityAnalysisResponse = {
-  run_id: string
+  run_id?: string
   trade_date: string
   security_code: string
-  source: AnalysisSource
-  adjustment: PriceAdjustment
-  result_snapshot: ResultSnapshot
-  sources: AnalysisSources
-  chart_window: ChartWindow
-  chart: ChartPayload
-  quote_rows: QuoteMartRow[]
+  security_name?: string | null
+  exchange_code?: string | null
+  security_board?: string | null
+  source: "signals" | "pool" | "preview"
+  adjustment: Adjustment
+  result_snapshot?: {
+    rank?: number | null
+    signal_rank?: number | null
+    score?: number | null
+    score_breakdown?: JsonValue
+    selected_metrics: JsonValue
+    raw_values?: JsonValue
+    filter_snapshot?: JsonValue
+  }
+  chart_window: {
+    start_date: string
+    end_date: string
+    lookback_trading_days: number
+  }
+  chart: {
+    ma?: ChartMaMetadata
+    price_overlays?: ChartPriceOverlayMetadata
+    indicator_panels?: string[]
+    series: ChartSeriesRow[]
+  }
+  quote_rows?: QuoteMartRow[]
   selected_quote?: QuoteMartRow | null
 }
 
-export type CreateRuleSetRequest = {
-  name: string
-  description?: string
-  owner?: string
-  tags?: string[]
+export type MetricsQuery = {
+  mart_table?: string
+  value_kind?: string
+  allow_filter?: boolean
+  allow_scoring?: boolean
+  keyword?: string
 }
 
-export type CreateRuleVersionRequest = {
-  rule: RuleVersionSpec
-  activate?: boolean
-  created_by?: string
-}
-
-export type CreateRunRequest = {
-  rule_set_id?: string
-  rule_version_id?: string
-  start_date: string
-  end_date: string
-  top_n?: number
-  universe_snapshot?: JsonValue
-}
-
-export type CreatePortfolioRunRequest = {
-  source_run_id: string
-  account_template_id?: string
-}
-
-export type CreateAccountTemplateRequest = {
-  market?: string
-  name?: string
-  initial_cash?: number
-  currency?: string
-  fee_profile?: FeeProfile
-  slippage_profile?: SlippageProfile
-  rebalance_policy?: JsonRecord
-  risk_exit_policy?: JsonRecord
-  is_default?: boolean
-}
-
-export type PatchAccountTemplateRequest = {
-  name?: string
-  initial_cash?: number
-  currency?: string
-  fee_profile?: FeeProfile
-  slippage_profile?: SlippageProfile
-  rebalance_policy?: JsonRecord
-  risk_exit_policy?: JsonRecord
-  is_default?: boolean
-  status?: string
+export type ListResult<T> = {
+  items: T[]
+  limit: number
+  offset: number
+  has_more: boolean
+  total?: number
 }

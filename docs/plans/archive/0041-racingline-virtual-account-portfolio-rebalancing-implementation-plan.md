@@ -2,7 +2,9 @@
 
 日期：2026-06-16
 
-状态：Proposed
+状态：Superseded
+
+归档说明：2026-06-25 已被后续组合数据面、strategy backtest / strategy portfolio 工作流和 [Plan 0053](0053-racingline-legacy-cleanup-and-rename-plan.md) 的前端替换覆盖。旧 `/portfolios` 前端页面随旧 `app/racingline/` 清理删除；当前 Racingline 前端事实以 `app/racingline/` 的 `/dashboard`、`/dashboard/strategies/:portfolioId` 和 `/strategies` 为准。
 
 领域：racingline, rearview
 
@@ -19,13 +21,13 @@
 
 关联文档：
 
-- [RFC 0021: Racingline 虚拟账户与组合调仓净值](../RFC/0021-racingline-virtual-account-portfolio-rebalancing.md)
-- [RFC 0018: Rust Rearview 规则选股服务与 mart 指标库](../RFC/0018-rust-stock-screening-service.md)
-- [RFC 0019: Racingline Rearview 前端工作台](../RFC/0019-racingline-rearview-frontend-workbench.md)
-- [RFC 0020: Racingline Run Result 个股分析页](../RFC/0020-racingline-run-result-security-analysis-page.md)
-- [System: Rearview](../systems/rearview.md)
-- [System: Racingline](../systems/racingline.md)
-- [System: Deploy Ops](../systems/deploy-ops.md)
+- [RFC 0021: Racingline 虚拟账户与组合调仓净值](../../RFC/0021-racingline-virtual-account-portfolio-rebalancing.md)
+- [RFC 0018: Rust Rearview 规则选股服务与 mart 指标库](../../RFC/0018-rust-stock-screening-service.md)
+- [RFC 0019: Racingline Rearview 前端工作台](../../RFC/0019-racingline-rearview-frontend-workbench.md)
+- [RFC 0020: Racingline Run Result 个股分析页](../../RFC/0020-racingline-run-result-security-analysis-page.md)
+- [System: Rearview](../../systems/rearview.md)
+- [System: Racingline](../../systems/racingline.md)
+- [System: Deploy Ops](../../systems/deploy-ops.md)
 
 相关规则：
 
@@ -539,12 +541,12 @@ curl -fsS "http://127.0.0.1:34057/rearview/portfolio-runs/<portfolio_run_id>/pos
 
 任务：
 
-1. 更新 [System: Rearview](../systems/rearview.md)：
+1. 更新 [System: Rearview](../../systems/rearview.md)：
    - 新 crate 路径。
    - server / worker 运行入口。
    - NATS 和 outbox 职责。
    - 新 API。
-2. 更新 [System: Racingline](../systems/racingline.md)：
+2. 更新 [System: Racingline](../../systems/racingline.md)：
    - `/portfolios` 和 `/portfolios/:portfolioRunId`。
    - 虚拟账户表单和组合结果页。
 3. 更新 `engines/README.md`，说明 Rearview crate 拆分后的命令。

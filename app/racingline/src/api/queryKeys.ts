@@ -1,74 +1,127 @@
 import type {
   MetricsQuery,
-  PortfolioClosedTradeQuery,
-  PortfolioEventQuery,
-  PortfolioOrderQuery,
-  PortfolioPerformanceQuery,
-  PortfolioPositionQuery,
-  PortfolioRunsQuery,
-  PortfolioTargetQuery,
-  PortfolioTradeMetricQuery,
-  PortfolioTradeQuery,
-  ResultRowsQuery,
-  RuleSetsQuery,
-  RuleVersionsQuery,
-  RunsQuery,
-  SecurityAnalysisQuery,
+  StrategyBacktestValidateRequest,
 } from "@/types/rearview"
+import type { QueryParams } from "@/api/client"
 
 export const queryKeys = {
-  health: ["health"] as const,
   metrics: (query: MetricsQuery = {}) => ["metrics", query] as const,
-  ruleSets: (query: RuleSetsQuery = {}) => ["rule-sets", query] as const,
-  ruleVersions: (ruleSetId: string, query: RuleVersionsQuery = {}) =>
-    ["rule-sets", ruleSetId, "versions", query] as const,
-  runs: (query: RunsQuery = {}) => ["runs", query] as const,
   defaultMarketFeeTemplate: (market: string) =>
     ["market-fee-templates", "default", market] as const,
-  accountTemplates: (ruleSetId: string) =>
-    ["rule-sets", ruleSetId, "account-templates"] as const,
-  portfolioRuns: (query: PortfolioRunsQuery = {}) =>
-    ["portfolio-runs", query] as const,
-  portfolioRun: (portfolioRunId: string) =>
-    ["portfolio-runs", portfolioRunId] as const,
-  portfolioNav: (portfolioRunId: string) =>
-    ["portfolio-runs", portfolioRunId, "nav"] as const,
-  portfolioTargets: (
-    portfolioRunId: string,
-    query: PortfolioTargetQuery = {}
-  ) => ["portfolio-runs", portfolioRunId, "targets", query] as const,
-  portfolioOrders: (portfolioRunId: string, query: PortfolioOrderQuery = {}) =>
-    ["portfolio-runs", portfolioRunId, "orders", query] as const,
-  portfolioTrades: (portfolioRunId: string, query: PortfolioTradeQuery = {}) =>
-    ["portfolio-runs", portfolioRunId, "trades", query] as const,
-  portfolioPositions: (
-    portfolioRunId: string,
-    query: PortfolioPositionQuery = {}
-  ) => ["portfolio-runs", portfolioRunId, "positions", query] as const,
-  portfolioEvents: (portfolioRunId: string, query: PortfolioEventQuery = {}) =>
-    ["portfolio-runs", portfolioRunId, "events", query] as const,
-  portfolioPerformance: (
-    portfolioRunId: string,
-    query: PortfolioPerformanceQuery = {}
-  ) => ["portfolio-runs", portfolioRunId, "performance", query] as const,
-  portfolioClosedTrades: (
-    portfolioRunId: string,
-    query: PortfolioClosedTradeQuery = {}
-  ) => ["portfolio-runs", portfolioRunId, "closed-trades", query] as const,
-  portfolioTradeMetrics: (
-    portfolioRunId: string,
-    query: PortfolioTradeMetricQuery = {}
-  ) => ["portfolio-runs", portfolioRunId, "trade-metrics", query] as const,
-  run: (runId: string) => ["runs", runId] as const,
-  runChunks: (runId: string) => ["runs", runId, "chunks"] as const,
-  runDays: (runId: string) => ["runs", runId, "days"] as const,
-  pool: (runId: string, query: ResultRowsQuery) =>
-    ["runs", runId, "pool", query] as const,
-  signals: (runId: string, query: ResultRowsQuery) =>
-    ["runs", runId, "signals", query] as const,
-  securityAnalysis: (
-    runId: string,
+  strategyBacktestValidate: (
+    request: StrategyBacktestValidateRequest | null
+  ) => ["strategy-backtests", "validate", request] as const,
+  strategyBacktestOptions: (benchmarkSecurityCode: string) =>
+    ["strategy-backtests", "options", benchmarkSecurityCode] as const,
+  strategyBacktest: (strategyBacktestRunId: string | null) =>
+    ["strategy-backtests", strategyBacktestRunId] as const,
+  strategyBacktestNav: (strategyBacktestRunId: string | null) =>
+    ["strategy-backtests", strategyBacktestRunId, "nav"] as const,
+  strategyBacktestRebalanceRecords: (
+    strategyBacktestRunId: string | null,
+    tradeDate?: string | null
+  ) =>
+    [
+      "strategy-backtests",
+      strategyBacktestRunId,
+      "rebalance-records",
+      tradeDate ?? null,
+    ] as const,
+  strategyBacktestPerformance: (strategyBacktestRunId: string | null) =>
+    ["strategy-backtests", strategyBacktestRunId, "performance"] as const,
+  strategyBacktestTargets: (
+    strategyBacktestRunId: string | null,
+    query: QueryParams = {}
+  ) => ["strategy-backtests", strategyBacktestRunId, "targets", query] as const,
+  strategyBacktestOrders: (
+    strategyBacktestRunId: string | null,
+    query: QueryParams = {}
+  ) => ["strategy-backtests", strategyBacktestRunId, "orders", query] as const,
+  strategyBacktestTrades: (
+    strategyBacktestRunId: string | null,
+    query: QueryParams = {}
+  ) => ["strategy-backtests", strategyBacktestRunId, "trades", query] as const,
+  strategyBacktestPositions: (
+    strategyBacktestRunId: string | null,
+    query: QueryParams = {}
+  ) =>
+    ["strategy-backtests", strategyBacktestRunId, "positions", query] as const,
+  strategyBacktestEvents: (
+    strategyBacktestRunId: string | null,
+    query: QueryParams = {}
+  ) => ["strategy-backtests", strategyBacktestRunId, "events", query] as const,
+  strategyBacktestClosedTrades: (
+    strategyBacktestRunId: string | null,
+    query: QueryParams = {}
+  ) =>
+    [
+      "strategy-backtests",
+      strategyBacktestRunId,
+      "closed-trades",
+      query,
+    ] as const,
+  strategyBacktestTradeMetrics: (
+    strategyBacktestRunId: string | null,
+    query: QueryParams = {}
+  ) =>
+    [
+      "strategy-backtests",
+      strategyBacktestRunId,
+      "trade-metrics",
+      query,
+    ] as const,
+  strategyPortfolioDashboard: () =>
+    ["strategy-portfolios", "dashboard"] as const,
+  strategyPortfolio: (strategyPortfolioId: string | null) =>
+    ["strategy-portfolios", strategyPortfolioId] as const,
+  strategyPortfolioNav: (strategyPortfolioId: string | null) =>
+    ["strategy-portfolios", strategyPortfolioId, "nav"] as const,
+  strategyPortfolioPerformance: (strategyPortfolioId: string | null) =>
+    ["strategy-portfolios", strategyPortfolioId, "performance"] as const,
+  strategyPortfolioSignals: (
+    strategyPortfolioId: string | null,
+    query: QueryParams = {}
+  ) => ["strategy-portfolios", strategyPortfolioId, "signals", query] as const,
+  strategyPortfolioSignalTimeline: (strategyPortfolioId: string | null) =>
+    ["strategy-portfolios", strategyPortfolioId, "signal-timeline"] as const,
+  strategyPortfolioPositions: (
+    strategyPortfolioId: string | null,
+    query: QueryParams = {}
+  ) =>
+    ["strategy-portfolios", strategyPortfolioId, "positions", query] as const,
+  strategyPortfolioRebalanceRecords: (
+    strategyPortfolioId: string | null,
+    tradeDate?: string | null
+  ) =>
+    [
+      "strategy-portfolios",
+      strategyPortfolioId,
+      "rebalance-records",
+      tradeDate ?? null,
+    ] as const,
+  previewTimeline: (previewId: string, startDate: string, endDate: string) =>
+    ["preview-timeline", previewId, startDate, endDate] as const,
+  previewPoolPage: (
+    previewId: string,
+    tradeDate: string,
+    limit: number,
+    offset: number
+  ) => ["preview-pool-page", previewId, tradeDate, limit, offset] as const,
+  previewSecurityAnalysis: (
+    previewId: string,
+    tradeDate: string,
     securityCode: string,
-    query: SecurityAnalysisQuery
-  ) => ["runs", runId, "securities", securityCode, "analysis", query] as const,
+    adjustment: string,
+    maWindows: string,
+    includeQuoteRows: boolean
+  ) =>
+    [
+      "preview-security-analysis",
+      previewId,
+      tradeDate,
+      securityCode,
+      adjustment,
+      maWindows,
+      includeQuoteRows,
+    ] as const,
 }

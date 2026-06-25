@@ -25,7 +25,7 @@
 ## 关联文档
 
 - [Q&A 0001: PostgreSQL Control Plane 与 ClickHouse Portfolio Data Plane](../../Q&A/0001-postgresql-control-plane-clickhouse-portfolio-data-plane.md)
-- [Plan 0041: Racingline 虚拟账户与组合调仓净值实施计划](../0041-racingline-virtual-account-portfolio-rebalancing-implementation-plan.md)
+- [Plan 0041: Racingline 虚拟账户与组合调仓净值实施计划](0041-racingline-virtual-account-portfolio-rebalancing-implementation-plan.md)
 - [stg_baostock__query_stock_basic 设计](../../design/dbt_layer/fleur_staging/stg_baostock__query_stock_basic.md)
 - [int_stock_basic_snapshot 设计](../../design/dbt_layer/fleur_intermediate/int_stock_basic_snapshot.md)
 

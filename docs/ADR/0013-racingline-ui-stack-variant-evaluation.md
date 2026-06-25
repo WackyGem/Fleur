@@ -1,83 +1,50 @@
-# ADR 0013: Racingline UI 栈变体评估
+# ADR 0013: Racingline UI 栈变体升级为正式栈
 
-状态：Proposed
+状态：Accepted
 
-日期：2026-06-17
+日期：2026-06-25
 
 ## 背景
 
-`racingline` 的正式前端技术栈已经由 ADR 0011 固化：
+ADR 0011 固化了 Racingline 第一版前端技术栈：Vite、React、TypeScript、Tailwind CSS v4、shadcn/ui + Base UI、Hugeicons、React Router、TanStack Query、Zustand 和 Lightweight Charts。第一版 `app/racingline/` 已完成 run、rule、metric、security analysis 和旧 portfolio 页面。
 
-- [app/racingline/package.json](../../app/racingline/package.json)
-- [app/racingline/components.json](../../app/racingline/components.json)
-- [ADR 0011: Racingline 前端技术栈和工程边界](0011-racingline-frontend-technology-stack.md)
+随后 `app/racingline_new/` 作为并行策略工作台完成了 `/dashboard`、`/strategies`、strategy backtest 和 strategy portfolio 的真实 Rearview API 闭环。Plan 0053 决定删除旧 `app/racingline/`，并将 `app/racingline_new/` 重命名为正式 `app/racingline/`。
 
-当前 `racingline_new` 是并行原型工程，其脚手架来自 shadcn 的 `b3lEPaZ6H` preset，实际生成结果与 `racingline` 正式栈不同：
-
-- [app/racingline_new/package.json](../../app/racingline_new/package.json)
-- [app/racingline_new/components.json](../../app/racingline_new/components.json)
-
-主要差异包括：
-
-| 维度 | `racingline` 正式栈 | `racingline_new` 当前栈 |
-|---|---|---|
-| shadcn style | `base-nova` | `base-lyra` |
-| primitive base | `base` | `radix` |
-| icon library | `hugeicons` | `lucide` |
-| 字体 | `Geist` | `IBM Plex Sans` |
-| 主题 | `neutral` | `taupe` |
-| menuColor | `default` | `inverted` |
-| UI primitive 依赖 | `@base-ui/react` | `@base-ui/react` |
-
-这个差异不是单纯的主题切换，而是会影响组件 API、图标导入、基础 primitive 依赖和业务组件迁移路径。
-
-## 问题
-
-是否应把 `racingline_new` 当前的 UI 栈变体推广为 Racingline 的正式前端技术栈？
-
-## 评估
-
-### 优点
-
-1. `base-lyra` 的视觉风格更适合做高密度工作台的快速原型。
-2. `IBM Plex Sans` + `taupe` 的组合在当前页面气质上更偏策略实验室，而不是通用管理后台。
-3. `lucide` 在常规语义图标上覆盖广，原型阶段较容易快速拼页面。
-
-### 代价
-
-1. 这会把 `racingline` 与 `racingline_new` 的样式和部分组件实现路径拉开，若推广到正式工程，仍需迁移或重适配。
-2. 现有 `racingline` 页面和业务组件已经基于 ADR 0011 的栈建立，切换后需要重写或重适配。
-3. 图标库从 `Hugeicons` 切到 `Lucide`，会造成大量图标名、语义和导入路径变化。
-4. 这次变体只是一个新工程脚手架结果，不是经过完整用户验证、截图验收和迁移计划的长期决策。
+这次替换也意味着 UI 栈从第一版 `base-nova` / `neutral` / Hugeicons-only 形态迁移到新策略工作台实际使用的栈。
 
 ## 决策
 
-当前不接受把 `racingline_new` 的 UI 栈变体直接升级为 `racingline` 的正式技术栈。
+接受新策略工作台当前 UI 栈作为 Racingline 正式栈：
 
-正式工程继续遵循 ADR 0011：
+| 类别 | 正式选择 |
+|---|---|
+| shadcn style | `base-lyra` |
+| Tailwind base color | `taupe` |
+| menuColor | `inverted` |
+| UI primitive | Base UI (`@base-ui/react`) |
+| 字体 | IBM Plex Sans |
+| 图标 | Lucide 与 Hugeicons 并存；新通用控件优先使用 Lucide，已有业务语义图标可继续使用 Hugeicons |
 
-- `base-nova`
-- `@base-ui/react`
-- `Hugeicons`
-- `Geist`
-- `neutral` 主题与默认 menu 配置
+ADR 0011 仍保留 Vite、React、TypeScript、Tailwind CSS v4、shadcn/ui、Base UI、React Router、TanStack Query、Zustand、Lightweight Charts、单独 package 管理和根目录 env 的基础工程边界。本 ADR 覆盖 ADR 0011 中关于 shadcn style、主题、字体和图标的第一版选择。
 
-`racingline_new` 可以继续作为原型和交互验证工程使用当前栈，但它的结果只能作为 UI 观察材料，不能自动反推正式工程改栈。
+## 理由
+
+1. `app/racingline_new/` 已经通过 Step 1/2/3/4/5、strategy portfolio dashboard 和详情页的真实接口闭环验证，迁移成本低于把新业务回写到旧 UI 栈。
+2. `base-lyra`、`taupe` 和 IBM Plex Sans 更贴合当前策略研究工作台的信息密度和视觉语气。
+3. 新工程已经在真实页面中同时使用 Lucide 和 Hugeicons；强制单一图标库会带来无业务收益的大规模替换。
+4. Plan 0053 删除旧工程后，继续坚持旧 UI 栈会让文档和当前代码事实冲突。
 
 ## 后果
 
-1. `racingline_new` 当前栈仅用于原型验证。
-2. 如果未来希望把该变体推广到正式工程，必须先完成：
-   - 浏览器验收
-   - 业务组件迁移评估
-   - 图标替换评估
-   - 基础 primitive 替换评估
-   - 新的迁移计划或更新 ADR 0011
-3. 现有 `racingline` 页面不需要立即改栈。
-4. `racingline_new` 的原型代码不得默认沉淀为生产实现。
+1. `app/racingline/` 的 `components.json` 以 `base-lyra`、`taupe`、`lucide` 和 `menuColor: inverted` 为准。
+2. 后续新增 shadcn/ui 组件应遵循当前 `app/racingline/components.json`，不得再按旧 `base-nova` 假设生成。
+3. 业务组件仍不得直接改写 shadcn/ui 生成的默认组件；默认组件更新应通过 shadcn CLI 或明确的组件升级计划。
+4. 图标新增默认优先 Lucide；Hugeicons 只在已有业务语义或 Lucide 缺少合适图标时使用。
+5. `app/racingline_new/` 不再作为并行原型工程存在；历史文档中的该路径只表示迁移前事实。
 
-## 相关文档
+## 关联文档
 
 - [ADR 0011: Racingline 前端技术栈和工程边界](0011-racingline-frontend-technology-stack.md)
 - [RFC 0023: Racingline 前端原型驱动开发流程](../RFC/0023-racingline-frontend-prototype-led-development.md)
+- [Plan 0053: Racingline 旧工程清理与 `racingline_new` 重命名实施计划](../plans/archive/0053-racingline-legacy-cleanup-and-rename-plan.md)
 - [System: Racingline](../systems/racingline.md)

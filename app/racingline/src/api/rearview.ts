@@ -1,56 +1,48 @@
-import { buildPath, jsonBody, normalizeList, requestJson } from "@/api/client"
+import {
+  buildPath,
+  jsonBody,
+  requestJson,
+  type QueryParams,
+} from "@/api/client"
 import type {
-  AccountTemplateRecord,
-  BuySignalRecord,
-  CreateAccountTemplateRequest,
-  CreatePortfolioRunRequest,
-  CreateRuleSetRequest,
-  CreateRuleVersionRequest,
-  CreateRunRequest,
-  ExplainResponse,
-  HealthResponse,
-  ListResult,
   MarketFeeTemplateRecord,
+  ExplainResponse,
+  ListResult,
   MetricDefinition,
   MetricsQuery,
-  PortfolioClosedTradeQuery,
-  PortfolioClosedTradeRecord,
-  PortfolioEventQuery,
-  PortfolioEventRecord,
-  PortfolioNavRecord,
-  PortfolioOrderQuery,
-  PortfolioOrderRecord,
-  PortfolioPerformanceQuery,
-  PortfolioPerformanceResponse,
-  PortfolioPositionQuery,
-  PortfolioPositionRecord,
-  PortfolioRunRecord,
-  PortfolioRunsQuery,
-  PortfolioTargetQuery,
-  PortfolioTargetRecord,
-  PortfolioTradeQuery,
-  PortfolioTradeMetricQuery,
-  PortfolioTradeMetricRecord,
-  PortfolioTradeRecord,
-  PatchAccountTemplateRequest,
-  PoolMemberRecord,
-  ResultRowsQuery,
-  RuleSetRecord,
-  RuleSetsQuery,
-  RuleVersionRecord,
-  RuleVersionsQuery,
   RuleVersionSpec,
-  RunChunkRecord,
-  RunDayRecord,
-  RunRecord,
-  RunsQuery,
-  SecurityAnalysisQuery,
+  SecurityAnalysisRequest,
   SecurityAnalysisResponse,
+  StrategyBacktestClosedTradeRecord,
+  StrategyBacktestCreateRequest,
+  StrategyBacktestDraftResponse,
+  StrategyBacktestEventRecord,
+  StrategyBacktestNavPoint,
+  StrategyBacktestOrderRecord,
+  StrategyBacktestOptionsResponse,
+  StrategyBacktestPerformanceView,
+  StrategyBacktestPositionRecord,
+  StrategyBacktestRebalanceRecordsResponse,
+  StrategyBacktestRunRecord,
+  StrategyBacktestTargetRecord,
+  StrategyBacktestTradeMetricRecord,
+  StrategyBacktestTradeRecord,
+  StrategyBacktestValidateRequest,
+  StrategyPortfolioCreateRequest,
+  StrategyPortfolioDashboardResponse,
+  StrategyPortfolioListResult,
+  StrategyPortfolioNavResponse,
+  StrategyPortfolioPerformanceView,
+  StrategyPortfolioRecord,
+  StrategyPortfolioRebalanceRecordsResponse,
+  StrategyPortfolioSignalTimelineResponse,
+  StrategyPreviewPoolPageRequest,
+  StrategyPreviewPoolPageResponse,
+  StrategyPreviewRequest,
+  StrategyPreviewResponse,
+  StrategyPreviewTimelineRequest,
+  StrategyPreviewTimelineResponse,
 } from "@/types/rearview"
-
-export function getHealth() {
-  return requestJson<HealthResponse>("/healthz")
-}
 
 export async function listMetrics(
   query: MetricsQuery = {}
@@ -61,45 +53,6 @@ export async function listMetrics(
   return Array.isArray(value) ? value : value.items
 }
 
-export async function listRuleSets(
-  query: RuleSetsQuery = {}
-): Promise<ListResult<RuleSetRecord>> {
-  const value = await requestJson<
-    RuleSetRecord[] | Partial<ListResult<RuleSetRecord>>
-  >(buildPath("/rearview/rule-sets", query))
-  return normalizeList(value, query.limit)
-}
-
-export function createRuleSet(request: CreateRuleSetRequest) {
-  return requestJson<RuleSetRecord>(
-    "/rearview/rule-sets",
-    jsonBody({
-      ...request,
-      tags: request.tags ?? [],
-    })
-  )
-}
-
-export async function listRuleVersions(
-  ruleSetId: string,
-  query: RuleVersionsQuery = {}
-): Promise<ListResult<RuleVersionRecord>> {
-  const value = await requestJson<
-    RuleVersionRecord[] | Partial<ListResult<RuleVersionRecord>>
-  >(buildPath(`/rearview/rule-sets/${ruleSetId}/versions`, query))
-  return normalizeList(value, query.limit)
-}
-
-export function createRuleVersion(
-  ruleSetId: string,
-  request: CreateRuleVersionRequest
-) {
-  return requestJson<RuleVersionRecord>(
-    `/rearview/rule-sets/${ruleSetId}/versions`,
-    jsonBody(request)
-  )
-}
-
 export function explainRule(
   rule: RuleVersionSpec,
   range?: { start_date?: string; end_date?: string; top_n?: number }
@@ -108,17 +61,29 @@ export function explainRule(
   return requestJson<ExplainResponse>("/rearview/explain", jsonBody(body))
 }
 
-export async function listRuns(
-  query: RunsQuery = {}
-): Promise<ListResult<RunRecord>> {
-  const value = await requestJson<RunRecord[] | Partial<ListResult<RunRecord>>>(
-    buildPath("/rearview/runs", query)
+export function previewStrategy(request: StrategyPreviewRequest) {
+  return requestJson<StrategyPreviewResponse>(
+    "/rearview/strategy-preview",
+    jsonBody(request)
   )
-  return normalizeList(value, query.limit)
 }
 
-export function createRun(request: CreateRunRequest) {
-  return requestJson<RunRecord>("/rearview/runs", jsonBody(request))
+export function previewStrategyTimeline(
+  request: StrategyPreviewTimelineRequest
+) {
+  return requestJson<StrategyPreviewTimelineResponse>(
+    "/rearview/strategy-preview/timeline",
+    jsonBody(request)
+  )
+}
+
+export function previewStrategyPoolPage(
+  request: StrategyPreviewPoolPageRequest
+) {
+  return requestJson<StrategyPreviewPoolPageResponse>(
+    "/rearview/strategy-preview/pool-page",
+    jsonBody(request)
+  )
 }
 
 export function getDefaultMarketFeeTemplate(market = "CN_A_SHARE") {
@@ -127,183 +92,210 @@ export function getDefaultMarketFeeTemplate(market = "CN_A_SHARE") {
   )
 }
 
-export function listAccountTemplates(ruleSetId: string) {
-  return requestJson<AccountTemplateRecord[]>(
-    `/rearview/rule-sets/${ruleSetId}/account-templates`
-  )
-}
-
-export function createAccountTemplate(
-  ruleSetId: string,
-  request: CreateAccountTemplateRequest
+export function validateStrategyBacktest(
+  request: StrategyBacktestValidateRequest
 ) {
-  return requestJson<AccountTemplateRecord>(
-    `/rearview/rule-sets/${ruleSetId}/account-templates`,
+  return requestJson<StrategyBacktestDraftResponse>(
+    "/rearview/strategy-backtests/validate",
     jsonBody(request)
   )
 }
 
-export function updateAccountTemplate(
-  accountTemplateId: string,
-  request: PatchAccountTemplateRequest
-) {
-  return requestJson<AccountTemplateRecord>(
-    `/rearview/account-templates/${accountTemplateId}`,
-    {
-      ...jsonBody(request),
-      method: "PATCH",
-    }
+export function getStrategyBacktestOptions(benchmarkSecurityCode: string) {
+  return requestJson<StrategyBacktestOptionsResponse>(
+    buildPath("/rearview/strategy-backtests/options", {
+      benchmark_security_code: benchmarkSecurityCode,
+    })
   )
 }
 
-export async function listPortfolioRuns(
-  query: PortfolioRunsQuery = {}
-): Promise<ListResult<PortfolioRunRecord>> {
-  const value = await requestJson<
-    PortfolioRunRecord[] | Partial<ListResult<PortfolioRunRecord>>
-  >(buildPath("/rearview/portfolio-runs", query))
-  return normalizeList(value, query.limit)
-}
-
-export function createPortfolioRun(request: CreatePortfolioRunRequest) {
-  return requestJson<PortfolioRunRecord>(
-    "/rearview/portfolio-runs",
+export function createStrategyBacktest(request: StrategyBacktestCreateRequest) {
+  return requestJson<StrategyBacktestRunRecord>(
+    "/rearview/strategy-backtests",
     jsonBody(request)
   )
 }
 
-export function getPortfolioRun(portfolioRunId: string) {
-  return requestJson<PortfolioRunRecord>(
-    `/rearview/portfolio-runs/${portfolioRunId}`
+export function getStrategyBacktest(strategyBacktestRunId: string) {
+  return requestJson<StrategyBacktestRunRecord>(
+    `/rearview/strategy-backtests/${strategyBacktestRunId}`
   )
 }
 
-export function listPortfolioNav(portfolioRunId: string) {
-  return requestJson<PortfolioNavRecord[]>(
-    `/rearview/portfolio-runs/${portfolioRunId}/nav`
+export function listStrategyBacktestNav(strategyBacktestRunId: string) {
+  return requestJson<StrategyBacktestNavPoint[]>(
+    `/rearview/strategy-backtests/${strategyBacktestRunId}/nav`
   )
 }
 
-export async function listPortfolioTargets(
-  portfolioRunId: string,
-  query: PortfolioTargetQuery = {}
-): Promise<ListResult<PortfolioTargetRecord>> {
-  const value = await requestJson<
-    PortfolioTargetRecord[] | Partial<ListResult<PortfolioTargetRecord>>
-  >(buildPath(`/rearview/portfolio-runs/${portfolioRunId}/targets`, query))
-  return normalizeList(value, query.limit)
-}
-
-export async function listPortfolioOrders(
-  portfolioRunId: string,
-  query: PortfolioOrderQuery = {}
-): Promise<ListResult<PortfolioOrderRecord>> {
-  const value = await requestJson<
-    PortfolioOrderRecord[] | Partial<ListResult<PortfolioOrderRecord>>
-  >(buildPath(`/rearview/portfolio-runs/${portfolioRunId}/orders`, query))
-  return normalizeList(value, query.limit)
-}
-
-export async function listPortfolioTrades(
-  portfolioRunId: string,
-  query: PortfolioTradeQuery = {}
-): Promise<ListResult<PortfolioTradeRecord>> {
-  const value = await requestJson<
-    PortfolioTradeRecord[] | Partial<ListResult<PortfolioTradeRecord>>
-  >(buildPath(`/rearview/portfolio-runs/${portfolioRunId}/trades`, query))
-  return normalizeList(value, query.limit)
-}
-
-export async function listPortfolioPositions(
-  portfolioRunId: string,
-  query: PortfolioPositionQuery = {}
-): Promise<ListResult<PortfolioPositionRecord>> {
-  const value = await requestJson<
-    PortfolioPositionRecord[] | Partial<ListResult<PortfolioPositionRecord>>
-  >(buildPath(`/rearview/portfolio-runs/${portfolioRunId}/positions`, query))
-  return normalizeList(value, query.limit)
-}
-
-export async function listPortfolioEvents(
-  portfolioRunId: string,
-  query: PortfolioEventQuery = {}
-): Promise<ListResult<PortfolioEventRecord>> {
-  const value = await requestJson<
-    PortfolioEventRecord[] | Partial<ListResult<PortfolioEventRecord>>
-  >(buildPath(`/rearview/portfolio-runs/${portfolioRunId}/events`, query))
-  return normalizeList(value, query.limit)
-}
-
-export function getPortfolioPerformance(
-  portfolioRunId: string,
-  query: PortfolioPerformanceQuery = {}
+export function listStrategyBacktestRebalanceRecords(
+  strategyBacktestRunId: string,
+  tradeDate?: string | null
 ) {
-  return requestJson<PortfolioPerformanceResponse>(
-    buildPath(`/rearview/portfolio-runs/${portfolioRunId}/performance`, query)
-  )
-}
-
-export async function listPortfolioClosedTrades(
-  portfolioRunId: string,
-  query: PortfolioClosedTradeQuery = {}
-): Promise<ListResult<PortfolioClosedTradeRecord>> {
-  const value = await requestJson<
-    PortfolioClosedTradeRecord[] | Partial<ListResult<PortfolioClosedTradeRecord>>
-  >(buildPath(`/rearview/portfolio-runs/${portfolioRunId}/closed-trades`, query))
-  return normalizeList(value, query.limit)
-}
-
-export async function listPortfolioTradeMetrics(
-  portfolioRunId: string,
-  query: PortfolioTradeMetricQuery = {}
-): Promise<ListResult<PortfolioTradeMetricRecord>> {
-  const value = await requestJson<
-    PortfolioTradeMetricRecord[] | Partial<ListResult<PortfolioTradeMetricRecord>>
-  >(buildPath(`/rearview/portfolio-runs/${portfolioRunId}/trade-metrics`, query))
-  return normalizeList(value, query.limit)
-}
-
-export function getRun(runId: string) {
-  return requestJson<RunRecord>(`/rearview/runs/${runId}`)
-}
-
-export function listRunChunks(runId: string) {
-  return requestJson<RunChunkRecord[]>(`/rearview/runs/${runId}/chunks`)
-}
-
-export function listRunDays(runId: string) {
-  return requestJson<RunDayRecord[]>(`/rearview/runs/${runId}/days`)
-}
-
-export async function listPoolMembers(
-  runId: string,
-  query: ResultRowsQuery
-): Promise<ListResult<PoolMemberRecord>> {
-  const value = await requestJson<
-    PoolMemberRecord[] | Partial<ListResult<PoolMemberRecord>>
-  >(buildPath(`/rearview/runs/${runId}/pool`, query))
-  return normalizeList(value, query.limit)
-}
-
-export async function listBuySignals(
-  runId: string,
-  query: ResultRowsQuery
-): Promise<ListResult<BuySignalRecord>> {
-  const value = await requestJson<
-    BuySignalRecord[] | Partial<ListResult<BuySignalRecord>>
-  >(buildPath(`/rearview/runs/${runId}/signals`, query))
-  return normalizeList(value, query.limit)
-}
-
-export function getSecurityAnalysis(
-  runId: string,
-  securityCode: string,
-  query: SecurityAnalysisQuery
-) {
-  return requestJson<SecurityAnalysisResponse>(
+  return requestJson<StrategyBacktestRebalanceRecordsResponse>(
     buildPath(
-      `/rearview/runs/${runId}/securities/${securityCode}/analysis`,
+      `/rearview/strategy-backtests/${strategyBacktestRunId}/rebalance-records`,
+      { trade_date: tradeDate ?? undefined }
+    )
+  )
+}
+
+export function listStrategyBacktestTargets(
+  strategyBacktestRunId: string,
+  query: QueryParams = {}
+) {
+  return requestJson<ListResult<StrategyBacktestTargetRecord>>(
+    buildPath(`/rearview/strategy-backtests/${strategyBacktestRunId}/targets`, query)
+  )
+}
+
+export function listStrategyBacktestOrders(
+  strategyBacktestRunId: string,
+  query: QueryParams = {}
+) {
+  return requestJson<ListResult<StrategyBacktestOrderRecord>>(
+    buildPath(`/rearview/strategy-backtests/${strategyBacktestRunId}/orders`, query)
+  )
+}
+
+export function listStrategyBacktestTrades(
+  strategyBacktestRunId: string,
+  query: QueryParams = {}
+) {
+  return requestJson<ListResult<StrategyBacktestTradeRecord>>(
+    buildPath(`/rearview/strategy-backtests/${strategyBacktestRunId}/trades`, query)
+  )
+}
+
+export function listStrategyBacktestPositions(
+  strategyBacktestRunId: string,
+  query: QueryParams = {}
+) {
+  return requestJson<ListResult<StrategyBacktestPositionRecord>>(
+    buildPath(
+      `/rearview/strategy-backtests/${strategyBacktestRunId}/positions`,
       query
     )
+  )
+}
+
+export function listStrategyBacktestEvents(
+  strategyBacktestRunId: string,
+  query: QueryParams = {}
+) {
+  return requestJson<ListResult<StrategyBacktestEventRecord>>(
+    buildPath(`/rearview/strategy-backtests/${strategyBacktestRunId}/events`, query)
+  )
+}
+
+export function getStrategyBacktestPerformance(strategyBacktestRunId: string) {
+  return requestJson<StrategyBacktestPerformanceView>(
+    `/rearview/strategy-backtests/${strategyBacktestRunId}/performance`
+  )
+}
+
+export function listStrategyBacktestClosedTrades(
+  strategyBacktestRunId: string,
+  query: QueryParams = {}
+) {
+  return requestJson<ListResult<StrategyBacktestClosedTradeRecord>>(
+    buildPath(
+      `/rearview/strategy-backtests/${strategyBacktestRunId}/closed-trades`,
+      query
+    )
+  )
+}
+
+export function listStrategyBacktestTradeMetrics(
+  strategyBacktestRunId: string,
+  query: QueryParams = {}
+) {
+  return requestJson<ListResult<StrategyBacktestTradeMetricRecord>>(
+    buildPath(
+      `/rearview/strategy-backtests/${strategyBacktestRunId}/trade-metrics`,
+      query
+    )
+  )
+}
+
+export function createStrategyPortfolio(request: StrategyPortfolioCreateRequest) {
+  return requestJson<StrategyPortfolioRecord>(
+    "/rearview/strategy-portfolios",
+    jsonBody(request)
+  )
+}
+
+export function getStrategyPortfolioDashboard() {
+  return requestJson<StrategyPortfolioDashboardResponse>(
+    "/rearview/strategy-portfolios/dashboard"
+  )
+}
+
+export function getStrategyPortfolio(strategyPortfolioId: string) {
+  return requestJson<StrategyPortfolioRecord>(
+    `/rearview/strategy-portfolios/${strategyPortfolioId}`
+  )
+}
+
+export function listStrategyPortfolioNav(strategyPortfolioId: string) {
+  return requestJson<StrategyPortfolioNavResponse>(
+    `/rearview/strategy-portfolios/${strategyPortfolioId}/nav`
+  )
+}
+
+export function getStrategyPortfolioPerformance(strategyPortfolioId: string) {
+  return requestJson<StrategyPortfolioPerformanceView>(
+    `/rearview/strategy-portfolios/${strategyPortfolioId}/performance`
+  )
+}
+
+export function listStrategyPortfolioSignals(
+  strategyPortfolioId: string,
+  query: QueryParams = {}
+) {
+  return requestJson<StrategyPortfolioListResult<StrategyBacktestTargetRecord>>(
+    buildPath(`/rearview/strategy-portfolios/${strategyPortfolioId}/signals`, query)
+  )
+}
+
+export function listStrategyPortfolioSignalTimeline(
+  strategyPortfolioId: string
+) {
+  return requestJson<StrategyPortfolioSignalTimelineResponse>(
+    `/rearview/strategy-portfolios/${strategyPortfolioId}/signal-timeline`
+  )
+}
+
+export function listStrategyPortfolioPositions(
+  strategyPortfolioId: string,
+  query: QueryParams = {}
+) {
+  return requestJson<StrategyPortfolioListResult<StrategyBacktestPositionRecord>>(
+    buildPath(
+      `/rearview/strategy-portfolios/${strategyPortfolioId}/positions`,
+      query
+    )
+  )
+}
+
+export function listStrategyPortfolioRebalanceRecords(
+  strategyPortfolioId: string,
+  tradeDate?: string | null
+) {
+  return requestJson<StrategyPortfolioRebalanceRecordsResponse>(
+    buildPath(
+      `/rearview/strategy-portfolios/${strategyPortfolioId}/rebalance-records`,
+      { trade_date: tradeDate ?? undefined }
+    )
+  )
+}
+
+export function securityAnalysis(
+  request: SecurityAnalysisRequest,
+  signal?: AbortSignal
+) {
+  return requestJson<SecurityAnalysisResponse>(
+    "/rearview/security-analysis",
+    { ...jsonBody(request), signal }
   )
 }

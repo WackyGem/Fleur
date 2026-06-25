@@ -7,7 +7,7 @@
 ## 适用需求
 
 - Racingline 前端页面、路由、布局、交互和工作流。
-- React/TypeScript/Tailwind/shadcn/Base UI/Hugeicons 组件体系。
+- React/TypeScript/Tailwind/shadcn/Base UI/Hugeicons/Lucide 组件体系。
 - TanStack Query、Zustand、TradingView Lightweight Charts 状态和图表需求。
 - `app/racingline/` 单独 package 管理、根目录 `.env` / `.env.example` 和 `VITE_REARVIEW_API_BASE_URL` 配置。
 - Playwright CDP 调试、截图、DOM、console、network 和响应式验收。
@@ -41,12 +41,13 @@
 
 ## 验证要求
 
-`app/racingline/` 创建前，需求 RFC 必须写明预期验证方式。创建后至少提供：
+Racingline 前端需求 RFC 必须写明预期验证方式；实施后至少提供：
 
 ```bash
 cd app/racingline
 npm run lint
 npm run typecheck
+npm test
 npm run build
 ```
 

@@ -10,7 +10,7 @@
 - [Q&A 0001: PostgreSQL Control Plane 与 ClickHouse Portfolio Data Plane](../Q&A/0001-postgresql-control-plane-clickhouse-portfolio-data-plane.md)
 - [ADR 0012: 组合净值递推留在 Rust，指标复算上 ClickHouse mart](../ADR/0012-portfolio-nav-recursion-stays-in-rust.md)
 - [ADR 0009: ClickHouse 按 dbt 建模层分库](../ADR/0009-clickhouse-layered-databases.md)
-- [Plan 0041: Racingline 虚拟账户与组合调仓净值实施计划](0041-racingline-virtual-account-portfolio-rebalancing-implementation-plan.md)
+- [Plan 0041: Racingline 虚拟账户与组合调仓净值实施计划](archive/0041-racingline-virtual-account-portfolio-rebalancing-implementation-plan.md)
 
 ## 目标
 

@@ -4,6 +4,8 @@
 
 日期：2026-06-20
 
+路径说明：本文写于 Plan 0053 迁移前；文中的 `app/racingline_new/` 为历史原型路径，当前 Racingline 前端代码根为 `app/racingline/`。
+
 ## 背景
 
 `app/racingline_new/` 当前可视为 Racingline 的快速交互原型，用于验证一个从盘后看板出发，到选股、回测，再把策略投入运行的业务闭环。该原型不是生产实现，也不代表最终 API contract；它的价值在于把用户主路径、页面职责和信息层级先跑通。
@@ -88,4 +90,4 @@
 - [RFC 0023: Racingline 前端原型驱动开发流程](../RFC/0023-racingline-frontend-prototype-led-development.md)
 - [RFC 0028: Racingline 策略回测 Step 5 异步执行方案](../RFC/0028-racingline-strategy-backtest-step5.md)
 - [System: Racingline](../systems/racingline.md)
-- [Plan 0041: Racingline 虚拟账户、组合运行、NATS worker、明细账本和净值曲线第一版实施计划](../plans/0041-racingline-virtual-account-portfolio-rebalancing-implementation-plan.md)
+- [Plan 0041: Racingline 虚拟账户、组合运行、NATS worker、明细账本和净值曲线第一版实施计划](../plans/archive/0041-racingline-virtual-account-portfolio-rebalancing-implementation-plan.md)

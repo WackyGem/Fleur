@@ -6,6 +6,8 @@
 代码根：app/racingline_new/, engines/crates/rearview-core/, engines/crates/rearview-server/, engines/crates/rearview-portfolio-worker/, pipeline/scheduler/, pipeline/migrate/
 需求入口：docs/intake/racingline.md
 
+路径说明：本文写于 Plan 0053 迁移前；文中的 `app/racingline_new/` 均为历史实现路径，当前 Racingline 前端代码根为 `app/racingline/`。
+
 ## 摘要
 
 Step 5 策略回测已经落地为 Rearview 异步 backtest run。下一步不是把 Step 5 结果继续留在研究页面，而是让用户把一次成功回测发布为可持续观察的策略组合：

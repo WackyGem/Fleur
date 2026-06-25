@@ -16,14 +16,12 @@ REARVIEW_HTTP_BIND ?= 127.0.0.1:34057
 REARVIEW_DEV_PORT ?= $(lastword $(subst :, ,$(REARVIEW_HTTP_BIND)))
 RACINGLINE_DEV_HOST ?= 127.0.0.1
 RACINGLINE_DEV_PORT ?= 5173
-RACINGLINE_APP_DIR ?= app/racingline_new
+RACINGLINE_APP_DIR ?= app/racingline
 
 ifneq ("$(wildcard .env)","")
 include .env
 export
 endif
-
-RACINGLINE_NEW_APP_DIR := app/racingline_new
 
 POSTGRES_DB ?= pipeline
 POSTGRES_USER ?= mono_fleur
@@ -91,7 +89,7 @@ define stop-listening-port
 	fi
 endef
 
-.PHONY: help dev-up dev-down dev-logs wait-rustfs wait-postgres wait-clickhouse dagster-home docs-check check-defs materialize-trade-calendar dev-materialize-trade-calendar webui dbt-docs dbt-docs-serve rust-doc rust-doc-open rust-doc-serve rearview-migrate rearview-catalog-sync rearview-prepare rearview-dev racingline-frontend-dev racingline-new-rearview-dev racingline-dev racingline-dev-stop
+.PHONY: help dev-up dev-down dev-logs wait-rustfs wait-postgres wait-clickhouse dagster-home docs-check check-defs materialize-trade-calendar dev-materialize-trade-calendar webui dbt-docs dbt-docs-serve rust-doc rust-doc-open rust-doc-serve rearview-migrate rearview-catalog-sync rearview-prepare rearview-dev racingline-frontend-dev racingline-dev racingline-dev-stop
 
 help:
 	@printf '%s\n' 'Available targets:'
@@ -114,7 +112,6 @@ help:
 	@printf '  %-34s %s\n' 'rearview-catalog-sync' 'Sync Rearview metric catalog into PostgreSQL'
 	@printf '  %-34s %s\n' 'rearview-dev' 'Start Docker dev services + Rearview after clearing its port'
 	@printf '  %-34s %s\n' 'racingline-frontend-dev' 'Start Racingline Vite dev server after clearing its port'
-	@printf '  %-34s %s\n' 'racingline-new-rearview-dev' 'Start app/racingline_new + Rearview server/worker after clearing ports'
 	@printf '  %-34s %s\n' 'racingline-dev' 'Start Docker dev services + Rearview server/worker + Racingline after clearing ports'
 	@printf '  %-34s %s\n' 'racingline-dev-stop' 'Stop Rearview/Racingline dev servers by listening port'
 
@@ -227,60 +224,6 @@ racingline-dev-stop:
 	fi; \
 	printf 'Stopping existing Rearview portfolio worker process(es): %s\n' "$$pids"; \
 	kill $$pids 2>/dev/null || true
-
-racingline-new-rearview-dev:
-	$(require-env-file)
-	$(MAKE) --no-print-directory racingline-dev-stop
-	$(MAKE) --no-print-directory rearview-prepare
-	@set -euo pipefail; \
-		backend_pid=''; \
-		worker_pid=''; \
-		frontend_pid=''; \
-		cleanup() { \
-			status=$$?; \
-			trap - INT TERM EXIT; \
-			if [ -n "$${frontend_pid:-}" ] && kill -0 "$$frontend_pid" 2>/dev/null; then \
-				printf '\nStopping Racingline New frontend dev server (pid %s)\n' "$$frontend_pid"; \
-				kill "$$frontend_pid" 2>/dev/null || true; \
-			fi; \
-			if [ -n "$${backend_pid:-}" ] && kill -0 "$$backend_pid" 2>/dev/null; then \
-				printf 'Stopping Rearview dev server (pid %s)\n' "$$backend_pid"; \
-				kill "$$backend_pid" 2>/dev/null || true; \
-			fi; \
-			if [ -n "$${worker_pid:-}" ] && kill -0 "$$worker_pid" 2>/dev/null; then \
-				printf 'Stopping Rearview portfolio worker (pid %s)\n' "$$worker_pid"; \
-				kill "$$worker_pid" 2>/dev/null || true; \
-			fi; \
-			wait "$${frontend_pid:-}" "$${backend_pid:-}" "$${worker_pid:-}" 2>/dev/null || true; \
-			exit "$$status"; \
-		}; \
-		trap cleanup INT TERM EXIT; \
-		printf 'Starting Rearview dev server at http://%s\n' '$(REARVIEW_HTTP_BIND)'; \
-		(cd engines && cargo run -p rearview-server -- serve) & \
-		backend_pid=$$!; \
-		sleep 2; \
-		if ! kill -0 "$$backend_pid" 2>/dev/null; then \
-			printf 'Rearview dev server failed to start\n' >&2; \
-			wait "$$backend_pid"; \
-			exit 1; \
-		fi; \
-		printf 'Starting Rearview portfolio worker\n'; \
-		(cd engines && cargo run -p rearview-portfolio-worker -- run) & \
-		worker_pid=$$!; \
-		sleep 2; \
-		if ! kill -0 "$$worker_pid" 2>/dev/null; then \
-			printf 'Rearview portfolio worker failed to start\n' >&2; \
-			wait "$$worker_pid"; \
-			exit 1; \
-		fi; \
-		printf 'Starting Racingline New frontend at http://%s:%s from %s\n' '$(RACINGLINE_DEV_HOST)' '$(RACINGLINE_DEV_PORT)' '$(RACINGLINE_NEW_APP_DIR)'; \
-		(cd $(RACINGLINE_NEW_APP_DIR) && npm run dev -- --host $(RACINGLINE_DEV_HOST) --port $(RACINGLINE_DEV_PORT)) & \
-		frontend_pid=$$!; \
-		set +e; \
-		wait -n "$$backend_pid" "$$worker_pid" "$$frontend_pid"; \
-		status=$$?; \
-		set -e; \
-		exit "$$status"
 
 racingline-dev:
 	$(require-env-file)

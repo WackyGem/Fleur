@@ -6,6 +6,8 @@
 代码根：app/racingline_new/, app/racingline/, engines/crates/rearview-core/
 需求入口：docs/intake/racingline.md
 
+路径说明：本文写于 Plan 0053 迁移前；文中的 `app/racingline_new/` 均为历史实现路径，当前 Racingline 前端代码根为 `app/racingline/`。
+
 ## 摘要
 
 本文档定义从 `app/racingline_new` 的 `/strategies` Step 1「策略选股」切入，逐步完善 Racingline 前后端策略创建闭环的第一阶段方案。

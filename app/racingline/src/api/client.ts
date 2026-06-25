@@ -22,12 +22,7 @@ export class ApiError extends Error {
   }
 }
 
-export type QueryValue =
-  | string
-  | number
-  | boolean
-  | null
-  | undefined
+export type QueryValue = string | number | boolean | null | undefined
 
 export type QueryParams = Record<string, QueryValue>
 
@@ -44,13 +39,14 @@ export function buildPath(path: string, query?: QueryParams) {
     }
     params.set(key, String(value))
   }
+
   const queryString = params.toString()
   return `${path}${queryString ? `?${queryString}` : ""}`
 }
 
 export async function requestJson<T>(
   path: string,
-  options: RequestInit = {},
+  options: RequestInit = {}
 ): Promise<T> {
   const response = await fetch(`${apiBaseUrl()}${path}`, {
     ...options,
@@ -81,7 +77,7 @@ export function jsonBody<T>(body: T): RequestInit {
 
 export function normalizeList<T>(
   value: T[] | Partial<ListResult<T>> | { data?: T[] },
-  fallbackLimit = DEFAULT_LIMIT,
+  fallbackLimit = DEFAULT_LIMIT
 ): ListResult<T> {
   if (Array.isArray(value)) {
     return {
@@ -114,13 +110,13 @@ async function toApiError(response: Response) {
     return new ApiError(
       response.status,
       body,
-      `Rearview request failed with HTTP ${response.status}`,
+      `Rearview request failed with HTTP ${response.status}`
     )
   } catch {
     return new ApiError(
       response.status,
       {},
-      `Rearview request failed with HTTP ${response.status}`,
+      `Rearview request failed with HTTP ${response.status}`
     )
   }
 }

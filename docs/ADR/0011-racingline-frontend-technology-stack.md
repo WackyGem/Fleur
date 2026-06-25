@@ -4,6 +4,8 @@
 
 日期：2026-06-13
 
+后续决策：2026-06-25 [ADR 0013](0013-racingline-ui-stack-variant-evaluation.md) 接受 `base-lyra`、`taupe`、IBM Plex Sans、Lucide 与 Hugeicons 并存作为 Racingline 正式 UI 栈；本 ADR 中 Vite、React、TypeScript、Tailwind CSS v4、shadcn/ui、Base UI、React Router、TanStack Query、Zustand、Lightweight Charts、单独 package 管理和根目录 env 边界继续有效。
+
 ## 背景
 
 RFC 0019 定义了 `racingline` 作为 Rearview 指标选股前端工作台的第一版需求。该前端尚未创建代码，但已经需要固定工程栈、组件体系、状态管理、图表方案和本地配置约定，避免实现阶段在多个等价方案之间反复切换。
@@ -28,8 +30,8 @@ app/racingline/
 | 前端框架 | React |
 | 开发语言 | TypeScript |
 | CSS 风格与样式体系 | Tailwind CSS v4（`@tailwindcss/vite`）+ CSS Variables（设计令牌） |
-| UI 组件体系 | shadcn/ui（style: `base-nova`）+ Base UI（`@base-ui/react`） |
-| 图标 | Hugeicons（`@hugeicons/react`） |
+| UI 组件体系 | shadcn/ui + Base UI（`@base-ui/react`）；当前 style 见 ADR 0013 |
+| 图标 | 当前图标策略见 ADR 0013 |
 | 类名与变体工具 | `clsx` + `tailwind-merge` + `class-variance-authority` |
 | 代码规范 | ESLint Flat Config + `typescript-eslint` + `react-hooks` + `react-refresh` |
 | 路由 | React Router（`react-router-dom`） |
@@ -42,10 +44,10 @@ app/racingline/
 1. Vite 是唯一第一版构建入口；不引入 Next.js、Remix 或其他 SSR/full-stack framework。
 2. React + TypeScript 是默认 UI 开发组合；业务 API 类型应从前端本地类型或后续生成协议中收敛，不在组件中散落 `any`。
 3. Tailwind CSS v4 通过 `@tailwindcss/vite` 接入；主题颜色、间距、圆角、语义色等长期令牌通过 CSS Variables 表达。
-4. shadcn/ui 是组件组合的主入口，采用 `base-nova` style。需要无障碍 primitive 或更底层交互能力时使用 Base UI，不另行引入 Radix 作为默认 primitive 层。
+4. shadcn/ui 是组件组合的主入口。当前 style、base color 和 menu 配置以 ADR 0013 为准。需要无障碍 primitive 或更底层交互能力时使用 Base UI，不另行引入 Radix 作为默认 primitive 层。
 5. 新增 shadcn/ui 组件时使用官方 CLI；agent 参与组件开发时应使用官方 shadcn skill 辅助。优先组合已有组件，不直接复制不受控的第三方组件实现。
 6. 不得改写 shadcn/ui 官方 CLI 生成的默认 UI 组件文件（例如 `src/components/ui/*`）。业务 UI、领域组合、布局和交互封装必须放在独立业务组件目录中，并通过依赖引用这些默认组件完成组合；如默认组件需要更新，使用 shadcn/ui 官方 CLI 重新生成或升级，不手工改写其实现。
-7. 图标统一使用 Hugeicons；只有 Hugeicons 缺少明确语义图标时，才允许在局部封装自定义图标。
+7. 图标策略以 ADR 0013 为准。
 8. 类名组合统一通过 `clsx`、`tailwind-merge` 和 `class-variance-authority`，避免在组件内堆叠不可复用的字符串拼接。
 9. 服务端请求、缓存、轮询、错误和重试策略默认由 TanStack Query 承担；Zustand 只保存跨页面 UI 状态、草稿状态和不属于服务端事实的客户端状态。
 10. 股票、指标或运行趋势图使用 TradingView Lightweight Charts；表格和状态面板不为图表库让渡基础布局职责。

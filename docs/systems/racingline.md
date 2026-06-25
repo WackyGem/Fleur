@@ -1,55 +1,39 @@
 # System: Racingline
 
-状态：策略创建 Step 5 异步回测已实现并通过 dev live smoke、截图证据链和验收报告（2026-06-23）
+状态：单一正式前端工作台已落到 `app/racingline/`（2026-06-25）
 
 ## 代码根
 
 | 路径 | 角色 |
 |---|---|
-| [app/racingline/](../../app/racingline/) | Racingline 第一版前端工作区，包含 run、个股分析和 portfolio 页面 |
-| [app/racingline_new/](../../app/racingline_new/) | 并行策略创建工作台，用于 `/strategies` Step 1/2/3/4/5 真实接口闭环和后续策略创建流程 |
+| [app/racingline/](../../app/racingline/) | Racingline 唯一正式前端工作区，承载 dashboard、`/strategies`、strategy backtest 和 strategy portfolio 页面 |
 
-页面需求以 [RFC 0019](../RFC/0019-racingline-rearview-frontend-workbench.md) 和 [Q&A 0004](../Q&A/0004-racingline-prototype-dashboard-to-strategy-loop.md) 为准；工程边界以 [ADR 0011](../ADR/0011-racingline-frontend-technology-stack.md) 为准。
+页面需求以 [RFC 0023](../RFC/0023-racingline-frontend-prototype-led-development.md)、[RFC 0024](../RFC/0024-racingline-strategy-selection-step1.md)、[RFC 0025](../RFC/0025-racingline-strategy-weight-configuration-step2.md)、[RFC 0026](../RFC/0026-racingline-strategy-pool-preview-step3.md)、[RFC 0027](../RFC/0027-racingline-strategy-simulation-position-step4.md)、[RFC 0028](../RFC/0028-racingline-strategy-backtest-step5.md) 和 [RFC 0029](../RFC/0029-racingline-strategy-portfolio-publish-and-daily-run.md) 为准；工程边界以 [ADR 0011](../ADR/0011-racingline-frontend-technology-stack.md) 和 [ADR 0013](../ADR/0013-racingline-ui-stack-variant-evaluation.md) 为准。
 
 ## 职责
 
-1. 提供 Rearview 指标选股前端工作台。
-2. 支持规则集选择、规则版本表单化编辑、explain 校验和运行发起。
-3. 在 `app/racingline_new` 的 `/strategies` 中支持 Step 1 记录筛选条件、Step 2 记录评分规则、Step 3 点击股池预览后执行真实选股/评分/排名。
-4. Step 3 使用 Rearview preview-only API 展示 applied preview snapshot、动态近一年交易日股池概览、10 条分页候选股、rank、score、Step 2 得分项、Step 1 指标列、证券交易板块、K 线复权、MA5/MA10/MA30 和成交量柱；不展示 raw debug 面板。
-5. Step 3 允许在行情/估值下方微调 Step 2 权重草稿；权重变化只标记 preview stale，必须点击“更新股池”并由 Rearview 重新 preview 后才替换 applied snapshot。
-6. Step 4 使用 Rearview 默认市场费率模板初始化费用草稿，只展示用户可编辑的佣金率、印花税、过户费和单一成交滑点；摘要展示建仓参数、风险规则和 Step 3 timeline 的近三月 `pool_count` 票池走势，不展示 Rearview draft/hash/Preview debug 字段。
-7. Step 4 编辑期间不自动调用 backtest validate；点击「进入回测」时才把 Step 3 applied snapshot 和 Step 4 当前表单映射为 snake_case `BacktestExecutionConfig`，调用 `POST /rearview/strategy-backtests/validate` 获取 canonical config、`rule_hash`、`execution_config_hash` 和仓位摘要。
-8. Step 4/5 gate 只允许非 stale Step 3 applied preview snapshot 和成功的 Rearview draft 进入；Step 1/2 修改后必须重新更新股池。Step 4 支持受控趋势指标止损，第一版语义为收盘价跌破所选 trend metric 时卖出，主图指标集合为 MA、MA 组合和 EMA。
-9. Step 5 已接入 Rearview 真实异步 backtest run：首次进入默认 `近一年 + 000300.SH`，period options 由后端动态解析；用户修改 `近一年/近两年/近三年` 或 benchmark 只更新 pending config，点击「开始回测/重新回测」才创建新 run，旧结果作为历史快照保留。
-10. Step 5 展示 canonical Step 4 配置摘要、queued/running/progress/failed/succeeded 状态、真实策略净值和 benchmark 净值、调仓记录、持仓/成交结果查询入口和绩效侧栏；成功路径不得 fallback 到 mock 曲线、mock 调仓或 mock 绩效。
-11. 展示 run、chunk 和 day 粒度进度。
-12. 按交易日展示股票池、TopN 买入信号、score breakdown 和 selected metrics。
-13. 用 UI 明确区分运行时结果快照和当前 mart 查询值。
-14. 从 run result 的 `Open` 进入 `/runs/:runId/securities/:securityCode` 个股分析页，提供结果列表、日 K 线、MA5/MA10/MA30、KDJ/RSI/MACD/BOLL 和右侧 mart 指标面板。
-15. 提供虚拟账户模板表单，使用 Rearview 默认市场费率模板预填初始资金、费率、滑点和卖出规则。
-16. 提供 `/portfolios` 和 `/portfolios/:portfolioRunId`，展示组合运行状态、净值曲线、summary、参数、持仓、成交、订单、调仓目标和事件。
+1. 提供 Rearview 策略研究前端工作台。
+2. 支持 `/dashboard` 的 strategy portfolio 看板、`/dashboard/strategies/:portfolioId` 详情和 `/strategies` 策略创建主流程。
+3. 在 `/strategies` 中支持 Step 1 筛选条件、Step 2 评分规则、Step 3 preview、Step 4 模拟建仓和 Step 5 异步回测。
+4. 通过 Rearview preview-only API 展示 applied preview snapshot、动态近一年交易日股池、分页候选股、rank、score、Step 2 得分项、Step 1 指标列、证券交易板块、K 线复权、MA5/MA10/MA30 和成交量柱。
+5. 通过 Rearview strategy backtest API 展示 validate、options、create、nav、rebalance records、targets、orders、trades、positions、events、performance、closed trades 和 trade metrics。
+6. 通过 Rearview strategy portfolio API 展示看板、详情、净值、信号、signal timeline、持仓和调仓记录。
+7. 继续使用 Rearview default market fee template 初始化 Step 4 草稿，并在 UI 中区分 draft、applied snapshot、backtest result 和 portfolio result。
 
 ## 非职责
 
-1. 不实现 Rearview 规则编译、ClickHouse 查询、PostgreSQL 写入或业务状态机。
-2. 不直接访问 ClickHouse 或 PostgreSQL。
-3. 不在浏览器内计算权威成交、持仓、费用、滑点、净值、绩效或 backtest hash；组合账本和 Step 4 canonical draft 以 Rearview API 为准。
-4. 第一版不引入登录入口、认证/鉴权、用户隔离或权限系统。
+1. 不实现 Rearview 规则编译、ClickHouse 查询、PostgreSQL 写入或 worker 状态机。
+2. 不直接访问 ClickHouse、PostgreSQL、NATS 或 dbt。
+3. 不在浏览器内计算权威成交、持仓、费用、滑点、净值、绩效或 backtest hash。
+4. 不引入登录入口、认证/鉴权、用户隔离或权限系统。
 
 ## 技术栈
 
-技术栈和工程边界以 [ADR 0011](../ADR/0011-racingline-frontend-technology-stack.md) 为权威来源。当前摘要：Vite + React + TypeScript，Tailwind CSS v4 + CSS Variables，shadcn/ui（`base-nova`）+ Base UI，Hugeicons，React Router，TanStack Query，Zustand 和 TradingView Lightweight Charts。
+技术栈和工程边界以 [ADR 0011](../ADR/0011-racingline-frontend-technology-stack.md) 为基础，UI 栈变体决策以 [ADR 0013](../ADR/0013-racingline-ui-stack-variant-evaluation.md) 为准。当前正式实现使用 Vite + React + TypeScript、Tailwind CSS v4 + CSS Variables、shadcn/ui + Base UI、Hugeicons 与 Lucide 的组合、React Router、TanStack Query、Zustand 和 TradingView Lightweight Charts。
 
 ## 工程管理
 
-第一版采用单独 package 管理：只在 `app/racingline/` 维护 `package.json`、lockfile、Vite 配置和 npm scripts；暂不在 `app/` 顶层引入 npm/pnpm/yarn workspace 管理器。
-
-前端运行时配置只使用仓库根目录 `.env` 和 `.env.example`。`app/racingline/` 不创建 `.env`、`.env.local`、`.env.example` 或其他 `.env*` 文件；Vite 通过 `envDir` 从仓库根目录读取配置。Vite 客户端变量必须使用 `VITE_` 前缀，第一版 API base URL 变量为：
-
-```text
-VITE_REARVIEW_API_BASE_URL=http://127.0.0.1:34057
-```
+`app/racingline/` 采用单独 package 管理，只在该目录维护 `package.json`、lockfile、Vite 配置和 npm scripts。前端运行时配置只使用仓库根目录 `.env` 和 `.env.example`；Vite 通过 `envDir: "../.."` 从仓库根读取配置。
 
 本地开发入口：
 
@@ -57,134 +41,62 @@ VITE_REARVIEW_API_BASE_URL=http://127.0.0.1:34057
 make racingline-dev
 ```
 
-该命令会先按端口清理已启动的 Rearview 和 Racingline dev 进程，再启动 Docker dev 依赖服务、等待 PostgreSQL/ClickHouse、执行 PostgreSQL migrations、同步 Rearview metric catalog，最后同时启动 Rearview server `http://127.0.0.1:34057`、Rearview portfolio worker 与前端 `http://127.0.0.1:5173/`。
+该命令会按端口清理既有 Frontend / Rearview 进程，准备 Docker 依赖，执行 PostgreSQL migrations，同步 Rearview metric catalog，并启动 Rearview server、Rearview portfolio worker 和前端 `http://127.0.0.1:5173/`。
 
-只启动 `app/racingline_new` 与 Rearview HTTP server，用于策略创建工作台手工复验：
+只启动前端：
 
 ```bash
-make racingline-new-rearview-dev
+make racingline-frontend-dev
 ```
 
-该命令同样清理前后端监听端口、准备 Docker dev 依赖、迁移和 metric catalog，并会停止残留的 Rearview portfolio worker；不会启动旧 `app/racingline/` 或 portfolio worker。
-
-单独启动或清理：
+只清理前端和 Rearview dev server 端口：
 
 ```bash
-make rearview-dev
-make racingline-frontend-dev
 make racingline-dev-stop
 ```
-
-`make racingline-dev-stop` 只清理前后端 dev server 端口，不停止 Docker 依赖服务；停止依赖服务仍使用 `make dev-down`。
 
 ## 后端依赖
 
 | 系统 | 依赖 |
 |---|---|
-| [Rearview](rearview.md) | 规则集、规则版本、运行、股票池、买入信号、explain、个股 analysis、虚拟账户模板和组合运行 API |
-| Furnace/dbt marts | 通过 Rearview 间接消费 mart 指标，不由前端直接访问 |
+| [Rearview](rearview.md) | metric catalog、preview API、strategy backtest control plane、strategy portfolio API、security analysis API |
+| Furnace/dbt marts | 通过 Rearview 间接消费指标 mart，不由前端直接访问 |
 
 ## 浏览器调试
 
-Racingline 前端调试优先复用 Docker `vnc-mini-desktop` 中的 Chromium 浏览器。该浏览器通过 CDP 暴露到默认端点：
+前端调试优先复用 Docker `vnc-mini-desktop` 暴露的 Chromium CDP 端点：
 
 ```text
 http://127.0.0.1:9222
 ```
-
-全局安装 `@playwright/cli` 后，用以下命令检查和连接：
 
 ```bash
 node scripts/check_playwright_cdp.mjs
 playwright-cli attach --cdp="${PLAYWRIGHT_CDP_ENDPOINT:-http://127.0.0.1:9222}"
 ```
 
-Racingline 调试默认连接 `vnc-mini-desktop` 已运行的 Chromium。不要使用 `playwright-cli open` 启动本机 Chrome；本机环境可能没有安装系统 Chrome，且会绕过共享 VNC/CDP 调试环境。
-
-具体 agent 调试流程见 [../skills/playwright-cdp-frontend-debug/SKILL.md](../skills/playwright-cdp-frontend-debug/SKILL.md)。官方 Playwright CLI skill 可通过 `playwright-cli install --skills agents` 安装到本地 `.agents/skills/playwright-cli`。
-
 ## 质量门禁
-
-`app/racingline/` 提供可重复执行的 lint、typecheck、test 和 build 命令：
 
 ```bash
 cd app/racingline
-npm run lint
-npm run typecheck
-npm run test
-npm run build
-```
-
-`app/racingline_new/` 涉及 `/strategies` 当前实现时运行：
-
-```bash
-cd app/racingline_new
 npm run lint
 npm run typecheck
 npm test
 npm run build
 ```
 
-涉及 Rearview 后端 API 变更时追加：
-
-```bash
-cd engines
-cargo fmt --check
-cargo clippy --workspace --all-targets --all-features -- -D warnings
-cargo test --workspace
-```
-
 ## 相关文档
 
 | 文档 | 用途 |
 |---|---|
-| [../RFC/0019-racingline-rearview-frontend-workbench.md](../RFC/0019-racingline-rearview-frontend-workbench.md) | Racingline 前端 RFC |
-| [../RFC/0020-racingline-run-result-security-analysis-page.md](../RFC/0020-racingline-run-result-security-analysis-page.md) | Run result 个股分析页已实现 RFC |
-| [../RFC/0021-racingline-virtual-account-portfolio-rebalancing.md](../RFC/0021-racingline-virtual-account-portfolio-rebalancing.md) | 虚拟账户、交易费率、止盈止损和组合调仓净值 Proposed RFC |
-| [../RFC/0023-racingline-frontend-prototype-led-development.md](../RFC/0023-racingline-frontend-prototype-led-development.md) | Racingline 前端 RFC 阶段允许原型驱动多轮 UX 验证的流程 RFC |
-| [../RFC/0024-racingline-strategy-selection-step1.md](../RFC/0024-racingline-strategy-selection-step1.md) | 从 `/strategies` Step 1 策略选股切入，接通 metric catalog、RuleVersionSpec 和 explain 的 Proposed RFC |
-| [../RFC/0025-racingline-strategy-weight-configuration-step2.md](../RFC/0025-racingline-strategy-weight-configuration-step2.md) | 从 `/strategies` Step 2 权重配置切入，把权重草稿落到 `RuleVersionSpec.scoring.rules`，并定义点击股池预览时才执行选股、评分和排名的 Implemented RFC |
-| [../RFC/0026-racingline-strategy-pool-preview-step3.md](../RFC/0026-racingline-strategy-pool-preview-step3.md) | 从 `/strategies` Step 3 股池预览切入，补齐 preview snapshot、结果解释、候选池分页、证券显示和 preview-only 个股上下文的 Implemented RFC |
-| [../RFC/0027-racingline-strategy-simulation-position-step4.md](../RFC/0027-racingline-strategy-simulation-position-step4.md) | `/strategies` Step 4 模拟建仓、默认市场费率模板、BacktestExecutionDraft 和 Step 5 handoff 边界 |
-| [../RFC/0028-racingline-strategy-backtest-step5.md](../RFC/0028-racingline-strategy-backtest-step5.md) | `/strategies` Step 5 策略回测异步执行、backtest run control plane、NATS worker 和组合绩效指标已实现设计 |
-| [../plans/archive/0051-racingline-strategy-backtest-step5-implementation-plan.md](../plans/archive/0051-racingline-strategy-backtest-step5-implementation-plan.md) | Step 5 异步 backtest run、真实 UI 接入、动态周期、live smoke 和截图证据链已完成计划 |
-| [../jobs/reports/2026-06-23-racingline-strategy-step5-backtest.md](../jobs/reports/2026-06-23-racingline-strategy-step5-backtest.md) | Step 5 默认动态近一年、period/benchmark rerun、wrapper API、ClickHouse/PG 和 worker 重投递验收报告 |
-| [../plans/archive/0050-racingline-strategy-simulation-position-step4-implementation-plan.md](../plans/archive/0050-racingline-strategy-simulation-position-step4-implementation-plan.md) | Step 4 execution draft、Rearview validate contract、stale gate 和 Step 5 contract handoff 已完成计划 |
-| [../jobs/reports/2026-06-23-racingline-strategy-step4-draft-handoff.md](../jobs/reports/2026-06-23-racingline-strategy-step4-draft-handoff.md) | Step 4 draft handoff、stale gate、fee template error path 和质量门禁验收报告 |
-| [../debt/0006-2026-06-23-strategies-step4-implemennt-drift.md](../debt/0006-2026-06-23-strategies-step4-implemennt-drift.md) | Step 4 模拟建仓实现漂移和修复方案，已 resolved |
-| [../jobs/reports/2026-06-23-racingline-strategy-step4-drift-remediation.md](../jobs/reports/2026-06-23-racingline-strategy-step4-drift-remediation.md) | Step 4 漂移修正后的 UI、validate 时机、近三月票池数和趋势指标止损验收报告 |
-| [../plans/archive/0045-racingline-strategy-selection-step1-gap-closure-plan.md](../plans/archive/0045-racingline-strategy-selection-step1-gap-closure-plan.md) | 策略选股 Step 1 缺口填补实施计划归档 |
-| [../plans/archive/0046-racingline-strategy-weight-configuration-step2-implementation-plan.md](../plans/archive/0046-racingline-strategy-weight-configuration-step2-implementation-plan.md) | 策略权重配置 Step 2、preview-only API 和真实股池预览实施计划归档 |
-| [../plans/archive/0047-racingline-strategy-pool-preview-step3-implementation-plan.md](../plans/archive/0047-racingline-strategy-pool-preview-step3-implementation-plan.md) | 策略股池预览 Step 3、PreviewSnapshot、全池分页和 preview security analysis 实施计划归档 |
-| [../plans/archive/0048-racingline-strategy-step3-drift-remediation-plan.md](../plans/archive/0048-racingline-strategy-step3-drift-remediation-plan.md) | Step 3 股池预览漂移修正：职责收缩、timeline、10 条分页、K 线复权/MA 和 Step1/Step2 展示语义拆分 |
-| [../plans/archive/0049-racingline-strategy-step3-drift2-remediation-plan.md](../plans/archive/0049-racingline-strategy-step3-drift2-remediation-plan.md) | Step 3 二次漂移修正：交易板块、量柱、动态窗口、权重微调和 analysis payload 瘦身 |
-| [../jobs/reports/2026-06-22-racingline-strategy-step2-preview.md](../jobs/reports/2026-06-22-racingline-strategy-step2-preview.md) | 策略权重配置 Step 2 到股池预览闭环验收报告 |
-| [../jobs/reports/2026-06-22-racingline-strategy-step3-preview.md](../jobs/reports/2026-06-22-racingline-strategy-step3-preview.md) | 策略创建 Step 1/2/3 真实接口闭环、negative smoke、stale 状态和 preview analysis 验收报告 |
-| [../jobs/reports/2026-06-22-racingline-strategy-step3-drift-remediation.md](../jobs/reports/2026-06-22-racingline-strategy-step3-drift-remediation.md) | Step 3 漂移修正后的接口、浏览器和质量门禁验收报告 |
-| [../jobs/reports/2026-06-22-racingline-strategy-step3-drift2-remediation.md](../jobs/reports/2026-06-22-racingline-strategy-step3-drift2-remediation.md) | Step 3 二次漂移修正后的板块、图表、权重微调、性能和质量门禁验收报告 |
-| [../Q&A/user-logic.md](../Q&A/user-logic.md) | Racingline 当前用户画像和策略研究工作台主路径 |
-| [../Q&A/0003-racingline-strategy-lab-two-entry-navigation.md](../Q&A/0003-racingline-strategy-lab-two-entry-navigation.md) | Racingline 策略研究工作台两入口导航和首屏承载 Proposed Q&A |
-| [../Q&A/0004-racingline-prototype-dashboard-to-strategy-loop.md](../Q&A/0004-racingline-prototype-dashboard-to-strategy-loop.md) | `app/racingline_new/` 看板到选股、回测和运行策略闭环用户故事 |
-| [../ADR/0013-racingline-ui-stack-variant-evaluation.md](../ADR/0013-racingline-ui-stack-variant-evaluation.md) | Racingline UI 栈变体评估 Proposed ADR |
-| [../plans/0041-racingline-virtual-account-portfolio-rebalancing-implementation-plan.md](../plans/0041-racingline-virtual-account-portfolio-rebalancing-implementation-plan.md) | 虚拟账户、组合运行、NATS worker 和组合页面当前实施计划 |
-| [../ADR/0011-racingline-frontend-technology-stack.md](../ADR/0011-racingline-frontend-technology-stack.md) | Racingline 前端技术栈和工程边界 |
-| [../plans/archive/0037-racingline-frontend-implementation-plan.md](../plans/archive/0037-racingline-frontend-implementation-plan.md) | Racingline 前端第一版实施计划归档 |
-| [../plans/archive/0039-racingline-run-result-security-analysis-page-implementation-plan.md](../plans/archive/0039-racingline-run-result-security-analysis-page-implementation-plan.md) | Run result 个股分析页实施计划归档 |
-| [../plans/archive/0040-racingline-security-analysis-optimization-plan.md](../plans/archive/0040-racingline-security-analysis-optimization-plan.md) | 个股分析页交互、趋势叠加线和新选股规则适配计划归档 |
-| [../jobs/reports/2026-06-13-racingline-frontend-skeleton.md](../jobs/reports/2026-06-13-racingline-frontend-skeleton.md) | 前端骨架和工程门禁报告 |
-| [../jobs/reports/2026-06-13-racingline-rearview-api-integration.md](../jobs/reports/2026-06-13-racingline-rearview-api-integration.md) | Rearview API 联调报告 |
-| [../jobs/reports/2026-06-13-racingline-playwright-cdp-acceptance.md](../jobs/reports/2026-06-13-racingline-playwright-cdp-acceptance.md) | Playwright CDP 验收报告 |
-| [../jobs/reports/2026-06-15-racingline-security-analysis-page.md](../jobs/reports/2026-06-15-racingline-security-analysis-page.md) | 个股分析页 API、桌面/移动和交互验收报告 |
-| [../jobs/reports/2026-06-15-racingline-security-analysis-optimization.md](../jobs/reports/2026-06-15-racingline-security-analysis-optimization.md) | 个股分析页优化、规则适配和评分 clamp 验收报告 |
-| [../jobs/reports/2026-06-16-racingline-portfolio-nav.md](../jobs/reports/2026-06-16-racingline-portfolio-nav.md) | 组合净值、明细 API、列表页和详情页 smoke 验收报告 |
-| [../jobs/reports/2026-06-21-racingline-strategy-step1-gap-closure.md](../jobs/reports/2026-06-21-racingline-strategy-step1-gap-closure.md) | 策略选股 Step 1 metric catalog、RuleVersionSpec、crossing explain 和浏览器验收报告 |
-| [../RFC/0018-rust-stock-screening-service.md](../RFC/0018-rust-stock-screening-service.md) | Rearview 后端服务 RFC |
-| [rearview.md](rearview.md) | Rearview 当前系统地图 |
-
-## 已决事项
-
-1. `app/racingline/` 第一版按单独 package 管理。
-2. API base URL 使用仓库根目录 `.env` 或 `.env.example` 中的 `VITE_REARVIEW_API_BASE_URL`。
-3. 不得改写 shadcn/ui 官方 CLI 生成的默认 UI 组件文件；业务组件必须在独立业务目录中组合引用这些默认组件。
-4. 第一版不引入登录入口、认证/鉴权、用户隔离或权限系统。
-5. `app/racingline_new/` 如作为并行原型或重构工程，正式实现阶段必须继承 ADR 0011 的 Racingline 技术栈；任何 shadcn style、primitive base、icon library、状态管理或图表库变化都需要另起 ADR 或更新 ADR 0011。
+| [../ADR/0011-racingline-frontend-technology-stack.md](../ADR/0011-racingline-frontend-technology-stack.md) | 基础前端工程边界 |
+| [../ADR/0013-racingline-ui-stack-variant-evaluation.md](../ADR/0013-racingline-ui-stack-variant-evaluation.md) | 当前 Racingline UI 栈决策 |
+| [../RFC/0023-racingline-frontend-prototype-led-development.md](../RFC/0023-racingline-frontend-prototype-led-development.md) | 前端原型/正式替换流程 |
+| [../RFC/0024-racingline-strategy-selection-step1.md](../RFC/0024-racingline-strategy-selection-step1.md) | Step 1 策略选股 |
+| [../RFC/0025-racingline-strategy-weight-configuration-step2.md](../RFC/0025-racingline-strategy-weight-configuration-step2.md) | Step 2 权重配置 |
+| [../RFC/0026-racingline-strategy-pool-preview-step3.md](../RFC/0026-racingline-strategy-pool-preview-step3.md) | Step 3 股池预览 |
+| [../RFC/0027-racingline-strategy-simulation-position-step4.md](../RFC/0027-racingline-strategy-simulation-position-step4.md) | Step 4 模拟建仓 |
+| [../RFC/0028-racingline-strategy-backtest-step5.md](../RFC/0028-racingline-strategy-backtest-step5.md) | Step 5 异步回测 |
+| [../RFC/0029-racingline-strategy-portfolio-publish-and-daily-run.md](../RFC/0029-racingline-strategy-portfolio-publish-and-daily-run.md) | 策略组合发布和日运行 |
+| [../plans/archive/0053-racingline-legacy-cleanup-and-rename-plan.md](../plans/archive/0053-racingline-legacy-cleanup-and-rename-plan.md) | 旧工程清理和目录重命名实施计划 |
+| [../jobs/reports/2026-06-25-racingline-legacy-cleanup-rename.md](../jobs/reports/2026-06-25-racingline-legacy-cleanup-rename.md) | 清理和重命名验收报告 |

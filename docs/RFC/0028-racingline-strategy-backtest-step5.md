@@ -6,6 +6,8 @@
 代码根：app/racingline_new/, engines/crates/rearview-core/, engines/crates/rearview-server/, engines/crates/rearview-portfolio-worker/, pipeline/migrate/
 需求入口：docs/intake/racingline.md
 
+路径说明：本文写于 Plan 0053 迁移前；文中的 `app/racingline_new/` 均为历史实现路径，当前 Racingline 前端代码根为 `app/racingline/`。
+
 ## 摘要
 
 本文档定义 `/strategies` Step 5「策略回测」的第一版正式设计。Step 1 到 Step 4 已形成真实输入链路：
