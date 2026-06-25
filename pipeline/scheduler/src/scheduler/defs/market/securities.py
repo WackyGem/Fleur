@@ -30,7 +30,7 @@ def filter_active_security_ranges(
     stock_basic: pa.Table,
     requested_start_date: date,
     requested_end_date: date,
-    allowed_security_types: frozenset[str] = frozenset({"1", "2", "5"}),
+    allowed_security_types: frozenset[str] = frozenset({"1", "2"}),
 ) -> list[SecurityDateRange]:
     if requested_start_date > requested_end_date:
         msg = "requested_start_date must be less than or equal to requested_end_date"

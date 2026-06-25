@@ -80,9 +80,7 @@ def test_registered_definitions_match_source_bundles() -> None:
         | {STRATEGY_PORTFOLIO_DAILY_RUN_JOB.name}
     )
     assert {schedule.name for schedule in loaded_defs.schedules or []} == (
-        expected_schedules
-        | expected_transformation_schedules
-        | {PORTFOLIO_DAILY_RUN_SCHEDULE.name}
+        expected_schedules | expected_transformation_schedules | {PORTFOLIO_DAILY_RUN_SCHEDULE.name}
     )
     assert {sensor.name for sensor in loaded_defs.sensors or []} == {"slack_asset_failure_sensor"}
     assert set(loaded_defs.resources) >= {
@@ -298,7 +296,12 @@ def test_source_bundle_contracts_are_stable() -> None:
     ]
     assert bundle_contracts["baostock"]["assets"] == [
         "source/baostock__query_history_k_data_plus_daily",
+        "source/baostock__query_history_k_data_plus_daily_compacted",
         "source/baostock__query_stock_basic",
+    ]
+    assert bundle_contracts["baostock"]["jobs"] == [
+        "baostock__daily_job",
+        "baostock__query_history_k_data_plus_daily_compacted_job",
     ]
     assert bundle_contracts["eastmoney"]["assets"] == [
         "source/eastmoney__balance",

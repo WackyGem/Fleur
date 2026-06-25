@@ -26,9 +26,10 @@ def test_contract_registry_loads_raw_and_source_only_datasets() -> None:
         dataset for dataset in registry.datasets if dataset.clickhouse_raw is None
     ]
 
-    assert len(registry.datasets) == 20
+    assert len(registry.datasets) == 21
     assert len(raw_datasets) == 17
     assert {dataset.dataset for dataset in source_only_datasets} == {
+        "baostock__query_history_k_data_plus_daily",
         "jiuyan__action_field",
         "jiuyan__industry_ocr",
         "ths__limit_up_pool",
@@ -36,6 +37,7 @@ def test_contract_registry_loads_raw_and_source_only_datasets() -> None:
     assert {dataset.dataset for dataset in registry.datasets} >= {
         "sina__trade_calendar",
         "baostock__query_history_k_data_plus_daily",
+        "baostock__query_history_k_data_plus_daily_compacted",
         "jiuyan__action_field_compacted",
         "ths__limit_up_pool_compacted",
         "eastmoney__balance",

@@ -12,7 +12,7 @@ with source as (
         adjustflag,
         tradestatus,
         isST
-    from {{ source('raw', 'baostock__query_history_k_data_plus_daily') }}
+    from {{ source('raw', 'baostock__query_history_k_data_plus_daily_compacted') }}
 )
 
 select

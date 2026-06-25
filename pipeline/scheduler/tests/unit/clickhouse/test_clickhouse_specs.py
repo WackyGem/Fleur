@@ -14,7 +14,8 @@ def test_enabled_specs_cover_initial_snapshot_compacted_and_eastmoney_groups() -
     }
 
     assert len(raw_asset_keys) == 17
-    assert "clickhouse/raw/baostock__query_history_k_data_plus_daily" in raw_asset_keys
+    assert "clickhouse/raw/baostock__query_history_k_data_plus_daily_compacted" in raw_asset_keys
+    assert "clickhouse/raw/baostock__query_history_k_data_plus_daily" not in raw_asset_keys
     assert "clickhouse/raw/chinabond__government_bond" in raw_asset_keys
     assert "clickhouse/raw/sina__trade_calendar" in raw_asset_keys
     assert "clickhouse/raw/jiuyan__industry_ocr_snapshot" in raw_asset_keys
@@ -28,7 +29,7 @@ def test_baostock_spec_uses_year_partition_and_query_driven_order_by() -> None:
     spec = BAOSTOCK_DAILY_K_SPEC
 
     assert spec.source_asset_key.to_user_string() == (
-        "source/baostock__query_history_k_data_plus_daily"
+        "source/baostock__query_history_k_data_plus_daily_compacted"
     )
     assert spec.storage_mode == "partitioned"
     assert spec.source_partition_key_name == "year"
@@ -42,7 +43,7 @@ def test_enabled_spec_columns_match_baostock_contract() -> None:
     contract = next(
         dataset
         for dataset in load_registry().datasets
-        if dataset.dataset == "baostock__query_history_k_data_plus_daily"
+        if dataset.dataset == "baostock__query_history_k_data_plus_daily_compacted"
     )
     parquet_fields = {field.name: field for field in contract.parquet.fields}
 
@@ -131,13 +132,14 @@ def test_sparse_daily_assets_are_not_enabled_for_raw_sync() -> None:
     assert "source/jiuyan__action_field" not in enabled_source_assets
     assert "source/ths__limit_up_pool" not in enabled_source_assets
     assert "source/jiuyan__industry_ocr" not in enabled_source_assets
+    assert "source/baostock__query_history_k_data_plus_daily" not in enabled_source_assets
 
 
 def test_enabled_raw_sync_pool_names_are_dataset_level() -> None:
     assert len(ENABLED_CLICKHOUSE_RAW_POOL_NAMES) == len(ENABLED_CLICKHOUSE_RAW_TABLE_SPECS)
     assert len(set(ENABLED_CLICKHOUSE_RAW_POOL_NAMES)) == len(ENABLED_CLICKHOUSE_RAW_POOL_NAMES)
     assert (
-        "clickhouse_raw_baostock__query_history_k_data_plus_daily_pool"
+        "clickhouse_raw_baostock__query_history_k_data_plus_daily_compacted_pool"
         in ENABLED_CLICKHOUSE_RAW_POOL_NAMES
     )
     assert "clickhouse_raw_eastmoney__balance_pool" in ENABLED_CLICKHOUSE_RAW_POOL_NAMES

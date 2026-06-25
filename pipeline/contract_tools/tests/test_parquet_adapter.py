@@ -23,7 +23,7 @@ def test_parquet_adapter_loads_all_contract_datasets() -> None:
     contracts = parquet_schema_contracts(registry.datasets)
     schemas = pyarrow_schema_by_dataset(registry.datasets)
 
-    assert len(contracts) == 20
+    assert len(contracts) == 21
     assert set(schemas) == {contract.dataset for contract in registry.datasets}
 
 
@@ -56,7 +56,11 @@ def test_unsupported_type_error_includes_dataset_field_and_type() -> None:
 
 
 def test_parquet_schema_hash_is_sensitive_to_schema_facts() -> None:
-    contract = load_registry().datasets[0]
+    contract = next(
+        dataset
+        for dataset in load_registry().datasets
+        if dataset.dataset == "baostock__query_history_k_data_plus_daily_compacted"
+    )
     baseline = parquet_schema_hash(contract)
 
     renamed_payload = contract.model_dump(mode="json", by_alias=True)

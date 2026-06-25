@@ -6,6 +6,10 @@ from zoneinfo import ZoneInfo
 import dagster as dg
 import pyarrow as pa
 import pytest
+from scheduler.defs.baostock.assets import (
+    baostock__query_history_k_data_plus_daily,
+    baostock__query_history_k_data_plus_daily_compacted,
+)
 from scheduler.defs.contract_schemas import PARQUET_SCHEMAS
 from scheduler.defs.resources.s3 import S3SettingsResource
 from scheduler.defs.sources import daily_compact
@@ -39,6 +43,25 @@ def test_action_field_compacted_year_partitions_include_current_year() -> None:
     )
 
     assert "2026" in partition_keys
+
+
+def test_baostock_daily_kline_compacted_asset_contract() -> None:
+    assert (
+        baostock__query_history_k_data_plus_daily_compacted.key.to_user_string()
+        == "source/baostock__query_history_k_data_plus_daily_compacted"
+    )
+    assert baostock__query_history_k_data_plus_daily_compacted.partitions_def is not None
+    metadata = baostock__query_history_k_data_plus_daily_compacted.metadata_by_key[
+        baostock__query_history_k_data_plus_daily_compacted.key
+    ]
+
+    assert metadata["storage_mode"] == "partitioned"
+    assert metadata["partition_key_name"] == "year"
+    assert metadata["input_partition_key_name"] == "trade_date"
+    assert metadata["input_asset"] == baostock__query_history_k_data_plus_daily.key.to_user_string()
+    assert baostock__query_history_k_data_plus_daily.key in (
+        baostock__query_history_k_data_plus_daily_compacted.dependency_keys
+    )
 
 
 def test_compact_daily_asset_by_year_merges_non_empty_daily_tables(

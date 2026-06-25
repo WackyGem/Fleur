@@ -62,7 +62,7 @@ CLICKHOUSE_RAW_JOBS: tuple[dg.UnresolvedAssetJobDefinition, ...] = (
         name="clickhouse__raw_sync_baostock_job",
         selection=_assets_matching_specs(
             ENABLED_CLICKHOUSE_RAW_TABLE_SPECS,
-            source_prefixes=("baostock__query_history_k_data_plus_daily",),
+            source_prefixes=("baostock__query_history_k_data_plus_daily_compacted",),
         ),
     ),
     dg.define_asset_job(

@@ -146,7 +146,7 @@ CLICKHOUSE_RAW_TABLE_SPECS: tuple[ClickHouseRawTableSpec, ...] = build_scheduler
 BAOSTOCK_DAILY_K_SPEC = next(
     spec
     for spec in CLICKHOUSE_RAW_TABLE_SPECS
-    if spec.clickhouse_table == "baostock__query_history_k_data_plus_daily"
+    if spec.clickhouse_table == "baostock__query_history_k_data_plus_daily_compacted"
 )
 ENABLED_CLICKHOUSE_RAW_TABLE_SPECS = enabled_specs(CLICKHOUSE_RAW_TABLE_SPECS)
 ENABLED_CLICKHOUSE_RAW_POOL_NAMES = tuple(

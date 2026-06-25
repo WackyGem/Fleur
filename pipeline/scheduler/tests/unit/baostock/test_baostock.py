@@ -1,10 +1,11 @@
 from __future__ import annotations
 
 import asyncio
+import contextlib
+from dataclasses import replace
 from datetime import date
 from typing import Any, cast
 
-import dagster as dg
 import pytest
 from scheduler.defs.baostock import assets
 from scheduler.defs.baostock.client import BaostockAioTcpClient
@@ -26,6 +27,7 @@ from scheduler.defs.baostock.schemas import (
     response_to_table,
     stock_basic_response_to_table,
 )
+from scheduler.defs.common.retry import ExponentialBackoffPolicy
 from scheduler.defs.resources.baostock import BaostockClientFactoryResource
 from tests.fakes.baostock import (
     FakeBaostockAssetClient,
@@ -36,16 +38,6 @@ from tests.fakes.baostock import (
     response_message,
     retrying_baostock_client,
 )
-from tests.fakes.dagster import FakeAssetContext
-
-FAKE_BAOSTOCK_DAILY_K_ASSET_KEY = dg.AssetKey(["baostock", "query_history_k_data_plus_daily"])
-
-
-def fake_asset_context(partition_keys: list[str]) -> FakeAssetContext:
-    return FakeAssetContext(
-        partition_keys=partition_keys,
-        asset_key=FAKE_BAOSTOCK_DAILY_K_ASSET_KEY,
-    )
 
 
 def test_encode_request_includes_pagination_for_data_apis_but_not_login() -> None:
@@ -339,55 +331,65 @@ def test_client_start_retries_network_failures() -> None:
         asyncio.run(failing_client.start())
 
 
-def test_build_year_ranges_for_full_year_and_refresh_until() -> None:
-    trade_dates = {date(2025, 1, 2), date(2026, 5, 8)}
+def test_connection_pool_logs_in_each_tcp_connection_before_data_request() -> None:
+    async def run_scenario() -> list[list[str]]:
+        recorder = _RecordingBaostockTcpServer(
+            expected_connections=4,
+            wait_for_expected_connections_before_data=True,
+        )
+        server = await asyncio.start_server(recorder.handle, "127.0.0.1", 0)
+        try:
+            port = cast(Any, server.sockets[0]).getsockname()[1]
+            config = replace(
+                client_config(max_connections=4),
+                host="127.0.0.1",
+                port=port,
+            )
+            async with BaostockAioTcpClient(
+                config=config,
+                retry_policy=ExponentialBackoffPolicy(jitter=False, base_delay=0),
+                max_attempts=1,
+            ) as client:
+                await asyncio.gather(*(client.query_stock_basic() for _ in range(4)))
+        finally:
+            server.close()
+            await server.wait_closed()
 
-    assert assets.build_year_ranges(
-        cast(Any, fake_asset_context(["2025", "2026"])),
-        assets.KLineDailyYearConfig(),
-        trade_dates,
-    ) == {
-        "2025": (date(2025, 1, 1), date(2025, 12, 31)),
-        "2026": (date(2026, 1, 1), date(2026, 12, 31)),
-    }
-    assert assets.build_year_ranges(
-        cast(Any, fake_asset_context(["2026"])),
-        assets.KLineDailyYearConfig(refresh_until_trade_date="2026-05-08"),
-        trade_dates,
-    ) == {"2026": (date(2026, 1, 1), date(2026, 5, 8))}
+        return recorder.api_names_by_connection()
+
+    sequences = asyncio.run(run_scenario())
+
+    assert len(sequences) == 4
+    assert sum(sequence.count("login") for sequence in sequences) == 4
+    assert all(sequence[:2] == ["login", "query_stock_basic"] for sequence in sequences)
 
 
-def test_build_year_ranges_rejects_invalid_partition_requests() -> None:
-    with pytest.raises(RuntimeError, match="requires at least one"):
-        assets.build_year_ranges(
-            cast(Any, fake_asset_context([])),
-            assets.KLineDailyYearConfig(),
-            {date(2026, 5, 8)},
-        )
-    with pytest.raises(ValueError, match="single year partition"):
-        assets.build_year_ranges(
-            cast(Any, fake_asset_context(["2025", "2026"])),
-            assets.KLineDailyYearConfig(refresh_until_trade_date="2026-05-08"),
-            {date(2026, 5, 8)},
-        )
-    with pytest.raises(ValueError, match="is not a trade date"):
-        assets.build_year_ranges(
-            cast(Any, fake_asset_context(["2026"])),
-            assets.KLineDailyYearConfig(refresh_until_trade_date="2026-05-09"),
-            {date(2026, 5, 8)},
-        )
-    with pytest.raises(ValueError, match="is not in partition"):
-        assets.build_year_ranges(
-            cast(Any, fake_asset_context(["2025"])),
-            assets.KLineDailyYearConfig(refresh_until_trade_date="2026-05-08"),
-            {date(2026, 5, 8)},
-        )
-    with pytest.raises(ValueError, match="has no trade dates"):
-        assets.build_year_ranges(
-            cast(Any, fake_asset_context(["2024"])),
-            assets.KLineDailyYearConfig(),
-            {date(2026, 5, 8)},
-        )
+def test_no_login_response_refreshes_only_the_current_connection() -> None:
+    async def run_scenario() -> list[list[str]]:
+        recorder = _RecordingBaostockTcpServer(first_data_request_returns_no_login=True)
+        server = await asyncio.start_server(recorder.handle, "127.0.0.1", 0)
+        try:
+            port = cast(Any, server.sockets[0]).getsockname()[1]
+            config = replace(
+                client_config(max_connections=1),
+                host="127.0.0.1",
+                port=port,
+            )
+            async with BaostockAioTcpClient(
+                config=config,
+                retry_policy=ExponentialBackoffPolicy(jitter=False, base_delay=0),
+                max_attempts=1,
+            ) as client:
+                await client.query_stock_basic()
+        finally:
+            server.close()
+            await server.wait_closed()
+
+        return recorder.api_names_by_connection()
+
+    assert asyncio.run(run_scenario()) == [
+        ["login", "query_stock_basic", "login", "query_stock_basic"]
+    ]
 
 
 def test_empty_k_history_table_uses_daily_schema() -> None:
@@ -414,41 +416,48 @@ def test_fetch_stock_basic_table_uses_client_and_converts_response() -> None:
     }
 
 
-def test_fetch_k_history_tables_filters_active_securities_and_builds_metadata() -> None:
+def test_fetch_k_history_table_for_trade_date_filters_active_securities_and_builds_metadata() -> (
+    None
+):
     factory = FakeBaostockClientFactory()
     stock_basic = stock_basic_response_to_table(
         baostock_response(
             records=[
                 ["sh.600000", "浦发银行", "1999-11-10", "", "1", "1"],
-                ["sz.159001", "基金", "2005-01-01", "", "2", "1"],
+                ["sh.000001", "上证指数", "1991-07-15", "", "2", "1"],
+                ["sh.510300", "ETF", "2012-05-28", "", "5", "1"],
                 ["sh.600001", "退市", "1999-01-01", "2000-01-01", "1", "0"],
             ],
             field_names=STOCK_BASIC_FIELDS,
         )
     )
 
-    tables, metadata = asyncio.run(
-        assets.fetch_k_history_tables(
+    table, metadata = asyncio.run(
+        assets.fetch_k_history_table_for_trade_date(
             stock_basic,
-            {"2026": (date(2026, 1, 1), date(2026, 12, 31))},
+            date(2026, 5, 8),
             factory,
         )
     )
 
-    assert factory.created_max_connections == [1]
-    assert set(tables) == {"2026"}
-    assert tables["2026"].num_rows == 2
-    assert tables["2026"].column_names == K_HISTORY_DAILY_FIELDS
-    assert metadata["candidate_security_count"] == 3
-    assert cast(Any, metadata["selected_security_count"]).data == {"2026": 2}
-    assert cast(Any, metadata["skipped_security_count"]).data == {"2026": 1}
+    assert factory.created_max_connections == [4]
+    assert table.num_rows == 2
+    assert table.column_names == K_HISTORY_DAILY_FIELDS
+    assert metadata["candidate_security_count"] == 4
+    assert metadata["selected_security_count"] == 2
+    assert metadata["skipped_security_count"] == 2
     assert cast(Any, metadata["selected_security_types"]).data == ["1", "2"]
-    assert cast(Any, metadata["requested_ranges"]).data == {
-        "2026": {"start_date": "2026-01-01", "end_date": "2026-12-31"}
-    }
+    assert cast(Any, metadata["allowed_security_types"]).data == ["1", "2"]
+    assert metadata["requested_trade_date"] == "2026-05-08"
+    assert metadata["max_connections"] == 4
+    assert metadata["max_concurrent_security_requests"] == 4
+    assert cast(FakeBaostockAssetClient, factory._client).history_calls == [
+        ("sh.600000", date(2026, 5, 8), date(2026, 5, 8)),
+        ("sh.000001", date(2026, 5, 8), date(2026, 5, 8)),
+    ]
 
 
-def test_fetch_k_history_tables_rejects_partial_security_failures() -> None:
+def test_fetch_k_history_table_for_trade_date_rejects_partial_security_failures() -> None:
     class PartiallyFailingBaostockClient(FakeBaostockAssetClient):
         async def query_history_k_data_plus_daily(
             self,
@@ -476,14 +485,14 @@ def test_fetch_k_history_tables_rejects_partial_security_failures() -> None:
 
     with pytest.raises(RuntimeError, match="failure rate exceeded 0%"):
         asyncio.run(
-            assets.fetch_k_history_tables(
+            assets.fetch_k_history_table_for_trade_date(
                 stock_basic,
-                {"2026": (date(2026, 1, 1), date(2026, 12, 31))},
+                date(2026, 5, 8),
                 factory,
             )
         )
 
-    assert factory.created_max_connections == [1]
+    assert factory.created_max_connections == [4]
     assert [call[0] for call in client.history_calls] == ["sh.600000", "sz.159001"]
 
 
@@ -499,7 +508,9 @@ def test_baostock_client_factory_resource_defaults_to_single_connection() -> Non
     assert resource.config(max_connections=2).max_connections == 2
 
 
-def test_fetch_k_history_tables_returns_empty_metadata_when_no_security_is_selected() -> None:
+def test_fetch_k_history_table_for_trade_date_returns_empty_metadata_when_no_security_is_selected() -> (
+    None
+):
     factory = FakeBaostockClientFactory()
     stock_basic = stock_basic_response_to_table(
         baostock_response(
@@ -508,15 +519,123 @@ def test_fetch_k_history_tables_returns_empty_metadata_when_no_security_is_selec
         )
     )
 
-    tables, metadata = asyncio.run(
-        assets.fetch_k_history_tables(
+    table, metadata = asyncio.run(
+        assets.fetch_k_history_table_for_trade_date(
             stock_basic,
-            {"2026": (date(2026, 1, 1), date(2026, 12, 31))},
+            date(2026, 5, 8),
             factory,
         )
     )
 
-    assert tables == {}
+    assert table.num_rows == 0
+    assert table.column_names == K_HISTORY_DAILY_FIELDS
+    assert factory.created_max_connections == []
     assert metadata["candidate_security_count"] == 1
-    assert cast(Any, metadata["selected_security_count"]).data == {"2026": 0}
-    assert cast(Any, metadata["skipped_security_count"]).data == {"2026": 1}
+    assert metadata["selected_security_count"] == 0
+    assert metadata["skipped_security_count"] == 1
+
+
+class _RecordingBaostockTcpServer:
+    def __init__(
+        self,
+        *,
+        expected_connections: int = 1,
+        wait_for_expected_connections_before_data: bool = False,
+        first_data_request_returns_no_login: bool = False,
+    ) -> None:
+        self.expected_connections = expected_connections
+        self.wait_for_expected_connections_before_data = wait_for_expected_connections_before_data
+        self.first_data_request_returns_no_login = first_data_request_returns_no_login
+        self.payloads_by_connection: list[list[bytes]] = []
+        self._expected_connections_seen = asyncio.Event()
+        self._data_request_count = 0
+
+    async def handle(
+        self,
+        reader: asyncio.StreamReader,
+        writer: asyncio.StreamWriter,
+    ) -> None:
+        payloads: list[bytes] = []
+        self.payloads_by_connection.append(payloads)
+        if len(self.payloads_by_connection) >= self.expected_connections:
+            self._expected_connections_seen.set()
+
+        try:
+            while True:
+                payload = await reader.readuntil(b"\n")
+                payloads.append(payload)
+                api_name = _payload_api_name(payload)
+                if api_name == "login":
+                    writer.write(_login_success_message())
+                elif api_name == "query_stock_basic":
+                    if self.wait_for_expected_connections_before_data:
+                        await asyncio.wait_for(self._expected_connections_seen.wait(), timeout=2)
+                    self._data_request_count += 1
+                    if self.first_data_request_returns_no_login and self._data_request_count == 1:
+                        writer.write(_stock_basic_no_login_message())
+                    else:
+                        writer.write(_stock_basic_success_message())
+                else:
+                    raise AssertionError(f"Unexpected BaoStock API request: {api_name}")
+                await writer.drain()
+        except (asyncio.IncompleteReadError, ConnectionResetError):
+            return
+        finally:
+            writer.close()
+            with contextlib.suppress(OSError):
+                await writer.wait_closed()
+
+    def api_names_by_connection(self) -> list[list[str]]:
+        return [
+            [_payload_api_name(payload) for payload in payloads]
+            for payloads in self.payloads_by_connection
+        ]
+
+
+def _payload_api_name(payload: bytes) -> str:
+    text = payload.decode("utf-8", errors="ignore")
+    if "login" in text:
+        return "login"
+    if "query_stock_basic" in text:
+        return "query_stock_basic"
+    if "query_history_k_data_plus" in text:
+        return "query_history_k_data_plus"
+    return "unknown"
+
+
+def _login_success_message() -> bytes:
+    return response_message(["0", "", "login", "user"])
+
+
+def _stock_basic_success_message() -> bytes:
+    return response_message(
+        [
+            "0",
+            "",
+            "query_stock_basic",
+            "user",
+            "1",
+            "1000",
+            '{"record":[]}',
+            "",
+            "",
+            ",".join(STOCK_BASIC_FIELDS),
+        ]
+    )
+
+
+def _stock_basic_no_login_message() -> bytes:
+    return response_message(
+        [
+            "10001001",
+            "not login",
+            "query_stock_basic",
+            "user",
+            "1",
+            "1000",
+            '{"record":[]}',
+            "",
+            "",
+            ",".join(STOCK_BASIC_FIELDS),
+        ]
+    )

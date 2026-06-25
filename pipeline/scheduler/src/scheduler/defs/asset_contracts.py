@@ -102,17 +102,19 @@ def daily_sparse_partition_metadata(
     *,
     partition_key_name: str,
     trade_date_filter: str,
-    flatten_column_naming: str,
+    flatten_column_naming: str | None = None,
 ) -> dict[str, RawMetadataValue]:
-    return {
+    metadata: dict[str, RawMetadataValue] = {
         METADATA_STORAGE_MODE: STORAGE_MODE_PARTITIONED,
         METADATA_PARTITION_KEY_NAME: partition_key_name,
         METADATA_PARTITIONS_DEF: PARTITIONS_DEF_DAILY,
         METADATA_TRADE_DATE_FILTER: trade_date_filter,
         METADATA_ALLOW_EMPTY: True,
         METADATA_SPARSE_PARTITION_OUTPUT: True,
-        METADATA_FLATTEN_COLUMN_NAMING: flatten_column_naming,
     }
+    if flatten_column_naming is not None:
+        metadata[METADATA_FLATTEN_COLUMN_NAMING] = flatten_column_naming
+    return metadata
 
 
 def compacted_year_metadata(

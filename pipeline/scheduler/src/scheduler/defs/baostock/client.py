@@ -48,6 +48,8 @@ class BaostockTcpConnection:
     writer: asyncio.StreamWriter
     lock: asyncio.Lock = field(default_factory=asyncio.Lock)
     reusable: bool = True
+    logged_in: bool = False
+    login_expires_at: float | None = None
 
     async def request(self, payload: bytes, timeout_seconds: float) -> BaostockResponse:
         async with self.lock:
@@ -113,9 +115,9 @@ class BaostockAioTcpClient:
         self._connections: set[BaostockTcpConnection] = set()
         self._pool_lock = asyncio.Lock()
         self._start_lock = asyncio.Lock()
-        self._login_lock = asyncio.Lock()
-        self._logged_in = False
-        self._login_expires_at: float | None = None
+        self._override_login_lock = asyncio.Lock()
+        self._override_logged_in = False
+        self._override_login_expires_at: float | None = None
         self._started = False
         self._closed = False
 
@@ -140,7 +142,8 @@ class BaostockAioTcpClient:
         async with self._start_lock:
             if self._started:
                 return
-            await self._ensure_logged_in(force=True)
+            if self._send_once_override is not None:
+                await self._ensure_override_logged_in(force=True)
             self._started = True
 
     async def close(self) -> None:
@@ -155,8 +158,8 @@ class BaostockAioTcpClient:
         for connection in set(connections):
             await connection.close()
         self._connections.clear()
-        self._logged_in = False
-        self._login_expires_at = None
+        self._override_logged_in = False
+        self._override_login_expires_at = None
 
     async def query_stock_basic(
         self,
@@ -226,58 +229,6 @@ class BaostockAioTcpClient:
         if not self._started:
             await self.start()
 
-    async def _ensure_logged_in(
-        self,
-        *,
-        force: bool = False,
-        observed_login_expires_at: float | None = None,
-    ) -> None:
-        now = time.monotonic()
-        if (
-            not force
-            and self._logged_in
-            and self._login_expires_at is not None
-            and now < self._login_expires_at
-        ):
-            return
-
-        async with self._login_lock:
-            now = time.monotonic()
-            if (
-                not force
-                and self._logged_in
-                and self._login_expires_at is not None
-                and now < self._login_expires_at
-            ):
-                return
-            if (
-                force
-                and self._logged_in
-                and self._login_expires_at is not None
-                and now < self._login_expires_at
-                and self._login_expires_at != observed_login_expires_at
-            ):
-                return
-
-            payload = encode_request(
-                request_code="00",
-                api_name="login",
-                user_id=self._config.username,
-                params=[self._config.password, "0"],
-            )
-            response = await self._send_with_retries(
-                payload,
-                timeout_seconds=LOGIN_TIMEOUT_SECONDS,
-            )
-            if response.error_code != "0":
-                self._logged_in = False
-                self._login_expires_at = None
-                msg = f"BaoStock login failed with {response.error_code}: {response.error_message}"
-                raise BaostockAuthenticationError(msg)
-
-            self._logged_in = True
-            self._login_expires_at = time.monotonic() + LOGIN_TTL_SECONDS
-
     async def _request_api(
         self,
         request_code: str,
@@ -287,7 +238,7 @@ class BaostockAioTcpClient:
         page_size: int,
         timeout_seconds: float,
     ) -> BaostockResponse:
-        await self._ensure_logged_in()
+        await self._ensure_started()
         payload = encode_request(
             request_code=request_code,
             api_name=api_name,
@@ -296,17 +247,10 @@ class BaostockAioTcpClient:
             page=page,
             page_size=page_size,
         )
-        response = await self._send_with_retries(payload, timeout_seconds=timeout_seconds)
-        if response.error_code == NO_LOGIN_ERROR_CODE:
-            observed_login_expires_at = self._login_expires_at
-            await self._ensure_logged_in(
-                force=True,
-                observed_login_expires_at=observed_login_expires_at,
-            )
-            response = await self._send_with_retries(payload, timeout_seconds=timeout_seconds)
-            if response.error_code == NO_LOGIN_ERROR_CODE:
-                msg = "BaoStock request still reported not logged in after login refresh"
-                raise BaostockAuthenticationError(msg)
+        if self._send_once_override is not None:
+            response = await self._request_api_with_override(payload, timeout_seconds)
+        else:
+            response = await self._send_api_with_retries(payload, timeout_seconds=timeout_seconds)
 
         if response.error_code != "0":
             raise BaostockResponseError(
@@ -317,17 +261,97 @@ class BaostockAioTcpClient:
             )
         return response
 
-    async def _send_with_retries(
+    async def _request_api_with_override(
+        self,
+        payload: bytes,
+        timeout_seconds: float,
+    ) -> BaostockResponse:
+        await self._ensure_override_logged_in()
+        response = await self._send_override_with_retries(
+            payload,
+            timeout_seconds=timeout_seconds,
+        )
+        if response.error_code != NO_LOGIN_ERROR_CODE:
+            return response
+
+        observed_login_expires_at = self._override_login_expires_at
+        await self._ensure_override_logged_in(
+            force=True,
+            observed_login_expires_at=observed_login_expires_at,
+        )
+        response = await self._send_override_with_retries(
+            payload,
+            timeout_seconds=timeout_seconds,
+        )
+        if response.error_code == NO_LOGIN_ERROR_CODE:
+            msg = "BaoStock request still reported not logged in after login refresh"
+            raise BaostockAuthenticationError(msg)
+        return response
+
+    async def _ensure_override_logged_in(
+        self,
+        *,
+        force: bool = False,
+        observed_login_expires_at: float | None = None,
+    ) -> None:
+        now = time.monotonic()
+        if (
+            not force
+            and self._override_logged_in
+            and self._override_login_expires_at is not None
+            and now < self._override_login_expires_at
+        ):
+            return
+
+        async with self._override_login_lock:
+            now = time.monotonic()
+            if (
+                not force
+                and self._override_logged_in
+                and self._override_login_expires_at is not None
+                and now < self._override_login_expires_at
+            ):
+                return
+            if (
+                force
+                and self._override_logged_in
+                and self._override_login_expires_at is not None
+                and now < self._override_login_expires_at
+                and self._override_login_expires_at != observed_login_expires_at
+            ):
+                return
+
+            response = await self._send_override_with_retries(
+                self._login_payload(),
+                timeout_seconds=LOGIN_TIMEOUT_SECONDS,
+            )
+            if response.error_code != "0":
+                self._override_logged_in = False
+                self._override_login_expires_at = None
+                msg = f"BaoStock login failed with {response.error_code}: {response.error_message}"
+                raise BaostockAuthenticationError(msg)
+
+            self._override_logged_in = True
+            self._override_login_expires_at = time.monotonic() + LOGIN_TTL_SECONDS
+
+    async def _send_override_with_retries(
         self,
         payload: bytes,
         *,
         timeout_seconds: float,
     ) -> BaostockResponse:
+        if self._send_once_override is None:
+            msg = "BaoStock send override is not configured"
+            raise RuntimeError(msg)
+
         last_error: BaostockNetworkError | None = None
         retry_delays = self._retry_policy.delays(self._max_attempts)
         for attempt_index in range(self._max_attempts):
             try:
-                return await self._send_once(payload, timeout_seconds=timeout_seconds)
+                return await self._send_once_override(
+                    payload,
+                    timeout_seconds=timeout_seconds,
+                )
             except BaostockNetworkError as error:
                 last_error = error
                 if attempt_index >= len(retry_delays):
@@ -337,21 +361,92 @@ class BaostockAioTcpClient:
         msg = f"BaoStock TCP request failed after {self._max_attempts} attempts"
         raise BaostockNetworkError(msg) from last_error
 
-    async def _send_once(
+    async def _send_api_with_retries(
         self,
         payload: bytes,
         *,
         timeout_seconds: float,
     ) -> BaostockResponse:
-        if self._send_once_override is not None:
-            return await self._send_once_override(payload, timeout_seconds=timeout_seconds)
+        last_error: BaostockNetworkError | None = None
+        retry_delays = self._retry_policy.delays(self._max_attempts)
+        for attempt_index in range(self._max_attempts):
+            connection: BaostockTcpConnection | None = None
+            try:
+                connection = await self._borrow_connection()
+                return await self._request_api_on_connection(
+                    connection,
+                    payload,
+                    timeout_seconds,
+                )
+            except BaostockNetworkError as error:
+                last_error = error
+                if attempt_index >= len(retry_delays):
+                    break
+                await asyncio.sleep(retry_delays[attempt_index])
+            finally:
+                if connection is not None:
+                    await self._return_connection(connection)
 
-        connection = await self._borrow_connection()
-        try:
-            response = await connection.request(payload, timeout_seconds)
-        finally:
-            await self._return_connection(connection)
+        msg = f"BaoStock TCP request failed after {self._max_attempts} attempts"
+        raise BaostockNetworkError(msg) from last_error
+
+    async def _request_api_on_connection(
+        self,
+        connection: BaostockTcpConnection,
+        payload: bytes,
+        timeout_seconds: float,
+    ) -> BaostockResponse:
+        await self._ensure_connection_logged_in(connection)
+        response = await connection.request(payload, timeout_seconds)
+        if response.error_code != NO_LOGIN_ERROR_CODE:
+            return response
+
+        connection.logged_in = False
+        connection.login_expires_at = None
+        await self._ensure_connection_logged_in(connection, force=True)
+        response = await connection.request(payload, timeout_seconds)
+        if response.error_code == NO_LOGIN_ERROR_CODE:
+            await connection.close()
+            msg = "BaoStock request still reported not logged in after login refresh"
+            raise BaostockAuthenticationError(msg)
         return response
+
+    async def _ensure_connection_logged_in(
+        self,
+        connection: BaostockTcpConnection,
+        *,
+        force: bool = False,
+    ) -> None:
+        now = time.monotonic()
+        if (
+            not force
+            and connection.logged_in
+            and connection.login_expires_at is not None
+            and now < connection.login_expires_at
+        ):
+            return
+
+        response = await connection.request(
+            self._login_payload(),
+            timeout_seconds=LOGIN_TIMEOUT_SECONDS,
+        )
+        if response.error_code != "0":
+            connection.logged_in = False
+            connection.login_expires_at = None
+            await connection.close()
+            msg = f"BaoStock login failed with {response.error_code}: {response.error_message}"
+            raise BaostockAuthenticationError(msg)
+
+        connection.logged_in = True
+        connection.login_expires_at = time.monotonic() + LOGIN_TTL_SECONDS
+
+    def _login_payload(self) -> bytes:
+        return encode_request(
+            request_code="00",
+            api_name="login",
+            user_id=self._config.username,
+            params=[self._config.password, "0"],
+        )
 
     async def _borrow_connection(self) -> BaostockTcpConnection:
         await self._semaphore.acquire()

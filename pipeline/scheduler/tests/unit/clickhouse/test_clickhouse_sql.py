@@ -12,7 +12,7 @@ def test_raw_table_ddl_uses_merge_tree_year_partition_and_order_by() -> None:
     ddl = sql.render_create_raw_table_sql(BAOSTOCK_DAILY_K_SPEC)
 
     assert (
-        "CREATE TABLE IF NOT EXISTS `fleur_raw`.`baostock__query_history_k_data_plus_daily`"
+        "CREATE TABLE IF NOT EXISTS `fleur_raw`.`baostock__query_history_k_data_plus_daily_compacted`"
     ) in ddl
     assert "`year` UInt16" in ddl
     assert "ENGINE = MergeTree" in ddl
@@ -29,17 +29,19 @@ def test_staging_insert_reads_s3_parquet_and_injects_year_partition() -> None:
             access_key="access",
             secret_key="secret",
         ),
-        object_key=("source/baostock__query_history_k_data_plus_daily/year=2026/000000_0.parquet"),
+        object_key=(
+            "source/baostock__query_history_k_data_plus_daily_compacted/year=2026/000000_0.parquet"
+        ),
         partition_key="2026",
     )
 
     assert (
-        "INSERT INTO `fleur_raw`.`baostock__query_history_k_data_plus_daily__stage`"
+        "INSERT INTO `fleur_raw`.`baostock__query_history_k_data_plus_daily_compacted__stage`"
     ) in insert_sql
     assert "FROM s3(" in insert_sql
-    assert "'http://127.0.0.1:9000/bucket/source/baostock__query_history_k_data_plus_daily" in (
-        insert_sql
-    )
+    assert (
+        "'http://127.0.0.1:9000/bucket/source/baostock__query_history_k_data_plus_daily_compacted"
+    ) in insert_sql
     assert "toUInt16(2026) AS `year`" in insert_sql
     assert "FORMAT" not in insert_sql
 
@@ -107,9 +109,9 @@ def test_replace_partition_sql_does_not_drop_or_mutate_rows() -> None:
     )
 
     assert replace_sql == (
-        "ALTER TABLE `fleur_raw`.`baostock__query_history_k_data_plus_daily` "
+        "ALTER TABLE `fleur_raw`.`baostock__query_history_k_data_plus_daily_compacted` "
         "REPLACE PARTITION 2026 "
-        "FROM `fleur_raw`.`baostock__query_history_k_data_plus_daily__stage`"
+        "FROM `fleur_raw`.`baostock__query_history_k_data_plus_daily_compacted__stage`"
     )
     assert "DROP PARTITION" not in replace_sql
     assert " DELETE " not in replace_sql

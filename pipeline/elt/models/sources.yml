@@ -5,19 +5,19 @@ sources:
   description: ClickHouse raw tables synchronized from Dagster-published S3 Parquet
     assets.
   tables:
-  - name: baostock__query_history_k_data_plus_daily
-    description: BaoStock daily K-line rows by natural-year raw partition.
+  - name: baostock__query_history_k_data_plus_daily_compacted
+    description: BaoStock daily K-line rows compacted into yearly raw partitions.
     config:
       meta:
-        contract_dataset: baostock__query_history_k_data_plus_daily
+        contract_dataset: baostock__query_history_k_data_plus_daily_compacted
         contract_version: 1
-        upstream_raw_asset: clickhouse/raw/baostock__query_history_k_data_plus_daily
+        upstream_raw_asset: clickhouse/raw/baostock__query_history_k_data_plus_daily_compacted
         dagster:
           asset_key:
           - clickhouse
           - raw
-          - baostock__query_history_k_data_plus_daily
-        clickhouse_raw_table: fleur_raw.baostock__query_history_k_data_plus_daily
+          - baostock__query_history_k_data_plus_daily_compacted
+        clickhouse_raw_table: fleur_raw.baostock__query_history_k_data_plus_daily_compacted
         source_schema_hash: e101ba5d2f5331e42f943d3ea5b26b86cea11e484b128595184f45adaf855b2a
         parquet_schema_hash: 336bcdfd8e1c3f9e6971b90f2aa61df27c99d320b0fae20319573a35f34fd215
         clickhouse_schema_hash: 76ea22ac03faabad68d77172c42e47dde1ac132e76073f112df3a49c22763251

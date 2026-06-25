@@ -21,7 +21,7 @@ models:
             glossary_key: security_code
             source_columns:
               - source: raw
-                table: baostock__query_history_k_data_plus_daily
+                table: baostock__query_history_k_data_plus_daily_compacted
                 column: code
             normalization:
               macro: normalize_cn_security_code
@@ -37,7 +37,7 @@ models:
             glossary_key: trade_date
             source_columns:
               - source: raw
-                table: baostock__query_history_k_data_plus_daily
+                table: baostock__query_history_k_data_plus_daily_compacted
                 column: date
 
       - name: open_price
@@ -48,7 +48,7 @@ models:
             dictionary_scope: local
             source_columns:
               - source: raw
-                table: baostock__query_history_k_data_plus_daily
+                table: baostock__query_history_k_data_plus_daily_compacted
                 column: open
 
       - name: high_price
@@ -59,7 +59,7 @@ models:
             dictionary_scope: local
             source_columns:
               - source: raw
-                table: baostock__query_history_k_data_plus_daily
+                table: baostock__query_history_k_data_plus_daily_compacted
                 column: high
 
       - name: low_price
@@ -70,7 +70,7 @@ models:
             dictionary_scope: local
             source_columns:
               - source: raw
-                table: baostock__query_history_k_data_plus_daily
+                table: baostock__query_history_k_data_plus_daily_compacted
                 column: low
 
       - name: close_price
@@ -81,7 +81,7 @@ models:
             dictionary_scope: local
             source_columns:
               - source: raw
-                table: baostock__query_history_k_data_plus_daily
+                table: baostock__query_history_k_data_plus_daily_compacted
                 column: close
 
       - name: prev_close_price
@@ -92,7 +92,7 @@ models:
             dictionary_scope: local
             source_columns:
               - source: raw
-                table: baostock__query_history_k_data_plus_daily
+                table: baostock__query_history_k_data_plus_daily_compacted
                 column: preclose
 
       - name: volume
@@ -103,7 +103,7 @@ models:
             dictionary_scope: local
             source_columns:
               - source: raw
-                table: baostock__query_history_k_data_plus_daily
+                table: baostock__query_history_k_data_plus_daily_compacted
                 column: volume
 
       - name: amount
@@ -114,7 +114,7 @@ models:
             dictionary_scope: local
             source_columns:
               - source: raw
-                table: baostock__query_history_k_data_plus_daily
+                table: baostock__query_history_k_data_plus_daily_compacted
                 column: amount
 
       - name: is_suspend
@@ -127,7 +127,7 @@ models:
             dictionary_scope: local
             source_columns:
               - source: raw
-                table: baostock__query_history_k_data_plus_daily
+                table: baostock__query_history_k_data_plus_daily_compacted
                 column: tradestatus
             derived_from:
               - tradestatus
@@ -141,5 +141,5 @@ models:
             dictionary_scope: local
             source_columns:
               - source: raw
-                table: baostock__query_history_k_data_plus_daily
+                table: baostock__query_history_k_data_plus_daily_compacted
                 column: isST

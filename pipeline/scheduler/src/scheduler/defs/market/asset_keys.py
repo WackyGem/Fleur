@@ -11,3 +11,6 @@ BAOSTOCK_STOCK_BASIC_ASSET_KEY = dg.AssetKey(
 BAOSTOCK_DAILY_K_ASSET_KEY = dg.AssetKey(
     [SOURCE_ASSET_KEY_PREFIX, "baostock__query_history_k_data_plus_daily"]
 )
+BAOSTOCK_DAILY_K_COMPACTED_ASSET_KEY = dg.AssetKey(
+    [SOURCE_ASSET_KEY_PREFIX, "baostock__query_history_k_data_plus_daily_compacted"]
+)

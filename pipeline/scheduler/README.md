@@ -94,7 +94,8 @@ uv run pytest scheduler/tests --cov=scheduler/src/scheduler --cov-report=term-mi
 BaoStock TCP client for A-share market data.
 
 - `baostock__query_stock_basic`: Stock basic information (latest snapshot)
-- `baostock__query_history_k_data_plus_daily`: Daily K-line data (yearly partitions)
+- `baostock__query_history_k_data_plus_daily`: Daily K-line data (trade-date partitions)
+- `baostock__query_history_k_data_plus_daily_compacted`: Daily K-line data compacted into yearly partitions
 
 ### eastmoney
 

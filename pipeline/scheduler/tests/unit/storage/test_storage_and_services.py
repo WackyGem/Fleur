@@ -234,9 +234,9 @@ def test_s3_io_manager_writes_partitioned_tables_and_records_partition_metadata(
         secret_key="secret",
         region_name="region",
     )
-    schema = PARQUET_SCHEMAS["baostock__query_history_k_data_plus_daily"]
+    schema = PARQUET_SCHEMAS["baostock__query_history_k_data_plus_daily_compacted"]
     context = dg.build_output_context(
-        asset_key=dg.AssetKey(["source", "baostock__query_history_k_data_plus_daily"]),
+        asset_key=dg.AssetKey(["source", "baostock__query_history_k_data_plus_daily_compacted"]),
         asset_partitions_def=dg.StaticPartitionsDefinition(["2025", "2026"]),
         asset_partition_key_range=dg.PartitionKeyRange("2025", "2026"),
         definition_metadata={
@@ -279,7 +279,9 @@ def test_s3_io_manager_writes_partitioned_tables_and_records_partition_metadata(
     assert metadata["partition_key_name"].text == "year"
     assert cast(Any, metadata["partition_row_counts"]).data == {"2025": 0, "2026": 1}
     assert cast(Any, metadata["empty_partition_keys"]).data == ["2025"]
-    assert metadata["contract_dataset"].text == "baostock__query_history_k_data_plus_daily"
+    assert (
+        metadata["contract_dataset"].text == "baostock__query_history_k_data_plus_daily_compacted"
+    )
 
 
 def test_s3_io_manager_validates_output_shape() -> None:
@@ -322,7 +324,7 @@ def test_s3_io_manager_rejects_partition_key_mismatches(
         region_name="region",
     )
     context = dg.build_output_context(
-        asset_key=dg.AssetKey(["source", "baostock__query_history_k_data_plus_daily"]),
+        asset_key=dg.AssetKey(["source", "baostock__query_history_k_data_plus_daily_compacted"]),
         asset_partitions_def=dg.StaticPartitionsDefinition(["2026"]),
         partition_key="2026",
         definition_metadata={
@@ -339,9 +341,11 @@ def test_s3_io_manager_rejects_partition_key_mismatches(
                 "2025": pa.table(
                     {
                         field.name: []
-                        for field in PARQUET_SCHEMAS["baostock__query_history_k_data_plus_daily"]
+                        for field in PARQUET_SCHEMAS[
+                            "baostock__query_history_k_data_plus_daily_compacted"
+                        ]
                     },
-                    schema=PARQUET_SCHEMAS["baostock__query_history_k_data_plus_daily"],
+                    schema=PARQUET_SCHEMAS["baostock__query_history_k_data_plus_daily_compacted"],
                 )
             },
         )
@@ -374,7 +378,7 @@ def test_s3_io_manager_rejects_partition_schema_mismatch_with_partition_key() ->
 
     with pytest.raises(RuntimeError, match="partition_key=2026"):
         manager.validate_contract_partition_schemas(
-            dg.AssetKey(["source", "baostock__query_history_k_data_plus_daily"]),
+            dg.AssetKey(["source", "baostock__query_history_k_data_plus_daily_compacted"]),
             {"2026": pa.table({"date": ["2026-01-02"]})},
         )
 

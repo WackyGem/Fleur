@@ -6,7 +6,8 @@
 | --- | --- | --- | --- | --- |
 | `source/sina__trade_calendar` | `sina__trade_calendar_job` | none | n/a | `uv run dg launch --target-path scheduler --job sina__trade_calendar_job` |
 | `source/baostock__query_stock_basic` | `baostock__daily_job` | none | n/a | `uv run dg launch --target-path scheduler --assets "key:source/baostock__query_stock_basic"` |
-| `source/baostock__query_history_k_data_plus_daily` | `baostock__daily_job` | year | `multi_run(max_partitions_per_run=1)` | 按 `--partition YYYY` 循环 |
+| `source/baostock__query_history_k_data_plus_daily` | `baostock__daily_job` | trade date（日） | `single_run()` | 按 `--partition YYYY-MM-DD` 或用 `--partition-range` |
+| `source/baostock__query_history_k_data_plus_daily_compacted` | `baostock__query_history_k_data_plus_daily_compacted_job` | year | `multi_run(max_partitions_per_run=1)` | 按 `--partition YYYY` 循环 |
 | `source/jiuyan__industry_list` | `jiuyan__industry_list_snapshot_job` | none | n/a | `uv run dg launch --target-path scheduler --job jiuyan__industry_list_snapshot_job` |
 | `source/jiuyan__industry_images` | `jiuyan__industry_ocr_pipeline_job` | none | n/a | `uv run dg launch --target-path scheduler --assets "key:source/jiuyan__industry_images"` |
 | `source/jiuyan__industry_ocr` | `jiuyan__industry_ocr_pipeline_job` | none | n/a | `uv run dg launch --target-path scheduler --assets "key:source/jiuyan__industry_ocr"` |
@@ -32,7 +33,7 @@
 | `clickhouse/raw/baostock__query_stock_basic` | `clickhouse__raw_sync_snapshot_job` | none | n/a | `uv run dg launch --target-path scheduler --assets "key:clickhouse/raw/baostock__query_stock_basic"` |
 | `clickhouse/raw/jiuyan__industry_list` | `clickhouse__raw_sync_snapshot_job` | none | n/a | `uv run dg launch --target-path scheduler --assets "key:clickhouse/raw/jiuyan__industry_list"` |
 | `clickhouse/raw/jiuyan__industry_ocr_snapshot` | `clickhouse__raw_sync_snapshot_job` | none | n/a | `uv run dg launch --target-path scheduler --assets "key:clickhouse/raw/jiuyan__industry_ocr_snapshot"` |
-| `clickhouse/raw/baostock__query_history_k_data_plus_daily` | `clickhouse__raw_sync_baostock_job` | year | follows source partition | 按 `--partition YYYY` 循环 |
+| `clickhouse/raw/baostock__query_history_k_data_plus_daily_compacted` | `clickhouse__raw_sync_baostock_job` | year | follows source partition | 按 `--partition YYYY` 循环 |
 | `clickhouse/raw/eastmoney__balance` | `clickhouse__raw_sync_eastmoney_job` | year | follows source partition | 按 `--partition YYYY` 循环 |
 | `clickhouse/raw/eastmoney__cashflow_sq` | `clickhouse__raw_sync_eastmoney_job` | year | follows source partition | 按 `--partition YYYY` 循环 |
 | `clickhouse/raw/eastmoney__cashflow_ytd` | `clickhouse__raw_sync_eastmoney_job` | year | follows source partition | 按 `--partition YYYY` 循环 |
@@ -58,6 +59,7 @@
 - `jiuyan__action_field_compacted` 是年分区资产，必须按 `--partition YYYY` 运行
 - `ths__limit_up_pool` 默认单次只处理最近窗口内的交易日；回填时按自然日范围分段
 - `ths__limit_up_pool_compacted` 是年分区资产，必须按 `--partition YYYY` 运行
+- `baostock__query_history_k_data_plus_daily` 是日分区 source；ClickHouse raw 同步使用 `_compacted` 年分区资产
 - `clickhouse/raw/*` 资产依赖对应的 `source/*` 资产；补 ClickHouse 前先确认 S3/source 分区或 snapshot 已存在
 - ClickHouse snapshot 资产没有分区；补单表时用精确 `key:clickhouse/raw/...`，只有需要同步全部 snapshot raw 表时才用 `clickhouse__raw_sync_snapshot_job`
 - ClickHouse year 资产沿用 source 的年分区；按 `--partition YYYY` 运行，不要对年分区使用 `--partition-range`
@@ -84,7 +86,7 @@ uv run dg launch --target-path scheduler --assets "key:source/ths__limit_up_pool
 
 ```bash
 cd pipeline
-uv run dg launch --target-path scheduler --assets "key:source/baostock__query_history_k_data_plus_daily" --partition 2024
+uv run dg launch --target-path scheduler --assets "key:source/baostock__query_history_k_data_plus_daily_compacted" --partition 2024
 ```
 
 ### 按年循环

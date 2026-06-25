@@ -88,7 +88,7 @@ def test_raw_sync_success_path_replaces_partition_after_validation() -> None:
     assert result.loaded_row_count == 5
     assert result.raw_row_count_after_replace == 5
     assert result.s3_object_key == (
-        "source/baostock__query_history_k_data_plus_daily/year=2026/000000_0.parquet"
+        "source/baostock__query_history_k_data_plus_daily_compacted/year=2026/000000_0.parquet"
     )
     assert result.metadata()["clickhouse_database"] == "fleur_raw"
     assert any(

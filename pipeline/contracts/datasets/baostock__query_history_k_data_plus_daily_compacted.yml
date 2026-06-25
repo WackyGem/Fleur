@@ -1,16 +1,20 @@
-dataset: baostock__query_history_k_data_plus_daily
+dataset: baostock__query_history_k_data_plus_daily_compacted
 version: 1
 owner: data
 grain: one row per stock code per trade date
 source_asset_key:
 - source
-- baostock__query_history_k_data_plus_daily
+- baostock__query_history_k_data_plus_daily_compacted
+raw_asset_key:
+- clickhouse
+- raw
+- baostock__query_history_k_data_plus_daily_compacted
 external:
   provider: baostock
-  source_table_name: baostock__query_history_k_data_plus_daily
-  source_description_zh: BaoStock 日频行情数据
+  source_table_name: baostock__query_history_k_data_plus_daily_compacted
+  source_description_zh: BaoStock 日频行情年度压缩数据
 source:
-  protocol: tcp
+  protocol: generated
   payload_format: tabular
   fields:
   - name: date
@@ -71,7 +75,7 @@ source:
     external_description_zh: 证券是否为 ST 或风险警示状态。
 parquet:
   storage_mode: partitioned
-  partition_key_name: trade_date
+  partition_key_name: year
   fields:
   - name: date
     type: date32[day]
@@ -115,6 +119,75 @@ parquet:
   - name: isST
     type: bool
     nullable: true
-dataset_note_zh: BaoStock 日频行情每日增量 source 分区；ClickHouse raw 同步由年度 compacted 数据集承载。
+clickhouse_raw:
+  database: fleur_raw
+  table: baostock__query_history_k_data_plus_daily_compacted
+  partition_strategy: year
+  engine: MergeTree
+  partition_by: '`year`'
+  order_by:
+  - date
+  - code
+  allow_empty: false
+  sync_enabled: true
+  fields:
+  - name: date
+    type: Date
+    from: date
+    nullable: false
+  - name: code
+    type: LowCardinality(String)
+    from: code
+    nullable: false
+    reason: expected_low_cardinality_dimension
+  - name: open
+    type: Float64
+    from: open
+    nullable: true
+  - name: high
+    type: Float64
+    from: high
+    nullable: true
+  - name: low
+    type: Float64
+    from: low
+    nullable: true
+  - name: close
+    type: Float64
+    from: close
+    nullable: true
+  - name: preclose
+    type: Float64
+    from: preclose
+    nullable: true
+  - name: volume
+    type: Int64
+    from: volume
+    nullable: true
+  - name: amount
+    type: Float64
+    from: amount
+    nullable: true
+  - name: adjustflag
+    type: Int8
+    from: adjustflag
+    nullable: false
+  - name: turn
+    type: Float64
+    from: turn
+    nullable: true
+  - name: tradestatus
+    type: Int8
+    from: tradestatus
+    nullable: false
+  - name: pctChg
+    type: Float64
+    from: pctChg
+    nullable: true
+  - name: isST
+    type: Bool
+    from: isST
+    nullable: true
+dataset_note_zh: BaoStock 日频行情每日 source 分区年度合并结果，作为 ClickHouse raw 同步输入。
 validation_notes:
-- Initial contract migrated from docs/references/data_dict and current raw sync specs.
+- Split from baostock__query_history_k_data_plus_daily when daily source partitions moved to trade_date.

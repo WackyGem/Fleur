@@ -46,7 +46,8 @@ description: mono-fleur 的 Dagster 回填操作手册。用于选择 dg launch 
 cd pipeline
 
 uv run dg launch --target-path scheduler --assets "key:source/ths__limit_up_pool" --partition-range "2024-01-01...2024-01-31"
-uv run dg launch --target-path scheduler --assets "key:source/baostock__query_history_k_data_plus_daily" --partition 2024
+uv run dg launch --target-path scheduler --assets "key:source/baostock__query_history_k_data_plus_daily" --partition 2024-01-02
+uv run dg launch --target-path scheduler --assets "key:source/baostock__query_history_k_data_plus_daily_compacted" --partition 2024
 uv run dg launch --target-path scheduler --job eastmoney__daily_job --partition 2024
 uv run dg launch --target-path scheduler --assets "key:clickhouse/raw/jiuyan__industry_ocr_snapshot"
 ```

@@ -1,7 +1,11 @@
 baostock__query_history_k_data_plus_daily:
   name: baostock__query_history_k_data_plus_daily
-  description_zh: BaoStock 日频行情数据
-  description: BaoStock daily K-line rows by natural-year raw partition.
+  description_zh: BaoStock 日频行情每日 source 分区
+  description: BaoStock daily K-line rows by trade-date source partition.
+baostock__query_history_k_data_plus_daily_compacted:
+  name: baostock__query_history_k_data_plus_daily_compacted
+  description_zh: BaoStock 日频行情每日数据年度合并 raw 分区
+  description: BaoStock daily K-line rows compacted into yearly raw partitions.
 baostock__query_stock_basic:
   name: baostock__query_stock_basic
   description_zh: BaoStock 证券基础信息快照

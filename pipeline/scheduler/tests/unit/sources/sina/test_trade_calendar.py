@@ -100,14 +100,14 @@ class S3TableIOTest(unittest.TestCase):
 
     def test_asset_key_to_parquet_object_key_supports_hive_partition_path(self) -> None:
         key = asset_key_to_parquet_object_key(
-            dg.AssetKey(["source", "baostock__query_history_k_data_plus_daily"]),
+            dg.AssetKey(["source", "baostock__query_history_k_data_plus_daily_compacted"]),
             partition_key="2026",
             partition_key_name="year",
         )
 
         self.assertEqual(
             key,
-            "source/baostock__query_history_k_data_plus_daily/year=2026/000000_0.parquet",
+            "source/baostock__query_history_k_data_plus_daily_compacted/year=2026/000000_0.parquet",
         )
 
     def test_write_parquet_dataset_round_trips_unpartitioned_table(self) -> None:
@@ -137,20 +137,20 @@ class S3TableIOTest(unittest.TestCase):
         with TemporaryDirectory() as tmpdir:
             paths = write_parquet_dataset(
                 table,
-                f"{tmpdir}/source/baostock__query_history_k_data_plus_daily",
+                f"{tmpdir}/source/baostock__query_history_k_data_plus_daily_compacted",
                 local_filesystem(),
                 partition_key="2026",
                 partition_key_name="year",
             )
             parquet_file = pq.ParquetFile(
-                f"{tmpdir}/source/baostock__query_history_k_data_plus_daily/year=2026/000000_0.parquet"
+                f"{tmpdir}/source/baostock__query_history_k_data_plus_daily_compacted/year=2026/000000_0.parquet"
             )
             round_tripped = parquet_file.read()
 
         self.assertEqual(
             paths,
             [
-                f"{tmpdir}/source/baostock__query_history_k_data_plus_daily/year=2026/000000_0.parquet"
+                f"{tmpdir}/source/baostock__query_history_k_data_plus_daily_compacted/year=2026/000000_0.parquet"
             ],
         )
         self.assertEqual(round_tripped.column_names, ["date", "code"])
@@ -264,8 +264,20 @@ class BaoStockSecurityRangeTest(unittest.TestCase):
             requested_end_date=date(2026, 5, 25),
         )
 
-        self.assertEqual([item.code for item in ranges], ["sh.600000", "sh.000001", "sh.510300"])
-        self.assertEqual(ranges[2].start_date, date(2026, 1, 5))
+        self.assertEqual([item.code for item in ranges], ["sh.600000", "sh.000001"])
+
+        ranges_with_etf = filter_active_security_ranges(
+            stock_basic,
+            requested_start_date=date(2026, 1, 1),
+            requested_end_date=date(2026, 5, 25),
+            allowed_security_types=frozenset({"1", "2", "5"}),
+        )
+
+        self.assertEqual(
+            [item.code for item in ranges_with_etf],
+            ["sh.600000", "sh.000001", "sh.510300"],
+        )
+        self.assertEqual(ranges_with_etf[2].start_date, date(2026, 1, 5))
 
 
 class SinaTradeCalendarAutomationTest(unittest.TestCase):
