@@ -6,6 +6,7 @@
 
 | Plan | 状态 | 说明 |
 |---|---|---|
+| [0056](0056-racingline-step4-step5-backtest-latency-optimization-plan.md) | Proposed | Racingline Step 4 到 Step 5 回测延时优化：create accepted 即进入 Step 5、前端状态收敛、轻量 status/result wrapper、worker price bars 动态投影、outbox 延时和验收基线 |
 | [0054](0054-baostock-daily-kline-daily-source-compaction-plan.md) | Proposed | BaoStock 日 K 从年分区远端抓取改为日分区 source + 年度 compacted raw sync，并迁移 dev S3 历史年分区数据 |
 
 ## Recently Completed
