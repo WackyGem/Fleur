@@ -74,6 +74,14 @@ import {
   buildStrategyScoringCatalog,
   StrategyRuleSpecError,
 } from "@/features/strategy/adapters"
+import {
+  acceptStrategyBacktestRunForStep5,
+  hasStrategyBacktestConfigChanged,
+  isStrategyBacktestFailedStatus,
+  isStrategyBacktestResultReady,
+  isStrategyBacktestTerminalStatus,
+  mergeStrategyBacktestStatus,
+} from "@/features/strategy/backtest"
 import { ConditionGroupsPanel } from "@/features/strategy/components/condition-groups-panel"
 import { PoolPreviewPanel } from "@/features/strategy/components/pool-preview-panel"
 import { SimulationPositionPanel } from "@/features/strategy/components/simulation-position-panel"
@@ -443,10 +451,11 @@ function BacktestPanel({
   const isRunInProgress = Boolean(
     currentRun && !isStrategyBacktestTerminalStatus(currentRun.status)
   )
-  const isResultReady = Boolean(
-    currentRun?.status === "succeeded" &&
-      currentRun.current_result_attempt_id &&
-      !hasPendingConfigChange
+  const isResultReady = isStrategyBacktestResultReady(
+    currentRun,
+    backtestExecutionDraft,
+    period,
+    benchmark
   )
   const selectedRebalanceDate =
     rebalanceSelection.runId === activeRunId ? rebalanceSelection.date : null
@@ -1237,20 +1246,6 @@ function BacktestRunStatusPanel({
   )
 }
 
-function isStrategyBacktestTerminalStatus(
-  status: StrategyBacktestRunStatus
-): boolean {
-  return (
-    status === "succeeded" ||
-    status === "cancelled" ||
-    isStrategyBacktestFailedStatus(status)
-  )
-}
-
-function isStrategyBacktestFailedStatus(status: StrategyBacktestRunStatus) {
-  return status.startsWith("failed_")
-}
-
 function getStrategyBacktestStatusLabel(status?: StrategyBacktestRunStatus) {
   const labels: Record<StrategyBacktestRunStatus, string> = {
     calculating_nav: "计算净值中",
@@ -1304,49 +1299,6 @@ function formatBacktestProgressDetail(progress: StrategyBacktestRunRecord["progr
   }
 
   return parts.join(" / ")
-}
-
-function mergeStrategyBacktestStatus(
-  run: StrategyBacktestRunRecord,
-  status: StrategyBacktestRunStatusView
-): StrategyBacktestRunRecord {
-  if (run.strategy_backtest_run_id !== status.strategy_backtest_run_id) {
-    return run
-  }
-
-  return {
-    ...run,
-    status: status.status,
-    dispatch_status: status.dispatch_status,
-    progress: status.progress,
-    error_type: status.error_type,
-    error_message: status.error_message,
-    period_key: status.period_key,
-    benchmark_security_code: status.benchmark_security_code,
-    start_date: status.start_date,
-    end_date: status.end_date,
-    rule_hash: status.rule_hash,
-    execution_config_hash: status.execution_config_hash,
-    current_result_attempt_id: status.current_result_attempt_id,
-  }
-}
-
-function hasStrategyBacktestConfigChanged(
-  run: StrategyBacktestRunStatusView | StrategyBacktestRunRecord | null,
-  draft: BacktestExecutionDraft | null,
-  period: BacktestPeriod,
-  benchmark: BacktestBenchmark
-) {
-  if (!run || !draft) {
-    return false
-  }
-
-  return (
-    run.period_key !== period ||
-    run.benchmark_security_code !== benchmark ||
-    run.rule_hash !== draft.rule_hash ||
-    run.execution_config_hash !== draft.execution_config_hash
-  )
 }
 
 function mapStrategyBacktestNavPoints(
@@ -2249,13 +2201,14 @@ export function StrategyPage() {
         settings: effectiveSimulationSettings,
       })
       const run = await initialBacktestMutation.mutateAsync(request)
+      const handoff = acceptStrategyBacktestRunForStep5(run)
 
-      setActiveBacktestRun(run)
+      setActiveBacktestRun(handoff.activeRun)
       queryClient.setQueryData(
-        queryKeys.strategyBacktest(run.strategy_backtest_run_id),
-        run
+        queryKeys.strategyBacktest(handoff.activeRun.strategy_backtest_run_id),
+        handoff.activeRun
       )
-      setActiveStep("backtest")
+      setActiveStep(handoff.activeStep)
     } catch (error) {
       setBacktestLaunchError(formatErrorMessage(error))
     }
