@@ -1,6 +1,6 @@
 import time
 from datetime import date
-from typing import Any, cast
+from typing import Any, Literal, cast
 
 import dagster as dg
 import pyarrow as pa
@@ -32,11 +32,17 @@ from scheduler.defs.market.asset_keys import (
     SINA_TRADE_CALENDAR_ASSET_KEY,
     SOURCE_ASSET_KEY_PREFIX,
 )
-from scheduler.defs.market.readers import S3SecurityUniverseReader
+from scheduler.defs.market.readers import S3SecurityUniverseReader, S3TradeCalendarReader
 from scheduler.defs.resources.baostock import BaostockClientFactoryResource
 from scheduler.defs.resources.s3 import S3SettingsResource
 from scheduler.defs.sources.daily_compact import compact_daily_asset_by_year
 from scheduler.defs.sources.sina.trade_calendar import sina__trade_calendar
+from scheduler.defs.storage.dataset_service import (
+    DatasetLocation,
+    DatasetWriteOptions,
+    S3DatasetService,
+)
+from scheduler.defs.storage.dataset_writer import DatasetPartitionWriteError
 
 baostock_daily_kline_partitions = dg.DailyPartitionsDefinition(
     start_date="1990-12-19",
@@ -50,6 +56,16 @@ year_partitions = dg.TimeWindowPartitionsDefinition(
     end_offset=1,
 )
 BAOSTOCK_RUN_POOL = "baostock_run_pool"
+
+
+class BaostockDailyKlineRunConfig(dg.Config):
+    mode: Literal["daily", "range_backfill"] = "daily"
+    overwrite_existing_partitions: bool = False
+    cutoff_trade_date: str | None = None
+
+
+class BaostockDailyKlineCompactedRunConfig(dg.Config):
+    cutoff_trade_date: str | None = None
 
 
 @dg.asset(
@@ -96,6 +112,7 @@ def baostock__query_stock_basic(
 )
 def baostock__query_history_k_data_plus_daily(
     context: dg.AssetExecutionContext,
+    config: BaostockDailyKlineRunConfig,
     s3_settings: S3SettingsResource,
     baostock_client_factory: BaostockClientFactoryResource,
 ) -> dg.MaterializeResult:
@@ -107,8 +124,9 @@ def baostock__query_history_k_data_plus_daily(
     stock_basic = S3SecurityUniverseReader.from_s3_config(s3_config).read_stock_basic()
     stock_basic_read_at = time.perf_counter()
     result = run_async_boundary(
-        _materialize_daily_kline_range(
+        _materialize_daily_kline(
             context,
+            config=config,
             stock_basic=stock_basic,
             s3_settings=s3_settings,
             baostock_client_factory=baostock_client_factory,
@@ -153,15 +171,54 @@ def baostock__query_history_k_data_plus_daily(
 )
 def baostock__query_history_k_data_plus_daily_compacted(
     context: dg.AssetExecutionContext,
+    config: BaostockDailyKlineCompactedRunConfig,
     s3_settings: S3SettingsResource,
 ) -> dg.MaterializeResult[dict[str, pa.Table]]:
     """BaoStock daily K-line trade-date parquet compacted by natural-year partition."""
 
+    refresh_until_trade_date = (
+        _parse_partition_date(config.cutoff_trade_date)
+        if config.cutoff_trade_date is not None
+        else None
+    )
     return compact_daily_asset_by_year(
         context,
         raw_asset_key=baostock__query_history_k_data_plus_daily.key,
         output_dataset="baostock__query_history_k_data_plus_daily_compacted",
         s3_settings=s3_settings,
+        require_complete_partitions=True,
+        unique_key_columns=("date", "code"),
+        sort_key_columns=("date", "code"),
+        refresh_until_trade_date=refresh_until_trade_date,
+        use_latest_existing_partition_as_refresh_until=True,
+    )
+
+
+async def _materialize_daily_kline(
+    context: dg.AssetExecutionContext,
+    *,
+    config: BaostockDailyKlineRunConfig,
+    stock_basic: pa.Table,
+    s3_settings: S3SettingsResource,
+    baostock_client_factory: BaostockClientFactoryResource,
+) -> TradeDateRangeMaterializationResult:
+    partition_keys = sorted(context.partition_keys)
+    if config.mode == "daily":
+        if len(partition_keys) != 1:
+            msg = "BaoStock daily mode requires exactly one trade_date partition"
+            raise RuntimeError(msg)
+        return await _materialize_daily_kline_range(
+            context,
+            stock_basic=stock_basic,
+            s3_settings=s3_settings,
+            baostock_client_factory=baostock_client_factory,
+        )
+    return await _materialize_daily_kline_range_backfill(
+        context,
+        config=config,
+        stock_basic=stock_basic,
+        s3_settings=s3_settings,
+        baostock_client_factory=baostock_client_factory,
     )
 
 
@@ -202,6 +259,8 @@ async def _materialize_daily_kline_range(
     )
     result.metadata.update(
         {
+            "source_mode": "daily",
+            "overwrite_existing_partitions": False,
             "selected_security_count": sum(selected_security_count_by_trade_date.values()),
             "selected_security_count_by_trade_date": dg.MetadataValue.json(
                 selected_security_count_by_trade_date
@@ -220,6 +279,165 @@ async def _materialize_daily_kline_range(
     return result
 
 
+async def _materialize_daily_kline_range_backfill(
+    context: dg.AssetExecutionContext,
+    *,
+    config: BaostockDailyKlineRunConfig,
+    stock_basic: pa.Table,
+    s3_settings: S3SettingsResource,
+    baostock_client_factory: BaostockClientFactoryResource,
+) -> TradeDateRangeMaterializationResult:
+    partition_keys = sorted(context.partition_keys)
+    if not partition_keys:
+        msg = "BaoStock range_backfill mode requires at least one partition"
+        raise RuntimeError(msg)
+
+    natural_dates = [_parse_partition_date(partition_key) for partition_key in partition_keys]
+    cutoff_trade_date = (
+        _parse_partition_date(config.cutoff_trade_date)
+        if config.cutoff_trade_date is not None
+        else None
+    )
+    range_start = natural_dates[0]
+    range_end = natural_dates[-1]
+    if cutoff_trade_date is not None and cutoff_trade_date > range_end:
+        msg = (
+            "BaoStock range_backfill cutoff_trade_date cannot be later than "
+            f"partition range end: {cutoff_trade_date.isoformat()} > {range_end.isoformat()}"
+        )
+        raise RuntimeError(msg)
+    if cutoff_trade_date is not None and cutoff_trade_date < range_end:
+        range_end = cutoff_trade_date
+    if range_end < range_start:
+        msg = (
+            "BaoStock range_backfill cutoff_trade_date cannot be earlier than "
+            f"partition range start: {range_end.isoformat()} < {range_start.isoformat()}"
+        )
+        raise RuntimeError(msg)
+
+    s3_config = s3_settings.config()
+    trade_dates = S3TradeCalendarReader.from_s3_config(s3_config).read_trade_dates()
+    candidate_dates = [
+        natural_date for natural_date in natural_dates if range_start <= natural_date <= range_end
+    ]
+    target_trade_dates = [
+        natural_date for natural_date in candidate_dates if natural_date in trade_dates
+    ]
+    skipped_non_trade_dates = [
+        natural_date for natural_date in candidate_dates if natural_date not in trade_dates
+    ]
+    skipped_after_cutoff_dates = [
+        natural_date for natural_date in natural_dates if natural_date > range_end
+    ]
+
+    range_result = await baostock_services.fetch_k_history_tables_for_trade_date_range(
+        stock_basic,
+        range_start,
+        range_end,
+        target_trade_dates,
+        baostock_client_factory,
+    )
+
+    service = S3DatasetService(s3_config=s3_config)
+    location = DatasetLocation(
+        bucket=s3_config.bucket,
+        object_prefix="source",
+        asset_key=context.asset_key,
+    )
+    write_options = DatasetWriteOptions(
+        storage_mode="partitioned",
+        allow_empty=True,
+        partition_key_name=TRADE_DATE_PARTITION_KEY_NAME,
+    )
+
+    partition_tables = range_result.tables
+    partition_row_counts = {key: table.num_rows for key, table in partition_tables.items()}
+    existing_partition_keys: list[str] = []
+    written_object_keys: list[str] = []
+    if partition_tables:
+        existing_partition_keys = service.existing_partition_keys(
+            location,
+            partition_keys=sorted(partition_tables),
+            partition_key_name=TRADE_DATE_PARTITION_KEY_NAME,
+        )
+        if existing_partition_keys and not config.overwrite_existing_partitions:
+            msg = (
+                "BaoStock range_backfill refuses to overwrite existing daily partitions: "
+                f"{existing_partition_keys}"
+            )
+            raise RuntimeError(msg)
+
+        try:
+            write_result = service.write_partitioned(
+                location,
+                partition_tables,
+                write_options,
+            )
+        except DatasetPartitionWriteError as error:
+            context.log.error(
+                "BaoStock range_backfill partial write repair context: "
+                "attempted_partition_keys=%s; written_partition_keys=%s; "
+                "failed_partition_keys=%s",
+                error.attempted_partition_keys,
+                error.written_partition_keys,
+                error.failed_partition_keys,
+            )
+            msg = (
+                "BaoStock range_backfill failed while writing daily partitions. "
+                "Validation already passed, so repair the partial write by rerunning "
+                "the failed window with overwrite_existing_partitions=true after "
+                "recording the old object row counts, ETags, and sizes. "
+                f"attempted_partition_keys={error.attempted_partition_keys}; "
+                f"written_partition_keys={error.written_partition_keys}; "
+                f"failed_partition_keys={error.failed_partition_keys}"
+            )
+            raise RuntimeError(msg) from error
+        written_object_keys = service.object_keys(write_result)
+        write_metadata = service.metadata(result=write_result, options=write_options)
+    else:
+        write_metadata = {
+            "s3_bucket": s3_config.bucket,
+            "s3_endpoint": s3_config.endpoint,
+            "s3_keys": dg.MetadataValue.json([]),
+            "file_format": "parquet",
+            "compression": "zstd",
+            "storage_mode": "partitioned",
+            "allow_empty": True,
+            "partition_key_name": TRADE_DATE_PARTITION_KEY_NAME,
+            "partition_row_counts": dg.MetadataValue.json({}),
+            "empty_partition_keys": dg.MetadataValue.json([]),
+            "row_count": 0,
+            "column_count": 0,
+        }
+
+    metadata: dict[str, RawMetadataValue] = {
+        **range_result.metadata,
+        **write_metadata,
+        "source_mode": "range_backfill",
+        "backfill_start_date": range_start.isoformat(),
+        "backfill_end_date": range_end.isoformat(),
+        "requested_partition_count": len(partition_keys),
+        "processed_partition_count": len(partition_tables),
+        "processed_partition_keys": dg.MetadataValue.json(sorted(partition_tables)),
+        "skipped_non_trade_partition_count": len(skipped_non_trade_dates),
+        "skipped_after_cutoff_partition_count": len(skipped_after_cutoff_dates),
+        "skipped_after_cutoff_partition_keys_sample": dg.MetadataValue.json(
+            [item.isoformat() for item in skipped_after_cutoff_dates[:20]]
+        ),
+        "cutoff_trade_date": cutoff_trade_date.isoformat()
+        if cutoff_trade_date is not None
+        else None,
+        "effective_cutoff_trade_date": range_end.isoformat(),
+        "overwrite_existing_partitions": config.overwrite_existing_partitions,
+        "overwritten_partition_keys": dg.MetadataValue.json(existing_partition_keys),
+        "written_s3_keys": dg.MetadataValue.json(sorted(written_object_keys)),
+        "missing_partition_count": 0,
+        "read_partition_count": len(partition_tables),
+        "partition_row_counts": dg.MetadataValue.json(partition_row_counts),
+    }
+    return TradeDateRangeMaterializationResult(tables=partition_tables, metadata=metadata)
+
+
 def _metadata_json_list(value: RawMetadataValue) -> list[str]:
     data = getattr(value, "data", value)
     if not isinstance(data, list):
@@ -235,6 +453,14 @@ def _metadata_int(value: RawMetadataValue) -> int:
         return int(data)
     msg = f"Expected numeric metadata value, got {type(value).__name__}"
     raise TypeError(msg)
+
+
+def _parse_partition_date(value: str) -> date:
+    try:
+        return date.fromisoformat(value)
+    except ValueError as error:
+        msg = f"Invalid trade_date partition key: {value!r}"
+        raise ValueError(msg) from error
 
 
 async def fetch_stock_basic_table(

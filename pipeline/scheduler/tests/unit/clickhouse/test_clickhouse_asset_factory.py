@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import Any, cast
+
 from scheduler.defs.clickhouse.assets import CLICKHOUSE_RAW_ASSETS
 from scheduler.defs.clickhouse.specs import (
     BAOSTOCK_DAILY_K_SPEC,
@@ -40,6 +42,14 @@ def test_clickhouse_raw_assets_use_dataset_level_pool() -> None:
     asset = CLICKHOUSE_RAW_ASSETS[0]
 
     assert asset.op.pool == clickhouse_raw_pool_name(BAOSTOCK_DAILY_K_SPEC.raw_asset_table_name)
+
+
+def test_clickhouse_raw_assets_use_eager_automation_condition() -> None:
+    asset = CLICKHOUSE_RAW_ASSETS[0]
+
+    condition = asset.automation_conditions_by_key[asset.key]
+
+    assert cast(Any, condition).label == "eager"
 
 
 def test_clickhouse_raw_snapshot_assets_are_unpartitioned() -> None:

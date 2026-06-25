@@ -6,6 +6,7 @@ from dataclasses import replace
 from datetime import date
 from typing import Any, cast
 
+import dagster as dg
 import pytest
 from scheduler.defs.baostock import assets
 from scheduler.defs.baostock.client import BaostockAioTcpClient
@@ -29,6 +30,9 @@ from scheduler.defs.baostock.schemas import (
 )
 from scheduler.defs.common.retry import ExponentialBackoffPolicy
 from scheduler.defs.resources.baostock import BaostockClientFactoryResource
+from scheduler.defs.resources.s3 import S3SettingsResource
+from scheduler.defs.storage.dataset_service import DatasetLocation, DatasetWriteOptions
+from scheduler.defs.storage.dataset_writer import DatasetPartitionWriteError, DatasetWriteResult
 from tests.fakes.baostock import (
     FakeBaostockAssetClient,
     FakeBaostockClientFactory,
@@ -533,6 +537,658 @@ def test_fetch_k_history_table_for_trade_date_returns_empty_metadata_when_no_sec
     assert metadata["candidate_security_count"] == 1
     assert metadata["selected_security_count"] == 0
     assert metadata["skipped_security_count"] == 1
+
+
+def test_fetch_k_history_range_backfill_requests_security_ranges_and_splits_dates() -> None:
+    class RangeBaostockClient(FakeBaostockAssetClient):
+        async def query_history_k_data_plus_daily(
+            self,
+            code: str,
+            start_date: date,
+            end_date: date,
+        ) -> Any:
+            self.history_calls.append((code, start_date, end_date))
+            return baostock_response(
+                api_name="query_history_k_data_plus",
+                records=[
+                    [
+                        start_date.isoformat(),
+                        code,
+                        "1",
+                        "2",
+                        "1",
+                        "2",
+                        "1",
+                        "100",
+                        "200",
+                        "3",
+                        "1.0",
+                        "1",
+                        "10.0",
+                        "0",
+                    ]
+                ],
+                field_names=K_HISTORY_DAILY_FIELDS,
+            )
+
+    client = RangeBaostockClient()
+    factory = FakeBaostockClientFactory(client)
+    stock_basic = stock_basic_response_to_table(
+        baostock_response(
+            records=[
+                ["sh.600000", "浦发银行", "1999-11-10", "", "1", "1"],
+                ["sh.000001", "上证指数", "2026-01-05", "", "2", "1"],
+                ["sh.510300", "ETF", "2012-05-28", "", "5", "1"],
+            ],
+            field_names=STOCK_BASIC_FIELDS,
+        )
+    )
+
+    result = asyncio.run(
+        assets.baostock_services.fetch_k_history_tables_for_trade_date_range(
+            stock_basic,
+            date(2026, 1, 2),
+            date(2026, 1, 5),
+            [date(2026, 1, 2), date(2026, 1, 5)],
+            factory,
+        )
+    )
+
+    assert client.history_calls == [
+        ("sh.600000", date(2026, 1, 2), date(2026, 1, 5)),
+        ("sh.000001", date(2026, 1, 5), date(2026, 1, 5)),
+    ]
+    assert sorted(result.tables) == ["2026-01-02", "2026-01-05"]
+    assert result.tables["2026-01-02"].num_rows == 1
+    assert result.tables["2026-01-05"].num_rows == 1
+    assert result.metadata["selected_security_count"] == 2
+    assert cast(Any, result.metadata["empty_partition_keys"]).data == []
+    assert result.metadata["duplicate_key_count"] == 0
+
+
+def test_fetch_k_history_range_backfill_writes_empty_tables_for_empty_trade_dates() -> None:
+    factory = FakeBaostockClientFactory(FakeBaostockAssetClient())
+    stock_basic = stock_basic_response_to_table(
+        baostock_response(
+            records=[["sh.600000", "浦发银行", "1999-11-10", "", "1", "1"]],
+            field_names=STOCK_BASIC_FIELDS,
+        )
+    )
+
+    result = asyncio.run(
+        assets.baostock_services.fetch_k_history_tables_for_trade_date_range(
+            stock_basic,
+            date(2026, 1, 2),
+            date(2026, 1, 5),
+            [date(2026, 1, 2), date(2026, 1, 5)],
+            factory,
+        )
+    )
+
+    assert result.tables["2026-01-02"].num_rows == 1
+    assert result.tables["2026-01-05"].num_rows == 0
+    assert cast(Any, result.metadata["empty_partition_keys"]).data == ["2026-01-05"]
+
+
+def test_fetch_k_history_range_backfill_skips_when_no_target_trade_dates() -> None:
+    client = FakeBaostockAssetClient()
+    factory = FakeBaostockClientFactory(client)
+    stock_basic = stock_basic_response_to_table(
+        baostock_response(
+            records=[["sh.600000", "浦发银行", "1999-11-10", "", "1", "1"]],
+            field_names=STOCK_BASIC_FIELDS,
+        )
+    )
+
+    result = asyncio.run(
+        assets.baostock_services.fetch_k_history_tables_for_trade_date_range(
+            stock_basic,
+            date(2026, 1, 3),
+            date(2026, 1, 4),
+            [],
+            factory,
+        )
+    )
+
+    assert result.tables == {}
+    assert client.history_calls == []
+    assert factory.created_max_connections == []
+    assert result.metadata["processed_trade_date_count"] == 0
+
+
+def test_fetch_k_history_range_backfill_rejects_duplicate_keys() -> None:
+    class DuplicateBaostockClient(FakeBaostockAssetClient):
+        async def query_history_k_data_plus_daily(
+            self,
+            code: str,
+            start_date: date,
+            end_date: date,
+        ) -> Any:
+            self.history_calls.append((code, start_date, end_date))
+            record = [
+                start_date.isoformat(),
+                code,
+                "1",
+                "2",
+                "1",
+                "2",
+                "1",
+                "100",
+                "200",
+                "3",
+                "1.0",
+                "1",
+                "10.0",
+                "0",
+            ]
+            return baostock_response(
+                api_name="query_history_k_data_plus",
+                records=[record, record],
+                field_names=K_HISTORY_DAILY_FIELDS,
+            )
+
+    factory = FakeBaostockClientFactory(DuplicateBaostockClient())
+    stock_basic = stock_basic_response_to_table(
+        baostock_response(
+            records=[["sh.600000", "浦发银行", "1999-11-10", "", "1", "1"]],
+            field_names=STOCK_BASIC_FIELDS,
+        )
+    )
+
+    with pytest.raises(RuntimeError, match="duplicate keys"):
+        asyncio.run(
+            assets.baostock_services.fetch_k_history_tables_for_trade_date_range(
+                stock_basic,
+                date(2026, 1, 2),
+                date(2026, 1, 2),
+                [date(2026, 1, 2)],
+                factory,
+            )
+        )
+
+
+def test_fetch_k_history_range_backfill_rejects_partial_security_failures() -> None:
+    class PartiallyFailingBaostockClient(FakeBaostockAssetClient):
+        async def query_history_k_data_plus_daily(
+            self,
+            code: str,
+            start_date: date,
+            end_date: date,
+        ) -> Any:
+            if code == "sh.000001":
+                self.history_calls.append((code, start_date, end_date))
+                msg = "remote rejected security"
+                raise RuntimeError(msg)
+            return await super().query_history_k_data_plus_daily(code, start_date, end_date)
+
+    client = PartiallyFailingBaostockClient()
+    factory = FakeBaostockClientFactory(client)
+    stock_basic = stock_basic_response_to_table(
+        baostock_response(
+            records=[
+                ["sh.600000", "浦发银行", "1999-11-10", "", "1", "1"],
+                ["sh.000001", "上证指数", "1991-07-15", "", "2", "1"],
+            ],
+            field_names=STOCK_BASIC_FIELDS,
+        )
+    )
+
+    with pytest.raises(RuntimeError, match="failure rate exceeded 0%"):
+        asyncio.run(
+            assets.baostock_services.fetch_k_history_tables_for_trade_date_range(
+                stock_basic,
+                date(2026, 1, 2),
+                date(2026, 1, 5),
+                [date(2026, 1, 2), date(2026, 1, 5)],
+                factory,
+            )
+        )
+
+    assert [call[0] for call in client.history_calls] == ["sh.600000", "sh.000001"]
+
+
+def test_fetch_k_history_range_backfill_rejects_non_trade_date_rows() -> None:
+    class NonTradeDateBaostockClient(FakeBaostockAssetClient):
+        async def query_history_k_data_plus_daily(
+            self,
+            code: str,
+            start_date: date,
+            end_date: date,
+        ) -> Any:
+            self.history_calls.append((code, start_date, end_date))
+            return baostock_response(
+                api_name="query_history_k_data_plus",
+                records=[
+                    [
+                        "2026-01-03",
+                        code,
+                        "1",
+                        "2",
+                        "1",
+                        "2",
+                        "1",
+                        "100",
+                        "200",
+                        "3",
+                        "1.0",
+                        "1",
+                        "10.0",
+                        "0",
+                    ]
+                ],
+                field_names=K_HISTORY_DAILY_FIELDS,
+            )
+
+    factory = FakeBaostockClientFactory(NonTradeDateBaostockClient())
+    stock_basic = stock_basic_response_to_table(
+        baostock_response(
+            records=[["sh.600000", "浦发银行", "1999-11-10", "", "1", "1"]],
+            field_names=STOCK_BASIC_FIELDS,
+        )
+    )
+
+    with pytest.raises(RuntimeError, match="outside the requested trade-date set"):
+        asyncio.run(
+            assets.baostock_services.fetch_k_history_tables_for_trade_date_range(
+                stock_basic,
+                date(2026, 1, 2),
+                date(2026, 1, 2),
+                [date(2026, 1, 2)],
+                factory,
+            )
+        )
+
+
+def test_range_backfill_records_cutoff_metadata_and_skips_after_cutoff(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    class FakeTradeCalendarReader:
+        @classmethod
+        def from_s3_config(cls, config: object) -> FakeTradeCalendarReader:
+            return cls()
+
+        def read_trade_dates(self) -> set[date]:
+            return {date(2026, 1, 2), date(2026, 1, 5)}
+
+    class FakeDatasetService:
+        written_partition_keys: list[str] = []
+
+        def __init__(self, *, s3_config: object) -> None:
+            self.s3_config = s3_config
+
+        def existing_partition_keys(
+            self,
+            location: DatasetLocation,
+            *,
+            partition_keys: list[str],
+            partition_key_name: str,
+        ) -> list[str]:
+            return []
+
+        def write_partitioned(
+            self,
+            location: DatasetLocation,
+            tables: dict[str, object],
+            options: DatasetWriteOptions,
+        ) -> DatasetWriteResult:
+            self.__class__.written_partition_keys = sorted(tables)
+            return DatasetWriteResult([], 1, 14, {"2026-01-02": 1})
+
+        def object_keys(self, result: DatasetWriteResult) -> list[str]:
+            return []
+
+        def metadata(
+            self,
+            *,
+            result: DatasetWriteResult,
+            options: DatasetWriteOptions,
+        ) -> dict[str, object]:
+            return {
+                "row_count": result.row_count,
+                "column_count": result.column_count,
+                "partition_row_counts": dg.MetadataValue.json(result.partition_row_counts),
+                "empty_partition_keys": dg.MetadataValue.json(result.empty_partition_keys),
+            }
+
+    monkeypatch.setattr(assets, "S3TradeCalendarReader", FakeTradeCalendarReader)
+    monkeypatch.setattr(assets, "S3DatasetService", FakeDatasetService)
+    stock_basic = stock_basic_response_to_table(
+        baostock_response(
+            records=[["sh.600000", "浦发银行", "1999-11-10", "", "1", "1"]],
+            field_names=STOCK_BASIC_FIELDS,
+        )
+    )
+
+    result = asyncio.run(
+        assets._materialize_daily_kline_range_backfill(
+            cast(
+                dg.AssetExecutionContext,
+                _FakeAssetContext(["2026-01-02", "2026-01-05"]),
+            ),
+            config=assets.BaostockDailyKlineRunConfig(
+                mode="range_backfill",
+                cutoff_trade_date="2026-01-02",
+            ),
+            stock_basic=stock_basic,
+            s3_settings=S3SettingsResource(
+                endpoint="http://localhost:9000",
+                bucket="bucket",
+                access_key="access",
+                secret_key="secret",
+            ),
+            baostock_client_factory=cast(
+                BaostockClientFactoryResource,
+                FakeBaostockClientFactory(),
+            ),
+        )
+    )
+
+    assert FakeDatasetService.written_partition_keys == ["2026-01-02"]
+    assert result.metadata["backfill_end_date"] == "2026-01-02"
+    assert result.metadata["cutoff_trade_date"] == "2026-01-02"
+    assert result.metadata["effective_cutoff_trade_date"] == "2026-01-02"
+    assert result.metadata["skipped_after_cutoff_partition_count"] == 1
+    assert cast(Any, result.metadata["skipped_after_cutoff_partition_keys_sample"]).data == [
+        "2026-01-05"
+    ]
+
+
+def test_range_backfill_rejects_cutoff_after_partition_range() -> None:
+    with pytest.raises(RuntimeError, match="cutoff_trade_date cannot be later"):
+        asyncio.run(
+            assets._materialize_daily_kline_range_backfill(
+                cast(dg.AssetExecutionContext, _FakeAssetContext(["2026-01-02"])),
+                config=assets.BaostockDailyKlineRunConfig(
+                    mode="range_backfill",
+                    cutoff_trade_date="2026-01-05",
+                ),
+                stock_basic=assets.empty_k_history_table(),
+                s3_settings=S3SettingsResource(
+                    endpoint="http://localhost:9000",
+                    bucket="bucket",
+                    access_key="access",
+                    secret_key="secret",
+                ),
+                baostock_client_factory=cast(
+                    BaostockClientFactoryResource,
+                    FakeBaostockClientFactory(),
+                ),
+            )
+        )
+
+
+def test_range_backfill_refuses_existing_partitions_by_default(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    class FakeTradeCalendarReader:
+        @classmethod
+        def from_s3_config(cls, config: object) -> FakeTradeCalendarReader:
+            return cls()
+
+        def read_trade_dates(self) -> set[date]:
+            return {date(2026, 1, 2)}
+
+    class FakeDatasetService:
+        write_calls = 0
+
+        def __init__(self, *, s3_config: object) -> None:
+            self.s3_config = s3_config
+
+        def existing_partition_keys(
+            self,
+            location: DatasetLocation,
+            *,
+            partition_keys: list[str],
+            partition_key_name: str,
+        ) -> list[str]:
+            return ["2026-01-02"]
+
+        def write_partitioned(
+            self,
+            location: DatasetLocation,
+            tables: object,
+            options: DatasetWriteOptions,
+        ) -> DatasetWriteResult:
+            self.__class__.write_calls += 1
+            return DatasetWriteResult([], 0, 0)
+
+    monkeypatch.setattr(assets, "S3TradeCalendarReader", FakeTradeCalendarReader)
+    monkeypatch.setattr(assets, "S3DatasetService", FakeDatasetService)
+    context = _FakeAssetContext(["2026-01-02"])
+    stock_basic = stock_basic_response_to_table(
+        baostock_response(
+            records=[["sh.600000", "浦发银行", "1999-11-10", "", "1", "1"]],
+            field_names=STOCK_BASIC_FIELDS,
+        )
+    )
+
+    with pytest.raises(RuntimeError, match="refuses to overwrite"):
+        asyncio.run(
+            assets._materialize_daily_kline_range_backfill(
+                cast(dg.AssetExecutionContext, context),
+                config=assets.BaostockDailyKlineRunConfig(mode="range_backfill"),
+                stock_basic=stock_basic,
+                s3_settings=S3SettingsResource(
+                    endpoint="http://localhost:9000",
+                    bucket="bucket",
+                    access_key="access",
+                    secret_key="secret",
+                ),
+                baostock_client_factory=cast(
+                    BaostockClientFactoryResource,
+                    FakeBaostockClientFactory(),
+                ),
+            )
+        )
+
+    assert FakeDatasetService.write_calls == 0
+
+
+def test_range_backfill_allows_explicit_overwrite_and_records_metadata(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    class FakeTradeCalendarReader:
+        @classmethod
+        def from_s3_config(cls, config: object) -> FakeTradeCalendarReader:
+            return cls()
+
+        def read_trade_dates(self) -> set[date]:
+            return {date(2026, 1, 2)}
+
+    class FakeDatasetService:
+        written_partition_keys: list[str] = []
+
+        def __init__(self, *, s3_config: object) -> None:
+            self.s3_config = s3_config
+
+        def existing_partition_keys(
+            self,
+            location: DatasetLocation,
+            *,
+            partition_keys: list[str],
+            partition_key_name: str,
+        ) -> list[str]:
+            return ["2026-01-02"]
+
+        def write_partitioned(
+            self,
+            location: DatasetLocation,
+            tables: dict[str, object],
+            options: DatasetWriteOptions,
+        ) -> DatasetWriteResult:
+            self.__class__.written_partition_keys = sorted(tables)
+            return DatasetWriteResult(
+                [
+                    "bucket/source/baostock__query_history_k_data_plus_daily/trade_date=2026-01-02/000000_0.parquet"
+                ],
+                1,
+                14,
+                {"2026-01-02": 1},
+            )
+
+        def object_keys(self, result: DatasetWriteResult) -> list[str]:
+            return result.object_keys("bucket")
+
+        def metadata(
+            self,
+            *,
+            result: DatasetWriteResult,
+            options: DatasetWriteOptions,
+        ) -> dict[str, object]:
+            return {
+                "row_count": result.row_count,
+                "column_count": result.column_count,
+                "partition_row_counts": dg.MetadataValue.json(result.partition_row_counts),
+                "empty_partition_keys": dg.MetadataValue.json(result.empty_partition_keys),
+            }
+
+    monkeypatch.setattr(assets, "S3TradeCalendarReader", FakeTradeCalendarReader)
+    monkeypatch.setattr(assets, "S3DatasetService", FakeDatasetService)
+    context = _FakeAssetContext(["2026-01-02"])
+    stock_basic = stock_basic_response_to_table(
+        baostock_response(
+            records=[["sh.600000", "浦发银行", "1999-11-10", "", "1", "1"]],
+            field_names=STOCK_BASIC_FIELDS,
+        )
+    )
+
+    result = asyncio.run(
+        assets._materialize_daily_kline_range_backfill(
+            cast(dg.AssetExecutionContext, context),
+            config=assets.BaostockDailyKlineRunConfig(
+                mode="range_backfill",
+                overwrite_existing_partitions=True,
+            ),
+            stock_basic=stock_basic,
+            s3_settings=S3SettingsResource(
+                endpoint="http://localhost:9000",
+                bucket="bucket",
+                access_key="access",
+                secret_key="secret",
+            ),
+            baostock_client_factory=cast(
+                BaostockClientFactoryResource,
+                FakeBaostockClientFactory(),
+            ),
+        )
+    )
+
+    assert FakeDatasetService.written_partition_keys == ["2026-01-02"]
+    assert result.metadata["overwrite_existing_partitions"] is True
+    assert cast(Any, result.metadata["overwritten_partition_keys"]).data == ["2026-01-02"]
+
+
+def test_range_backfill_reports_partial_write_repair_context(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    class FakeTradeCalendarReader:
+        @classmethod
+        def from_s3_config(cls, config: object) -> FakeTradeCalendarReader:
+            return cls()
+
+        def read_trade_dates(self) -> set[date]:
+            return {date(2026, 1, 2), date(2026, 1, 5)}
+
+    class FakeDatasetService:
+        def __init__(self, *, s3_config: object) -> None:
+            self.s3_config = s3_config
+
+        def existing_partition_keys(
+            self,
+            location: DatasetLocation,
+            *,
+            partition_keys: list[str],
+            partition_key_name: str,
+        ) -> list[str]:
+            return []
+
+        def write_partitioned(
+            self,
+            location: DatasetLocation,
+            tables: dict[str, object],
+            options: DatasetWriteOptions,
+        ) -> DatasetWriteResult:
+            raise DatasetPartitionWriteError(
+                attempted_partition_keys=["2026-01-02", "2026-01-05"],
+                written_partition_keys=["2026-01-02"],
+                failed_partition_keys=["2026-01-05"],
+                written_paths=[],
+                cause=RuntimeError("s3 write failed"),
+            )
+
+    monkeypatch.setattr(assets, "S3TradeCalendarReader", FakeTradeCalendarReader)
+    monkeypatch.setattr(assets, "S3DatasetService", FakeDatasetService)
+    context = _FakeAssetContext(["2026-01-02", "2026-01-05"])
+    stock_basic = stock_basic_response_to_table(
+        baostock_response(
+            records=[["sh.600000", "浦发银行", "1999-11-10", "", "1", "1"]],
+            field_names=STOCK_BASIC_FIELDS,
+        )
+    )
+
+    with pytest.raises(RuntimeError, match="written_partition_keys=\\['2026-01-02'\\]"):
+        asyncio.run(
+            assets._materialize_daily_kline_range_backfill(
+                cast(dg.AssetExecutionContext, context),
+                config=assets.BaostockDailyKlineRunConfig(mode="range_backfill"),
+                stock_basic=stock_basic,
+                s3_settings=S3SettingsResource(
+                    endpoint="http://localhost:9000",
+                    bucket="bucket",
+                    access_key="access",
+                    secret_key="secret",
+                ),
+                baostock_client_factory=cast(
+                    BaostockClientFactoryResource,
+                    FakeBaostockClientFactory(),
+                ),
+            )
+        )
+    assert context.log.errors
+    assert context.log.errors[0][1] == (
+        ["2026-01-02", "2026-01-05"],
+        ["2026-01-02"],
+        ["2026-01-05"],
+    )
+
+
+def test_daily_mode_rejects_multiple_partitions() -> None:
+    with pytest.raises(RuntimeError, match="requires exactly one"):
+        asyncio.run(
+            assets._materialize_daily_kline(
+                cast(
+                    dg.AssetExecutionContext,
+                    _FakeAssetContext(["2026-01-02", "2026-01-05"]),
+                ),
+                config=assets.BaostockDailyKlineRunConfig(),
+                stock_basic=assets.empty_k_history_table(),
+                s3_settings=S3SettingsResource(
+                    endpoint="http://localhost:9000",
+                    bucket="bucket",
+                    access_key="access",
+                    secret_key="secret",
+                ),
+                baostock_client_factory=cast(
+                    BaostockClientFactoryResource,
+                    FakeBaostockClientFactory(),
+                ),
+            )
+        )
+
+
+class _FakeAssetContext:
+    def __init__(self, partition_keys: list[str]) -> None:
+        self.partition_keys = partition_keys
+        self.asset_key = assets.baostock__query_history_k_data_plus_daily.key
+        self.log = _FakeLog()
+
+
+class _FakeLog:
+    def __init__(self) -> None:
+        self.errors: list[tuple[str, tuple[object, ...]]] = []
+
+    def error(self, message: str, *args: object) -> None:
+        self.errors.append((message, args))
 
 
 class _RecordingBaostockTcpServer:

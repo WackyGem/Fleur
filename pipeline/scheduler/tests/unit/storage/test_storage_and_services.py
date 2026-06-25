@@ -14,6 +14,7 @@ from scheduler.defs.io_managers import s3_io_manager
 from scheduler.defs.io_managers.s3_io_manager import S3IOManager
 from scheduler.defs.ocr.service import run_bounded_ocr_batch
 from scheduler.defs.storage import dataset_writer, s3
+from scheduler.defs.storage.dataset_service import DatasetLocation, S3DatasetService
 from scheduler.defs.storage.object_store import (
     DownloadedImage,
     ObjectStore,
@@ -69,6 +70,106 @@ def test_s3_path_builder_deduplicates_object_prefix_from_asset_key_prefix() -> N
         )
         == "source/market/asset/year=2026/000000_0.parquet"
     )
+
+
+def test_s3_dataset_service_checks_partition_existence() -> None:
+    class ExistingOnlyFilesystem:
+        def __init__(self) -> None:
+            self.paths = {
+                "bucket/source/baostock__query_history_k_data_plus_daily/"
+                "trade_date=2026-01-02/000000_0.parquet"
+            }
+
+        def open_input_file(self, path: str) -> object:
+            if path not in self.paths:
+                raise FileNotFoundError(path)
+
+            class InputFile:
+                def __enter__(self) -> InputFile:
+                    return self
+
+                def __exit__(
+                    self,
+                    exc_type: type[BaseException] | None,
+                    exc_value: BaseException | None,
+                    traceback: object,
+                ) -> None:
+                    return None
+
+            return InputFile()
+
+    service = S3DatasetService(
+        s3_config=fake_s3_config(),
+        filesystem=ExistingOnlyFilesystem(),
+    )
+    location = DatasetLocation(
+        bucket="bucket",
+        object_prefix="source",
+        asset_key=dg.AssetKey(["source", "baostock__query_history_k_data_plus_daily"]),
+    )
+
+    assert service.partition_exists(
+        location,
+        partition_key="2026-01-02",
+        partition_key_name="trade_date",
+    )
+    assert not service.partition_exists(
+        location,
+        partition_key="2026-01-05",
+        partition_key_name="trade_date",
+    )
+    assert service.existing_partition_keys(
+        location,
+        partition_keys=["2026-01-02", "2026-01-05"],
+        partition_key_name="trade_date",
+    ) == ["2026-01-02"]
+
+
+def test_s3_dataset_writer_reports_partial_partition_write_failure(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    written_partitions: list[str] = []
+
+    def fake_write_parquet_dataset(
+        table: pa.Table,
+        base_dir: str,
+        filesystem: object,
+        *,
+        partition_key: str | None = None,
+        partition_key_name: str | None = None,
+        allow_empty: bool = False,
+    ) -> list[str]:
+        assert partition_key_name == "trade_date"
+        assert allow_empty is True
+        if partition_key == "2026-01-05":
+            msg = "s3 write failed"
+            raise RuntimeError(msg)
+        assert partition_key is not None
+        written_partitions.append(partition_key)
+        return [f"{base_dir}/trade_date={partition_key}/000000_0.parquet"]
+
+    monkeypatch.setattr(dataset_writer, "write_parquet_dataset", fake_write_parquet_dataset)
+    writer = dataset_writer.S3DatasetWriter(
+        s3_config=fake_s3_config(),
+        filesystem=object(),
+    )
+    table = pa.table({"date": [date(2026, 1, 2)]})
+
+    with pytest.raises(dataset_writer.DatasetPartitionWriteError) as exc_info:
+        writer.write_partitioned(
+            partition_tables={
+                "2026-01-02": table,
+                "2026-01-05": table,
+            },
+            base_dir="bucket/source/test",
+            partition_key_name="trade_date",
+            allow_empty=True,
+        )
+
+    assert written_partitions == ["2026-01-02"]
+    assert exc_info.value.attempted_partition_keys == ["2026-01-02", "2026-01-05"]
+    assert exc_info.value.written_partition_keys == ["2026-01-02"]
+    assert exc_info.value.failed_partition_keys == ["2026-01-05"]
 
 
 def test_object_store_writes_and_reads_bytes_through_bucket_paths() -> None:

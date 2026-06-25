@@ -225,9 +225,269 @@ def test_compact_daily_asset_by_year_rejects_empty_input(
         )
 
 
+def test_compact_daily_asset_by_year_can_require_complete_partitions(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    class FakeTradeCalendarReader:
+        @classmethod
+        def from_s3_config(cls, config: object) -> FakeTradeCalendarReader:
+            return cls()
+
+        def read_trade_dates(self) -> set[date]:
+            return {date(2026, 1, 2), date(2026, 1, 5)}
+
+    class FakeDatasetService:
+        def __init__(self, *, s3_config: object) -> None:
+            self.s3_config = s3_config
+
+        def read_partitioned(
+            self,
+            location: object,
+            *,
+            partition_keys: list[str],
+            partition_key_name: str,
+        ) -> PartitionedParquetReadResult:
+            return PartitionedParquetReadResult(
+                tables=[_baostock_k_history_table([{"date": date(2026, 1, 2)}])],
+                read_partition_keys=["2026-01-02"],
+                missing_partition_keys=["2026-01-05"],
+                empty_partition_keys=[],
+            )
+
+    monkeypatch.setattr(daily_compact, "S3TradeCalendarReader", FakeTradeCalendarReader)
+    monkeypatch.setattr(daily_compact, "S3DatasetService", FakeDatasetService)
+
+    context = dg.build_asset_context(
+        partition_key="2026",
+        run_tags={"market.trade_date": "2026-01-05"},
+    )
+
+    with pytest.raises(RuntimeError, match="missing required daily partitions"):
+        daily_compact.compact_daily_asset_by_year(
+            context,
+            raw_asset_key=dg.AssetKey(["source", "baostock__query_history_k_data_plus_daily"]),
+            output_dataset="baostock__query_history_k_data_plus_daily_compacted",
+            s3_settings=S3SettingsResource(
+                endpoint="http://localhost:9000",
+                bucket="bucket",
+                access_key="access",
+                secret_key="secret",
+            ),
+            require_complete_partitions=True,
+            unique_key_columns=("date", "code"),
+        )
+
+
+def test_compact_daily_asset_by_year_uses_explicit_refresh_until_trade_date(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    captured_partition_keys: list[str] = []
+
+    class FakeTradeCalendarReader:
+        @classmethod
+        def from_s3_config(cls, config: object) -> FakeTradeCalendarReader:
+            return cls()
+
+        def read_trade_dates(self) -> set[date]:
+            return {date(2026, 6, 25), date(2026, 6, 26)}
+
+    class FakeDatasetService:
+        def __init__(self, *, s3_config: object) -> None:
+            self.s3_config = s3_config
+
+        def read_partitioned(
+            self,
+            location: object,
+            *,
+            partition_keys: list[str],
+            partition_key_name: str,
+        ) -> PartitionedParquetReadResult:
+            captured_partition_keys.extend(partition_keys)
+            return PartitionedParquetReadResult(
+                tables=[
+                    _baostock_k_history_table([{"date": date(2026, 6, 25), "code": "sh.600000"}])
+                ],
+                read_partition_keys=["2026-06-25"],
+                missing_partition_keys=[],
+                empty_partition_keys=[],
+            )
+
+    monkeypatch.setattr(daily_compact, "S3TradeCalendarReader", FakeTradeCalendarReader)
+    monkeypatch.setattr(daily_compact, "S3DatasetService", FakeDatasetService)
+
+    context = dg.build_asset_context(partition_key="2026")
+    result = daily_compact.compact_daily_asset_by_year(
+        context,
+        raw_asset_key=dg.AssetKey(["source", "baostock__query_history_k_data_plus_daily"]),
+        output_dataset="baostock__query_history_k_data_plus_daily_compacted",
+        s3_settings=S3SettingsResource(
+            endpoint="http://localhost:9000",
+            bucket="bucket",
+            access_key="access",
+            secret_key="secret",
+        ),
+        require_complete_partitions=True,
+        unique_key_columns=("date", "code"),
+        refresh_until_trade_date=date(2026, 6, 25),
+    )
+
+    assert captured_partition_keys == ["2026-06-25"]
+    assert result.metadata is not None
+    assert result.metadata["refresh_until_trade_date"] == "2026-06-25"
+
+
+def test_compact_daily_asset_by_year_can_use_latest_existing_partition_as_refresh_until(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    captured_existing_partition_keys: list[str] = []
+    captured_read_partition_keys: list[str] = []
+
+    class FakeTradeCalendarReader:
+        @classmethod
+        def from_s3_config(cls, config: object) -> FakeTradeCalendarReader:
+            return cls()
+
+        def read_trade_dates(self) -> set[date]:
+            return {date(2026, 6, 24), date(2026, 6, 25)}
+
+    class FakeDatasetService:
+        def __init__(self, *, s3_config: object) -> None:
+            self.s3_config = s3_config
+
+        def existing_partition_keys(
+            self,
+            location: object,
+            *,
+            partition_keys: list[str],
+            partition_key_name: str,
+        ) -> list[str]:
+            captured_existing_partition_keys.extend(partition_keys)
+            return ["2026-06-24"]
+
+        def read_partitioned(
+            self,
+            location: object,
+            *,
+            partition_keys: list[str],
+            partition_key_name: str,
+        ) -> PartitionedParquetReadResult:
+            captured_read_partition_keys.extend(partition_keys)
+            return PartitionedParquetReadResult(
+                tables=[
+                    _baostock_k_history_table([{"date": date(2026, 6, 24), "code": "sh.600000"}])
+                ],
+                read_partition_keys=["2026-06-24"],
+                missing_partition_keys=[],
+                empty_partition_keys=[],
+            )
+
+    monkeypatch.setattr(daily_compact, "S3TradeCalendarReader", FakeTradeCalendarReader)
+    monkeypatch.setattr(daily_compact, "S3DatasetService", FakeDatasetService)
+
+    context = dg.build_asset_context(partition_key="2026")
+    result = daily_compact.compact_daily_asset_by_year(
+        context,
+        raw_asset_key=dg.AssetKey(["source", "baostock__query_history_k_data_plus_daily"]),
+        output_dataset="baostock__query_history_k_data_plus_daily_compacted",
+        s3_settings=S3SettingsResource(
+            endpoint="http://localhost:9000",
+            bucket="bucket",
+            access_key="access",
+            secret_key="secret",
+        ),
+        require_complete_partitions=True,
+        unique_key_columns=("date", "code"),
+        use_latest_existing_partition_as_refresh_until=True,
+    )
+
+    assert captured_existing_partition_keys == ["2026-06-24", "2026-06-25"]
+    assert captured_read_partition_keys == ["2026-06-24"]
+    assert result.metadata is not None
+    assert result.metadata["refresh_until_trade_date"] == "2026-06-24"
+    assert result.metadata["refresh_until_source"] == "latest_existing_partition"
+
+
+def test_compact_daily_asset_by_year_rejects_duplicate_keys(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    class FakeTradeCalendarReader:
+        @classmethod
+        def from_s3_config(cls, config: object) -> FakeTradeCalendarReader:
+            return cls()
+
+        def read_trade_dates(self) -> set[date]:
+            return {date(2026, 1, 2)}
+
+    class FakeDatasetService:
+        def __init__(self, *, s3_config: object) -> None:
+            self.s3_config = s3_config
+
+        def read_partitioned(
+            self,
+            location: object,
+            *,
+            partition_keys: list[str],
+            partition_key_name: str,
+        ) -> PartitionedParquetReadResult:
+            return PartitionedParquetReadResult(
+                tables=[
+                    _baostock_k_history_table(
+                        [
+                            {"date": date(2026, 1, 2), "code": "sh.600000"},
+                            {"date": date(2026, 1, 2), "code": "sh.600000"},
+                        ]
+                    )
+                ],
+                read_partition_keys=["2026-01-02"],
+                missing_partition_keys=[],
+                empty_partition_keys=[],
+            )
+
+    monkeypatch.setattr(daily_compact, "S3TradeCalendarReader", FakeTradeCalendarReader)
+    monkeypatch.setattr(daily_compact, "S3DatasetService", FakeDatasetService)
+
+    context = dg.build_asset_context(
+        partition_key="2026",
+        run_tags={"market.trade_date": "2026-01-02"},
+    )
+
+    with pytest.raises(RuntimeError, match="duplicate keys"):
+        daily_compact.compact_daily_asset_by_year(
+            context,
+            raw_asset_key=dg.AssetKey(["source", "baostock__query_history_k_data_plus_daily"]),
+            output_dataset="baostock__query_history_k_data_plus_daily_compacted",
+            s3_settings=S3SettingsResource(
+                endpoint="http://localhost:9000",
+                bucket="bucket",
+                access_key="access",
+                secret_key="secret",
+            ),
+            require_complete_partitions=True,
+            unique_key_columns=("date", "code"),
+        )
+
+
 def test_refresh_until_for_year_rejects_wrong_year_tag() -> None:
     with pytest.raises(ValueError, match="is not in year partition"):
         daily_compact.refresh_until_for_year(2026, "2025-12-31")
+
+
+def test_compact_daily_asset_by_year_rejects_wrong_year_refresh_until() -> None:
+    context = dg.build_asset_context(partition_key="2026")
+
+    with pytest.raises(ValueError, match="is not in year partition"):
+        daily_compact.compact_daily_asset_by_year(
+            context,
+            raw_asset_key=dg.AssetKey(["source", "baostock__query_history_k_data_plus_daily"]),
+            output_dataset="baostock__query_history_k_data_plus_daily_compacted",
+            s3_settings=S3SettingsResource(
+                endpoint="http://localhost:9000",
+                bucket="bucket",
+                access_key="access",
+                secret_key="secret",
+            ),
+            refresh_until_trade_date=date(2025, 12, 31),
+        )
 
 
 def _action_field_compacted_table(rows: list[dict[str, object]]) -> pa.Table:
@@ -251,6 +511,30 @@ def _action_field_compacted_table(rows: list[dict[str, object]]) -> pa.Table:
         "edition": 0,
         "shares_range": 0.0,
         "expound": "",
+    }
+    columns = {
+        field.name: [row.get(field.name, defaults[field.name]) for row in rows] for field in schema
+    }
+    return pa.table(columns, schema=schema)
+
+
+def _baostock_k_history_table(rows: list[dict[str, object]]) -> pa.Table:
+    schema = PARQUET_SCHEMAS["baostock__query_history_k_data_plus_daily_compacted"]
+    defaults = {
+        "date": date(2026, 1, 1),
+        "code": "sh.600000",
+        "open": 1.0,
+        "high": 2.0,
+        "low": 1.0,
+        "close": 2.0,
+        "preclose": 1.0,
+        "volume": 100,
+        "amount": 200.0,
+        "adjustflag": 3,
+        "turn": 1.0,
+        "tradestatus": 1,
+        "pctChg": 10.0,
+        "isST": False,
     }
     columns = {
         field.name: [row.get(field.name, defaults[field.name]) for row in rows] for field in schema

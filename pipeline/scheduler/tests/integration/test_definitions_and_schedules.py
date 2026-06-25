@@ -1,6 +1,10 @@
 from __future__ import annotations
 
+from typing import Any, cast
+
 import dagster as dg
+from scheduler.defs.baostock.assets import baostock__query_history_k_data_plus_daily_compacted
+from scheduler.defs.baostock.schedules import baostock__daily_job
 from scheduler.defs.clickhouse.definitions import CLICKHOUSE_RAW_ASSETS, CLICKHOUSE_RAW_JOBS
 from scheduler.defs.clickhouse.specs import ENABLED_CLICKHOUSE_RAW_TABLE_SPECS
 from scheduler.defs.dbt_jobs import (
@@ -319,6 +323,21 @@ def test_source_bundle_contracts_are_stable() -> None:
         "jobs": ["chinabond__government_bond_job"],
         "schedules": ["chinabond__government_bond_schedule"],
     }
+
+
+def test_baostock_daily_job_stays_trade_date_partition_compatible() -> None:
+    selection = str(baostock__daily_job.selection)
+
+    assert 'key:"source/baostock__query_stock_basic"' in selection
+    assert 'key:"source/baostock__query_history_k_data_plus_daily"' in selection
+    assert "source/baostock__query_history_k_data_plus_daily_compacted" not in selection
+
+
+def test_baostock_daily_kline_compacted_uses_eager_automation_condition() -> None:
+    asset = baostock__query_history_k_data_plus_daily_compacted
+    condition = asset.automation_conditions_by_key[asset.key]
+
+    assert cast(Any, condition).label == "eager"
 
 
 def test_chinabond_government_bond_schedule_runs_at_16_00_shanghai_time() -> None:

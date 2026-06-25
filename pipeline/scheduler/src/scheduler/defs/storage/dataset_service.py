@@ -116,6 +116,50 @@ class S3DatasetService:
             partition_key_name=partition_key_name,
         )
 
+    def partition_exists(
+        self,
+        location: DatasetLocation,
+        *,
+        partition_key: str,
+        partition_key_name: str,
+    ) -> bool:
+        object_key = asset_key_to_parquet_object_key(
+            location.asset_key,
+            object_prefix=location.object_prefix,
+            partition_key=partition_key,
+            partition_key_name=partition_key_name,
+            storage_mode="partitioned",
+        )
+        path = f"{location.bucket}/{object_key}"
+        try:
+            with self._writer.filesystem.open_input_file(path):
+                return True
+        except FileNotFoundError:
+            return False
+        except Exception as error:
+            message = str(error).lower()
+            if "not found" in message or "path does not exist" in message:
+                return False
+            msg = f"Failed to inspect parquet object at s3://{path}"
+            raise RuntimeError(msg) from error
+
+    def existing_partition_keys(
+        self,
+        location: DatasetLocation,
+        *,
+        partition_keys: Sequence[str],
+        partition_key_name: str,
+    ) -> list[str]:
+        return [
+            partition_key
+            for partition_key in partition_keys
+            if self.partition_exists(
+                location,
+                partition_key=partition_key,
+                partition_key_name=partition_key_name,
+            )
+        ]
+
     def metadata(
         self,
         *,

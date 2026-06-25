@@ -2,7 +2,9 @@ from __future__ import annotations
 
 import time
 from collections import Counter
+from collections.abc import Sequence
 from contextlib import AbstractAsyncContextManager
+from dataclasses import dataclass
 from datetime import date
 from typing import Protocol
 
@@ -23,6 +25,12 @@ from scheduler.defs.market.securities import SecurityDateRange, filter_active_se
 
 BAOSTOCK_DAILY_KLINE_CONNECTIONS = 4
 BAOSTOCK_DAILY_KLINE_SECURITY_TYPES = frozenset({"1", "2"})
+
+
+@dataclass(frozen=True)
+class KHistoryRangeBackfillResult:
+    tables: dict[str, pa.Table]
+    metadata: dict[str, RawMetadataValue]
 
 
 class BaostockClientProtocol(Protocol):
@@ -159,6 +167,168 @@ async def fetch_k_history_table_for_trade_date(
     )
 
 
+async def fetch_k_history_tables_for_trade_date_range(
+    stock_basic: pa.Table,
+    start_date: date,
+    end_date: date,
+    trade_dates: Sequence[date],
+    client_factory: BaostockClientFactory,
+) -> KHistoryRangeBackfillResult:
+    started_at = time.perf_counter()
+    if start_date > end_date:
+        msg = "start_date must be less than or equal to end_date"
+        raise ValueError(msg)
+
+    target_trade_dates = sorted(set(trade_dates))
+    if target_trade_dates and (
+        target_trade_dates[0] < start_date or target_trade_dates[-1] > end_date
+    ):
+        msg = "trade_dates must be inside the requested date range"
+        raise ValueError(msg)
+
+    candidate_security_count = stock_basic.num_rows
+    if not target_trade_dates:
+        finished_at = time.perf_counter()
+        return KHistoryRangeBackfillResult(
+            tables={},
+            metadata={
+                "candidate_security_count": candidate_security_count,
+                "selected_security_count": 0,
+                "skipped_security_count": candidate_security_count,
+                "selected_security_types": dg.MetadataValue.json([]),
+                "allowed_security_types": dg.MetadataValue.json(
+                    sorted(BAOSTOCK_DAILY_KLINE_SECURITY_TYPES)
+                ),
+                "backfill_start_date": start_date.isoformat(),
+                "backfill_end_date": end_date.isoformat(),
+                "processed_trade_dates": dg.MetadataValue.json([]),
+                "processed_trade_date_count": 0,
+                "partition_row_counts": dg.MetadataValue.json({}),
+                "empty_partition_keys": dg.MetadataValue.json([]),
+                "duplicate_key_count": 0,
+                "min_date": None,
+                "max_date": None,
+                "uniq_code": 0,
+                "max_connections": BAOSTOCK_DAILY_KLINE_CONNECTIONS,
+                "max_concurrent_security_requests": BAOSTOCK_DAILY_KLINE_CONNECTIONS,
+                "baostock_client_start_seconds": 0.0,
+                "security_filter_and_task_schedule_seconds": 0.0,
+                "baostock_kline_task_wall_seconds": 0.0,
+                "kline_table_split_seconds": 0.0,
+                "kline_fetch_total_seconds": elapsed_seconds(started_at, finished_at),
+            },
+        )
+
+    security_ranges = filter_active_security_ranges(
+        stock_basic,
+        requested_start_date=start_date,
+        requested_end_date=end_date,
+        allowed_security_types=BAOSTOCK_DAILY_KLINE_SECURITY_TYPES,
+    )
+    selected_security_types: Counter[str] = Counter(
+        security_range.security_type for security_range in security_ranges
+    )
+    tasks_scheduled_at = time.perf_counter()
+
+    fetched_tables: list[pa.Table] = []
+    runner_metadata: dict[str, RawMetadataValue] = {}
+    client_started_at = tasks_scheduled_at
+    tasks_finished_at = tasks_scheduled_at
+    if security_ranges:
+        async with client_factory.client(
+            max_connections=BAOSTOCK_DAILY_KLINE_CONNECTIONS
+        ) as client:
+            client_started_at = time.perf_counter()
+
+            async def fetch_one(security_range: SecurityDateRange) -> pa.Table:
+                return await _fetch_one_daily_k_table(
+                    client,
+                    security_range.code,
+                    security_range.start_date,
+                    security_range.end_date,
+                )
+
+            runner_result = await BoundedTaskRunner(
+                BoundedTaskOptions(
+                    max_concurrent_tasks=BAOSTOCK_DAILY_KLINE_CONNECTIONS,
+                    max_failure_ratio=0,
+                )
+            ).run(
+                security_ranges,
+                item_key=lambda security_range: security_range.code,
+                worker=fetch_one,
+            )
+            tasks_finished_at = time.perf_counter()
+        fetched_tables = [table for table in runner_result.successes if table.num_rows > 0]
+        runner_metadata = runner_result.metadata(item_name="security")
+
+    combined_table = (
+        pa.concat_tables(fetched_tables, promote_options="default")
+        if fetched_tables
+        else empty_k_history_table()
+    )
+    split_tables = split_k_history_table_by_trade_date(
+        combined_table,
+        target_trade_dates=target_trade_dates,
+    )
+    table_built_at = time.perf_counter()
+
+    partition_row_counts = {
+        partition_key: table.num_rows for partition_key, table in split_tables.items()
+    }
+    empty_partition_keys = [
+        partition_key for partition_key, row_count in partition_row_counts.items() if row_count == 0
+    ]
+    duplicate_key_count = sum(
+        duplicate_k_history_key_count(table) for table in split_tables.values()
+    )
+    if duplicate_key_count:
+        msg = f"BaoStock K history range backfill returned {duplicate_key_count} duplicate keys"
+        raise RuntimeError(msg)
+
+    return KHistoryRangeBackfillResult(
+        tables=split_tables,
+        metadata={
+            "candidate_security_count": candidate_security_count,
+            "selected_security_count": len(security_ranges),
+            "skipped_security_count": candidate_security_count - len(security_ranges),
+            "selected_security_types": dg.MetadataValue.json(sorted(selected_security_types)),
+            "allowed_security_types": dg.MetadataValue.json(
+                sorted(BAOSTOCK_DAILY_KLINE_SECURITY_TYPES)
+            ),
+            "backfill_start_date": start_date.isoformat(),
+            "backfill_end_date": end_date.isoformat(),
+            "processed_trade_dates": dg.MetadataValue.json(
+                [trade_date.isoformat() for trade_date in target_trade_dates]
+            ),
+            "processed_trade_date_count": len(target_trade_dates),
+            "partition_row_counts": dg.MetadataValue.json(partition_row_counts),
+            "empty_partition_keys": dg.MetadataValue.json(empty_partition_keys),
+            "duplicate_key_count": duplicate_key_count,
+            "min_date": _table_min_date(combined_table),
+            "max_date": _table_max_date(combined_table),
+            "uniq_code": _table_unique_code_count(combined_table),
+            "max_connections": BAOSTOCK_DAILY_KLINE_CONNECTIONS,
+            "max_concurrent_security_requests": BAOSTOCK_DAILY_KLINE_CONNECTIONS,
+            "baostock_client_start_seconds": elapsed_seconds(
+                tasks_scheduled_at,
+                client_started_at,
+            ),
+            "security_filter_and_task_schedule_seconds": elapsed_seconds(
+                started_at,
+                tasks_scheduled_at,
+            ),
+            "baostock_kline_task_wall_seconds": elapsed_seconds(
+                tasks_scheduled_at,
+                tasks_finished_at,
+            ),
+            "kline_table_split_seconds": elapsed_seconds(tasks_finished_at, table_built_at),
+            "kline_fetch_total_seconds": elapsed_seconds(started_at, table_built_at),
+            **runner_metadata,
+        },
+    )
+
+
 async def _fetch_one_daily_k_table(
     client: BaostockClientProtocol,
     code: str,
@@ -174,6 +344,76 @@ def empty_k_history_table() -> pa.Table:
         {field.name: [] for field in K_HISTORY_DAILY_SCHEMA},
         schema=K_HISTORY_DAILY_SCHEMA,
     )
+
+
+def split_k_history_table_by_trade_date(
+    table: pa.Table,
+    *,
+    target_trade_dates: Sequence[date],
+) -> dict[str, pa.Table]:
+    target_set = set(target_trade_dates)
+    rows_by_date: dict[date, list[dict[str, object]]] = {
+        trade_date: [] for trade_date in sorted(target_set)
+    }
+    for row in table.to_pylist():
+        row_date = row.get("date")
+        if not isinstance(row_date, date):
+            msg = f"BaoStock K history row has invalid date value: {row_date!r}"
+            raise RuntimeError(msg)
+        if row_date not in target_set:
+            msg = (
+                "BaoStock K history row date is outside the requested trade-date set: "
+                f"{row_date.isoformat()}"
+            )
+            raise RuntimeError(msg)
+        rows_by_date[row_date].append(row)
+
+    return {
+        trade_date.isoformat(): _k_history_table_from_rows(rows)
+        for trade_date, rows in rows_by_date.items()
+    }
+
+
+def duplicate_k_history_key_count(table: pa.Table) -> int:
+    seen: set[tuple[date, str]] = set()
+    duplicate_count = 0
+    for row in table.select(["date", "code"]).to_pylist():
+        row_date = row["date"]
+        code = row["code"]
+        if not isinstance(row_date, date) or not isinstance(code, str):
+            continue
+        key = (row_date, code)
+        if key in seen:
+            duplicate_count += 1
+        else:
+            seen.add(key)
+    return duplicate_count
+
+
+def _k_history_table_from_rows(rows: list[dict[str, object]]) -> pa.Table:
+    if not rows:
+        return empty_k_history_table()
+    return pa.Table.from_pylist(rows, schema=K_HISTORY_DAILY_SCHEMA)
+
+
+def _table_min_date(table: pa.Table) -> str | None:
+    dates = [value for value in table["date"].to_pylist() if isinstance(value, date)]
+    if not dates:
+        return None
+    return min(dates).isoformat()
+
+
+def _table_max_date(table: pa.Table) -> str | None:
+    dates = [value for value in table["date"].to_pylist() if isinstance(value, date)]
+    if not dates:
+        return None
+    return max(dates).isoformat()
+
+
+def _table_unique_code_count(table: pa.Table) -> int:
+    if "code" not in table.column_names:
+        return 0
+    return len({value for value in table["code"].to_pylist() if isinstance(value, str)})
 
 
 def _k_history_metadata(

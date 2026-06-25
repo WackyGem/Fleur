@@ -33,6 +33,30 @@ class DatasetWriteResult:
         ]
 
 
+class DatasetPartitionWriteError(RuntimeError):
+    def __init__(
+        self,
+        *,
+        attempted_partition_keys: list[str],
+        written_partition_keys: list[str],
+        failed_partition_keys: list[str],
+        written_paths: list[str],
+        cause: BaseException,
+    ) -> None:
+        self.attempted_partition_keys = attempted_partition_keys
+        self.written_partition_keys = written_partition_keys
+        self.failed_partition_keys = failed_partition_keys
+        self.written_paths = written_paths
+        message = (
+            "Partitioned dataset write failed; "
+            f"attempted_partition_keys={attempted_partition_keys}; "
+            f"written_partition_keys={written_partition_keys}; "
+            f"failed_partition_keys={failed_partition_keys}"
+        )
+        super().__init__(message)
+        self.__cause__ = cause
+
+
 class S3DatasetWriter:
     def __init__(
         self,
@@ -73,18 +97,32 @@ class S3DatasetWriter:
         written_paths: list[str] = []
         partition_row_counts: dict[str, int] = {}
         column_count = partition_column_count(partition_tables)
-        for partition_key in sorted(partition_tables):
+        attempted_partition_keys = sorted(partition_tables)
+        for partition_key in attempted_partition_keys:
             partition_table = partition_tables[partition_key]
-            written_paths.extend(
-                write_parquet_dataset(
-                    partition_table,
-                    base_dir,
-                    self.filesystem,
-                    partition_key=partition_key,
-                    partition_key_name=partition_key_name,
-                    allow_empty=allow_empty,
+            try:
+                written_paths.extend(
+                    write_parquet_dataset(
+                        partition_table,
+                        base_dir,
+                        self.filesystem,
+                        partition_key=partition_key,
+                        partition_key_name=partition_key_name,
+                        allow_empty=allow_empty,
+                    )
                 )
-            )
+            except Exception as error:
+                written_partition_keys = sorted(partition_row_counts)
+                failed_partition_keys = [
+                    key for key in attempted_partition_keys if key not in partition_row_counts
+                ]
+                raise DatasetPartitionWriteError(
+                    attempted_partition_keys=attempted_partition_keys,
+                    written_partition_keys=written_partition_keys,
+                    failed_partition_keys=failed_partition_keys,
+                    written_paths=written_paths,
+                    cause=error,
+                ) from error
             partition_row_counts[partition_key] = partition_table.num_rows
 
         return DatasetWriteResult(
