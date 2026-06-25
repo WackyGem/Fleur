@@ -4,7 +4,9 @@
 
 ## Active Plans
 
-当前没有 active plans。历史计划见 [archive/](archive/)。
+| Plan | 状态 | 说明 |
+|---|---|---|
+| [0054](0054-baostock-daily-kline-daily-source-compaction-plan.md) | Proposed | BaoStock 日 K 从年分区远端抓取改为日分区 source + 年度 compacted raw sync，并迁移 dev S3 历史年分区数据 |
 
 ## Recently Completed
 
