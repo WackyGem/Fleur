@@ -818,6 +818,7 @@ export type QuoteMartRow = {
 }
 
 export type PreviewChartContextQuote = {
+  trade_date: string
   open_price?: number | null
   high_price?: number | null
   low_price?: number | null

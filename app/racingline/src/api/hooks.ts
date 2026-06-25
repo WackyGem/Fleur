@@ -551,11 +551,11 @@ export function usePreviewChartContextQuery(
           request.ma_windows ?? ""
         )
       : queryKeys.previewChartContext("", "", "", "", ""),
-    queryFn: ({ signal }) => {
+    queryFn: () => {
       if (!request) {
         throw new Error("preview chart-context request is missing")
       }
-      return previewChartContext(request, signal)
+      return previewChartContext(request)
     },
     placeholderData: keepPreviousData,
     retry: 1,

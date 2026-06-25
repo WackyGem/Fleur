@@ -3457,6 +3457,7 @@ struct PreviewChartContextSeriesRow {
 
 #[derive(Debug, Serialize)]
 struct PreviewChartContextQuote {
+    trade_date: NaiveDate,
     open_price: Option<f64>,
     high_price: Option<f64>,
     low_price: Option<f64>,
@@ -5091,6 +5092,7 @@ fn build_preview_chart_context_response(
             series,
         },
         selected_quote: selected_quote.map(|quote| PreviewChartContextQuote {
+            trade_date: quote.trade_date,
             open_price: quote.open_price,
             high_price: quote.high_price,
             low_price: quote.low_price,
@@ -5767,6 +5769,7 @@ mod tests {
             value["chart"]["ma"]["available_windows"],
             json!([5, 10, 30])
         );
+        assert_eq!(value["selected_quote"]["trade_date"], json!("2026-06-02"));
     }
 
     #[test]
