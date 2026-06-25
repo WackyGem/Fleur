@@ -226,6 +226,21 @@ describe("strategy backtest result gate", () => {
 })
 
 describe("strategy backtest status merge", () => {
+  it("keeps the same object when the lightweight status is unchanged", () => {
+    const run = buildRun()
+
+    expect(
+      mergeStrategyBacktestStatus(
+        run,
+        buildStatus({
+          dispatch_status: run.dispatch_status,
+          progress: run.progress,
+          status: run.status,
+        })
+      )
+    ).toBe(run)
+  })
+
   it("updates lightweight status fields without replacing full run snapshots", () => {
     const run = buildRun()
     const merged = mergeStrategyBacktestStatus(

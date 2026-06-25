@@ -602,7 +602,10 @@ function BacktestPanel({
     optionsQuery.isLoading
   useEffect(() => {
     if (activeRun && statusQuery.data) {
-      onRunChange(mergeStrategyBacktestStatus(activeRun, statusQuery.data))
+      const mergedRun = mergeStrategyBacktestStatus(activeRun, statusQuery.data)
+      if (mergedRun !== activeRun) {
+        onRunChange(mergedRun)
+      }
     }
   }, [activeRun, onRunChange, statusQuery.data])
 

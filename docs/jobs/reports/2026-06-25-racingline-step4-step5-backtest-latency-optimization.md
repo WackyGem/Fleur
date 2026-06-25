@@ -110,9 +110,21 @@ playwright-cli requests
 - Console errors: 0；warnings: 0。
 - 初始 API `GET /rearview/metrics` 和 `GET /rearview/market-fee-templates/default?market=CN_A_SHARE` 均返回 200。
 
+补充完整 Step 4 -> Step 5 浏览器计时：
+
+```bash
+playwright-cli --s=default --raw run-code '<script>'
+```
+
+脚本在 `/strategies` 中创建一个 `close_price >= 0` 指标组和同指标权重，生成 Step 3 preview，进入 Step 4 后等待「策略回测」按钮可用；计时点从浏览器内 `button.click()` 前开始，到 Step 5 H2「策略回测」可见结束，同时监听 `POST /rearview/strategy-backtests`。
+
+| run id | create status | create HTTP | click-to-Step5 shell | console errors |
+|---|---:|---:|---:|---:|
+| `41486247-c075-4559-be69-624dd1fd9925` | 202 | 265ms | 439ms | 0 |
+
 ## 验收结论
 
-- Step 4 到 Step 5 的代码阻塞项已从 worker terminal 变为 create accepted；本轮 create HTTP 为 0.105-0.113s。浏览器 smoke 覆盖页面可加载和无 console error，未做完整手点链路计时。
+- Step 4 到 Step 5 的代码阻塞项已从 worker terminal 变为 create accepted；1y/2y API 样本 create HTTP 为 0.105-0.113s，完整浏览器 Step 4 -> Step 5 shell 计时为 439ms，满足 click-to-Step5 <= 1s。
 - outbox publish 从 baseline 0.807s/1.454s 降到 0.031s/0.039s，满足 p95 <= 0.5s 的样本目标。
 - status polling payload 从约 9.47KB full run 降到 578B，满足 <= 1KB。
 - 2y nav UI payload 为 46.7KB，performance UI payload 为 539B，满足计划目标。
