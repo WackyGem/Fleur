@@ -6,13 +6,13 @@
 
 | Plan | 状态 | 说明 |
 |---|---|---|
-| [0056](0056-racingline-step4-step5-backtest-latency-optimization-plan.md) | Proposed | Racingline Step 4 到 Step 5 回测延时优化：create accepted 即进入 Step 5、前端状态收敛、轻量 status/result wrapper、worker price bars 动态投影、outbox 延时和验收基线 |
 | [0054](0054-baostock-daily-kline-daily-source-compaction-plan.md) | Proposed | BaoStock 日 K 从年分区远端抓取改为日分区 source + 年度 compacted raw sync，并迁移 dev S3 历史年分区数据 |
 
 ## Recently Completed
 
 | Plan | 状态 | 说明 |
 |---|---|---|
+| [0056](archive/0056-racingline-step4-step5-backtest-latency-optimization-plan.md) | Completed | Racingline Step 4 到 Step 5 回测延时优化：create accepted 即进入 Step 5、前端状态 owner 收敛、status/result compact view、worker timing、price bars 动态投影、outbox 唤醒和 stale active 诊断；baseline 见 [baseline report](../jobs/reports/2026-06-25-racingline-step4-step5-backtest-latency-baseline.md)，验收见 [optimization report](../jobs/reports/2026-06-25-racingline-step4-step5-backtest-latency-optimization.md) |
 | [0055](archive/0055-racingline-step2-step3-preview-latency-slimming-plan.md) | Completed | Racingline Step 2 到 Step 3 预览链路瘦身：route/query 观测、preview-open、chart-context、Step 3 脏字段和默认 output metrics 清理；baseline 见 [baseline report](../jobs/reports/2026-06-25-racingline-step2-step3-preview-latency-baseline.md)，验收见 [slimming report](../jobs/reports/2026-06-25-racingline-step2-step3-preview-latency-slimming.md) |
 | [0044](archive/0044-portfolio-performance-metrics-implementation-plan.md) | Archived | 组合绩效指标、int/mart risk-free 与 benchmark 输入、metric config、worker 写入 fleur_calculation、dbt thin wrapper/ranking 和 closed trade ledger 实施计划 |
 | [0043](archive/0043-portfolio-data-plane-clickhouse-phase1-implementation-plan.md) | Archived | 组合数据面迁移 ClickHouse 第一阶段：结果事实存储迁移、result_attempt_id 幂等重算、worker 切换写入目标、API 切换读取源 |

@@ -519,7 +519,21 @@ Step 5 succeeded 后，当前首屏会读取 nav、rebalance-records 和 perform
 1. 本 RFC 不要求删除 NATS、outbox 或 worker；它们是长耗时回测的可靠异步边界。
 2. 本 RFC 不要求把回测改成同步 HTTP。
 3. 本 RFC 不改变 Step 1/2/3/4 的业务语义、hash、TopN、max positions、费用、滑点或止损规则。
-4. 本 RFC 不调整生产代码；当前只记录问题定位和后续减法方向。
+4. RFC 撰写阶段不调整生产代码，只记录问题定位和后续减法方向；后续实施见 [Plan 0056](../plans/archive/0056-racingline-step4-step5-backtest-latency-optimization-plan.md) 和 [验收报告](../jobs/reports/2026-06-25-racingline-step4-step5-backtest-latency-optimization.md)。
+
+## 实施状态（2026-06-25）
+
+Plan 0056 已完成实施并通过 1y/2y dev smoke：
+
+- Step 4 `openBacktest()` 已删除 terminal wait 和 600ms cosmetic delay，create 返回 `202 Accepted` 后立即进入 Step 5。
+- Step 5 active run owner 已收敛到父页面 `activeBacktestRun`，Step 5 只保留显式重新回测入口。
+- Rearview 新增 status view；Step 5 状态轮询不再拉取完整 run snapshot。
+- `/nav`、`/performance`、`/rebalance-records` 新增 `view=ui` compact response，full/detail 字段保留。
+- `query_portfolio_price_bars()` 已按 indicator stop-loss metrics 动态投影趋势列；未启用 indicator metrics 时不 JOIN trend 表。
+- Worker summary 已写入 `worker_timing` 阶段耗时。
+- Outbox dispatcher 已支持 create 后进程内 notify 唤醒，并记录 publish elapsed；stale active run 有只读诊断 endpoint。
+
+验收样本中 create HTTP 为 0.105-0.113s，outbox publish 为 0.031-0.039s，status payload 为 578B，2y price bars read_bytes 为 151.86 MiB。完整数据见 [2026-06-25 优化验收报告](../jobs/reports/2026-06-25-racingline-step4-step5-backtest-latency-optimization.md)。
 
 ## 结论
 

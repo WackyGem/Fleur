@@ -1578,9 +1578,7 @@ fn portfolio_price_bars_sql(
     let join = if trend_columns.is_empty() {
         String::new()
     } else {
-        select_columns.push(
-            "    q.close_price_forward_adj AS close_price_forward_adj".to_string(),
-        );
+        select_columns.push("    q.close_price_forward_adj AS close_price_forward_adj".to_string());
         for column in &trend_columns {
             select_columns.push(format!("    t.{column} AS {column}"));
         }
@@ -2126,9 +2124,12 @@ mod tests {
     use super::{
         AnalysisQuoteAdjustment, QuoteMartRow, ScreeningRow,
         chart_context_chart_quote_select_columns, chart_context_selected_quote_select_columns,
-        chart_context_trend_select_columns, quote_select_columns, trend_select_columns,
-        validate_security_code, validate_source_tenor, validate_window_key,
+        chart_context_trend_select_columns, portfolio_price_bars_sql, quote_select_columns,
+        trend_select_columns, validate_security_code, validate_source_tenor, validate_window_key,
     };
+    use chrono::NaiveDate;
+
+    use crate::RearviewError;
 
     fn row_json(is_buy_signal: &str) -> String {
         format!(

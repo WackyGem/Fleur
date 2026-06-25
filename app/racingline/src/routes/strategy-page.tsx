@@ -425,9 +425,10 @@ function BacktestPanel({
 }) {
   const queryClient = useQueryClient()
   const activeRunId = activeRun?.strategy_backtest_run_id ?? null
-  const [selectedRebalanceDate, setSelectedRebalanceDate] = useState<
-    string | null
-  >(null)
+  const [rebalanceSelection, setRebalanceSelection] = useState<{
+    date: string | null
+    runId: string | null
+  }>({ date: null, runId: null })
   const rebalanceDateScrollerRef = useRef<HTMLDivElement | null>(null)
   const optionsQuery = useStrategyBacktestOptionsQuery(benchmark)
   const createBacktestMutation = useStrategyBacktestCreateMutation()
@@ -446,6 +447,12 @@ function BacktestPanel({
     currentRun?.status === "succeeded" &&
       currentRun.current_result_attempt_id &&
       !hasPendingConfigChange
+  )
+  const selectedRebalanceDate =
+    rebalanceSelection.runId === activeRunId ? rebalanceSelection.date : null
+  const setSelectedRebalanceDate = useCallback(
+    (date: string | null) => setRebalanceSelection({ date, runId: activeRunId }),
+    [activeRunId]
   )
   const navQuery = useStrategyBacktestNavUiQuery(activeRunId, isResultReady)
   const rebalanceRecordsQuery = useStrategyBacktestRebalanceRecordsUiQuery(
@@ -589,10 +596,6 @@ function BacktestPanel({
       onRunChange(mergeStrategyBacktestStatus(activeRun, statusQuery.data))
     }
   }, [activeRun, onRunChange, statusQuery.data])
-
-  useEffect(() => {
-    setSelectedRebalanceDate(null)
-  }, [activeRunId])
 
   const runBacktest = useCallback(async () => {
     if (!backtestExecutionDraft || !previewSnapshot) {

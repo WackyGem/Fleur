@@ -32,7 +32,7 @@ use crate::postgres::{
     PortfolioRunListFilter, PortfolioTargetFilter, PortfolioTargetRecord, PortfolioTradeFilter,
     PortfolioTradeMetricFilter, PortfolioTradeRecord, ResultRowsFilter, ResultRowsSort,
     RuleSetListFilter, RuleVersionListFilter, RunListFilter, StrategyBacktestRunRecord,
-    StrategyPortfolioRecord, plan_date_chunks,
+    StrategyBacktestStaleActiveRunRecord, StrategyPortfolioRecord, plan_date_chunks,
 };
 use crate::service::AppState;
 use crate::service::runner::execute_run;
@@ -135,12 +135,16 @@ pub fn routes() -> Router<AppState> {
             post(create_strategy_backtest),
         )
         .route(
-            "/rearview/strategy-backtests/{strategy_backtest_run_id}",
-            get(get_strategy_backtest),
+            "/rearview/strategy-backtests/diagnostics/stale-active",
+            get(list_stale_strategy_backtests),
         )
         .route(
             "/rearview/strategy-backtests/{strategy_backtest_run_id}/status",
             get(get_strategy_backtest_status),
+        )
+        .route(
+            "/rearview/strategy-backtests/{strategy_backtest_run_id}",
+            get(get_strategy_backtest),
         )
         .route(
             "/rearview/strategy-backtests/{strategy_backtest_run_id}/nav",
@@ -635,6 +639,7 @@ async fn create_strategy_backtest(
             .await?
     {
         if existing.request_hash == request_hash {
+            state.outbox_notifier.notify_one();
             return Ok((
                 StatusCode::ACCEPTED,
                 Json(strategy_backtest_run_response(existing)?),
@@ -670,10 +675,24 @@ async fn create_strategy_backtest(
         })
         .await?;
 
+    state.outbox_notifier.notify_one();
+
     Ok((
         StatusCode::ACCEPTED,
         Json(strategy_backtest_run_response(record)?),
     ))
+}
+
+async fn list_stale_strategy_backtests(
+    State(state): State<AppState>,
+    Query(query): Query<StaleStrategyBacktestsQuery>,
+) -> RearviewResult<Json<Vec<StrategyBacktestStaleActiveRunRecord>>> {
+    let page = page(query.limit, None)?;
+    let records = state
+        .postgres
+        .list_stale_active_strategy_backtest_runs(page.limit)
+        .await?;
+    Ok(Json(records))
 }
 
 async fn get_strategy_backtest(
@@ -867,28 +886,26 @@ async fn list_strategy_backtest_rebalance_records(
         })
         .collect::<Vec<_>>();
     Ok(Json(match view {
-        ResponseView::Full => {
-            StrategyBacktestRebalanceRecordsApiResponse::Full(
-                StrategyBacktestRebalanceRecordsResponse {
-                    selected_trade_date,
-                    records: records
-                        .into_iter()
-                        .map(|record| StrategyBacktestRebalanceRecord {
-                            rows: if record.trade_date == selected_trade_date {
-                                rows.clone()
-                            } else {
-                                Vec::new()
-                            },
-                            trade_date: record.trade_date,
-                            position_count: record.position_count,
-                            buy_count: record.buy_count,
-                            hold_count: record.hold_count,
-                            sell_count: record.sell_count,
-                        })
-                        .collect(),
-                },
-            )
-        }
+        ResponseView::Full => StrategyBacktestRebalanceRecordsApiResponse::Full(
+            StrategyBacktestRebalanceRecordsResponse {
+                selected_trade_date,
+                records: records
+                    .into_iter()
+                    .map(|record| StrategyBacktestRebalanceRecord {
+                        rows: if record.trade_date == selected_trade_date {
+                            rows.clone()
+                        } else {
+                            Vec::new()
+                        },
+                        trade_date: record.trade_date,
+                        position_count: record.position_count,
+                        buy_count: record.buy_count,
+                        hold_count: record.hold_count,
+                        sell_count: record.sell_count,
+                    })
+                    .collect(),
+            },
+        ),
         ResponseView::Ui => StrategyBacktestRebalanceRecordsApiResponse::Ui(
             StrategyBacktestRebalanceRecordsUiResponse {
                 selected_trade_date,
@@ -1065,19 +1082,19 @@ async fn get_strategy_backtest_performance(
         .await?;
     let daily_win_rate = daily_win_rate(&nav);
     Ok(Json(match view {
-        ResponseView::Full => StrategyBacktestPerformanceResponse::Full(
-            StrategyBacktestPerformanceView {
+        ResponseView::Full => {
+            StrategyBacktestPerformanceResponse::Full(StrategyBacktestPerformanceView {
                 metric: performance.metric,
                 statuses: performance.statuses,
                 daily_win_rate,
-            },
-        ),
-        ResponseView::Ui => StrategyBacktestPerformanceResponse::Ui(
-            StrategyBacktestPerformanceUiView {
+            })
+        }
+        ResponseView::Ui => {
+            StrategyBacktestPerformanceResponse::Ui(StrategyBacktestPerformanceUiView {
                 metric: StrategyBacktestPerformanceUiMetric::from(performance.metric),
                 daily_win_rate,
-            },
-        ),
+            })
+        }
     }))
 }
 
@@ -3387,6 +3404,12 @@ struct ListPortfolioRunsQuery {
 }
 
 #[derive(Debug, Deserialize)]
+struct StaleStrategyBacktestsQuery {
+    #[serde(default)]
+    limit: Option<u32>,
+}
+
+#[derive(Debug, Deserialize)]
 struct PortfolioNavQuery {
     #[serde(default)]
     result_attempt_id: Option<String>,
@@ -4759,7 +4782,9 @@ fn strategy_backtest_run_response(
     })
 }
 
-fn strategy_backtest_status_view(record: StrategyBacktestRunRecord) -> StrategyBacktestRunStatusView {
+fn strategy_backtest_status_view(
+    record: StrategyBacktestRunRecord,
+) -> StrategyBacktestRunStatusView {
     StrategyBacktestRunStatusView {
         strategy_backtest_run_id: record.strategy_backtest_run_id,
         status: record.status,
@@ -4784,7 +4809,11 @@ enum ResponseView {
 }
 
 fn response_view(view: &Option<String>) -> RearviewResult<ResponseView> {
-    match view.as_deref().map(str::trim).filter(|value| !value.is_empty()) {
+    match view
+        .as_deref()
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+    {
         None | Some("full") => Ok(ResponseView::Full),
         Some("ui" | "compact") => Ok(ResponseView::Ui),
         Some(other) => Err(RearviewError::Validation(format!(

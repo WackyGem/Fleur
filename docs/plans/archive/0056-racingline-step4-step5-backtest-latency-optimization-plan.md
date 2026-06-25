@@ -2,13 +2,13 @@
 
 日期：2026-06-25
 
-状态：Proposed
+状态：Completed
 
 ## 背景
 
-[RFC 0031](../RFC/0031-racingline-step4-step5-backtest-latency-slimming.md) 已确认 `/strategies` 从 Step 4「模拟建仓」点击「策略回测」到 Step 5「策略回测」的当前路径存在设计层面的等待错误：前端 `openBacktest()` 在 Step 4 中创建 backtest run 后，手动轮询 `GET /rearview/strategy-backtests/{id}` 等到 worker terminal，再额外等待 600ms，最后才 `setActiveStep("backtest")`。
+[RFC 0031](../../RFC/0031-racingline-step4-step5-backtest-latency-slimming.md) 已确认 `/strategies` 从 Step 4「模拟建仓」点击「策略回测」到 Step 5「策略回测」的当前路径存在设计层面的等待错误：前端 `openBacktest()` 在 Step 4 中创建 backtest run 后，手动轮询 `GET /rearview/strategy-backtests/{id}` 等到 worker terminal，再额外等待 600ms，最后才 `setActiveStep("backtest")`。
 
-实测报告 [2026-06-25-racingline-step4-step5-backtest-latency-baseline](../jobs/reports/2026-06-25-racingline-step4-step5-backtest-latency-baseline.md) 的受控样本显示：
+实测报告 [2026-06-25-racingline-step4-step5-backtest-latency-baseline](../../jobs/reports/2026-06-25-racingline-step4-step5-backtest-latency-baseline.md) 的受控样本显示：
 
 | Period | HTTP create | outbox publish | worker elapsed | backend total |
 |---|---:|---:|---:|---:|
@@ -53,27 +53,28 @@ RFC 0031 还确认了额外字段和数据面问题：
 
 | 文档 | 用途 |
 |---|---|
-| [RFC 0031](../RFC/0031-racingline-step4-step5-backtest-latency-slimming.md) | 设计依据、执行流、字段审计和阶段建议 |
-| [性能基线报告](../jobs/reports/2026-06-25-racingline-step4-step5-backtest-latency-baseline.md) | 1y/2y 受控样本、ClickHouse query log、parts 和 wrapper 响应实测 |
-| [Racingline 系统地图](../systems/racingline.md) | 前端职责、运行入口和质量门禁 |
-| [Rearview 系统地图](../systems/rearview.md) | Rearview API、worker、ClickHouse 和 NATS 边界 |
-| [Plan 0051](archive/0051-racingline-strategy-backtest-step5-implementation-plan.md) | Step 5 原始实现计划 |
-| [Step 5 验收报告](../jobs/reports/2026-06-23-racingline-strategy-step5-backtest.md) | Step 5 原始 live smoke 和 rerun 验收 |
+| [RFC 0031](../../RFC/0031-racingline-step4-step5-backtest-latency-slimming.md) | 设计依据、执行流、字段审计和阶段建议 |
+| [性能基线报告](../../jobs/reports/2026-06-25-racingline-step4-step5-backtest-latency-baseline.md) | 1y/2y 受控样本、ClickHouse query log、parts 和 wrapper 响应实测 |
+| [优化验收报告](../../jobs/reports/2026-06-25-racingline-step4-step5-backtest-latency-optimization.md) | 1y/2y live smoke、payload、worker timing、ClickHouse query log、outbox publish 和 stale active 诊断验收 |
+| [Racingline 系统地图](../../systems/racingline.md) | 前端职责、运行入口和质量门禁 |
+| [Rearview 系统地图](../../systems/rearview.md) | Rearview API、worker、ClickHouse 和 NATS 边界 |
+| [Plan 0051](0051-racingline-strategy-backtest-step5-implementation-plan.md) | Step 5 原始实现计划 |
+| [Step 5 验收报告](../../jobs/reports/2026-06-23-racingline-strategy-step5-backtest.md) | Step 5 原始 live smoke 和 rerun 验收 |
 
 ## 当前事实基线
 
 | 区域 | 当前事实 |
 |---|---|
-| Step 4 handoff | [strategy-page.tsx](../../app/racingline/src/routes/strategy-page.tsx) 的 `openBacktest()` create 成功后调用 `waitForBacktestTerminalRun()`，等 terminal 后再 `setActiveStep("backtest")` |
-| 前端轮询 | [hooks.ts](../../app/racingline/src/api/hooks.ts) 的 `useStrategyBacktestQuery()` 已支持非 terminal run 每 1s refetch |
+| Step 4 handoff | [strategy-page.tsx](../../../app/racingline/src/routes/strategy-page.tsx) 的 `openBacktest()` create 成功后调用 `waitForBacktestTerminalRun()`，等 terminal 后再 `setActiveStep("backtest")` |
+| 前端轮询 | [hooks.ts](../../../app/racingline/src/api/hooks.ts) 的 `useStrategyBacktestQuery()` 已支持非 terminal run 每 1s refetch |
 | Step 5 create | `BacktestPanel` 内部还有 `useStrategyBacktestCreateMutation()` 和自动提交 effect，主路径由 Step 4 传 `initialRun` 时通常不会二次创建 |
-| Query cache | [queryKeys.ts](../../app/racingline/src/api/queryKeys.ts) 当前 `queryKeys.strategyBacktest(id)` 用于完整 `StrategyBacktestRunRecord`；Phase 3 status view 不能复用同一 key 写入子集类型 |
-| Run response | [postgres/mod.rs](../../engines/crates/rearview-core/src/postgres/mod.rs) `get_strategy_backtest_run()` 读取完整 run snapshot；[api/mod.rs](../../engines/crates/rearview-core/src/api/mod.rs) `StrategyBacktestRunResponse` flatten 完整 record |
-| Result wrappers | `/nav`、`/rebalance-records`、`/performance` 在 [api/mod.rs](../../engines/crates/rearview-core/src/api/mod.rs) 中分别读取 ClickHouse nav、trade/position/closed trades 和 performance metric |
-| 共享类型 | [strategy-detail-page.tsx](../../app/racingline/src/routes/strategy-detail-page.tsx) 使用 rebalance `row.reason`；`StrategyPortfolioPerformanceView` 复用 `StrategyBacktestPerformanceView`，compact view 必须与 full/detail 契约分离 |
-| Price bars | [clickhouse/mod.rs](../../engines/crates/rearview-core/src/clickhouse/mod.rs) `query_portfolio_price_bars()` 固定读取 OHLC、`close_price_forward_adj` 和 17 个趋势列 |
-| Worker | [rearview-portfolio-worker/src/main.rs](../../engines/crates/rearview-portfolio-worker/src/main.rs) 单 consumer 主循环，strategy backtest 在同一任务内完成 signal materialization、price bars、simulation、performance 和写入 |
-| Outbox | [rearview-server/src/main.rs](../../engines/crates/rearview-server/src/main.rs) 进程内 dispatcher 没有 pending 任务时 sleep 2s |
+| Query cache | [queryKeys.ts](../../../app/racingline/src/api/queryKeys.ts) 当前 `queryKeys.strategyBacktest(id)` 用于完整 `StrategyBacktestRunRecord`；Phase 3 status view 不能复用同一 key 写入子集类型 |
+| Run response | [postgres/mod.rs](../../../engines/crates/rearview-core/src/postgres/mod.rs) `get_strategy_backtest_run()` 读取完整 run snapshot；[api/mod.rs](../../../engines/crates/rearview-core/src/api/mod.rs) `StrategyBacktestRunResponse` flatten 完整 record |
+| Result wrappers | `/nav`、`/rebalance-records`、`/performance` 在 [api/mod.rs](../../../engines/crates/rearview-core/src/api/mod.rs) 中分别读取 ClickHouse nav、trade/position/closed trades 和 performance metric |
+| 共享类型 | [strategy-detail-page.tsx](../../../app/racingline/src/routes/strategy-detail-page.tsx) 使用 rebalance `row.reason`；`StrategyPortfolioPerformanceView` 复用 `StrategyBacktestPerformanceView`，compact view 必须与 full/detail 契约分离 |
+| Price bars | [clickhouse/mod.rs](../../../engines/crates/rearview-core/src/clickhouse/mod.rs) `query_portfolio_price_bars()` 固定读取 OHLC、`close_price_forward_adj` 和 17 个趋势列 |
+| Worker | [rearview-portfolio-worker/src/main.rs](../../../engines/crates/rearview-portfolio-worker/src/main.rs) 单 consumer 主循环，strategy backtest 在同一任务内完成 signal materialization、price bars、simulation、performance 和写入 |
+| Outbox | [rearview-server/src/main.rs](../../../engines/crates/rearview-server/src/main.rs) 进程内 dispatcher 没有 pending 任务时 sleep 2s |
 | 异常数据 | 存在历史 stale active run `88194a48-948e-4122-89ff-e0739df55dc6`，会污染 queue/pickup 聚合指标 |
 
 ## 目标调用图
@@ -370,9 +371,9 @@ Worker
    - 包含优化前后 1y/2y 对比。
    - 记录 click-to-Step5、create HTTP、outbox publish、worker elapsed、price bars read_bytes/memory、wrapper payload size。
 2. 更新当前事实文档：
-   - [Racingline 系统地图](../systems/racingline.md)：Step 5 handoff 行为改为 create accepted 后进入状态页。
-   - [Rearview 系统地图](../systems/rearview.md)：如新增 status/compact endpoints 或 worker timing，需要更新职责和相关文档指针。
-   - [RFC 0031](../RFC/0031-racingline-step4-step5-backtest-latency-slimming.md)：标注 implemented phases 和验收报告。
+   - [Racingline 系统地图](../../systems/racingline.md)：Step 5 handoff 行为改为 create accepted 后进入状态页。
+   - [Rearview 系统地图](../../systems/rearview.md)：如新增 status/compact endpoints 或 worker timing，需要更新职责和相关文档指针。
+   - [RFC 0031](../../RFC/0031-racingline-step4-step5-backtest-latency-slimming.md)：标注 implemented phases 和验收报告。
 3. 归档计划：
    - 完成后将本计划移入 `docs/plans/archive/`，状态改为 `Completed`。
    - 更新 `docs/plans/README.md` 的 active/recently completed 索引。

@@ -1619,6 +1619,7 @@ version = "0.1.0"
 dependencies = [
  "async-nats",
  "axum",
+ "chrono",
  "rearview-core",
  "serde_json",
  "tokio",

@@ -1117,7 +1117,8 @@ impl RearviewPg {
     ) -> RearviewResult<Vec<StrategyBacktestOutboxRecord>> {
         let rows = sqlx::query(
             r#"
-            select outbox_id, strategy_backtest_run_id, subject, payload, status, attempt_count
+            select outbox_id, strategy_backtest_run_id, subject, payload, status, attempt_count,
+                   created_at
             from strategy_backtest_task_outbox
             where status in ('pending', 'failed')
             order by created_at, outbox_id
@@ -1136,6 +1137,53 @@ impl RearviewPg {
                 payload: row.get("payload"),
                 status: row.get("status"),
                 attempt_count: row.get("attempt_count"),
+                created_at: row.get("created_at"),
+            })
+            .collect())
+    }
+
+    pub async fn list_stale_active_strategy_backtest_runs(
+        &self,
+        limit: i64,
+    ) -> RearviewResult<Vec<StrategyBacktestStaleActiveRunRecord>> {
+        if limit <= 0 {
+            return Err(RearviewError::Validation(
+                "limit must be greater than 0".to_string(),
+            ));
+        }
+        let rows = sqlx::query(
+            r#"
+            select strategy_backtest_run_id, status, dispatch_status, worker_attempt_no,
+                   claimed_at, heartbeat_at, claim_expires_at, created_at, updated_at,
+                   started_at,
+                   floor(extract(epoch from (now() - claim_expires_at)))::bigint as stale_seconds
+            from strategy_backtest_run
+            where status in ('created', 'queued', 'compiling_signals', 'running_clickhouse',
+                             'loading_market_data', 'calculating_nav', 'computing_performance',
+                             'writing_results')
+              and claim_expires_at is not null
+              and claim_expires_at <= now()
+            order by claim_expires_at asc, strategy_backtest_run_id
+            limit $1
+            "#,
+        )
+        .bind(limit)
+        .fetch_all(&self.pool)
+        .await?;
+        Ok(rows
+            .into_iter()
+            .map(|row| StrategyBacktestStaleActiveRunRecord {
+                strategy_backtest_run_id: row.get("strategy_backtest_run_id"),
+                status: row.get("status"),
+                dispatch_status: row.get("dispatch_status"),
+                worker_attempt_no: row.get("worker_attempt_no"),
+                claimed_at: row.get("claimed_at"),
+                heartbeat_at: row.get("heartbeat_at"),
+                claim_expires_at: row.get("claim_expires_at"),
+                created_at: row.get("created_at"),
+                updated_at: row.get("updated_at"),
+                started_at: row.get("started_at"),
+                stale_seconds: row.get("stale_seconds"),
             })
             .collect())
     }
@@ -1700,7 +1748,7 @@ impl RearviewPg {
         let rows = sqlx::query(
             r#"
             select outbox_id, strategy_portfolio_daily_run_id, subject, payload,
-                   status, attempt_count
+                   status, attempt_count, created_at
             from strategy_portfolio_daily_task_outbox
             where status in ('pending', 'failed')
             order by created_at, outbox_id
@@ -1719,6 +1767,7 @@ impl RearviewPg {
                 payload: row.get("payload"),
                 status: row.get("status"),
                 attempt_count: row.get("attempt_count"),
+                created_at: row.get("created_at"),
             })
             .collect())
     }
@@ -1881,7 +1930,7 @@ impl RearviewPg {
         let rows = sqlx::query(
             r#"
             select o.outbox_id, o.portfolio_run_id, r.source_run_id, o.subject, o.payload,
-                   o.status, o.attempt_count
+                   o.status, o.attempt_count, o.created_at
             from portfolio_task_outbox o
             join portfolio_run r on r.portfolio_run_id = o.portfolio_run_id
             where o.status in ('pending', 'failed')
@@ -1902,6 +1951,7 @@ impl RearviewPg {
                 payload: row.get("payload"),
                 status: row.get("status"),
                 attempt_count: row.get("attempt_count"),
+                created_at: row.get("created_at"),
             })
             .collect())
     }
@@ -3483,6 +3533,7 @@ pub struct PortfolioOutboxRecord {
     pub payload: Value,
     pub status: String,
     pub attempt_count: i32,
+    pub created_at: DateTime<Utc>,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -3493,6 +3544,22 @@ pub struct StrategyBacktestOutboxRecord {
     pub payload: Value,
     pub status: String,
     pub attempt_count: i32,
+    pub created_at: DateTime<Utc>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct StrategyBacktestStaleActiveRunRecord {
+    pub strategy_backtest_run_id: String,
+    pub status: String,
+    pub dispatch_status: String,
+    pub worker_attempt_no: i32,
+    pub claimed_at: Option<DateTime<Utc>>,
+    pub heartbeat_at: Option<DateTime<Utc>>,
+    pub claim_expires_at: Option<DateTime<Utc>>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+    pub started_at: Option<DateTime<Utc>>,
+    pub stale_seconds: i64,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -3503,6 +3570,7 @@ pub struct StrategyPortfolioDailyOutboxRecord {
     pub payload: Value,
     pub status: String,
     pub attempt_count: i32,
+    pub created_at: DateTime<Utc>,
 }
 
 #[derive(Debug, Clone, Serialize)]
