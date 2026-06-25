@@ -87,7 +87,7 @@ Asset group 分布：
 | `image_object_store` | `scheduler.defs.resources.s3.ImageObjectStoreResource` | `base_defs` | 基于 S3 配置构造 Jiuyan 图片对象存储 | `jiuyan__industry_images`、`jiuyan__industry_ocr`、`jiuyan__industry_ocr_snapshot` |
 | `industry_image_repository` | `scheduler.defs.resources.database.IndustryImageRepositoryResource` | `base_defs` | 基于 `PIPELINE_DATABASE_URL` 构造 PostgreSQL 图片/OCR 状态 repository | Jiuyan 图片下载、OCR 和 OCR snapshot assets |
 | `jiuyan_ocr_settings` | `scheduler.defs.resources.ocr.JiuyanOcrSettingsResource` | `base_defs` | 暴露 Jiuyan OCR 服务 base URL、模型、超时、重试、并发和 stale running 阈值 | `jiuyan__industry_ocr` |
-| `baostock_client_factory` | `scheduler.defs.resources.baostock.BaostockClientFactoryResource` | `base_defs` | 构造 BaoStock async TCP client | `baostock__query_stock_basic`、`baostock__query_history_k_data_plus_daily` |
+| `baostock_client_factory` | `scheduler.defs.resources.baostock.BaostockClientFactoryResource` | `base_defs` | 构造 BaoStock async TCP client；默认单连接池 | `baostock__query_stock_basic`、`baostock__query_history_k_data_plus_daily` |
 | `http_client_factory` | `scheduler.defs.resources.http.HttpClientFactoryResource` | `base_defs` | 构造统一 HTTP client factory，封装通用 retry policy | Sina、Jiuyan、THS、EastMoney、ChinaBond HTTP source assets |
 | `clickhouse` | `scheduler.defs.resources.clickhouse.ClickHouseResource` | `base_defs` | 构造 `clickhouse_connect` client，用于 raw sync | 17 个 `clickhouse_raw` assets |
 | `slack` | `scheduler.defs.resources.slack.SlackAlertResource` | `base_defs` | 构造 Slack WebClient，解析 channel、proxy、Dagster run URL 和 code location | `slack_asset_failure_sensor` |
@@ -116,7 +116,7 @@ Asset group 分布：
 
 - `s3_io_manager` 是 source asset 的主要输出通道，负责 S3 Parquet 写入和 contract schema 校验。
 - `http_client_factory` 覆盖 HTTP source：`sina__trade_calendar`、Jiuyan HTTP assets、`ths__limit_up_pool`、EastMoney F10 年分区 assets、`chinabond__government_bond`。
-- `baostock_client_factory` 只服务 BaoStock TCP source，不复用 HTTP resource。
+- `baostock_client_factory` 只服务 BaoStock TCP source，不复用 HTTP resource；日频 K 线抓取使用单连接顺序复用，避免多连接登录状态漂移。
 - `s3_settings` 在需要主动读 S3 或给 ClickHouse 提供 S3 input config 的资产中显式注入；单纯输出 S3 Parquet 的资产通常通过 `s3_io_manager` 完成写入。
 
 ### Jiuyan OCR State

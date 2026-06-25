@@ -20,7 +20,7 @@ class BaostockClientFactoryResource(dg.ConfigurableResource):
     port: int = BAOSTOCK_PORT
     username: str = BAOSTOCK_USERNAME
     password: str = BAOSTOCK_PASSWORD
-    max_connections: int = 30
+    max_connections: int = 1
 
     def config(self, *, max_connections: int | None = None) -> BaostockClientConfig:
         return BaostockClientConfig(

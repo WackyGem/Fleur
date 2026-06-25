@@ -23,6 +23,8 @@ from scheduler.defs.common.metadata import RawMetadataValue
 from scheduler.defs.market.readers import SecurityUniverseReader, TradeCalendarReader
 from scheduler.defs.market.securities import filter_active_security_ranges
 
+BAOSTOCK_DAILY_KLINE_CONNECTIONS = 1
+
 
 class BaostockClientProtocol(Protocol):
     async def query_stock_basic(
@@ -171,7 +173,7 @@ async def fetch_k_history_tables(
     skipped_security_counts: dict[str, int] = {}
     selected_security_types: Counter[str] = Counter()
 
-    async with client_factory.client(max_connections=30) as client:
+    async with client_factory.client(max_connections=BAOSTOCK_DAILY_KLINE_CONNECTIONS) as client:
         client_started_at = time.perf_counter()
         tasks: list[tuple[str, str, date, date]] = []
         for year, (start_date, end_date) in year_ranges.items():
@@ -202,7 +204,10 @@ async def fetch_k_history_tables(
             return year, table
 
         runner_result = await BoundedTaskRunner(
-            BoundedTaskOptions(max_concurrent_tasks=30, fail_fast=True)
+            BoundedTaskOptions(
+                max_concurrent_tasks=BAOSTOCK_DAILY_KLINE_CONNECTIONS,
+                max_failure_ratio=0,
+            )
         ).run(
             tasks,
             item_key=lambda item: f"{item[0]}:{item[1]}",

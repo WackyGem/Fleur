@@ -15,6 +15,7 @@ BaoStock 访问通过异步 TCP 客户端统一处理协议、登录、连接池
 - 客户端在启动时登录，不在每个 API 请求前重复登录。
 - 登录状态按本地 TTL 维护，遇到未登录错误码时刷新登录并重试一次。
 - TCP 连接通过连接池复用，并用 semaphore 限制最大并发连接数。
+- BaoStock resource 默认连接池上限为 1；日频 K 线资产固定使用单连接、单并发顺序抓取，所有证券请求复用同一个已登录 TCP 连接。
 - 网络错误、超时和协议错误会使连接不可复用，并触发退避重试。
 - 分页接口由客户端聚合为单个 `BaostockResponse`，asset 层不处理分页细节。
 - `query_stock_basic` 使用 BaoStock `query_stock_basic`。
@@ -39,6 +40,7 @@ baostock__query_history_k_data_plus_daily
   - `"5"` ETF：`2026-01-05`
 - 实际请求区间是请求年份范围、证券上市日期、类型起始日期和退市日期的交集。
 - 不请求 `type="3"` 其它和 `type="4"` 可转债，除非后续明确补充其日频 K 线可用范围。
+- 任一证券 K 线请求失败时，年度 K 线资产失败，不物化部分成功的年份分区。
 
 ## 依据
 
@@ -57,15 +59,17 @@ baostock__query_history_k_data_plus_daily
 - 压缩响应 decode
 - 日频 K 线参数保留 `d` 和 `3`
 - 证券范围过滤交集和 ETF 起始日期
+- 日频 K 线使用单连接，并拒绝部分证券失败后的部分物化
 
 设计来源：
 
 - `docs/RFC/archive/0001-market-data-ingestion.md`
-- `docs/plans/0002-baostock-aio-tcp-client.md`
+- `docs/plans/archive/0002-baostock-aio-tcp-client.md`
 
 ## 后果
 
 - asset 层只表达“采哪个资产、哪个分区、哪个日期范围”，协议和分页复杂度集中在客户端。
 - 历史回填按年度分区和证券有效日期范围批量请求，避免按单日请求导致请求量爆炸。
+- BaoStock 日频 K 线回填会牺牲并发吞吐，换取连接登录状态稳定性和完整分区写入。
 - K 线资产依赖 S3 中的证券基础信息快照和交易日历快照。缺失这些上游对象时应失败或跳过，而不是临时请求远端补齐。
 - 扩展到新 BaoStock API 时，应优先复用当前客户端、分页聚合和 schema 转换模式。

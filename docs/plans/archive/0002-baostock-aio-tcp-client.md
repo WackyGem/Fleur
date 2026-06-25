@@ -154,7 +154,7 @@ class BaostockClientConfig:
     port: int
     username: str
     password: str
-    max_connections: int = 30
+    max_connections: int = 1
 
     @classmethod
     def from_env(cls) -> BaostockClientConfig:
@@ -254,7 +254,7 @@ class BaostockTcpConnection:
 
 ```python
 class BaostockAioTcpClient:
-    max_connections: int = 30
+    max_connections: int = 1
 ```
 
 客户端配置从集中配置模块引入：
@@ -521,26 +521,26 @@ K 线资产使用要求：
 
 ## 限流与并发策略
 
-连接池最大连接数为 30。
+连接池最大连接数为 1。
 
 含义：
 
-- 同时最多 30 个 TCP 请求在服务端侧进行。
+- 同时最多 1 个 TCP 请求在服务端侧进行。
 - 这既是连接池上限，也是 BaoStock 查询限流机制。
 - Dagster asset 内部并发采集时必须共享同一个客户端实例。
 
 推荐调用方式：
 
 ```python
-async with BaostockAioTcpClient(max_connections=30) as client:
+async with BaostockAioTcpClient(max_connections=1) as client:
     ...
 ```
 
 批量采集 K 线时：
 
-- 用 `asyncio.TaskGroup` 或 `asyncio.gather` 并发调度多个证券代码。
+- 顺序调度多个证券代码，所有请求复用同一个已登录连接。
 - 不额外再加大并发 semaphore；连接池本身就是全局限流。
-- 对单个 code 的日期范围请求失败时，只重试该 code，不重启整批。
+- 任一 code 的日期范围请求失败时，K 线资产整体失败，不物化部分成功的年度分区。
 
 ## 错误处理
 
@@ -1241,7 +1241,7 @@ dev 真实网络测试内容：
 - `query_stock_basic()` 返回非空记录。
 - `query_history_k_data_plus_daily("sh.600000", date(2026, 5, 25), date(2026, 5, 25))` 能完成一次真实请求。
 - 如果 `2026-05-25` 非交易日导致返回空记录，客户端仍应正确处理成功响应和空结果，不应误判为网络或协议失败。
-- 连续并发请求不会出现登录冲突。
+- 连续单连接复用请求不会出现登录冲突。
 - 触发网络错误或超时时，BaoStock TCP 客户端使用与新浪交易日历相同的 1、2、4 秒指数退避策略。
 - dev 测试失败时直接暴露真实错误，不使用 mock 替代。
 
@@ -1255,10 +1255,10 @@ dev 真实网络测试内容：
 6. 复用 `scheduler.defs.util.DEFAULT_RETRY_POLICY` 作为 TCP 网络错误的指数退避策略。
 7. 新增 `client.py`，实现 `BaostockTcpConnection` 和 `BaostockAioTcpClient`，并从 `config.py` 引入 `BaostockClientConfig`。
 8. 实现客户端启动自动登录和 `_login_lock`。
-9. 实现连接池：最大 30、按需创建、复用、关闭失效连接。
+9. 实现连接池：默认最大 1、按需创建、复用、关闭失效连接。
 10. 实现 `query_stock_basic`。
 11. 实现 `query_history_k_data_plus_daily`。
-12. 使用真实 BaoStock dev 环境验证登录、查询、并发复用和退避行为。
+12. 使用真实 BaoStock dev 环境验证登录、查询、单连接复用和退避行为。
 13. 新增 `schemas.py`，将返回记录转换为 `pa.Table`。
 14. 在 `util.py` 中实现通用 S3 parquet 读取工具，以及交易日历和 BaoStock stock basic 的读取函数，并从 `config.py` 引入 `S3Config`。
 15. 在 `util.py` 中实现证券代码范围过滤组件，基于 `ipoDate`、`outDate`、`type` 和请求日期范围生成有效 K 线请求列表。

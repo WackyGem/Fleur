@@ -26,7 +26,9 @@ from scheduler.defs.baostock.schemas import (
     response_to_table,
     stock_basic_response_to_table,
 )
+from scheduler.defs.resources.baostock import BaostockClientFactoryResource
 from tests.fakes.baostock import (
+    FakeBaostockAssetClient,
     FakeBaostockClientFactory,
     baostock_response,
     client_config,
@@ -433,7 +435,7 @@ def test_fetch_k_history_tables_filters_active_securities_and_builds_metadata() 
         )
     )
 
-    assert factory.created_max_connections == [30]
+    assert factory.created_max_connections == [1]
     assert set(tables) == {"2026"}
     assert tables["2026"].num_rows == 2
     assert tables["2026"].column_names == K_HISTORY_DAILY_FIELDS
@@ -444,6 +446,57 @@ def test_fetch_k_history_tables_filters_active_securities_and_builds_metadata() 
     assert cast(Any, metadata["requested_ranges"]).data == {
         "2026": {"start_date": "2026-01-01", "end_date": "2026-12-31"}
     }
+
+
+def test_fetch_k_history_tables_rejects_partial_security_failures() -> None:
+    class PartiallyFailingBaostockClient(FakeBaostockAssetClient):
+        async def query_history_k_data_plus_daily(
+            self,
+            code: str,
+            start_date: date,
+            end_date: date,
+        ) -> Any:
+            if code == "sz.159001":
+                self.history_calls.append((code, start_date, end_date))
+                msg = "remote rejected security"
+                raise RuntimeError(msg)
+            return await super().query_history_k_data_plus_daily(code, start_date, end_date)
+
+    client = PartiallyFailingBaostockClient()
+    factory = FakeBaostockClientFactory(client)
+    stock_basic = stock_basic_response_to_table(
+        baostock_response(
+            records=[
+                ["sh.600000", "浦发银行", "1999-11-10", "", "1", "1"],
+                ["sz.159001", "基金", "2005-01-01", "", "2", "1"],
+            ],
+            field_names=STOCK_BASIC_FIELDS,
+        )
+    )
+
+    with pytest.raises(RuntimeError, match="failure rate exceeded 0%"):
+        asyncio.run(
+            assets.fetch_k_history_tables(
+                stock_basic,
+                {"2026": (date(2026, 1, 1), date(2026, 12, 31))},
+                factory,
+            )
+        )
+
+    assert factory.created_max_connections == [1]
+    assert [call[0] for call in client.history_calls] == ["sh.600000", "sz.159001"]
+
+
+def test_baostock_client_factory_resource_defaults_to_single_connection() -> None:
+    resource = BaostockClientFactoryResource(
+        host="baostock.test",
+        port=10030,
+        username="user",
+        password="password",
+    )
+
+    assert resource.config().max_connections == 1
+    assert resource.config(max_connections=2).max_connections == 2
 
 
 def test_fetch_k_history_tables_returns_empty_metadata_when_no_security_is_selected() -> None:

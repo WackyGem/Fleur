@@ -203,7 +203,7 @@ class TradeCalendarReader(Protocol):
 - 通用 `HttpClientFactory` 已存在。
 - Sina、JiuYan、THS 多处直接 `HttpClientFactory(retry_policy=DEFAULT_RETRY_POLICY)`。
 - EastMoney client 内部构造自己的 `HttpClientFactory`。
-- BaoStock service 直接构造 `BaostockAioTcpClient(max_connections=30)`。
+- BaoStock service 曾直接构造多连接 TCP client；当前实现已改为通过 `BaostockClientFactoryResource` 注入，日频 K 线固定单连接顺序复用。
 
 问题：
 

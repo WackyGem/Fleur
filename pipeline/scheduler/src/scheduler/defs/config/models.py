@@ -29,7 +29,7 @@ class BaostockClientConfig:
     port: int
     username: str
     password: str
-    max_connections: int = 30
+    max_connections: int = 1
 
     @classmethod
     def from_env(cls) -> BaostockClientConfig:
