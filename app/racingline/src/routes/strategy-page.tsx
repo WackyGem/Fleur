@@ -11,16 +11,17 @@ import { createChart, LineSeries } from "lightweight-charts"
 import { useQueryClient } from "@tanstack/react-query"
 
 import { queryKeys } from "@/api/queryKeys"
-import { getStrategyBacktest } from "@/api/rearview"
 import {
   useDefaultMarketFeeTemplateQuery,
   useMetricsQuery,
   useStrategyBacktestCreateMutation,
   useStrategyBacktestNavQuery,
+  useStrategyBacktestNavUiQuery,
   useStrategyBacktestOptionsQuery,
   useStrategyBacktestPerformanceQuery,
-  useStrategyBacktestQuery,
-  useStrategyBacktestRebalanceRecordsQuery,
+  useStrategyBacktestPerformanceUiQuery,
+  useStrategyBacktestRebalanceRecordsUiQuery,
+  useStrategyBacktestStatusQuery,
   useStrategyBacktestValidateQuery,
   useStrategyPortfolioCreateMutation,
   useStrategyPreviewOpenMutation,
@@ -113,16 +114,18 @@ import {
 import { cn } from "@/lib/utils"
 import type {
   StrategyBacktestNavPoint,
+  StrategyBacktestPerformanceUiView,
   StrategyBacktestPerformanceView,
   StrategyBacktestCreateRequest,
-  StrategyBacktestRebalanceRecord as ApiBacktestRebalanceRecord,
+  StrategyBacktestRebalanceRecordsUiResponse,
+  StrategyBacktestRebalanceRecordSummary as ApiBacktestRebalanceRecordSummary,
+  StrategyBacktestRebalanceUiRow as ApiBacktestRebalanceUiRow,
   StrategyBacktestRunRecord,
   StrategyBacktestRunStatus,
+  StrategyBacktestRunStatusView,
   StrategyBacktestValidateRequest,
 } from "@/types/rearview"
 import { Play } from "lucide-react"
-
-type BacktestLaunchPhase = "querying" | "queued" | "running" | "completed"
 
 const stepContent: Record<Step, { description: string; title: string }> = {
   indicators: {
@@ -392,10 +395,10 @@ function buildStrategyBacktestCreateRequest({
 }
 
 function BacktestPanel({
+  activeRun,
   backtestExecutionDraft,
   backtestValidationError,
   benchmark,
-  initialRun,
   isBacktestValidationPending,
   isMarketTemplateError,
   isMarketTemplateLoading,
@@ -406,10 +409,10 @@ function BacktestPanel({
   previewSnapshot,
   settings,
 }: {
+  activeRun: StrategyBacktestRunRecord | null
   backtestExecutionDraft: BacktestExecutionDraft | null
   backtestValidationError: string | null
   benchmark: BacktestBenchmark
-  initialRun: StrategyBacktestRunRecord | null
   isBacktestValidationPending: boolean
   isMarketTemplateError: boolean
   isMarketTemplateLoading: boolean
@@ -420,23 +423,16 @@ function BacktestPanel({
   previewSnapshot: PreviewSnapshot | null
   settings: SimulationSettings
 }) {
-  const [activeRunId, setActiveRunId] = useState<string | null>(
-    initialRun?.strategy_backtest_run_id ?? null
-  )
+  const queryClient = useQueryClient()
+  const activeRunId = activeRun?.strategy_backtest_run_id ?? null
   const [selectedRebalanceDate, setSelectedRebalanceDate] = useState<
     string | null
   >(null)
-  const autoSubmittedBacktestSignatureRef = useRef<string | null>(null)
   const rebalanceDateScrollerRef = useRef<HTMLDivElement | null>(null)
   const optionsQuery = useStrategyBacktestOptionsQuery(benchmark)
   const createBacktestMutation = useStrategyBacktestCreateMutation()
-  const runQuery = useStrategyBacktestQuery(activeRunId)
-  const currentRun =
-    runQuery.data ??
-    (initialRun?.strategy_backtest_run_id === activeRunId ? initialRun : null) ??
-    (createBacktestMutation.data?.strategy_backtest_run_id === activeRunId
-      ? createBacktestMutation.data
-      : null)
+  const statusQuery = useStrategyBacktestStatusQuery(activeRunId)
+  const currentRun = statusQuery.data ?? activeRun
   const hasPendingConfigChange = hasStrategyBacktestConfigChanged(
     currentRun,
     backtestExecutionDraft,
@@ -451,13 +447,13 @@ function BacktestPanel({
       currentRun.current_result_attempt_id &&
       !hasPendingConfigChange
   )
-  const navQuery = useStrategyBacktestNavQuery(activeRunId, isResultReady)
-  const rebalanceRecordsQuery = useStrategyBacktestRebalanceRecordsQuery(
+  const navQuery = useStrategyBacktestNavUiQuery(activeRunId, isResultReady)
+  const rebalanceRecordsQuery = useStrategyBacktestRebalanceRecordsUiQuery(
     activeRunId,
     selectedRebalanceDate,
     isResultReady
   )
-  const performanceQuery = useStrategyBacktestPerformanceQuery(
+  const performanceQuery = useStrategyBacktestPerformanceUiQuery(
     activeRunId,
     isResultReady
   )
@@ -519,9 +515,7 @@ function BacktestPanel({
       : ""
   const rebalanceRecords = useMemo(
     () =>
-      (rebalanceRecordsQuery.data?.records ?? []).map(
-        mapApiBacktestRebalanceRecord
-      ),
+      mapApiBacktestRebalanceUiResponse(rebalanceRecordsQuery.data ?? null),
     [rebalanceRecordsQuery.data]
   )
   const selectedRebalanceRecord =
@@ -591,10 +585,14 @@ function BacktestPanel({
     isBacktestValidationPending ||
     optionsQuery.isLoading
   useEffect(() => {
-    if (runQuery.data) {
-      onRunChange(runQuery.data)
+    if (activeRun && statusQuery.data) {
+      onRunChange(mergeStrategyBacktestStatus(activeRun, statusQuery.data))
     }
-  }, [onRunChange, runQuery.data])
+  }, [activeRun, onRunChange, statusQuery.data])
+
+  useEffect(() => {
+    setSelectedRebalanceDate(null)
+  }, [activeRunId])
 
   const runBacktest = useCallback(async () => {
     if (!backtestExecutionDraft || !previewSnapshot) {
@@ -618,9 +616,11 @@ function BacktestPanel({
       settings,
     })
     const run = await createBacktestMutation.mutateAsync(request)
+    queryClient.setQueryData(
+      queryKeys.strategyBacktest(run.strategy_backtest_run_id),
+      run
+    )
     onRunChange(run)
-    setActiveRunId(run.strategy_backtest_run_id)
-    setSelectedRebalanceDate(null)
   }, [
     backtestExecutionDraft,
     benchmark,
@@ -628,37 +628,13 @@ function BacktestPanel({
     onRunChange,
     period,
     previewSnapshot,
+    queryClient,
     selectedBenchmarkLabel,
     selectedPeriodLabel,
     selectedPeriodOption?.description,
     selectedPeriodApiOption,
     settings,
   ])
-
-  const autoBacktestSignature =
-    previewSnapshot && backtestExecutionDraft
-      ? [
-          previewSnapshot.previewId,
-          backtestExecutionDraft.rule_hash,
-          backtestExecutionDraft.execution_config_hash,
-          period,
-          benchmark,
-        ].join(":")
-      : null
-
-  useEffect(() => {
-    if (
-      !autoBacktestSignature ||
-      autoSubmittedBacktestSignatureRef.current === autoBacktestSignature ||
-      activeRunId ||
-      actionDisabled
-    ) {
-      return
-    }
-
-    autoSubmittedBacktestSignatureRef.current = autoBacktestSignature
-    void runBacktest()
-  }, [activeRunId, actionDisabled, autoBacktestSignature, runBacktest])
 
   return (
     <StrategySplitPanel
@@ -745,8 +721,9 @@ function BacktestPanel({
             isMarketTemplateError={isMarketTemplateError}
             optionsError={optionsQuery.error}
             run={currentRun}
-            runError={runQuery.error}
+            runError={statusQuery.error}
           />
+          <BacktestRunStatusPanel run={currentRun} />
 
           <section className="flex flex-col gap-3 xl:pr-4">
             <div className="flex items-center justify-between gap-3">
@@ -1115,7 +1092,7 @@ function BacktestStatusAlert({
   hasPendingConfigChange: boolean
   isMarketTemplateError: boolean
   optionsError: unknown
-  run: StrategyBacktestRunRecord | null
+  run: StrategyBacktestRunStatusView | StrategyBacktestRunRecord | null
   runError: unknown
 }) {
   if (isMarketTemplateError) {
@@ -1216,6 +1193,47 @@ function PendingConfigChangeToast() {
   )
 }
 
+function BacktestRunStatusPanel({
+  run,
+}: {
+  run: StrategyBacktestRunStatusView | StrategyBacktestRunRecord | null
+}) {
+  if (!run) {
+    return null
+  }
+
+  const isTerminal = isStrategyBacktestTerminalStatus(run.status)
+  const progressDetail = formatBacktestProgressDetail(run.progress)
+
+  return (
+    <div className="flex flex-col gap-2 border border-border/70 bg-muted/20 p-3 text-xs xl:mr-4">
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+        <span className="font-medium">
+          {getStrategyBacktestStatusLabel(run.status)}
+        </span>
+        {!isTerminal ? <Spinner data-icon="inline-start" /> : null}
+        <span className="text-muted-foreground">
+          分发 {formatBacktestDispatchStatus(run.dispatch_status)}
+        </span>
+        {progressDetail ? (
+          <span className="text-muted-foreground">{progressDetail}</span>
+        ) : null}
+      </div>
+      <div className="grid gap-1 text-muted-foreground md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+        <div className="min-w-0 truncate">
+          Run ID <span className="font-mono">{run.strategy_backtest_run_id}</span>
+        </div>
+        <div className="min-w-0 truncate">
+          Result{" "}
+          <span className="font-mono">
+            {run.current_result_attempt_id ?? "pending"}
+          </span>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 function isStrategyBacktestTerminalStatus(
   status: StrategyBacktestRunStatus
 ): boolean {
@@ -1252,8 +1270,66 @@ function getStrategyBacktestStatusLabel(status?: StrategyBacktestRunStatus) {
   return status ? labels[status] : "回测中"
 }
 
+function formatBacktestDispatchStatus(status: StrategyBacktestRunRecord["dispatch_status"]) {
+  const labels: Record<StrategyBacktestRunRecord["dispatch_status"], string> = {
+    pending: "待发布",
+    published: "已发布",
+    publish_failed: "发布失败",
+  }
+
+  return labels[status]
+}
+
+function formatBacktestProgressDetail(progress: StrategyBacktestRunRecord["progress"]) {
+  const parts = []
+  const stage = progress.stage
+  if (typeof stage === "string" && stage.length > 0) {
+    parts.push(stage)
+  }
+  const chunkIndex = progress.chunk_index
+  const chunkCount = progress.chunk_count
+  if (typeof chunkIndex === "number" && typeof chunkCount === "number") {
+    parts.push(`chunk ${chunkIndex + 1}/${chunkCount}`)
+  }
+  const signalCount = progress.signal_count
+  if (typeof signalCount === "number") {
+    parts.push(`signals ${signalCount}`)
+  }
+  const priceBarCount = progress.price_bar_count
+  if (typeof priceBarCount === "number") {
+    parts.push(`price bars ${priceBarCount}`)
+  }
+
+  return parts.join(" / ")
+}
+
+function mergeStrategyBacktestStatus(
+  run: StrategyBacktestRunRecord,
+  status: StrategyBacktestRunStatusView
+): StrategyBacktestRunRecord {
+  if (run.strategy_backtest_run_id !== status.strategy_backtest_run_id) {
+    return run
+  }
+
+  return {
+    ...run,
+    status: status.status,
+    dispatch_status: status.dispatch_status,
+    progress: status.progress,
+    error_type: status.error_type,
+    error_message: status.error_message,
+    period_key: status.period_key,
+    benchmark_security_code: status.benchmark_security_code,
+    start_date: status.start_date,
+    end_date: status.end_date,
+    rule_hash: status.rule_hash,
+    execution_config_hash: status.execution_config_hash,
+    current_result_attempt_id: status.current_result_attempt_id,
+  }
+}
+
 function hasStrategyBacktestConfigChanged(
-  run: StrategyBacktestRunRecord | null,
+  run: StrategyBacktestRunStatusView | StrategyBacktestRunRecord | null,
   draft: BacktestExecutionDraft | null,
   period: BacktestPeriod,
   benchmark: BacktestBenchmark
@@ -1281,8 +1357,26 @@ function mapStrategyBacktestNavPoints(
   }))
 }
 
-function mapApiBacktestRebalanceRecord(
-  record: ApiBacktestRebalanceRecord
+function mapApiBacktestRebalanceUiResponse(
+  response: StrategyBacktestRebalanceRecordsUiResponse | null
+): BacktestRebalanceRecord[] {
+  if (!response) {
+    return []
+  }
+
+  return response.records.map((record) =>
+    mapApiBacktestRebalanceRecordSummary(
+      record,
+      record.trade_date === response.selected_trade_date
+        ? response.selected_rows
+        : []
+    )
+  )
+}
+
+function mapApiBacktestRebalanceRecordSummary(
+  record: ApiBacktestRebalanceRecordSummary,
+  rows: ApiBacktestRebalanceUiRow[]
 ): BacktestRebalanceRecord {
   return {
     buyCount: record.buy_count,
@@ -1290,7 +1384,7 @@ function mapApiBacktestRebalanceRecord(
     holdCount: record.hold_count,
     positionCount: record.position_count,
     sellCount: record.sell_count,
-    trades: record.rows.map((row) => ({
+    trades: rows.map((row) => ({
       changePercent: formatOptionalSignedPercent(row.change_pct),
       contribution: formatOptionalSignedPercent(row.contribution_pct),
       costPrice: formatOptionalCurrency(row.cost_price),
@@ -1305,7 +1399,10 @@ function mapApiBacktestRebalanceRecord(
 }
 
 function buildBacktestPerformanceGroups(
-  performance: StrategyBacktestPerformanceView | null,
+  performance:
+    | StrategyBacktestPerformanceUiView
+    | StrategyBacktestPerformanceView
+    | null,
   latestExcessReturn: string
 ): BacktestPerformanceGroup[] {
   return [
@@ -1408,7 +1505,10 @@ function buildBacktestPerformanceGroups(
 }
 
 function readPerformanceMetric(
-  performance: StrategyBacktestPerformanceView | null,
+  performance:
+    | StrategyBacktestPerformanceUiView
+    | StrategyBacktestPerformanceView
+    | null,
   key: string
 ) {
   const value = performance?.metric[key]
@@ -1606,75 +1706,6 @@ function MetricsCatalogState({
   return null
 }
 
-function waitForBacktestPollingInterval() {
-  return new Promise((resolve) => window.setTimeout(resolve, 1_000))
-}
-
-function waitForBacktestCompletedMessage() {
-  return new Promise((resolve) => window.setTimeout(resolve, 600))
-}
-
-async function waitForBacktestTerminalRun({
-  onStatus,
-  runId,
-}: {
-  onStatus: (run: StrategyBacktestRunRecord) => void
-  runId: string
-}) {
-  let currentRun = await getStrategyBacktest(runId)
-  onStatus(currentRun)
-
-  while (!isStrategyBacktestTerminalStatus(currentRun.status)) {
-    await waitForBacktestPollingInterval()
-    currentRun = await getStrategyBacktest(runId)
-    onStatus(currentRun)
-  }
-
-  return currentRun
-}
-
-function getBacktestLaunchDescription(phase: BacktestLaunchPhase) {
-  if (phase === "querying") {
-    return "执行信号查询中"
-  }
-  if (phase === "queued") {
-    return "回测任务已进入异步队列"
-  }
-  if (phase === "running") {
-    return "回测任务执行中"
-  }
-
-  return "回测任务已完成"
-}
-
-function getBacktestLaunchTitle(phase: BacktestLaunchPhase) {
-  if (phase === "querying") {
-    return "正在提交回测任务"
-  }
-  if (phase === "queued") {
-    return "任务已提交"
-  }
-  if (phase === "running") {
-    return "等待回测完成"
-  }
-
-  return "回测完成"
-}
-
-function getBacktestLaunchDetail(phase: BacktestLaunchPhase) {
-  if (phase === "querying") {
-    return "系统正在查询本次策略信号。"
-  }
-  if (phase === "queued") {
-    return "任务正在排队，完成后自动进入 Step5。"
-  }
-  if (phase === "running") {
-    return "后端正在计算净值、调仓记录和策略业绩。"
-  }
-
-  return "即将进入 Step5 查看回测结果。"
-}
-
 export function StrategyPage() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
@@ -1717,12 +1748,8 @@ export function StrategyPage() {
   const [backtestPeriod, setBacktestPeriod] = useState<BacktestPeriod>("1y")
   const [backtestBenchmark, setBacktestBenchmark] =
     useState<BacktestBenchmark>("000300.SH")
-  const [initialBacktestRun, setInitialBacktestRun] =
+  const [activeBacktestRun, setActiveBacktestRun] =
     useState<StrategyBacktestRunRecord | null>(null)
-  const [backtestLaunchDialogOpen, setBacktestLaunchDialogOpen] =
-    useState(false)
-  const [backtestLaunchPhase, setBacktestLaunchPhase] =
-    useState<BacktestLaunchPhase>("querying")
   const [backtestLaunchError, setBacktestLaunchError] = useState<string | null>(
     null
   )
@@ -1840,19 +1867,19 @@ export function StrategyPage() {
   )
   const canEditConditions = strategyCatalogOptions.length > 0
   const canEditWeights = hasRealScoringCatalog
-  const canReuseInitialBacktestRun = Boolean(
-    initialBacktestRun &&
+  const canReuseActiveBacktestRun = Boolean(
+    activeBacktestRun &&
       !hasStrategyBacktestConfigChanged(
-        initialBacktestRun,
+        activeBacktestRun,
         backtestExecutionDraft,
         backtestPeriod,
         backtestBenchmark
       )
   )
   const canPublishPortfolio = Boolean(
-    initialBacktestRun?.status === "succeeded" &&
-      initialBacktestRun.current_result_attempt_id &&
-      canReuseInitialBacktestRun
+    activeBacktestRun?.status === "succeeded" &&
+      activeBacktestRun.current_result_attempt_id &&
+      canReuseActiveBacktestRun
   )
   const selectedBacktestPeriodLabel =
     backtestPeriodOptions.find((option) => option.value === backtestPeriod)
@@ -1862,7 +1889,7 @@ export function StrategyPage() {
       (option) => option.securityCode === backtestBenchmark
     )?.label ?? backtestBenchmark
   const publishBacktestRunId = canPublishPortfolio
-    ? initialBacktestRun?.strategy_backtest_run_id ?? null
+    ? activeBacktestRun?.strategy_backtest_run_id ?? null
     : null
   const publishNavQuery = useStrategyBacktestNavQuery(
     publishBacktestRunId,
@@ -1921,7 +1948,7 @@ export function StrategyPage() {
   function markRuleDraftChanged() {
     setPreviewAdapterError(null)
     setBacktestLaunchError(null)
-    setInitialBacktestRun(null)
+    setActiveBacktestRun(null)
     setPreviewSnapshot(markPreviewSnapshotStale)
   }
 
@@ -1935,7 +1962,7 @@ export function StrategyPage() {
       setHasEditedTransactionFees(true)
     }
     setBacktestLaunchError(null)
-    setInitialBacktestRun(null)
+    setActiveBacktestRun(null)
     setSimulationSettings(nextSettings)
   }
 
@@ -1945,17 +1972,17 @@ export function StrategyPage() {
 
   async function publishPortfolio() {
     if (
-      !initialBacktestRun?.current_result_attempt_id ||
+      !activeBacktestRun?.current_result_attempt_id ||
       !portfolioName.trim()
     ) {
       return
     }
 
     await createPortfolioMutation.mutateAsync({
-      client_request_id: `strategy-portfolio-${initialBacktestRun.strategy_backtest_run_id}-${initialBacktestRun.current_result_attempt_id}`,
+      client_request_id: `strategy-portfolio-${activeBacktestRun.strategy_backtest_run_id}-${activeBacktestRun.current_result_attempt_id}`,
       name: portfolioName.trim(),
-      source_result_attempt_id: initialBacktestRun.current_result_attempt_id,
-      source_strategy_backtest_run_id: initialBacktestRun.strategy_backtest_run_id,
+      source_result_attempt_id: activeBacktestRun.current_result_attempt_id,
+      source_strategy_backtest_run_id: activeBacktestRun.strategy_backtest_run_id,
     })
     await queryClient.invalidateQueries({
       queryKey: queryKeys.strategyPortfolioDashboard(),
@@ -2190,16 +2217,14 @@ export function StrategyPage() {
       return
     }
 
-    if (canReuseInitialBacktestRun) {
+    if (canReuseActiveBacktestRun) {
       setBacktestLaunchError(null)
       setActiveStep("backtest")
       return
     }
 
     setBacktestLaunchError(null)
-    setBacktestLaunchPhase("querying")
-    setBacktestLaunchDialogOpen(true)
-    setInitialBacktestRun(null)
+    setActiveBacktestRun(null)
 
     try {
       const selectedPeriodOption =
@@ -2222,36 +2247,13 @@ export function StrategyPage() {
       })
       const run = await initialBacktestMutation.mutateAsync(request)
 
-      setBacktestLaunchPhase("queued")
-      setInitialBacktestRun(run)
+      setActiveBacktestRun(run)
       queryClient.setQueryData(
         queryKeys.strategyBacktest(run.strategy_backtest_run_id),
         run
       )
-
-      const terminalRun = await waitForBacktestTerminalRun({
-        runId: run.strategy_backtest_run_id,
-        onStatus: (nextRun) => {
-          queryClient.setQueryData(
-            queryKeys.strategyBacktest(nextRun.strategy_backtest_run_id),
-            nextRun
-          )
-          setInitialBacktestRun(nextRun)
-          setBacktestLaunchPhase(
-            isStrategyBacktestTerminalStatus(nextRun.status)
-              ? "completed"
-              : "running"
-          )
-        },
-      })
-
-      setInitialBacktestRun(terminalRun)
-      setBacktestLaunchPhase("completed")
-      await waitForBacktestCompletedMessage()
-      setBacktestLaunchDialogOpen(false)
       setActiveStep("backtest")
     } catch (error) {
-      setBacktestLaunchDialogOpen(false)
       setBacktestLaunchError(formatErrorMessage(error))
     }
   }
@@ -2298,27 +2300,6 @@ export function StrategyPage() {
 
   return (
     <section className="min-h-[calc(100svh-8rem)]">
-      <Dialog open={backtestLaunchDialogOpen}>
-        <DialogContent showCloseButton={false}>
-          <DialogHeader>
-            <DialogTitle>策略回测准备中</DialogTitle>
-            <DialogDescription>
-              {getBacktestLaunchDescription(backtestLaunchPhase)}
-            </DialogDescription>
-          </DialogHeader>
-          <div className="flex items-center gap-3 bg-muted p-3">
-            <Spinner />
-            <div className="flex min-w-0 flex-col gap-1">
-              <span className="text-xs font-medium">
-                {getBacktestLaunchTitle(backtestLaunchPhase)}
-              </span>
-              <span className="truncate text-xs text-muted-foreground">
-                {getBacktestLaunchDetail(backtestLaunchPhase)}
-              </span>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
       <div className="grid min-h-[calc(100svh-8rem)] grid-cols-1 lg:grid-cols-[1fr_9fr]">
         <StrategyStepSidebar
           activeStep={activeStep}
@@ -2442,10 +2423,10 @@ export function StrategyPage() {
                 />
               ) : activeStep === "backtest" ? (
                 <BacktestPanel
+                  activeRun={activeBacktestRun}
                   backtestExecutionDraft={backtestExecutionDraft}
                   backtestValidationError={backtestValidationError}
                   benchmark={backtestBenchmark}
-                  initialRun={initialBacktestRun}
                   isBacktestValidationPending={isBacktestValidationPending}
                   isMarketTemplateError={defaultMarketTemplateQuery.isError}
                   isMarketTemplateLoading={defaultMarketTemplateQuery.isLoading}
@@ -2454,7 +2435,7 @@ export function StrategyPage() {
                   settings={effectiveSimulationSettings}
                   onBenchmarkChange={setBacktestBenchmark}
                   onPeriodChange={setBacktestPeriod}
-                  onRunChange={setInitialBacktestRun}
+                  onRunChange={setActiveBacktestRun}
                 />
               ) : null}
             </div>
@@ -2500,7 +2481,7 @@ export function StrategyPage() {
                       <div className="border border-border/70 p-2">
                         <div className="text-muted-foreground">回测结束日</div>
                         <div className="mt-1 text-sm font-medium">
-                          {initialBacktestRun?.end_date ?? "—"}
+                          {activeBacktestRun?.end_date ?? "—"}
                         </div>
                       </div>
                     </div>
@@ -2831,21 +2812,21 @@ export function StrategyPage() {
                       <div>
                         <div className="text-muted-foreground">回测区间</div>
                         <div className="mt-1 font-medium">
-                          {initialBacktestRun
-                            ? `${initialBacktestRun.start_date} - ${initialBacktestRun.end_date}`
+                          {activeBacktestRun
+                            ? `${activeBacktestRun.start_date} - ${activeBacktestRun.end_date}`
                             : "—"}
                         </div>
                       </div>
                       <div>
                         <div className="text-muted-foreground">当前结果</div>
                         <div className="mt-1 font-medium">
-                          {initialBacktestRun?.current_result_attempt_id ?? "—"}
+                          {activeBacktestRun?.current_result_attempt_id ?? "—"}
                         </div>
                       </div>
                       <div className="md:col-span-2">
                         <div className="text-muted-foreground">回测 Run ID</div>
                         <div className="mt-1 break-all font-mono text-[11px]">
-                          {initialBacktestRun?.strategy_backtest_run_id ?? "—"}
+                          {activeBacktestRun?.strategy_backtest_run_id ?? "—"}
                         </div>
                       </div>
                       <div>

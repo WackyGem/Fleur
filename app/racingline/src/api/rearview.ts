@@ -22,10 +22,13 @@ import type {
   StrategyBacktestNavPoint,
   StrategyBacktestOrderRecord,
   StrategyBacktestOptionsResponse,
+  StrategyBacktestPerformanceUiView,
   StrategyBacktestPerformanceView,
   StrategyBacktestPositionRecord,
+  StrategyBacktestRebalanceRecordsUiResponse,
   StrategyBacktestRebalanceRecordsResponse,
   StrategyBacktestRunRecord,
+  StrategyBacktestRunStatusView,
   StrategyBacktestTargetRecord,
   StrategyBacktestTradeMetricRecord,
   StrategyBacktestTradeRecord,
@@ -143,9 +146,23 @@ export function getStrategyBacktest(strategyBacktestRunId: string) {
   )
 }
 
+export function getStrategyBacktestStatus(strategyBacktestRunId: string) {
+  return requestJson<StrategyBacktestRunStatusView>(
+    `/rearview/strategy-backtests/${strategyBacktestRunId}/status`
+  )
+}
+
 export function listStrategyBacktestNav(strategyBacktestRunId: string) {
   return requestJson<StrategyBacktestNavPoint[]>(
     `/rearview/strategy-backtests/${strategyBacktestRunId}/nav`
+  )
+}
+
+export function listStrategyBacktestNavUi(strategyBacktestRunId: string) {
+  return requestJson<StrategyBacktestNavPoint[]>(
+    buildPath(`/rearview/strategy-backtests/${strategyBacktestRunId}/nav`, {
+      view: "ui",
+    })
   )
 }
 
@@ -157,6 +174,18 @@ export function listStrategyBacktestRebalanceRecords(
     buildPath(
       `/rearview/strategy-backtests/${strategyBacktestRunId}/rebalance-records`,
       { trade_date: tradeDate ?? undefined }
+    )
+  )
+}
+
+export function listStrategyBacktestRebalanceRecordsUi(
+  strategyBacktestRunId: string,
+  tradeDate?: string | null
+) {
+  return requestJson<StrategyBacktestRebalanceRecordsUiResponse>(
+    buildPath(
+      `/rearview/strategy-backtests/${strategyBacktestRunId}/rebalance-records`,
+      { trade_date: tradeDate ?? undefined, view: "ui" }
     )
   )
 }
@@ -212,6 +241,15 @@ export function listStrategyBacktestEvents(
 export function getStrategyBacktestPerformance(strategyBacktestRunId: string) {
   return requestJson<StrategyBacktestPerformanceView>(
     `/rearview/strategy-backtests/${strategyBacktestRunId}/performance`
+  )
+}
+
+export function getStrategyBacktestPerformanceUi(strategyBacktestRunId: string) {
+  return requestJson<StrategyBacktestPerformanceUiView>(
+    buildPath(
+      `/rearview/strategy-backtests/${strategyBacktestRunId}/performance`,
+      { view: "ui" }
+    )
   )
 }
 

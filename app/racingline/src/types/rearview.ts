@@ -465,6 +465,22 @@ export type StrategyBacktestRunRecord = {
   config_summary: StrategyBacktestConfigSummary
 }
 
+export type StrategyBacktestRunStatusView = {
+  strategy_backtest_run_id: string
+  status: StrategyBacktestRunStatus
+  dispatch_status: "pending" | "published" | "publish_failed"
+  progress: StrategyBacktestProgress
+  error_type?: string | null
+  error_message?: string | null
+  period_key: StrategyBacktestPeriodKey
+  benchmark_security_code: string
+  start_date: string
+  end_date: string
+  rule_hash: string
+  execution_config_hash: string
+  current_result_attempt_id?: string | null
+}
+
 export type StrategyBacktestNavPoint = {
   trade_date: string
   strategy_nav: number
@@ -625,6 +641,11 @@ export type StrategyBacktestRebalanceRow = {
   reason?: string | null
 }
 
+export type StrategyBacktestRebalanceUiRow = Omit<
+  StrategyBacktestRebalanceRow,
+  "quantity" | "reason"
+>
+
 export type StrategyBacktestRebalanceRecord = {
   trade_date: string
   position_count: number
@@ -634,19 +655,33 @@ export type StrategyBacktestRebalanceRecord = {
   rows: StrategyBacktestRebalanceRow[]
 }
 
+export type StrategyBacktestRebalanceRecordSummary = Omit<
+  StrategyBacktestRebalanceRecord,
+  "rows"
+>
+
 export type StrategyBacktestRebalanceRecordsResponse = {
   selected_trade_date: string
   records: StrategyBacktestRebalanceRecord[]
 }
 
-export type StrategyBacktestPerformanceView = {
+export type StrategyBacktestRebalanceRecordsUiResponse = {
+  selected_trade_date: string
+  records: StrategyBacktestRebalanceRecordSummary[]
+  selected_rows: StrategyBacktestRebalanceUiRow[]
+}
+
+export type StrategyBacktestPerformanceUiView = {
   metric: JsonRecord
-  statuses: JsonRecord[]
   daily_win_rate: {
     value?: number | null
     observation_count: number
     winning_day_count: number
   }
+}
+
+export type StrategyBacktestPerformanceView = StrategyBacktestPerformanceUiView & {
+  statuses: JsonRecord[]
 }
 
 export type StrategyBacktestTargetRecord = {

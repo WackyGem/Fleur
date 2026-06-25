@@ -139,6 +139,10 @@ pub fn routes() -> Router<AppState> {
             get(get_strategy_backtest),
         )
         .route(
+            "/rearview/strategy-backtests/{strategy_backtest_run_id}/status",
+            get(get_strategy_backtest_status),
+        )
+        .route(
             "/rearview/strategy-backtests/{strategy_backtest_run_id}/nav",
             get(list_strategy_backtest_nav),
         )
@@ -683,11 +687,23 @@ async fn get_strategy_backtest(
     Ok(Json(strategy_backtest_run_response(record)?))
 }
 
+async fn get_strategy_backtest_status(
+    State(state): State<AppState>,
+    Path(strategy_backtest_run_id): Path<String>,
+) -> RearviewResult<Json<StrategyBacktestRunStatusView>> {
+    let record = state
+        .postgres
+        .get_strategy_backtest_run(&strategy_backtest_run_id)
+        .await?;
+    Ok(Json(strategy_backtest_status_view(record)))
+}
+
 async fn list_strategy_backtest_nav(
     State(state): State<AppState>,
     Path(strategy_backtest_run_id): Path<String>,
     Query(query): Query<PortfolioNavQuery>,
-) -> RearviewResult<Json<Vec<StrategyBacktestNavPoint>>> {
+) -> RearviewResult<Json<StrategyBacktestNavResponse>> {
+    let view = response_view(&query.view)?;
     let run = state
         .postgres
         .get_strategy_backtest_run(&strategy_backtest_run_id)
@@ -707,14 +723,24 @@ async fn list_strategy_backtest_nav(
             &format!("strategy-backtest-{strategy_backtest_run_id}-nav-benchmark"),
         )
         .await?;
-    Ok(Json(strategy_backtest_nav_points(nav, benchmark_returns)))
+    let points = strategy_backtest_nav_points(nav, benchmark_returns);
+    Ok(Json(match view {
+        ResponseView::Full => StrategyBacktestNavResponse::Full(points),
+        ResponseView::Ui => StrategyBacktestNavResponse::Ui(
+            points
+                .into_iter()
+                .map(StrategyBacktestNavUiPoint::from)
+                .collect(),
+        ),
+    }))
 }
 
 async fn list_strategy_backtest_rebalance_records(
     State(state): State<AppState>,
     Path(strategy_backtest_run_id): Path<String>,
     Query(query): Query<StrategyBacktestRebalanceQuery>,
-) -> RearviewResult<Json<StrategyBacktestRebalanceRecordsResponse>> {
+) -> RearviewResult<Json<StrategyBacktestRebalanceRecordsApiResponse>> {
+    let view = response_view(&query.view)?;
     let run = state
         .postgres
         .get_strategy_backtest_run(&strategy_backtest_run_id)
@@ -831,23 +857,48 @@ async fn list_strategy_backtest_rebalance_records(
             let hold_count = usize::try_from(hold_count_i32).unwrap_or_default();
             let sell_count = usize::try_from(sell_count_i32).unwrap_or_default();
 
-            StrategyBacktestRebalanceRecord {
+            StrategyBacktestRebalanceRecordSummary {
                 trade_date: row.trade_date,
                 position_count: row.position_count,
                 buy_count,
                 hold_count,
                 sell_count,
-                rows: if row.trade_date == selected_trade_date {
-                    rows.clone()
-                } else {
-                    Vec::new()
-                },
             }
         })
-        .collect();
-    Ok(Json(StrategyBacktestRebalanceRecordsResponse {
-        selected_trade_date,
-        records,
+        .collect::<Vec<_>>();
+    Ok(Json(match view {
+        ResponseView::Full => {
+            StrategyBacktestRebalanceRecordsApiResponse::Full(
+                StrategyBacktestRebalanceRecordsResponse {
+                    selected_trade_date,
+                    records: records
+                        .into_iter()
+                        .map(|record| StrategyBacktestRebalanceRecord {
+                            rows: if record.trade_date == selected_trade_date {
+                                rows.clone()
+                            } else {
+                                Vec::new()
+                            },
+                            trade_date: record.trade_date,
+                            position_count: record.position_count,
+                            buy_count: record.buy_count,
+                            hold_count: record.hold_count,
+                            sell_count: record.sell_count,
+                        })
+                        .collect(),
+                },
+            )
+        }
+        ResponseView::Ui => StrategyBacktestRebalanceRecordsApiResponse::Ui(
+            StrategyBacktestRebalanceRecordsUiResponse {
+                selected_trade_date,
+                records,
+                selected_rows: rows
+                    .into_iter()
+                    .map(StrategyBacktestRebalanceUiRow::from)
+                    .collect(),
+            },
+        ),
     }))
 }
 
@@ -989,7 +1040,8 @@ async fn get_strategy_backtest_performance(
     State(state): State<AppState>,
     Path(strategy_backtest_run_id): Path<String>,
     Query(query): Query<PortfolioPerformanceQuery>,
-) -> RearviewResult<Json<StrategyBacktestPerformanceView>> {
+) -> RearviewResult<Json<StrategyBacktestPerformanceResponse>> {
+    let view = response_view(&query.view)?;
     let run = state
         .postgres
         .get_strategy_backtest_run(&strategy_backtest_run_id)
@@ -1011,10 +1063,21 @@ async fn get_strategy_backtest_performance(
         .clickhouse
         .query_portfolio_nav(&strategy_backtest_run_id, &attempt_id)
         .await?;
-    Ok(Json(StrategyBacktestPerformanceView {
-        metric: performance.metric,
-        statuses: performance.statuses,
-        daily_win_rate: daily_win_rate(&nav),
+    let daily_win_rate = daily_win_rate(&nav);
+    Ok(Json(match view {
+        ResponseView::Full => StrategyBacktestPerformanceResponse::Full(
+            StrategyBacktestPerformanceView {
+                metric: performance.metric,
+                statuses: performance.statuses,
+                daily_win_rate,
+            },
+        ),
+        ResponseView::Ui => StrategyBacktestPerformanceResponse::Ui(
+            StrategyBacktestPerformanceUiView {
+                metric: StrategyBacktestPerformanceUiMetric::from(performance.metric),
+                daily_win_rate,
+            },
+        ),
     }))
 }
 
@@ -2839,6 +2902,30 @@ struct StrategyBacktestRunResponse {
 }
 
 #[derive(Debug, Serialize)]
+struct StrategyBacktestRunStatusView {
+    strategy_backtest_run_id: String,
+    status: String,
+    dispatch_status: String,
+    progress: Value,
+    error_type: Option<String>,
+    error_message: Option<String>,
+    period_key: String,
+    benchmark_security_code: String,
+    start_date: NaiveDate,
+    end_date: NaiveDate,
+    rule_hash: String,
+    execution_config_hash: String,
+    current_result_attempt_id: Option<String>,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(untagged)]
+enum StrategyBacktestNavResponse {
+    Full(Vec<StrategyBacktestNavPoint>),
+    Ui(Vec<StrategyBacktestNavUiPoint>),
+}
+
+#[derive(Debug, Serialize)]
 struct StrategyBacktestNavPoint {
     trade_date: NaiveDate,
     strategy_nav: f64,
@@ -2847,10 +2934,75 @@ struct StrategyBacktestNavPoint {
 }
 
 #[derive(Debug, Serialize)]
+struct StrategyBacktestNavUiPoint {
+    trade_date: NaiveDate,
+    strategy_nav: f64,
+    benchmark_nav: Option<f64>,
+}
+
+impl From<StrategyBacktestNavPoint> for StrategyBacktestNavUiPoint {
+    fn from(point: StrategyBacktestNavPoint) -> Self {
+        Self {
+            trade_date: point.trade_date,
+            strategy_nav: point.strategy_nav,
+            benchmark_nav: point.benchmark_nav,
+        }
+    }
+}
+
+#[derive(Debug, Serialize)]
+#[serde(untagged)]
+enum StrategyBacktestPerformanceResponse {
+    Full(StrategyBacktestPerformanceView),
+    Ui(StrategyBacktestPerformanceUiView),
+}
+
+#[derive(Debug, Serialize)]
 struct StrategyBacktestPerformanceView {
     metric: PortfolioPerformanceMetricRecord,
     statuses: Vec<PortfolioPerformanceMetricStatusRecord>,
     daily_win_rate: StrategyBacktestDailyWinRate,
+}
+
+#[derive(Debug, Serialize)]
+struct StrategyBacktestPerformanceUiView {
+    metric: StrategyBacktestPerformanceUiMetric,
+    daily_win_rate: StrategyBacktestDailyWinRate,
+}
+
+#[derive(Debug, Serialize)]
+struct StrategyBacktestPerformanceUiMetric {
+    holding_period_return: Option<f64>,
+    annualized_return: Option<f64>,
+    annualized_volatility: Option<f64>,
+    max_drawdown: Option<f64>,
+    calmar_ratio: Option<f64>,
+    downside_deviation: Option<f64>,
+    sortino_ratio: Option<f64>,
+    sharpe_ratio: Option<f64>,
+    information_ratio: Option<f64>,
+    beta: Option<f64>,
+    alpha: Option<f64>,
+    treynor_ratio: Option<f64>,
+}
+
+impl From<PortfolioPerformanceMetricRecord> for StrategyBacktestPerformanceUiMetric {
+    fn from(metric: PortfolioPerformanceMetricRecord) -> Self {
+        Self {
+            holding_period_return: metric.holding_period_return,
+            annualized_return: metric.annualized_return,
+            annualized_volatility: metric.annualized_volatility,
+            max_drawdown: metric.max_drawdown,
+            calmar_ratio: metric.calmar_ratio,
+            downside_deviation: metric.downside_deviation,
+            sortino_ratio: metric.sortino_ratio,
+            sharpe_ratio: metric.sharpe_ratio,
+            information_ratio: metric.information_ratio,
+            beta: metric.beta,
+            alpha: metric.alpha,
+            treynor_ratio: metric.treynor_ratio,
+        }
+    }
 }
 
 #[derive(Debug, Serialize)]
@@ -2866,6 +3018,15 @@ struct StrategyBacktestRebalanceQuery {
     result_attempt_id: Option<String>,
     #[serde(default)]
     trade_date: Option<NaiveDate>,
+    #[serde(default)]
+    view: Option<String>,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(untagged)]
+enum StrategyBacktestRebalanceRecordsApiResponse {
+    Full(StrategyBacktestRebalanceRecordsResponse),
+    Ui(StrategyBacktestRebalanceRecordsUiResponse),
 }
 
 #[derive(Debug, Serialize)]
@@ -2884,6 +3045,22 @@ struct StrategyBacktestRebalanceRecord {
     rows: Vec<StrategyBacktestRebalanceRow>,
 }
 
+#[derive(Debug, Serialize)]
+struct StrategyBacktestRebalanceRecordsUiResponse {
+    selected_trade_date: NaiveDate,
+    records: Vec<StrategyBacktestRebalanceRecordSummary>,
+    selected_rows: Vec<StrategyBacktestRebalanceUiRow>,
+}
+
+#[derive(Debug, Serialize)]
+struct StrategyBacktestRebalanceRecordSummary {
+    trade_date: NaiveDate,
+    position_count: i32,
+    buy_count: usize,
+    hold_count: usize,
+    sell_count: usize,
+}
+
 #[derive(Debug, Clone, Serialize)]
 struct StrategyBacktestRebalanceRow {
     direction: String,
@@ -2896,6 +3073,33 @@ struct StrategyBacktestRebalanceRow {
     current_price: Option<f64>,
     contribution_pct: Option<f64>,
     reason: Option<String>,
+}
+
+#[derive(Debug, Serialize)]
+struct StrategyBacktestRebalanceUiRow {
+    direction: String,
+    security_code: String,
+    security_name: Option<String>,
+    holding_days: Option<i32>,
+    change_pct: Option<f64>,
+    cost_price: Option<f64>,
+    current_price: Option<f64>,
+    contribution_pct: Option<f64>,
+}
+
+impl From<StrategyBacktestRebalanceRow> for StrategyBacktestRebalanceUiRow {
+    fn from(row: StrategyBacktestRebalanceRow) -> Self {
+        Self {
+            direction: row.direction,
+            security_code: row.security_code,
+            security_name: row.security_name,
+            holding_days: row.holding_days,
+            change_pct: row.change_pct,
+            cost_price: row.cost_price,
+            current_price: row.current_price,
+            contribution_pct: row.contribution_pct,
+        }
+    }
 }
 
 #[derive(Debug, Deserialize)]
@@ -3186,6 +3390,8 @@ struct ListPortfolioRunsQuery {
 struct PortfolioNavQuery {
     #[serde(default)]
     result_attempt_id: Option<String>,
+    #[serde(default)]
+    view: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -3264,6 +3470,8 @@ struct PortfolioPerformanceQuery {
     security_code: Option<String>,
     #[serde(default)]
     window_key: Option<String>,
+    #[serde(default)]
+    view: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -4551,6 +4759,40 @@ fn strategy_backtest_run_response(
     })
 }
 
+fn strategy_backtest_status_view(record: StrategyBacktestRunRecord) -> StrategyBacktestRunStatusView {
+    StrategyBacktestRunStatusView {
+        strategy_backtest_run_id: record.strategy_backtest_run_id,
+        status: record.status,
+        dispatch_status: record.dispatch_status,
+        progress: record.progress,
+        error_type: record.error_type,
+        error_message: record.error_message,
+        period_key: record.period_key,
+        benchmark_security_code: record.benchmark_security_code,
+        start_date: record.start_date,
+        end_date: record.end_date,
+        rule_hash: record.rule_hash,
+        execution_config_hash: record.execution_config_hash,
+        current_result_attempt_id: record.current_result_attempt_id,
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum ResponseView {
+    Full,
+    Ui,
+}
+
+fn response_view(view: &Option<String>) -> RearviewResult<ResponseView> {
+    match view.as_deref().map(str::trim).filter(|value| !value.is_empty()) {
+        None | Some("full") => Ok(ResponseView::Full),
+        Some("ui" | "compact") => Ok(ResponseView::Ui),
+        Some(other) => Err(RearviewError::Validation(format!(
+            "unsupported response view: {other}"
+        ))),
+    }
+}
+
 fn strategy_portfolio_response(record: StrategyPortfolioRecord) -> StrategyPortfolioResponse {
     let live_status =
         if record.latest_daily_run_id.is_some() && record.current_result_attempt_id.is_some() {
@@ -5556,6 +5798,93 @@ mod tests {
         let error = ResultRowsSort::signals(Some("rank_desc")).unwrap_err();
 
         assert!(matches!(error, RearviewError::Validation(_)));
+    }
+
+    #[test]
+    fn strategy_backtest_status_view_should_not_serialize_full_snapshots() {
+        let value = serde_json::to_value(StrategyBacktestRunStatusView {
+            strategy_backtest_run_id: "run-1".to_string(),
+            status: "queued".to_string(),
+            dispatch_status: "pending".to_string(),
+            progress: json!({"stage": "queued"}),
+            error_type: None,
+            error_message: None,
+            period_key: "1y".to_string(),
+            benchmark_security_code: "000300.SH".to_string(),
+            start_date: date("2025-01-02"),
+            end_date: date("2025-12-31"),
+            rule_hash: "rule-hash".to_string(),
+            execution_config_hash: "config-hash".to_string(),
+            current_result_attempt_id: None,
+        })
+        .unwrap();
+
+        assert!(value.get("rule_snapshot").is_none());
+        assert!(value.get("execution_config").is_none());
+        assert!(value.get("summary").is_none());
+        assert_eq!(value["status"], "queued");
+    }
+
+    #[test]
+    fn strategy_backtest_nav_ui_point_should_not_serialize_excess_return() {
+        let value = serde_json::to_value(StrategyBacktestNavUiPoint {
+            trade_date: date("2025-01-02"),
+            strategy_nav: 1.02,
+            benchmark_nav: Some(1.01),
+        })
+        .unwrap();
+
+        assert!(value.get("excess_return").is_none());
+        assert_eq!(value["strategy_nav"], 1.02);
+    }
+
+    #[test]
+    fn strategy_backtest_performance_ui_view_should_not_serialize_statuses() {
+        let value = serde_json::to_value(StrategyBacktestPerformanceUiView {
+            metric: StrategyBacktestPerformanceUiMetric {
+                holding_period_return: Some(0.12),
+                annualized_return: Some(0.10),
+                annualized_volatility: Some(0.20),
+                max_drawdown: Some(-0.08),
+                calmar_ratio: Some(1.25),
+                downside_deviation: Some(0.09),
+                sortino_ratio: Some(1.1),
+                sharpe_ratio: Some(0.8),
+                information_ratio: Some(0.7),
+                beta: Some(1.0),
+                alpha: Some(0.03),
+                treynor_ratio: Some(0.05),
+            },
+            daily_win_rate: StrategyBacktestDailyWinRate {
+                value: Some(0.55),
+                observation_count: 100,
+                winning_day_count: 55,
+            },
+        })
+        .unwrap();
+
+        assert!(value.get("statuses").is_none());
+        assert!(value["metric"].get("portfolio_run_id").is_none());
+        assert_eq!(value["metric"]["holding_period_return"], 0.12);
+    }
+
+    #[test]
+    fn strategy_backtest_rebalance_ui_row_should_not_serialize_quantity_or_reason() {
+        let value = serde_json::to_value(StrategyBacktestRebalanceUiRow {
+            direction: "buy".to_string(),
+            security_code: "600000.SH".to_string(),
+            security_name: Some("浦发银行".to_string()),
+            holding_days: Some(3),
+            change_pct: Some(0.01),
+            cost_price: Some(10.0),
+            current_price: Some(10.1),
+            contribution_pct: Some(0.001),
+        })
+        .unwrap();
+
+        assert!(value.get("quantity").is_none());
+        assert!(value.get("reason").is_none());
+        assert_eq!(value["security_code"], "600000.SH");
     }
 
     #[test]
