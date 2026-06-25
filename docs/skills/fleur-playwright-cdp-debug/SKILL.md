@@ -1,5 +1,5 @@
 ---
-name: playwright-cdp-frontend-debug
+name: fleur-playwright-cdp-debug
 description: mono-fleur 前端 CDP 调试流程。用于调试 Racingline 或 app/ 下其他前端时，通过全局 playwright-cli 连接 vnc-mini-desktop 暴露的 Chromium CDP 端点 9222，检查页面截图、DOM snapshot、console、network、响应式布局和交互问题；也用于验证 PLAYWRIGHT_CDP_ENDPOINT、安装/使用官方 Playwright CLI agent skill、或排查 CDP 浏览器连接。
 ---
 

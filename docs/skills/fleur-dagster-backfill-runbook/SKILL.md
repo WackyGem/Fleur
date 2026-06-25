@@ -1,5 +1,5 @@
 ---
-name: dg-backfill-runbook
+name: fleur-dagster-backfill-runbook
 description: mono-fleur 的 Dagster 回填操作手册。用于选择 dg launch 命令、资产选择、partition 或 partition-range 参数，以及各数据源的回填模板。
 ---
 
@@ -61,17 +61,11 @@ uv run dg launch --target-path scheduler --assets "key:clickhouse/raw/jiuyan__in
 - 可恢复执行
 - 多 asset 批量提交
 
-## ClickHouse layered migration resume
+## ClickHouse raw sync 分区规则
 
-Plan 0026 的 ClickHouse 四层 database 迁移使用 `fleur-contracts clickhouse-layer`
-作为受控入口。迁移报告和可恢复运行记录位于：
+ClickHouse 四层 database 迁移（`fleur_raw` / `fleur_staging` / `fleur_intermediate` / `fleur_marts`）已于 2026-06-02 完成；决策见 `docs/ADR/0009-clickhouse-layered-databases.md`，执行记录见 `docs/plans/archive/0026-clickhouse-layered-database-migration-implementation-plan.md`。下面只保留日常 raw sync 回填的可复用规则。
 
-- `docs/jobs/reports/2026-06-02-clickhouse-layered-database-migration-report.md`
-- `docs/jobs/reports/2026-06-02-clickhouse-layered-database-partitions.json`
-- `docs/jobs/reports/2026-06-02-clickhouse-layered-database-resume-runs.tsv`
-- `docs/jobs/reports/2026-06-02-clickhouse-layered-database-cleanup-runs.tsv`
-
-恢复中断的 raw sync 时，继续使用明确 asset selection 和单年分区：
+年分区 raw sync 按 `--partition YYYY` 单年运行，跨年时按年份循环：
 
 ```bash
 cd pipeline
@@ -88,15 +82,5 @@ uv run dg launch --target-path scheduler \
   --assets "key:clickhouse/raw/<snapshot-dataset>"
 ```
 
-最终验收命令：
-
-```bash
-cd pipeline
-uv run fleur-contracts clickhouse-layer validate-raw \
-  --manifest ../docs/jobs/reports/2026-06-02-clickhouse-layered-database-partitions.json
-uv run fleur-contracts clickhouse-layer validate-dbt
-```
-
-不要用 `clickhouse__raw_sync_all_job` 作为历史分区已全部迁移的证明；它只证明
-asset selection 覆盖所有 raw sync assets。历史迁移范围以 partition manifest 和
-逐分区 run log 为准。
+不要用 `clickhouse__raw_sync_all_job` 作为历史分区已全部同步的证明；它只证明
+asset selection 覆盖所有 raw sync assets。历史同步范围以逐分区 run log 为准。

@@ -18,7 +18,7 @@
 
 ## 职责区分
 
-- `docs/skills/dg-backfill-runbook` 维护通用回填命令模板、选择规则、分区规则
+- `docs/skills/fleur-dagster-backfill-runbook` 维护通用回填命令模板、选择规则、分区规则
 - `docs/jobs/dagster-backfill-2026.md` 记录这一次具体执行计划、顺序、范围和操作记录
 - `pipeline/scheduler` 负责实际资产、job、schedule 定义
 - 所有 `dg` / `dagster` 命令必须使用根目录 `.env` 中的 `DAGSTER_HOME` 作为 Dagster home

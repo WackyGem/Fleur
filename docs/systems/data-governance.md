@@ -67,7 +67,7 @@ uv run fleur-contracts generate --check
 | [../RFC/archive/0010-data-contract-registry-and-contract-tools.md](../RFC/archive/0010-data-contract-registry-and-contract-tools.md) | contract registry 历史方案 |
 | [../RFC/archive/0012-dbt-field-glossary-and-raw-source-governance.md](../RFC/archive/0012-dbt-field-glossary-and-raw-source-governance.md) | dbt field glossary 和 raw governance 历史设计 |
 | [../skills/fleur-contract-data-dictionary/SKILL.md](../skills/fleur-contract-data-dictionary/SKILL.md) | contract/data dictionary 操作手册 |
-| [../skills/stg-model-readiness/SKILL.md](../skills/stg-model-readiness/SKILL.md) | staging model 前置准备流程 |
+| [../skills/fleur-dbt-model-readiness/SKILL.md](../skills/fleur-dbt-model-readiness/SKILL.md) | staging model 前置准备流程 |
 
 ## 待决问题
 

@@ -89,7 +89,7 @@ Dagster 运行建议：
 - `dg check defs`、ruff、pyright、pytest 可在 feature worktree 内运行。
 - 物化、回填、OCR、外部 API 写入类任务默认不要从普通 feature worktree 执行。
 - 如果确实要在 worktree 中运行 Dagster，使用该 worktree 自己的 `.dagster`，并在命令前显式设置 `DAGSTER_HOME="$PWD/.dagster"`。
-- 任何涉及真实 S3/PostgreSQL 写入的操作，先使用 `docs/skills/dg-backfill-runbook/SKILL.md` 判断是否应该切回主工作区或专用 ops worktree。
+- 任何涉及真实 S3/PostgreSQL 写入的操作，先使用 `docs/skills/fleur-dagster-backfill-runbook/SKILL.md` 判断是否应该切回主工作区或专用 ops worktree。
 
 ## 并行任务选择
 

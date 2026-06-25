@@ -1,5 +1,5 @@
 ---
-name: dagster-http-source-asset
+name: fleur-dagster-http-source
 description: mono-fleur 的 Dagster HTTP 数据源资产开发流程。用于当用户提供远端 HTTP/HTTPS 链接、API endpoint 或接口样例，希望新增或修改 Dagster source asset，将远端数据抓取并写入 S3 Parquet，再通过 contract 驱动同步到 ClickHouse raw 层；覆盖 endpoint profiling、数据契约、scheduler SourceBundle、PyArrow schema 转换、测试和 dg 验收。
 ---
 
@@ -20,7 +20,7 @@ description: mono-fleur 的 Dagster HTTP 数据源资产开发流程。用于当
 - 先使用 `dagster-expert`，并按需读取 asset metadata、dependency 和 `dg check` reference。
 - 涉及 contract、Parquet schema、ClickHouse raw 字段时使用 `fleur-contract-data-dictionary`。
 - 写 Python 代码或测试时使用 `dignified-python`。
-- 需要实际 materialize、回填或重跑时使用 `dg-backfill-runbook`。
+- 需要实际 materialize、回填或重跑时使用 `fleur-dagster-backfill-runbook`。
 - 涉及 Dagster、ClickHouse client、PyArrow、dbt 等库/CLI 的 API 细节时，按 `AGENTS.md` 使用 Context7。
 
 ## 输入归一化
@@ -178,7 +178,7 @@ uv run pytest scheduler/tests/unit/clickhouse scheduler/tests/integration/test_d
 uv run fleur-contracts validate-clickhouse --all-available
 ```
 
-真实 materialization、回填或 raw sync 验证按 `docs/skills/dg-backfill-runbook/SKILL.md`
+真实 materialization、回填或 raw sync 验证按 `docs/skills/fleur-dagster-backfill-runbook/SKILL.md`
 选择 `dg launch` 命令，先跑一个小切片再扩大范围。
 
 ## 最终汇报

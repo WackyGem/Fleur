@@ -60,7 +60,7 @@ dbt 作为执行和校验底座使用：
 
 - `pipeline/elt/scripts/profile_raw_source.py`：生成标准 profiling 查询或报告草稿。
 - `docs/references/raw_profile/<dataset>.md`：保存 profiling 结果。
-- `docs/skills/stg-model-readiness/SKILL.md`：定义 agent 在写 staging 前必须执行的工作流。
+- `docs/skills/fleur-dbt-model-readiness/SKILL.md`：定义 agent 在写 staging 前必须执行的工作流。
 - `pipeline/elt/scripts/validate_staging_readiness.py`：检查 staging model 是否有对应 raw profile report。
 
 ## 非目标

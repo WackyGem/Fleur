@@ -1,7 +1,7 @@
 interface:
   display_name: "DG 回填手册"
   short_description: "mono-fleur 的 Dagster 回填命令"
-  default_prompt: "使用 $dg-backfill-runbook 为 mono-fleur 的 Dagster 回填选择合适的 `dg launch` 命令。"
+  default_prompt: "使用 $fleur-dagster-backfill-runbook 为 mono-fleur 的 Dagster 回填选择合适的 `dg launch` 命令。"
 
 policy:
   allow_implicit_invocation: true

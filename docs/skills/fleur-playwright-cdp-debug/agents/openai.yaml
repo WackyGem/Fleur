@@ -1,0 +1,4 @@
+interface:
+  display_name: "Playwright CDP Frontend Debug"
+  short_description: "Debug mono-fleur frontends through CDP"
+  default_prompt: "Use $fleur-playwright-cdp-debug to inspect and debug a mono-fleur frontend through the CDP browser."

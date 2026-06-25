@@ -105,7 +105,7 @@ make rust-doc-serve
 - Dagster 主目录：`/storage/program/mono-fleur/.dagster`
 - 架构入口：`docs/architecture/scheduler-architecture.md`
 - 模块边界和禁止模式：`docs/architecture/scheduler-module-boundaries.md`
-- 回填操作：`docs/skills/dg-backfill-runbook/SKILL.md`
+- 回填操作：`docs/skills/fleur-dagster-backfill-runbook/SKILL.md`
 
 ## dbt（elt）
 
@@ -118,7 +118,7 @@ make rust-doc-serve
 - dbt canonical 字段治理入口：`pipeline/elt/metadata/field_glossary.yml`
 - dbt staging 清洗边界：`docs/ADR/0007-dbt-staging-cleaning-boundary.md`
 - dbt staging 前置 raw profiling：`docs/ADR/0008-raw-source-profiling-before-dbt-staging.md`、`docs/RFC/archive/0013-raw-source-profiling-before-dbt-staging.md`、`docs/plans/archive/0025-raw-source-profiling-before-dbt-staging-implementation-plan.md`
-- 新增或重写 staging model 前先使用 `docs/skills/stg-model-readiness/SKILL.md`，并维护 `docs/references/raw_profile/<dataset>.md`
+- 新增或重写 staging model 前先使用 `docs/skills/fleur-dbt-model-readiness/SKILL.md`，并维护 `docs/references/raw_profile/<dataset>.md`
 - 修改 staging model 后运行：`uv run dbt parse --project-dir elt --profiles-dir elt`、`uv run python elt/scripts/validate_staging_readiness.py` 和 `uv run python elt/scripts/validate_field_glossary.py`
 
 ## 数据契约（contracts）
@@ -218,30 +218,30 @@ cargo test --workspace
 
 | Skill | 用途 |
 |-------|------|
-| `dagster-expert` | 任何 Dagster 相关任务之前使用，包括资产、物化、组件、数据管道、调度、传感器、作业、项目结构、`dg` CLI 用法或 Dagster 概念问题 |
-| `dagster-http-source-asset` | 用户提供远端 HTTP/HTTPS 链接、API endpoint 或样例，希望新增 Dagster source asset，落 S3 Parquet 并按 contract 同步 ClickHouse raw 层时使用 |
-| `dg-backfill-runbook` | mono-fleur 的 Dagster 回填操作手册，用于选择 `dg launch` 命令、资产选择、partition 参数和各数据源回填模板 |
-| `dignified-python` | Python 代码质量、类型提示、现代 Python 风格、pathlib、异常处理、接口、CLI 模式或 Python 审查/重构 |
-| `rust-best-practices` | 编写、审查或重构 Rust 代码时使用，覆盖所有权/借用、错误处理、性能、Clippy、文档和基础测试规范 |
-| `rust-patterns` | 设计 Rust crate 结构、模块边界、trait/generic、领域类型、错误模型或并发模式时使用 |
-| `rust-async-patterns` | 构建或调试 Tokio/async Rust 应用、异步 I/O、任务并发、channel、取消和 async 性能问题时使用 |
-| `rust-testing` | 为 Rust 代码添加单元测试、集成测试、异步测试、property-based tests、mock、benchmark 或 TDD 工作流时使用 |
-| `using-dbt-for-analytics-engineering` | 构建或修改 dbt 模型、源、测试、SQL 转换、dbt 项目调试、数据探索或影响分析 |
-| `running-dbt-commands` | 格式化或执行 dbt CLI 命令、选择 dbt 可执行文件、选择资源、编译、构建、测试或显示查询输出 |
-| `stg-model-readiness` | 新增或重写 dbt staging model 前使用，完成 raw source profiling、报告、staging 清洗建议和 readiness 校验 |
 | `adding-dbt-unit-test` | 添加 dbt 单元测试或对 dbt 模型逻辑实践 TDD |
 | `answering-natural-language-questions-with-dbt` | 从仓库数据、指标、KPI、语义层或临时 SQL 回答业务/分析问题。不用于 dbt 模型开发 |
-| `fetching-dbt-docs` | 查找 dbt Core、dbt Cloud/平台或 dbt 语义层的 dbt 文档 |
-| `configuring-dbt-mcp-server` | 设置、配置或排查 AI 工具的 dbt MCP 服务器 |
-| `fleur-contract-data-dictionary` | 维护数据契约、字段 glossary、中文字段描述、dbt YAML 和 data_dict 生成/校验工作流 |
-| `fleur-harness` | 维护项目 harness、agent 可读性、docs/skills 路由、架构约束、长期计划、文档治理和质量闭环 |
-| `fleur-worktree` | 管理 mono-fleur 的 Git worktree、多分支、多 agent 并行任务、隔离验证、合并和清理流程 |
-| `playwright-cdp-frontend-debug` | 使用全局 `playwright-cli` 通过 `vnc-mini-desktop` 暴露的 CDP 端点调试 `app/` 前端，检查截图、DOM、console、network 和响应式布局 |
-| `shadcn` | 处理 shadcn/ui 组件安装、搜索、组合、样式、表单、注册表和 CLI 用法；Racingline 前端组件开发时优先使用 |
-| `chdb-sql` | 在本地文件（parquet/csv/json）、URL、S3 路径或远程数据库（Postgres、MySQL、MongoDB、ClickHouse Cloud）上跑分析 SQL，无需启动服务器。替代 MCP 做 ClickHouse 查询 |
 | `chdb-datastore` | pandas DataFrame + ClickHouse 引擎加速，处理 tabular 数据的 filter/group/aggregate/join，也支持跨数据源 DataFrame 联合查询 |
-| `clickhouse-best-practices` | 审查 ClickHouse schema、查询或配置时使用，包含 31 条规则，必须在提供建议前检查 |
+| `chdb-sql` | 在本地文件（parquet/csv/json）、URL、S3 路径或远程数据库（Postgres、MySQL、MongoDB、ClickHouse Cloud）上跑分析 SQL，无需启动服务器。替代 MCP 做 ClickHouse 查询 |
 | `clickhouse-architecture-advisor` | 设计 ClickHouse 架构、选择摄入或建模模式、将最佳实践转化为工作负载特定系统设计时使用 |
+| `clickhouse-best-practices` | 审查 ClickHouse schema、查询或配置时使用，包含 31 条规则，必须在提供建议前检查 |
+| `configuring-dbt-mcp-server` | 设置、配置或排查 AI 工具的 dbt MCP 服务器 |
+| `dagster-expert` | 任何 Dagster 相关任务之前使用，包括资产、物化、组件、数据管道、调度、传感器、作业、项目结构、`dg` CLI 用法或 Dagster 概念问题 |
+| `dignified-python` | Python 代码质量、类型提示、现代 Python 风格、pathlib、异常处理、接口、CLI 模式或 Python 审查/重构 |
+| `fetching-dbt-docs` | 查找 dbt Core、dbt Cloud/平台或 dbt 语义层的 dbt 文档 |
+| `fleur-contract-data-dictionary` | 维护数据契约、字段 glossary、中文字段描述、dbt YAML 和 data_dict 生成/校验工作流 |
+| `fleur-dagster-backfill-runbook` | mono-fleur 的 Dagster 回填操作手册，用于选择 `dg launch` 命令、资产选择、partition 参数和各数据源回填模板 |
+| `fleur-dagster-http-source` | 用户提供远端 HTTP/HTTPS 链接、API endpoint 或样例，希望新增 Dagster source asset，落 S3 Parquet 并按 contract 同步 ClickHouse raw 层时使用 |
+| `fleur-dbt-model-readiness` | 新增或重写 dbt staging model 前使用，完成 raw source profiling、报告、staging 清洗建议和 readiness 校验 |
+| `fleur-harness` | 维护项目 harness、agent 可读性、docs/skills 路由、架构约束、长期计划、文档治理和质量闭环 |
+| `fleur-playwright-cdp-debug` | 使用全局 `playwright-cli` 通过 `vnc-mini-desktop` 暴露的 CDP 端点调试 `app/` 前端，检查截图、DOM、console、network 和响应式布局 |
+| `fleur-worktree` | 管理 mono-fleur 的 Git worktree、多分支、多 agent 并行任务、隔离验证、合并和清理流程 |
+| `running-dbt-commands` | 格式化或执行 dbt CLI 命令、选择 dbt 可执行文件、选择资源、编译、构建、测试或显示查询输出 |
+| `rust-async-patterns` | 构建或调试 Tokio/async Rust 应用、异步 I/O、任务并发、channel、取消和 async 性能问题时使用 |
+| `rust-best-practices` | 编写、审查或重构 Rust 代码时使用，覆盖所有权/借用、错误处理、性能、Clippy、文档和基础测试规范 |
+| `rust-patterns` | 设计 Rust crate 结构、模块边界、trait/generic、领域类型、错误模型或并发模式时使用 |
+| `rust-testing` | 为 Rust 代码添加单元测试、集成测试、异步测试、property-based tests、mock、benchmark 或 TDD 工作流时使用 |
+| `shadcn` | 处理 shadcn/ui 组件安装、搜索、组合、样式、表单、注册表和 CLI 用法；Racingline 前端组件开发时优先使用 |
+| `using-dbt-for-analytics-engineering` | 构建或修改 dbt 模型、源、测试、SQL 转换、dbt 项目调试、数据探索或影响分析 |
 
 
 ## 零猜测原则：禁止把不确定性写进代码 [核心护栏]

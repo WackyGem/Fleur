@@ -8,8 +8,8 @@
 
 - `docs/plans/0022-contract-driven-parquet-schema-adapter-implementation-plan.md`
 - `docs/RFC/0011-contract-driven-parquet-schema-adapter.md`
-- `docs/skills/dg-backfill-runbook/SKILL.md`
-- `docs/skills/dg-backfill-runbook/references/backfill-matrix.md`
+- `docs/skills/fleur-dagster-backfill-runbook/SKILL.md`
+- `docs/skills/fleur-dagster-backfill-runbook/references/backfill-matrix.md`
 - `docs/ADR/0005-dagster-owns-clickhouse-raw-sync-dbt-owns-modeling.md`
 
 ## 1. 背景
@@ -29,7 +29,7 @@ Plan 0022 会把 source 层写入 S3 Parquet 的 schema 事实源收敛到 `pipe
    - 快照或无分区资产直接跑。
    - OCR 只处理 10 张图。
 3. 小批量测试失败时，在 `docs/jobs/reports/` 记录带运行日期的报告，包含命令、Run ID、失败现象和修复状态。
-4. 小批量测试全部通过后，再按 `docs/skills/dg-backfill-runbook` 执行全量回填。
+4. 小批量测试全部通过后，再按 `docs/skills/fleur-dagster-backfill-runbook` 执行全量回填。
 
 ## 3. 非目标
 
@@ -338,7 +338,7 @@ UTC time: YYYY-MM-DDTHH:MM:SSZ
 
 只有 Phase 2、Phase 3、Phase 4 全部通过，且 Phase 5 没有未关闭失败项时，才能执行全量回填。
 
-全量回填必须按 `docs/skills/dg-backfill-runbook/SKILL.md` 和 `docs/skills/dg-backfill-runbook/references/backfill-matrix.md` 执行，顺序为：
+全量回填必须按 `docs/skills/fleur-dagster-backfill-runbook/SKILL.md` 和 `docs/skills/fleur-dagster-backfill-runbook/references/backfill-matrix.md` 执行，顺序为：
 
 1. Source snapshot 和基础资产。
 2. Source 年分区资产。

@@ -141,7 +141,7 @@ make docs-check
 git diff --check
 ```
 
-涉及回填或 Dagster 运行时命令时，优先使用 `docs/skills/dg-backfill-runbook/SKILL.md`。
+涉及回填或 Dagster 运行时命令时，优先使用 `docs/skills/fleur-dagster-backfill-runbook/SKILL.md`。
 
 ## 升级规则
 

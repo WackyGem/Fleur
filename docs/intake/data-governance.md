@@ -44,4 +44,4 @@ uv run fleur-contracts generate --check
 uv run python elt/scripts/validate_field_glossary.py
 ```
 
-新增或重写 staging 前，按 [../skills/stg-model-readiness/SKILL.md](../skills/stg-model-readiness/SKILL.md) 维护 raw profile。
+新增或重写 staging 前，按 [../skills/fleur-dbt-model-readiness/SKILL.md](../skills/fleur-dbt-model-readiness/SKILL.md) 维护 raw profile。

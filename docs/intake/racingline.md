@@ -36,7 +36,7 @@
 | 前端 UX、布局、交互和视觉不确定，需要先用可运行页面验证 | [../RFC/0023-racingline-frontend-prototype-led-development.md](../RFC/0023-racingline-frontend-prototype-led-development.md) |
 | 已确定的前端实施阶段 | `docs/plans/` |
 | 前端工程栈、工作区边界或长期 UI 协议变化 | `docs/ADR/` 或 [../systems/racingline.md](../systems/racingline.md) |
-| Playwright CDP agent 调试流程变化 | `docs/skills/playwright-cdp-frontend-debug/SKILL.md` |
+| Playwright CDP agent 调试流程变化 | `docs/skills/fleur-playwright-cdp-debug/SKILL.md` |
 | 需要后端补接口 | 同步关联 [rearview.md](rearview.md) |
 
 ## 验证要求

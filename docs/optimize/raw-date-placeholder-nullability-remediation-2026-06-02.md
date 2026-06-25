@@ -193,7 +193,7 @@ EastMoney 与 JiuYan 的同类字段需要逐项核验 S3 Parquet：
 本计划保留三阶段修复处理。三阶段只表示代码、contract、raw sync 和 profiling
 能力已经修好；不能单独作为完成标准。真正完成必须再执行第 8 节的生产数据闭环：
 受影响数据从 S3 Parquet 全部分区重刷到 ClickHouse raw，验证真实 raw 数据已经恢复
-`NULL` 语义，再按 `stg-model-readiness` 重新完成数据特征分析。
+`NULL` 语义，再按 `fleur-dbt-model-readiness` 重新完成数据特征分析。
 
 ### Phase 0: 事实核验
 
@@ -256,7 +256,7 @@ snapshot 表重跑一次 raw sync；year 分区表必须重跑全部已有年份
 | `jiuyan__action_field_compacted` | `key:clickhouse/raw/jiuyan__action_field_compacted` | year | 重跑全部已有 year 分区 |
 | `jiuyan__industry_list` | `key:clickhouse/raw/jiuyan__industry_list` | snapshot | 重跑 snapshot raw sync |
 
-执行前按 `docs/skills/dg-backfill-runbook/SKILL.md` 初始化 Dagster 环境：
+执行前按 `docs/skills/fleur-dagster-backfill-runbook/SKILL.md` 初始化 Dagster 环境：
 
 ```bash
 set -a
@@ -339,9 +339,9 @@ ORDER BY year;
 - [ ] `uv run fleur-contracts validate-clickhouse --all-available` 通过。
 - [ ] 每个重刷命令、partition、Dagster run id、成功 / 失败状态和最终计数写入 `docs/jobs/reports/`。
 
-### 8.3 重新执行 stg-model-readiness 数据特征分析
+### 8.3 重新执行 fleur-dbt-model-readiness 数据特征分析
 
-真实 raw 数据验证通过后，必须按 `docs/skills/stg-model-readiness/SKILL.md` 对 affected
+真实 raw 数据验证通过后，必须按 `docs/skills/fleur-dbt-model-readiness/SKILL.md` 对 affected
 datasets 重新走一遍 raw source profiling。目标不是写 staging model，而是用修复后的 raw
 事实重新生成 staging 前置分析输入。
 
@@ -367,7 +367,7 @@ uv run python elt/scripts/profile_raw_source.py \
 
 - [ ] 第 8.1 节全部 affected raw assets 已从 S3 Parquet 全量重刷到 ClickHouse raw。
 - [ ] 第 8.2 节真实 ClickHouse raw 数据验证全部通过。
-- [ ] 第 8.3 节 affected `docs/references/raw_profile/*.md` 已按 `stg-model-readiness` 重新生成。
+- [ ] 第 8.3 节 affected `docs/references/raw_profile/*.md` 已按 `fleur-dbt-model-readiness` 重新生成。
 - [ ] 修复前后 NULL / `1970-01-01` 计数变化、重刷范围、run id 和 profiling 命令写入 `docs/jobs/reports/`。
 - [ ] 本文档状态更新为 `Completed`，或创建链接到本文档的完成报告并在本文档中标注完成报告路径。
 
@@ -400,4 +400,4 @@ git diff --check -- docs/optimize docs/references/raw_profile
 - 不允许 raw profile 把通用占位日期提醒写成实际数据问题。
 - 不允许在没有 S3 Parquet 核验的情况下断言问题一定来自源端或 ClickHouse。
 - 不允许只重刷 smoke 分区后宣告完成；year 分区表必须重刷全部已有分区。
-- 不允许跳过修复后的 `stg-model-readiness` 数据特征分析。
+- 不允许跳过修复后的 `fleur-dbt-model-readiness` 数据特征分析。
