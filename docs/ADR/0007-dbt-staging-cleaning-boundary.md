@@ -73,7 +73,7 @@ dbt staging 最适合作为 source-conformed 的第一层转换：从一个 sour
 ## 关联
 
 - `docs/ADR/0005-dagster-owns-clickhouse-raw-sync-dbt-owns-modeling.md`
-- `docs/RFC/0012-dbt-field-glossary-and-raw-source-governance.md`
+- `docs/RFC/archive/0012-dbt-field-glossary-and-raw-source-governance.md`
 - `docs/plans/archive/0024-dbt-field-glossary-and-raw-source-governance-implementation-plan.md`
 - `pipeline/elt/metadata/field_glossary.yml`
 - `pipeline/elt/scripts/validate_field_glossary.py`

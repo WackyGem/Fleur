@@ -18,11 +18,11 @@
 
 关联文档：
 
-- [RFC 0028: Racingline 策略回测 Step 5 异步执行方案](../../RFC/0028-racingline-strategy-backtest-step5.md)
-- [RFC 0027: Racingline 模拟建仓 Step 4 实现方案](../../RFC/0027-racingline-strategy-simulation-position-step4.md)
-- [RFC 0026: Racingline 股池预览 Step 3 实现方案](../../RFC/0026-racingline-strategy-pool-preview-step3.md)
-- [RFC 0022: 组合数据面迁移 ClickHouse 与绩效指标分层](../../RFC/0022-portfolio-data-plane-clickhouse-and-metrics.md)
-- [RFC 0021: Racingline 虚拟账户与组合调仓净值](../../RFC/0021-racingline-virtual-account-portfolio-rebalancing.md)
+- [RFC 0028: Racingline 策略回测 Step 5 异步执行方案](../../RFC/archive/0028-racingline-strategy-backtest-step5.md)
+- [RFC 0027: Racingline 模拟建仓 Step 4 实现方案](../../RFC/archive/0027-racingline-strategy-simulation-position-step4.md)
+- [RFC 0026: Racingline 股池预览 Step 3 实现方案](../../RFC/archive/0026-racingline-strategy-pool-preview-step3.md)
+- [RFC 0022: 组合数据面迁移 ClickHouse 与绩效指标分层](../../RFC/archive/0022-portfolio-data-plane-clickhouse-and-metrics.md)
+- [RFC 0021: Racingline 虚拟账户与组合调仓净值](../../RFC/archive/0021-racingline-virtual-account-portfolio-rebalancing.md)
 - [ADR 0012: 组合净值递推与绩效指标权威计算留在 Rust](../../ADR/0012-portfolio-nav-recursion-stays-in-rust.md)
 - [System: Racingline](../../systems/racingline.md)
 - [System: Rearview](../../systems/rearview.md)

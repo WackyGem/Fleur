@@ -4,7 +4,7 @@
 
 关联 RFC：
 
-- `docs/RFC/0001-market-data-ingestion.md`
+- `docs/RFC/archive/0001-market-data-ingestion.md`
 
 参考资料：
 

@@ -1,6 +1,6 @@
 # RFC 0025: Racingline 策略权重配置 Step 2 实现方案
 
-状态：Implemented（2026-06-22）
+状态：Archived（2026-06-25；归档前状态：Implemented（2026-06-22））
 领域：racingline, rearview
 关联系统：racingline, rearview
 代码根：app/racingline_new/, app/racingline/, engines/crates/rearview-core/
@@ -37,7 +37,7 @@ Step 2 权重配置
 
 `docs/Q&A/0004-racingline-prototype-dashboard-to-strategy-loop.md` 定义了 `/strategies` 的完整路径：策略选股、权重配置、股池预览、模拟建仓、策略回测和运行策略。
 
-`docs/RFC/0024-racingline-strategy-selection-step1.md` 和 `docs/jobs/reports/2026-06-21-racingline-strategy-step1-gap-closure.md` 已完成 Step 1：
+`docs/RFC/archive/0024-racingline-strategy-selection-step1.md` 和 `docs/jobs/reports/2026-06-21-racingline-strategy-step1-gap-closure.md` 已完成 Step 1：
 
 - `app/racingline_new` 已接入真实 Rearview metric catalog。
 - Step 1 已能生成 `RuleVersionSpec.pool_filters`。
@@ -536,12 +536,12 @@ playwright-cli attach --cdp="${PLAYWRIGHT_CDP_ENDPOINT:-http://127.0.0.1:9222}"
 
 ## 相关文档
 
-- [Q&A 0004: Racingline 原型看板到策略创建闭环用户故事](../Q&A/0004-racingline-prototype-dashboard-to-strategy-loop.md)
+- [Q&A 0004: Racingline 原型看板到策略创建闭环用户故事](../../Q&A/0004-racingline-prototype-dashboard-to-strategy-loop.md)
 - [RFC 0023: Racingline 前端原型驱动开发流程](0023-racingline-frontend-prototype-led-development.md)
 - [RFC 0024: Racingline 策略选股 Step 1 实现切入方案](0024-racingline-strategy-selection-step1.md)
-- [Plan 0045: Racingline 策略选股 Step 1 缺口填补实施计划](../plans/archive/0045-racingline-strategy-selection-step1-gap-closure-plan.md)
-- [Racingline Strategy Step 1 Gap Closure 报告](../jobs/reports/2026-06-21-racingline-strategy-step1-gap-closure.md)
-- [Plan 0046: Racingline 策略权重配置 Step 2 实施计划](../plans/archive/0046-racingline-strategy-weight-configuration-step2-implementation-plan.md)
-- [Racingline Strategy Step 2 Preview Implementation 报告](../jobs/reports/2026-06-22-racingline-strategy-step2-preview.md)
-- [System: Racingline](../systems/racingline.md)
-- [System: Rearview](../systems/rearview.md)
+- [Plan 0045: Racingline 策略选股 Step 1 缺口填补实施计划](../../plans/archive/0045-racingline-strategy-selection-step1-gap-closure-plan.md)
+- [Racingline Strategy Step 1 Gap Closure 报告](../../jobs/reports/2026-06-21-racingline-strategy-step1-gap-closure.md)
+- [Plan 0046: Racingline 策略权重配置 Step 2 实施计划](../../plans/archive/0046-racingline-strategy-weight-configuration-step2-implementation-plan.md)
+- [Racingline Strategy Step 2 Preview Implementation 报告](../../jobs/reports/2026-06-22-racingline-strategy-step2-preview.md)
+- [System: Racingline](../../systems/racingline.md)
+- [System: Rearview](../../systems/rearview.md)

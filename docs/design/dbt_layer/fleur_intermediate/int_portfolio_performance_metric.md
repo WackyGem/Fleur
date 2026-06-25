@@ -6,7 +6,7 @@
 
 - Portfolio source：`source('fleur_portfolio', 'portfolio_run_snapshot')`
 - Calculation source：`source('fleur_calculation', 'calc_portfolio_performance_metric')`
-- 组合数据平面 RFC：`docs/RFC/0022-portfolio-data-plane-clickhouse-and-metrics.md`
+- 组合数据平面 RFC：`docs/RFC/archive/0022-portfolio-data-plane-clickhouse-and-metrics.md`
 - 目标 SQL：`pipeline/elt/models/intermediate/int_portfolio_performance_metric.sql`
 - 目标 YAML：`pipeline/elt/models/intermediate/int_portfolio_performance_metric.yml`
 

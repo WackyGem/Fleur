@@ -6,13 +6,13 @@
 
 关联 RFC：
 
-- `docs/RFC/0006-pipeline-code-quality-and-reusability.md`
+- `docs/RFC/archive/0006-pipeline-code-quality-and-reusability.md`
 
 参考资料：
 
 - `docs/plans/0006-scheduler-engineering-quality-assessment-and-optimization.md`
 - `docs/plans/0007-scheduler-rfc0005-refactor-implementation.md`
-- `docs/RFC/0005-scheduler-resource-refactor-and-trade-date-backfill.md`
+- `docs/RFC/archive/0005-scheduler-resource-refactor-and-trade-date-backfill.md`
 - `docs/ADR/0001-market-data-raw-assets-on-dagster.md`
 - `docs/ADR/0002-s3-parquet-storage-layout.md`
 - `docs/ADR/0003-trade-calendar-driven-market-schedules.md`

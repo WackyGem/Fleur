@@ -21,7 +21,7 @@
 ## 目标
 
 1. 按 [ADR 0011](../../ADR/0011-racingline-frontend-technology-stack.md) 搭建 `app/racingline/` 独立前端 package，不引入 `app/` 顶层 workspace 管理器。
-2. 实现 [RFC 0019](../../RFC/0019-racingline-rearview-frontend-workbench.md) 定义的第一版页面：运行看板、运行详情与结果页、规则工作台和指标目录。
+2. 实现 [RFC 0019](../../RFC/archive/0019-racingline-rearview-frontend-workbench.md) 定义的第一版页面：运行看板、运行详情与结果页、规则工作台和指标目录。
 3. 建立可维护的前端工程分层：API client、类型模型、query hooks、路由、页面、feature components、设计令牌、状态管理和错误处理。
 4. 完成 Rearview API 联调，覆盖已存在接口、需增强接口和需补齐接口的验收边界。
 5. 以 Playwright CDP 浏览器环境作为第一版验收主证据链，记录交互过程、截图、console、network 和响应式结果。
@@ -505,7 +505,7 @@ playwright-cli attach --cdp="${PLAYWRIGHT_CDP_ENDPOINT:-http://127.0.0.1:9222}"
 4. CDP 验收截图目录，建议使用 `docs/references/screenshots/racingline/YYYY-MM-DD/`
 5. CDP 验收截图清单，随 acceptance report 记录每张截图对应步骤、视口、URL 和结论
 6. `docs/systems/racingline.md` 实现后命令更新
-7. 如接口协议变化，更新 `docs/RFC/0019-racingline-rearview-frontend-workbench.md`
+7. 如接口协议变化，更新 `docs/RFC/archive/0019-racingline-rearview-frontend-workbench.md`
 8. 如技术栈变化，更新 `docs/ADR/0011-racingline-frontend-technology-stack.md`
 
 ## CDP 验收报告模板

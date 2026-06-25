@@ -24,7 +24,7 @@
 - `docs/ADR/0005-dagster-owns-clickhouse-raw-sync-dbt-owns-modeling.md`
 - `docs/ADR/0007-dbt-staging-cleaning-boundary.md`
 - `docs/ADR/0009-clickhouse-layered-databases.md`
-- `docs/RFC/0014-clickhouse-layered-database-migration.md`
+- `docs/RFC/archive/0014-clickhouse-layered-database-migration.md`
 - `docs/skills/dg-backfill-runbook/SKILL.md`
 - `pipeline/contracts/README.md`
 - `pipeline/scheduler/src/scheduler/defs/clickhouse/raw_sync.py`

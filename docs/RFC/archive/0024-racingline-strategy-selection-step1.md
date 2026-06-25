@@ -1,6 +1,6 @@
 # RFC 0024: Racingline 策略选股 Step 1 实现切入方案
 
-状态：Proposed（2026-06-20）
+状态：Archived（2026-06-25；归档前状态：Proposed（2026-06-20））
 领域：racingline, rearview
 关联系统：racingline, rearview
 代码根：app/racingline_new/, app/racingline/, engines/crates/rearview-core/
@@ -176,7 +176,7 @@ StrategyConditionGroup[]
 | 指标与指标比较 | `Operand.metric` + `Operand.metric` |
 | 区间比较 | `Operator.between` + `Operand.range` |
 
-组内同时存在 AND 和 OR 时，第一阶段必须支持混排，不允许降级为统一 AND 或统一 OR。实施计划以 [Plan 0045](../plans/archive/0045-racingline-strategy-selection-step1-gap-closure-plan.md) 的阶段 6 为准：
+组内同时存在 AND 和 OR 时，第一阶段必须支持混排，不允许降级为统一 AND 或统一 OR。实施计划以 [Plan 0045](../../plans/archive/0045-racingline-strategy-selection-step1-gap-closure-plan.md) 的阶段 6 为准：
 
 1. `AND` 高于 `OR`。
 2. 按连续 AND segment 生成 nested `all` / `any`。
@@ -574,11 +574,11 @@ playwright-cli attach --cdp="${PLAYWRIGHT_CDP_ENDPOINT:-http://127.0.0.1:9222}"
 
 ## 相关文档
 
-- [用户逻辑：Racingline 策略研究工作台](../Q&A/user-logic.md)
-- [Q&A 0004: Racingline 原型看板到策略创建闭环用户故事](../Q&A/0004-racingline-prototype-dashboard-to-strategy-loop.md)
+- [用户逻辑：Racingline 策略研究工作台](../../Q&A/user-logic.md)
+- [Q&A 0004: Racingline 原型看板到策略创建闭环用户故事](../../Q&A/0004-racingline-prototype-dashboard-to-strategy-loop.md)
 - [RFC 0018: Rust Rearview 规则选股服务与 mart 指标库](0018-rust-stock-screening-service.md)
 - [RFC 0019: Racingline Rearview 前端工作台](0019-racingline-rearview-frontend-workbench.md)
 - [RFC 0023: Racingline 前端原型驱动开发流程](0023-racingline-frontend-prototype-led-development.md)
-- [Plan 0045: Racingline 策略选股 Step 1 缺口填补实施计划](../plans/archive/0045-racingline-strategy-selection-step1-gap-closure-plan.md)
-- [System: Racingline](../systems/racingline.md)
-- [System: Rearview](../systems/rearview.md)
+- [Plan 0045: Racingline 策略选股 Step 1 缺口填补实施计划](../../plans/archive/0045-racingline-strategy-selection-step1-gap-closure-plan.md)
+- [System: Racingline](../../systems/racingline.md)
+- [System: Rearview](../../systems/rearview.md)

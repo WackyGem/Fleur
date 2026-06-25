@@ -7,7 +7,7 @@
 关联文档：
 
 - `docs/plans/archive/0022-contract-driven-parquet-schema-adapter-implementation-plan.md`
-- `docs/RFC/0011-contract-driven-parquet-schema-adapter.md`
+- `docs/RFC/archive/0011-contract-driven-parquet-schema-adapter.md`
 - `docs/skills/fleur-dagster-backfill-runbook/SKILL.md`
 - `docs/skills/fleur-dagster-backfill-runbook/references/backfill-matrix.md`
 - `docs/ADR/0005-dagster-owns-clickhouse-raw-sync-dbt-owns-modeling.md`

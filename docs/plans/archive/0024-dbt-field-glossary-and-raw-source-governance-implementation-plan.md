@@ -12,10 +12,10 @@
 
 关联文档：
 
-- `docs/RFC/0012-dbt-field-glossary-and-raw-source-governance.md`
+- `docs/RFC/archive/0012-dbt-field-glossary-and-raw-source-governance.md`
 - `docs/ADR/0005-dagster-owns-clickhouse-raw-sync-dbt-owns-modeling.md`
-- `docs/RFC/0010-data-contract-registry-and-contract-tools.md`
-- `docs/RFC/0011-contract-driven-parquet-schema-adapter.md`
+- `docs/RFC/archive/0010-data-contract-registry-and-contract-tools.md`
+- `docs/RFC/archive/0011-contract-driven-parquet-schema-adapter.md`
 - `docs/plans/archive/0021-contract-scope-raw-layer-cleanup-plan.md`
 - `docs/plans/archive/0022-contract-driven-parquet-schema-adapter-implementation-plan.md`
 - `docs/skills/fleur-contract-data-dictionary/SKILL.md`

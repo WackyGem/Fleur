@@ -4,8 +4,8 @@
 
 关联设计文档：
 
-- `docs/RFC/0009-dagster-clickhouse-raw-sync.md`
-- `docs/RFC/0007-dbt-raw-layer-and-dagster-dbt-integration.md`
+- `docs/RFC/archive/0009-dagster-clickhouse-raw-sync.md`
+- `docs/RFC/archive/0007-dbt-raw-layer-and-dagster-dbt-integration.md`
 - `docs/ADR/0002-s3-parquet-storage-layout.md`
 - `docs/ADR/0005-dagster-owns-clickhouse-raw-sync-dbt-owns-modeling.md`
 - `docs/ADR/0006-clickhouse-python-client-selection.md`

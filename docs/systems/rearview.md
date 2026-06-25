@@ -103,15 +103,15 @@ uv run alembic upgrade head
 | 文档 | 用途 |
 |---|---|
 | [../../engines/README.md](../../engines/README.md) | Rust engines 工作区地图和 Rearview HTTP API 入口 |
-| [../RFC/0018-rust-stock-screening-service.md](../RFC/0018-rust-stock-screening-service.md) | Rearview 后端服务设计 |
-| [../RFC/0019-racingline-rearview-frontend-workbench.md](../RFC/0019-racingline-rearview-frontend-workbench.md) | Racingline 前端工作台设计 |
-| [../RFC/0020-racingline-run-result-security-analysis-page.md](../RFC/0020-racingline-run-result-security-analysis-page.md) | Run result 个股分析页已实现 RFC |
-| [../RFC/0021-racingline-virtual-account-portfolio-rebalancing.md](../RFC/0021-racingline-virtual-account-portfolio-rebalancing.md) | 虚拟账户、NATS 分发、`rearview-server` / `rearview-portfolio-worker` crate 拆分和组合净值计算 Proposed RFC |
-| [../RFC/0024-racingline-strategy-selection-step1.md](../RFC/0024-racingline-strategy-selection-step1.md) | 从 `/strategies` Step 1 接通 metric catalog、RuleVersionSpec、crossing operator 和 explain 的 Proposed RFC |
-| [../RFC/0025-racingline-strategy-weight-configuration-step2.md](../RFC/0025-racingline-strategy-weight-configuration-step2.md) | 从 `/strategies` Step 2 接通 `RuleVersionSpec.scoring.rules`，并定义点击股池预览时才执行选股、评分和排名的 Implemented RFC |
-| [../RFC/0026-racingline-strategy-pool-preview-step3.md](../RFC/0026-racingline-strategy-pool-preview-step3.md) | 从 `/strategies` Step 3 股池预览切入，定义 preview snapshot、全池分页、证券显示和 preview-only 个股上下文的 Implemented RFC |
-| [../RFC/0027-racingline-strategy-simulation-position-step4.md](../RFC/0027-racingline-strategy-simulation-position-step4.md) | `/strategies` Step 4 模拟建仓、BacktestExecutionDraft 和 Step 5 handoff 边界 |
-| [../RFC/0028-racingline-strategy-backtest-step5.md](../RFC/0028-racingline-strategy-backtest-step5.md) | `/strategies` Step 5 策略回测异步执行、backtest run control plane、NATS worker 和组合绩效指标已实现 RFC |
+| [../RFC/archive/0018-rust-stock-screening-service.md](../RFC/archive/0018-rust-stock-screening-service.md) | Rearview 后端服务设计 |
+| [../RFC/archive/0019-racingline-rearview-frontend-workbench.md](../RFC/archive/0019-racingline-rearview-frontend-workbench.md) | Racingline 前端工作台设计 |
+| [../RFC/archive/0020-racingline-run-result-security-analysis-page.md](../RFC/archive/0020-racingline-run-result-security-analysis-page.md) | Run result 个股分析页已实现 RFC |
+| [../RFC/archive/0021-racingline-virtual-account-portfolio-rebalancing.md](../RFC/archive/0021-racingline-virtual-account-portfolio-rebalancing.md) | 虚拟账户、NATS 分发、`rearview-server` / `rearview-portfolio-worker` crate 拆分和组合净值计算 Proposed RFC |
+| [../RFC/archive/0024-racingline-strategy-selection-step1.md](../RFC/archive/0024-racingline-strategy-selection-step1.md) | 从 `/strategies` Step 1 接通 metric catalog、RuleVersionSpec、crossing operator 和 explain 的 Proposed RFC |
+| [../RFC/archive/0025-racingline-strategy-weight-configuration-step2.md](../RFC/archive/0025-racingline-strategy-weight-configuration-step2.md) | 从 `/strategies` Step 2 接通 `RuleVersionSpec.scoring.rules`，并定义点击股池预览时才执行选股、评分和排名的 Implemented RFC |
+| [../RFC/archive/0026-racingline-strategy-pool-preview-step3.md](../RFC/archive/0026-racingline-strategy-pool-preview-step3.md) | 从 `/strategies` Step 3 股池预览切入，定义 preview snapshot、全池分页、证券显示和 preview-only 个股上下文的 Implemented RFC |
+| [../RFC/archive/0027-racingline-strategy-simulation-position-step4.md](../RFC/archive/0027-racingline-strategy-simulation-position-step4.md) | `/strategies` Step 4 模拟建仓、BacktestExecutionDraft 和 Step 5 handoff 边界 |
+| [../RFC/archive/0028-racingline-strategy-backtest-step5.md](../RFC/archive/0028-racingline-strategy-backtest-step5.md) | `/strategies` Step 5 策略回测异步执行、backtest run control plane、NATS worker 和组合绩效指标已实现 RFC |
 | [../plans/archive/0051-racingline-strategy-backtest-step5-implementation-plan.md](../plans/archive/0051-racingline-strategy-backtest-step5-implementation-plan.md) | Step 5 strategy backtest control plane、typed outbox、worker transient signal materialization、result wrapper 和 live smoke 已完成计划 |
 | [../jobs/reports/2026-06-23-racingline-strategy-step5-backtest.md](../jobs/reports/2026-06-23-racingline-strategy-step5-backtest.md) | Step 5 默认动态近一年、period/benchmark rerun、wrapper API、ClickHouse/PG 和 worker 重投递验收报告 |
 | [../plans/archive/0041-racingline-virtual-account-portfolio-rebalancing-implementation-plan.md](../plans/archive/0041-racingline-virtual-account-portfolio-rebalancing-implementation-plan.md) | 虚拟账户、组合运行、worker 和旧 Racingline 组合页面 Superseded 计划 |

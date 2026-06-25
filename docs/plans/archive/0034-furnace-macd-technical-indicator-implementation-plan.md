@@ -12,7 +12,7 @@
 
 关联文档：
 
-- `docs/RFC/0016-rust-furnace-compute-engine.md`
+- `docs/RFC/archive/0016-rust-furnace-compute-engine.md`
 - `docs/plans/archive/0035-stock-technical-indicator-marts-implementation-plan.md`
 - `docs/plans/archive/0027-furnace-rsv-kdj-technical-indicators-implementation-plan.md`
 - `docs/plans/archive/0028-furnace-kdj-parallel-performance-implementation-plan.md`

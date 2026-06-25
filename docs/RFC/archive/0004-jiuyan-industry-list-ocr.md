@@ -42,7 +42,7 @@ jiuyan__industry_ocr
 ```text
 docs/references/remote_endpoint/jiuyan__industry_list.md
 docs/references/openapi/jiuyan__industry_list.yaml
-docs/RFC/0003-http-resource-market-event-ingestion.md
+docs/RFC/archive/0003-http-resource-market-event-ingestion.md
 ```
 
 OCR 接口和样例图片：

@@ -4,7 +4,7 @@
 日期：2026-06-22
 领域：racingline, rearview, dbt-marts
 关联代码：`app/racingline_new/`, `engines/crates/rearview-core/`, `pipeline/elt/models/marts/mart_stock_basic_snapshot.sql`
-关联设计：`docs/RFC/0026-racingline-strategy-pool-preview-step3.md`, `docs/debt/archive/0004-2026-06-22-strategies-step3-implemennt-drift.md`, `docs/plans/archive/0048-racingline-strategy-step3-drift-remediation-plan.md`
+关联设计：`docs/RFC/archive/0026-racingline-strategy-pool-preview-step3.md`, `docs/debt/archive/0004-2026-06-22-strategies-step3-implemennt-drift.md`, `docs/plans/archive/0048-racingline-strategy-step3-drift-remediation-plan.md`
 
 ## 摘要
 
@@ -431,7 +431,7 @@ uv run python elt/scripts/validate_field_glossary.py
 
 实施已同步更新：
 
-1. `docs/RFC/0026-racingline-strategy-pool-preview-step3.md`：修正 Step 3 允许权重微调的边界。
+1. `docs/RFC/archive/0026-racingline-strategy-pool-preview-step3.md`：修正 Step 3 允许权重微调的边界。
 2. `docs/systems/racingline.md`：加入 Step 3 板块、量柱、动态窗口和权重微调事实。
 3. `docs/systems/rearview.md`：如新增 `security_board` 或 `include_quote_rows` contract，同步 API 事实。
 4. `docs/design/dbt_layer/fleur_marts/mart_stock_basic_snapshot.md`：记录 `security_board` 字段。

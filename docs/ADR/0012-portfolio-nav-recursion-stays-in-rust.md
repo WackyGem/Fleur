@@ -59,5 +59,5 @@ Q&A 0001 决定把组合结果事实从 PostgreSQL 迁移到 ClickHouse portfoli
 - [Q&A 0001: PostgreSQL Control Plane 与 ClickHouse Portfolio Data Plane](../Q&A/0001-postgresql-control-plane-clickhouse-portfolio-data-plane.md)
 - [Q&A 0002: Portfolio Metrics 基础数据缺口](../Q&A/0002-portfolio-metrics.md)
 - [ADR 0009: ClickHouse 按 dbt 建模层分库](0009-clickhouse-layered-databases.md)
-- [RFC 0021: Racingline 虚拟账户与组合调仓净值](../RFC/0021-racingline-virtual-account-portfolio-rebalancing.md)
+- [RFC 0021: Racingline 虚拟账户与组合调仓净值](../RFC/archive/0021-racingline-virtual-account-portfolio-rebalancing.md)
 - [engines/crates/rearview-core/src/portfolio/mod.rs](../../engines/crates/rearview-core/src/portfolio/mod.rs)

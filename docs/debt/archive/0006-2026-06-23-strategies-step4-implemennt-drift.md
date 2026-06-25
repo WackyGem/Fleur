@@ -4,7 +4,7 @@
 日期：2026-06-23
 领域：racingline, rearview
 关联代码：`app/racingline_new/`, `engines/crates/rearview-core/`, `engines/crates/rearview-portfolio-worker/`
-关联设计：`docs/RFC/0027-racingline-strategy-simulation-position-step4.md`, `docs/plans/archive/0050-racingline-strategy-simulation-position-step4-implementation-plan.md`
+关联设计：`docs/RFC/archive/0027-racingline-strategy-simulation-position-step4.md`, `docs/plans/archive/0050-racingline-strategy-simulation-position-step4-implementation-plan.md`
 关联报告：`docs/jobs/reports/2026-06-23-racingline-strategy-step4-draft-handoff.md`, `docs/jobs/reports/2026-06-23-racingline-strategy-step4-drift-remediation.md`
 
 ## 摘要

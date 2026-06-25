@@ -6,7 +6,7 @@
 
 关联文档：
 
-- [RFC 0022: 组合数据面迁移 ClickHouse 与绩效指标分层](../../RFC/0022-portfolio-data-plane-clickhouse-and-metrics.md)
+- [RFC 0022: 组合数据面迁移 ClickHouse 与绩效指标分层](../../RFC/archive/0022-portfolio-data-plane-clickhouse-and-metrics.md)
 - [Q&A 0001: PostgreSQL Control Plane 与 ClickHouse Portfolio Data Plane](../../Q&A/0001-postgresql-control-plane-clickhouse-portfolio-data-plane.md)
 - [ADR 0012: 组合净值递推留在 Rust，指标复算上 ClickHouse mart](../../ADR/0012-portfolio-nav-recursion-stays-in-rust.md)
 - [ADR 0009: ClickHouse 按 dbt 建模层分库](../../ADR/0009-clickhouse-layered-databases.md)

@@ -13,7 +13,7 @@
 - `docs/design/README.md`
 - `docs/design/dbt_layer/fleur_marts/mart_stock_quotes_daily.md`
 - `docs/Q&A/int-layer-indicators-2026-06-10.md`
-- `docs/RFC/0016-rust-furnace-compute-engine.md`
+- `docs/RFC/archive/0016-rust-furnace-compute-engine.md`
 - `docs/plans/archive/0034-furnace-macd-technical-indicator-implementation-plan.md`
 - `docs/plans/archive/0027-furnace-rsv-kdj-technical-indicators-implementation-plan.md`
 - `docs/plans/archive/0029-furnace-moving-average-technical-indicators-implementation-plan.md`

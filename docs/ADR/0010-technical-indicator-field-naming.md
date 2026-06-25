@@ -35,6 +35,6 @@ Furnace 技术指标逐步覆盖 KDJ、MA、RSI、BOLL 和价格行为结构。M
 
 ## 关联文档
 
-- `docs/RFC/0017-furnace-moving-average-technical-indicators.md`
+- `docs/RFC/archive/0017-furnace-moving-average-technical-indicators.md`
 - `docs/plans/archive/0029-furnace-moving-average-technical-indicators-implementation-plan.md`
 - `docs/jobs/reports/2026-06-08-furnace-ma-full-market-parallel-validation.md`

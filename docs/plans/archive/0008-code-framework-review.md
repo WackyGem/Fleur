@@ -5,7 +5,7 @@
 关联计划：
 
 - `docs/plans/0008-pipeline-rfc0006-quality-reusability-implementation.md`
-- `docs/RFC/0006-pipeline-code-quality-and-reusability.md`
+- `docs/RFC/archive/0006-pipeline-code-quality-and-reusability.md`
 
 ## Review 结论
 

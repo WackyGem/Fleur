@@ -1,6 +1,6 @@
 # RFC 0017: Furnace Moving Average 日线技术指标需求
 
-状态：草案 / 原始需求（2026-06-08）
+状态：Archived（2026-06-25；归档前状态：草案 / 原始需求（2026-06-08））
 
 ## 摘要
 
@@ -512,7 +512,7 @@ RFC 后续实施完成时应满足：
 
 ## 相关文档
 
-- `docs/RFC/0016-rust-furnace-compute-engine.md`
+- `docs/RFC/archive/0016-rust-furnace-compute-engine.md`
 - `docs/plans/archive/0027-furnace-rsv-kdj-technical-indicators-implementation-plan.md`
 - `docs/plans/archive/0028-furnace-kdj-parallel-performance-implementation-plan.md`
 - `engines/README.md`

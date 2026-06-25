@@ -1,6 +1,6 @@
 # RFC 0018: Rust Rearview 规则选股服务与 mart 指标库
 
-状态：草案 / 构想（2026-06-12）
+状态：Archived（2026-06-25；归档前状态：草案 / 构想（2026-06-12））
 
 ## 摘要
 
@@ -1133,8 +1133,8 @@ RFC 落地后的第一版应满足：
 
 - `docs/ADR/0005-dagster-owns-clickhouse-raw-sync-dbt-owns-modeling.md`
 - `docs/ADR/0009-clickhouse-layered-databases.md`
-- `docs/RFC/0014-clickhouse-layered-database-migration.md`
-- `docs/RFC/0016-rust-furnace-compute-engine.md`
+- `docs/RFC/archive/0014-clickhouse-layered-database-migration.md`
+- `docs/RFC/archive/0016-rust-furnace-compute-engine.md`
 - `engines/README.md`
 - `docs/design/dbt_layer/fleur_marts/mart_stock_quotes_daily.md`
 - `docs/design/dbt_layer/fleur_marts/mart_stock_trend_indicator.md`

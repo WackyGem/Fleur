@@ -8,8 +8,8 @@
 
 - `docs/optimize/archive/scheduler-architecture-quality-optimization.md`
 - `docs/plans/0011-backfill-window-optimization.md`
-- `docs/RFC/0005-scheduler-resource-refactor-and-trade-date-backfill.md`
-- `docs/RFC/0006-pipeline-code-quality-and-reusability.md`
+- `docs/RFC/archive/0005-scheduler-resource-refactor-and-trade-date-backfill.md`
+- `docs/RFC/archive/0006-pipeline-code-quality-and-reusability.md`
 
 参考资料：
 

@@ -6,7 +6,7 @@
 
 关联文档：
 
-- `docs/RFC/0007-dbt-raw-layer-and-dagster-dbt-integration.md`（阶段 1 前置改造）
+- `docs/RFC/archive/0007-dbt-raw-layer-and-dagster-dbt-integration.md`（阶段 1 前置改造）
 - `docs/references/data_dict/*.md`（字段校对文档，逐字段类型定义）
 
 参考资料：

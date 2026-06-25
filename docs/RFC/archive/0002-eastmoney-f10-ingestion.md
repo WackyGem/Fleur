@@ -72,7 +72,7 @@ docs/references/openapi/eastmoney__income_ytd.yaml
 项目内设计约束：
 
 ```text
-docs/RFC/0001-market-data-ingestion.md
+docs/RFC/archive/0001-market-data-ingestion.md
 docs/ADR/0001-market-data-raw-assets-on-dagster.md
 docs/ADR/0002-s3-parquet-storage-layout.md
 docs/ADR/0004-baostock-tcp-client-and-daily-kline-ranges.md

@@ -6,8 +6,8 @@
 
 关联文档：
 
-- [RFC 0025: Racingline 策略权重配置 Step 2 实现方案](../../RFC/0025-racingline-strategy-weight-configuration-step2.md)
-- [RFC 0024: Racingline 策略选股 Step 1 实现切入方案](../../RFC/0024-racingline-strategy-selection-step1.md)
+- [RFC 0025: Racingline 策略权重配置 Step 2 实现方案](../../RFC/archive/0025-racingline-strategy-weight-configuration-step2.md)
+- [RFC 0024: Racingline 策略选股 Step 1 实现切入方案](../../RFC/archive/0024-racingline-strategy-selection-step1.md)
 - [Plan 0045: Racingline 策略选股 Step 1 缺口填补实施计划](0045-racingline-strategy-selection-step1-gap-closure-plan.md)
 - [Racingline Strategy Step 1 Gap Closure 报告](../../jobs/reports/2026-06-21-racingline-strategy-step1-gap-closure.md)
 - [Racingline Strategy Step 2 Preview Implementation 报告](../../jobs/reports/2026-06-22-racingline-strategy-step2-preview.md)

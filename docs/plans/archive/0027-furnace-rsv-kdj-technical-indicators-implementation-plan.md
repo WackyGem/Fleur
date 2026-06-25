@@ -10,9 +10,9 @@
 
 关联文档：
 
-- `docs/RFC/0016-rust-furnace-compute-engine.md`
-- `docs/RFC/0015-dagster-dbt-asset-graph-integration.md`
-- `docs/RFC/0014-clickhouse-layered-database-migration.md`
+- `docs/RFC/archive/0016-rust-furnace-compute-engine.md`
+- `docs/RFC/archive/0015-dagster-dbt-asset-graph-integration.md`
+- `docs/RFC/archive/0014-clickhouse-layered-database-migration.md`
 - `AGENTS.md`
 - Dagster 官方文档：software-defined assets、Dagster Pipes external pipelines、external assets、custom integrations/components、asset jobs/schedules、`MaterializeResult` metadata、`dg check`
 - `engines/README.md`

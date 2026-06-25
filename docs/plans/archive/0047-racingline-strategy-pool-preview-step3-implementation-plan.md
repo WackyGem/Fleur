@@ -6,9 +6,9 @@
 
 关联文档：
 
-- [RFC 0026: Racingline 股池预览 Step 3 实现方案](../../RFC/0026-racingline-strategy-pool-preview-step3.md)
-- [RFC 0025: Racingline 策略权重配置 Step 2 实现方案](../../RFC/0025-racingline-strategy-weight-configuration-step2.md)
-- [RFC 0024: Racingline 策略选股 Step 1 实现切入方案](../../RFC/0024-racingline-strategy-selection-step1.md)
+- [RFC 0026: Racingline 股池预览 Step 3 实现方案](../../RFC/archive/0026-racingline-strategy-pool-preview-step3.md)
+- [RFC 0025: Racingline 策略权重配置 Step 2 实现方案](../../RFC/archive/0025-racingline-strategy-weight-configuration-step2.md)
+- [RFC 0024: Racingline 策略选股 Step 1 实现切入方案](../../RFC/archive/0024-racingline-strategy-selection-step1.md)
 - [Plan 0046: Racingline 策略权重配置 Step 2 实施计划](0046-racingline-strategy-weight-configuration-step2-implementation-plan.md)
 - [Racingline Strategy Step 2 Preview Implementation 报告](../../jobs/reports/2026-06-22-racingline-strategy-step2-preview.md)
 - [Racingline Strategy Step 3 Preview Implementation 报告](../../jobs/reports/2026-06-22-racingline-strategy-step3-preview.md)

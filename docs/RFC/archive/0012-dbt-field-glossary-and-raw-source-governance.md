@@ -69,9 +69,9 @@ source payload
 ## 关联文档
 
 - `docs/ADR/0005-dagster-owns-clickhouse-raw-sync-dbt-owns-modeling.md`
-- `docs/RFC/0009-dagster-clickhouse-raw-sync.md`
-- `docs/RFC/0010-data-contract-registry-and-contract-tools.md`
-- `docs/RFC/0011-contract-driven-parquet-schema-adapter.md`
+- `docs/RFC/archive/0009-dagster-clickhouse-raw-sync.md`
+- `docs/RFC/archive/0010-data-contract-registry-and-contract-tools.md`
+- `docs/RFC/archive/0011-contract-driven-parquet-schema-adapter.md`
 - `docs/plans/archive/0021-contract-scope-raw-layer-cleanup-plan.md`
 - `docs/skills/fleur-contract-data-dictionary/SKILL.md`
 - dbt column properties: https://docs.getdbt.com/reference/resource-properties/columns

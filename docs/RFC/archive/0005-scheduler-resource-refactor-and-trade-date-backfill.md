@@ -53,9 +53,9 @@
 既有 RFC/ADR：
 
 ```text
-docs/RFC/0002-eastmoney-f10-ingestion.md
-docs/RFC/0003-http-resource-market-event-ingestion.md
-docs/RFC/0004-jiuyan-industry-list-ocr.md
+docs/RFC/archive/0002-eastmoney-f10-ingestion.md
+docs/RFC/archive/0003-http-resource-market-event-ingestion.md
+docs/RFC/archive/0004-jiuyan-industry-list-ocr.md
 docs/ADR/0001-market-data-raw-assets-on-dagster.md
 docs/ADR/0002-s3-parquet-storage-layout.md
 docs/ADR/0003-trade-calendar-driven-market-schedules.md

@@ -12,8 +12,8 @@ Superseded note（2026-06-01）：
 
 关联文档：
 
-- `docs/RFC/0011-contract-driven-parquet-schema-adapter.md`
-- `docs/RFC/0010-data-contract-registry-and-contract-tools.md`
+- `docs/RFC/archive/0011-contract-driven-parquet-schema-adapter.md`
+- `docs/RFC/archive/0010-data-contract-registry-and-contract-tools.md`
 - `docs/plans/0021-contract-scope-raw-layer-cleanup-plan.md`
 - `docs/plans/0020-field-type-normalization-debt-remediation-plan.md`
 - `docs/ADR/0005-dagster-owns-clickhouse-raw-sync-dbt-owns-modeling.md`
@@ -101,7 +101,7 @@ pipeline/contracts/datasets/*.yml
 
 范围：
 
-- `docs/RFC/0011-contract-driven-parquet-schema-adapter.md`
+- `docs/RFC/archive/0011-contract-driven-parquet-schema-adapter.md`
 - `pipeline/contracts/datasets/*.yml`
 - `pipeline/scheduler/src/scheduler/defs/**`
 - `pipeline/scheduler/tests/**`

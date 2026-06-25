@@ -1,6 +1,6 @@
 # RFC 0019: Racingline Rearview 前端工作台
 
-状态：Completed（2026-06-13）
+状态：Archived（2026-06-25；归档前状态：Completed（2026-06-13））
 
 ## 摘要
 
@@ -10,7 +10,7 @@
 
 关联后端设计：
 
-- `docs/RFC/0018-rust-stock-screening-service.md`
+- `docs/RFC/archive/0018-rust-stock-screening-service.md`
 - `engines/crates/rearview/src/api/mod.rs`
 
 关联前端技术决策：
@@ -58,7 +58,7 @@ app/racingline/
 
 ## 技术选型
 
-Racingline 第一版前端技术栈和工程边界由 [ADR 0011](../ADR/0011-racingline-frontend-technology-stack.md) 固化。本文档只描述第一版页面、接口和交互范围；后续如果技术栈、包管理、环境变量、shadcn/ui 默认组件维护规则或组件体系变化，应先更新 ADR。
+Racingline 第一版前端技术栈和工程边界由 [ADR 0011](../../ADR/0011-racingline-frontend-technology-stack.md) 固化。本文档只描述第一版页面、接口和交互范围；后续如果技术栈、包管理、环境变量、shadcn/ui 默认组件维护规则或组件体系变化，应先更新 ADR。
 
 ## 环境配置
 

@@ -6,8 +6,8 @@
 
 关联文档：
 
-- [RFC 0024: Racingline 策略选股 Step 1 实现切入方案](../../RFC/0024-racingline-strategy-selection-step1.md)
-- [RFC 0023: Racingline 前端原型驱动开发流程](../../RFC/0023-racingline-frontend-prototype-led-development.md)
+- [RFC 0024: Racingline 策略选股 Step 1 实现切入方案](../../RFC/archive/0024-racingline-strategy-selection-step1.md)
+- [RFC 0023: Racingline 前端原型驱动开发流程](../../RFC/archive/0023-racingline-frontend-prototype-led-development.md)
 - [ADR 0011: Racingline 前端技术栈和工程边界](../../ADR/0011-racingline-frontend-technology-stack.md)
 - [ADR 0013: Racingline UI 栈变体评估](../../ADR/0013-racingline-ui-stack-variant-evaluation.md)
 - [ADR 0010: 技术指标字段命名区分窗口参数和算子重数](../../ADR/0010-technical-indicator-field-naming.md)

@@ -60,7 +60,7 @@ baostock__query_history_k_data_plus_daily
 
 设计来源：
 
-- `docs/RFC/0001-market-data-ingestion.md`
+- `docs/RFC/archive/0001-market-data-ingestion.md`
 - `docs/plans/0002-baostock-aio-tcp-client.md`
 
 ## 后果

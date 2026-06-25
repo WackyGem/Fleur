@@ -4,7 +4,7 @@
 
 关联设计文档：
 
-- `docs/RFC/0009-dagster-clickhouse-raw-sync.md`
+- `docs/RFC/archive/0009-dagster-clickhouse-raw-sync.md`
 - `docs/RFC/archive/0004-jiuyan-industry-list-ocr.md`
 - `docs/plans/archive/0005-jiuyan-industry-list-ocr-implementation.md`
 - `docs/ADR/0002-s3-parquet-storage-layout.md`

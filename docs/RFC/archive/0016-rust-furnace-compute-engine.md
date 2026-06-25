@@ -1,6 +1,6 @@
 # RFC 0016: Furnace Rust 金融指标计算引擎原始需求
 
-状态：草案 / 原始需求（2026-06-07）
+状态：Archived（2026-06-25；归档前状态：草案 / 原始需求（2026-06-07））
 
 ## 摘要
 
@@ -230,6 +230,6 @@ cargo test --workspace
 - `AGENTS.md`
 - `docs/architecture/scheduler-architecture.md`
 - `docs/architecture/scheduler-module-boundaries.md`
-- `docs/RFC/0014-clickhouse-layered-database-migration.md`
-- `docs/RFC/0015-dagster-dbt-asset-graph-integration.md`
+- `docs/RFC/archive/0014-clickhouse-layered-database-migration.md`
+- `docs/RFC/archive/0015-dagster-dbt-asset-graph-integration.md`
 - `docs/skills/fleur-harness/SKILL.md`

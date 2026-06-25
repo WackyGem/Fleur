@@ -8,7 +8,7 @@
 |---|---|
 | [app/racingline/](../../app/racingline/) | Racingline 唯一正式前端工作区，承载 dashboard、`/strategies`、strategy backtest 和 strategy portfolio 页面 |
 
-页面需求以 [RFC 0023](../RFC/0023-racingline-frontend-prototype-led-development.md)、[RFC 0024](../RFC/0024-racingline-strategy-selection-step1.md)、[RFC 0025](../RFC/0025-racingline-strategy-weight-configuration-step2.md)、[RFC 0026](../RFC/0026-racingline-strategy-pool-preview-step3.md)、[RFC 0027](../RFC/0027-racingline-strategy-simulation-position-step4.md)、[RFC 0028](../RFC/0028-racingline-strategy-backtest-step5.md) 和 [RFC 0029](../RFC/0029-racingline-strategy-portfolio-publish-and-daily-run.md) 为准；工程边界以 [ADR 0011](../ADR/0011-racingline-frontend-technology-stack.md) 和 [ADR 0013](../ADR/0013-racingline-ui-stack-variant-evaluation.md) 为准。
+页面历史设计可追溯 [RFC 0023](../RFC/archive/0023-racingline-frontend-prototype-led-development.md)、[RFC 0024](../RFC/archive/0024-racingline-strategy-selection-step1.md)、[RFC 0025](../RFC/archive/0025-racingline-strategy-weight-configuration-step2.md)、[RFC 0026](../RFC/archive/0026-racingline-strategy-pool-preview-step3.md)、[RFC 0027](../RFC/archive/0027-racingline-strategy-simulation-position-step4.md)、[RFC 0028](../RFC/archive/0028-racingline-strategy-backtest-step5.md) 和 [RFC 0029](../RFC/archive/0029-racingline-strategy-portfolio-publish-and-daily-run.md)；工程边界以 [ADR 0011](../ADR/0011-racingline-frontend-technology-stack.md) 和 [ADR 0013](../ADR/0013-racingline-ui-stack-variant-evaluation.md) 为准。
 
 ## 职责
 
@@ -91,12 +91,12 @@ npm run build
 |---|---|
 | [../ADR/0011-racingline-frontend-technology-stack.md](../ADR/0011-racingline-frontend-technology-stack.md) | 基础前端工程边界 |
 | [../ADR/0013-racingline-ui-stack-variant-evaluation.md](../ADR/0013-racingline-ui-stack-variant-evaluation.md) | 当前 Racingline UI 栈决策 |
-| [../RFC/0023-racingline-frontend-prototype-led-development.md](../RFC/0023-racingline-frontend-prototype-led-development.md) | 前端原型/正式替换流程 |
-| [../RFC/0024-racingline-strategy-selection-step1.md](../RFC/0024-racingline-strategy-selection-step1.md) | Step 1 策略选股 |
-| [../RFC/0025-racingline-strategy-weight-configuration-step2.md](../RFC/0025-racingline-strategy-weight-configuration-step2.md) | Step 2 权重配置 |
-| [../RFC/0026-racingline-strategy-pool-preview-step3.md](../RFC/0026-racingline-strategy-pool-preview-step3.md) | Step 3 股池预览 |
-| [../RFC/0027-racingline-strategy-simulation-position-step4.md](../RFC/0027-racingline-strategy-simulation-position-step4.md) | Step 4 模拟建仓 |
-| [../RFC/0028-racingline-strategy-backtest-step5.md](../RFC/0028-racingline-strategy-backtest-step5.md) | Step 5 异步回测 |
-| [../RFC/0029-racingline-strategy-portfolio-publish-and-daily-run.md](../RFC/0029-racingline-strategy-portfolio-publish-and-daily-run.md) | 策略组合发布和日运行 |
+| [../RFC/archive/0023-racingline-frontend-prototype-led-development.md](../RFC/archive/0023-racingline-frontend-prototype-led-development.md) | 前端原型/正式替换流程 |
+| [../RFC/archive/0024-racingline-strategy-selection-step1.md](../RFC/archive/0024-racingline-strategy-selection-step1.md) | Step 1 策略选股 |
+| [../RFC/archive/0025-racingline-strategy-weight-configuration-step2.md](../RFC/archive/0025-racingline-strategy-weight-configuration-step2.md) | Step 2 权重配置 |
+| [../RFC/archive/0026-racingline-strategy-pool-preview-step3.md](../RFC/archive/0026-racingline-strategy-pool-preview-step3.md) | Step 3 股池预览 |
+| [../RFC/archive/0027-racingline-strategy-simulation-position-step4.md](../RFC/archive/0027-racingline-strategy-simulation-position-step4.md) | Step 4 模拟建仓 |
+| [../RFC/archive/0028-racingline-strategy-backtest-step5.md](../RFC/archive/0028-racingline-strategy-backtest-step5.md) | Step 5 异步回测 |
+| [../RFC/archive/0029-racingline-strategy-portfolio-publish-and-daily-run.md](../RFC/archive/0029-racingline-strategy-portfolio-publish-and-daily-run.md) | 策略组合发布和日运行 |
 | [../plans/archive/0053-racingline-legacy-cleanup-and-rename-plan.md](../plans/archive/0053-racingline-legacy-cleanup-and-rename-plan.md) | 旧工程清理和目录重命名实施计划 |
 | [../jobs/reports/2026-06-25-racingline-legacy-cleanup-rename.md](../jobs/reports/2026-06-25-racingline-legacy-cleanup-rename.md) | 清理和重命名验收报告 |

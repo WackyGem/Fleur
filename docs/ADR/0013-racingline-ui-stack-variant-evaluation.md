@@ -45,6 +45,6 @@ ADR 0011 仍保留 Vite、React、TypeScript、Tailwind CSS v4、shadcn/ui、Bas
 ## 关联文档
 
 - [ADR 0011: Racingline 前端技术栈和工程边界](0011-racingline-frontend-technology-stack.md)
-- [RFC 0023: Racingline 前端原型驱动开发流程](../RFC/0023-racingline-frontend-prototype-led-development.md)
+- [RFC 0023: Racingline 前端原型驱动开发流程](../RFC/archive/0023-racingline-frontend-prototype-led-development.md)
 - [Plan 0053: Racingline 旧工程清理与 `racingline_new` 重命名实施计划](../plans/archive/0053-racingline-legacy-cleanup-and-rename-plan.md)
 - [System: Racingline](../systems/racingline.md)

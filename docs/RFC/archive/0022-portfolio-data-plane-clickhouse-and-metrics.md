@@ -1,6 +1,6 @@
 # RFC 0022: 组合数据面迁移 ClickHouse 与绩效指标分层
 
-状态：Proposed（2026-06-17）
+状态：Archived（2026-06-25；归档前状态：Proposed（2026-06-17））
 领域：rearview
 关联系统：rearview, data-platform, racingline
 代码根：engines/crates/rearview-core/, engines/crates/rearview-portfolio-worker/, pipeline/elt/, pipeline/migrate/
@@ -17,13 +17,13 @@
 
 关联文档：
 
-- [Q&A 0001: PostgreSQL Control Plane 与 ClickHouse Portfolio Data Plane](../Q&A/0001-postgresql-control-plane-clickhouse-portfolio-data-plane.md)
-- [Q&A 0002: Portfolio Metrics 基础数据缺口](../Q&A/0002-portfolio-metrics.md)
-- [ADR 0012: 组合净值递推与绩效指标权威计算留在 Rust](../ADR/0012-portfolio-nav-recursion-stays-in-rust.md)
-- [ADR 0009: ClickHouse 按 dbt 建模层分库](../ADR/0009-clickhouse-layered-databases.md)
+- [Q&A 0001: PostgreSQL Control Plane 与 ClickHouse Portfolio Data Plane](../../Q&A/0001-postgresql-control-plane-clickhouse-portfolio-data-plane.md)
+- [Q&A 0002: Portfolio Metrics 基础数据缺口](../../Q&A/0002-portfolio-metrics.md)
+- [ADR 0012: 组合净值递推与绩效指标权威计算留在 Rust](../../ADR/0012-portfolio-nav-recursion-stays-in-rust.md)
+- [ADR 0009: ClickHouse 按 dbt 建模层分库](../../ADR/0009-clickhouse-layered-databases.md)
 - [RFC 0021: Racingline 虚拟账户与组合调仓净值](0021-racingline-virtual-account-portfolio-rebalancing.md)
-- [System: Rearview](../systems/rearview.md)
-- [System: Data Platform](../systems/data-platform.md)
+- [System: Rearview](../../systems/rearview.md)
+- [System: Data Platform](../../systems/data-platform.md)
 
 ## 背景
 
@@ -325,7 +325,7 @@ worker 权威计算使用此口径；口径变更必须同步更新 `portfolio_m
 3. worker 改为写 ClickHouse 结果事实 + 回写 PostgreSQL 控制状态。
 4. Rearview API 从 ClickHouse 读取结果。
 
-本阶段只做存储迁移和幂等，不碰绩效指标计算；明细见 [Plan 0043](../plans/archive/0043-portfolio-data-plane-clickhouse-phase1-implementation-plan.md)。
+本阶段只做存储迁移和幂等，不碰绩效指标计算；明细见 [Plan 0043](../../plans/archive/0043-portfolio-data-plane-clickhouse-phase1-implementation-plan.md)。
 
 ### 第二阶段：绩效指标与 mart 输入（Plan 0044，待立项）
 
@@ -377,12 +377,12 @@ worker 权威计算使用此口径；口径变更必须同步更新 `portfolio_m
 
 ## 相关文档
 
-- [Q&A 0001: PostgreSQL Control Plane 与 ClickHouse Portfolio Data Plane](../Q&A/0001-postgresql-control-plane-clickhouse-portfolio-data-plane.md)
-- [Q&A 0002: Portfolio Metrics 基础数据缺口](../Q&A/0002-portfolio-metrics.md)
-- [ADR 0009: ClickHouse 按 dbt 建模层分库](../ADR/0009-clickhouse-layered-databases.md)
-- [ADR 0012: 组合净值递推与绩效指标权威计算留在 Rust](../ADR/0012-portfolio-nav-recursion-stays-in-rust.md)
+- [Q&A 0001: PostgreSQL Control Plane 与 ClickHouse Portfolio Data Plane](../../Q&A/0001-postgresql-control-plane-clickhouse-portfolio-data-plane.md)
+- [Q&A 0002: Portfolio Metrics 基础数据缺口](../../Q&A/0002-portfolio-metrics.md)
+- [ADR 0009: ClickHouse 按 dbt 建模层分库](../../ADR/0009-clickhouse-layered-databases.md)
+- [ADR 0012: 组合净值递推与绩效指标权威计算留在 Rust](../../ADR/0012-portfolio-nav-recursion-stays-in-rust.md)
 - [RFC 0021: Racingline 虚拟账户与组合调仓净值](0021-racingline-virtual-account-portfolio-rebalancing.md)
-- [System: Rearview](../systems/rearview.md)
-- [System: Data Platform](../systems/data-platform.md)
-- [engines/crates/rearview-core/src/portfolio/mod.rs](../../engines/crates/rearview-core/src/portfolio/mod.rs)
-- [pipeline/migrate/versions/rearview/0003_create_rearview_portfolio_schema.py](../../pipeline/migrate/versions/rearview/0003_create_rearview_portfolio_schema.py)
+- [System: Rearview](../../systems/rearview.md)
+- [System: Data Platform](../../systems/data-platform.md)
+- [engines/crates/rearview-core/src/portfolio/mod.rs](../../../engines/crates/rearview-core/src/portfolio/mod.rs)
+- [pipeline/migrate/versions/rearview/0003_create_rearview_portfolio_schema.py](../../../pipeline/migrate/versions/rearview/0003_create_rearview_portfolio_schema.py)

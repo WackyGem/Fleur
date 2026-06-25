@@ -30,8 +30,8 @@
 ## 关联文档
 
 - `docs/ADR/0005-dagster-owns-clickhouse-raw-sync-dbt-owns-modeling.md`
-- `docs/RFC/0009-dagster-clickhouse-raw-sync.md`
-- `docs/RFC/0010-data-contract-registry-and-contract-tools.md`
+- `docs/RFC/archive/0009-dagster-clickhouse-raw-sync.md`
+- `docs/RFC/archive/0010-data-contract-registry-and-contract-tools.md`
 - `docs/plans/0021-contract-scope-raw-layer-cleanup-plan.md`
 - `docs/architecture/scheduler-architecture.md`
 - `docs/architecture/scheduler-module-boundaries.md`

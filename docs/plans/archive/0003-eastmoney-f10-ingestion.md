@@ -4,7 +4,7 @@
 
 关联 RFC：
 
-- `docs/RFC/0002-eastmoney-f10-ingestion.md`
+- `docs/RFC/archive/0002-eastmoney-f10-ingestion.md`
 
 参考资料：
 

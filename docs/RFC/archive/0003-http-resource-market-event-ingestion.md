@@ -67,8 +67,8 @@ docs/references/openapi/jiuyan__industry_list.yaml
 项目内设计约束：
 
 ```text
-docs/RFC/0001-market-data-ingestion.md
-docs/RFC/0002-eastmoney-f10-ingestion.md
+docs/RFC/archive/0001-market-data-ingestion.md
+docs/RFC/archive/0002-eastmoney-f10-ingestion.md
 docs/ADR/0001-market-data-raw-assets-on-dagster.md
 docs/ADR/0002-s3-parquet-storage-layout.md
 docs/ADR/0003-trade-calendar-driven-market-schedules.md

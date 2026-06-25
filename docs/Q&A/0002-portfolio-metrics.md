@@ -321,6 +321,6 @@ treynor_ratio = (annualized_return - annual_risk_free_rate) / beta
 ## 相关文档和事实来源
 
 - [Q&A 0001: PostgreSQL Control Plane 与 ClickHouse Portfolio Data Plane](0001-postgresql-control-plane-clickhouse-portfolio-data-plane.md)
-- [RFC 0021: Racingline 虚拟账户与组合调仓净值](../RFC/0021-racingline-virtual-account-portfolio-rebalancing.md)
+- [RFC 0021: Racingline 虚拟账户与组合调仓净值](../RFC/archive/0021-racingline-virtual-account-portfolio-rebalancing.md)
 - [engines/crates/rearview-core/src/portfolio/mod.rs](../../engines/crates/rearview-core/src/portfolio/mod.rs)
 - [pipeline/migrate/versions/rearview/0003_create_rearview_portfolio_schema.py](../../pipeline/migrate/versions/rearview/0003_create_rearview_portfolio_schema.py)

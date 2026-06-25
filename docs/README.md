@@ -28,7 +28,7 @@
 | Dagster 回填、运行和 lineage 记录 | [jobs/README.md](jobs/README.md) |
 | dbt 模型设计 | [design/README.md](design/README.md) |
 | 接口、数据字典和 raw profiling | [references/README.md](references/README.md) |
-| 设计问答和讨论记录 | [Q&A/](Q&A/)；Racingline 当前用户画像见 [Q&A/user-logic.md](Q&A/user-logic.md)；两入口导航见 [Q&A/0003-racingline-strategy-lab-two-entry-navigation.md](Q&A/0003-racingline-strategy-lab-two-entry-navigation.md)；原型看板到策略创建闭环见 [Q&A/0004-racingline-prototype-dashboard-to-strategy-loop.md](Q&A/0004-racingline-prototype-dashboard-to-strategy-loop.md)；前端原型流程 RFC 见 [RFC/0023-racingline-frontend-prototype-led-development.md](RFC/0023-racingline-frontend-prototype-led-development.md)；策略选股 Step 1 RFC 见 [RFC/0024-racingline-strategy-selection-step1.md](RFC/0024-racingline-strategy-selection-step1.md)；策略权重配置 Step 2 RFC 见 [RFC/0025-racingline-strategy-weight-configuration-step2.md](RFC/0025-racingline-strategy-weight-configuration-step2.md)；股池预览 Step 3 RFC 见 [RFC/0026-racingline-strategy-pool-preview-step3.md](RFC/0026-racingline-strategy-pool-preview-step3.md)；模拟建仓 Step 4 RFC 见 [RFC/0027-racingline-strategy-simulation-position-step4.md](RFC/0027-racingline-strategy-simulation-position-step4.md)；策略回测 Step 5 RFC 见 [RFC/0028-racingline-strategy-backtest-step5.md](RFC/0028-racingline-strategy-backtest-step5.md)；UI 栈变体评估 ADR 见 [ADR/0013-racingline-ui-stack-variant-evaluation.md](ADR/0013-racingline-ui-stack-variant-evaluation.md) |
+| 设计问答和讨论记录 | [Q&A/](Q&A/)；Racingline 当前用户画像见 [Q&A/user-logic.md](Q&A/user-logic.md)；两入口导航见 [Q&A/0003-racingline-strategy-lab-two-entry-navigation.md](Q&A/0003-racingline-strategy-lab-two-entry-navigation.md)；原型看板到策略创建闭环见 [Q&A/0004-racingline-prototype-dashboard-to-strategy-loop.md](Q&A/0004-racingline-prototype-dashboard-to-strategy-loop.md)；前端原型流程 RFC 见 [RFC/archive/0023-racingline-frontend-prototype-led-development.md](RFC/archive/0023-racingline-frontend-prototype-led-development.md)；策略选股 Step 1 RFC 见 [RFC/archive/0024-racingline-strategy-selection-step1.md](RFC/archive/0024-racingline-strategy-selection-step1.md)；策略权重配置 Step 2 RFC 见 [RFC/archive/0025-racingline-strategy-weight-configuration-step2.md](RFC/archive/0025-racingline-strategy-weight-configuration-step2.md)；股池预览 Step 3 RFC 见 [RFC/archive/0026-racingline-strategy-pool-preview-step3.md](RFC/archive/0026-racingline-strategy-pool-preview-step3.md)；模拟建仓 Step 4 RFC 见 [RFC/archive/0027-racingline-strategy-simulation-position-step4.md](RFC/archive/0027-racingline-strategy-simulation-position-step4.md)；策略回测 Step 5 RFC 见 [RFC/archive/0028-racingline-strategy-backtest-step5.md](RFC/archive/0028-racingline-strategy-backtest-step5.md)；UI 栈变体评估 ADR 见 [ADR/0013-racingline-ui-stack-variant-evaluation.md](ADR/0013-racingline-ui-stack-variant-evaluation.md) |
 | 质量审计和治理建议 | [optimize/README.md](optimize/README.md) |
 | agent 操作手册 | [skills/](skills/) |
 
@@ -39,7 +39,7 @@
 | `systems/` | 按系统和产品线组织当前事实、代码根、运行入口和质量门禁 | 当前事实入口 |
 | `architecture/` | 当前架构和边界 | 当前事实 |
 | `ADR/` | 长期决策 | 当前或明确标注状态 |
-| `RFC/` | 设计讨论和历史方案 | 活跃 RFC 在顶层，历史进 `archive/` |
+| `RFC/` | 设计讨论和历史方案 | 当前已统一归档到 `archive/`；活跃 RFC 需重新放顶层并标注状态 |
 | `plans/` | 仍需执行的计划 | 顶层只放 active plans |
 | `plans/archive/` | 完成、废弃或被替代的计划 | 历史参考 |
 | `debt/` | 技术债和实现漂移记录入口 | 历史参考 |

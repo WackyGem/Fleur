@@ -5,7 +5,7 @@
 关联文档：
 
 - `docs/plans/0018-data-contract-registry-and-staging-layer-plan.md`
-- `docs/RFC/0010-data-contract-registry-and-contract-tools.md`
+- `docs/RFC/archive/0010-data-contract-registry-and-contract-tools.md`
 - `pipeline/contracts/README.md`
 - `docs/references/data_dict/README.md`
 

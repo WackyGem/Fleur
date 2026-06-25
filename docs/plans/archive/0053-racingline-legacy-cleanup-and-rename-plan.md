@@ -46,8 +46,8 @@
 - [System: Rearview](../../systems/rearview.md)
 - [ADR 0011: Racingline 前端技术栈和工程边界](../../ADR/0011-racingline-frontend-technology-stack.md)
 - [ADR 0013: Racingline UI 栈变体评估](../../ADR/0013-racingline-ui-stack-variant-evaluation.md)
-- [RFC 0023: Racingline 前端原型驱动开发流程](../../RFC/0023-racingline-frontend-prototype-led-development.md)
-- [RFC 0029: Racingline 回测结果发布为策略组合与 Dagster 日运行资产](../../RFC/0029-racingline-strategy-portfolio-publish-and-daily-run.md)
+- [RFC 0023: Racingline 前端原型驱动开发流程](../../RFC/archive/0023-racingline-frontend-prototype-led-development.md)
+- [RFC 0029: Racingline 回测结果发布为策略组合与 Dagster 日运行资产](../../RFC/archive/0029-racingline-strategy-portfolio-publish-and-daily-run.md)
 - [Plan 0052: Racingline 策略组合发布、看板真实数据与 Dagster 日运行实施计划](0052-racingline-strategy-portfolio-publish-dashboard-dagster-plan.md)
 
 ## 当前事实基线
@@ -153,7 +153,7 @@
 | `docs/systems/rearview.md` | 仍列出 `make racingline-new-rearview-dev` | 删除或改为已归并说明 |
 | `docs/plans/0041-*.md` | active plan 指向旧 `app/racingline/` 的 virtual account/portfolio 路径 | 重新评估是否 Superseded；若仍活跃，改写为新正式 `app/racingline/` 目标 |
 | `docs/ADR/0013-*.md` | 当前 Proposed 决策不接受 `racingline_new` UI 栈直接升级为正式栈 | 实施前必须更新 ADR 结论或补新 ADR |
-| `docs/RFC/0023-*.md` | 待决问题仍问是否重命名 | 更新状态或追加结论：采用重命名为 `app/racingline/` |
+| `docs/RFC/archive/0023-*.md` | 待决问题仍问是否重命名 | 更新状态或追加结论：采用重命名为 `app/racingline/` |
 
 允许保留历史路径的文档：
 
@@ -331,7 +331,7 @@ rg -n "racingline_new|racingline-new|RACINGLINE_NEW|app/racingline_new" --glob '
 3. 更新 `docs/systems/rearview.md`：
    - 删除只启动 `app/racingline_new` 的说明。
    - 保留 `make racingline-dev` 作为 Rearview + Racingline 联调入口。
-4. 更新 `docs/RFC/0023-racingline-frontend-prototype-led-development.md`：
+4. 更新 `docs/RFC/archive/0023-racingline-frontend-prototype-led-development.md`：
    - 在迁移和替换策略处追加结论：采用重命名为 `app/racingline/`。
    - 若不继续作为活跃流程，可标明已完成本轮替换。
 5. 更新 `docs/plans/0041-*.md`：

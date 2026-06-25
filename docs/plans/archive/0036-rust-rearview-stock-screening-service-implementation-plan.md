@@ -6,7 +6,7 @@
 
 关联文档：
 
-- `docs/RFC/0018-rust-stock-screening-service.md`
+- `docs/RFC/archive/0018-rust-stock-screening-service.md`
 - `docs/plans/archive/0035-stock-technical-indicator-marts-implementation-plan.md`
 - `docs/design/dbt_layer/fleur_marts/mart_stock_quotes_daily.md`
 - `docs/design/dbt_layer/fleur_marts/mart_stock_trend_indicator.md`

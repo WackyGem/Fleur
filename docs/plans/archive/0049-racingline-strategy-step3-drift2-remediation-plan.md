@@ -7,8 +7,8 @@
 关联文档：
 
 - [Debt 0005: Strategies Step 3 股池预览二次实现漂移](../../debt/archive/0005-2026-06-22-strategies-step3-implemennt-drift2.md)
-- [RFC 0026: Racingline 股池预览 Step 3 实现方案](../../RFC/0026-racingline-strategy-pool-preview-step3.md)
-- [RFC 0025: Racingline 策略权重配置 Step 2 实现方案](../../RFC/0025-racingline-strategy-weight-configuration-step2.md)
+- [RFC 0026: Racingline 股池预览 Step 3 实现方案](../../RFC/archive/0026-racingline-strategy-pool-preview-step3.md)
+- [RFC 0025: Racingline 策略权重配置 Step 2 实现方案](../../RFC/archive/0025-racingline-strategy-weight-configuration-step2.md)
 - [Plan 0048: Racingline Step 3 股池预览漂移修正实施计划](0048-racingline-strategy-step3-drift-remediation-plan.md)
 - [Step3 Drift Remediation 报告](../../jobs/reports/2026-06-22-racingline-strategy-step3-drift-remediation.md)
 - [System: Racingline](../../systems/racingline.md)
@@ -274,7 +274,7 @@ npm run typecheck
 
 任务：
 
-1. 更新 `docs/RFC/0026-racingline-strategy-pool-preview-step3.md`：
+1. 更新 `docs/RFC/archive/0026-racingline-strategy-pool-preview-step3.md`：
    - 改写 Plan 0048 后的 Step 3 主界面边界。
    - 明确 Step 3 允许权重微调，但只更新 draft，必须点击更新股池才替换 applied preview。
    - 明确 `security_board` 是交易板块，不是行业。

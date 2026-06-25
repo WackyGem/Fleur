@@ -1,6 +1,6 @@
 # RFC 0023: Racingline 前端原型驱动开发流程
 
-状态：Accepted（2026-06-25；Plan 0053 已采用重命名替换路径）
+状态：Archived（2026-06-25；归档前状态：Accepted（2026-06-25；Plan 0053 已采用重命名替换路径））
 领域：racingline
 关联系统：racingline
 代码根：app/racingline/
@@ -34,11 +34,11 @@ mono-fleur 的数据平台、dbt、Dagster、Rust 后端和数据契约任务，
 
 关联文档：
 
-- [Q&A 0003: Racingline 策略实验室两入口导航与首屏承载](../Q&A/0003-racingline-strategy-lab-two-entry-navigation.md)
+- [Q&A 0003: Racingline 策略实验室两入口导航与首屏承载](../../Q&A/0003-racingline-strategy-lab-two-entry-navigation.md)
 - [RFC 0019: Racingline Rearview 前端工作台](0019-racingline-rearview-frontend-workbench.md)
 - [RFC 0021: Racingline 虚拟账户与组合调仓净值](0021-racingline-virtual-account-portfolio-rebalancing.md)
-- [ADR 0011: Racingline 前端技术栈和工程边界](../ADR/0011-racingline-frontend-technology-stack.md)
-- [System: Racingline](../systems/racingline.md)
+- [ADR 0011: Racingline 前端技术栈和工程边界](../../ADR/0011-racingline-frontend-technology-stack.md)
+- [System: Racingline](../../systems/racingline.md)
 
 ## 目标
 
@@ -61,9 +61,9 @@ mono-fleur 的数据平台、dbt、Dagster、Rust 后端和数据契约任务，
 
 ### D0: 技术选型必须由 ADR 收敛
 
-原型工程不是第二个产品线，也不是静默重新选型工程。正式实现默认继承 [ADR 0011](../ADR/0011-racingline-frontend-technology-stack.md) 的工程边界；如果原型引入新的 shadcn style、主题、字体或图标策略，必须另起 ADR 或更新既有 ADR 后才能进入正式工程。
+原型工程不是第二个产品线，也不是静默重新选型工程。正式实现默认继承 [ADR 0011](../../ADR/0011-racingline-frontend-technology-stack.md) 的工程边界；如果原型引入新的 shadcn style、主题、字体或图标策略，必须另起 ADR 或更新既有 ADR 后才能进入正式工程。
 
-2026-06-25 的结论见 [ADR 0013](../ADR/0013-racingline-ui-stack-variant-evaluation.md)：`base-lyra`、`taupe`、IBM Plex Sans、Lucide 与 Hugeicons 并存已被接受为正式 Racingline UI 栈。
+2026-06-25 的结论见 [ADR 0013](../../ADR/0013-racingline-ui-stack-variant-evaluation.md)：`base-lyra`、`taupe`、IBM Plex Sans、Lucide 与 Hugeicons 并存已被接受为正式 Racingline UI 栈。
 
 | 类别 | 必须保持一致 |
 |---|---|
@@ -247,9 +247,9 @@ npm run build
 
 ## 相关文档
 
-- [docs/systems/racingline.md](../systems/racingline.md)
-- [docs/systems/racingline.md](../systems/racingline.md)
-- [docs/Q&A/0003-racingline-strategy-lab-two-entry-navigation.md](../Q&A/0003-racingline-strategy-lab-two-entry-navigation.md)
-- [docs/ADR/0011-racingline-frontend-technology-stack.md](../ADR/0011-racingline-frontend-technology-stack.md)
-- [docs/ADR/0013-racingline-ui-stack-variant-evaluation.md](../ADR/0013-racingline-ui-stack-variant-evaluation.md)
-- [docs/plans/archive/0053-racingline-legacy-cleanup-and-rename-plan.md](../plans/archive/0053-racingline-legacy-cleanup-and-rename-plan.md)
+- [docs/systems/racingline.md](../../systems/racingline.md)
+- [docs/systems/racingline.md](../../systems/racingline.md)
+- [docs/Q&A/0003-racingline-strategy-lab-two-entry-navigation.md](../../Q&A/0003-racingline-strategy-lab-two-entry-navigation.md)
+- [docs/ADR/0011-racingline-frontend-technology-stack.md](../../ADR/0011-racingline-frontend-technology-stack.md)
+- [docs/ADR/0013-racingline-ui-stack-variant-evaluation.md](../../ADR/0013-racingline-ui-stack-variant-evaluation.md)
+- [docs/plans/archive/0053-racingline-legacy-cleanup-and-rename-plan.md](../../plans/archive/0053-racingline-legacy-cleanup-and-rename-plan.md)

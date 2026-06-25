@@ -45,7 +45,7 @@ Dagster source assets
 
 项目设计来源：
 
-- `docs/RFC/0009-dagster-clickhouse-raw-sync.md`
+- `docs/RFC/archive/0009-dagster-clickhouse-raw-sync.md`
 - `docs/ADR/0001-market-data-raw-assets-on-dagster.md`
 - `docs/ADR/0002-s3-parquet-storage-layout.md`
 - `docs/plans/0016-jiuyan-industry-ocr-snapshot-source-layer.md`

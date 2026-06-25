@@ -4,7 +4,7 @@
 日期：2026-06-22
 领域：racingline, rearview
 关联代码：`app/racingline_new/`, `engines/crates/rearview-core/`
-关联设计：`docs/Q&A/0004-racingline-prototype-dashboard-to-strategy-loop.md`, `docs/RFC/0024-racingline-strategy-selection-step1.md`, `docs/RFC/0025-racingline-strategy-weight-configuration-step2.md`, `docs/RFC/0026-racingline-strategy-pool-preview-step3.md`
+关联设计：`docs/Q&A/0004-racingline-prototype-dashboard-to-strategy-loop.md`, `docs/RFC/archive/0024-racingline-strategy-selection-step1.md`, `docs/RFC/archive/0025-racingline-strategy-weight-configuration-step2.md`, `docs/RFC/archive/0026-racingline-strategy-pool-preview-step3.md`
 修正计划：`docs/plans/archive/0048-racingline-strategy-step3-drift-remediation-plan.md`
 验收报告：`docs/jobs/reports/2026-06-22-racingline-strategy-step3-drift-remediation.md`
 
@@ -80,7 +80,7 @@ Step 3 应是一屏预览页，而不是规则编辑页或 debug 页：
 | 右侧可以调整指标权重 | `WeightControlSection` 在 Step 3 右侧渲染 Step 2 权重滑杆。 | `stock-pool-preview-workbench.tsx` | Step 3 接管了 Step 2 编辑职责，破坏“Step 2 记录规则，Step 3 预览结果”的边界。 |
 | 股票池分页是 50 | `pageSize = 50`，pool-page 请求 limit 也是 50。 | `stock-pool-preview-workbench.tsx` | 与验收预期的 10 只一页不一致。 |
 | 得分项和指标列语义混杂 | `scoreItems` 来自 `score_breakdown`；`selectedMetricRows` 来自 `RuleVersionSpec.output_metrics`。当前 `buildStrategyPreviewRuleSpec()` 会把 Step 1 条件指标和 Step 2 权重指标都放入 `output_metrics`。 | `preview.ts`, `adapters.ts`, `planner/sql.rs` | 表格“指标”列不是 Step 1 指标组真实命中，容易混入评分指标或 raw 依赖指标。 |
-| RFC 0026 对 Step 3 授权过宽 | RFC 0026 把“分数解释、关键指标、K 线/个股上下文、全池分页、preview security analysis”都放进 Step 3 完整版。 | `docs/RFC/0026-racingline-strategy-pool-preview-step3.md` | 实现按 RFC 扩张后，超过当前产品设计预期。 |
+| RFC 0026 对 Step 3 授权过宽 | RFC 0026 把“分数解释、关键指标、K 线/个股上下文、全池分页、preview security analysis”都放进 Step 3 完整版。 | `docs/RFC/archive/0026-racingline-strategy-pool-preview-step3.md` | 实现按 RFC 扩张后，超过当前产品设计预期。 |
 
 ## 根因判断
 

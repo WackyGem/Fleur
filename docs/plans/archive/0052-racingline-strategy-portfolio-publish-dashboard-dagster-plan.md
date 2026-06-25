@@ -19,9 +19,9 @@
 
 关联文档：
 
-- [RFC 0029: Racingline 回测结果发布为策略组合与 Dagster 日运行资产](../../RFC/0029-racingline-strategy-portfolio-publish-and-daily-run.md)
-- [RFC 0028: Racingline 策略回测 Step 5 异步执行方案](../../RFC/0028-racingline-strategy-backtest-step5.md)
-- [RFC 0022: 组合数据面迁移 ClickHouse 与绩效指标分层](../../RFC/0022-portfolio-data-plane-clickhouse-and-metrics.md)
+- [RFC 0029: Racingline 回测结果发布为策略组合与 Dagster 日运行资产](../../RFC/archive/0029-racingline-strategy-portfolio-publish-and-daily-run.md)
+- [RFC 0028: Racingline 策略回测 Step 5 异步执行方案](../../RFC/archive/0028-racingline-strategy-backtest-step5.md)
+- [RFC 0022: 组合数据面迁移 ClickHouse 与绩效指标分层](../../RFC/archive/0022-portfolio-data-plane-clickhouse-and-metrics.md)
 - [Plan 0051: Racingline 策略回测 Step 5 异步执行实施计划](0051-racingline-strategy-backtest-step5-implementation-plan.md)
 - [Plan 0043: 组合数据面迁移 ClickHouse 第一阶段实施计划](0043-portfolio-data-plane-clickhouse-phase1-implementation-plan.md)
 - [Plan 0044: 组合绩效指标、dbt 输入与交易级指标实施计划](0044-portfolio-performance-metrics-implementation-plan.md)

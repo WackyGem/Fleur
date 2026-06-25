@@ -15,9 +15,9 @@
 
 关联文档：
 
-- [RFC 0020: Racingline Run Result 个股分析页](../../RFC/0020-racingline-run-result-security-analysis-page.md)
-- [RFC 0019: Racingline Rearview 前端工作台](../../RFC/0019-racingline-rearview-frontend-workbench.md)
-- [RFC 0018: Rust Rearview 规则选股服务与 mart 指标库](../../RFC/0018-rust-stock-screening-service.md)
+- [RFC 0020: Racingline Run Result 个股分析页](../../RFC/archive/0020-racingline-run-result-security-analysis-page.md)
+- [RFC 0019: Racingline Rearview 前端工作台](../../RFC/archive/0019-racingline-rearview-frontend-workbench.md)
+- [RFC 0018: Rust Rearview 规则选股服务与 mart 指标库](../../RFC/archive/0018-rust-stock-screening-service.md)
 - [System: Racingline](../../systems/racingline.md)
 - [System: Rearview](../../systems/rearview.md)
 - [Plan 0038: MA30 and adjusted quotes mart implementation](0038-ma30-and-adjusted-quotes-mart-implementation-plan.md)

@@ -74,6 +74,6 @@ VITE_REARVIEW_API_BASE_URL=http://127.0.0.1:34057
 
 ## 关联文档
 
-- `docs/RFC/0019-racingline-rearview-frontend-workbench.md`
+- `docs/RFC/archive/0019-racingline-rearview-frontend-workbench.md`
 - `docs/systems/racingline.md`
 - `docs/systems/racingline.md`

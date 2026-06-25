@@ -6,7 +6,7 @@
 
 - Portfolio source：`source('fleur_portfolio', 'portfolio_run_snapshot')`
 - Calculation source：`source('fleur_calculation', 'calc_portfolio_closed_trade')`
-- 组合 RFC：`docs/RFC/0021-racingline-virtual-account-portfolio-rebalancing.md`
+- 组合 RFC：`docs/RFC/archive/0021-racingline-virtual-account-portfolio-rebalancing.md`
 - 目标 SQL：`pipeline/elt/models/intermediate/int_portfolio_closed_trade.sql`
 - 目标 YAML：`pipeline/elt/models/intermediate/int_portfolio_closed_trade.yml`
 

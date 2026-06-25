@@ -10,8 +10,8 @@
 
 关联文档：
 
-- `docs/RFC/0017-furnace-moving-average-technical-indicators.md`
-- `docs/RFC/0016-rust-furnace-compute-engine.md`
+- `docs/RFC/archive/0017-furnace-moving-average-technical-indicators.md`
+- `docs/RFC/archive/0016-rust-furnace-compute-engine.md`
 - `docs/ADR/0010-technical-indicator-field-naming.md`
 - `docs/plans/archive/0027-furnace-rsv-kdj-technical-indicators-implementation-plan.md`
 - `docs/plans/archive/0028-furnace-kdj-parallel-performance-implementation-plan.md`
@@ -876,7 +876,7 @@ Dagster 测试必须覆盖：
 
 实施完成必须同时满足以下条件：
 
-1. `docs/RFC/0017-furnace-moving-average-technical-indicators.md` 和 `docs/ADR/0010-technical-indicator-field-naming.md` 的字段、公式、价格口径、成交量口径和公共算子边界均被实现；如 RFC 0017 仍保留旧字段名，必须以本 plan 和 ADR 的命名修订为准。
+1. `docs/RFC/archive/0017-furnace-moving-average-technical-indicators.md` 和 `docs/ADR/0010-technical-indicator-field-naming.md` 的字段、公式、价格口径、成交量口径和公共算子边界均被实现；如 RFC 0017 仍保留旧字段名，必须以本 plan 和 ADR 的命名修订为准。
 2. `furnace-core` 存在公共 `operators` 模块，MA/EMA 指标计算复用该模块。
 3. `furnace-core` 不依赖 ClickHouse、Dagster、dbt、Rayon、CLI 参数或环境变量。
 4. `furnace ma` 支持 `dry-run`、`append-latest`、`replace-cascade`。

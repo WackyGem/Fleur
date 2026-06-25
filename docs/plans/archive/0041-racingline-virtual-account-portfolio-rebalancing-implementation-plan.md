@@ -21,10 +21,10 @@
 
 关联文档：
 
-- [RFC 0021: Racingline 虚拟账户与组合调仓净值](../../RFC/0021-racingline-virtual-account-portfolio-rebalancing.md)
-- [RFC 0018: Rust Rearview 规则选股服务与 mart 指标库](../../RFC/0018-rust-stock-screening-service.md)
-- [RFC 0019: Racingline Rearview 前端工作台](../../RFC/0019-racingline-rearview-frontend-workbench.md)
-- [RFC 0020: Racingline Run Result 个股分析页](../../RFC/0020-racingline-run-result-security-analysis-page.md)
+- [RFC 0021: Racingline 虚拟账户与组合调仓净值](../../RFC/archive/0021-racingline-virtual-account-portfolio-rebalancing.md)
+- [RFC 0018: Rust Rearview 规则选股服务与 mart 指标库](../../RFC/archive/0018-rust-stock-screening-service.md)
+- [RFC 0019: Racingline Rearview 前端工作台](../../RFC/archive/0019-racingline-rearview-frontend-workbench.md)
+- [RFC 0020: Racingline Run Result 个股分析页](../../RFC/archive/0020-racingline-run-result-security-analysis-page.md)
 - [System: Rearview](../../systems/rearview.md)
 - [System: Racingline](../../systems/racingline.md)
 - [System: Deploy Ops](../../systems/deploy-ops.md)

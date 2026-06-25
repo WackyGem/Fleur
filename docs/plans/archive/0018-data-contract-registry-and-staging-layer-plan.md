@@ -4,7 +4,7 @@
 
 关联文档：
 
-- `docs/RFC/0010-data-contract-registry-and-contract-tools.md`
+- `docs/RFC/archive/0010-data-contract-registry-and-contract-tools.md`
 - `docs/ADR/0002-s3-parquet-storage-layout.md`
 - `docs/ADR/0005-dagster-owns-clickhouse-raw-sync-dbt-owns-modeling.md`
 - `docs/architecture/scheduler-architecture.md`

@@ -1,6 +1,6 @@
 # RFC 0029: Racingline 回测结果发布为策略组合与 Dagster 日运行资产
 
-状态：Proposed
+状态：Archived（2026-06-25；归档前状态：Proposed）
 领域：racingline, rearview, data-platform
 关联系统：racingline, rearview, data-platform
 代码根：app/racingline_new/, engines/crates/rearview-core/, engines/crates/rearview-server/, engines/crates/rearview-portfolio-worker/, pipeline/scheduler/, pipeline/migrate/
@@ -25,7 +25,7 @@ Step 5 策略回测 succeeded
 
 ## 背景
 
-[Q&A 0004](../Q&A/0004-racingline-prototype-dashboard-to-strategy-loop.md) 把 `/dashboard -> /strategies -> Step 5 -> 运行策略 -> /dashboard` 定义为核心用户故事，并明确 `运行策略` 当时只是交互闭环占位。
+[Q&A 0004](../../Q&A/0004-racingline-prototype-dashboard-to-strategy-loop.md) 把 `/dashboard -> /strategies -> Step 5 -> 运行策略 -> /dashboard` 定义为核心用户故事，并明确 `运行策略` 当时只是交互闭环占位。
 
 [RFC 0028](0028-racingline-strategy-backtest-step5.md) 已把 Step 5 收敛为 durable research backtest run：`strategy_backtest_run` 保存不可变 `rule_snapshot`、`execution_config`、period、benchmark、hash、progress 和 `current_result_attempt_id`，worker 把结果写入现有 portfolio/calculation data plane。
 

@@ -4,7 +4,7 @@
 
 关联设计文档：
 
-- `docs/RFC/0008-dagster-slack-asset-failure-alerting.md`
+- `docs/RFC/archive/0008-dagster-slack-asset-failure-alerting.md`
 - `docs/architecture/scheduler-architecture.md`
 - `docs/architecture/scheduler-module-boundaries.md`
 

@@ -8,7 +8,7 @@
 
 关联文档：
 
-- `docs/RFC/0020-racingline-run-result-security-analysis-page.md`
+- `docs/RFC/archive/0020-racingline-run-result-security-analysis-page.md`
 - `docs/systems/data-platform.md`
 - `docs/systems/data-platform.md`
 - `docs/design/dbt_layer/fleur_intermediate/int_stock_quotes_daily_adj.md`

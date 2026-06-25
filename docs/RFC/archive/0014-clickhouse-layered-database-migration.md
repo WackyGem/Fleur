@@ -1,6 +1,6 @@
 # RFC 0014: ClickHouse 四层 database 改造与 raw 迁移验收设计
 
-状态：草案（2026-06-02）
+状态：Archived（2026-06-25；归档前状态：草案（2026-06-02））
 
 ## 摘要
 
@@ -552,8 +552,8 @@ dbt 改造完成后至少验证：
 - `docs/ADR/0007-dbt-staging-cleaning-boundary.md`
 - `docs/ADR/0008-raw-source-profiling-before-dbt-staging.md`
 - `docs/ADR/0009-clickhouse-layered-databases.md`
-- `docs/RFC/0009-dagster-clickhouse-raw-sync.md`
-- `docs/RFC/0012-dbt-field-glossary-and-raw-source-governance.md`
+- `docs/RFC/archive/0009-dagster-clickhouse-raw-sync.md`
+- `docs/RFC/archive/0012-dbt-field-glossary-and-raw-source-governance.md`
 - `pipeline/scheduler/src/scheduler/defs/clickhouse/raw_sync.py`
 - `pipeline/scheduler/src/scheduler/defs/clickhouse/specs.py`
 - `pipeline/contract_tools/src/fleur_contracts/adapters/clickhouse.py`

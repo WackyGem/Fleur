@@ -70,7 +70,7 @@ uv sync --all-packages --all-groups
 - 使用 Cargo 管理 Rust crate，不放入 `pipeline/` 的 uv 工作区。
 - 所有 Rust / Cargo 命令在 `engines/` 目录下执行。
 - engines 文档地图：`engines/README.md`
-- Furnace 设计入口：`docs/RFC/0016-rust-furnace-compute-engine.md`
+- Furnace 设计入口：`docs/RFC/archive/0016-rust-furnace-compute-engine.md`
 - Furnace KDJ 历史实施与性能计划：`docs/plans/archive/0027-furnace-rsv-kdj-technical-indicators-implementation-plan.md`、`docs/plans/archive/0028-furnace-kdj-parallel-performance-implementation-plan.md`
 - Furnace 运行报告：`docs/jobs/reports/2026-06-07-furnace-kdj-smoke-run.md`、`docs/jobs/reports/2026-06-07-furnace-kdj-performance-baseline.md`、`docs/jobs/reports/2026-06-07-furnace-kdj-parallel-optimization.md`
 - 当前 crates：
