@@ -1,6 +1,6 @@
 # System: Rearview
 
-状态：当前事实入口；Strategy Backtest Step 5 已通过 dev live smoke 和 worker 重投递验收（2026-06-23）
+状态：当前事实入口；Strategy Backtest Step 5 已通过 dev live smoke、worker 重投递验收和 Step 4/5 延时优化验收（2026-06-25）
 
 ## 代码根
 
@@ -23,11 +23,12 @@
 7. Preview rows、pool page 和 preview security analysis 通过 `mart_stock_basic_snapshot` 补齐 `security_name`、`exchange_code` 和交易板块 `security_board`。
 8. Preview security analysis 支持 `include_quote_rows=false`，在保留 membership 校验、`selected_quote` 和 chart series 的同时省略完整 `quote_rows` payload；MA5/MA10/MA30 固定使用前复权指标基准并可叠加到任意 OHLC 复权模式。
 9. 提供 draft-only 策略回测校验 API：`POST /rearview/strategy-backtests/validate`，接收 transient `RuleVersionSpec + BacktestExecutionConfig`，返回 canonical config、`rule_hash`、`execution_config_hash` 和仓位/退出规则摘要；该接口不创建 rule set、rule version、run、portfolio run，不写结果事实，也不发 NATS。第一版支持受控 trend indicator stop loss，只接受 `source = "trend"`、allowlisted trend metric 和 `operator = "close_below_metric"`，主图指标集合为 MA、MA 组合和 EMA。
-10. 提供 Step 5 strategy backtest control plane：`GET /rearview/strategy-backtests/options`、`POST /rearview/strategy-backtests`、`GET /rearview/strategy-backtests/{id}`。Create API 只落 PostgreSQL `strategy_backtest_run` 与 outbox 并返回 `202 Accepted`，服务端动态解析 `1y/2y/3y` 区间，固化 benchmark、range、rule/config hash、preflight snapshot 和 `client_request_id` 幂等语义。
-11. 提供 Step 5 result wrapper API：`/nav`、`/rebalance-records`、`/targets`、`/orders`、`/trades`、`/positions`、`/events`、`/performance`、`/closed-trades` 和 `/trade-metrics`，先解析 `current_result_attempt_id`，再按 `portfolio_run_id = strategy_backtest_run_id` 和 `result_attempt_id` 读取现有 ClickHouse portfolio/calculation data plane。
+10. 提供 Step 5 strategy backtest control plane：`GET /rearview/strategy-backtests/options`、`POST /rearview/strategy-backtests`、`GET /rearview/strategy-backtests/{id}` 和 `GET /rearview/strategy-backtests/{id}/status`。Create API 只落 PostgreSQL `strategy_backtest_run` 与 outbox 并返回 `202 Accepted`，服务端动态解析 `1y/2y/3y` 区间，固化 benchmark、range、rule/config hash、preflight snapshot 和 `client_request_id` 幂等语义；status view 只返回 Step 5 gate/status 必需字段。
+11. 提供 Step 5 result wrapper API：`/nav`、`/rebalance-records`、`/targets`、`/orders`、`/trades`、`/positions`、`/events`、`/performance`、`/closed-trades` 和 `/trade-metrics`，先解析 `current_result_attempt_id`，再按 `portfolio_run_id = strategy_backtest_run_id` 和 `result_attempt_id` 读取现有 ClickHouse portfolio/calculation data plane；`/nav`、`/rebalance-records` 和 `/performance` 支持 `view=ui` compact response，full response 保留诊断字段。
 12. 提供虚拟账户模板、默认市场费率模板、组合运行、组合净值和目标/订单/成交/持仓/事件明细 API。
 13. Portfolio simulation engine 支持 `single_position_limit_pct` 一等字段；当该字段存在时，后端使用 `min((1 - cash_reserve_pct) / max_positions, single_position_limit_pct)` 计算单票目标权重，cap 留下的资金保留为现金。模拟器校验 `execution_date > signal_date`，Step 5 worker 负责把收盘确认信号映射到下一交易日开盘成交。
-14. 通过 PostgreSQL outbox 和 NATS JetStream 分发组合净值和 strategy backtest 计算任务，由 `rearview-portfolio-worker` 消费 typed task；strategy backtest 路径从 transient rule snapshot 重新生成 signals，复用现有 ClickHouse 结果事实表并 append-only 写入新 result attempt。
+14. 通过 PostgreSQL outbox 和 NATS JetStream 分发组合净值和 strategy backtest 计算任务，由 `rearview-portfolio-worker` 消费 typed task；strategy backtest 路径从 transient rule snapshot 重新生成 signals，按 stop-loss indicator metrics 动态投影 price bars 趋势列，复用现有 ClickHouse 结果事实表并 append-only 写入新 result attempt。
+15. `rearview-server` 的 outbox dispatcher 在 create accepted 后可被进程内 notify 唤醒，保留 PG outbox 事务边界，并记录 pending scan、publish success/fail、NATS sequence 和 created-to-published elapsed；`GET /rearview/strategy-backtests/diagnostics/stale-active` 提供只读 stale active run 诊断。
 
 ## 非职责
 
@@ -80,7 +81,7 @@ cargo run -p rearview-server -- serve
 cargo run -p rearview-portfolio-worker -- run
 ```
 
-`rearview-server` 启动时会幂等 ensure portfolio NATS stream，并运行进程内 outbox dispatcher；`rearview-portfolio-worker` 启动时会幂等 ensure stream 和 durable consumer。
+`rearview-server` 启动时会幂等 ensure portfolio NATS stream，并运行进程内 outbox dispatcher；dispatcher 在无 pending 任务时等待 create notify 或 2s idle timeout，避免 busy loop。`rearview-portfolio-worker` 启动时会幂等 ensure stream 和 durable consumer。
 
 ## 质量门禁
 
@@ -112,8 +113,11 @@ uv run alembic upgrade head
 | [../RFC/archive/0026-racingline-strategy-pool-preview-step3.md](../RFC/archive/0026-racingline-strategy-pool-preview-step3.md) | 从 `/strategies` Step 3 股池预览切入，定义 preview snapshot、全池分页、证券显示和 preview-only 个股上下文的 Implemented RFC |
 | [../RFC/archive/0027-racingline-strategy-simulation-position-step4.md](../RFC/archive/0027-racingline-strategy-simulation-position-step4.md) | `/strategies` Step 4 模拟建仓、BacktestExecutionDraft 和 Step 5 handoff 边界 |
 | [../RFC/archive/0028-racingline-strategy-backtest-step5.md](../RFC/archive/0028-racingline-strategy-backtest-step5.md) | `/strategies` Step 5 策略回测异步执行、backtest run control plane、NATS worker 和组合绩效指标已实现 RFC |
+| [../RFC/0031-racingline-step4-step5-backtest-latency-slimming.md](../RFC/0031-racingline-step4-step5-backtest-latency-slimming.md) | Step 4 到 Step 5 回测延时瘦身、字段审计、outbox 和 worker 性能治理依据 |
 | [../plans/archive/0051-racingline-strategy-backtest-step5-implementation-plan.md](../plans/archive/0051-racingline-strategy-backtest-step5-implementation-plan.md) | Step 5 strategy backtest control plane、typed outbox、worker transient signal materialization、result wrapper 和 live smoke 已完成计划 |
 | [../jobs/reports/2026-06-23-racingline-strategy-step5-backtest.md](../jobs/reports/2026-06-23-racingline-strategy-step5-backtest.md) | Step 5 默认动态近一年、period/benchmark rerun、wrapper API、ClickHouse/PG 和 worker 重投递验收报告 |
+| [../plans/archive/0056-racingline-step4-step5-backtest-latency-optimization-plan.md](../plans/archive/0056-racingline-step4-step5-backtest-latency-optimization-plan.md) | Step 4/5 handoff、status/compact API、worker timing、动态 price bars 和 outbox 唤醒实施计划 |
+| [../jobs/reports/2026-06-25-racingline-step4-step5-backtest-latency-optimization.md](../jobs/reports/2026-06-25-racingline-step4-step5-backtest-latency-optimization.md) | Step 4/5 回测延时优化验收报告 |
 | [../plans/archive/0041-racingline-virtual-account-portfolio-rebalancing-implementation-plan.md](../plans/archive/0041-racingline-virtual-account-portfolio-rebalancing-implementation-plan.md) | 虚拟账户、组合运行、worker 和旧 Racingline 组合页面 Superseded 计划 |
 | [../plans/archive/0050-racingline-strategy-simulation-position-step4-implementation-plan.md](../plans/archive/0050-racingline-strategy-simulation-position-step4-implementation-plan.md) | Racingline Step 4 模拟建仓 execution draft、Rearview validate contract 和前端 gate 已完成计划 |
 | [../jobs/reports/2026-06-23-racingline-strategy-step4-draft-handoff.md](../jobs/reports/2026-06-23-racingline-strategy-step4-draft-handoff.md) | Strategy backtest validate contract、Step 4 handoff 和浏览器验收报告 |

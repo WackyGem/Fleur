@@ -1,6 +1,6 @@
 # System: Racingline
 
-状态：单一正式前端工作台已落到 `app/racingline/`（2026-06-25）
+状态：单一正式前端工作台已落到 `app/racingline/`；Step 4 到 Step 5 回测 handoff 已改为 create accepted 后进入状态页（2026-06-25）
 
 ## 代码根
 
@@ -16,7 +16,7 @@
 2. 支持 `/dashboard` 的 strategy portfolio 看板、`/dashboard/strategies/:portfolioId` 详情和 `/strategies` 策略创建主流程。
 3. 在 `/strategies` 中支持 Step 1 筛选条件、Step 2 评分规则、Step 3 preview、Step 4 模拟建仓和 Step 5 异步回测。
 4. 通过 Rearview preview-only API 展示 applied preview snapshot、动态近一年交易日股池、分页候选股、rank、score、Step 2 得分项、Step 1 指标列、证券交易板块、K 线复权、MA5/MA10/MA30 和成交量柱。
-5. 通过 Rearview strategy backtest API 展示 validate、options、create、nav、rebalance records、targets、orders、trades、positions、events、performance、closed trades 和 trade metrics。
+5. 通过 Rearview strategy backtest API 展示 validate、options、create、status、nav、rebalance records、targets、orders、trades、positions、events、performance、closed trades 和 trade metrics；`/strategies` Step 4 创建 backtest run 成功后立即进入 Step 5，Step 5 内部按 status view 轮询并在 succeeded 后读取 UI compact result wrapper。
 6. 通过 Rearview strategy portfolio API 展示看板、详情、净值、信号、signal timeline、持仓和调仓记录。
 7. 继续使用 Rearview default market fee template 初始化 Step 4 草稿，并在 UI 中区分 draft、applied snapshot、backtest result 和 portfolio result。
 
@@ -98,5 +98,8 @@ npm run build
 | [../RFC/archive/0027-racingline-strategy-simulation-position-step4.md](../RFC/archive/0027-racingline-strategy-simulation-position-step4.md) | Step 4 模拟建仓 |
 | [../RFC/archive/0028-racingline-strategy-backtest-step5.md](../RFC/archive/0028-racingline-strategy-backtest-step5.md) | Step 5 异步回测 |
 | [../RFC/archive/0029-racingline-strategy-portfolio-publish-and-daily-run.md](../RFC/archive/0029-racingline-strategy-portfolio-publish-and-daily-run.md) | 策略组合发布和日运行 |
+| [../RFC/0031-racingline-step4-step5-backtest-latency-slimming.md](../RFC/0031-racingline-step4-step5-backtest-latency-slimming.md) | Step 4 到 Step 5 回测延时瘦身依据、字段审计和性能基线 |
+| [../plans/archive/0056-racingline-step4-step5-backtest-latency-optimization-plan.md](../plans/archive/0056-racingline-step4-step5-backtest-latency-optimization-plan.md) | Step 4/5 handoff、status/compact API、worker timing、动态 price bars 和 outbox 唤醒实施计划 |
+| [../jobs/reports/2026-06-25-racingline-step4-step5-backtest-latency-optimization.md](../jobs/reports/2026-06-25-racingline-step4-step5-backtest-latency-optimization.md) | Step 4/5 回测延时优化验收报告 |
 | [../plans/archive/0053-racingline-legacy-cleanup-and-rename-plan.md](../plans/archive/0053-racingline-legacy-cleanup-and-rename-plan.md) | 旧工程清理和目录重命名实施计划 |
 | [../jobs/reports/2026-06-25-racingline-legacy-cleanup-rename.md](../jobs/reports/2026-06-25-racingline-legacy-cleanup-rename.md) | 清理和重命名验收报告 |

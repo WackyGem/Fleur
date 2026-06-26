@@ -15,8 +15,12 @@ export const queryKeys = {
     ["strategy-backtests", "options", benchmarkSecurityCode] as const,
   strategyBacktest: (strategyBacktestRunId: string | null) =>
     ["strategy-backtests", strategyBacktestRunId] as const,
+  strategyBacktestStatus: (strategyBacktestRunId: string | null) =>
+    ["strategy-backtests", strategyBacktestRunId, "status"] as const,
   strategyBacktestNav: (strategyBacktestRunId: string | null) =>
     ["strategy-backtests", strategyBacktestRunId, "nav"] as const,
+  strategyBacktestNavUi: (strategyBacktestRunId: string | null) =>
+    ["strategy-backtests", strategyBacktestRunId, "nav", "ui"] as const,
   strategyBacktestRebalanceRecords: (
     strategyBacktestRunId: string | null,
     tradeDate?: string | null
@@ -27,8 +31,21 @@ export const queryKeys = {
       "rebalance-records",
       tradeDate ?? null,
     ] as const,
+  strategyBacktestRebalanceRecordsUi: (
+    strategyBacktestRunId: string | null,
+    tradeDate?: string | null
+  ) =>
+    [
+      "strategy-backtests",
+      strategyBacktestRunId,
+      "rebalance-records",
+      "ui",
+      tradeDate ?? null,
+    ] as const,
   strategyBacktestPerformance: (strategyBacktestRunId: string | null) =>
     ["strategy-backtests", strategyBacktestRunId, "performance"] as const,
+  strategyBacktestPerformanceUi: (strategyBacktestRunId: string | null) =>
+    ["strategy-backtests", strategyBacktestRunId, "performance", "ui"] as const,
   strategyBacktestTargets: (
     strategyBacktestRunId: string | null,
     query: QueryParams = {}
@@ -101,6 +118,8 @@ export const queryKeys = {
     ] as const,
   previewTimeline: (previewId: string, startDate: string, endDate: string) =>
     ["preview-timeline", previewId, startDate, endDate] as const,
+  previewOpen: (startDate: string, endDate: string, rowLimit: number) =>
+    ["preview-open", startDate, endDate, rowLimit] as const,
   previewPoolPage: (
     previewId: string,
     tradeDate: string,
@@ -123,5 +142,20 @@ export const queryKeys = {
       adjustment,
       maWindows,
       includeQuoteRows,
+    ] as const,
+  previewChartContext: (
+    previewId: string,
+    tradeDate: string,
+    securityCode: string,
+    adjustment: string,
+    maWindows: string
+  ) =>
+    [
+      "preview-chart-context",
+      previewId,
+      tradeDate,
+      securityCode,
+      adjustment,
+      maWindows,
     ] as const,
 }

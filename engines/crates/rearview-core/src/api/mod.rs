@@ -1,13 +1,18 @@
 use std::collections::{BTreeMap, BTreeSet};
+use std::time::Instant;
 
-use axum::extract::{Path, Query, State};
-use axum::http::StatusCode;
+use axum::body::Body;
+use axum::extract::{MatchedPath, Path, Query, State};
+use axum::http::{Request, StatusCode};
+use axum::middleware::{self, Next};
+use axum::response::Response;
 use axum::routing::{get, patch, post};
 use axum::{Json, Router};
 use chrono::{DateTime, Days, Months, NaiveDate, Utc};
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
 use tower_http::cors::CorsLayer;
+use tracing::info;
 
 use crate::clickhouse::{
     AnalysisQuoteAdjustment, MomentumIndicatorRow, QuoteMartRow, SecurityDisplayRow,
@@ -27,7 +32,7 @@ use crate::postgres::{
     PortfolioRunListFilter, PortfolioTargetFilter, PortfolioTargetRecord, PortfolioTradeFilter,
     PortfolioTradeMetricFilter, PortfolioTradeRecord, ResultRowsFilter, ResultRowsSort,
     RuleSetListFilter, RuleVersionListFilter, RunListFilter, StrategyBacktestRunRecord,
-    StrategyPortfolioRecord, plan_date_chunks,
+    StrategyBacktestStaleActiveRunRecord, StrategyPortfolioRecord, plan_date_chunks,
 };
 use crate::service::AppState;
 use crate::service::runner::execute_run;
@@ -130,6 +135,14 @@ pub fn routes() -> Router<AppState> {
             post(create_strategy_backtest),
         )
         .route(
+            "/rearview/strategy-backtests/diagnostics/stale-active",
+            get(list_stale_strategy_backtests),
+        )
+        .route(
+            "/rearview/strategy-backtests/{strategy_backtest_run_id}/status",
+            get(get_strategy_backtest_status),
+        )
+        .route(
             "/rearview/strategy-backtests/{strategy_backtest_run_id}",
             get(get_strategy_backtest),
         )
@@ -230,7 +243,37 @@ pub fn routes() -> Router<AppState> {
             "/rearview/strategy-preview/security-analysis",
             post(preview_strategy_security_analysis),
         )
+        .route(
+            "/rearview/strategy-preview/open",
+            post(open_strategy_preview),
+        )
+        .route(
+            "/rearview/strategy-preview/chart-context",
+            post(preview_strategy_chart_context),
+        )
+        .layer(middleware::from_fn(log_http_request))
         .layer(CorsLayer::permissive())
+}
+
+async fn log_http_request(request: Request<Body>, next: Next) -> Response {
+    let method = request.method().clone();
+    let route = request
+        .extensions()
+        .get::<MatchedPath>()
+        .map(MatchedPath::as_str)
+        .unwrap_or_else(|| request.uri().path())
+        .to_string();
+    let started_at = Instant::now();
+    let response = next.run(request).await;
+    let status = response.status();
+    info!(
+        method = %method,
+        route = %route,
+        status = status.as_u16(),
+        elapsed_ms = started_at.elapsed().as_millis(),
+        "rearview http request"
+    );
+    response
 }
 
 async fn healthz() -> Json<HealthResponse> {
@@ -596,6 +639,7 @@ async fn create_strategy_backtest(
             .await?
     {
         if existing.request_hash == request_hash {
+            state.outbox_notifier.notify_one();
             return Ok((
                 StatusCode::ACCEPTED,
                 Json(strategy_backtest_run_response(existing)?),
@@ -631,10 +675,24 @@ async fn create_strategy_backtest(
         })
         .await?;
 
+    state.outbox_notifier.notify_one();
+
     Ok((
         StatusCode::ACCEPTED,
         Json(strategy_backtest_run_response(record)?),
     ))
+}
+
+async fn list_stale_strategy_backtests(
+    State(state): State<AppState>,
+    Query(query): Query<StaleStrategyBacktestsQuery>,
+) -> RearviewResult<Json<Vec<StrategyBacktestStaleActiveRunRecord>>> {
+    let page = page(query.limit, None)?;
+    let records = state
+        .postgres
+        .list_stale_active_strategy_backtest_runs(page.limit)
+        .await?;
+    Ok(Json(records))
 }
 
 async fn get_strategy_backtest(
@@ -648,11 +706,23 @@ async fn get_strategy_backtest(
     Ok(Json(strategy_backtest_run_response(record)?))
 }
 
+async fn get_strategy_backtest_status(
+    State(state): State<AppState>,
+    Path(strategy_backtest_run_id): Path<String>,
+) -> RearviewResult<Json<StrategyBacktestRunStatusView>> {
+    let record = state
+        .postgres
+        .get_strategy_backtest_run(&strategy_backtest_run_id)
+        .await?;
+    Ok(Json(strategy_backtest_status_view(record)))
+}
+
 async fn list_strategy_backtest_nav(
     State(state): State<AppState>,
     Path(strategy_backtest_run_id): Path<String>,
     Query(query): Query<PortfolioNavQuery>,
-) -> RearviewResult<Json<Vec<StrategyBacktestNavPoint>>> {
+) -> RearviewResult<Json<StrategyBacktestNavResponse>> {
+    let view = response_view(&query.view)?;
     let run = state
         .postgres
         .get_strategy_backtest_run(&strategy_backtest_run_id)
@@ -672,14 +742,24 @@ async fn list_strategy_backtest_nav(
             &format!("strategy-backtest-{strategy_backtest_run_id}-nav-benchmark"),
         )
         .await?;
-    Ok(Json(strategy_backtest_nav_points(nav, benchmark_returns)))
+    let points = strategy_backtest_nav_points(nav, benchmark_returns);
+    Ok(Json(match view {
+        ResponseView::Full => StrategyBacktestNavResponse::Full(points),
+        ResponseView::Ui => StrategyBacktestNavResponse::Ui(
+            points
+                .into_iter()
+                .map(StrategyBacktestNavUiPoint::from)
+                .collect(),
+        ),
+    }))
 }
 
 async fn list_strategy_backtest_rebalance_records(
     State(state): State<AppState>,
     Path(strategy_backtest_run_id): Path<String>,
     Query(query): Query<StrategyBacktestRebalanceQuery>,
-) -> RearviewResult<Json<StrategyBacktestRebalanceRecordsResponse>> {
+) -> RearviewResult<Json<StrategyBacktestRebalanceRecordsApiResponse>> {
+    let view = response_view(&query.view)?;
     let run = state
         .postgres
         .get_strategy_backtest_run(&strategy_backtest_run_id)
@@ -796,23 +876,46 @@ async fn list_strategy_backtest_rebalance_records(
             let hold_count = usize::try_from(hold_count_i32).unwrap_or_default();
             let sell_count = usize::try_from(sell_count_i32).unwrap_or_default();
 
-            StrategyBacktestRebalanceRecord {
+            StrategyBacktestRebalanceRecordSummary {
                 trade_date: row.trade_date,
                 position_count: row.position_count,
                 buy_count,
                 hold_count,
                 sell_count,
-                rows: if row.trade_date == selected_trade_date {
-                    rows.clone()
-                } else {
-                    Vec::new()
-                },
             }
         })
-        .collect();
-    Ok(Json(StrategyBacktestRebalanceRecordsResponse {
-        selected_trade_date,
-        records,
+        .collect::<Vec<_>>();
+    Ok(Json(match view {
+        ResponseView::Full => StrategyBacktestRebalanceRecordsApiResponse::Full(
+            StrategyBacktestRebalanceRecordsResponse {
+                selected_trade_date,
+                records: records
+                    .into_iter()
+                    .map(|record| StrategyBacktestRebalanceRecord {
+                        rows: if record.trade_date == selected_trade_date {
+                            rows.clone()
+                        } else {
+                            Vec::new()
+                        },
+                        trade_date: record.trade_date,
+                        position_count: record.position_count,
+                        buy_count: record.buy_count,
+                        hold_count: record.hold_count,
+                        sell_count: record.sell_count,
+                    })
+                    .collect(),
+            },
+        ),
+        ResponseView::Ui => StrategyBacktestRebalanceRecordsApiResponse::Ui(
+            StrategyBacktestRebalanceRecordsUiResponse {
+                selected_trade_date,
+                records,
+                selected_rows: rows
+                    .into_iter()
+                    .map(StrategyBacktestRebalanceUiRow::from)
+                    .collect(),
+            },
+        ),
     }))
 }
 
@@ -954,7 +1057,8 @@ async fn get_strategy_backtest_performance(
     State(state): State<AppState>,
     Path(strategy_backtest_run_id): Path<String>,
     Query(query): Query<PortfolioPerformanceQuery>,
-) -> RearviewResult<Json<StrategyBacktestPerformanceView>> {
+) -> RearviewResult<Json<StrategyBacktestPerformanceResponse>> {
+    let view = response_view(&query.view)?;
     let run = state
         .postgres
         .get_strategy_backtest_run(&strategy_backtest_run_id)
@@ -976,10 +1080,21 @@ async fn get_strategy_backtest_performance(
         .clickhouse
         .query_portfolio_nav(&strategy_backtest_run_id, &attempt_id)
         .await?;
-    Ok(Json(StrategyBacktestPerformanceView {
-        metric: performance.metric,
-        statuses: performance.statuses,
-        daily_win_rate: daily_win_rate(&nav),
+    let daily_win_rate = daily_win_rate(&nav);
+    Ok(Json(match view {
+        ResponseView::Full => {
+            StrategyBacktestPerformanceResponse::Full(StrategyBacktestPerformanceView {
+                metric: performance.metric,
+                statuses: performance.statuses,
+                daily_win_rate,
+            })
+        }
+        ResponseView::Ui => {
+            StrategyBacktestPerformanceResponse::Ui(StrategyBacktestPerformanceUiView {
+                metric: StrategyBacktestPerformanceUiMetric::from(performance.metric),
+                daily_win_rate,
+            })
+        }
     }))
 }
 
@@ -2309,6 +2424,92 @@ async fn preview_strategy_timeline(
     }))
 }
 
+async fn open_strategy_preview(
+    State(state): State<AppState>,
+    Json(request): Json<StrategyPreviewOpenRequest>,
+) -> RearviewResult<Json<StrategyPreviewOpenResponse>> {
+    let request = request.into_parts()?;
+    let planner = QueryPlanner::new(state.catalog.clone());
+    let settings = QuerySettings {
+        max_execution_time_seconds: state.config.clickhouse.max_execution_time_seconds,
+        max_rows_to_read: state.config.clickhouse.max_rows_to_read,
+        max_bytes_to_read: state.config.clickhouse.max_bytes_to_read,
+    };
+    let timeline_compiled = planner.compile_preview_timeline(
+        &request.rule,
+        request.start_date,
+        request.end_date,
+        settings,
+    )?;
+    let preview_id = ulid::Ulid::new().to_string();
+    let timeline_query_id = format!("rearview-preview-open-timeline-{preview_id}");
+    let timeline_rows = state
+        .clickhouse
+        .query_preview_timeline_rows(&timeline_compiled.sql, &timeline_query_id)
+        .await?;
+    let timeline_trade_dates = timeline_rows
+        .into_iter()
+        .map(|row| StrategyPreviewTimelineTradeDate {
+            trade_date: row.trade_date,
+            pool_count: row.pool_count,
+        })
+        .collect::<Vec<_>>();
+
+    let mut compiled_for_response = timeline_compiled;
+    let latest = if let Some(latest_timeline_row) = timeline_trade_dates.last() {
+        let latest_trade_date = latest_timeline_row.trade_date;
+        let latest_pool_count = latest_timeline_row.pool_count;
+        let latest_compiled = planner.compile_preview(
+            &request.rule,
+            latest_trade_date,
+            latest_trade_date,
+            request.preview_row_limit,
+            settings,
+        )?;
+        let latest_query_id = format!("rearview-preview-open-latest-{preview_id}");
+        let rows = state
+            .clickhouse
+            .query_screening_rows(&latest_compiled.sql, &latest_query_id)
+            .await?;
+        let display_by_code = security_display_map(
+            &state,
+            &collect_security_codes(&rows),
+            &format!("{latest_query_id}-display"),
+        )
+        .await;
+        let mut latest_trade_dates =
+            build_strategy_preview_trade_dates(rows, request.preview_row_limit, &display_by_code)?;
+        compiled_for_response = latest_compiled;
+        Some(
+            latest_trade_dates
+                .pop()
+                .unwrap_or(StrategyPreviewTradeDate {
+                    trade_date: latest_trade_date,
+                    pool_count: latest_pool_count,
+                    signals: Vec::new(),
+                }),
+        )
+    } else {
+        None
+    };
+
+    Ok(Json(StrategyPreviewOpenResponse {
+        preview_id,
+        sql_hash: compiled_for_response.sql_hash,
+        required_metrics: compiled_for_response.required_metrics,
+        required_marts: compiled_for_response.required_marts,
+        required_columns: compiled_for_response.required_columns,
+        timeline: StrategyPreviewOpenTimeline {
+            start_date: request.start_date,
+            end_date: request.end_date,
+            trade_dates: timeline_trade_dates,
+        },
+        latest,
+        preview_row_limit: request.preview_row_limit,
+        top_n: request.preview_row_limit,
+    }))
+}
+
 async fn preview_strategy_pool_page(
     State(state): State<AppState>,
     Json(request): Json<StrategyPreviewPoolPageRequest>,
@@ -2519,6 +2720,93 @@ async fn preview_strategy_security_analysis(
     Ok(Json(response))
 }
 
+async fn preview_strategy_chart_context(
+    State(state): State<AppState>,
+    Json(request): Json<StrategyPreviewChartContextRequest>,
+) -> RearviewResult<Json<PreviewChartContextResponse>> {
+    let request = request.into_parts()?;
+    let query_id_prefix = format!(
+        "rearview-preview-chart-context-{}-{}-{}",
+        ulid::Ulid::new(),
+        request.security_code,
+        request.analysis.trade_date
+    );
+    let display = security_display_for_one(
+        &state,
+        &request.security_code,
+        &format!("{query_id_prefix}-display"),
+    )
+    .await;
+    let security_name = display
+        .as_ref()
+        .and_then(|display| display.security_name.clone());
+    let security_board = display
+        .as_ref()
+        .and_then(|display| display.security_board.clone());
+    let quote_start_date = resolve_analysis_quote_start_date(
+        &state,
+        request.analysis.quote_start_date,
+        request.analysis.quote_end_date,
+        request.analysis.lookback_trading_days,
+        &format!("{query_id_prefix}-date-window"),
+    )
+    .await?;
+    let (quote_rows, selected_quote) = if let Some(quote_start_date) = quote_start_date {
+        let chart_query_id = format!("{query_id_prefix}-chart-quotes");
+        let selected_query_id = format!("{query_id_prefix}-selected-quote");
+        tokio::try_join!(
+            state.clickhouse.query_chart_context_chart_quote_rows(
+                &request.security_code,
+                quote_start_date,
+                request.analysis.quote_end_date,
+                request.analysis.adjustment.into(),
+                &chart_query_id,
+            ),
+            state.clickhouse.query_chart_context_selected_quote_row(
+                &request.security_code,
+                request.analysis.trade_date,
+                &selected_query_id,
+            )
+        )?
+    } else {
+        (Vec::new(), None)
+    };
+    let (chart_start_date, chart_end_date) = quote_rows
+        .first()
+        .zip(quote_rows.last())
+        .map(|(first, last)| (first.trade_date, last.trade_date))
+        .unwrap_or((
+            quote_start_date.unwrap_or(request.analysis.quote_end_date),
+            request.analysis.quote_end_date,
+        ));
+    let trend_rows = if quote_rows.is_empty() {
+        Vec::new()
+    } else {
+        state
+            .clickhouse
+            .query_chart_context_trend_rows(
+                &request.security_code,
+                chart_start_date,
+                chart_end_date,
+                &format!("{query_id_prefix}-trend"),
+            )
+            .await?
+    };
+
+    Ok(Json(build_preview_chart_context_response(
+        PreviewChartContextBuildInput {
+            security_code: request.security_code,
+            security_name,
+            security_board,
+            adjustment: request.analysis.adjustment,
+            ma_windows: request.analysis.ma_windows,
+        },
+        selected_quote,
+        quote_rows,
+        trend_rows,
+    )))
+}
+
 #[derive(Debug, Deserialize)]
 struct CreateRuleSetRequest {
     name: String,
@@ -2631,6 +2919,30 @@ struct StrategyBacktestRunResponse {
 }
 
 #[derive(Debug, Serialize)]
+struct StrategyBacktestRunStatusView {
+    strategy_backtest_run_id: String,
+    status: String,
+    dispatch_status: String,
+    progress: Value,
+    error_type: Option<String>,
+    error_message: Option<String>,
+    period_key: String,
+    benchmark_security_code: String,
+    start_date: NaiveDate,
+    end_date: NaiveDate,
+    rule_hash: String,
+    execution_config_hash: String,
+    current_result_attempt_id: Option<String>,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(untagged)]
+enum StrategyBacktestNavResponse {
+    Full(Vec<StrategyBacktestNavPoint>),
+    Ui(Vec<StrategyBacktestNavUiPoint>),
+}
+
+#[derive(Debug, Serialize)]
 struct StrategyBacktestNavPoint {
     trade_date: NaiveDate,
     strategy_nav: f64,
@@ -2639,10 +2951,75 @@ struct StrategyBacktestNavPoint {
 }
 
 #[derive(Debug, Serialize)]
+struct StrategyBacktestNavUiPoint {
+    trade_date: NaiveDate,
+    strategy_nav: f64,
+    benchmark_nav: Option<f64>,
+}
+
+impl From<StrategyBacktestNavPoint> for StrategyBacktestNavUiPoint {
+    fn from(point: StrategyBacktestNavPoint) -> Self {
+        Self {
+            trade_date: point.trade_date,
+            strategy_nav: point.strategy_nav,
+            benchmark_nav: point.benchmark_nav,
+        }
+    }
+}
+
+#[derive(Debug, Serialize)]
+#[serde(untagged)]
+enum StrategyBacktestPerformanceResponse {
+    Full(StrategyBacktestPerformanceView),
+    Ui(StrategyBacktestPerformanceUiView),
+}
+
+#[derive(Debug, Serialize)]
 struct StrategyBacktestPerformanceView {
     metric: PortfolioPerformanceMetricRecord,
     statuses: Vec<PortfolioPerformanceMetricStatusRecord>,
     daily_win_rate: StrategyBacktestDailyWinRate,
+}
+
+#[derive(Debug, Serialize)]
+struct StrategyBacktestPerformanceUiView {
+    metric: StrategyBacktestPerformanceUiMetric,
+    daily_win_rate: StrategyBacktestDailyWinRate,
+}
+
+#[derive(Debug, Serialize)]
+struct StrategyBacktestPerformanceUiMetric {
+    holding_period_return: Option<f64>,
+    annualized_return: Option<f64>,
+    annualized_volatility: Option<f64>,
+    max_drawdown: Option<f64>,
+    calmar_ratio: Option<f64>,
+    downside_deviation: Option<f64>,
+    sortino_ratio: Option<f64>,
+    sharpe_ratio: Option<f64>,
+    information_ratio: Option<f64>,
+    beta: Option<f64>,
+    alpha: Option<f64>,
+    treynor_ratio: Option<f64>,
+}
+
+impl From<PortfolioPerformanceMetricRecord> for StrategyBacktestPerformanceUiMetric {
+    fn from(metric: PortfolioPerformanceMetricRecord) -> Self {
+        Self {
+            holding_period_return: metric.holding_period_return,
+            annualized_return: metric.annualized_return,
+            annualized_volatility: metric.annualized_volatility,
+            max_drawdown: metric.max_drawdown,
+            calmar_ratio: metric.calmar_ratio,
+            downside_deviation: metric.downside_deviation,
+            sortino_ratio: metric.sortino_ratio,
+            sharpe_ratio: metric.sharpe_ratio,
+            information_ratio: metric.information_ratio,
+            beta: metric.beta,
+            alpha: metric.alpha,
+            treynor_ratio: metric.treynor_ratio,
+        }
+    }
 }
 
 #[derive(Debug, Serialize)]
@@ -2658,6 +3035,15 @@ struct StrategyBacktestRebalanceQuery {
     result_attempt_id: Option<String>,
     #[serde(default)]
     trade_date: Option<NaiveDate>,
+    #[serde(default)]
+    view: Option<String>,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(untagged)]
+enum StrategyBacktestRebalanceRecordsApiResponse {
+    Full(StrategyBacktestRebalanceRecordsResponse),
+    Ui(StrategyBacktestRebalanceRecordsUiResponse),
 }
 
 #[derive(Debug, Serialize)]
@@ -2676,6 +3062,22 @@ struct StrategyBacktestRebalanceRecord {
     rows: Vec<StrategyBacktestRebalanceRow>,
 }
 
+#[derive(Debug, Serialize)]
+struct StrategyBacktestRebalanceRecordsUiResponse {
+    selected_trade_date: NaiveDate,
+    records: Vec<StrategyBacktestRebalanceRecordSummary>,
+    selected_rows: Vec<StrategyBacktestRebalanceUiRow>,
+}
+
+#[derive(Debug, Serialize)]
+struct StrategyBacktestRebalanceRecordSummary {
+    trade_date: NaiveDate,
+    position_count: i32,
+    buy_count: usize,
+    hold_count: usize,
+    sell_count: usize,
+}
+
 #[derive(Debug, Clone, Serialize)]
 struct StrategyBacktestRebalanceRow {
     direction: String,
@@ -2688,6 +3090,33 @@ struct StrategyBacktestRebalanceRow {
     current_price: Option<f64>,
     contribution_pct: Option<f64>,
     reason: Option<String>,
+}
+
+#[derive(Debug, Serialize)]
+struct StrategyBacktestRebalanceUiRow {
+    direction: String,
+    security_code: String,
+    security_name: Option<String>,
+    holding_days: Option<i32>,
+    change_pct: Option<f64>,
+    cost_price: Option<f64>,
+    current_price: Option<f64>,
+    contribution_pct: Option<f64>,
+}
+
+impl From<StrategyBacktestRebalanceRow> for StrategyBacktestRebalanceUiRow {
+    fn from(row: StrategyBacktestRebalanceRow) -> Self {
+        Self {
+            direction: row.direction,
+            security_code: row.security_code,
+            security_name: row.security_name,
+            holding_days: row.holding_days,
+            change_pct: row.change_pct,
+            cost_price: row.cost_price,
+            current_price: row.current_price,
+            contribution_pct: row.contribution_pct,
+        }
+    }
 }
 
 #[derive(Debug, Deserialize)]
@@ -2975,9 +3404,17 @@ struct ListPortfolioRunsQuery {
 }
 
 #[derive(Debug, Deserialize)]
+struct StaleStrategyBacktestsQuery {
+    #[serde(default)]
+    limit: Option<u32>,
+}
+
+#[derive(Debug, Deserialize)]
 struct PortfolioNavQuery {
     #[serde(default)]
     result_attempt_id: Option<String>,
+    #[serde(default)]
+    view: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -3056,6 +3493,8 @@ struct PortfolioPerformanceQuery {
     security_code: Option<String>,
     #[serde(default)]
     window_key: Option<String>,
+    #[serde(default)]
+    view: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -3215,6 +3654,55 @@ struct SecurityAnalysisResponse {
     chart: ChartPayload,
     quote_rows: Vec<QuoteMartRow>,
     selected_quote: Option<QuoteMartRow>,
+}
+
+#[derive(Debug, Serialize)]
+struct PreviewChartContextResponse {
+    security_code: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    security_name: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    security_board: Option<String>,
+    chart: PreviewChartContextChart,
+    selected_quote: Option<PreviewChartContextQuote>,
+}
+
+#[derive(Debug, Serialize)]
+struct PreviewChartContextChart {
+    ma: PreviewChartContextMaMetadata,
+    series: Vec<PreviewChartContextSeriesRow>,
+}
+
+#[derive(Debug, Serialize)]
+struct PreviewChartContextMaMetadata {
+    available_windows: Vec<u32>,
+}
+
+#[derive(Debug, Serialize)]
+struct PreviewChartContextSeriesRow {
+    trade_date: NaiveDate,
+    ohlc: Option<ChartOhlc>,
+    volume: Option<f64>,
+    ma: BTreeMap<String, Option<f64>>,
+}
+
+#[derive(Debug, Serialize)]
+struct PreviewChartContextQuote {
+    trade_date: NaiveDate,
+    open_price: Option<f64>,
+    high_price: Option<f64>,
+    low_price: Option<f64>,
+    close_price: Option<f64>,
+    prev_close_price: Option<f64>,
+    pct_change: Option<f64>,
+    pct_amplitude: Option<f64>,
+    volume: Option<f64>,
+    amount: Option<f64>,
+    limit_up_price: Option<f64>,
+    limit_down_price: Option<f64>,
+    a_market_cap: Option<f64>,
+    pe_ttm: Option<f64>,
+    roe: Option<f64>,
 }
 
 #[derive(Debug, Serialize)]
@@ -3538,6 +4026,80 @@ struct StrategyPreviewResponse {
 }
 
 #[derive(Debug, Deserialize)]
+struct StrategyPreviewOpenRequest {
+    rule: RuleVersionSpec,
+    start_date: NaiveDate,
+    end_date: NaiveDate,
+    #[serde(default)]
+    preview_row_limit: Option<u32>,
+    #[serde(default)]
+    top_n: Option<u32>,
+}
+
+impl StrategyPreviewOpenRequest {
+    fn into_parts(self) -> RearviewResult<StrategyPreviewOpenRequestParts> {
+        const MAX_OPEN_DAYS: i64 = 370;
+        let preview_row_limit = self.preview_row_limit.or(self.top_n).unwrap_or(50);
+        if preview_row_limit == 0 {
+            return Err(RearviewError::Validation(
+                "preview_row_limit must be greater than 0".to_string(),
+            ));
+        }
+        if preview_row_limit > 500 {
+            return Err(RearviewError::Validation(
+                "preview_row_limit must not exceed 500".to_string(),
+            ));
+        }
+        if self.start_date > self.end_date {
+            return Err(RearviewError::Validation(
+                "start_date must be earlier than or equal to end_date".to_string(),
+            ));
+        }
+        let day_count = (self.end_date - self.start_date).num_days() + 1;
+        if day_count > MAX_OPEN_DAYS {
+            return Err(RearviewError::Validation(format!(
+                "preview open date range must not exceed {MAX_OPEN_DAYS} days"
+            )));
+        }
+
+        Ok(StrategyPreviewOpenRequestParts {
+            rule: self.rule,
+            start_date: self.start_date,
+            end_date: self.end_date,
+            preview_row_limit,
+        })
+    }
+}
+
+#[derive(Debug)]
+struct StrategyPreviewOpenRequestParts {
+    rule: RuleVersionSpec,
+    start_date: NaiveDate,
+    end_date: NaiveDate,
+    preview_row_limit: u32,
+}
+
+#[derive(Debug, Serialize)]
+struct StrategyPreviewOpenResponse {
+    preview_id: String,
+    sql_hash: String,
+    required_metrics: Vec<String>,
+    required_marts: Vec<String>,
+    required_columns: BTreeMap<String, Vec<String>>,
+    timeline: StrategyPreviewOpenTimeline,
+    latest: Option<StrategyPreviewTradeDate>,
+    preview_row_limit: u32,
+    top_n: u32,
+}
+
+#[derive(Debug, Serialize)]
+struct StrategyPreviewOpenTimeline {
+    start_date: NaiveDate,
+    end_date: NaiveDate,
+    trade_dates: Vec<StrategyPreviewTimelineTradeDate>,
+}
+
+#[derive(Debug, Deserialize)]
 struct StrategyPreviewTimelineRequest {
     rule: RuleVersionSpec,
     start_date: NaiveDate,
@@ -3775,6 +4337,57 @@ struct SecurityAnalysisContextRequestParts {
     security_code: String,
     analysis: SecurityAnalysisRequest,
     include_quote_rows: bool,
+}
+
+#[derive(Debug, Deserialize)]
+struct StrategyPreviewChartContextRequest {
+    trade_date: NaiveDate,
+    security_code: String,
+    #[serde(default)]
+    adjustment: Option<Adjustment>,
+    #[serde(default)]
+    lookback_trading_days: Option<u32>,
+    #[serde(default)]
+    ma_windows: Option<String>,
+}
+
+impl StrategyPreviewChartContextRequest {
+    fn into_parts(self) -> RearviewResult<StrategyPreviewChartContextRequestParts> {
+        let security_code = self.security_code.trim().to_string();
+        if security_code.is_empty() {
+            return Err(RearviewError::Validation(
+                "security_code must not be empty".to_string(),
+            ));
+        }
+        let analysis = SecurityAnalysisQuery {
+            trade_date: self.trade_date,
+            source: AnalysisSource::Preview,
+            adjustment: self.adjustment,
+            quote_end_date: None,
+            lookback_trading_days: self.lookback_trading_days,
+            quote_start_date: None,
+            ma_windows: self.ma_windows,
+        }
+        .into_request()?;
+        Ok(StrategyPreviewChartContextRequestParts {
+            security_code,
+            analysis,
+        })
+    }
+}
+
+#[derive(Debug)]
+struct StrategyPreviewChartContextRequestParts {
+    security_code: String,
+    analysis: SecurityAnalysisRequest,
+}
+
+struct PreviewChartContextBuildInput {
+    security_code: String,
+    security_name: Option<String>,
+    security_board: Option<String>,
+    adjustment: Adjustment,
+    ma_windows: Vec<u32>,
 }
 
 fn build_strategy_preview_trade_dates(
@@ -4167,6 +4780,46 @@ fn strategy_backtest_run_response(
         record,
         config_summary,
     })
+}
+
+fn strategy_backtest_status_view(
+    record: StrategyBacktestRunRecord,
+) -> StrategyBacktestRunStatusView {
+    StrategyBacktestRunStatusView {
+        strategy_backtest_run_id: record.strategy_backtest_run_id,
+        status: record.status,
+        dispatch_status: record.dispatch_status,
+        progress: record.progress,
+        error_type: record.error_type,
+        error_message: record.error_message,
+        period_key: record.period_key,
+        benchmark_security_code: record.benchmark_security_code,
+        start_date: record.start_date,
+        end_date: record.end_date,
+        rule_hash: record.rule_hash,
+        execution_config_hash: record.execution_config_hash,
+        current_result_attempt_id: record.current_result_attempt_id,
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum ResponseView {
+    Full,
+    Ui,
+}
+
+fn response_view(view: &Option<String>) -> RearviewResult<ResponseView> {
+    match view
+        .as_deref()
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+    {
+        None | Some("full") => Ok(ResponseView::Full),
+        Some("ui" | "compact") => Ok(ResponseView::Ui),
+        Some(other) => Err(RearviewError::Validation(format!(
+            "unsupported response view: {other}"
+        ))),
+    }
 }
 
 fn strategy_portfolio_response(record: StrategyPortfolioRecord) -> StrategyPortfolioResponse {
@@ -4667,6 +5320,68 @@ fn build_security_analysis_response(
     }
 }
 
+fn build_preview_chart_context_response(
+    input: PreviewChartContextBuildInput,
+    selected_quote: Option<QuoteMartRow>,
+    quote_rows: Vec<QuoteMartRow>,
+    trend_rows: Vec<TrendIndicatorRow>,
+) -> PreviewChartContextResponse {
+    let trend_by_date = trend_rows
+        .into_iter()
+        .map(|row| (row.trade_date, row))
+        .collect::<BTreeMap<_, _>>();
+    let series = quote_rows
+        .iter()
+        .map(|quote| {
+            let trend = trend_by_date.get(&quote.trade_date);
+            PreviewChartContextSeriesRow {
+                trade_date: quote.trade_date,
+                ohlc: ohlc_for_adjustment(quote, input.adjustment),
+                volume: quote.volume,
+                ma: ma_values(trend, &input.ma_windows),
+            }
+        })
+        .collect::<Vec<_>>();
+    let available_windows = input
+        .ma_windows
+        .iter()
+        .copied()
+        .filter(|window| {
+            let key = window.to_string();
+            series
+                .iter()
+                .any(|row| row.ma.get(&key).and_then(|value| *value).is_some())
+        })
+        .collect::<Vec<_>>();
+
+    PreviewChartContextResponse {
+        security_code: input.security_code,
+        security_name: input.security_name,
+        security_board: input.security_board,
+        chart: PreviewChartContextChart {
+            ma: PreviewChartContextMaMetadata { available_windows },
+            series,
+        },
+        selected_quote: selected_quote.map(|quote| PreviewChartContextQuote {
+            trade_date: quote.trade_date,
+            open_price: quote.open_price,
+            high_price: quote.high_price,
+            low_price: quote.low_price,
+            close_price: quote.close_price,
+            prev_close_price: quote.prev_close_price,
+            pct_change: quote.pct_change,
+            pct_amplitude: quote.pct_amplitude,
+            volume: quote.volume,
+            amount: quote.amount,
+            limit_up_price: quote.limit_up_price,
+            limit_down_price: quote.limit_down_price,
+            a_market_cap: quote.a_market_cap,
+            pe_ttm: quote.pe_ttm,
+            roe: quote.roe,
+        }),
+    }
+}
+
 fn ohlc_for_adjustment(row: &QuoteMartRow, adjustment: Adjustment) -> Option<ChartOhlc> {
     let (open, high, low, close) = match adjustment {
         Adjustment::ForwardAdjusted => (
@@ -5115,6 +5830,93 @@ mod tests {
     }
 
     #[test]
+    fn strategy_backtest_status_view_should_not_serialize_full_snapshots() {
+        let value = serde_json::to_value(StrategyBacktestRunStatusView {
+            strategy_backtest_run_id: "run-1".to_string(),
+            status: "queued".to_string(),
+            dispatch_status: "pending".to_string(),
+            progress: json!({"stage": "queued"}),
+            error_type: None,
+            error_message: None,
+            period_key: "1y".to_string(),
+            benchmark_security_code: "000300.SH".to_string(),
+            start_date: date("2025-01-02"),
+            end_date: date("2025-12-31"),
+            rule_hash: "rule-hash".to_string(),
+            execution_config_hash: "config-hash".to_string(),
+            current_result_attempt_id: None,
+        })
+        .unwrap();
+
+        assert!(value.get("rule_snapshot").is_none());
+        assert!(value.get("execution_config").is_none());
+        assert!(value.get("summary").is_none());
+        assert_eq!(value["status"], "queued");
+    }
+
+    #[test]
+    fn strategy_backtest_nav_ui_point_should_not_serialize_excess_return() {
+        let value = serde_json::to_value(StrategyBacktestNavUiPoint {
+            trade_date: date("2025-01-02"),
+            strategy_nav: 1.02,
+            benchmark_nav: Some(1.01),
+        })
+        .unwrap();
+
+        assert!(value.get("excess_return").is_none());
+        assert_eq!(value["strategy_nav"], 1.02);
+    }
+
+    #[test]
+    fn strategy_backtest_performance_ui_view_should_not_serialize_statuses() {
+        let value = serde_json::to_value(StrategyBacktestPerformanceUiView {
+            metric: StrategyBacktestPerformanceUiMetric {
+                holding_period_return: Some(0.12),
+                annualized_return: Some(0.10),
+                annualized_volatility: Some(0.20),
+                max_drawdown: Some(-0.08),
+                calmar_ratio: Some(1.25),
+                downside_deviation: Some(0.09),
+                sortino_ratio: Some(1.1),
+                sharpe_ratio: Some(0.8),
+                information_ratio: Some(0.7),
+                beta: Some(1.0),
+                alpha: Some(0.03),
+                treynor_ratio: Some(0.05),
+            },
+            daily_win_rate: StrategyBacktestDailyWinRate {
+                value: Some(0.55),
+                observation_count: 100,
+                winning_day_count: 55,
+            },
+        })
+        .unwrap();
+
+        assert!(value.get("statuses").is_none());
+        assert!(value["metric"].get("portfolio_run_id").is_none());
+        assert_eq!(value["metric"]["holding_period_return"], 0.12);
+    }
+
+    #[test]
+    fn strategy_backtest_rebalance_ui_row_should_not_serialize_quantity_or_reason() {
+        let value = serde_json::to_value(StrategyBacktestRebalanceUiRow {
+            direction: "buy".to_string(),
+            security_code: "600000.SH".to_string(),
+            security_name: Some("浦发银行".to_string()),
+            holding_days: Some(3),
+            change_pct: Some(0.01),
+            cost_price: Some(10.0),
+            current_price: Some(10.1),
+            contribution_pct: Some(0.001),
+        })
+        .unwrap();
+
+        assert!(value.get("quantity").is_none());
+        assert!(value.get("reason").is_none());
+        assert_eq!(value["security_code"], "600000.SH");
+    }
+
+    #[test]
     fn parse_ma_windows_should_accept_canonical_subset() {
         let windows = parse_ma_windows(Some("10,5,5".to_string())).unwrap();
 
@@ -5185,6 +5987,25 @@ mod tests {
     #[test]
     fn preview_timeline_request_should_reject_range_above_one_year_window() {
         let error = preview_timeline_request("2025-01-01", "2026-06-01")
+            .into_parts()
+            .unwrap_err();
+
+        assert!(matches!(error, RearviewError::Validation(_)));
+    }
+
+    #[test]
+    fn preview_open_request_should_accept_near_one_year_range() {
+        let request = preview_open_request("2025-06-01", "2026-06-01", 10);
+
+        let parts = request.into_parts().unwrap();
+
+        assert_eq!(parts.start_date, date("2025-06-01"));
+        assert_eq!(parts.end_date, date("2026-06-01"));
+    }
+
+    #[test]
+    fn preview_open_request_should_reject_range_above_one_year_window() {
+        let error = preview_open_request("2025-01-01", "2026-06-01", 10)
             .into_parts()
             .unwrap_err();
 
@@ -5274,6 +6095,39 @@ mod tests {
         assert_eq!(values.get("5").copied().flatten(), Some(10.0));
         assert_eq!(values.get("10").copied().flatten(), Some(11.0));
         assert_eq!(values.get("30").copied().flatten(), Some(12.0));
+    }
+
+    #[test]
+    fn chart_context_response_should_exclude_legacy_indicator_fields() {
+        let quote = quote_row("000001.SZ", "2026-06-02");
+        let response = build_preview_chart_context_response(
+            PreviewChartContextBuildInput {
+                security_code: "000001.SZ".to_string(),
+                security_name: Some("平安银行".to_string()),
+                security_board: Some("szse_main_board".to_string()),
+                adjustment: Adjustment::ForwardAdjusted,
+                ma_windows: vec![5, 10, 30],
+            },
+            Some(quote.clone()),
+            vec![quote],
+            vec![trend_row("000001.SZ", date("2026-06-02"))],
+        );
+
+        let value = serde_json::to_value(response).unwrap();
+        let text = value.to_string();
+
+        assert!(!text.contains("kdj"));
+        assert!(!text.contains("rsi"));
+        assert!(!text.contains("macd"));
+        assert!(!text.contains("boll"));
+        assert!(!text.contains("price_overlays"));
+        assert!(!text.contains("indicator_panels"));
+        assert!(!text.contains("quote_rows"));
+        assert_eq!(
+            value["chart"]["ma"]["available_windows"],
+            json!([5, 10, 30])
+        );
+        assert_eq!(value["selected_quote"]["trade_date"], json!("2026-06-02"));
     }
 
     #[test]
@@ -5395,6 +6249,20 @@ mod tests {
         }
     }
 
+    fn preview_open_request(
+        start_date: &str,
+        end_date: &str,
+        top_n: u32,
+    ) -> StrategyPreviewOpenRequest {
+        StrategyPreviewOpenRequest {
+            rule: preview_request(start_date, end_date, top_n).rule,
+            start_date: date(start_date),
+            end_date: date(end_date),
+            preview_row_limit: Some(top_n),
+            top_n: None,
+        }
+    }
+
     fn preview_pool_page_request() -> StrategyPreviewPoolPageRequest {
         StrategyPreviewPoolPageRequest {
             rule: preview_request("2026-06-01", "2026-06-01", 10).rule,
@@ -5462,6 +6330,33 @@ mod tests {
             macd_dea: None,
             macd_histogram: None,
         }
+    }
+
+    fn quote_row(security_code: &str, trade_date: &str) -> QuoteMartRow {
+        serde_json::from_value(json!({
+            "security_code": security_code,
+            "trade_date": trade_date,
+            "open_price": 10.0,
+            "high_price": 11.0,
+            "low_price": 9.0,
+            "close_price": 10.5,
+            "prev_close_price": 10.0,
+            "open_price_forward_adj": 10.0,
+            "high_price_forward_adj": 11.0,
+            "low_price_forward_adj": 9.0,
+            "close_price_forward_adj": 10.5,
+            "volume": 1000.0,
+            "amount": 10000.0,
+            "pct_amplitude": 0.02,
+            "pct_change": 0.01,
+            "limit_up_price": 11.0,
+            "limit_down_price": 9.0,
+            "a_market_cap": 100000000.0,
+            "pe_ttm": 12.0,
+            "roe": 0.1,
+            "kdj_j_value": 88.0
+        }))
+        .expect("quote row fixture should deserialize")
     }
 
     fn benchmark_return(trade_date: &str, return_daily: Option<f64>) -> BenchmarkReturn {

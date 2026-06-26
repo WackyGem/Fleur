@@ -7,7 +7,7 @@ import {
 } from "lightweight-charts"
 
 import {
-  usePreviewSecurityAnalysisQuery,
+  usePreviewChartContextQuery,
   useStrategyPreviewPoolPageQuery,
 } from "@/api/hooks"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
@@ -59,7 +59,10 @@ import {
   clampScore,
   formatWeightIndicator,
 } from "@/features/strategy/utils"
-import type { ChartSeriesRow, SecurityAnalysisResponse } from "@/types/rearview"
+import type {
+  PreviewChartContextResponse,
+  PreviewChartContextSeriesRow,
+} from "@/types/rearview"
 
 type StockPoolPreviewWorkbenchProps = {
   appliedWeightIndicators: WeightIndicator[]
@@ -130,6 +133,8 @@ function StockPoolPreviewWorkbench({
   const selectedDailyPool =
     dailyStockPools.find((pool) => pool.date === effectiveSelectedTradeDate) ??
     null
+  const latestChartTradeDate =
+    dailyStockPools.at(-1)?.date ?? selectedDailyPool?.date ?? ""
   const selectedPreviewId = previewSnapshot?.previewId ?? ""
   const selectedPoolDate = selectedDailyPool?.date ?? ""
   const poolOffset =
@@ -179,14 +184,13 @@ function StockPoolPreviewWorkbench({
     previewSnapshot && selectedDailyPool && selectedStock
       ? {
           adjustment: adjustmentMode,
-          include_quote_rows: false,
           lookback_trading_days: 240,
           ma_windows: maWindows,
           security_code: selectedStock.code,
-          trade_date: selectedDailyPool.date,
+          trade_date: latestChartTradeDate,
         }
       : null
-  const analysisQuery = usePreviewSecurityAnalysisQuery(
+  const analysisQuery = usePreviewChartContextQuery(
     previewSnapshot?.previewId ?? null,
     analysisRequest
   )
@@ -230,6 +234,7 @@ function StockPoolPreviewWorkbench({
             error={analysisQuery.isError ? analysisQuery.error : null}
             isPending={analysisQuery.isPending}
             onAdjustmentModeChange={setAdjustmentMode}
+            selectedPoolDate={selectedDailyPool.date}
             stock={selectedStock}
           />
           <Separator />
@@ -289,15 +294,17 @@ function KLinePanel({
   error,
   isPending,
   onAdjustmentModeChange,
+  selectedPoolDate,
   stock,
 }: {
   adjustmentMode: (typeof adjustmentOptions)[number]["value"]
-  analysis: SecurityAnalysisResponse | null
+  analysis: PreviewChartContextResponse | null
   error: unknown
   isPending: boolean
   onAdjustmentModeChange: (
     value: (typeof adjustmentOptions)[number]["value"]
   ) => void
+  selectedPoolDate: string
   stock: PreviewStockRow | null
 }) {
   const [trendLines, setTrendLines] = useState<string[]>([
@@ -415,6 +422,7 @@ function KLinePanel({
             </div>
           ) : analysis && analysis.chart.series.length > 0 ? (
             <CandlestickChart
+              selectedPoolDate={selectedPoolDate}
               series={analysis.chart.series}
               visibleTrendLines={visibleTrendLines}
             />
@@ -435,13 +443,26 @@ function KLinePanel({
 }
 
 function CandlestickChart({
+  selectedPoolDate,
   series,
   visibleTrendLines,
 }: {
-  series: ChartSeriesRow[]
+  selectedPoolDate: string
+  series: PreviewChartContextSeriesRow[]
   visibleTrendLines: string[]
 }) {
   const containerRef = useRef<HTMLDivElement | null>(null)
+  const [hoveredRow, setHoveredRow] =
+    useState<PreviewChartContextSeriesRow | null>(null)
+  const [dateMarkerLeft, setDateMarkerLeft] = useState<number | null>(null)
+  const latestDisplayRow = useMemo(
+    () =>
+      [...series]
+        .reverse()
+        .find((row) => row.ohlc || typeof row.volume === "number") ?? null,
+    [series]
+  )
+  const displayedRow = hoveredRow ?? latestDisplayRow
 
   useEffect(() => {
     const container = containerRef.current
@@ -534,7 +555,7 @@ function CandlestickChart({
         series
           .map((row) => {
             const value =
-              row.ma?.[window] ?? row.price_overlays?.[`price_ma_${window}`]
+              row.ma?.[window]
 
             return typeof value === "number"
               ? {
@@ -548,6 +569,32 @@ function CandlestickChart({
     }
     chart.timeScale().fitContent()
 
+    const rowsByDate = new Map(series.map((row) => [row.trade_date, row]))
+    const updateDateMarker = () => {
+      if (!selectedPoolDate) {
+        setDateMarkerLeft(null)
+        return
+      }
+
+      const coordinate = chart.timeScale().timeToCoordinate(selectedPoolDate)
+      setDateMarkerLeft(
+        typeof coordinate === "number" && Number.isFinite(coordinate)
+          ? coordinate
+          : null
+      )
+    }
+    updateDateMarker()
+    chart.timeScale().subscribeVisibleLogicalRangeChange(updateDateMarker)
+    chart.subscribeCrosshairMove((param) => {
+      if (!param.time) {
+        setHoveredRow(null)
+        return
+      }
+
+      const tradeDate = chartTimeToDateKey(param.time)
+      setHoveredRow(tradeDate ? (rowsByDate.get(tradeDate) ?? null) : null)
+    })
+
     const resizeObserver = new ResizeObserver((entries) => {
       const entry = entries[0]
 
@@ -559,17 +606,78 @@ function CandlestickChart({
         height: Math.max(entry.contentRect.height, 180),
         width: entry.contentRect.width,
       })
+      updateDateMarker()
     })
 
     resizeObserver.observe(container)
 
     return () => {
+      chart.timeScale().unsubscribeVisibleLogicalRangeChange(updateDateMarker)
       resizeObserver.disconnect()
       chart.remove()
     }
-  }, [series, visibleTrendLines])
+  }, [selectedPoolDate, series, visibleTrendLines])
 
-  return <div ref={containerRef} className="h-full min-h-[12rem] w-full" />
+  return (
+    <div className="relative h-full min-h-[12rem] w-full">
+      <div ref={containerRef} className="h-full min-h-[12rem] w-full" />
+      {dateMarkerLeft !== null ? (
+        <div
+          aria-hidden
+          className="pointer-events-none absolute top-0 z-10 h-0 w-0 -translate-x-1/2 border-x-[6px] border-t-[8px] border-x-transparent border-t-[#9a4f12]"
+          data-chart-date-marker={selectedPoolDate}
+          style={{ left: dateMarkerLeft }}
+        />
+      ) : null}
+      {displayedRow ? (
+        <div
+          className="pointer-events-none absolute top-0 left-0 z-10 w-[7.25rem] border border-border/70 bg-background/92 px-1.5 py-1 shadow-sm backdrop-blur"
+          data-chart-hover-row={displayedRow.trade_date}
+        >
+          <div className="border-b border-border/50 pb-0.5 text-[10px] leading-3 font-medium tabular-nums">
+            {displayedRow.trade_date}
+          </div>
+          <div className="mt-1 grid gap-0.5 text-[9px] leading-3 text-muted-foreground tabular-nums">
+            <ChartHoverRow label="开盘" value={formatPrice(displayedRow.ohlc?.open)} />
+            <ChartHoverRow label="最高" value={formatPrice(displayedRow.ohlc?.high)} />
+            <ChartHoverRow label="最低" value={formatPrice(displayedRow.ohlc?.low)} />
+            <ChartHoverRow label="收盘" value={formatPrice(displayedRow.ohlc?.close)} />
+            <ChartHoverRow label="成交量" value={formatHoverVolume(displayedRow.volume)} />
+          </div>
+        </div>
+      ) : null}
+    </div>
+  )
+}
+
+function ChartHoverRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="grid grid-cols-[2.5rem_minmax(0,1fr)] gap-1">
+      <span>{label}</span>
+      <span className="truncate text-right text-foreground">{value}</span>
+    </div>
+  )
+}
+
+function chartTimeToDateKey(time: unknown) {
+  if (typeof time === "string") {
+    return time
+  }
+
+  if (
+    time &&
+    typeof time === "object" &&
+    "year" in time &&
+    "month" in time &&
+    "day" in time
+  ) {
+    const value = time as { day: number; month: number; year: number }
+    return `${value.year}-${String(value.month).padStart(2, "0")}-${String(
+      value.day
+    ).padStart(2, "0")}`
+  }
+
+  return null
 }
 
 function maLineColor(trendLine: string) {
@@ -776,7 +884,7 @@ function KeyDataPanel({
   onUpdateWeightIndicator,
   weightIndicators,
 }: {
-  analysis: SecurityAnalysisResponse | null
+  analysis: PreviewChartContextResponse | null
   analysisError: unknown
   isAnalysisPending: boolean
   onUpdateWeightIndicator: (
@@ -806,7 +914,7 @@ function KeyDataPanel({
             </Alert>
           ) : null}
 
-          <MetricSection title="行情">
+          <MetricSection meta={quote?.trade_date} title="行情">
             <DataRow label="开盘价" value={formatPrice(quote?.open_price)} />
             <DataRow label="最高价" value={formatPrice(quote?.high_price)} />
             <DataRow label="最低价" value={formatPrice(quote?.low_price)} />
@@ -922,15 +1030,18 @@ function CompactWeightTuningSection({
 
 function MetricSection({
   children,
+  meta,
   title,
 }: {
   children: ReactNode
+  meta?: string | null
   title: string
 }) {
   return (
     <section className="flex flex-col gap-2">
-      <div className="text-[11px] font-medium text-muted-foreground">
-        {title}
+      <div className="flex items-center justify-between gap-2 text-[11px] font-medium text-muted-foreground">
+        <span>{title}</span>
+        {meta ? <span className="tabular-nums">{meta}</span> : null}
       </div>
       <div className="flex flex-col gap-1">{children}</div>
     </section>
@@ -1015,6 +1126,12 @@ function formatCompactUnit(
 ) {
   return typeof value === "number"
     ? `${compactFormatter.format(value / divisor)} ${unit}`
+    : "-"
+}
+
+function formatHoverVolume(value: number | null | undefined) {
+  return typeof value === "number"
+    ? `${compactFormatter.format(value / 10000)}万`
     : "-"
 }
 

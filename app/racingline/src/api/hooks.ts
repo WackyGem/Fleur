@@ -11,13 +11,17 @@ import {
   getStrategyBacktest,
   getStrategyBacktestOptions,
   getStrategyBacktestPerformance,
+  getStrategyBacktestPerformanceUi,
+  getStrategyBacktestStatus,
   getDefaultMarketFeeTemplate,
   listStrategyBacktestClosedTrades,
   listStrategyBacktestEvents,
   listStrategyBacktestNav,
+  listStrategyBacktestNavUi,
   listStrategyBacktestOrders,
   listStrategyBacktestPositions,
   listStrategyBacktestRebalanceRecords,
+  listStrategyBacktestRebalanceRecordsUi,
   listStrategyBacktestTargets,
   listStrategyBacktestTradeMetrics,
   listStrategyBacktestTrades,
@@ -27,6 +31,8 @@ import {
   listStrategyPortfolioSignals,
   listStrategyPortfolioSignalTimeline,
   listMetrics,
+  openStrategyPreview,
+  previewChartContext,
   previewStrategy,
   previewStrategyPoolPage,
   securityAnalysis,
@@ -35,12 +41,14 @@ import {
 } from "@/api/rearview"
 import type {
   MetricsQuery,
+  PreviewChartContextRequest,
   RuleVersionSpec,
   SecurityAnalysisRequest,
   StrategyBacktestCreateRequest,
   StrategyBacktestValidateRequest,
   StrategyPortfolioCreateRequest,
   StrategyPreviewPoolPageRequest,
+  StrategyPreviewOpenRequest,
   StrategyPreviewRequest,
   StrategyPreviewTimelineRequest,
 } from "@/types/rearview"
@@ -79,6 +87,13 @@ export function useStrategyPreviewTimelineMutation() {
   })
 }
 
+export function useStrategyPreviewOpenMutation() {
+  return useMutation({
+    mutationFn: (request: StrategyPreviewOpenRequest) =>
+      openStrategyPreview(request),
+  })
+}
+
 export function useDefaultMarketFeeTemplateQuery(market = "CN_A_SHARE") {
   return useQuery({
     queryKey: queryKeys.defaultMarketFeeTemplate(market),
@@ -95,10 +110,11 @@ export function useStrategyBacktestValidateMutation() {
 }
 
 export function useStrategyBacktestValidateQuery(
-  request: StrategyBacktestValidateRequest | null
+  request: StrategyBacktestValidateRequest | null,
+  enabled = true
 ) {
   return useQuery({
-    enabled: Boolean(request),
+    enabled: Boolean(request && enabled),
     queryKey: queryKeys.strategyBacktestValidate(request),
     queryFn: () => {
       if (!request) {
@@ -281,6 +297,31 @@ export function useStrategyBacktestQuery(strategyBacktestRunId: string | null) {
   })
 }
 
+export function useStrategyBacktestStatusQuery(
+  strategyBacktestRunId: string | null
+) {
+  return useQuery({
+    enabled: Boolean(strategyBacktestRunId),
+    queryKey: queryKeys.strategyBacktestStatus(strategyBacktestRunId),
+    queryFn: () => {
+      if (!strategyBacktestRunId) {
+        throw new Error("strategy backtest run id is missing")
+      }
+      return getStrategyBacktestStatus(strategyBacktestRunId)
+    },
+    refetchInterval: (query) => {
+      const status = query.state.data?.status
+      return status &&
+        !status.startsWith("failed_") &&
+        status !== "succeeded" &&
+        status !== "cancelled"
+        ? 1_000
+        : false
+    },
+    retry: 1,
+  })
+}
+
 export function useStrategyBacktestNavQuery(
   strategyBacktestRunId: string | null,
   enabled: boolean
@@ -293,6 +334,23 @@ export function useStrategyBacktestNavQuery(
         throw new Error("strategy backtest run id is missing")
       }
       return listStrategyBacktestNav(strategyBacktestRunId)
+    },
+    retry: 1,
+  })
+}
+
+export function useStrategyBacktestNavUiQuery(
+  strategyBacktestRunId: string | null,
+  enabled: boolean
+) {
+  return useQuery({
+    enabled: Boolean(strategyBacktestRunId && enabled),
+    queryKey: queryKeys.strategyBacktestNavUi(strategyBacktestRunId),
+    queryFn: () => {
+      if (!strategyBacktestRunId) {
+        throw new Error("strategy backtest run id is missing")
+      }
+      return listStrategyBacktestNavUi(strategyBacktestRunId)
     },
     retry: 1,
   })
@@ -323,6 +381,31 @@ export function useStrategyBacktestRebalanceRecordsQuery(
   })
 }
 
+export function useStrategyBacktestRebalanceRecordsUiQuery(
+  strategyBacktestRunId: string | null,
+  tradeDate: string | null,
+  enabled: boolean
+) {
+  return useQuery({
+    enabled: Boolean(strategyBacktestRunId && enabled),
+    queryKey: queryKeys.strategyBacktestRebalanceRecordsUi(
+      strategyBacktestRunId,
+      tradeDate
+    ),
+    queryFn: () => {
+      if (!strategyBacktestRunId) {
+        throw new Error("strategy backtest run id is missing")
+      }
+      return listStrategyBacktestRebalanceRecordsUi(
+        strategyBacktestRunId,
+        tradeDate
+      )
+    },
+    placeholderData: keepPreviousData,
+    retry: 1,
+  })
+}
+
 export function useStrategyBacktestPerformanceQuery(
   strategyBacktestRunId: string | null,
   enabled: boolean
@@ -335,6 +418,23 @@ export function useStrategyBacktestPerformanceQuery(
         throw new Error("strategy backtest run id is missing")
       }
       return getStrategyBacktestPerformance(strategyBacktestRunId)
+    },
+    retry: 1,
+  })
+}
+
+export function useStrategyBacktestPerformanceUiQuery(
+  strategyBacktestRunId: string | null,
+  enabled: boolean
+) {
+  return useQuery({
+    enabled: Boolean(strategyBacktestRunId && enabled),
+    queryKey: queryKeys.strategyBacktestPerformanceUi(strategyBacktestRunId),
+    queryFn: () => {
+      if (!strategyBacktestRunId) {
+        throw new Error("strategy backtest run id is missing")
+      }
+      return getStrategyBacktestPerformanceUi(strategyBacktestRunId)
     },
     retry: 1,
   })
@@ -517,6 +617,33 @@ export function usePreviewSecurityAnalysisQuery(
         throw new Error("preview security-analysis request is missing")
       }
       return securityAnalysis(request, signal)
+    },
+    placeholderData: keepPreviousData,
+    retry: 1,
+    staleTime: 30_000,
+  })
+}
+
+export function usePreviewChartContextQuery(
+  previewId: string | null,
+  request: PreviewChartContextRequest | null
+) {
+  return useQuery({
+    enabled: Boolean(previewId && request),
+    queryKey: request
+      ? queryKeys.previewChartContext(
+          previewId ?? "",
+          request.trade_date,
+          request.security_code,
+          request.adjustment ?? "",
+          request.ma_windows ?? ""
+        )
+      : queryKeys.previewChartContext("", "", "", "", ""),
+    queryFn: () => {
+      if (!request) {
+        throw new Error("preview chart-context request is missing")
+      }
+      return previewChartContext(request)
     },
     placeholderData: keepPreviousData,
     retry: 1,

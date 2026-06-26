@@ -193,6 +193,30 @@ export type StrategyPreviewTimelineResponse = {
   trade_dates: StrategyPreviewTimelineTradeDate[]
 }
 
+export type StrategyPreviewOpenRequest = {
+  rule: RuleVersionSpec
+  start_date: string
+  end_date: string
+  preview_row_limit: number
+  top_n?: number
+}
+
+export type StrategyPreviewOpenResponse = {
+  preview_id: string
+  sql_hash: string
+  required_metrics: string[]
+  required_marts: string[]
+  required_columns: Record<string, string[]>
+  timeline: {
+    start_date: string
+    end_date: string
+    trade_dates: StrategyPreviewTimelineTradeDate[]
+  }
+  latest?: StrategyPreviewTradeDate | null
+  preview_row_limit: number
+  top_n: number
+}
+
 export type StrategyPreviewPoolPageRequest = {
   rule: RuleVersionSpec
   trade_date: string
@@ -441,6 +465,22 @@ export type StrategyBacktestRunRecord = {
   config_summary: StrategyBacktestConfigSummary
 }
 
+export type StrategyBacktestRunStatusView = {
+  strategy_backtest_run_id: string
+  status: StrategyBacktestRunStatus
+  dispatch_status: "pending" | "published" | "publish_failed"
+  progress: StrategyBacktestProgress
+  error_type?: string | null
+  error_message?: string | null
+  period_key: StrategyBacktestPeriodKey
+  benchmark_security_code: string
+  start_date: string
+  end_date: string
+  rule_hash: string
+  execution_config_hash: string
+  current_result_attempt_id?: string | null
+}
+
 export type StrategyBacktestNavPoint = {
   trade_date: string
   strategy_nav: number
@@ -601,6 +641,11 @@ export type StrategyBacktestRebalanceRow = {
   reason?: string | null
 }
 
+export type StrategyBacktestRebalanceUiRow = Omit<
+  StrategyBacktestRebalanceRow,
+  "quantity" | "reason"
+>
+
 export type StrategyBacktestRebalanceRecord = {
   trade_date: string
   position_count: number
@@ -610,19 +655,33 @@ export type StrategyBacktestRebalanceRecord = {
   rows: StrategyBacktestRebalanceRow[]
 }
 
+export type StrategyBacktestRebalanceRecordSummary = Omit<
+  StrategyBacktestRebalanceRecord,
+  "rows"
+>
+
 export type StrategyBacktestRebalanceRecordsResponse = {
   selected_trade_date: string
   records: StrategyBacktestRebalanceRecord[]
 }
 
-export type StrategyBacktestPerformanceView = {
+export type StrategyBacktestRebalanceRecordsUiResponse = {
+  selected_trade_date: string
+  records: StrategyBacktestRebalanceRecordSummary[]
+  selected_rows: StrategyBacktestRebalanceUiRow[]
+}
+
+export type StrategyBacktestPerformanceUiView = {
   metric: JsonRecord
-  statuses: JsonRecord[]
   daily_win_rate: {
     value?: number | null
     observation_count: number
     winning_day_count: number
   }
+}
+
+export type StrategyBacktestPerformanceView = StrategyBacktestPerformanceUiView & {
+  statuses: JsonRecord[]
 }
 
 export type StrategyBacktestTargetRecord = {
@@ -766,6 +825,13 @@ export type ChartSeriesRow = {
   boll?: Record<string, number | null>
 }
 
+export type PreviewChartContextSeriesRow = {
+  trade_date: string
+  ohlc?: ChartOhlc | null
+  volume?: number | null
+  ma: Record<string, number | null>
+}
+
 export type QuoteMartRow = {
   security_code: string
   trade_date: string
@@ -786,6 +852,24 @@ export type QuoteMartRow = {
   roe?: number | null
 }
 
+export type PreviewChartContextQuote = {
+  trade_date: string
+  open_price?: number | null
+  high_price?: number | null
+  low_price?: number | null
+  close_price?: number | null
+  prev_close_price?: number | null
+  pct_change?: number | null
+  pct_amplitude?: number | null
+  volume?: number | null
+  amount?: number | null
+  limit_up_price?: number | null
+  limit_down_price?: number | null
+  a_market_cap?: number | null
+  pe_ttm?: number | null
+  roe?: number | null
+}
+
 export type SecurityAnalysisRequest = {
   trade_date: string
   security_code: string
@@ -795,6 +879,27 @@ export type SecurityAnalysisRequest = {
   lookback_trading_days?: number
   ma_windows?: string
   include_quote_rows?: boolean
+}
+
+export type PreviewChartContextRequest = {
+  trade_date: string
+  security_code: string
+  adjustment?: Adjustment
+  lookback_trading_days?: number
+  ma_windows?: string
+}
+
+export type PreviewChartContextResponse = {
+  security_code: string
+  security_name?: string | null
+  security_board?: string | null
+  chart: {
+    ma: {
+      available_windows: number[]
+    }
+    series: PreviewChartContextSeriesRow[]
+  }
+  selected_quote?: PreviewChartContextQuote | null
 }
 
 export type ChartMaMetadata = {

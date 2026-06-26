@@ -21,10 +21,11 @@ use rearview_core::postgres::{
 use rearview_core::service::catalog::load_catalog_from_policy;
 use rearview_core::strategy_backtest::hash_json;
 use rearview_core::{RearviewError, RearviewResult};
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet};
 use std::path::{Path, PathBuf};
+use std::time::Instant;
 use tracing::{error, info};
 use tracing_subscriber::EnvFilter;
 
@@ -216,8 +217,10 @@ async fn process_strategy_backtest_run(
     catalog: &MetricCatalog,
     run: &StrategyBacktestRunRecord,
 ) -> RearviewResult<()> {
+    let mut timing = WorkerTiming::start();
     let execution_config =
         serde_json::from_value::<StrategyExecutionConfig>(run.execution_config.clone())?;
+    timing.mark("load_execution_config");
     let materialized = materialize_strategy_backtest_signals(
         config,
         postgres,
@@ -227,6 +230,7 @@ async fn process_strategy_backtest_run(
         &execution_config,
     )
     .await?;
+    timing.mark("signal_materialization_total");
     postgres
         .update_strategy_backtest_progress(
             &run.strategy_backtest_run_id,
@@ -237,20 +241,25 @@ async fn process_strategy_backtest_run(
             }),
         )
         .await?;
+    let indicator_metrics = execution_config.risk_exit_policy.indicator_metrics()?;
+    let price_query_id = format!("strategy-backtest-{}-prices", run.strategy_backtest_run_id);
     let prices = clickhouse
         .query_portfolio_price_bars(
             &materialized.security_codes,
             run.start_date,
             run.end_date,
-            &format!("strategy-backtest-{}-prices", run.strategy_backtest_run_id),
+            &indicator_metrics,
+            &price_query_id,
         )
         .await?;
+    timing.mark("price_bars_query");
     let data_coverage_summary = json!({
         "price_bar_count": prices.len(),
         "price_bar_security_count": materialized.security_codes.len(),
         "start_date": run.start_date,
         "end_date": run.end_date,
-        "indicator_stop_loss_metrics": execution_config.risk_exit_policy.indicator_metrics()?,
+        "indicator_stop_loss_metrics": indicator_metrics,
+        "price_bars_query_id": price_query_id,
     });
     postgres
         .update_strategy_backtest_data_coverage(
@@ -285,6 +294,7 @@ async fn process_strategy_backtest_run(
         prices,
     };
     let output = simulate_portfolio(&input)?;
+    timing.mark("simulation");
 
     postgres
         .update_strategy_backtest_progress(
@@ -311,6 +321,7 @@ async fn process_strategy_backtest_run(
             &format!("strategy-backtest-{result_attempt_id}-benchmark"),
         )
         .await?;
+    timing.mark("benchmark_query");
     let risk_free_rates = clickhouse
         .query_mart_risk_free_rates(
             &metric_config.risk_free_tenor,
@@ -319,12 +330,14 @@ async fn process_strategy_backtest_run(
             &format!("strategy-backtest-{result_attempt_id}-risk-free"),
         )
         .await?;
+    timing.mark("risk_free_query");
     let (performance_metric, performance_metric_statuses) = compute_performance_metric(
         &metric_config,
         &output.nav,
         &benchmark_returns,
         &risk_free_rates,
     );
+    timing.mark("performance_calculation");
     let (closed_trades, trade_metrics) = compute_trade_calculation_outputs(
         &run.strategy_backtest_run_id,
         &result_attempt_id,
@@ -336,6 +349,7 @@ async fn process_strategy_backtest_run(
         closed_trades,
         trade_metrics,
     };
+    timing.mark("output_serialization_write_preparation");
 
     postgres
         .update_strategy_backtest_progress(
@@ -355,15 +369,19 @@ async fn process_strategy_backtest_run(
         let batch = clickhouse
             .write_portfolio_result_facts(&portfolio_run, &result_attempt_id, &output)
             .await?;
+        timing.mark("clickhouse_write_portfolio_facts");
         postgres
             .insert_strategy_backtest_metric_config(&metric_config)
             .await?;
+        timing.mark("postgres_insert_metric_config");
         clickhouse
             .write_portfolio_calculation_outputs(&result_attempt_id, &calculation_batch)
             .await?;
+        timing.mark("clickhouse_write_calculation_outputs");
         clickhouse
             .write_portfolio_run_snapshot(&result_attempt_id, &batch.run_snapshot)
             .await?;
+        timing.mark("clickhouse_write_run_snapshot");
         Ok(())
     }
     .await;
@@ -374,18 +392,21 @@ async fn process_strategy_backtest_run(
         return Ok(());
     }
 
+    let summary = summary_with_worker_timing(&output.summary, &timing)?;
     postgres
         .finalize_strategy_backtest_run_to_clickhouse(
             &run.strategy_backtest_run_id,
             &result_attempt_id,
-            &serde_json::to_value(&output.summary)?,
+            &summary,
         )
         .await?;
+    timing.mark("postgres_finalize");
     info!(
         strategy_backtest_run_id = run.strategy_backtest_run_id,
         result_attempt_id = result_attempt_id,
         nav_points = output.nav.len(),
         trades = output.trades.len(),
+        worker_timing_ms = %timing.to_json(),
         "strategy backtest run succeeded"
     );
     Ok(())
@@ -423,11 +444,13 @@ async fn process_strategy_portfolio_daily_run(
             }),
         )
         .await?;
+    let indicator_metrics = execution_config.risk_exit_policy.indicator_metrics()?;
     let prices = clickhouse
         .query_portfolio_price_bars(
             &materialized.security_codes,
             run.run_start_date,
             run.trade_date,
+            &indicator_metrics,
             &format!(
                 "strategy-portfolio-daily-{}-prices",
                 run.strategy_portfolio_daily_run_id
@@ -439,7 +462,7 @@ async fn process_strategy_portfolio_daily_run(
         "price_bar_security_count": materialized.security_codes.len(),
         "start_date": run.run_start_date,
         "end_date": run.trade_date,
-        "indicator_stop_loss_metrics": execution_config.risk_exit_policy.indicator_metrics()?,
+        "indicator_stop_loss_metrics": indicator_metrics,
     });
     postgres
         .update_strategy_portfolio_daily_data_coverage(
@@ -1126,11 +1149,13 @@ async fn build_simulation_input(
         .collect::<BTreeSet<_>>()
         .into_iter()
         .collect::<Vec<_>>();
+    let indicator_metrics = execution_snapshot.risk_exit_policy.indicator_metrics()?;
     let prices = clickhouse
         .query_portfolio_price_bars(
             &security_codes,
             run.start_date,
             query_end_date,
+            &indicator_metrics,
             &format!("portfolio-{}-prices", run.portfolio_run_id),
         )
         .await?;
@@ -1219,6 +1244,56 @@ struct SignalPolicy {
 struct MaterializedSignals {
     signals: Vec<BuySignalInput>,
     security_codes: Vec<String>,
+}
+
+#[derive(Debug)]
+struct WorkerTiming {
+    started_at: Instant,
+    last_mark_at: Instant,
+    stages_ms: BTreeMap<String, u128>,
+}
+
+impl WorkerTiming {
+    fn start() -> Self {
+        let now = Instant::now();
+        Self {
+            started_at: now,
+            last_mark_at: now,
+            stages_ms: BTreeMap::new(),
+        }
+    }
+
+    fn mark(&mut self, stage: &str) {
+        let now = Instant::now();
+        self.stages_ms.insert(
+            stage.to_string(),
+            now.duration_since(self.last_mark_at).as_millis(),
+        );
+        self.last_mark_at = now;
+    }
+
+    fn to_json(&self) -> Value {
+        json!({
+            "stages_ms": self.stages_ms,
+            "total_ms": self.started_at.elapsed().as_millis(),
+        })
+    }
+}
+
+fn summary_with_worker_timing<T: Serialize>(
+    summary: &T,
+    timing: &WorkerTiming,
+) -> RearviewResult<Value> {
+    let mut summary = serde_json::to_value(summary)?;
+    let timing = timing.to_json();
+    if let Some(object) = summary.as_object_mut() {
+        object.insert("worker_timing".to_string(), timing);
+        return Ok(summary);
+    }
+    Ok(json!({
+        "summary": summary,
+        "worker_timing": timing,
+    }))
 }
 
 #[derive(Debug, Deserialize)]

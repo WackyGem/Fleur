@@ -1,6 +1,10 @@
+use std::collections::BTreeSet;
+use std::time::Instant;
+
 use chrono::NaiveDate;
 use serde::de::{self, Unexpected};
 use serde::{Deserialize, Deserializer, Serialize};
+use tracing::info;
 
 use crate::config::ClickHouseConfig;
 use crate::error::{RearviewError, RearviewResult};
@@ -718,6 +722,39 @@ FORMAT JSONEachRow"#
         parse_json_each_row::<QuoteMartRow>(&body)
     }
 
+    pub async fn query_chart_context_chart_quote_rows(
+        &self,
+        security_code: &str,
+        start_date: NaiveDate,
+        end_date: NaiveDate,
+        adjustment: AnalysisQuoteAdjustment,
+        query_id: &str,
+    ) -> RearviewResult<Vec<QuoteMartRow>> {
+        validate_identifier(&self.config.marts_database)?;
+        validate_security_code(security_code)?;
+        if start_date > end_date {
+            return Err(RearviewError::Validation(
+                "quote_start_date must be <= quote_end_date".to_string(),
+            ));
+        }
+
+        let security_code = quote_string_literal(security_code);
+        let database = quote_identifier(&self.config.marts_database);
+        let select = chart_context_chart_quote_select_columns(adjustment);
+        let sql = format!(
+            r#"
+SELECT
+{select}
+FROM {database}.`mart_stock_quotes_daily`
+PREWHERE trade_date BETWEEN toDate('{start_date}') AND toDate('{end_date}')
+WHERE security_code = {security_code}
+ORDER BY trade_date ASC
+FORMAT JSONEachRow"#
+        );
+        let body = self.execute_text(&sql, query_id).await?;
+        parse_json_each_row::<QuoteMartRow>(&body)
+    }
+
     pub async fn query_analysis_selected_quote_row(
         &self,
         security_code: &str,
@@ -745,6 +782,33 @@ FORMAT JSONEachRow"#
         Ok(rows.pop())
     }
 
+    pub async fn query_chart_context_selected_quote_row(
+        &self,
+        security_code: &str,
+        trade_date: NaiveDate,
+        query_id: &str,
+    ) -> RearviewResult<Option<QuoteMartRow>> {
+        validate_identifier(&self.config.marts_database)?;
+        validate_security_code(security_code)?;
+
+        let security_code = quote_string_literal(security_code);
+        let database = quote_identifier(&self.config.marts_database);
+        let select = chart_context_selected_quote_select_columns();
+        let sql = format!(
+            r#"
+SELECT
+{select}
+FROM {database}.`mart_stock_quotes_daily`
+PREWHERE trade_date = toDate('{trade_date}')
+WHERE security_code = {security_code}
+LIMIT 1
+FORMAT JSONEachRow"#
+        );
+        let body = self.execute_text(&sql, query_id).await?;
+        let mut rows = parse_json_each_row::<QuoteMartRow>(&body)?;
+        Ok(rows.pop())
+    }
+
     pub async fn query_analysis_trend_rows(
         &self,
         security_code: &str,
@@ -757,6 +821,32 @@ FORMAT JSONEachRow"#
         let security_code = quote_string_literal(security_code);
         let database = quote_identifier(&self.config.marts_database);
         let select = trend_select_columns();
+        let sql = format!(
+            r#"
+SELECT
+{select}
+FROM {database}.`mart_stock_trend_indicator_daily`
+PREWHERE trade_date BETWEEN toDate('{start_date}') AND toDate('{end_date}')
+WHERE security_code = {security_code}
+ORDER BY trade_date ASC
+FORMAT JSONEachRow"#
+        );
+        let body = self.execute_text(&sql, query_id).await?;
+        parse_json_each_row::<TrendIndicatorRow>(&body)
+    }
+
+    pub async fn query_chart_context_trend_rows(
+        &self,
+        security_code: &str,
+        start_date: NaiveDate,
+        end_date: NaiveDate,
+        query_id: &str,
+    ) -> RearviewResult<Vec<TrendIndicatorRow>> {
+        validate_identifier(&self.config.marts_database)?;
+        validate_security_code(security_code)?;
+        let security_code = quote_string_literal(security_code);
+        let database = quote_identifier(&self.config.marts_database);
+        let select = chart_context_trend_select_columns();
         let sql = format!(
             r#"
 SELECT
@@ -809,6 +899,7 @@ FORMAT JSONEachRow"#
         security_codes: &[String],
         start_date: NaiveDate,
         end_date: NaiveDate,
+        indicator_metrics: &[String],
         query_id: &str,
     ) -> RearviewResult<Vec<PriceBar>> {
         validate_identifier(&self.config.marts_database)?;
@@ -829,40 +920,13 @@ FORMAT JSONEachRow"#
             .map(|security_code| quote_string_literal(security_code))
             .collect::<Vec<_>>()
             .join(", ");
-        let sql = format!(
-            r#"
-SELECT
-    q.security_code AS security_code,
-    q.trade_date AS trade_date,
-    q.open_price_backward_adj AS open_price_backward_adj,
-    q.close_price_backward_adj AS close_price_backward_adj,
-    q.close_price_forward_adj AS close_price_forward_adj,
-    t.price_ma_3 AS price_ma_3,
-    t.price_ma_5 AS price_ma_5,
-    t.price_ma_6 AS price_ma_6,
-    t.price_ma_10 AS price_ma_10,
-    t.price_ma_12 AS price_ma_12,
-    t.price_ma_14 AS price_ma_14,
-    t.price_ma_20 AS price_ma_20,
-    t.price_ma_24 AS price_ma_24,
-    t.price_ma_28 AS price_ma_28,
-    t.price_ma_30 AS price_ma_30,
-    t.price_ma_57 AS price_ma_57,
-    t.price_ma_60 AS price_ma_60,
-    t.price_ma_114 AS price_ma_114,
-    t.price_ma_250 AS price_ma_250,
-    t.price_avg_ma_3_6_12_24 AS price_avg_ma_3_6_12_24,
-    t.price_avg_ma_14_28_57_114 AS price_avg_ma_14_28_57_114,
-    t.price_ema2_10 AS price_ema2_10,
-    t.boll_lower_20_2 AS boll_lower_20_2
-FROM {database}.`mart_stock_quotes_daily` AS q
-LEFT JOIN {database}.`mart_stock_trend_indicator_daily` AS t
-    ON q.security_code = t.security_code AND q.trade_date = t.trade_date
-WHERE q.trade_date BETWEEN toDate('{start_date}') AND toDate('{end_date}')
-  AND q.security_code IN ({securities})
-ORDER BY q.trade_date ASC, q.security_code ASC
-FORMAT JSONEachRow"#
-        );
+        let sql = portfolio_price_bars_sql(
+            &database,
+            &securities,
+            start_date,
+            end_date,
+            indicator_metrics,
+        )?;
         let body = self.execute_text(&sql, query_id).await?;
         parse_json_each_row::<PriceBar>(&body)
     }
@@ -1456,6 +1520,7 @@ FORMAT JSONEachRow"#,
     }
 
     async fn execute_text(&self, sql: &str, query_id: &str) -> RearviewResult<String> {
+        let started_at = Instant::now();
         let response = self
             .client
             .post(self.config.base_url())
@@ -1466,6 +1531,13 @@ FORMAT JSONEachRow"#,
             .await?;
         let status = response.status();
         let body = response.text().await?;
+        info!(
+            query_id,
+            status = status.as_u16(),
+            elapsed_ms = started_at.elapsed().as_millis(),
+            response_bytes = body.len(),
+            "clickhouse query"
+        );
         if !status.is_success() {
             return Err(RearviewError::ClickHouse(format!(
                 "ClickHouse HTTP status {status}: {body}"
@@ -1484,6 +1556,87 @@ fn portfolio_read_query_id(
         "{prefix}-{portfolio_run_id}-{result_attempt_id}-{}",
         ulid::Ulid::new()
     )
+}
+
+fn portfolio_price_bars_sql(
+    database: &str,
+    securities: &str,
+    start_date: NaiveDate,
+    end_date: NaiveDate,
+    indicator_metrics: &[String],
+) -> RearviewResult<String> {
+    let trend_columns = indicator_metrics
+        .iter()
+        .map(|metric| price_bar_trend_column(metric))
+        .collect::<RearviewResult<BTreeSet<_>>>()?;
+    let mut select_columns = vec![
+        "    q.security_code AS security_code".to_string(),
+        "    q.trade_date AS trade_date".to_string(),
+        "    q.open_price_backward_adj AS open_price_backward_adj".to_string(),
+        "    q.close_price_backward_adj AS close_price_backward_adj".to_string(),
+    ];
+    let join = if trend_columns.is_empty() {
+        String::new()
+    } else {
+        select_columns.push("    q.close_price_forward_adj AS close_price_forward_adj".to_string());
+        for column in &trend_columns {
+            select_columns.push(format!("    t.{column} AS {column}"));
+        }
+        let trend_select_columns = trend_columns
+            .iter()
+            .map(|column| format!("        {column}"))
+            .collect::<Vec<_>>()
+            .join(",\n");
+        format!(
+            r#"
+LEFT JOIN (
+    SELECT
+        security_code,
+        trade_date,
+{trend_select_columns}
+    FROM {database}.`mart_stock_trend_indicator_daily`
+    WHERE trade_date BETWEEN toDate('{start_date}') AND toDate('{end_date}')
+      AND security_code IN ({securities})
+) AS t
+    ON q.security_code = t.security_code AND q.trade_date = t.trade_date"#
+        )
+    };
+    let select_columns = select_columns.join(",\n");
+    Ok(format!(
+        r#"
+SELECT
+{select_columns}
+FROM {database}.`mart_stock_quotes_daily` AS q{join}
+WHERE q.trade_date BETWEEN toDate('{start_date}') AND toDate('{end_date}')
+  AND q.security_code IN ({securities})
+ORDER BY q.trade_date ASC, q.security_code ASC
+FORMAT JSONEachRow"#
+    ))
+}
+
+fn price_bar_trend_column(metric: &str) -> RearviewResult<&'static str> {
+    match metric {
+        "price_ma_3" => Ok("price_ma_3"),
+        "price_ma_5" => Ok("price_ma_5"),
+        "price_ma_6" => Ok("price_ma_6"),
+        "price_ma_10" => Ok("price_ma_10"),
+        "price_ma_12" => Ok("price_ma_12"),
+        "price_ma_14" => Ok("price_ma_14"),
+        "price_ma_20" => Ok("price_ma_20"),
+        "price_ma_24" => Ok("price_ma_24"),
+        "price_ma_28" => Ok("price_ma_28"),
+        "price_ma_30" => Ok("price_ma_30"),
+        "price_ma_57" => Ok("price_ma_57"),
+        "price_ma_60" => Ok("price_ma_60"),
+        "price_ma_114" => Ok("price_ma_114"),
+        "price_ma_250" => Ok("price_ma_250"),
+        "price_avg_ma_3_6_12_24" => Ok("price_avg_ma_3_6_12_24"),
+        "price_avg_ma_14_28_57_114" => Ok("price_avg_ma_14_28_57_114"),
+        "price_ema2_10" => Ok("price_ema2_10"),
+        other => Err(RearviewError::Validation(format!(
+            "indicator stop loss metric is not supported for price bars: {other}"
+        ))),
+    }
 }
 
 fn validate_identifier(identifier: &str) -> RearviewResult<()> {
@@ -1669,6 +1822,57 @@ fn chart_quote_select_columns(adjustment: AnalysisQuoteAdjustment) -> &'static s
     }
 }
 
+fn chart_context_chart_quote_select_columns(adjustment: AnalysisQuoteAdjustment) -> &'static str {
+    match adjustment {
+        AnalysisQuoteAdjustment::ForwardAdjusted => {
+            r#"    security_code,
+    trade_date,
+    open_price_forward_adj,
+    high_price_forward_adj,
+    low_price_forward_adj,
+    close_price_forward_adj,
+    volume"#
+        }
+        AnalysisQuoteAdjustment::BackwardAdjusted => {
+            r#"    security_code,
+    trade_date,
+    open_price_backward_adj,
+    high_price_backward_adj,
+    low_price_backward_adj,
+    close_price_backward_adj,
+    volume"#
+        }
+        AnalysisQuoteAdjustment::Unadjusted => {
+            r#"    security_code,
+    trade_date,
+    open_price,
+    high_price,
+    low_price,
+    close_price,
+    volume"#
+        }
+    }
+}
+
+fn chart_context_selected_quote_select_columns() -> &'static str {
+    r#"    security_code,
+    trade_date,
+    open_price,
+    high_price,
+    low_price,
+    close_price,
+    prev_close_price,
+    volume,
+    amount,
+    amplitude_pct AS pct_amplitude,
+    change_pct AS pct_change,
+    limit_up_price,
+    limit_down_price,
+    market_cap AS a_market_cap,
+    pe_ttm,
+    roe"#
+}
+
 fn trend_select_columns() -> &'static str {
     r#"    security_code,
     trade_date,
@@ -1687,6 +1891,14 @@ fn trend_select_columns() -> &'static str {
     macd_dif,
     macd_dea,
     macd_histogram"#
+}
+
+fn chart_context_trend_select_columns() -> &'static str {
+    r#"    security_code,
+    trade_date,
+    price_ma_5,
+    price_ma_10,
+    price_ma_30"#
 }
 
 fn parse_json_each_row<T>(body: &str) -> RearviewResult<Vec<T>>
@@ -1910,9 +2122,14 @@ where
 #[cfg(test)]
 mod tests {
     use super::{
-        QuoteMartRow, ScreeningRow, quote_select_columns, trend_select_columns,
-        validate_security_code, validate_source_tenor, validate_window_key,
+        AnalysisQuoteAdjustment, QuoteMartRow, ScreeningRow,
+        chart_context_chart_quote_select_columns, chart_context_selected_quote_select_columns,
+        chart_context_trend_select_columns, portfolio_price_bars_sql, quote_select_columns,
+        trend_select_columns, validate_security_code, validate_source_tenor, validate_window_key,
     };
+    use chrono::NaiveDate;
+
+    use crate::RearviewError;
 
     fn row_json(is_buy_signal: &str) -> String {
         format!(
@@ -2002,6 +2219,85 @@ mod tests {
 
         assert!(columns.contains("boll_upper_20_2 AS boll_up_20_2"));
         assert!(columns.contains("boll_lower_20_2 AS boll_dn_20_2"));
+    }
+
+    #[test]
+    fn chart_context_quote_columns_exclude_kdj_fields() {
+        let columns =
+            chart_context_chart_quote_select_columns(AnalysisQuoteAdjustment::ForwardAdjusted);
+
+        assert!(!columns.contains("kdj_"));
+    }
+
+    #[test]
+    fn chart_context_selected_quote_columns_include_only_step3_panel_fields() {
+        let columns = chart_context_selected_quote_select_columns();
+
+        assert!(columns.contains("market_cap AS a_market_cap"));
+        assert!(!columns.contains("kdj_"));
+        assert!(!columns.contains("turnover_rate"));
+        assert!(!columns.contains("pe_static"));
+        assert!(!columns.contains("pb_mrq"));
+    }
+
+    #[test]
+    fn chart_context_trend_columns_exclude_macd_and_boll_fields() {
+        let columns = chart_context_trend_select_columns();
+
+        assert!(columns.contains("price_ma_5"));
+        assert!(columns.contains("price_ma_10"));
+        assert!(columns.contains("price_ma_30"));
+        assert!(!columns.contains("macd"));
+        assert!(!columns.contains("boll"));
+        assert!(!columns.contains("price_ma_20"));
+    }
+
+    #[test]
+    fn portfolio_price_bars_sql_omits_trend_join_without_indicator_metrics() {
+        let sql = portfolio_price_bars_sql(
+            "`fleur_marts`",
+            "'600000.SH'",
+            NaiveDate::from_ymd_opt(2025, 1, 2).unwrap(),
+            NaiveDate::from_ymd_opt(2025, 1, 3).unwrap(),
+            &[],
+        )
+        .unwrap();
+
+        assert!(!sql.contains("mart_stock_trend_indicator_daily"));
+        assert!(!sql.contains("close_price_forward_adj"));
+    }
+
+    #[test]
+    fn portfolio_price_bars_sql_projects_only_requested_indicator_metric() {
+        let sql = portfolio_price_bars_sql(
+            "`fleur_marts`",
+            "'600000.SH'",
+            NaiveDate::from_ymd_opt(2025, 1, 2).unwrap(),
+            NaiveDate::from_ymd_opt(2025, 1, 3).unwrap(),
+            &["price_ma_10".to_string()],
+        )
+        .unwrap();
+
+        assert!(sql.contains("mart_stock_trend_indicator_daily"));
+        assert!(sql.contains("t.price_ma_10 AS price_ma_10"));
+        assert!(sql.contains("WHERE trade_date BETWEEN"));
+        assert!(sql.contains("AND security_code IN ('600000.SH')"));
+        assert!(!sql.contains("price_ma_20"));
+        assert!(!sql.contains("price_ema2_10"));
+    }
+
+    #[test]
+    fn portfolio_price_bars_sql_rejects_unsupported_indicator_metric() {
+        let error = portfolio_price_bars_sql(
+            "`fleur_marts`",
+            "'600000.SH'",
+            NaiveDate::from_ymd_opt(2025, 1, 2).unwrap(),
+            NaiveDate::from_ymd_opt(2025, 1, 3).unwrap(),
+            &["unknown_metric".to_string()],
+        )
+        .unwrap_err();
+
+        assert!(matches!(error, RearviewError::Validation(_)));
     }
 
     #[test]

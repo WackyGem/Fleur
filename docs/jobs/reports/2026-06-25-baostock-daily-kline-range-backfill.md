@@ -4,7 +4,7 @@ UTC time: 2026-06-25T23:10:00Z
 
 ## Scope
 
-- Plan: `docs/plans/archive/0055-baostock-daily-kline-range-backfill-implementation-plan.md`
+- Plan: `docs/plans/archive/0057-baostock-daily-kline-range-backfill-implementation-plan.md`
 - RFC: `docs/RFC/0030-baostock-daily-kline-compacted-yearly-range-rebuild.md`
 - Daily source asset: `source/baostock__query_history_k_data_plus_daily`
 - Compacted source asset: `source/baostock__query_history_k_data_plus_daily_compacted`
@@ -78,7 +78,7 @@ The S3 compacted row count equals the sum of all expected daily source partition
 
 ## Outcome
 
-Plan 0055 is complete in dev:
+Plan 0057 is complete in dev:
 
 - BaoStock daily K-line supports `daily` and `range_backfill` modes.
 - The 2026 historical gap was filled through daily `trade_date=*` source partitions.

@@ -341,6 +341,16 @@ describe("buildStrategyPreviewRuleSpec", () => {
       { weightId: "w1", path: "scoring.rules.0.condition" },
     ])
   })
+
+  it("does not add catalog default outputs that the rule did not use", () => {
+    const result = buildStrategyPreviewRuleSpec(
+      [group([condition("c1", "close_price", "gte", "1")])],
+      [weight("w1", "close_price", "gte", "1", 50)],
+      catalog
+    )
+
+    expect(result.rule.output_metrics).toEqual(["close_price"])
+  })
 })
 
 describe("buildStrategySelectionRuleSpec", () => {
