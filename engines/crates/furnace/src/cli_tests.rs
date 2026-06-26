@@ -142,6 +142,15 @@ fn write_rowbinary_nullable_f64(bytes: &mut Vec<u8>, value: Option<f64>) {
 }
 
 #[test]
+fn run_version_returns_package_version() {
+    let mut executor = FakeExecutor::with_responses(&[]);
+
+    let output = run_with_executor(args(&["--version"]), &mut executor).unwrap();
+
+    assert_eq!(output, "furnace 0.1.0");
+}
+
+#[test]
 fn run_kdj_returns_json_summary_for_dry_run() {
     let responses = ["2026-01-01\n", "0\n"];
     let input_rows = rowbinary_input_rows(&[

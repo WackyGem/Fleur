@@ -12,6 +12,8 @@ use crate::commands::{
 };
 use crate::output::print_help;
 
+const VERSION: &str = env!("CARGO_PKG_VERSION");
+
 pub(crate) fn run(args: impl IntoIterator<Item = String>) -> Result<String, CliError> {
     let mut executor = ClickHouseCliExecutor::from_env();
     run_with_executor(args, &mut executor)
@@ -73,6 +75,7 @@ fn run_with_executor<E: ClickHouseExecutor>(
             print_help();
             Ok(String::new())
         }
+        "--version" | "-V" => Ok(format!("furnace {VERSION}")),
         other => Err(CliError::Usage(format!("unknown command: {other}"))),
     }
 }

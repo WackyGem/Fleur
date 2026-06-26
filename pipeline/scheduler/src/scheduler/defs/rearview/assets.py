@@ -4,6 +4,7 @@ import dagster as dg
 
 from scheduler.defs.asset_contracts import DEFAULT_OWNER
 from scheduler.defs.rearview.resources import RearviewApiResource
+from scheduler.version import scheduler_version
 
 STRATEGY_PORTFOLIO_DAILY_PARTITIONS = dg.DailyPartitionsDefinition(start_date="2026-06-24")
 STRATEGY_PORTFOLIO_DAILY_ASSET_KEY = dg.AssetKey(["rearview", "strategy_portfolio_daily_runs"])
@@ -50,6 +51,7 @@ def _daily_run_metadata(
 ) -> dict[str, dg.MetadataValue | int | str]:
     daily_run_ids = response.get("daily_run_ids", [])
     return {
+        "scheduler_version": scheduler_version(),
         "trade_date": trade_date,
         "active_portfolio_count": int(response.get("active_portfolio_count", 0)),
         "created_run_count": int(response.get("created_run_count", 0)),

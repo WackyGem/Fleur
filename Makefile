@@ -89,11 +89,12 @@ define stop-listening-port
 	fi
 endef
 
-.PHONY: help dev-up dev-down dev-logs wait-rustfs wait-postgres wait-clickhouse dagster-home docs-check check-defs materialize-trade-calendar dev-materialize-trade-calendar webui dbt-docs dbt-docs-serve rust-doc rust-doc-open rust-doc-serve rearview-migrate rearview-catalog-sync rearview-prepare rearview-dev racingline-frontend-dev racingline-app-dev racingline-dev racingline-dev-stop
+.PHONY: help dev-up dev-down dev-logs wait-rustfs wait-postgres wait-clickhouse dagster-home docs-check versions-check check-defs materialize-trade-calendar dev-materialize-trade-calendar webui dbt-docs dbt-docs-serve rust-doc rust-doc-open rust-doc-serve rearview-migrate rearview-catalog-sync rearview-prepare rearview-dev racingline-frontend-dev racingline-app-dev racingline-dev racingline-dev-stop
 
 help:
 	@printf '%s\n' 'Available targets:'
 	@printf '  %-34s %s\n' 'docs-check' 'Validate docs governance rules'
+	@printf '  %-34s %s\n' 'versions-check' 'Validate component versions and release manifest consistency'
 	@printf '  %-34s %s\n' 'dev-up' 'Start deploy/docker-compose.yml dev services'
 	@printf '  %-34s %s\n' 'dev-down' 'Stop dev services'
 	@printf '  %-34s %s\n' 'dev-logs' 'Tail dev service logs'
@@ -180,6 +181,9 @@ dagster-home:
 
 docs-check:
 	python3 scripts/validate_docs_governance.py
+
+versions-check:
+	python3 scripts/check_component_versions.py
 
 check-defs:
 	cd $(PIPELINE_DIR) && uv run dg check defs --target-path $(SCHEDULER_TARGET)

@@ -1,0 +1,26 @@
+release: mono-fleur-2026.06.1
+commit: 3c20eb538e8aabc1622bbcaada450868b1f6a61c
+components:
+  scheduler: "0.1.0"
+  contract-tools: "0.1.0"
+  elt: "1.0.0"
+  furnace: "0.1.0"
+  rearview-server: "0.1.0"
+  rearview-portfolio-worker: "0.1.0"
+  racingline: "0.0.1"
+database_heads:
+  pipeline: 0008_strategy_portfolio_cp
+  rearview: 0008_strategy_portfolio_cp
+target_schema_heads:
+  pipeline: 0001_jiuyan_industry_images
+  rearview: 0008_strategy_portfolio_cp
+contracts:
+  registry_commit: 3c20eb538e8aabc1622bbcaada450868b1f6a61c
+  changed_datasets: []
+verification:
+  versions-check: passed
+  docs-check: passed
+  rust: passed
+  python: passed
+  data-platform: passed
+  racingline: passed

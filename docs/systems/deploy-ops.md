@@ -58,6 +58,8 @@ git diff --check
 | 文档 | 用途 |
 |---|---|
 | [../jobs/README.md](../jobs/README.md) | jobs runbook 和 reports 入口 |
+| [../releases/README.md](../releases/README.md) | 集成 release note、版本 manifest schema 和 tag 前检查 |
+| [../../deploy/release-manifest.yml](../../deploy/release-manifest.yml) | 当前集成发布快照的组件版本、migration head 和 contract 变更 |
 | [../jobs/dagster-backfill-2026.md](../jobs/dagster-backfill-2026.md) | Dagster 回填入口 |
 | [../optimize/archive/docs-governance-inventory-2026-06-10.md](../optimize/archive/docs-governance-inventory-2026-06-10.md) | docs governance 盘点和治理记录 |
 | [../RFC/archive/0018-rust-stock-screening-service.md](../RFC/archive/0018-rust-stock-screening-service.md) | Rearview database target 和部署顺序背景 |

@@ -31,6 +31,8 @@ use tokio::sync::Semaphore;
 use tracing::{error, info, warn};
 use tracing_subscriber::EnvFilter;
 
+const VERSION: &str = env!("CARGO_PKG_VERSION");
+
 #[tokio::main]
 async fn main() -> RearviewResult<()> {
     init_tracing();
@@ -39,6 +41,10 @@ async fn main() -> RearviewResult<()> {
     let mut args = std::env::args().skip(1);
     match args.next().as_deref() {
         Some("run") | None => run().await,
+        Some("--version" | "-V") => {
+            println!("rearview-portfolio-worker {VERSION}");
+            Ok(())
+        }
         Some("--help" | "-h") => {
             print_help();
             Ok(())
@@ -60,6 +66,7 @@ async fn run() -> RearviewResult<()> {
     let stream = ensure_portfolio_stream(&jetstream, &config.nats).await?;
     let consumer = ensure_portfolio_consumer(&stream, &config.nats).await?;
     info!(
+        version = VERSION,
         database_url_configured = !config.rearview_database_url.is_empty(),
         max_concurrent_runs = config.max_concurrent_runs,
         "starting rearview portfolio worker"
@@ -1593,7 +1600,7 @@ fn is_repo_root(path: &Path) -> bool {
 
 fn print_help() {
     println!(
-        "rearview-portfolio-worker\n\nUSAGE:\n  rearview-portfolio-worker run\n\nENV:\n  REARVIEW_DATABASE_URL\n  REARVIEW_NATS_URL\n  CLICKHOUSE_HOST / CLICKHOUSE_PORT / CLICKHOUSE_USER / CLICKHOUSE_PASSWORD"
+        "rearview-portfolio-worker\n\nUSAGE:\n  rearview-portfolio-worker run\n  rearview-portfolio-worker --version\n\nENV:\n  REARVIEW_DATABASE_URL\n  REARVIEW_NATS_URL\n  CLICKHOUSE_HOST / CLICKHOUSE_PORT / CLICKHOUSE_USER / CLICKHOUSE_PASSWORD"
     );
 }
 

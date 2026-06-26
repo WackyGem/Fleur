@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import argparse
 import sys
+import tomllib
+from importlib import metadata
 from pathlib import Path
 
 from fleur_contracts.clickhouse_layer_migration import (
@@ -20,9 +22,17 @@ from fleur_contracts.validate import validate_contracts
 from fleur_contracts.validate_clickhouse import validate_available_clickhouse
 from fleur_contracts.validate_parquet import validate_available_parquet
 
+PACKAGE_NAME = "contract-tools"
+SOURCE_PYPROJECT = Path(__file__).resolve().parents[2] / "pyproject.toml"
+
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="fleur-contracts")
+    parser.add_argument(
+        "--version",
+        action="version",
+        version=f"%(prog)s {_package_version()}",
+    )
     parser.add_argument(
         "--contract-root",
         type=Path,
@@ -147,6 +157,16 @@ def _run_clickhouse_layer_command(args: argparse.Namespace) -> int:
         print(f"Migration report: {report}")
         return 0
     return 2
+
+
+def _package_version() -> str:
+    try:
+        return metadata.version(PACKAGE_NAME)
+    except metadata.PackageNotFoundError:
+        if not SOURCE_PYPROJECT.exists():
+            raise
+        project = tomllib.loads(SOURCE_PYPROJECT.read_text(encoding="utf-8"))["project"]
+        return str(project["version"])
 
 
 if __name__ == "__main__":

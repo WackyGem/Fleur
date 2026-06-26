@@ -11,6 +11,7 @@
 
 | Plan | 状态 | 说明 |
 |---|---|---|
+| [0059](archive/0059-version-information-governance-implementation-plan.md) | Completed | 版本信息治理实施：Rust crate 独立版本、release manifest/release note、版本校验脚本、运行时版本暴露、Alembic head 表达修正和 tag 前检查入口 |
 | [0058](archive/0058-racingline-step5-backtest-worker-latency-optimization-plan.md) | Completed | Racingline Step 5 回测 worker 执行耗时优化：simulation 低 clone 索引、backtest 专用 TopN signal SQL、MarketDataDemand 实验结论、overview 首屏读取和 worker bounded concurrency；验收见 [2026-06-26 report](../jobs/reports/2026-06-26-racingline-step5-backtest-worker-latency-optimization.md)，设计依据见 [RFC 0032](../RFC/0032-racingline-step5-backtest-worker-execution-latency.md) |
 | [0057](archive/0057-baostock-daily-kline-range-backfill-implementation-plan.md) | Completed | BaoStock 日 K daily source 增加 `range_backfill` 模式并完成 2026 年首个有效交易日至 2026-06-25 的 compacted/raw 验收；验收见 [2026-06-25 report](../jobs/reports/2026-06-25-baostock-daily-kline-range-backfill.md) |
 | [0056](archive/0056-racingline-step4-step5-backtest-latency-optimization-plan.md) | Completed | Racingline Step 4 到 Step 5 回测延时优化：create accepted 即进入 Step 5、前端状态 owner 收敛、status/result compact view、worker timing、price bars 动态投影、outbox 唤醒和 stale active 诊断；baseline 见 [baseline report](../jobs/reports/2026-06-25-racingline-step4-step5-backtest-latency-baseline.md)，验收见 [optimization report](../jobs/reports/2026-06-25-racingline-step4-step5-backtest-latency-optimization.md) |

@@ -10,6 +10,9 @@ use crate::postgres::RearviewPg;
 use tokio::sync::Notify;
 use tokio::sync::Semaphore;
 
+const DEFAULT_SERVICE_COMPONENT: &str = "rearview-core";
+const DEFAULT_SERVICE_VERSION: &str = env!("CARGO_PKG_VERSION");
+
 #[derive(Clone)]
 pub struct AppState {
     pub config: AppConfig,
@@ -18,6 +21,8 @@ pub struct AppState {
     pub clickhouse: ClickHouseClient,
     pub run_semaphore: Arc<Semaphore>,
     pub outbox_notifier: Arc<Notify>,
+    pub service_component: &'static str,
+    pub service_version: &'static str,
 }
 
 impl AppState {
@@ -43,6 +48,26 @@ impl AppState {
         clickhouse: ClickHouseClient,
         outbox_notifier: Arc<Notify>,
     ) -> Self {
+        Self::new_with_service_identity(
+            config,
+            postgres,
+            catalog,
+            clickhouse,
+            outbox_notifier,
+            DEFAULT_SERVICE_COMPONENT,
+            DEFAULT_SERVICE_VERSION,
+        )
+    }
+
+    pub fn new_with_service_identity(
+        config: AppConfig,
+        postgres: RearviewPg,
+        catalog: MetricCatalog,
+        clickhouse: ClickHouseClient,
+        outbox_notifier: Arc<Notify>,
+        service_component: &'static str,
+        service_version: &'static str,
+    ) -> Self {
         let run_semaphore = Arc::new(Semaphore::new(config.max_concurrent_runs));
         Self {
             config,
@@ -51,6 +76,8 @@ impl AppState {
             clickhouse,
             run_semaphore,
             outbox_notifier,
+            service_component,
+            service_version,
         }
     }
 }
