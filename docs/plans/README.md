@@ -6,6 +6,7 @@
 
 | Plan | 状态 | 说明 |
 |---|---|---|
+| [0058](0058-racingline-step5-backtest-worker-latency-optimization-plan.md) | Proposed | Racingline Step 5 回测 worker 执行耗时优化：simulation 低 clone 索引、backtest 专用 TopN signal SQL、MarketDataDemand 行数裁剪、首屏读取收敛和 worker pickup wait 治理；设计依据见 [RFC 0032](../RFC/0032-racingline-step5-backtest-worker-execution-latency.md) |
 
 ## Recently Completed
 
