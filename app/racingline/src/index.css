@@ -132,3 +132,51 @@
     @apply font-sans;
     }
 }
+
+@layer utilities {
+  .racingline-toast-enter {
+    animation: racingline-toast-enter 180ms ease-out both;
+    backface-visibility: hidden;
+    transform: translate3d(0, 0, 0);
+    will-change: opacity, transform;
+  }
+
+  .racingline-toast-leave {
+    animation: racingline-toast-leave 180ms ease-in both;
+    backface-visibility: hidden;
+    transform: translate3d(0, 0, 0);
+    will-change: opacity, transform;
+  }
+}
+
+@keyframes racingline-toast-enter {
+  from {
+    opacity: 0;
+    transform: translate3d(16px, 0, 0);
+  }
+
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+@keyframes racingline-toast-leave {
+  from {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+
+  to {
+    opacity: 0;
+    transform: translate3d(16px, 0, 0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .racingline-toast-enter,
+  .racingline-toast-leave {
+    animation-duration: 1ms;
+    transform: none;
+  }
+}

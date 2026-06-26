@@ -19,6 +19,7 @@ import {
   useStrategyBacktestOptionsQuery,
   useStrategyBacktestPerformanceQuery,
   useStrategyBacktestOverviewUiQuery,
+  useStrategyBacktestRebalanceRecordsUiQuery,
   useStrategyBacktestStatusQuery,
   useStrategyBacktestValidateQuery,
   useStrategyPortfolioCreateMutation,
@@ -123,7 +124,6 @@ import type {
   StrategyBacktestPerformanceUiView,
   StrategyBacktestPerformanceView,
   StrategyBacktestCreateRequest,
-  StrategyBacktestRebalanceRecordsUiResponse,
   StrategyBacktestRebalanceRecordSummary as ApiBacktestRebalanceRecordSummary,
   StrategyBacktestRebalanceUiRow as ApiBacktestRebalanceUiRow,
   StrategyBacktestRunRecord,
@@ -242,6 +242,9 @@ const backtestBenchmarkOptions = [
 ] as const
 
 const splitStepLayoutClassName = strategySplitPanelColumnsClassName
+const toastAnimationMs = 180
+const toastVisibleMs = 2_000
+const toastLeaveDelayMs = toastVisibleMs - toastAnimationMs
 
 function createPreviewTimingLogger() {
   const enabled =
@@ -463,9 +466,36 @@ function BacktestPanel({
   )
   const overviewQuery = useStrategyBacktestOverviewUiQuery(
     activeRunId,
-    selectedRebalanceDate,
+    null,
     isResultReady
   )
+  const overviewRebalance = overviewQuery.data?.rebalance ?? null
+  const overviewSelectedRebalanceDate =
+    overviewRebalance?.selected_trade_date ?? null
+  const effectiveSelectedRebalanceDate =
+    selectedRebalanceDate ?? overviewSelectedRebalanceDate
+  const shouldFetchSelectedRebalanceRows = Boolean(
+    selectedRebalanceDate &&
+      selectedRebalanceDate !== overviewSelectedRebalanceDate
+  )
+  const selectedRebalanceRowsQuery =
+    useStrategyBacktestRebalanceRecordsUiQuery(
+      activeRunId,
+      selectedRebalanceDate,
+      isResultReady && shouldFetchSelectedRebalanceRows
+    )
+  const selectedRebalanceRowsResponse =
+    shouldFetchSelectedRebalanceRows &&
+    selectedRebalanceRowsQuery.data?.selected_trade_date ===
+      selectedRebalanceDate
+      ? selectedRebalanceRowsQuery.data
+      : shouldFetchSelectedRebalanceRows
+        ? null
+        : overviewRebalance
+  const selectedRebalanceRowsError =
+    shouldFetchSelectedRebalanceRows && selectedRebalanceRowsQuery.isError
+      ? selectedRebalanceRowsQuery.error
+      : null
 
   const periodOptions = useMemo(
     () =>
@@ -524,22 +554,47 @@ function BacktestPanel({
       : ""
   const rebalanceRecords = useMemo(
     () =>
-      mapApiBacktestRebalanceUiResponse(
-        overviewQuery.data?.rebalance ?? null
+      mapApiBacktestRebalanceRecordSummaries(
+        overviewRebalance?.records ?? []
       ),
-    [overviewQuery.data?.rebalance]
+    [overviewRebalance?.records]
   )
-  const selectedRebalanceRecord =
-    rebalanceRecords.find((record) => record.date === selectedRebalanceDate) ??
+  const selectedRebalanceRecordSummary =
     rebalanceRecords.find(
-      (record) =>
-        record.date === overviewQuery.data?.rebalance.selected_trade_date
+      (record) => record.date === effectiveSelectedRebalanceDate
     ) ??
     rebalanceRecords.at(-1)
+  const selectedRebalanceRows = useMemo(
+    () => {
+      if (
+        !selectedRebalanceRowsResponse ||
+        selectedRebalanceRowsResponse.selected_trade_date !==
+          selectedRebalanceRecordSummary?.date
+      ) {
+        return []
+      }
+
+      return mapApiBacktestRebalanceUiRows(
+        selectedRebalanceRowsResponse.selected_rows
+      )
+    },
+    [selectedRebalanceRecordSummary?.date, selectedRebalanceRowsResponse]
+  )
+  const selectedRebalanceRecord = selectedRebalanceRecordSummary
+    ? {
+        ...selectedRebalanceRecordSummary,
+        trades: selectedRebalanceRows,
+      }
+    : null
   const selectedRebalanceTradeSections = selectedRebalanceRecord
     ? buildRebalanceTradeSections(selectedRebalanceRecord.trades)
     : []
   const selectedRebalanceRecordDate = selectedRebalanceRecord?.date ?? null
+  const isSelectedRebalanceRowsLoading = Boolean(
+    shouldFetchSelectedRebalanceRows &&
+      selectedRebalanceRowsQuery.isFetching &&
+      !selectedRebalanceRowsResponse
+  )
 
   useEffect(() => {
     const scroller = rebalanceDateScrollerRef.current
@@ -728,13 +783,15 @@ function BacktestPanel({
           <BacktestStatusAlert
             backtestValidationError={backtestValidationError}
             createError={createBacktestMutation.error}
-            hasPendingConfigChange={hasPendingConfigChange}
             isMarketTemplateError={isMarketTemplateError}
             optionsError={optionsQuery.error}
             run={currentRun}
             runError={statusQuery.error}
           />
-          <BacktestRunStatusPanel run={currentRun} />
+          <BacktestToastViewport
+            hasPendingConfigChange={hasPendingConfigChange}
+            run={currentRun}
+          />
 
           <section className="flex flex-col gap-3 xl:pr-4">
             <div className="flex items-center justify-between gap-3">
@@ -826,7 +883,16 @@ function BacktestPanel({
                         {selectedRebalanceRecord.sellCount} 只
                       </div>
                     </div>
-                    {selectedRebalanceTradeSections.some(
+                    {selectedRebalanceRowsError ? (
+                      <Alert variant="destructive">
+                        <AlertTitle>持仓明细加载失败</AlertTitle>
+                        <AlertDescription>
+                          {formatErrorMessage(selectedRebalanceRowsError)}
+                        </AlertDescription>
+                      </Alert>
+                    ) : isSelectedRebalanceRowsLoading ? (
+                      <Skeleton className="min-h-32 w-full" />
+                    ) : selectedRebalanceTradeSections.some(
                       (section) => section.trades.length > 0
                     ) ? (
                       <Table className="w-full table-fixed text-xs leading-snug [&_td]:overflow-hidden [&_th]:overflow-hidden">
@@ -1092,7 +1158,6 @@ function buildRebalanceTradeSections(trades: BacktestRebalanceTrade[]) {
 function BacktestStatusAlert({
   backtestValidationError,
   createError,
-  hasPendingConfigChange,
   isMarketTemplateError,
   optionsError,
   run,
@@ -1100,7 +1165,6 @@ function BacktestStatusAlert({
 }: {
   backtestValidationError: string | null
   createError: unknown
-  hasPendingConfigChange: boolean
   isMarketTemplateError: boolean
   optionsError: unknown
   run: StrategyBacktestRunStatusView | StrategyBacktestRunRecord | null
@@ -1162,11 +1226,29 @@ function BacktestStatusAlert({
     )
   }
 
-  if (hasPendingConfigChange) {
-    return <PendingConfigChangeToast />
+  return null
+}
+
+function BacktestToastViewport({
+  hasPendingConfigChange,
+  run,
+}: {
+  hasPendingConfigChange: boolean
+  run: StrategyBacktestRunStatusView | StrategyBacktestRunRecord | null
+}) {
+  if (!hasPendingConfigChange && !run) {
+    return null
   }
 
-  return null
+  return (
+    <div className="pointer-events-none fixed top-[4.5rem] right-4 left-4 z-50 flex w-auto flex-col gap-2 sm:left-auto sm:w-96">
+      {hasPendingConfigChange ? <PendingConfigChangeToast /> : null}
+      <BacktestRunStatusToast
+        key={run?.strategy_backtest_run_id ?? "empty"}
+        run={run}
+      />
+    </div>
+  )
 }
 
 function PendingConfigChangeToast() {
@@ -1174,8 +1256,14 @@ function PendingConfigChangeToast() {
   const [isLeaving, setIsLeaving] = useState(false)
 
   useEffect(() => {
-    const leaveTimeoutId = window.setTimeout(() => setIsLeaving(true), 5_000)
-    const removeTimeoutId = window.setTimeout(() => setVisible(false), 5_250)
+    const leaveTimeoutId = window.setTimeout(
+      () => setIsLeaving(true),
+      toastLeaveDelayMs
+    )
+    const removeTimeoutId = window.setTimeout(
+      () => setVisible(false),
+      toastVisibleMs
+    )
 
     return () => {
       window.clearTimeout(leaveTimeoutId)
@@ -1190,10 +1278,8 @@ function PendingConfigChangeToast() {
   return (
     <Alert
       className={cn(
-        "fixed top-[4.5rem] right-4 left-4 w-auto shadow-lg duration-200 sm:left-auto sm:w-96",
-        isLeaving
-          ? "animate-out fade-out-0 slide-out-to-right-4"
-          : "animate-in fade-in-0 slide-in-from-right-4"
+        "pointer-events-auto shadow-lg",
+        isLeaving ? "racingline-toast-leave" : "racingline-toast-enter"
       )}
     >
       <AlertTitle>配置已变更</AlertTitle>
@@ -1204,44 +1290,56 @@ function PendingConfigChangeToast() {
   )
 }
 
-function BacktestRunStatusPanel({
+function BacktestRunStatusToast({
   run,
 }: {
   run: StrategyBacktestRunStatusView | StrategyBacktestRunRecord | null
 }) {
-  if (!run) {
+  const status = run?.status ?? null
+  const runId = run?.strategy_backtest_run_id ?? null
+  const isFailedStatus = status ? isStrategyBacktestFailedStatus(status) : false
+  const isTerminal = status ? isStrategyBacktestTerminalStatus(status) : false
+  const [visible, setVisible] = useState(true)
+  const [isLeaving, setIsLeaving] = useState(false)
+
+  useEffect(() => {
+    if (!runId || isFailedStatus || !isTerminal) {
+      return
+    }
+
+    const leaveTimeoutId = window.setTimeout(
+      () => setIsLeaving(true),
+      toastLeaveDelayMs
+    )
+    const removeTimeoutId = window.setTimeout(
+      () => setVisible(false),
+      toastVisibleMs
+    )
+
+    return () => {
+      window.clearTimeout(leaveTimeoutId)
+      window.clearTimeout(removeTimeoutId)
+    }
+  }, [isFailedStatus, isTerminal, runId])
+
+  if (!run || isFailedStatus || !visible) {
     return null
   }
 
-  const isTerminal = isStrategyBacktestTerminalStatus(run.status)
-  const progressDetail = formatBacktestProgressDetail(run.progress)
-
   return (
-    <div className="flex flex-col gap-2 border border-border/70 bg-muted/20 p-3 text-xs xl:mr-4">
-      <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-        <span className="font-medium">
+    <Alert
+      className={cn(
+        "pointer-events-auto shadow-lg",
+        isLeaving ? "racingline-toast-leave" : "racingline-toast-enter"
+      )}
+    >
+      <AlertTitle className="flex flex-wrap items-center gap-x-2 gap-y-1">
+        <span>
           {getStrategyBacktestStatusLabel(run.status)}
         </span>
         {!isTerminal ? <Spinner data-icon="inline-start" /> : null}
-        <span className="text-muted-foreground">
-          分发 {formatBacktestDispatchStatus(run.dispatch_status)}
-        </span>
-        {progressDetail ? (
-          <span className="text-muted-foreground">{progressDetail}</span>
-        ) : null}
-      </div>
-      <div className="grid gap-1 text-muted-foreground md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
-        <div className="min-w-0 truncate">
-          Run ID <span className="font-mono">{run.strategy_backtest_run_id}</span>
-        </div>
-        <div className="min-w-0 truncate">
-          Result{" "}
-          <span className="font-mono">
-            {run.current_result_attempt_id ?? "pending"}
-          </span>
-        </div>
-      </div>
-    </div>
+      </AlertTitle>
+    </Alert>
   )
 }
 
@@ -1267,39 +1365,6 @@ function getStrategyBacktestStatusLabel(status?: StrategyBacktestRunStatus) {
   return status ? labels[status] : "回测中"
 }
 
-function formatBacktestDispatchStatus(status: StrategyBacktestRunRecord["dispatch_status"]) {
-  const labels: Record<StrategyBacktestRunRecord["dispatch_status"], string> = {
-    pending: "待发布",
-    published: "已发布",
-    publish_failed: "发布失败",
-  }
-
-  return labels[status]
-}
-
-function formatBacktestProgressDetail(progress: StrategyBacktestRunRecord["progress"]) {
-  const parts = []
-  const stage = progress.stage
-  if (typeof stage === "string" && stage.length > 0) {
-    parts.push(stage)
-  }
-  const chunkIndex = progress.chunk_index
-  const chunkCount = progress.chunk_count
-  if (typeof chunkIndex === "number" && typeof chunkCount === "number") {
-    parts.push(`chunk ${chunkIndex + 1}/${chunkCount}`)
-  }
-  const signalCount = progress.signal_count
-  if (typeof signalCount === "number") {
-    parts.push(`signals ${signalCount}`)
-  }
-  const priceBarCount = progress.price_bar_count
-  if (typeof priceBarCount === "number") {
-    parts.push(`price bars ${priceBarCount}`)
-  }
-
-  return parts.join(" / ")
-}
-
 function mapStrategyBacktestNavPoints(
   points: StrategyBacktestNavPoint[]
 ): BacktestNetValuePoint[] {
@@ -1311,21 +1376,10 @@ function mapStrategyBacktestNavPoints(
   }))
 }
 
-function mapApiBacktestRebalanceUiResponse(
-  response: StrategyBacktestRebalanceRecordsUiResponse | null
+function mapApiBacktestRebalanceRecordSummaries(
+  records: ApiBacktestRebalanceRecordSummary[]
 ): BacktestRebalanceRecord[] {
-  if (!response) {
-    return []
-  }
-
-  return response.records.map((record) =>
-    mapApiBacktestRebalanceRecordSummary(
-      record,
-      record.trade_date === response.selected_trade_date
-        ? response.selected_rows
-        : []
-    )
-  )
+  return records.map((record) => mapApiBacktestRebalanceRecordSummary(record, []))
 }
 
 function mapApiBacktestRebalanceRecordSummary(
@@ -1338,18 +1392,24 @@ function mapApiBacktestRebalanceRecordSummary(
     holdCount: record.hold_count,
     positionCount: record.position_count,
     sellCount: record.sell_count,
-    trades: rows.map((row) => ({
-      changePercent: formatOptionalSignedPercent(row.change_pct),
-      contribution: formatOptionalSignedPercent(row.contribution_pct),
-      costPrice: formatOptionalCurrency(row.cost_price),
-      currentPrice: formatOptionalCurrency(row.current_price),
-      direction: row.direction,
-      holdingDays:
-        typeof row.holding_days === "number" ? `${row.holding_days}天` : "—",
-      securityCode: row.security_code,
-      securityName: row.security_name?.trim() || row.security_code,
-    })),
+    trades: mapApiBacktestRebalanceUiRows(rows),
   }
+}
+
+function mapApiBacktestRebalanceUiRows(
+  rows: ApiBacktestRebalanceUiRow[]
+): BacktestRebalanceTrade[] {
+  return rows.map((row) => ({
+    changePercent: formatOptionalSignedPercent(row.change_pct),
+    contribution: formatOptionalSignedPercent(row.contribution_pct),
+    costPrice: formatOptionalCurrency(row.cost_price),
+    currentPrice: formatOptionalCurrency(row.current_price),
+    direction: row.direction,
+    holdingDays:
+      typeof row.holding_days === "number" ? `${row.holding_days}天` : "—",
+    securityCode: row.security_code,
+    securityName: row.security_name?.trim() || row.security_code,
+  }))
 }
 
 function buildBacktestPerformanceGroups(

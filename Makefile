@@ -113,7 +113,7 @@ help:
 	@printf '  %-34s %s\n' 'rearview-catalog-sync' 'Sync Rearview metric catalog into PostgreSQL'
 	@printf '  %-34s %s\n' 'rearview-dev' 'Start Docker dev services + Rearview after clearing its port'
 	@printf '  %-34s %s\n' 'racingline-frontend-dev' 'Start Racingline Vite dev server after clearing its port'
-	@printf '  %-34s %s\n' 'racingline-app-dev' 'Start Rearview server/worker + Racingline using existing .env infrastructure'
+	@printf '  %-34s %s\n' 'racingline-app-dev' 'Prepare dev services, then start Rearview server/worker + Racingline'
 	@printf '  %-34s %s\n' 'racingline-dev' 'Start Docker dev services + Rearview server/worker + Racingline after clearing ports'
 	@printf '  %-34s %s\n' 'racingline-dev-stop' 'Stop Rearview/Racingline dev servers by listening port'
 
@@ -233,6 +233,7 @@ racingline-dev-stop:
 racingline-app-dev:
 	$(require-env-file)
 	$(MAKE) --no-print-directory racingline-dev-stop
+	$(MAKE) --no-print-directory rearview-prepare
 	@set -euo pipefail; \
 		backend_pid=''; \
 		worker_pid=''; \
@@ -285,7 +286,6 @@ racingline-app-dev:
 
 racingline-dev:
 	$(require-env-file)
-	$(MAKE) --no-print-directory rearview-prepare
 	$(MAKE) --no-print-directory racingline-app-dev
 
 webui: dagster-home
