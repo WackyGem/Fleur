@@ -132,9 +132,7 @@ FORMAT JSONEachRow
 
 def stable_row(row: dict[str, Any]) -> dict[str, Any]:
     return {
-        key: normalize_value(value)
-        for key, value in row.items()
-        if key not in VOLATILE_COLUMNS
+        key: normalize_value(value) for key, value in row.items() if key not in VOLATILE_COLUMNS
     }
 
 
@@ -159,9 +157,7 @@ def fact_summary(spec: FactSpec, rows: list[dict[str, Any]]) -> dict[str, Any]:
         return summary
     if spec.table == "portfolio_nav_daily":
         summary["last_row"] = {
-            field: rows[-1].get(field)
-            for field in spec.summary_fields
-            if field in rows[-1]
+            field: rows[-1].get(field) for field in spec.summary_fields if field in rows[-1]
         }
     if spec.table == "portfolio_trade":
         for field in ("gross_amount", "total_fee", "slippage_cost"):
