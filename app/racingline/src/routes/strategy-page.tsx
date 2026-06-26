@@ -16,11 +16,9 @@ import {
   useMetricsQuery,
   useStrategyBacktestCreateMutation,
   useStrategyBacktestNavQuery,
-  useStrategyBacktestNavUiQuery,
   useStrategyBacktestOptionsQuery,
   useStrategyBacktestPerformanceQuery,
-  useStrategyBacktestPerformanceUiQuery,
-  useStrategyBacktestRebalanceRecordsUiQuery,
+  useStrategyBacktestOverviewUiQuery,
   useStrategyBacktestStatusQuery,
   useStrategyBacktestValidateQuery,
   useStrategyPortfolioCreateMutation,
@@ -463,14 +461,9 @@ function BacktestPanel({
     (date: string | null) => setRebalanceSelection({ date, runId: activeRunId }),
     [activeRunId]
   )
-  const navQuery = useStrategyBacktestNavUiQuery(activeRunId, isResultReady)
-  const rebalanceRecordsQuery = useStrategyBacktestRebalanceRecordsUiQuery(
+  const overviewQuery = useStrategyBacktestOverviewUiQuery(
     activeRunId,
     selectedRebalanceDate,
-    isResultReady
-  )
-  const performanceQuery = useStrategyBacktestPerformanceUiQuery(
-    activeRunId,
     isResultReady
   )
 
@@ -519,8 +512,8 @@ function BacktestPanel({
       ?.label ??
     benchmark
   const navPoints = useMemo(
-    () => mapStrategyBacktestNavPoints(navQuery.data ?? []),
-    [navQuery.data]
+    () => mapStrategyBacktestNavPoints(overviewQuery.data?.nav_points ?? []),
+    [overviewQuery.data?.nav_points]
   )
   const latestNetValuePoint = navPoints.at(-1)
   const latestExcessReturn =
@@ -531,13 +524,16 @@ function BacktestPanel({
       : ""
   const rebalanceRecords = useMemo(
     () =>
-      mapApiBacktestRebalanceUiResponse(rebalanceRecordsQuery.data ?? null),
-    [rebalanceRecordsQuery.data]
+      mapApiBacktestRebalanceUiResponse(
+        overviewQuery.data?.rebalance ?? null
+      ),
+    [overviewQuery.data?.rebalance]
   )
   const selectedRebalanceRecord =
     rebalanceRecords.find((record) => record.date === selectedRebalanceDate) ??
     rebalanceRecords.find(
-      (record) => record.date === rebalanceRecordsQuery.data?.selected_trade_date
+      (record) =>
+        record.date === overviewQuery.data?.rebalance.selected_trade_date
     ) ??
     rebalanceRecords.at(-1)
   const selectedRebalanceTradeSections = selectedRebalanceRecord
@@ -569,10 +565,10 @@ function BacktestPanel({
   const performanceGroups = useMemo(
     () =>
       buildBacktestPerformanceGroups(
-        performanceQuery.data ?? null,
+        overviewQuery.data?.performance ?? null,
         latestExcessReturn
       ),
-    [latestExcessReturn, performanceQuery.data]
+    [latestExcessReturn, overviewQuery.data?.performance]
   )
   const actionDisabled = Boolean(
     !previewSnapshot ||
@@ -754,7 +750,7 @@ function BacktestPanel({
                 </div>
               </div>
             </div>
-            {navQuery.isLoading ? (
+            {overviewQuery.isLoading ? (
               <Skeleton className="h-60 w-full" />
             ) : navPoints.length > 0 ? (
               <BacktestNetValueChart points={navPoints} />
@@ -780,7 +776,7 @@ function BacktestPanel({
               </div>
             </div>
 
-            {rebalanceRecordsQuery.isLoading ? (
+            {overviewQuery.isLoading ? (
               <Skeleton className="h-36 w-full" />
             ) : rebalanceRecords.length > 0 ? (
               <>

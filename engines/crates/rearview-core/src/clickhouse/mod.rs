@@ -1,4 +1,4 @@
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet};
 use std::time::Instant;
 
 use chrono::NaiveDate;
@@ -52,6 +52,72 @@ pub struct ScreeningRow {
     pub score_breakdown: String,
     pub selected_metrics: String,
     pub raw_values: String,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct BacktestSignalRow {
+    pub security_code: String,
+    pub trade_date: NaiveDate,
+    pub score: f64,
+    pub signal_rank: u32,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct MarketDataDemandEntry {
+    pub security_code: String,
+    pub start_date: NaiveDate,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct MarketDataDemand {
+    pub entries: Vec<MarketDataDemandEntry>,
+    pub end_date: NaiveDate,
+}
+
+impl MarketDataDemand {
+    pub fn from_security_start_dates<I>(items: I, end_date: NaiveDate) -> RearviewResult<Self>
+    where
+        I: IntoIterator<Item = (String, NaiveDate)>,
+    {
+        let mut start_by_security = BTreeMap::<String, NaiveDate>::new();
+        for (security_code, start_date) in items {
+            validate_security_code(&security_code)?;
+            if start_date > end_date {
+                return Err(RearviewError::Validation(format!(
+                    "market data demand start_date must be <= end_date: {security_code} {start_date} > {end_date}"
+                )));
+            }
+            start_by_security
+                .entry(security_code)
+                .and_modify(|existing| *existing = (*existing).min(start_date))
+                .or_insert(start_date);
+        }
+        Ok(Self {
+            entries: start_by_security
+                .into_iter()
+                .map(|(security_code, start_date)| MarketDataDemandEntry {
+                    security_code,
+                    start_date,
+                })
+                .collect(),
+            end_date,
+        })
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.entries.is_empty()
+    }
+
+    pub fn earliest_start_date(&self) -> Option<NaiveDate> {
+        self.entries.iter().map(|entry| entry.start_date).min()
+    }
+
+    pub fn security_codes(&self) -> Vec<String> {
+        self.entries
+            .iter()
+            .map(|entry| entry.security_code.clone())
+            .collect()
+    }
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -526,6 +592,17 @@ FORMAT JSONEachRow"#
         parse_json_each_row::<ScreeningRow>(&body)
     }
 
+    pub async fn query_backtest_signal_rows(
+        &self,
+        sql: &str,
+        query_id: &str,
+    ) -> RearviewResult<Vec<BacktestSignalRow>> {
+        let body = self
+            .execute_text(&format!("{sql}\nFORMAT JSONEachRow"), query_id)
+            .await?;
+        parse_json_each_row::<BacktestSignalRow>(&body)
+    }
+
     pub async fn query_preview_timeline_rows(
         &self,
         sql: &str,
@@ -927,6 +1004,25 @@ FORMAT JSONEachRow"#
             end_date,
             indicator_metrics,
         )?;
+        let body = self.execute_text(&sql, query_id).await?;
+        parse_json_each_row::<PriceBar>(&body)
+    }
+
+    pub async fn query_portfolio_price_bars_for_demand(
+        &self,
+        demand: &MarketDataDemand,
+        indicator_metrics: &[String],
+        query_id: &str,
+    ) -> RearviewResult<Vec<PriceBar>> {
+        validate_identifier(&self.config.marts_database)?;
+        if demand.is_empty() {
+            return Ok(Vec::new());
+        }
+        for entry in &demand.entries {
+            validate_security_code(&entry.security_code)?;
+        }
+        let database = quote_identifier(&self.config.marts_database);
+        let sql = portfolio_price_bars_demand_join_sql(&database, demand, indicator_metrics)?;
         let body = self.execute_text(&sql, query_id).await?;
         parse_json_each_row::<PriceBar>(&body)
     }
@@ -1614,6 +1710,96 @@ FORMAT JSONEachRow"#
     ))
 }
 
+fn portfolio_price_bars_demand_join_sql(
+    database: &str,
+    demand: &MarketDataDemand,
+    indicator_metrics: &[String],
+) -> RearviewResult<String> {
+    let start_date = demand.earliest_start_date().ok_or_else(|| {
+        RearviewError::Validation("market data demand must not be empty".to_string())
+    })?;
+    let end_date = demand.end_date;
+    let securities = demand
+        .entries
+        .iter()
+        .map(|entry| quote_string_literal(&entry.security_code))
+        .collect::<Vec<_>>()
+        .join(", ");
+    let demand_rows = demand
+        .entries
+        .iter()
+        .map(|entry| {
+            Ok(format!(
+                "    SELECT {} AS security_code, toDate('{}') AS start_date",
+                quote_string_literal(&entry.security_code),
+                entry.start_date
+            ))
+        })
+        .collect::<RearviewResult<Vec<_>>>()?
+        .join("\n    UNION ALL\n");
+    let trend_columns = indicator_metrics
+        .iter()
+        .map(|metric| price_bar_trend_column(metric))
+        .collect::<RearviewResult<BTreeSet<_>>>()?;
+    let mut select_columns = vec![
+        "    q.security_code AS security_code".to_string(),
+        "    q.trade_date AS trade_date".to_string(),
+        "    q.open_price_backward_adj AS open_price_backward_adj".to_string(),
+        "    q.close_price_backward_adj AS close_price_backward_adj".to_string(),
+    ];
+    let join = if trend_columns.is_empty() {
+        String::new()
+    } else {
+        select_columns.push("    q.close_price_forward_adj AS close_price_forward_adj".to_string());
+        for column in &trend_columns {
+            select_columns.push(format!("    t.{column} AS {column}"));
+        }
+        let trend_select_columns = trend_columns
+            .iter()
+            .map(|column| format!("        {column}"))
+            .collect::<Vec<_>>()
+            .join(",\n");
+        format!(
+            r#"
+LEFT JOIN (
+    SELECT
+        security_code,
+        trade_date,
+{trend_select_columns}
+    FROM {database}.`mart_stock_trend_indicator_daily`
+    WHERE trade_date BETWEEN toDate('{start_date}') AND toDate('{end_date}')
+      AND security_code IN ({securities})
+) AS t
+    ON q.security_code = t.security_code AND q.trade_date = t.trade_date"#
+        )
+    };
+    let select_columns = select_columns.join(",\n");
+    Ok(format!(
+        r#"
+WITH demand AS (
+{demand_rows}
+),
+quotes AS (
+    SELECT
+        security_code,
+        trade_date,
+        open_price_backward_adj,
+        close_price_backward_adj,
+        close_price_forward_adj
+    FROM {database}.`mart_stock_quotes_daily`
+    WHERE trade_date BETWEEN toDate('{start_date}') AND toDate('{end_date}')
+      AND security_code IN ({securities})
+)
+SELECT
+{select_columns}
+FROM quotes AS q
+INNER JOIN demand AS d
+    ON q.security_code = d.security_code AND q.trade_date >= d.start_date{join}
+ORDER BY q.trade_date ASC, q.security_code ASC
+FORMAT JSONEachRow"#
+    ))
+}
+
 fn price_bar_trend_column(metric: &str) -> RearviewResult<&'static str> {
     match metric {
         "price_ma_3" => Ok("price_ma_3"),
@@ -2122,10 +2308,11 @@ where
 #[cfg(test)]
 mod tests {
     use super::{
-        AnalysisQuoteAdjustment, QuoteMartRow, ScreeningRow,
+        AnalysisQuoteAdjustment, BacktestSignalRow, MarketDataDemand, QuoteMartRow, ScreeningRow,
         chart_context_chart_quote_select_columns, chart_context_selected_quote_select_columns,
-        chart_context_trend_select_columns, portfolio_price_bars_sql, quote_select_columns,
-        trend_select_columns, validate_security_code, validate_source_tenor, validate_window_key,
+        chart_context_trend_select_columns, portfolio_price_bars_demand_join_sql,
+        portfolio_price_bars_sql, quote_select_columns, trend_select_columns,
+        validate_security_code, validate_source_tenor, validate_window_key,
     };
     use chrono::NaiveDate;
 
@@ -2178,6 +2365,27 @@ mod tests {
             .expect("string false should deserialize");
 
         assert!(!row.is_buy_signal);
+    }
+
+    #[test]
+    fn backtest_signal_row_accepts_only_worker_hot_path_fields() {
+        let json = r#"{
+            "security_code": "000001.SZ",
+            "trade_date": "2026-05-20",
+            "score": 42.5,
+            "signal_rank": 1
+        }"#;
+
+        let row = serde_json::from_str::<BacktestSignalRow>(json)
+            .expect("backtest signal row should deserialize narrow fields");
+
+        assert_eq!(row.security_code, "000001.SZ");
+        assert_eq!(
+            row.trade_date,
+            NaiveDate::from_ymd_opt(2026, 5, 20).unwrap()
+        );
+        assert_eq!(row.score, 42.5);
+        assert_eq!(row.signal_rank, 1);
     }
 
     #[test]
@@ -2293,6 +2501,96 @@ mod tests {
             "'600000.SH'",
             NaiveDate::from_ymd_opt(2025, 1, 2).unwrap(),
             NaiveDate::from_ymd_opt(2025, 1, 3).unwrap(),
+            &["unknown_metric".to_string()],
+        )
+        .unwrap_err();
+
+        assert!(matches!(error, RearviewError::Validation(_)));
+    }
+
+    #[test]
+    fn market_data_demand_keeps_earliest_start_per_security() {
+        let demand = MarketDataDemand::from_security_start_dates(
+            [
+                (
+                    "600000.SH".to_string(),
+                    NaiveDate::from_ymd_opt(2025, 1, 5).unwrap(),
+                ),
+                (
+                    "600000.SH".to_string(),
+                    NaiveDate::from_ymd_opt(2025, 1, 2).unwrap(),
+                ),
+                (
+                    "000001.SZ".to_string(),
+                    NaiveDate::from_ymd_opt(2025, 1, 3).unwrap(),
+                ),
+            ],
+            NaiveDate::from_ymd_opt(2025, 1, 31).unwrap(),
+        )
+        .unwrap();
+
+        assert_eq!(demand.entries.len(), 2);
+        assert_eq!(
+            demand.earliest_start_date(),
+            Some(NaiveDate::from_ymd_opt(2025, 1, 2).unwrap())
+        );
+        assert_eq!(
+            demand.entries[1].start_date,
+            NaiveDate::from_ymd_opt(2025, 1, 2).unwrap()
+        );
+    }
+
+    #[test]
+    fn portfolio_price_bars_demand_join_sql_filters_before_joining() {
+        let demand = MarketDataDemand::from_security_start_dates(
+            [
+                (
+                    "600000.SH".to_string(),
+                    NaiveDate::from_ymd_opt(2025, 1, 2).unwrap(),
+                ),
+                (
+                    "000001.SZ".to_string(),
+                    NaiveDate::from_ymd_opt(2025, 1, 5).unwrap(),
+                ),
+            ],
+            NaiveDate::from_ymd_opt(2025, 1, 31).unwrap(),
+        )
+        .unwrap();
+
+        let sql = portfolio_price_bars_demand_join_sql(
+            "`fleur_marts`",
+            &demand,
+            &["price_ma_10".to_string()],
+        )
+        .unwrap();
+
+        assert!(sql.contains("WITH demand AS"));
+        assert!(sql.contains("UNION ALL"));
+        assert!(sql.contains("FROM `fleur_marts`.`mart_stock_quotes_daily`"));
+        assert!(
+            sql.contains("WHERE trade_date BETWEEN toDate('2025-01-02') AND toDate('2025-01-31')")
+        );
+        assert!(sql.contains("AND security_code IN ('000001.SZ', '600000.SH')"));
+        assert!(sql.contains("q.trade_date >= d.start_date"));
+        assert!(sql.contains("FROM `fleur_marts`.`mart_stock_trend_indicator_daily`"));
+        assert!(sql.contains("t.price_ma_10 AS price_ma_10"));
+        assert!(!sql.contains("price_ma_20"));
+    }
+
+    #[test]
+    fn portfolio_price_bars_demand_join_sql_rejects_unsupported_indicator_metric() {
+        let demand = MarketDataDemand::from_security_start_dates(
+            [(
+                "600000.SH".to_string(),
+                NaiveDate::from_ymd_opt(2025, 1, 2).unwrap(),
+            )],
+            NaiveDate::from_ymd_opt(2025, 1, 31).unwrap(),
+        )
+        .unwrap();
+
+        let error = portfolio_price_bars_demand_join_sql(
+            "`fleur_marts`",
+            &demand,
             &["unknown_metric".to_string()],
         )
         .unwrap_err();

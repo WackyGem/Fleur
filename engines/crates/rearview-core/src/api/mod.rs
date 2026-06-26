@@ -143,6 +143,10 @@ pub fn routes() -> Router<AppState> {
             get(get_strategy_backtest_status),
         )
         .route(
+            "/rearview/strategy-backtests/{strategy_backtest_run_id}/overview",
+            get(get_strategy_backtest_overview),
+        )
+        .route(
             "/rearview/strategy-backtests/{strategy_backtest_run_id}",
             get(get_strategy_backtest),
         )
@@ -514,8 +518,10 @@ async fn get_strategy_backtest_options(
         non_empty(query.benchmark_security_code).unwrap_or_else(default_benchmark);
     validate_strategy_backtest_benchmark(&benchmark_security_code)?;
     let as_of_date = query.as_of_date.unwrap_or_else(|| Utc::now().date_naive());
+    let query_scope = format!("options-{}", ulid::Ulid::new());
     let resolution =
-        resolve_strategy_backtest_range(&state, &benchmark_security_code, as_of_date).await?;
+        resolve_strategy_backtest_range(&state, &benchmark_security_code, as_of_date, &query_scope)
+            .await?;
     let benchmark_options = strategy_backtest_benchmark_options(&benchmark_security_code, true);
 
     Ok(Json(StrategyBacktestOptionsResponse {
@@ -537,9 +543,14 @@ async fn create_strategy_backtest(
     validate_strategy_backtest_period_key(&request.period_key)?;
     validate_strategy_backtest_benchmark(&request.benchmark_security_code)?;
     let range_as_of_date = Utc::now().date_naive();
-    let resolution =
-        resolve_strategy_backtest_range(&state, &request.benchmark_security_code, range_as_of_date)
-            .await?;
+    let query_scope = format!("create-{}", ulid::Ulid::new());
+    let resolution = resolve_strategy_backtest_range(
+        &state,
+        &request.benchmark_security_code,
+        range_as_of_date,
+        &query_scope,
+    )
+    .await?;
     let period_option = resolution
         .period_options
         .iter()
@@ -601,7 +612,7 @@ async fn create_strategy_backtest(
             period_option.resolved_start_date,
             period_option.resolved_end_date,
             &format!(
-                "strategy-backtest-preflight-risk-free-{}-{}",
+                "strategy-backtest-preflight-risk-free-{}-{}-{query_scope}",
                 request.benchmark_security_code, request.period_key
             ),
         )
@@ -715,6 +726,74 @@ async fn get_strategy_backtest_status(
         .get_strategy_backtest_run(&strategy_backtest_run_id)
         .await?;
     Ok(Json(strategy_backtest_status_view(record)))
+}
+
+async fn get_strategy_backtest_overview(
+    State(state): State<AppState>,
+    Path(strategy_backtest_run_id): Path<String>,
+    Query(query): Query<StrategyBacktestOverviewQuery>,
+) -> RearviewResult<Json<StrategyBacktestOverviewUiResponse>> {
+    let view = response_view(&query.view)?;
+    if !matches!(view, ResponseView::Ui) {
+        return Err(RearviewError::Validation(
+            "strategy backtest overview only supports view=ui".to_string(),
+        ));
+    }
+    let run = state
+        .postgres
+        .get_strategy_backtest_run(&strategy_backtest_run_id)
+        .await?;
+    let status = strategy_backtest_status_view(run.clone());
+    let attempt_id =
+        resolve_strategy_backtest_result_attempt(&run, query.result_attempt_id.as_deref())?;
+    let nav = state
+        .clickhouse
+        .query_portfolio_nav(&strategy_backtest_run_id, &attempt_id)
+        .await?;
+    let daily_win_rate = daily_win_rate(&nav);
+    let benchmark_returns = state
+        .clickhouse
+        .query_mart_benchmark_returns(
+            &run.benchmark_security_code,
+            run.start_date,
+            run.end_date,
+            &format!("strategy-backtest-{strategy_backtest_run_id}-overview-benchmark"),
+        )
+        .await?;
+    let nav_points = strategy_backtest_nav_points(nav.clone(), benchmark_returns)
+        .into_iter()
+        .map(StrategyBacktestNavUiPoint::from)
+        .collect::<Vec<_>>();
+    let latest_nav = nav_points.last().cloned();
+    let security_code = non_empty(query.security_code).unwrap_or(run.benchmark_security_code);
+    let window_key = non_empty(query.window_key).unwrap_or_else(default_metric_window);
+    let performance = state
+        .clickhouse
+        .query_portfolio_performance(
+            &strategy_backtest_run_id,
+            &attempt_id,
+            &security_code,
+            &window_key,
+        )
+        .await?;
+    let rebalance = strategy_backtest_rebalance_ui_read_model(
+        &state,
+        &strategy_backtest_run_id,
+        &attempt_id,
+        nav,
+        query.trade_date,
+    )
+    .await?;
+    Ok(Json(StrategyBacktestOverviewUiResponse {
+        status,
+        latest_nav,
+        nav_points,
+        performance: StrategyBacktestPerformanceUiView {
+            metric: StrategyBacktestPerformanceUiMetric::from(performance.metric),
+            daily_win_rate,
+        },
+        rebalance,
+    }))
 }
 
 async fn list_strategy_backtest_nav(
@@ -917,6 +996,137 @@ async fn list_strategy_backtest_rebalance_records(
             },
         ),
     }))
+}
+
+async fn strategy_backtest_rebalance_ui_read_model(
+    state: &AppState,
+    strategy_backtest_run_id: &str,
+    attempt_id: &str,
+    nav: Vec<PortfolioNavRecord>,
+    trade_date: Option<NaiveDate>,
+) -> RearviewResult<StrategyBacktestRebalanceRecordsUiResponse> {
+    let trade_counts = state
+        .clickhouse
+        .query_portfolio_rebalance_trade_counts(strategy_backtest_run_id, attempt_id)
+        .await?
+        .into_iter()
+        .map(|row| (row.trade_date, row))
+        .collect::<BTreeMap<_, _>>();
+    let selected_trade_date = trade_date
+        .or_else(|| {
+            nav.iter()
+                .rev()
+                .find(|row| row.position_count > 0 || row.turnover > 0.0)
+                .map(|row| row.trade_date)
+        })
+        .or_else(|| nav.last().map(|row| row.trade_date))
+        .ok_or_else(|| {
+            RearviewError::NotFound(format!(
+                "no nav rows for strategy backtest: {strategy_backtest_run_id}"
+            ))
+        })?;
+    let selected_nav = nav.iter().find(|row| row.trade_date == selected_trade_date);
+    let page = Page {
+        limit: 500,
+        offset: 0,
+    };
+    let trades = state
+        .clickhouse
+        .query_portfolio_trades(
+            &PortfolioTradeFilter {
+                portfolio_run_id: strategy_backtest_run_id.to_string(),
+                trade_date: Some(selected_trade_date),
+                security_code: None,
+                page,
+            },
+            attempt_id,
+        )
+        .await?;
+    let positions = state
+        .clickhouse
+        .query_portfolio_positions(
+            &PortfolioPositionFilter {
+                portfolio_run_id: strategy_backtest_run_id.to_string(),
+                trade_date: Some(selected_trade_date),
+                security_code: None,
+                page,
+            },
+            attempt_id,
+        )
+        .await?;
+    let closed_trades = state
+        .clickhouse
+        .query_portfolio_closed_trades(
+            &PortfolioClosedTradeFilter {
+                portfolio_run_id: strategy_backtest_run_id.to_string(),
+                security_code: None,
+                exit_date: Some(selected_trade_date),
+                page,
+            },
+            attempt_id,
+        )
+        .await?;
+    let security_codes = trades
+        .items
+        .iter()
+        .map(|trade| trade.security_code.clone())
+        .chain(
+            positions
+                .items
+                .iter()
+                .map(|position| position.security_code.clone()),
+        )
+        .chain(
+            closed_trades
+                .items
+                .iter()
+                .map(|closed| closed.security_code.clone()),
+        )
+        .collect::<BTreeSet<_>>()
+        .into_iter()
+        .collect::<Vec<_>>();
+    let display = security_display_map(
+        state,
+        &security_codes,
+        &format!("strategy-backtest-{strategy_backtest_run_id}-overview-rebalance-display"),
+    )
+    .await;
+    let total_equity = selected_nav.map(|row| row.total_equity);
+    let selected_rows = build_strategy_backtest_rebalance_rows(
+        trades.items,
+        positions.items,
+        closed_trades.items,
+        &display,
+        total_equity,
+    )
+    .into_iter()
+    .map(StrategyBacktestRebalanceUiRow::from)
+    .collect();
+    let records = nav
+        .into_iter()
+        .map(|row| {
+            let trade_count = trade_counts.get(&row.trade_date);
+            let buy_count_i32 = trade_count.map_or(0, |count| count.buy_count);
+            let sell_count_i32 = trade_count.map_or(0, |count| count.sell_count);
+            let hold_count_i32 = row.position_count.saturating_sub(buy_count_i32);
+            let buy_count = usize::try_from(buy_count_i32).unwrap_or_default();
+            let hold_count = usize::try_from(hold_count_i32).unwrap_or_default();
+            let sell_count = usize::try_from(sell_count_i32).unwrap_or_default();
+
+            StrategyBacktestRebalanceRecordSummary {
+                trade_date: row.trade_date,
+                position_count: row.position_count,
+                buy_count,
+                hold_count,
+                sell_count,
+            }
+        })
+        .collect::<Vec<_>>();
+    Ok(StrategyBacktestRebalanceRecordsUiResponse {
+        selected_trade_date,
+        records,
+        selected_rows,
+    })
 }
 
 async fn list_strategy_backtest_targets(
@@ -2935,6 +3145,29 @@ struct StrategyBacktestRunStatusView {
     current_result_attempt_id: Option<String>,
 }
 
+#[derive(Debug, Deserialize)]
+struct StrategyBacktestOverviewQuery {
+    #[serde(default)]
+    result_attempt_id: Option<String>,
+    #[serde(default)]
+    trade_date: Option<NaiveDate>,
+    #[serde(default)]
+    security_code: Option<String>,
+    #[serde(default)]
+    window_key: Option<String>,
+    #[serde(default = "default_ui_view")]
+    view: Option<String>,
+}
+
+#[derive(Debug, Serialize)]
+struct StrategyBacktestOverviewUiResponse {
+    status: StrategyBacktestRunStatusView,
+    latest_nav: Option<StrategyBacktestNavUiPoint>,
+    nav_points: Vec<StrategyBacktestNavUiPoint>,
+    performance: StrategyBacktestPerformanceUiView,
+    rebalance: StrategyBacktestRebalanceRecordsUiResponse,
+}
+
 #[derive(Debug, Serialize)]
 #[serde(untagged)]
 enum StrategyBacktestNavResponse {
@@ -2950,7 +3183,7 @@ struct StrategyBacktestNavPoint {
     excess_return: Option<f64>,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Clone, Serialize)]
 struct StrategyBacktestNavUiPoint {
     trade_date: NaiveDate,
     strategy_nav: f64,
@@ -4577,6 +4810,10 @@ fn default_metric_window() -> String {
     "full_period".to_string()
 }
 
+fn default_ui_view() -> Option<String> {
+    Some("ui".to_string())
+}
+
 fn validate_strategy_backtest_period_key(period_key: &str) -> RearviewResult<()> {
     if matches!(period_key, "1y" | "2y" | "3y") {
         Ok(())
@@ -4641,6 +4878,7 @@ async fn resolve_strategy_backtest_range(
     state: &AppState,
     benchmark_security_code: &str,
     as_of_date: NaiveDate,
+    query_scope: &str,
 ) -> RearviewResult<StrategyBacktestRangeResolution> {
     let earliest_date = as_of_date
         .checked_sub_months(Months::new(36))
@@ -4649,7 +4887,7 @@ async fn resolve_strategy_backtest_range(
                 "could not resolve 3y range before as_of_date {as_of_date}"
             ))
         })?;
-    let query_suffix = format!("{benchmark_security_code}-{as_of_date}");
+    let query_suffix = format!("{benchmark_security_code}-{as_of_date}-{query_scope}");
     let trade_dates = state
         .clickhouse
         .query_trade_dates(
@@ -5914,6 +6152,93 @@ mod tests {
         assert!(value.get("quantity").is_none());
         assert!(value.get("reason").is_none());
         assert_eq!(value["security_code"], "600000.SH");
+    }
+
+    #[test]
+    fn strategy_backtest_overview_ui_response_should_stay_compact() {
+        let value = serde_json::to_value(StrategyBacktestOverviewUiResponse {
+            status: StrategyBacktestRunStatusView {
+                strategy_backtest_run_id: "run-1".to_string(),
+                status: "succeeded".to_string(),
+                dispatch_status: "published".to_string(),
+                progress: json!({"stage": "succeeded"}),
+                error_type: None,
+                error_message: None,
+                period_key: "1y".to_string(),
+                benchmark_security_code: "000300.SH".to_string(),
+                start_date: date("2025-01-02"),
+                end_date: date("2025-12-31"),
+                rule_hash: "rule-hash".to_string(),
+                execution_config_hash: "config-hash".to_string(),
+                current_result_attempt_id: Some("attempt-1".to_string()),
+            },
+            latest_nav: Some(StrategyBacktestNavUiPoint {
+                trade_date: date("2025-01-03"),
+                strategy_nav: 1.02,
+                benchmark_nav: Some(1.01),
+            }),
+            nav_points: vec![StrategyBacktestNavUiPoint {
+                trade_date: date("2025-01-03"),
+                strategy_nav: 1.02,
+                benchmark_nav: Some(1.01),
+            }],
+            performance: StrategyBacktestPerformanceUiView {
+                metric: StrategyBacktestPerformanceUiMetric {
+                    holding_period_return: Some(0.12),
+                    annualized_return: Some(0.10),
+                    annualized_volatility: Some(0.20),
+                    max_drawdown: Some(-0.08),
+                    calmar_ratio: Some(1.25),
+                    downside_deviation: Some(0.09),
+                    sortino_ratio: Some(1.1),
+                    sharpe_ratio: Some(0.8),
+                    information_ratio: Some(0.7),
+                    beta: Some(1.0),
+                    alpha: Some(0.03),
+                    treynor_ratio: Some(0.05),
+                },
+                daily_win_rate: StrategyBacktestDailyWinRate {
+                    value: Some(0.55),
+                    observation_count: 100,
+                    winning_day_count: 55,
+                },
+            },
+            rebalance: StrategyBacktestRebalanceRecordsUiResponse {
+                selected_trade_date: date("2025-01-03"),
+                records: vec![StrategyBacktestRebalanceRecordSummary {
+                    trade_date: date("2025-01-03"),
+                    position_count: 1,
+                    buy_count: 1,
+                    hold_count: 0,
+                    sell_count: 0,
+                }],
+                selected_rows: vec![StrategyBacktestRebalanceUiRow {
+                    direction: "buy".to_string(),
+                    security_code: "600000.SH".to_string(),
+                    security_name: Some("浦发银行".to_string()),
+                    holding_days: Some(0),
+                    change_pct: Some(0.0),
+                    cost_price: Some(10.0),
+                    current_price: Some(10.0),
+                    contribution_pct: Some(0.0),
+                }],
+            },
+        })
+        .unwrap();
+
+        assert!(value["nav_points"][0].get("excess_return").is_none());
+        assert!(value["performance"].get("statuses").is_none());
+        assert!(
+            value["rebalance"]["selected_rows"][0]
+                .get("quantity")
+                .is_none()
+        );
+        assert!(
+            value["rebalance"]["selected_rows"][0]
+                .get("reason")
+                .is_none()
+        );
+        assert!(value["status"].get("rule_snapshot").is_none());
     }
 
     #[test]

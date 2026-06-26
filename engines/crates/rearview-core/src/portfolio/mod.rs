@@ -1,4 +1,5 @@
 use std::collections::{BTreeMap, BTreeSet};
+use std::time::Instant;
 
 use chrono::NaiveDate;
 use serde::{Deserialize, Serialize};
@@ -118,6 +119,19 @@ pub struct PortfolioSimulationOutput {
     pub nav: Vec<PortfolioNavRow>,
     pub events: Vec<PortfolioEventRow>,
     pub summary: PortfolioSummary,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct PortfolioSimulationWithDiagnostics {
+    pub output: PortfolioSimulationOutput,
+    pub diagnostics: SimulationDiagnostics,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct SimulationDiagnostics {
+    pub version: u32,
+    pub simulation_ms: BTreeMap<String, u128>,
+    pub row_counts: BTreeMap<String, usize>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -321,18 +335,43 @@ pub fn portfolio_event_type_str(event_type: PortfolioEventType) -> &'static str 
 pub fn simulate_portfolio(
     input: &PortfolioSimulationInput,
 ) -> RearviewResult<PortfolioSimulationOutput> {
+    Ok(simulate_portfolio_with_diagnostics(input)?.output)
+}
+
+pub fn simulate_portfolio_with_diagnostics(
+    input: &PortfolioSimulationInput,
+) -> RearviewResult<PortfolioSimulationWithDiagnostics> {
     validate_input(input)?;
+    let mut diagnostics = SimulationDiagnostics {
+        version: 1,
+        simulation_ms: BTreeMap::new(),
+        row_counts: BTreeMap::new(),
+    };
 
-    let mut prices: BTreeMap<(NaiveDate, String), PriceBar> = BTreeMap::new();
-    let mut trade_dates = BTreeSet::new();
-    for price in &input.prices {
-        trade_dates.insert(price.trade_date);
-        prices.insert(
-            (price.trade_date, price.security_code.clone()),
-            price.clone(),
-        );
-    }
+    let stage_started = Instant::now();
+    let prices = PriceStore::new(&input.prices);
+    diagnostics.simulation_ms.insert(
+        "price_store_build".to_string(),
+        stage_started.elapsed().as_millis(),
+    );
+    diagnostics
+        .row_counts
+        .insert("price_bar_count".to_string(), input.prices.len());
+    diagnostics
+        .row_counts
+        .insert("price_index_key_count".to_string(), prices.len());
 
+    let stage_started = Instant::now();
+    let calendar = TradeCalendarPlan::new(prices.trade_dates());
+    diagnostics.simulation_ms.insert(
+        "calendar_build".to_string(),
+        stage_started.elapsed().as_millis(),
+    );
+    diagnostics
+        .row_counts
+        .insert("trade_date_count".to_string(), calendar.trade_dates().len());
+
+    let stage_started = Instant::now();
     let mut signals_by_execution_date: BTreeMap<NaiveDate, Vec<&BuySignalInput>> = BTreeMap::new();
     for signal in &input.signals {
         signals_by_execution_date
@@ -343,6 +382,17 @@ pub fn simulate_portfolio(
     for signals in signals_by_execution_date.values_mut() {
         signals.sort_by_key(|signal| signal.rank);
     }
+    diagnostics.simulation_ms.insert(
+        "signal_index_build".to_string(),
+        stage_started.elapsed().as_millis(),
+    );
+    diagnostics
+        .row_counts
+        .insert("signal_count".to_string(), input.signals.len());
+    diagnostics.row_counts.insert(
+        "signal_execution_date_count".to_string(),
+        signals_by_execution_date.len(),
+    );
 
     let mut cash = input.initial_cash;
     let mut positions: BTreeMap<String, PositionState> = BTreeMap::new();
@@ -375,7 +425,14 @@ pub fn simulate_portfolio(
         warning_count: 0,
     });
 
-    for (trade_day_index, trade_date) in trade_dates.into_iter().enumerate() {
+    let daily_loop_started = Instant::now();
+    let mut sell_handling_ms = 0_u128;
+    let mut buy_handling_ms = 0_u128;
+    let mut valuation_ms = 0_u128;
+    let mut exit_evaluation_ms = 0_u128;
+    let mut pending_sell_dequeue_count = 0_usize;
+    let mut pending_sell_enqueue_count = 0_usize;
+    for (trade_day_index, trade_date) in calendar.trade_dates().iter().copied().enumerate() {
         if trade_date <= input.start_date {
             continue;
         }
@@ -384,15 +441,18 @@ pub fn simulate_portfolio(
         }
         let mut day_fee = 0.0;
         let mut day_turnover = 0.0;
+        let mut day_warning_count = 0_usize;
 
+        let stage_started = Instant::now();
         if let Some(sells) = pending_sells.remove(&trade_date) {
+            pending_sell_dequeue_count += sells.len();
             for sell in sells {
                 if let Some(position) = positions.remove(&sell.security_code) {
                     order_seq += 1;
-                    let reference_price = match open_price(&prices, trade_date, &sell.security_code)
-                    {
+                    let reference_price = match prices.open_price(trade_date, &sell.security_code) {
                         Some(price) => price,
                         None => {
+                            day_warning_count += 1;
                             events.push(event(
                                 &mut event_seq,
                                 trade_date,
@@ -451,28 +511,28 @@ pub fn simulate_portfolio(
                 }
             }
         }
+        sell_handling_ms += stage_started.elapsed().as_millis();
 
-        let total_equity_after_sells = cash + market_value(&positions, &prices, trade_date);
+        let total_equity_after_sells = cash + prices.market_value(&positions, trade_date);
         let vacant_slots = input.max_positions.saturating_sub(positions.len());
+        let stage_started = Instant::now();
         if vacant_slots > 0
             && let Some(signals) = signals_by_execution_date.get(&trade_date)
         {
-            let held: BTreeSet<String> = positions.keys().cloned().collect();
             let mut filled_slots = 0_usize;
             for signal in signals {
                 if filled_slots >= vacant_slots {
                     break;
                 }
-                if held.contains(&signal.security_code)
-                    || positions.contains_key(&signal.security_code)
-                {
+                if positions.contains_key(&signal.security_code) {
                     continue;
                 }
                 let target_weight = target_weight_per_position(input);
                 let target_amount = total_equity_after_sells * target_weight;
-                let reference_price = match open_price(&prices, trade_date, &signal.security_code) {
+                let reference_price = match prices.open_price(trade_date, &signal.security_code) {
                     Some(price) => price,
                     None => {
+                        day_warning_count += 1;
                         events.push(event(
                             &mut event_seq,
                             trade_date,
@@ -502,6 +562,7 @@ pub fn simulate_portfolio(
                         } else {
                             PortfolioEventType::CashInsufficientForMinLot
                         };
+                    day_warning_count += 1;
                     events.push(event(
                         &mut event_seq,
                         trade_date,
@@ -589,10 +650,12 @@ pub fn simulate_portfolio(
                 filled_slots += 1;
             }
         }
+        buy_handling_ms += stage_started.elapsed().as_millis();
 
+        let stage_started = Instant::now();
         let mut position_market_value = 0.0;
         for (security_code, position) in &positions {
-            if let Some(close_price) = close_price(&prices, trade_date, security_code) {
+            if let Some(close_price) = prices.close_price(trade_date, security_code) {
                 let market_value = position.quantity * close_price;
                 let unrealized_pnl = market_value - position.cost_basis;
                 let unrealized_return = unrealized_pnl / position.cost_basis;
@@ -611,6 +674,7 @@ pub fn simulate_portfolio(
                     is_stale_price: false,
                 });
             } else {
+                day_warning_count += 1;
                 events.push(event(
                     &mut event_seq,
                     trade_date,
@@ -620,6 +684,7 @@ pub fn simulate_portfolio(
                 ));
             }
         }
+        valuation_ms += stage_started.elapsed().as_millis();
 
         let total_equity = cash + position_market_value;
         max_equity = max_equity.max(total_equity);
@@ -650,40 +715,65 @@ pub fn simulate_portfolio(
                 0.0
             },
             fee_amount: day_fee,
-            warning_count: events
-                .iter()
-                .filter(|event| event.trade_date == trade_date)
-                .count(),
+            warning_count: day_warning_count,
         });
 
+        let stage_started = Instant::now();
         for (security_code, position) in &positions {
-            if let Some(price_bar) = prices.get(&(trade_date, security_code.clone()))
-                && let Some(metric) = missing_indicator_stop_loss_metric(input, price_bar)
-            {
-                events.push(event(
-                    &mut event_seq,
-                    trade_date,
-                    Some(security_code.clone()),
-                    PortfolioEventType::IndicatorMissing,
-                    &format!("indicator stop loss skipped because {metric} is missing"),
-                ));
-            }
-            if let Some(price_bar) = prices.get(&(trade_date, security_code.clone()))
-                && let Some(reason) =
+            if let Some(price_bar) = prices.price_bar(trade_date, security_code) {
+                if let Some(metric) = missing_indicator_stop_loss_metric(input, price_bar) {
+                    events.push(event(
+                        &mut event_seq,
+                        trade_date,
+                        Some(security_code.clone()),
+                        PortfolioEventType::IndicatorMissing,
+                        &format!("indicator stop loss skipped because {metric} is missing"),
+                    ));
+                }
+                if let Some(reason) =
                     triggered_exit_reason(input, position, price_bar, trade_day_index)
-            {
-                pending_sells
-                    .entry(next_trade_date(&prices, trade_date))
-                    .or_default()
-                    .push(PendingSell {
-                        signal_date: trade_date,
-                        security_code: security_code.clone(),
-                        reason,
-                    });
+                    && let Some(next_trade_date) = calendar.next_trade_date(trade_date)
+                {
+                    pending_sells
+                        .entry(next_trade_date)
+                        .or_default()
+                        .push(PendingSell {
+                            signal_date: trade_date,
+                            security_code: security_code.clone(),
+                            reason,
+                        });
+                    pending_sell_enqueue_count += 1;
+                }
             }
         }
+        exit_evaluation_ms += stage_started.elapsed().as_millis();
     }
+    diagnostics.simulation_ms.insert(
+        "daily_loop".to_string(),
+        daily_loop_started.elapsed().as_millis(),
+    );
+    diagnostics
+        .simulation_ms
+        .insert("sell_handling".to_string(), sell_handling_ms);
+    diagnostics
+        .simulation_ms
+        .insert("buy_handling".to_string(), buy_handling_ms);
+    diagnostics
+        .simulation_ms
+        .insert("valuation".to_string(), valuation_ms);
+    diagnostics
+        .simulation_ms
+        .insert("exit_evaluation".to_string(), exit_evaluation_ms);
+    diagnostics.row_counts.insert(
+        "pending_sell_dequeue_count".to_string(),
+        pending_sell_dequeue_count,
+    );
+    diagnostics.row_counts.insert(
+        "pending_sell_enqueue_count".to_string(),
+        pending_sell_enqueue_count,
+    );
 
+    let stage_started = Instant::now();
     let ending_equity = nav_rows
         .last()
         .map(|row| row.total_equity)
@@ -693,7 +783,7 @@ pub fn simulate_portfolio(
         .iter()
         .map(|row| row.drawdown)
         .fold(0.0_f64, f64::min);
-    Ok(PortfolioSimulationOutput {
+    let output = PortfolioSimulationOutput {
         targets,
         orders,
         trades,
@@ -709,6 +799,32 @@ pub fn simulate_portfolio(
             total_fee,
             warning_count: event_seq as usize,
         },
+    };
+    diagnostics.simulation_ms.insert(
+        "output_finalize".to_string(),
+        stage_started.elapsed().as_millis(),
+    );
+    diagnostics
+        .row_counts
+        .insert("target_count".to_string(), output.targets.len());
+    diagnostics
+        .row_counts
+        .insert("order_count".to_string(), output.orders.len());
+    diagnostics
+        .row_counts
+        .insert("trade_count".to_string(), output.trades.len());
+    diagnostics
+        .row_counts
+        .insert("position_day_count".to_string(), output.positions.len());
+    diagnostics
+        .row_counts
+        .insert("nav_count".to_string(), output.nav.len());
+    diagnostics
+        .row_counts
+        .insert("event_count".to_string(), output.events.len());
+    Ok(PortfolioSimulationWithDiagnostics {
+        output,
+        diagnostics,
     })
 }
 
@@ -775,37 +891,90 @@ fn target_weight_per_position(input: &PortfolioSimulationInput) -> f64 {
         })
 }
 
-fn open_price(
-    prices: &BTreeMap<(NaiveDate, String), PriceBar>,
-    trade_date: NaiveDate,
-    security_code: &str,
-) -> Option<f64> {
-    prices
-        .get(&(trade_date, security_code.to_string()))
-        .and_then(|price| price.open_price_backward_adj)
+struct PriceStore<'a> {
+    bars: &'a [PriceBar],
+    by_date_security: BTreeMap<(NaiveDate, &'a str), usize>,
+    trade_dates: Vec<NaiveDate>,
 }
 
-fn close_price(
-    prices: &BTreeMap<(NaiveDate, String), PriceBar>,
-    trade_date: NaiveDate,
-    security_code: &str,
-) -> Option<f64> {
-    prices
-        .get(&(trade_date, security_code.to_string()))
-        .and_then(|price| price.close_price_backward_adj)
+impl<'a> PriceStore<'a> {
+    fn new(bars: &'a [PriceBar]) -> Self {
+        let mut by_date_security = BTreeMap::new();
+        let mut trade_dates = BTreeSet::new();
+        for (index, price) in bars.iter().enumerate() {
+            trade_dates.insert(price.trade_date);
+            by_date_security.insert((price.trade_date, price.security_code.as_str()), index);
+        }
+        Self {
+            bars,
+            by_date_security,
+            trade_dates: trade_dates.into_iter().collect(),
+        }
+    }
+
+    fn len(&self) -> usize {
+        self.by_date_security.len()
+    }
+
+    fn trade_dates(&self) -> &[NaiveDate] {
+        &self.trade_dates
+    }
+
+    fn price_bar(&self, trade_date: NaiveDate, security_code: &str) -> Option<&'a PriceBar> {
+        self.by_date_security
+            .get(&(trade_date, security_code))
+            .map(|index| &self.bars[*index])
+    }
+
+    fn open_price(&self, trade_date: NaiveDate, security_code: &str) -> Option<f64> {
+        self.price_bar(trade_date, security_code)
+            .and_then(|price| price.open_price_backward_adj)
+    }
+
+    fn close_price(&self, trade_date: NaiveDate, security_code: &str) -> Option<f64> {
+        self.price_bar(trade_date, security_code)
+            .and_then(|price| price.close_price_backward_adj)
+    }
+
+    fn market_value(
+        &self,
+        positions: &BTreeMap<String, PositionState>,
+        trade_date: NaiveDate,
+    ) -> f64 {
+        positions
+            .iter()
+            .filter_map(|(security_code, position)| {
+                self.close_price(trade_date, security_code)
+                    .map(|price| position.quantity * price)
+            })
+            .sum()
+    }
 }
 
-fn market_value(
-    positions: &BTreeMap<String, PositionState>,
-    prices: &BTreeMap<(NaiveDate, String), PriceBar>,
-    trade_date: NaiveDate,
-) -> f64 {
-    positions
-        .iter()
-        .filter_map(|(security_code, position)| {
-            close_price(prices, trade_date, security_code).map(|price| position.quantity * price)
-        })
-        .sum()
+struct TradeCalendarPlan {
+    trade_dates: Vec<NaiveDate>,
+    next_by_date: BTreeMap<NaiveDate, NaiveDate>,
+}
+
+impl TradeCalendarPlan {
+    fn new(trade_dates: &[NaiveDate]) -> Self {
+        let next_by_date = trade_dates
+            .windows(2)
+            .map(|window| (window[0], window[1]))
+            .collect();
+        Self {
+            trade_dates: trade_dates.to_vec(),
+            next_by_date,
+        }
+    }
+
+    fn trade_dates(&self) -> &[NaiveDate] {
+        &self.trade_dates
+    }
+
+    fn next_trade_date(&self, trade_date: NaiveDate) -> Option<NaiveDate> {
+        self.next_by_date.get(&trade_date).copied()
+    }
 }
 
 fn affordable_buy_quantity(
@@ -1034,17 +1203,6 @@ fn is_supported_indicator_stop_loss_metric(metric: &str) -> bool {
     )
 }
 
-fn next_trade_date(
-    prices: &BTreeMap<(NaiveDate, String), PriceBar>,
-    trade_date: NaiveDate,
-) -> NaiveDate {
-    prices
-        .keys()
-        .map(|(date, _)| *date)
-        .find(|date| *date > trade_date)
-        .unwrap_or(trade_date)
-}
-
 fn holding_days(entry_trade_index: usize, current_trade_index: usize) -> u32 {
     current_trade_index.saturating_sub(entry_trade_index) as u32
 }
@@ -1169,6 +1327,97 @@ mod tests {
                 .iter()
                 .any(|trade| trade.security_code == "BBB")
         );
+    }
+
+    #[test]
+    fn trade_calendar_plan_should_not_return_next_date_for_last_trade_date() {
+        let d1 = date(2024, 1, 2);
+        let d2 = date(2024, 1, 3);
+        let calendar = TradeCalendarPlan::new(&[d1, d2]);
+
+        assert_eq!(calendar.next_trade_date(d1), Some(d2));
+        assert_eq!(calendar.next_trade_date(d2), None);
+    }
+
+    #[test]
+    fn price_store_should_read_prices_without_string_key_allocation_contract() {
+        let d1 = date(2024, 1, 2);
+        let d2 = date(2024, 1, 3);
+        let prices = vec![
+            price(d1, "AAA", 10.0, 11.0),
+            price(d1, "AAA", 12.0, 13.0),
+            price_with_metric(d2, "BBB", 20.0, 21.0, "price_ma_10", None),
+        ];
+        let store = PriceStore::new(&prices);
+
+        assert_eq!(store.len(), 2);
+        assert_eq!(store.open_price(d1, "AAA"), Some(12.0));
+        assert_eq!(store.close_price(d1, "AAA"), Some(13.0));
+        assert_eq!(store.open_price(d2, "AAA"), None);
+        assert_eq!(
+            store.price_bar(d2, "BBB").and_then(|bar| bar.price_ma_10),
+            None
+        );
+        assert_eq!(store.trade_dates(), &[d1, d2]);
+    }
+
+    #[test]
+    fn simulation_diagnostics_should_include_stable_timing_and_row_count_keys() {
+        let input = fixture_input();
+
+        let simulation = simulate_portfolio_with_diagnostics(&input)
+            .expect("simulation with diagnostics should succeed");
+
+        assert_eq!(simulation.diagnostics.version, 1);
+        for key in [
+            "price_store_build",
+            "calendar_build",
+            "signal_index_build",
+            "daily_loop",
+            "exit_evaluation",
+            "output_finalize",
+        ] {
+            assert!(
+                simulation.diagnostics.simulation_ms.contains_key(key),
+                "missing timing key {key}"
+            );
+        }
+        assert_eq!(
+            simulation.diagnostics.row_counts.get("price_bar_count"),
+            Some(&input.prices.len())
+        );
+        assert_eq!(
+            simulation.diagnostics.row_counts.get("nav_count"),
+            Some(&simulation.output.nav.len())
+        );
+    }
+
+    #[test]
+    fn simulation_should_not_enqueue_exit_on_missing_next_trade_date() {
+        let d1 = date(2024, 1, 2);
+        let d2 = date(2024, 1, 3);
+        let mut input = fixture_input();
+        input.end_date = d2;
+        input.max_positions = 1;
+        input.exit_rules = vec![ExitRule::FixedStopLoss { loss_pct: 0.01 }];
+        input.signals = vec![next_open_signal(d1, "AAA", 1)];
+        input.prices = vec![price(d1, "AAA", 10.0, 10.0), price(d2, "AAA", 10.0, 5.0)];
+
+        let output = simulate_portfolio(&input).expect("simulation should succeed");
+
+        assert!(
+            output
+                .trades
+                .iter()
+                .any(|trade| trade.side == OrderSide::Buy)
+        );
+        assert!(
+            !output
+                .trades
+                .iter()
+                .any(|trade| trade.side == OrderSide::Sell)
+        );
+        assert!(output.orders.iter().all(|order| order.execution_date <= d2));
     }
 
     #[test]

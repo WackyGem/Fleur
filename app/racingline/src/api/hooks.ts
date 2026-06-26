@@ -10,6 +10,7 @@ import {
   getStrategyPortfolioPerformance,
   getStrategyBacktest,
   getStrategyBacktestOptions,
+  getStrategyBacktestOverviewUi,
   getStrategyBacktestPerformance,
   getStrategyBacktestPerformanceUi,
   getStrategyBacktestStatus,
@@ -318,6 +319,28 @@ export function useStrategyBacktestStatusQuery(
         ? 1_000
         : false
     },
+    retry: 1,
+  })
+}
+
+export function useStrategyBacktestOverviewUiQuery(
+  strategyBacktestRunId: string | null,
+  tradeDate: string | null,
+  enabled: boolean
+) {
+  return useQuery({
+    enabled: Boolean(strategyBacktestRunId && enabled),
+    queryKey: queryKeys.strategyBacktestOverviewUi(
+      strategyBacktestRunId,
+      tradeDate
+    ),
+    queryFn: () => {
+      if (!strategyBacktestRunId) {
+        throw new Error("strategy backtest run id is missing")
+      }
+      return getStrategyBacktestOverviewUi(strategyBacktestRunId, tradeDate)
+    },
+    placeholderData: keepPreviousData,
     retry: 1,
   })
 }

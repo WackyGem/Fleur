@@ -22,6 +22,7 @@ import type {
   StrategyBacktestNavPoint,
   StrategyBacktestOrderRecord,
   StrategyBacktestOptionsResponse,
+  StrategyBacktestOverviewUiResponse,
   StrategyBacktestPerformanceUiView,
   StrategyBacktestPerformanceView,
   StrategyBacktestPositionRecord,
@@ -149,6 +150,18 @@ export function getStrategyBacktest(strategyBacktestRunId: string) {
 export function getStrategyBacktestStatus(strategyBacktestRunId: string) {
   return requestJson<StrategyBacktestRunStatusView>(
     `/rearview/strategy-backtests/${strategyBacktestRunId}/status`
+  )
+}
+
+export function getStrategyBacktestOverviewUi(
+  strategyBacktestRunId: string,
+  tradeDate?: string | null
+) {
+  return requestJson<StrategyBacktestOverviewUiResponse>(
+    buildPath(`/rearview/strategy-backtests/${strategyBacktestRunId}/overview`, {
+      trade_date: tradeDate ?? undefined,
+      view: "ui",
+    })
   )
 }
 

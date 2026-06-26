@@ -166,6 +166,98 @@ SETTINGS
         })
     }
 
+    pub fn compile_backtest_signals(
+        &self,
+        rule: &RuleVersionSpec,
+        start_date: NaiveDate,
+        end_date: NaiveDate,
+        top_n: u32,
+        settings: QuerySettings,
+    ) -> RearviewResult<CompiledQuery> {
+        let report = rule.validate(&self.catalog)?;
+        let required_metrics = report
+            .dependencies
+            .metrics
+            .iter()
+            .map(|metric| metric.logical_metric.clone())
+            .collect::<Vec<_>>();
+        let metric_lookup = required_metrics
+            .iter()
+            .map(|metric| {
+                self.catalog
+                    .require(metric)
+                    .map(|definition| (metric.clone(), definition.clone()))
+            })
+            .collect::<RearviewResult<BTreeMap<_, _>>>()?;
+        let marts = group_metrics_by_mart(&metric_lookup, &rule.universe)?;
+        let required_marts = marts.keys().cloned().collect::<Vec<_>>();
+        let required_columns = required_columns_by_mart(&marts);
+        let ctes = compile_mart_ctes(&marts, Some(start_date), Some(end_date))?;
+        let from_sql = compile_join_sql(&marts)?;
+        let filter_sql = compile_filter(&rule.pool_filters, &metric_lookup)?;
+        let score_sql = compile_score(rule, &metric_lookup)?;
+        let universe_sql = compile_universe_filter(rule);
+        let where_sql = if universe_sql.is_empty() {
+            filter_sql
+        } else {
+            format!("({universe_sql}) AND ({filter_sql})")
+        };
+        let sql = format!(
+            r#"WITH
+{ctes},
+pool AS (
+    SELECT
+        security_code,
+        trade_date,
+        {score_sql} AS raw_score
+    FROM {from_sql}
+    WHERE {where_sql}
+),
+scored AS (
+    SELECT
+        security_code,
+        trade_date,
+        greatest({clamp_min}, least({clamp_max}, raw_score)) AS score
+    FROM pool
+),
+ranked AS (
+    SELECT
+        security_code,
+        trade_date,
+        score,
+        row_number() OVER (PARTITION BY trade_date ORDER BY score DESC, security_code ASC) AS signal_rank
+    FROM scored
+)
+SELECT
+    security_code,
+    trade_date,
+    score,
+    signal_rank
+FROM ranked
+WHERE signal_rank <= {top_n}
+ORDER BY trade_date ASC, signal_rank ASC, security_code ASC
+SETTINGS
+    max_execution_time = {max_execution_time},
+    max_rows_to_read = {max_rows_to_read},
+    max_bytes_to_read = {max_bytes_to_read},
+    timeout_before_checking_execution_speed = 0,
+    join_algorithm = 'auto'"#,
+            max_execution_time = settings.max_execution_time_seconds,
+            max_rows_to_read = settings.max_rows_to_read,
+            max_bytes_to_read = settings.max_bytes_to_read,
+            clamp_min = rule.scoring.clamp.min,
+            clamp_max = rule.scoring.clamp.max,
+        );
+        let sql_hash = sql_hash(&sql);
+        Ok(CompiledQuery {
+            sql,
+            sql_hash,
+            required_metrics,
+            required_marts,
+            required_columns,
+        })
+    }
+
     pub fn compile_preview(
         &self,
         rule: &RuleVersionSpec,
@@ -954,6 +1046,38 @@ mod tests {
         );
         assert!(compiled.sql.contains("WHERE signal_rank <= 10"));
         assert!(!compiled.sql.contains("LIMIT 10"));
+    }
+
+    #[test]
+    fn compile_backtest_signals_should_emit_top_n_only_worker_contract() {
+        let catalog = test_catalog();
+        let planner = QueryPlanner::new(catalog);
+        let rule = crossing_rule(
+            Operand::metric("price_ma_5"),
+            Operator::Gte,
+            Operand::metric("price_ma_20"),
+        );
+
+        let compiled = planner
+            .compile_backtest_signals(
+                &rule,
+                NaiveDate::from_ymd_opt(2026, 6, 1).unwrap(),
+                NaiveDate::from_ymd_opt(2026, 6, 5).unwrap(),
+                10,
+                QuerySettings::default(),
+            )
+            .unwrap();
+
+        assert!(compiled.sql.contains("WHERE signal_rank <= 10"));
+        assert!(
+            compiled.sql.contains(
+                "SELECT\n    security_code,\n    trade_date,\n    score,\n    signal_rank"
+            )
+        );
+        assert!(!compiled.sql.contains("score_breakdown"));
+        assert!(!compiled.sql.contains("selected_metrics"));
+        assert!(!compiled.sql.contains("raw_values"));
+        assert!(!compiled.sql.contains("is_buy_signal"));
     }
 
     #[test]

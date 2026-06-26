@@ -488,6 +488,14 @@ export type StrategyBacktestNavPoint = {
   excess_return?: number | null
 }
 
+export type StrategyBacktestOverviewUiResponse = {
+  status: StrategyBacktestRunStatusView
+  latest_nav?: StrategyBacktestNavPoint | null
+  nav_points: StrategyBacktestNavPoint[]
+  performance: StrategyBacktestPerformanceUiView
+  rebalance: StrategyBacktestRebalanceRecordsUiResponse
+}
+
 export type StrategyPortfolioLiveStatus =
   | "pending_first_run"
   | "queued"

@@ -17,6 +17,17 @@ export const queryKeys = {
     ["strategy-backtests", strategyBacktestRunId] as const,
   strategyBacktestStatus: (strategyBacktestRunId: string | null) =>
     ["strategy-backtests", strategyBacktestRunId, "status"] as const,
+  strategyBacktestOverviewUi: (
+    strategyBacktestRunId: string | null,
+    tradeDate?: string | null
+  ) =>
+    [
+      "strategy-backtests",
+      strategyBacktestRunId,
+      "overview",
+      "ui",
+      tradeDate ?? null,
+    ] as const,
   strategyBacktestNav: (strategyBacktestRunId: string | null) =>
     ["strategy-backtests", strategyBacktestRunId, "nav"] as const,
   strategyBacktestNavUi: (strategyBacktestRunId: string | null) =>

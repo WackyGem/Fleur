@@ -1,7 +1,7 @@
 use chrono::{Days, NaiveDate};
 use futures_util::StreamExt;
-use rearview_core::clickhouse::ClickHouseClient;
 use rearview_core::clickhouse::calculation_write::CalculationWriteBatch;
+use rearview_core::clickhouse::{ClickHouseClient, MarketDataDemand};
 use rearview_core::config::{AppConfig, load_dotenv_if_present};
 use rearview_core::domain::{MetricCatalog, RuleVersionSpec};
 use rearview_core::nats::{
@@ -9,8 +9,8 @@ use rearview_core::nats::{
 };
 use rearview_core::planner::{QueryPlanner, QuerySettings};
 use rearview_core::portfolio::{
-    BuySignalInput, ExitRule, FeeProfile, PortfolioSimulationInput, SlippageProfile,
-    simulate_portfolio,
+    BuySignalInput, ExitRule, FeeProfile, PortfolioSimulationInput, SimulationDiagnostics,
+    SlippageProfile, simulate_portfolio, simulate_portfolio_with_diagnostics,
 };
 use rearview_core::portfolio_performance::{PerformanceMetricConfig, compute_performance_metric};
 use rearview_core::portfolio_trade_metrics::compute_trade_calculation_outputs;
@@ -25,8 +25,10 @@ use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
 use std::collections::{BTreeMap, BTreeSet};
 use std::path::{Path, PathBuf};
+use std::sync::Arc;
 use std::time::Instant;
-use tracing::{error, info};
+use tokio::sync::Semaphore;
+use tracing::{error, info, warn};
 use tracing_subscriber::EnvFilter;
 
 #[tokio::main]
@@ -59,43 +61,83 @@ async fn run() -> RearviewResult<()> {
     let consumer = ensure_portfolio_consumer(&stream, &config.nats).await?;
     info!(
         database_url_configured = !config.rearview_database_url.is_empty(),
+        max_concurrent_runs = config.max_concurrent_runs,
         "starting rearview portfolio worker"
     );
     let mut messages = consumer
         .messages()
         .await
         .map_err(|error| RearviewError::Nats(error.to_string()))?;
-    while let Some(message) = messages.next().await {
+    let semaphore = Arc::new(Semaphore::new(config.max_concurrent_runs));
+    let config = Arc::new(config);
+    let postgres = Arc::new(postgres);
+    let clickhouse = Arc::new(clickhouse);
+    let catalog = Arc::new(catalog);
+    loop {
+        let permit = semaphore
+            .clone()
+            .acquire_owned()
+            .await
+            .map_err(|error| RearviewError::Config(error.to_string()))?;
+        let Some(message) = messages.next().await else {
+            drop(permit);
+            break;
+        };
         let message = message.map_err(|error| RearviewError::Nats(error.to_string()))?;
         let payload = serde_json::from_slice::<RearviewTaskMessage>(&message.payload)?;
-        match payload {
-            RearviewTaskMessage::PortfolioRun {
-                portfolio_run_id, ..
-            } => handle_portfolio_task(&postgres, &clickhouse, &portfolio_run_id).await?,
-            RearviewTaskMessage::StrategyBacktest { run_id } => {
-                handle_strategy_backtest_task(&config, &postgres, &clickhouse, &catalog, &run_id)
-                    .await?
-            }
-            RearviewTaskMessage::StrategyPortfolioDailyRun { daily_run_id } => {
-                handle_strategy_portfolio_daily_run_task(
-                    &config,
-                    &postgres,
-                    &clickhouse,
-                    &catalog,
-                    &daily_run_id,
-                )
-                .await?
-            }
-        }
-        message
-            .ack()
-            .await
-            .map_err(|error| RearviewError::Nats(error.to_string()))?;
         if once {
+            process_task_message(&config, &postgres, &clickhouse, &catalog, payload, &message)
+                .await?;
+            drop(permit);
             return Ok(());
         }
+        let config = Arc::clone(&config);
+        let postgres = Arc::clone(&postgres);
+        let clickhouse = Arc::clone(&clickhouse);
+        let catalog = Arc::clone(&catalog);
+        tokio::spawn(async move {
+            let _permit = permit;
+            if let Err(error) =
+                process_task_message(&config, &postgres, &clickhouse, &catalog, payload, &message)
+                    .await
+            {
+                warn!(error = %error, "portfolio worker task failed before ack");
+            }
+        });
     }
     Ok(())
+}
+
+async fn process_task_message(
+    config: &AppConfig,
+    postgres: &RearviewPg,
+    clickhouse: &ClickHouseClient,
+    catalog: &MetricCatalog,
+    payload: RearviewTaskMessage,
+    message: &async_nats::jetstream::Message,
+) -> RearviewResult<()> {
+    match payload {
+        RearviewTaskMessage::PortfolioRun {
+            portfolio_run_id, ..
+        } => handle_portfolio_task(postgres, clickhouse, &portfolio_run_id).await?,
+        RearviewTaskMessage::StrategyBacktest { run_id } => {
+            handle_strategy_backtest_task(config, postgres, clickhouse, catalog, &run_id).await?
+        }
+        RearviewTaskMessage::StrategyPortfolioDailyRun { daily_run_id } => {
+            handle_strategy_portfolio_daily_run_task(
+                config,
+                postgres,
+                clickhouse,
+                catalog,
+                &daily_run_id,
+            )
+            .await?
+        }
+    }
+    message
+        .ack()
+        .await
+        .map_err(|error| RearviewError::Nats(error.to_string()))
 }
 
 async fn handle_portfolio_task(
@@ -230,6 +272,19 @@ async fn process_strategy_backtest_run(
         &execution_config,
     )
     .await?;
+    let market_data_demand = MarketDataDemand::from_security_start_dates(
+        materialized
+            .signals
+            .iter()
+            .map(|signal| (signal.security_code.clone(), signal.execution_date)),
+        run.end_date,
+    )?;
+    timing.add_query_ids(
+        "signal_materialization",
+        materialized.signal_query_ids.clone(),
+    );
+    timing.set_row_count("signal_count", materialized.signals.len());
+    timing.set_row_count("signal_security_count", materialized.security_codes.len());
     timing.mark("signal_materialization_total");
     postgres
         .update_strategy_backtest_progress(
@@ -243,6 +298,7 @@ async fn process_strategy_backtest_run(
         .await?;
     let indicator_metrics = execution_config.risk_exit_policy.indicator_metrics()?;
     let price_query_id = format!("strategy-backtest-{}-prices", run.strategy_backtest_run_id);
+    timing.add_query_id("price_bars_query", price_query_id.clone());
     let prices = clickhouse
         .query_portfolio_price_bars(
             &materialized.security_codes,
@@ -252,10 +308,12 @@ async fn process_strategy_backtest_run(
             &price_query_id,
         )
         .await?;
+    timing.set_row_count("price_bar_count", prices.len());
     timing.mark("price_bars_query");
     let data_coverage_summary = json!({
         "price_bar_count": prices.len(),
         "price_bar_security_count": materialized.security_codes.len(),
+        "market_data_demand": market_data_demand_summary(&market_data_demand),
         "start_date": run.start_date,
         "end_date": run.end_date,
         "indicator_stop_loss_metrics": indicator_metrics,
@@ -293,7 +351,9 @@ async fn process_strategy_backtest_run(
         signals: materialized.signals,
         prices,
     };
-    let output = simulate_portfolio(&input)?;
+    let simulation = simulate_portfolio_with_diagnostics(&input)?;
+    let output = simulation.output;
+    timing.set_simulation_diagnostics(&simulation.diagnostics);
     timing.mark("simulation");
 
     postgres
@@ -313,21 +373,25 @@ async fn process_strategy_backtest_run(
         &result_attempt_id,
         &run.benchmark_security_code,
     );
+    let benchmark_query_id = format!("strategy-backtest-{result_attempt_id}-benchmark");
+    timing.add_query_id("benchmark_query", benchmark_query_id.clone());
     let benchmark_returns = clickhouse
         .query_mart_benchmark_returns(
             &metric_config.security_code,
             run.start_date,
             run.end_date,
-            &format!("strategy-backtest-{result_attempt_id}-benchmark"),
+            &benchmark_query_id,
         )
         .await?;
     timing.mark("benchmark_query");
+    let risk_free_query_id = format!("strategy-backtest-{result_attempt_id}-risk-free");
+    timing.add_query_id("risk_free_query", risk_free_query_id.clone());
     let risk_free_rates = clickhouse
         .query_mart_risk_free_rates(
             &metric_config.risk_free_tenor,
             run.start_date,
             run.end_date,
-            &format!("strategy-backtest-{result_attempt_id}-risk-free"),
+            &risk_free_query_id,
         )
         .await?;
     timing.mark("risk_free_query");
@@ -653,7 +717,8 @@ async fn materialize_strategy_backtest_signals(
     let mut signals = Vec::new();
     let mut security_codes = BTreeSet::new();
     let mut signal_dates = BTreeSet::new();
-    let mut generated_candidate_count = 0_usize;
+    let mut query_ids = Vec::with_capacity(chunks.len());
+    let mut top_n_row_count = 0_usize;
     let mut top_n_candidate_count = 0_usize;
     let mut dropped_no_next_trade_date = 0_usize;
     let mut dropped_after_end_date = 0_usize;
@@ -672,31 +737,27 @@ async fn materialize_strategy_backtest_signals(
                 }),
             )
             .await?;
-        let compiled = planner.compile(
+        let compiled = planner.compile_backtest_signals(
             &rule,
-            Some(chunk.start_date),
-            Some(chunk.end_date),
+            chunk.start_date,
+            chunk.end_date,
             top_n,
             settings,
         )?;
         compiled_hashes.push(compiled.sql_hash.clone());
         required_metrics.extend(compiled.required_metrics.iter().cloned());
         required_marts.extend(compiled.required_marts.iter().cloned());
+        let query_id = format!(
+            "strategy-backtest-{}-chunk-{}",
+            run.strategy_backtest_run_id, chunk.chunk_no
+        );
         let rows = clickhouse
-            .query_screening_rows(
-                &compiled.sql,
-                &format!(
-                    "strategy-backtest-{}-chunk-{}",
-                    run.strategy_backtest_run_id, chunk.chunk_no
-                ),
-            )
+            .query_backtest_signal_rows(&compiled.sql, &query_id)
             .await?;
-        generated_candidate_count += rows.len();
+        query_ids.push(query_id);
+        top_n_row_count += rows.len();
         for row in rows {
             signal_dates.insert(row.trade_date);
-            if !row.is_buy_signal || row.signal_rank > top_n {
-                continue;
-            }
             top_n_candidate_count += 1;
             let Some(execution_date) = next_trade_date(&trade_dates, row.trade_date) else {
                 dropped_no_next_trade_date += 1;
@@ -728,7 +789,9 @@ async fn materialize_strategy_backtest_signals(
     let required_marts = required_marts.into_iter().collect::<Vec<_>>();
     let signal_summary = json!({
         "signal_date_count": signal_dates.len(),
-        "generated_candidate_count": generated_candidate_count,
+        "signal_date_count_semantics": "dates_with_top_n_signal_rows",
+        "top_n_row_count": top_n_row_count,
+        "diagnostic_generated_candidate_count_unavailable": true,
         "top_n_candidate_count": top_n_candidate_count,
         "executable_signal_count": signals.len(),
         "dropped_signal_count": dropped_no_next_trade_date + dropped_after_end_date,
@@ -752,6 +815,7 @@ async fn materialize_strategy_backtest_signals(
     Ok(MaterializedSignals {
         signals,
         security_codes: security_codes.into_iter().collect(),
+        signal_query_ids: query_ids,
     })
 }
 
@@ -807,7 +871,8 @@ async fn materialize_strategy_portfolio_daily_run_signals(
     let mut signals = Vec::new();
     let mut security_codes = BTreeSet::new();
     let mut signal_dates = BTreeSet::new();
-    let mut generated_candidate_count = 0_usize;
+    let mut query_ids = Vec::with_capacity(chunks.len());
+    let mut top_n_row_count = 0_usize;
     let mut top_n_candidate_count = 0_usize;
     let mut dropped_no_next_trade_date = 0_usize;
     let mut dropped_after_end_date = 0_usize;
@@ -826,31 +891,27 @@ async fn materialize_strategy_portfolio_daily_run_signals(
                 }),
             )
             .await?;
-        let compiled = planner.compile(
+        let compiled = planner.compile_backtest_signals(
             &rule,
-            Some(chunk.start_date),
-            Some(chunk.end_date),
+            chunk.start_date,
+            chunk.end_date,
             top_n,
             settings,
         )?;
         compiled_hashes.push(compiled.sql_hash.clone());
         required_metrics.extend(compiled.required_metrics.iter().cloned());
         required_marts.extend(compiled.required_marts.iter().cloned());
+        let query_id = format!(
+            "strategy-portfolio-daily-{}-chunk-{}",
+            run.strategy_portfolio_daily_run_id, chunk.chunk_no
+        );
         let rows = clickhouse
-            .query_screening_rows(
-                &compiled.sql,
-                &format!(
-                    "strategy-portfolio-daily-{}-chunk-{}",
-                    run.strategy_portfolio_daily_run_id, chunk.chunk_no
-                ),
-            )
+            .query_backtest_signal_rows(&compiled.sql, &query_id)
             .await?;
-        generated_candidate_count += rows.len();
+        query_ids.push(query_id);
+        top_n_row_count += rows.len();
         for row in rows {
             signal_dates.insert(row.trade_date);
-            if !row.is_buy_signal || row.signal_rank > top_n {
-                continue;
-            }
             top_n_candidate_count += 1;
             let Some(execution_date) = next_trade_date(&trade_dates, row.trade_date) else {
                 dropped_no_next_trade_date += 1;
@@ -882,7 +943,9 @@ async fn materialize_strategy_portfolio_daily_run_signals(
     let required_marts = required_marts.into_iter().collect::<Vec<_>>();
     let signal_summary = json!({
         "signal_date_count": signal_dates.len(),
-        "generated_candidate_count": generated_candidate_count,
+        "signal_date_count_semantics": "dates_with_top_n_signal_rows",
+        "top_n_row_count": top_n_row_count,
+        "diagnostic_generated_candidate_count_unavailable": true,
         "top_n_candidate_count": top_n_candidate_count,
         "executable_signal_count": signals.len(),
         "dropped_signal_count": dropped_no_next_trade_date + dropped_after_end_date,
@@ -905,6 +968,7 @@ async fn materialize_strategy_portfolio_daily_run_signals(
     Ok(MaterializedSignals {
         signals,
         security_codes: security_codes.into_iter().collect(),
+        signal_query_ids: query_ids,
     })
 }
 
@@ -1020,6 +1084,51 @@ fn strategy_backtest_failure_status(error: &RearviewError) -> &'static str {
 
 fn combined_hash(parts: &[String]) -> RearviewResult<String> {
     hash_json(&parts)
+}
+
+fn market_data_demand_summary(demand: &MarketDataDemand) -> Value {
+    if demand.entries.is_empty() {
+        return json!({
+            "security_count": 0,
+            "date_window": null,
+        });
+    }
+    let mut start_dates = demand
+        .entries
+        .iter()
+        .map(|entry| entry.start_date)
+        .collect::<Vec<_>>();
+    start_dates.sort_unstable();
+    let first = start_dates[0];
+    let last = *start_dates
+        .last()
+        .expect("non-empty start_dates must have last item");
+    let span_days = last.signed_duration_since(first).num_days().max(0) as u64;
+    let first_20pct_cutoff = first
+        .checked_add_days(Days::new(span_days / 5))
+        .unwrap_or(first);
+    let first_20pct_security_count = start_dates
+        .iter()
+        .filter(|date| **date <= first_20pct_cutoff)
+        .count();
+    json!({
+        "security_count": demand.entries.len(),
+        "end_date": demand.end_date,
+        "start_date_min": first,
+        "start_date_p50": percentile_date(&start_dates, 50),
+        "start_date_p90": percentile_date(&start_dates, 90),
+        "start_date_max": last,
+        "first_20pct_cutoff_date": first_20pct_cutoff,
+        "first_20pct_security_count": first_20pct_security_count,
+    })
+}
+
+fn percentile_date(sorted_dates: &[NaiveDate], percentile: usize) -> Option<NaiveDate> {
+    if sorted_dates.is_empty() {
+        return None;
+    }
+    let index = ((sorted_dates.len() - 1) * percentile) / 100;
+    sorted_dates.get(index).copied()
 }
 
 async fn process_run(
@@ -1244,6 +1353,7 @@ struct SignalPolicy {
 struct MaterializedSignals {
     signals: Vec<BuySignalInput>,
     security_codes: Vec<String>,
+    signal_query_ids: Vec<String>,
 }
 
 #[derive(Debug)]
@@ -1251,6 +1361,9 @@ struct WorkerTiming {
     started_at: Instant,
     last_mark_at: Instant,
     stages_ms: BTreeMap<String, u128>,
+    simulation_ms: BTreeMap<String, u128>,
+    row_counts: BTreeMap<String, usize>,
+    query_ids: BTreeMap<String, Vec<String>>,
 }
 
 impl WorkerTiming {
@@ -1260,6 +1373,9 @@ impl WorkerTiming {
             started_at: now,
             last_mark_at: now,
             stages_ms: BTreeMap::new(),
+            simulation_ms: BTreeMap::new(),
+            row_counts: BTreeMap::new(),
+            query_ids: BTreeMap::new(),
         }
     }
 
@@ -1272,9 +1388,39 @@ impl WorkerTiming {
         self.last_mark_at = now;
     }
 
+    fn set_simulation_diagnostics(&mut self, diagnostics: &SimulationDiagnostics) {
+        self.simulation_ms = diagnostics.simulation_ms.clone();
+        self.row_counts.extend(diagnostics.row_counts.clone());
+    }
+
+    fn set_row_count(&mut self, name: &str, count: usize) {
+        self.row_counts.insert(name.to_string(), count);
+    }
+
+    fn add_query_id(&mut self, stage: &str, query_id: impl Into<String>) {
+        self.query_ids
+            .entry(stage.to_string())
+            .or_default()
+            .push(query_id.into());
+    }
+
+    fn add_query_ids<I>(&mut self, stage: &str, query_ids: I)
+    where
+        I: IntoIterator<Item = String>,
+    {
+        self.query_ids
+            .entry(stage.to_string())
+            .or_default()
+            .extend(query_ids);
+    }
+
     fn to_json(&self) -> Value {
         json!({
+            "version": 2,
             "stages_ms": self.stages_ms,
+            "simulation_ms": self.simulation_ms,
+            "row_counts": self.row_counts,
+            "query_ids": self.query_ids,
             "total_ms": self.started_at.elapsed().as_millis(),
         })
     }
@@ -1505,5 +1651,31 @@ mod tests {
         ] {
             assert!(is_terminal_status(status));
         }
+    }
+
+    #[test]
+    fn market_data_demand_summary_should_report_start_date_distribution() {
+        let demand = MarketDataDemand::from_security_start_dates(
+            [
+                ("AAA".to_string(), date(2026, 1, 2)),
+                ("BBB".to_string(), date(2026, 1, 6)),
+                ("CCC".to_string(), date(2026, 1, 10)),
+            ],
+            date(2026, 1, 31),
+        )
+        .expect("demand should be valid");
+
+        let summary = market_data_demand_summary(&demand);
+
+        assert_eq!(summary["security_count"], 3);
+        assert_eq!(summary["start_date_min"], "2026-01-02");
+        assert_eq!(summary["start_date_p50"], "2026-01-06");
+        assert_eq!(summary["start_date_p90"], "2026-01-06");
+        assert_eq!(summary["start_date_max"], "2026-01-10");
+        assert_eq!(summary["first_20pct_security_count"], 1);
+    }
+
+    fn date(year: i32, month: u32, day: u32) -> NaiveDate {
+        NaiveDate::from_ymd_opt(year, month, day).expect("test date should be valid")
     }
 }

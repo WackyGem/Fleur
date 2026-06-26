@@ -2,13 +2,13 @@
 
 日期：2026-06-26
 
-状态：Proposed
+状态：Completed
 
 ## 背景
 
-[Plan 0056](archive/0056-racingline-step4-step5-backtest-latency-optimization-plan.md) 已经把 Step 4 到 Step 5 的页面进入路径从 worker terminal 状态中解耦。当前浏览器实测 click-to-Step5 shell 为 439ms，说明用户已能快速进入 Step 5 状态页。剩余慢点已经转移到 Step 5 run 从 `queued/running` 到 `succeeded` 的真实等待。
+[Plan 0056](0056-racingline-step4-step5-backtest-latency-optimization-plan.md) 已经把 Step 4 到 Step 5 的页面进入路径从 worker terminal 状态中解耦。当前浏览器实测 click-to-Step5 shell 为 439ms，说明用户已能快速进入 Step 5 状态页。剩余慢点已经转移到 Step 5 run 从 `queued/running` 到 `succeeded` 的真实等待。
 
-[RFC 0032](../RFC/0032-racingline-step5-backtest-worker-execution-latency.md) 将回测流程抽象为：
+[RFC 0032](../../RFC/0032-racingline-step5-backtest-worker-execution-latency.md) 将回测流程抽象为：
 
 ```text
 Accept -> Plan -> Signals -> Market Data Demand -> Simulation -> Metrics -> Commit -> Serve
@@ -49,12 +49,12 @@ Accept -> Plan -> Signals -> Market Data Demand -> Simulation -> Metrics -> Comm
 
 | 文档 | 用途 |
 |---|---|
-| [RFC 0032](../RFC/0032-racingline-step5-backtest-worker-execution-latency.md) | Step 5 worker 执行流、参数模板、优化方案草案和讨论目标 |
-| [Plan 0056](archive/0056-racingline-step4-step5-backtest-latency-optimization-plan.md) | Step 4/5 handoff、status/compact API、worker timing、动态 price bars 和 outbox 唤醒已完成计划 |
-| [0056 验收报告](../jobs/reports/2026-06-25-racingline-step4-step5-backtest-latency-optimization.md) | 当前性能样本、payload、worker timing、ClickHouse query log 和 stale active 诊断 |
-| [0056 前基线报告](../jobs/reports/2026-06-25-racingline-step4-step5-backtest-latency-baseline.md) | 历史 worker elapsed、price bars 全字段读取和 wrapper 重复 nav 读取基线 |
-| [Racingline 系统地图](../systems/racingline.md) | Step 5 前端当前事实、运行入口和质量门禁 |
-| [Rearview 系统地图](../systems/rearview.md) | Rearview API、worker、ClickHouse、NATS 和质量门禁 |
+| [RFC 0032](../../RFC/0032-racingline-step5-backtest-worker-execution-latency.md) | Step 5 worker 执行流、参数模板、优化方案草案和讨论目标 |
+| [Plan 0056](0056-racingline-step4-step5-backtest-latency-optimization-plan.md) | Step 4/5 handoff、status/compact API、worker timing、动态 price bars 和 outbox 唤醒已完成计划 |
+| [0056 验收报告](../../jobs/reports/2026-06-25-racingline-step4-step5-backtest-latency-optimization.md) | 当前性能样本、payload、worker timing、ClickHouse query log 和 stale active 诊断 |
+| [0056 前基线报告](../../jobs/reports/2026-06-25-racingline-step4-step5-backtest-latency-baseline.md) | 历史 worker elapsed、price bars 全字段读取和 wrapper 重复 nav 读取基线 |
+| [Racingline 系统地图](../../systems/racingline.md) | Step 5 前端当前事实、运行入口和质量门禁 |
+| [Rearview 系统地图](../../systems/rearview.md) | Rearview API、worker、ClickHouse、NATS 和质量门禁 |
 
 ## 当前事实基线
 
