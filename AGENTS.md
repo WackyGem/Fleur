@@ -171,6 +171,12 @@ make docs-check
 git diff --check
 ```
 
+版本源、release manifest 或运行时版本暴露变更追加：
+
+```bash
+make versions-check
+```
+
 ```bash
 cd pipeline
 
@@ -234,6 +240,7 @@ cargo test --workspace
 | `fleur-dbt-model-readiness` | 新增或重写 dbt staging model 前使用，完成 raw source profiling、报告、staging 清洗建议和 readiness 校验 |
 | `fleur-harness` | 维护项目 harness、agent 可读性、docs/skills 路由、架构约束、长期计划、文档治理和质量闭环 |
 | `fleur-playwright-cdp-debug` | 使用全局 `playwright-cli` 通过 `vnc-mini-desktop` 暴露的 CDP 端点调试 `app/` 前端，检查截图、DOM、console、network 和响应式布局 |
+| `fleur-version-management` | 维护 mono-fleur 多工程版本，包括组件 SemVer、dataset contract version、Alembic revision 记录、release manifest、组件 tag、集成 tag、release note 和运行时版本暴露 |
 | `fleur-worktree` | 管理 mono-fleur 的 Git worktree、多分支、多 agent 并行任务、隔离验证、合并和清理流程 |
 | `running-dbt-commands` | 格式化或执行 dbt CLI 命令、选择 dbt 可执行文件、选择资源、编译、构建、测试或显示查询输出 |
 | `rust-async-patterns` | 构建或调试 Tokio/async Rust 应用、异步 I/O、任务并发、channel、取消和 async 性能问题时使用 |

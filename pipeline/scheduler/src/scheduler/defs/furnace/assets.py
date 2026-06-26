@@ -14,6 +14,7 @@ from scheduler.defs.resources.furnace import (
     FurnacePricePatternCliRequest,
     FurnaceRsiCliRequest,
 )
+from scheduler.version import scheduler_version
 
 FURNACE_KDJ_ASSET_KEY = dg.AssetKey(["fleur_calculation", "calc_stock_kdj_daily"])
 FURNACE_KDJ_UPSTREAM_ASSET_KEY = dg.AssetKey(["int_stock_quotes_daily_adj"])
@@ -409,6 +410,7 @@ def build_furnace_price_pattern_asset() -> dg.AssetsDefinition:
 
 def _metadata_from_summary(summary: Mapping[str, Any]) -> Mapping[str, Any]:
     return {
+        "scheduler_version": scheduler_version(),
         "indicator": summary.get("indicator"),
         "request_range": {
             "from": summary.get("request_from"),

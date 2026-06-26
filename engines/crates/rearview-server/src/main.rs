@@ -22,6 +22,7 @@ use tracing::{debug, error, info};
 use tracing_subscriber::EnvFilter;
 
 const OUTBOX_IDLE_SLEEP: Duration = Duration::from_secs(2);
+const VERSION: &str = env!("CARGO_PKG_VERSION");
 
 #[tokio::main]
 async fn main() -> RearviewResult<()> {
@@ -43,6 +44,10 @@ async fn main() -> RearviewResult<()> {
             )),
         },
         Some("sample-rule") => sample_rule(),
+        Some("--version" | "-V") => {
+            println!("rearview-server {VERSION}");
+            Ok(())
+        }
         Some("--help" | "-h") => {
             print_help();
             Ok(())
@@ -66,8 +71,15 @@ async fn serve() -> RearviewResult<()> {
     tokio::spawn(async move {
         run_outbox_dispatcher(dispatcher_postgres, dispatcher_nats, dispatcher_notifier).await;
     });
-    let state =
-        AppState::new_with_outbox_notifier(config, postgres, catalog, clickhouse, outbox_notifier);
+    let state = AppState::new_with_service_identity(
+        config,
+        postgres,
+        catalog,
+        clickhouse,
+        outbox_notifier,
+        "rearview-server",
+        VERSION,
+    );
     let app = api::routes().with_state(state);
     let listener = TcpListener::bind(bind).await?;
     info!(%bind, "starting rearview HTTP service");
@@ -398,7 +410,7 @@ fn is_repo_root(path: &Path) -> bool {
 
 fn print_help() {
     println!(
-        "rearview-server\n\nUSAGE:\n  rearview-server serve\n  rearview-server catalog check\n  rearview-server catalog coverage\n  rearview-server catalog sync\n  rearview-server sample-rule\n\nENV:\n  REARVIEW_DATABASE_URL\n  REARVIEW_HTTP_BIND\n  CLICKHOUSE_HOST / CLICKHOUSE_PORT / CLICKHOUSE_USER / CLICKHOUSE_PASSWORD"
+        "rearview-server\n\nUSAGE:\n  rearview-server serve\n  rearview-server catalog check\n  rearview-server catalog coverage\n  rearview-server catalog sync\n  rearview-server sample-rule\n  rearview-server --version\n\nENV:\n  REARVIEW_DATABASE_URL\n  REARVIEW_HTTP_BIND\n  CLICKHOUSE_HOST / CLICKHOUSE_PORT / CLICKHOUSE_USER / CLICKHOUSE_PASSWORD"
     );
 }
 

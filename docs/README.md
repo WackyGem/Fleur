@@ -26,6 +26,7 @@
 | 活跃执行计划 | [plans/README.md](plans/README.md) |
 | 技术债 | [debt/README.md](debt/README.md) |
 | Dagster 回填、运行和 lineage 记录 | [jobs/README.md](jobs/README.md) |
+| 集成发布快照和版本 manifest | [releases/README.md](releases/README.md) |
 | dbt 模型设计 | [design/README.md](design/README.md) |
 | 接口、数据字典和 raw profiling | [references/README.md](references/README.md) |
 | 设计问答和讨论记录 | [Q&A/](Q&A/)；Racingline 当前用户画像见 [Q&A/user-logic.md](Q&A/user-logic.md)；两入口导航见 [Q&A/0003-racingline-strategy-lab-two-entry-navigation.md](Q&A/0003-racingline-strategy-lab-two-entry-navigation.md)；原型看板到策略创建闭环见 [Q&A/0004-racingline-prototype-dashboard-to-strategy-loop.md](Q&A/0004-racingline-prototype-dashboard-to-strategy-loop.md)；前端原型流程 RFC 见 [RFC/archive/0023-racingline-frontend-prototype-led-development.md](RFC/archive/0023-racingline-frontend-prototype-led-development.md)；策略选股 Step 1 RFC 见 [RFC/archive/0024-racingline-strategy-selection-step1.md](RFC/archive/0024-racingline-strategy-selection-step1.md)；策略权重配置 Step 2 RFC 见 [RFC/archive/0025-racingline-strategy-weight-configuration-step2.md](RFC/archive/0025-racingline-strategy-weight-configuration-step2.md)；股池预览 Step 3 RFC 见 [RFC/archive/0026-racingline-strategy-pool-preview-step3.md](RFC/archive/0026-racingline-strategy-pool-preview-step3.md)；模拟建仓 Step 4 RFC 见 [RFC/archive/0027-racingline-strategy-simulation-position-step4.md](RFC/archive/0027-racingline-strategy-simulation-position-step4.md)；策略回测 Step 5 RFC 见 [RFC/archive/0028-racingline-strategy-backtest-step5.md](RFC/archive/0028-racingline-strategy-backtest-step5.md)；UI 栈变体评估 ADR 见 [ADR/0013-racingline-ui-stack-variant-evaluation.md](ADR/0013-racingline-ui-stack-variant-evaluation.md) |
@@ -45,6 +46,7 @@
 | `debt/` | 技术债和实现漂移记录入口 | 历史参考 |
 | `jobs/` | runbook、snapshot 和运行报告入口 | 当前入口 |
 | `jobs/reports/` | 实际运行事实 | 历史事实 |
+| `releases/` | 集成 release note、版本 manifest schema 和 tag 前检查 | 当前入口 |
 | `design/` | dbt 模型设计和字段语义 | 当前事实 |
 | `references/` | 外部接口、raw profile、data dict | 可查事实 |
 | `Q&A/` | 设计问答、临时讨论和待升级为 RFC/ADR 的架构判断 | Proposed 或 Temporary |
@@ -75,3 +77,9 @@ git diff --check
 ```
 
 涉及 Dagster、dbt、contracts 或 Rust 的事实更新时，追加对应领域校验命令。
+
+版本治理或发布快照变更追加：
+
+```bash
+make versions-check
+```

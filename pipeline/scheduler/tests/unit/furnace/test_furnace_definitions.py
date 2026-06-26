@@ -230,6 +230,7 @@ def test_furnace_metadata_maps_cli_summary_to_materialization_metadata() -> None
     )
 
     assert metadata["effective_output_range"] == {"from": "2026-01-01", "to": "2026-01-02"}
+    assert metadata["scheduler_version"] == "0.1.0"
     assert metadata["output_rows"] == 20
     assert metadata["performance_metrics"] == {"parallelism": "rayon", "compute_ms": 12}
 

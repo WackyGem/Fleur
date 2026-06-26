@@ -45,6 +45,7 @@ use crate::strategy_portfolio::new_portfolio_code;
 pub fn routes() -> Router<AppState> {
     Router::new()
         .route("/healthz", get(healthz))
+        .route("/rearview/version", get(get_version))
         .route("/rearview/metrics", get(list_metrics))
         .route(
             "/rearview/rule-sets",
@@ -276,13 +277,32 @@ async fn log_http_request(request: Request<Body>, next: Next) -> Response {
     response
 }
 
-async fn healthz() -> Json<HealthResponse> {
-    Json(HealthResponse { status: "ok" })
+async fn healthz(State(state): State<AppState>) -> Json<HealthResponse> {
+    Json(HealthResponse {
+        status: "ok",
+        component: state.service_component,
+        version: state.service_version,
+    })
 }
 
 #[derive(Debug, Serialize)]
 struct HealthResponse {
     status: &'static str,
+    component: &'static str,
+    version: &'static str,
+}
+
+async fn get_version(State(state): State<AppState>) -> Json<VersionResponse> {
+    Json(VersionResponse {
+        component: state.service_component,
+        version: state.service_version,
+    })
+}
+
+#[derive(Debug, Serialize)]
+struct VersionResponse {
+    component: &'static str,
+    version: &'static str,
 }
 
 async fn create_rule_set(

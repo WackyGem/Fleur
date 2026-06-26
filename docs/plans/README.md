@@ -12,6 +12,7 @@
 
 | Plan | 状态 | 说明 |
 |---|---|---|
+| [0059](archive/0059-version-information-governance-implementation-plan.md) | Completed | 版本信息治理实施：Rust crate 独立版本、release manifest/release note、版本校验脚本、运行时版本暴露、Alembic head 表达修正和 tag 前检查入口 |
 | [0057](archive/0057-baostock-daily-kline-range-backfill-implementation-plan.md) | Completed | BaoStock 日 K daily source 增加 `range_backfill` 模式并完成 2026 年首个有效交易日至 2026-06-25 的 compacted/raw 验收；验收见 [2026-06-25 report](../jobs/reports/2026-06-25-baostock-daily-kline-range-backfill.md) |
 | [0056](archive/0056-racingline-step4-step5-backtest-latency-optimization-plan.md) | Completed | Racingline Step 4 到 Step 5 回测延时优化：create accepted 即进入 Step 5、前端状态 owner 收敛、status/result compact view、worker timing、price bars 动态投影、outbox 唤醒和 stale active 诊断；baseline 见 [baseline report](../jobs/reports/2026-06-25-racingline-step4-step5-backtest-latency-baseline.md)，验收见 [optimization report](../jobs/reports/2026-06-25-racingline-step4-step5-backtest-latency-optimization.md) |
 | [0055](archive/0055-racingline-step2-step3-preview-latency-slimming-plan.md) | Completed | Racingline Step 2 到 Step 3 预览链路瘦身：route/query 观测、preview-open、chart-context、Step 3 脏字段和默认 output metrics 清理；baseline 见 [baseline report](../jobs/reports/2026-06-25-racingline-step2-step3-preview-latency-baseline.md)，验收见 [slimming report](../jobs/reports/2026-06-25-racingline-step2-step3-preview-latency-slimming.md) |
