@@ -19,7 +19,6 @@ from dataclasses import dataclass
 from decimal import Decimal
 from typing import Any
 
-
 VOLATILE_COLUMNS = {
     "portfolio_run_id",
     "result_attempt_id",
@@ -125,8 +124,7 @@ FORMAT JSONEachRow
     result = subprocess.run(
         command,
         check=True,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
+        capture_output=True,
         text=True,
     )
     return [json.loads(line) for line in result.stdout.splitlines() if line.strip()]
