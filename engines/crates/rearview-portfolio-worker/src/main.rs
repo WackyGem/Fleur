@@ -9,8 +9,9 @@ use rearview_core::nats::{
 };
 use rearview_core::planner::{QueryPlanner, QuerySettings};
 use rearview_core::portfolio::{
-    BuySignalInput, ExitRule, FeeProfile, PortfolioSimulationInput, SimulationDiagnostics,
-    SlippageProfile, simulate_portfolio, simulate_portfolio_with_diagnostics,
+    BuySignalInput, ExitRule, FeeProfile, PortfolioSimulationInput, PortfolioSimulationOutput,
+    PortfolioSummary, SimulationDiagnostics, SlippageProfile, simulate_portfolio,
+    simulate_portfolio_with_diagnostics,
 };
 use rearview_core::portfolio_performance::{PerformanceMetricConfig, compute_performance_metric};
 use rearview_core::portfolio_trade_metrics::compute_trade_calculation_outputs;
@@ -438,7 +439,7 @@ async fn process_strategy_backtest_run(
             .await?;
         let portfolio_run = strategy_backtest_as_portfolio_run(&latest_run)?;
         let batch = clickhouse
-            .write_portfolio_result_facts(&portfolio_run, &result_attempt_id, &output)
+            .write_strategy_backtest_result_facts(&portfolio_run, &result_attempt_id, &output)
             .await?;
         timing.mark("clickhouse_write_portfolio_facts");
         postgres
@@ -446,11 +447,11 @@ async fn process_strategy_backtest_run(
             .await?;
         timing.mark("postgres_insert_metric_config");
         clickhouse
-            .write_portfolio_calculation_outputs(&result_attempt_id, &calculation_batch)
+            .write_strategy_backtest_calculation_outputs(&result_attempt_id, &calculation_batch)
             .await?;
         timing.mark("clickhouse_write_calculation_outputs");
         clickhouse
-            .write_portfolio_run_snapshot(&result_attempt_id, &batch.run_snapshot)
+            .write_strategy_backtest_run_snapshot(&result_attempt_id, &batch.run_snapshot)
             .await?;
         timing.mark("clickhouse_write_run_snapshot");
         Ok(())
@@ -568,6 +569,7 @@ async fn process_strategy_portfolio_daily_run(
         prices,
     };
     let output = simulate_portfolio(&input)?;
+    let output = normalize_live_output(output, portfolio.live_start_date)?;
 
     postgres
         .update_strategy_portfolio_daily_progress(
@@ -589,7 +591,7 @@ async fn process_strategy_portfolio_daily_run(
     let benchmark_returns = clickhouse
         .query_mart_benchmark_returns(
             &metric_config.security_code,
-            run.run_start_date,
+            portfolio.live_start_date,
             run.trade_date,
             &format!("strategy-portfolio-daily-{result_attempt_id}-benchmark"),
         )
@@ -597,7 +599,7 @@ async fn process_strategy_portfolio_daily_run(
     let risk_free_rates = clickhouse
         .query_mart_risk_free_rates(
             &metric_config.risk_free_tenor,
-            run.run_start_date,
+            portfolio.live_start_date,
             run.trade_date,
             &format!("strategy-portfolio-daily-{result_attempt_id}-risk-free"),
         )
@@ -633,13 +635,16 @@ async fn process_strategy_portfolio_daily_run(
     let write_result: RearviewResult<()> = async {
         let portfolio_run = strategy_portfolio_daily_as_portfolio_run(&portfolio, run)?;
         let batch = clickhouse
-            .write_portfolio_result_facts(&portfolio_run, &result_attempt_id, &output)
+            .write_strategy_portfolio_live_result_facts(&portfolio_run, &result_attempt_id, &output)
             .await?;
         clickhouse
-            .write_portfolio_calculation_outputs(&result_attempt_id, &calculation_batch)
+            .write_strategy_portfolio_live_calculation_outputs(
+                &result_attempt_id,
+                &calculation_batch,
+            )
             .await?;
         clickhouse
-            .write_portfolio_run_snapshot(&result_attempt_id, &batch.run_snapshot)
+            .write_strategy_portfolio_live_run_snapshot(&result_attempt_id, &batch.run_snapshot)
             .await?;
         Ok(())
     }
@@ -1073,10 +1078,98 @@ fn strategy_portfolio_daily_as_portfolio_run(
     })
 }
 
+fn normalize_live_output(
+    output: PortfolioSimulationOutput,
+    live_start_date: NaiveDate,
+) -> RearviewResult<PortfolioSimulationOutput> {
+    let base_equity = output
+        .nav
+        .iter()
+        .find(|row| row.trade_date == live_start_date)
+        .map(|row| row.total_equity)
+        .ok_or_else(|| {
+            RearviewError::Validation(format!(
+                "live output has no nav row on live_start_date {live_start_date}"
+            ))
+        })?;
+    if base_equity <= 0.0 || !base_equity.is_finite() {
+        return Err(RearviewError::Validation(format!(
+            "live output base equity is invalid on {live_start_date}: {base_equity}"
+        )));
+    }
+
+    let mut max_nav = 1.0_f64;
+    let mut previous_equity: Option<f64> = None;
+    let nav = output
+        .nav
+        .into_iter()
+        .filter(|row| row.trade_date >= live_start_date)
+        .map(|mut row| {
+            row.nav = row.total_equity / base_equity;
+            row.daily_return = previous_equity.map(|previous| row.total_equity / previous - 1.0);
+            previous_equity = Some(row.total_equity);
+            max_nav = max_nav.max(row.nav);
+            row.drawdown = if max_nav > 0.0 {
+                row.nav / max_nav - 1.0
+            } else {
+                0.0
+            };
+            row
+        })
+        .collect::<Vec<_>>();
+    let ending_equity = nav
+        .last()
+        .map(|row| row.total_equity)
+        .unwrap_or(base_equity);
+    let max_drawdown = nav.iter().map(|row| row.drawdown).fold(0.0_f64, f64::min);
+    let trades = output
+        .trades
+        .into_iter()
+        .filter(|row| row.trade_date >= live_start_date)
+        .collect::<Vec<_>>();
+    let orders = output
+        .orders
+        .into_iter()
+        .filter(|row| row.execution_date >= live_start_date)
+        .collect::<Vec<_>>();
+    let positions = output
+        .positions
+        .into_iter()
+        .filter(|row| row.trade_date >= live_start_date)
+        .collect::<Vec<_>>();
+    let events = output
+        .events
+        .into_iter()
+        .filter(|row| row.trade_date >= live_start_date)
+        .collect::<Vec<_>>();
+    let total_fee = trades.iter().map(|trade| trade.total_fee).sum();
+    let warning_count = events.len();
+    let summary = PortfolioSummary {
+        initial_cash: base_equity,
+        ending_equity,
+        total_return: ending_equity / base_equity - 1.0,
+        max_drawdown,
+        trade_count: trades.len(),
+        total_fee,
+        warning_count,
+    };
+
+    Ok(PortfolioSimulationOutput {
+        targets: output.targets,
+        orders,
+        trades,
+        positions,
+        nav,
+        events,
+        summary,
+    })
+}
+
 fn strategy_backtest_failure_status(error: &RearviewError) -> &'static str {
     match error {
         RearviewError::Validation(_)
         | RearviewError::Conflict(_)
+        | RearviewError::PortfolioPendingFirstRun(_)
         | RearviewError::MetricCatalog(_) => "failed_validation",
         RearviewError::Planner(_) => "failed_compile",
         RearviewError::ClickHouse(_) | RearviewError::Http(_) => "failed_market_data",
@@ -1300,7 +1393,9 @@ fn next_trade_date(trade_dates: &[NaiveDate], signal_date: NaiveDate) -> Option<
 
 fn portfolio_failure_status(error: &RearviewError) -> &'static str {
     match error {
-        RearviewError::Validation(_) | RearviewError::Conflict(_) => "failed_validation",
+        RearviewError::Validation(_)
+        | RearviewError::Conflict(_)
+        | RearviewError::PortfolioPendingFirstRun(_) => "failed_validation",
         RearviewError::ClickHouse(_) => "failed_market_data",
         RearviewError::Postgres(_) => "failed_write",
         RearviewError::Config(_)
@@ -1607,6 +1702,11 @@ fn print_help() {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use rearview_core::portfolio::{
+        OrderReason, OrderSide, OrderStatus, PortfolioEventRow, PortfolioEventType,
+        PortfolioNavRow, PortfolioOrderRow, PortfolioPositionDayRow, PortfolioTargetRow,
+        PortfolioTradeRow, TargetReason,
+    };
 
     #[test]
     fn exit_rules_should_convert_indicator_stop_loss() {
@@ -1682,7 +1782,175 @@ mod tests {
         assert_eq!(summary["first_20pct_security_count"], 1);
     }
 
+    #[test]
+    fn normalize_live_output_should_filter_seed_rows_and_rebase_live_nav() {
+        let signal_date = date(2026, 6, 26);
+        let live_start_date = date(2026, 6, 29);
+        let second_live_date = date(2026, 6, 30);
+        let third_live_date = date(2026, 7, 1);
+        let output = PortfolioSimulationOutput {
+            targets: vec![PortfolioTargetRow {
+                signal_date,
+                execution_date: live_start_date,
+                security_code: "600000.SH".to_string(),
+                source_rank: 1,
+                source_score: 91.5,
+                target_weight: 1.0,
+                target_amount: 100_000.0,
+                target_quantity: 10_000.0,
+                target_reason: TargetReason::BuySignal,
+            }],
+            orders: vec![
+                order_row(signal_date, signal_date, 1),
+                order_row(signal_date, live_start_date, 2),
+            ],
+            trades: vec![
+                trade_row(signal_date, 1, 1.0),
+                trade_row(live_start_date, 2, 2.5),
+            ],
+            positions: vec![
+                position_row(signal_date, "600000.SH"),
+                position_row(live_start_date, "600000.SH"),
+            ],
+            nav: vec![
+                nav_row(signal_date, 98_000.0),
+                nav_row(live_start_date, 100_000.0),
+                nav_row(second_live_date, 98_000.0),
+                nav_row(third_live_date, 101_000.0),
+            ],
+            events: vec![event_row(signal_date, 1), event_row(second_live_date, 2)],
+            summary: PortfolioSummary {
+                initial_cash: 120_000.0,
+                ending_equity: 101_000.0,
+                total_return: -0.1583,
+                max_drawdown: -0.2,
+                trade_count: 2,
+                total_fee: 3.5,
+                warning_count: 2,
+            },
+        };
+
+        let normalized =
+            normalize_live_output(output, live_start_date).expect("live output should normalize");
+
+        assert_eq!(normalized.targets.len(), 1);
+        assert_eq!(normalized.targets[0].signal_date, signal_date);
+        assert_eq!(normalized.targets[0].execution_date, live_start_date);
+        assert_eq!(
+            normalized
+                .nav
+                .iter()
+                .map(|row| row.trade_date)
+                .collect::<Vec<_>>(),
+            vec![live_start_date, second_live_date, third_live_date]
+        );
+        assert_eq!(normalized.nav[0].nav, 1.0);
+        assert_eq!(normalized.nav[0].daily_return, None);
+        assert!((normalized.nav[1].nav - 0.98).abs() < 1e-9);
+        assert!((normalized.nav[1].daily_return.unwrap() + 0.02).abs() < 1e-9);
+        assert!((normalized.nav[1].drawdown + 0.02).abs() < 1e-9);
+        assert!((normalized.nav[2].nav - 1.01).abs() < 1e-9);
+        assert_eq!(normalized.orders.len(), 1);
+        assert_eq!(normalized.orders[0].execution_date, live_start_date);
+        assert_eq!(normalized.trades.len(), 1);
+        assert_eq!(normalized.trades[0].trade_date, live_start_date);
+        assert_eq!(normalized.positions.len(), 1);
+        assert_eq!(normalized.positions[0].trade_date, live_start_date);
+        assert_eq!(normalized.events.len(), 1);
+        assert_eq!(normalized.events[0].trade_date, second_live_date);
+        assert_eq!(normalized.summary.initial_cash, 100_000.0);
+        assert_eq!(normalized.summary.ending_equity, 101_000.0);
+        assert!((normalized.summary.total_return - 0.01).abs() < 1e-9);
+        assert!((normalized.summary.max_drawdown + 0.02).abs() < 1e-9);
+        assert_eq!(normalized.summary.trade_count, 1);
+        assert_eq!(normalized.summary.total_fee, 2.5);
+        assert_eq!(normalized.summary.warning_count, 1);
+    }
+
     fn date(year: i32, month: u32, day: u32) -> NaiveDate {
         NaiveDate::from_ymd_opt(year, month, day).expect("test date should be valid")
+    }
+
+    fn order_row(
+        signal_date: NaiveDate,
+        execution_date: NaiveDate,
+        order_seq: u32,
+    ) -> PortfolioOrderRow {
+        PortfolioOrderRow {
+            order_seq,
+            signal_date: Some(signal_date),
+            execution_date,
+            security_code: "600000.SH".to_string(),
+            side: OrderSide::Buy,
+            order_quantity: 100.0,
+            order_amount: 1_000.0,
+            reference_price: Some(10.0),
+            reason: OrderReason::Rebalance,
+            status: OrderStatus::Filled,
+        }
+    }
+
+    fn trade_row(trade_date: NaiveDate, trade_seq: u32, total_fee: f64) -> PortfolioTradeRow {
+        PortfolioTradeRow {
+            trade_seq,
+            order_seq: trade_seq,
+            trade_date,
+            signal_date: Some(date(2026, 6, 26)),
+            security_code: "600000.SH".to_string(),
+            side: OrderSide::Buy,
+            quantity: 100.0,
+            reference_price: 10.0,
+            execution_price: 10.0,
+            gross_amount: 1_000.0,
+            commission: total_fee,
+            stamp_duty: 0.0,
+            transfer_fee: 0.0,
+            total_fee,
+            slippage_cost: 0.0,
+            reason: OrderReason::Rebalance,
+        }
+    }
+
+    fn position_row(trade_date: NaiveDate, security_code: &str) -> PortfolioPositionDayRow {
+        PortfolioPositionDayRow {
+            trade_date,
+            security_code: security_code.to_string(),
+            quantity: 100.0,
+            cost_basis: 1_000.0,
+            average_entry_price: 10.0,
+            close_price: 10.0,
+            market_value: 1_000.0,
+            unrealized_pnl: 0.0,
+            unrealized_return: 0.0,
+            holding_days: 1,
+            is_stale_price: false,
+        }
+    }
+
+    fn nav_row(trade_date: NaiveDate, total_equity: f64) -> PortfolioNavRow {
+        PortfolioNavRow {
+            trade_date,
+            cash_balance: total_equity,
+            position_market_value: 0.0,
+            total_equity,
+            nav: total_equity / 100_000.0,
+            daily_return: None,
+            drawdown: 0.0,
+            gross_exposure: 0.0,
+            position_count: 0,
+            turnover: 0.0,
+            fee_amount: 0.0,
+            warning_count: 0,
+        }
+    }
+
+    fn event_row(trade_date: NaiveDate, event_seq: u32) -> PortfolioEventRow {
+        PortfolioEventRow {
+            event_seq,
+            trade_date,
+            security_code: Some("600000.SH".to_string()),
+            event_type: PortfolioEventType::PriceMissing,
+            message: "price missing".to_string(),
+        }
     }
 }

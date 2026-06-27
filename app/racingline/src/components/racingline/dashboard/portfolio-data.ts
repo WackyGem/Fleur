@@ -17,11 +17,20 @@ type SignalStock = {
   code: string
   name: string
   score: number
+  rank?: number
+  signalDate?: string
+  executionDate?: string
 }
 
 type PortfolioCardData = {
   id: string
   name: string
+  liveStatus:
+    | "pending_first_run"
+    | "queued"
+    | "running"
+    | "succeeded"
+    | "failed"
   startDate: string
   backtestDays: number
   simulationDays: number

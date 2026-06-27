@@ -8,6 +8,7 @@ import {
   getStrategyPortfolio,
   getStrategyPortfolioDashboard,
   getStrategyPortfolioPerformance,
+  getStrategyPortfolioPublishPreview,
   getStrategyBacktest,
   getStrategyBacktestOptions,
   getStrategyBacktestOverviewUi,
@@ -150,6 +151,30 @@ export function useStrategyPortfolioCreateMutation() {
   })
 }
 
+export function useStrategyPortfolioPublishPreviewQuery(
+  strategyBacktestRunId: string | null,
+  sourceResultAttemptId: string | null,
+  enabled = true
+) {
+  return useQuery({
+    enabled: Boolean(strategyBacktestRunId && sourceResultAttemptId && enabled),
+    queryKey: queryKeys.strategyPortfolioPublishPreview(
+      strategyBacktestRunId,
+      sourceResultAttemptId
+    ),
+    queryFn: () => {
+      if (!strategyBacktestRunId || !sourceResultAttemptId) {
+        throw new Error("strategy portfolio publish preview input is missing")
+      }
+      return getStrategyPortfolioPublishPreview(
+        strategyBacktestRunId,
+        sourceResultAttemptId
+      )
+    },
+    retry: 1,
+  })
+}
+
 export function useStrategyPortfolioDashboardQuery() {
   return useQuery({
     queryKey: queryKeys.strategyPortfolioDashboard(),
@@ -172,7 +197,9 @@ export function useStrategyPortfolioQuery(strategyPortfolioId: string | null) {
   })
 }
 
-export function useStrategyPortfolioNavQuery(strategyPortfolioId: string | null) {
+export function useStrategyPortfolioNavQuery(
+  strategyPortfolioId: string | null
+) {
   return useQuery({
     enabled: Boolean(strategyPortfolioId),
     queryKey: queryKeys.strategyPortfolioNav(strategyPortfolioId),
@@ -222,7 +249,9 @@ export function useStrategyPortfolioSignalsQuery(
   strategyPortfolioId: string | null,
   tradeDate: string | null
 ) {
-  const query = tradeDate ? { signal_date: tradeDate, limit: 200 } : { limit: 200 }
+  const query = tradeDate
+    ? { signal_date: tradeDate, limit: 200 }
+    : { limit: 200 }
   return useQuery({
     enabled: Boolean(strategyPortfolioId),
     queryKey: queryKeys.strategyPortfolioSignals(strategyPortfolioId, query),
@@ -240,7 +269,9 @@ export function useStrategyPortfolioPositionsQuery(
   strategyPortfolioId: string | null,
   tradeDate: string | null
 ) {
-  const query = tradeDate ? { trade_date: tradeDate, limit: 200 } : { limit: 200 }
+  const query = tradeDate
+    ? { trade_date: tradeDate, limit: 200 }
+    : { limit: 200 }
   return useQuery({
     enabled: Boolean(strategyPortfolioId),
     queryKey: queryKeys.strategyPortfolioPositions(strategyPortfolioId, query),
@@ -268,7 +299,10 @@ export function useStrategyPortfolioRebalanceRecordsQuery(
       if (!strategyPortfolioId) {
         throw new Error("strategy portfolio id is missing")
       }
-      return listStrategyPortfolioRebalanceRecords(strategyPortfolioId, tradeDate)
+      return listStrategyPortfolioRebalanceRecords(
+        strategyPortfolioId,
+        tradeDate
+      )
     },
     placeholderData: keepPreviousData,
     retry: 1,

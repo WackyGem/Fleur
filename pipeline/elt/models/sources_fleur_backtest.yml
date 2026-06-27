@@ -1,0 +1,70 @@
+version: 2
+
+sources:
+  - name: fleur_backtest
+    schema: fleur_backtest
+    description: Worker-authored strategy backtest result facts in ClickHouse.
+    tables:
+      - name: backtest_run_snapshot
+        description: Complete strategy backtest result-attempt marker.
+        columns:
+          - name: strategy_backtest_run_id
+            description: Strategy backtest run identifier.
+            data_type: String
+            data_tests:
+              - not_null
+
+          - name: result_attempt_id
+            description: Append-only result attempt identifier.
+            data_type: String
+            data_tests:
+              - not_null
+
+      - name: backtest_nav_daily
+        description: Strategy backtest daily NAV facts.
+        columns: &backtest_attempt_columns
+          - name: strategy_backtest_run_id
+            data_type: String
+            data_tests:
+              - not_null
+
+          - name: result_attempt_id
+            data_type: String
+            data_tests:
+              - not_null
+
+      - name: backtest_target
+        description: Strategy backtest target rows.
+        columns: *backtest_attempt_columns
+
+      - name: backtest_order
+        description: Strategy backtest order ledger.
+        columns: *backtest_attempt_columns
+
+      - name: backtest_trade
+        description: Strategy backtest trade ledger.
+        columns: *backtest_attempt_columns
+
+      - name: backtest_position_day
+        description: Strategy backtest daily positions.
+        columns: *backtest_attempt_columns
+
+      - name: backtest_event
+        description: Strategy backtest worker events.
+        columns: *backtest_attempt_columns
+
+      - name: backtest_performance_metric
+        description: Strategy backtest performance metrics.
+        columns: *backtest_attempt_columns
+
+      - name: backtest_performance_metric_status
+        description: Metric-level status rows for strategy backtest performance metrics.
+        columns: *backtest_attempt_columns
+
+      - name: backtest_closed_trade
+        description: Strategy backtest closed-trade ledger.
+        columns: *backtest_attempt_columns
+
+      - name: backtest_trade_metric
+        description: Strategy backtest trade quality metrics.
+        columns: *backtest_attempt_columns

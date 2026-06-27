@@ -192,6 +192,10 @@ pub fn routes() -> Router<AppState> {
             get(list_strategy_backtest_trade_metrics),
         )
         .route(
+            "/rearview/strategy-backtests/{strategy_backtest_run_id}/portfolio-publish-preview",
+            get(get_strategy_portfolio_publish_preview),
+        )
+        .route(
             "/rearview/strategy-portfolios",
             post(create_strategy_portfolio),
         )
@@ -768,7 +772,7 @@ async fn get_strategy_backtest_overview(
         resolve_strategy_backtest_result_attempt(&run, query.result_attempt_id.as_deref())?;
     let nav = state
         .clickhouse
-        .query_portfolio_nav(&strategy_backtest_run_id, &attempt_id)
+        .query_strategy_backtest_nav(&strategy_backtest_run_id, &attempt_id)
         .await?;
     let daily_win_rate = daily_win_rate(&nav);
     let benchmark_returns = state
@@ -789,7 +793,7 @@ async fn get_strategy_backtest_overview(
     let window_key = non_empty(query.window_key).unwrap_or_else(default_metric_window);
     let performance = state
         .clickhouse
-        .query_portfolio_performance(
+        .query_strategy_backtest_performance(
             &strategy_backtest_run_id,
             &attempt_id,
             &security_code,
@@ -830,7 +834,7 @@ async fn list_strategy_backtest_nav(
         resolve_strategy_backtest_result_attempt(&run, query.result_attempt_id.as_deref())?;
     let nav = state
         .clickhouse
-        .query_portfolio_nav(&strategy_backtest_run_id, &attempt_id)
+        .query_strategy_backtest_nav(&strategy_backtest_run_id, &attempt_id)
         .await?;
     let benchmark_returns = state
         .clickhouse
@@ -867,11 +871,11 @@ async fn list_strategy_backtest_rebalance_records(
         resolve_strategy_backtest_result_attempt(&run, query.result_attempt_id.as_deref())?;
     let nav = state
         .clickhouse
-        .query_portfolio_nav(&strategy_backtest_run_id, &attempt_id)
+        .query_strategy_backtest_nav(&strategy_backtest_run_id, &attempt_id)
         .await?;
     let trade_counts = state
         .clickhouse
-        .query_portfolio_rebalance_trade_counts(&strategy_backtest_run_id, &attempt_id)
+        .query_strategy_backtest_rebalance_trade_counts(&strategy_backtest_run_id, &attempt_id)
         .await?
         .into_iter()
         .map(|row| (row.trade_date, row))
@@ -897,7 +901,7 @@ async fn list_strategy_backtest_rebalance_records(
     };
     let trades = state
         .clickhouse
-        .query_portfolio_trades(
+        .query_strategy_backtest_trades(
             &PortfolioTradeFilter {
                 portfolio_run_id: strategy_backtest_run_id.clone(),
                 trade_date: Some(selected_trade_date),
@@ -909,7 +913,7 @@ async fn list_strategy_backtest_rebalance_records(
         .await?;
     let positions = state
         .clickhouse
-        .query_portfolio_positions(
+        .query_strategy_backtest_positions(
             &PortfolioPositionFilter {
                 portfolio_run_id: strategy_backtest_run_id.clone(),
                 trade_date: Some(selected_trade_date),
@@ -921,7 +925,7 @@ async fn list_strategy_backtest_rebalance_records(
         .await?;
     let closed_trades = state
         .clickhouse
-        .query_portfolio_closed_trades(
+        .query_strategy_backtest_closed_trades(
             &PortfolioClosedTradeFilter {
                 portfolio_run_id: strategy_backtest_run_id.clone(),
                 security_code: None,
@@ -1027,7 +1031,7 @@ async fn strategy_backtest_rebalance_ui_read_model(
 ) -> RearviewResult<StrategyBacktestRebalanceRecordsUiResponse> {
     let trade_counts = state
         .clickhouse
-        .query_portfolio_rebalance_trade_counts(strategy_backtest_run_id, attempt_id)
+        .query_strategy_backtest_rebalance_trade_counts(strategy_backtest_run_id, attempt_id)
         .await?
         .into_iter()
         .map(|row| (row.trade_date, row))
@@ -1052,7 +1056,7 @@ async fn strategy_backtest_rebalance_ui_read_model(
     };
     let trades = state
         .clickhouse
-        .query_portfolio_trades(
+        .query_strategy_backtest_trades(
             &PortfolioTradeFilter {
                 portfolio_run_id: strategy_backtest_run_id.to_string(),
                 trade_date: Some(selected_trade_date),
@@ -1064,7 +1068,7 @@ async fn strategy_backtest_rebalance_ui_read_model(
         .await?;
     let positions = state
         .clickhouse
-        .query_portfolio_positions(
+        .query_strategy_backtest_positions(
             &PortfolioPositionFilter {
                 portfolio_run_id: strategy_backtest_run_id.to_string(),
                 trade_date: Some(selected_trade_date),
@@ -1076,7 +1080,7 @@ async fn strategy_backtest_rebalance_ui_read_model(
         .await?;
     let closed_trades = state
         .clickhouse
-        .query_portfolio_closed_trades(
+        .query_strategy_backtest_closed_trades(
             &PortfolioClosedTradeFilter {
                 portfolio_run_id: strategy_backtest_run_id.to_string(),
                 security_code: None,
@@ -1163,7 +1167,7 @@ async fn list_strategy_backtest_targets(
     Ok(Json(
         state
             .clickhouse
-            .query_portfolio_targets(
+            .query_strategy_backtest_targets(
                 &PortfolioTargetFilter {
                     portfolio_run_id: strategy_backtest_run_id,
                     signal_date: query.signal_date,
@@ -1189,7 +1193,7 @@ async fn list_strategy_backtest_orders(
     Ok(Json(
         state
             .clickhouse
-            .query_portfolio_orders(
+            .query_strategy_backtest_orders(
                 &PortfolioOrderFilter {
                     portfolio_run_id: strategy_backtest_run_id,
                     execution_date: query.execution_date,
@@ -1216,7 +1220,7 @@ async fn list_strategy_backtest_trades(
     Ok(Json(
         state
             .clickhouse
-            .query_portfolio_trades(
+            .query_strategy_backtest_trades(
                 &PortfolioTradeFilter {
                     portfolio_run_id: strategy_backtest_run_id,
                     trade_date: query.trade_date,
@@ -1243,7 +1247,7 @@ async fn list_strategy_backtest_positions(
     Ok(Json(
         state
             .clickhouse
-            .query_portfolio_positions(
+            .query_strategy_backtest_positions(
                 &PortfolioPositionFilter {
                     portfolio_run_id: strategy_backtest_run_id,
                     trade_date: query.trade_date,
@@ -1270,7 +1274,7 @@ async fn list_strategy_backtest_events(
     Ok(Json(
         state
             .clickhouse
-            .query_portfolio_events(
+            .query_strategy_backtest_events(
                 &PortfolioEventFilter {
                     portfolio_run_id: strategy_backtest_run_id,
                     trade_date: query.trade_date,
@@ -1299,7 +1303,7 @@ async fn get_strategy_backtest_performance(
     let window_key = non_empty(query.window_key).unwrap_or_else(default_metric_window);
     let performance = state
         .clickhouse
-        .query_portfolio_performance(
+        .query_strategy_backtest_performance(
             &strategy_backtest_run_id,
             &attempt_id,
             &security_code,
@@ -1308,7 +1312,7 @@ async fn get_strategy_backtest_performance(
         .await?;
     let nav = state
         .clickhouse
-        .query_portfolio_nav(&strategy_backtest_run_id, &attempt_id)
+        .query_strategy_backtest_nav(&strategy_backtest_run_id, &attempt_id)
         .await?;
     let daily_win_rate = daily_win_rate(&nav);
     Ok(Json(match view {
@@ -1342,7 +1346,7 @@ async fn list_strategy_backtest_closed_trades(
     Ok(Json(
         state
             .clickhouse
-            .query_portfolio_closed_trades(
+            .query_strategy_backtest_closed_trades(
                 &PortfolioClosedTradeFilter {
                     portfolio_run_id: strategy_backtest_run_id,
                     security_code: non_empty(query.security_code),
@@ -1369,7 +1373,7 @@ async fn list_strategy_backtest_trade_metrics(
     Ok(Json(
         state
             .clickhouse
-            .query_portfolio_trade_metrics(
+            .query_strategy_backtest_trade_metrics(
                 &PortfolioTradeMetricFilter {
                     portfolio_run_id: strategy_backtest_run_id,
                     window_key: non_empty(query.window_key),
@@ -1381,6 +1385,21 @@ async fn list_strategy_backtest_trade_metrics(
     ))
 }
 
+async fn get_strategy_portfolio_publish_preview(
+    State(state): State<AppState>,
+    Path(strategy_backtest_run_id): Path<String>,
+    Query(query): Query<StrategyPortfolioPublishPreviewQuery>,
+) -> RearviewResult<Json<StrategyPortfolioPublishPreviewResponse>> {
+    Ok(Json(
+        resolve_strategy_portfolio_publish_preview(
+            &state,
+            &strategy_backtest_run_id,
+            &query.source_result_attempt_id,
+        )
+        .await?,
+    ))
+}
+
 async fn create_strategy_portfolio(
     State(state): State<AppState>,
     Json(request): Json<StrategyPortfolioCreateRequest>,
@@ -1388,32 +1407,44 @@ async fn create_strategy_portfolio(
     let name = non_empty(Some(request.name)).ok_or_else(|| {
         RearviewError::Validation("strategy portfolio name must not be empty".to_string())
     })?;
-    let source_run = state
-        .postgres
-        .get_strategy_backtest_run(&request.source_strategy_backtest_run_id)
-        .await?;
-    if source_run.status != "succeeded" {
+    let preview = resolve_strategy_portfolio_publish_preview(
+        &state,
+        &request.source_strategy_backtest_run_id,
+        &request.source_result_attempt_id,
+    )
+    .await?;
+    if !preview.can_publish {
         return Err(RearviewError::Conflict(format!(
-            "source strategy backtest must be succeeded, got {}",
-            source_run.status
+            "strategy portfolio publish preview blocked: {}",
+            preview.blockers.join("; ")
         )));
     }
-    let Some(current_attempt_id) = source_run.current_result_attempt_id.as_deref() else {
+    let Some(planned_live_start_date) = preview.planned_live_start_date else {
         return Err(RearviewError::Conflict(
-            "source strategy backtest has no current_result_attempt_id".to_string(),
+            "strategy portfolio publish preview did not resolve planned_live_start_date"
+                .to_string(),
         ));
     };
-    if current_attempt_id != request.source_result_attempt_id {
-        return Err(RearviewError::Conflict(
-            "source_result_attempt_id does not match source strategy backtest".to_string(),
-        ));
+    if preview.source_signal_date != request.expected_source_signal_date
+        || planned_live_start_date != request.expected_live_start_date
+    {
+        return Err(RearviewError::Conflict(format!(
+            "strategy portfolio publish dates are stale: expected {} -> {}, resolved {} -> {}",
+            request.expected_source_signal_date,
+            request.expected_live_start_date,
+            preview.source_signal_date,
+            planned_live_start_date
+        )));
     }
-
-    let live_start_date =
-        resolve_strategy_portfolio_live_start_date(&state, source_run.end_date).await?;
+    let source_run = state
+        .postgres
+        .get_strategy_backtest_run(&preview.source_strategy_backtest_run_id)
+        .await?;
     let request_hash = hash_json(&json!({
         "source_strategy_backtest_run_id": &source_run.strategy_backtest_run_id,
         "source_result_attempt_id": &request.source_result_attempt_id,
+        "expected_source_signal_date": request.expected_source_signal_date,
+        "expected_live_start_date": request.expected_live_start_date,
         "name": &name,
     }))?;
     let client_request_id = non_empty(request.client_request_id);
@@ -1455,7 +1486,9 @@ async fn create_strategy_portfolio(
                 source_period_key: source_run.period_key.clone(),
                 source_start_date: source_run.start_date,
                 source_end_date: source_run.end_date,
-                live_start_date,
+                initial_signal_date: preview.source_signal_date,
+                live_start_date: planned_live_start_date,
+                pending_buy_signal_snapshot: json!(preview.pending_buy_signals),
                 ui_display_snapshot: source_run.ui_display_snapshot.clone(),
                 client_request_id: client_request_id.clone(),
                 request_hash: request_hash.clone(),
@@ -1493,7 +1526,10 @@ async fn get_strategy_portfolio_dashboard(
             .get_strategy_backtest_run(&portfolio.source_strategy_backtest_run_id)
             .await?;
         let (live_status, curve_source, live_summary) =
-            if let Some(latest_daily_run_id) = portfolio.latest_daily_run_id.as_deref() {
+            if let (Some(latest_daily_run_id), Some(_current_live_result_attempt_id)) = (
+                portfolio.latest_daily_run_id.as_deref(),
+                portfolio.current_live_result_attempt_id.as_deref(),
+            ) {
                 let daily_run = state
                     .postgres
                     .get_strategy_portfolio_daily_run(latest_daily_run_id)
@@ -1504,23 +1540,25 @@ async fn get_strategy_portfolio_dashboard(
                     Some(daily_run.summary),
                 )
             } else {
-                (
-                    "pending_first_run".to_string(),
-                    "source_backtest".to_string(),
-                    None,
-                )
+                ("pending_first_run".to_string(), "none".to_string(), None)
             };
-        let resolved =
-            resolve_strategy_portfolio_result(&state, &portfolio.strategy_portfolio_id).await?;
-        let dashboard = strategy_portfolio_dashboard_read_model(
-            &state,
-            &resolved,
-            &format!(
-                "strategy-portfolio-{}-dashboard",
-                portfolio.strategy_portfolio_id
-            ),
-        )
-        .await?;
+        let dashboard = if live_status == "pending_first_run" {
+            strategy_portfolio_pending_dashboard_read_model(&portfolio)?
+        } else {
+            let resolved =
+                resolve_strategy_portfolio_result(&state, &portfolio.strategy_portfolio_id).await?;
+            strategy_portfolio_dashboard_read_model(
+                &state,
+                &resolved,
+                &format!(
+                    "strategy-portfolio-{}-dashboard",
+                    portfolio.strategy_portfolio_id
+                ),
+            )
+            .await?
+        };
+        let backtest_segment = strategy_portfolio_backtest_segment(&portfolio);
+        let live_segment = strategy_portfolio_live_segment(&portfolio, live_status.clone());
         cards.push(StrategyPortfolioDashboardCard {
             strategy_portfolio_id: portfolio.strategy_portfolio_id,
             portfolio_code: portfolio.portfolio_code,
@@ -1529,13 +1567,16 @@ async fn get_strategy_portfolio_dashboard(
             live_status,
             curve_source,
             latest_daily_run_id: portfolio.latest_daily_run_id,
-            current_result_attempt_id: portfolio.current_result_attempt_id,
+            current_result_attempt_id: portfolio.current_live_result_attempt_id.clone(),
             source_strategy_backtest_run_id: portfolio.source_strategy_backtest_run_id,
             source_result_attempt_id: portfolio.source_result_attempt_id,
             source_period_key: portfolio.source_period_key,
             source_start_date: portfolio.source_start_date,
             source_end_date: portfolio.source_end_date,
+            initial_signal_date: portfolio.initial_signal_date,
             live_start_date: portfolio.live_start_date,
+            backtest_segment,
+            live_segment,
             source_backtest_summary: source_run.summary,
             live_summary,
             ui_display_snapshot: portfolio.ui_display_snapshot,
@@ -1546,6 +1587,7 @@ async fn get_strategy_portfolio_dashboard(
             efficiency: dashboard.efficiency,
             relative: dashboard.relative,
             today_signals: dashboard.today_signals,
+            pending_buy_signals: dashboard.pending_buy_signals,
             curve: dashboard.curve,
             created_at: portfolio.created_at,
             updated_at: portfolio.updated_at,
@@ -1615,7 +1657,7 @@ async fn list_strategy_portfolio_nav(
     let resolved = resolve_strategy_portfolio_result(&state, &strategy_portfolio_id).await?;
     let nav = state
         .clickhouse
-        .query_portfolio_nav(&resolved.portfolio_run_id, &resolved.result_attempt_id)
+        .query_strategy_portfolio_live_nav(&resolved.portfolio_run_id, &resolved.result_attempt_id)
         .await?;
     let benchmark_returns = state
         .clickhouse
@@ -1642,7 +1684,7 @@ async fn get_strategy_portfolio_performance(
     let window_key = non_empty(query.window_key).unwrap_or_else(default_metric_window);
     let performance = state
         .clickhouse
-        .query_portfolio_performance(
+        .query_strategy_portfolio_live_performance(
             &resolved.portfolio_run_id,
             &resolved.result_attempt_id,
             &security_code,
@@ -1651,7 +1693,7 @@ async fn get_strategy_portfolio_performance(
         .await?;
     let nav = state
         .clickhouse
-        .query_portfolio_nav(&resolved.portfolio_run_id, &resolved.result_attempt_id)
+        .query_strategy_portfolio_live_nav(&resolved.portfolio_run_id, &resolved.result_attempt_id)
         .await?;
     Ok(Json(StrategyPortfolioPerformanceView {
         source: resolved.source,
@@ -1665,11 +1707,28 @@ async fn list_strategy_portfolio_signals(
     State(state): State<AppState>,
     Path(strategy_portfolio_id): Path<String>,
     Query(query): Query<PortfolioTargetQuery>,
-) -> RearviewResult<Json<StrategyPortfolioListResult<StrategyPortfolioTargetRecord>>> {
+) -> RearviewResult<Json<StrategyPortfolioSignalsResponse>> {
+    let portfolio = state
+        .postgres
+        .get_strategy_portfolio(&strategy_portfolio_id)
+        .await?;
+    if portfolio.latest_daily_run_id.is_none() || portfolio.current_live_result_attempt_id.is_none()
+    {
+        let page = page(query.limit, query.offset)?;
+        return Ok(Json(StrategyPortfolioSignalsResponse {
+            source: "publish_preview".to_string(),
+            signal_source: "publish_preview".to_string(),
+            items: Vec::new(),
+            pending_buy_signals: pending_dashboard_signals(&portfolio)?,
+            limit: page.limit,
+            offset: page.offset,
+            has_more: false,
+        }));
+    }
     let resolved = resolve_strategy_portfolio_result(&state, &strategy_portfolio_id).await?;
     let result = state
         .clickhouse
-        .query_portfolio_targets(
+        .query_strategy_portfolio_live_targets(
             &PortfolioTargetFilter {
                 portfolio_run_id: resolved.portfolio_run_id,
                 signal_date: query.signal_date,
@@ -1684,9 +1743,11 @@ async fn list_strategy_portfolio_signals(
         &format!("strategy-portfolio-{strategy_portfolio_id}-signals-display"),
     )
     .await?;
-    Ok(Json(StrategyPortfolioListResult {
+    Ok(Json(StrategyPortfolioSignalsResponse {
         source: resolved.source,
+        signal_source: "live_daily_run".to_string(),
         items,
+        pending_buy_signals: Vec::new(),
         limit: result.limit,
         offset: result.offset,
         has_more: result.has_more,
@@ -1697,10 +1758,38 @@ async fn list_strategy_portfolio_signal_timeline(
     State(state): State<AppState>,
     Path(strategy_portfolio_id): Path<String>,
 ) -> RearviewResult<Json<StrategyPortfolioSignalTimelineResponse>> {
+    let portfolio = state
+        .postgres
+        .get_strategy_portfolio(&strategy_portfolio_id)
+        .await?;
+    if portfolio.latest_daily_run_id.is_none() || portfolio.current_live_result_attempt_id.is_none()
+    {
+        let mut counts = BTreeMap::<NaiveDate, usize>::new();
+        for signal in serde_json::from_value::<Vec<StrategyPortfolioPendingBuySignal>>(
+            portfolio.pending_buy_signal_snapshot,
+        )? {
+            *counts.entry(signal.signal_date).or_default() += 1;
+        }
+        let trade_dates = counts
+            .into_iter()
+            .map(
+                |(trade_date, target_count)| StrategyPortfolioSignalTimelinePoint {
+                    trade_date,
+                    target_count,
+                    signal_count: Some(target_count),
+                },
+            )
+            .collect();
+        return Ok(Json(StrategyPortfolioSignalTimelineResponse {
+            source: "publish_preview".to_string(),
+            signal_source: "publish_preview".to_string(),
+            trade_dates,
+        }));
+    }
     let resolved = resolve_strategy_portfolio_result(&state, &strategy_portfolio_id).await?;
     let result = state
         .clickhouse
-        .query_portfolio_targets(
+        .query_strategy_portfolio_live_targets(
             &PortfolioTargetFilter {
                 portfolio_run_id: resolved.portfolio_run_id,
                 signal_date: None,
@@ -1728,6 +1817,7 @@ async fn list_strategy_portfolio_signal_timeline(
         .collect();
     Ok(Json(StrategyPortfolioSignalTimelineResponse {
         source: resolved.source,
+        signal_source: "live_daily_run".to_string(),
         trade_dates,
     }))
 }
@@ -1740,7 +1830,7 @@ async fn list_strategy_portfolio_positions(
     let resolved = resolve_strategy_portfolio_result(&state, &strategy_portfolio_id).await?;
     let result = state
         .clickhouse
-        .query_portfolio_positions(
+        .query_strategy_portfolio_live_positions(
             &PortfolioPositionFilter {
                 portfolio_run_id: resolved.portfolio_run_id,
                 trade_date: query.trade_date,
@@ -1767,11 +1857,11 @@ async fn list_strategy_portfolio_rebalance_records(
     let resolved = resolve_strategy_portfolio_result(&state, &strategy_portfolio_id).await?;
     let nav = state
         .clickhouse
-        .query_portfolio_nav(&resolved.portfolio_run_id, &resolved.result_attempt_id)
+        .query_strategy_portfolio_live_nav(&resolved.portfolio_run_id, &resolved.result_attempt_id)
         .await?;
     let trade_counts = state
         .clickhouse
-        .query_portfolio_rebalance_trade_counts(
+        .query_strategy_portfolio_live_rebalance_trade_counts(
             &resolved.portfolio_run_id,
             &resolved.result_attempt_id,
         )
@@ -1800,7 +1890,7 @@ async fn list_strategy_portfolio_rebalance_records(
     };
     let trades = state
         .clickhouse
-        .query_portfolio_trades(
+        .query_strategy_portfolio_live_trades(
             &PortfolioTradeFilter {
                 portfolio_run_id: resolved.portfolio_run_id.clone(),
                 trade_date: Some(selected_trade_date),
@@ -1812,7 +1902,7 @@ async fn list_strategy_portfolio_rebalance_records(
         .await?;
     let positions = state
         .clickhouse
-        .query_portfolio_positions(
+        .query_strategy_portfolio_live_positions(
             &PortfolioPositionFilter {
                 portfolio_run_id: resolved.portfolio_run_id.clone(),
                 trade_date: Some(selected_trade_date),
@@ -1824,7 +1914,7 @@ async fn list_strategy_portfolio_rebalance_records(
         .await?;
     let closed_trades = state
         .clickhouse
-        .query_portfolio_closed_trades(
+        .query_strategy_portfolio_live_closed_trades(
             &PortfolioClosedTradeFilter {
                 portfolio_run_id: resolved.portfolio_run_id.clone(),
                 security_code: None,
@@ -3377,6 +3467,8 @@ struct StrategyPortfolioCreateRequest {
     source_strategy_backtest_run_id: String,
     source_result_attempt_id: String,
     name: String,
+    expected_source_signal_date: NaiveDate,
+    expected_live_start_date: NaiveDate,
     #[serde(default)]
     client_request_id: Option<String>,
 }
@@ -3386,6 +3478,61 @@ struct StrategyPortfolioResponse {
     #[serde(flatten)]
     record: StrategyPortfolioRecord,
     live_status: String,
+    backtest_segment: StrategyPortfolioBacktestSegment,
+    live_segment: StrategyPortfolioLiveSegment,
+}
+
+#[derive(Debug, Deserialize)]
+struct StrategyPortfolioPublishPreviewQuery {
+    source_result_attempt_id: String,
+}
+
+#[derive(Debug, Clone, Serialize)]
+struct StrategyPortfolioPublishPreviewResponse {
+    can_publish: bool,
+    blockers: Vec<String>,
+    source_strategy_backtest_run_id: String,
+    source_result_attempt_id: String,
+    source_signal_date: NaiveDate,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    planned_live_start_date: Option<NaiveDate>,
+    source_period_key: String,
+    source_start_date: NaiveDate,
+    source_end_date: NaiveDate,
+    benchmark_security_code: String,
+    pending_buy_signals: Vec<StrategyPortfolioPendingBuySignal>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+struct StrategyPortfolioPendingBuySignal {
+    security_code: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    security_name: Option<String>,
+    source_rank: u32,
+    source_score: f64,
+    signal_date: NaiveDate,
+    execution_date: NaiveDate,
+}
+
+#[derive(Debug, Clone, Serialize)]
+struct StrategyPortfolioBacktestSegment {
+    source_strategy_backtest_run_id: String,
+    source_result_attempt_id: String,
+    period_key: String,
+    start_date: NaiveDate,
+    end_date: NaiveDate,
+    benchmark_security_code: String,
+}
+
+#[derive(Debug, Clone, Serialize)]
+struct StrategyPortfolioLiveSegment {
+    live_status: String,
+    live_start_date: NaiveDate,
+    initial_signal_date: NaiveDate,
+    latest_daily_run_id: Option<String>,
+    current_live_result_attempt_id: Option<String>,
+    performance_source: String,
+    signal_source: String,
 }
 
 #[derive(Debug, Serialize)]
@@ -3408,7 +3555,10 @@ struct StrategyPortfolioDashboardCard {
     source_period_key: String,
     source_start_date: NaiveDate,
     source_end_date: NaiveDate,
+    initial_signal_date: NaiveDate,
     live_start_date: NaiveDate,
+    backtest_segment: StrategyPortfolioBacktestSegment,
+    live_segment: StrategyPortfolioLiveSegment,
     source_backtest_summary: Value,
     live_summary: Option<Value>,
     ui_display_snapshot: Value,
@@ -3419,6 +3569,7 @@ struct StrategyPortfolioDashboardCard {
     efficiency: Vec<StrategyPortfolioDashboardMetric>,
     relative: Vec<StrategyPortfolioDashboardMetric>,
     today_signals: Vec<StrategyPortfolioDashboardSignal>,
+    pending_buy_signals: Vec<StrategyPortfolioDashboardSignal>,
     curve: Vec<StrategyPortfolioDashboardCurvePoint>,
     created_at: DateTime<Utc>,
     updated_at: DateTime<Utc>,
@@ -3432,11 +3583,14 @@ struct StrategyPortfolioDashboardMetric {
     tone: &'static str,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Clone, Serialize)]
 struct StrategyPortfolioDashboardSignal {
     code: String,
     name: String,
     score: f64,
+    rank: u32,
+    signal_date: NaiveDate,
+    execution_date: NaiveDate,
 }
 
 #[derive(Debug, Serialize)]
@@ -3493,6 +3647,17 @@ struct StrategyPortfolioListResult<T> {
 }
 
 #[derive(Debug, Serialize)]
+struct StrategyPortfolioSignalsResponse {
+    source: String,
+    signal_source: String,
+    items: Vec<StrategyPortfolioTargetRecord>,
+    pending_buy_signals: Vec<StrategyPortfolioDashboardSignal>,
+    limit: i64,
+    offset: i64,
+    has_more: bool,
+}
+
+#[derive(Debug, Serialize)]
 struct StrategyPortfolioTargetRecord {
     #[serde(flatten)]
     target: PortfolioTargetRecord,
@@ -3502,6 +3667,7 @@ struct StrategyPortfolioTargetRecord {
 #[derive(Debug, Serialize)]
 struct StrategyPortfolioSignalTimelineResponse {
     source: String,
+    signal_source: String,
     trade_dates: Vec<StrategyPortfolioSignalTimelinePoint>,
 }
 
@@ -3538,6 +3704,7 @@ struct StrategyPortfolioDashboardReadModel {
     efficiency: Vec<StrategyPortfolioDashboardMetric>,
     relative: Vec<StrategyPortfolioDashboardMetric>,
     today_signals: Vec<StrategyPortfolioDashboardSignal>,
+    pending_buy_signals: Vec<StrategyPortfolioDashboardSignal>,
     curve: Vec<StrategyPortfolioDashboardCurvePoint>,
 }
 
@@ -5081,15 +5248,180 @@ fn response_view(view: &Option<String>) -> RearviewResult<ResponseView> {
 }
 
 fn strategy_portfolio_response(record: StrategyPortfolioRecord) -> StrategyPortfolioResponse {
-    let live_status =
-        if record.latest_daily_run_id.is_some() && record.current_result_attempt_id.is_some() {
-            "succeeded".to_string()
-        } else {
-            "pending_first_run".to_string()
-        };
+    let live_status = if record.latest_daily_run_id.is_some()
+        && record.current_live_result_attempt_id.is_some()
+    {
+        "succeeded".to_string()
+    } else {
+        "pending_first_run".to_string()
+    };
+    let backtest_segment = strategy_portfolio_backtest_segment(&record);
+    let live_segment = strategy_portfolio_live_segment(&record, live_status.clone());
     StrategyPortfolioResponse {
         record,
         live_status,
+        backtest_segment,
+        live_segment,
+    }
+}
+
+async fn resolve_strategy_portfolio_publish_preview(
+    state: &AppState,
+    strategy_backtest_run_id: &str,
+    source_result_attempt_id: &str,
+) -> RearviewResult<StrategyPortfolioPublishPreviewResponse> {
+    let source_run = state
+        .postgres
+        .get_strategy_backtest_run(strategy_backtest_run_id)
+        .await?;
+    let mut blockers = Vec::new();
+    if source_run.status != "succeeded" {
+        blockers.push(format!(
+            "source strategy backtest must be succeeded, got {}",
+            source_run.status
+        ));
+    }
+    match source_run.current_result_attempt_id.as_deref() {
+        Some(current_attempt_id) if current_attempt_id == source_result_attempt_id => {}
+        Some(_) => blockers
+            .push("source_result_attempt_id does not match source strategy backtest".to_string()),
+        None => {
+            blockers.push("source strategy backtest has no current_result_attempt_id".to_string())
+        }
+    }
+
+    let source_signal_date = source_run.end_date;
+    let planned_live_start_date =
+        match resolve_strategy_portfolio_live_start_date(state, source_signal_date).await {
+            Ok(date) => Some(date),
+            Err(error) => {
+                blockers.push(error.to_string());
+                None
+            }
+        };
+
+    let mut pending_buy_signals = Vec::new();
+    if blockers.is_empty()
+        && let Some(planned_live_start_date) = planned_live_start_date
+    {
+        pending_buy_signals = compile_strategy_portfolio_pending_buy_signals(
+            state,
+            &source_run,
+            source_result_attempt_id,
+            source_signal_date,
+            planned_live_start_date,
+        )
+        .await?;
+    }
+
+    Ok(StrategyPortfolioPublishPreviewResponse {
+        can_publish: blockers.is_empty(),
+        blockers,
+        source_strategy_backtest_run_id: source_run.strategy_backtest_run_id,
+        source_result_attempt_id: source_result_attempt_id.to_string(),
+        source_signal_date,
+        planned_live_start_date,
+        source_period_key: source_run.period_key,
+        source_start_date: source_run.start_date,
+        source_end_date: source_run.end_date,
+        benchmark_security_code: source_run.benchmark_security_code,
+        pending_buy_signals,
+    })
+}
+
+async fn compile_strategy_portfolio_pending_buy_signals(
+    state: &AppState,
+    source_run: &StrategyBacktestRunRecord,
+    source_result_attempt_id: &str,
+    source_signal_date: NaiveDate,
+    planned_live_start_date: NaiveDate,
+) -> RearviewResult<Vec<StrategyPortfolioPendingBuySignal>> {
+    let rule = serde_json::from_value::<RuleVersionSpec>(source_run.rule_snapshot.clone())?;
+    let execution_config =
+        serde_json::from_value::<BacktestExecutionConfig>(source_run.execution_config.clone())?;
+    let planner = QueryPlanner::new(state.catalog.clone());
+    let settings = QuerySettings {
+        max_execution_time_seconds: state.config.clickhouse.max_execution_time_seconds,
+        max_rows_to_read: state.config.clickhouse.max_rows_to_read,
+        max_bytes_to_read: state.config.clickhouse.max_bytes_to_read,
+    };
+    let compiled = planner.compile_backtest_signals(
+        &rule,
+        source_signal_date,
+        source_signal_date,
+        execution_config.signal_policy.buy_signal_top_n,
+        settings,
+    )?;
+    let query_id = format!(
+        "strategy-portfolio-publish-preview-{}-{}",
+        source_run.strategy_backtest_run_id, source_result_attempt_id
+    );
+    let rows = state
+        .clickhouse
+        .query_backtest_signal_rows(&compiled.sql, &query_id)
+        .await?;
+    let security_codes = rows
+        .iter()
+        .map(|row| row.security_code.clone())
+        .collect::<BTreeSet<_>>()
+        .into_iter()
+        .collect::<Vec<_>>();
+    let display_by_code =
+        required_security_display_map(state, &security_codes, &format!("{query_id}-display"))
+            .await?;
+    let mut signals = rows
+        .into_iter()
+        .filter(|row| row.trade_date == source_signal_date)
+        .map(|row| StrategyPortfolioPendingBuySignal {
+            security_name: security_display_name(&display_by_code, &row.security_code),
+            security_code: row.security_code,
+            source_rank: row.signal_rank,
+            source_score: row.score,
+            signal_date: source_signal_date,
+            execution_date: planned_live_start_date,
+        })
+        .collect::<Vec<_>>();
+    signals.sort_by_key(|signal| (signal.source_rank, signal.security_code.clone()));
+    Ok(signals)
+}
+
+fn strategy_portfolio_backtest_segment(
+    record: &StrategyPortfolioRecord,
+) -> StrategyPortfolioBacktestSegment {
+    StrategyPortfolioBacktestSegment {
+        source_strategy_backtest_run_id: record.source_strategy_backtest_run_id.clone(),
+        source_result_attempt_id: record.source_result_attempt_id.clone(),
+        period_key: record.source_period_key.clone(),
+        start_date: record.source_start_date,
+        end_date: record.source_end_date,
+        benchmark_security_code: record.benchmark_security_code.clone(),
+    }
+}
+
+fn strategy_portfolio_live_segment(
+    record: &StrategyPortfolioRecord,
+    live_status: String,
+) -> StrategyPortfolioLiveSegment {
+    let performance_source = if record.latest_daily_run_id.is_some()
+        && record.current_live_result_attempt_id.is_some()
+    {
+        "live_daily_run"
+    } else {
+        "none"
+    };
+    let signal_source = if performance_source == "live_daily_run" {
+        "live_daily_run"
+    } else {
+        "publish_preview"
+    };
+    StrategyPortfolioLiveSegment {
+        live_status,
+        live_start_date: record.live_start_date,
+        initial_signal_date: record.initial_signal_date,
+        latest_daily_run_id: record.latest_daily_run_id.clone(),
+        current_live_result_attempt_id: record.current_live_result_attempt_id.clone(),
+        performance_source: performance_source.to_string(),
+        signal_source: signal_source.to_string(),
     }
 }
 
@@ -5103,7 +5435,7 @@ async fn resolve_strategy_portfolio_result(
         .await?;
     if let (Some(latest_daily_run_id), Some(result_attempt_id)) = (
         portfolio.latest_daily_run_id.as_deref(),
-        portfolio.current_result_attempt_id.as_deref(),
+        portfolio.current_live_result_attempt_id.as_deref(),
     ) {
         let daily_run = state
             .postgres
@@ -5114,19 +5446,14 @@ async fn resolve_strategy_portfolio_result(
             portfolio_run_id: daily_run.strategy_portfolio_daily_run_id,
             result_attempt_id: result_attempt_id.to_string(),
             benchmark_security_code: portfolio.benchmark_security_code,
-            start_date: daily_run.run_start_date,
+            start_date: portfolio.live_start_date,
             end_date: daily_run.trade_date,
         });
     }
 
-    Ok(StrategyPortfolioResolvedResult {
-        source: "source_backtest".to_string(),
-        portfolio_run_id: portfolio.source_strategy_backtest_run_id,
-        result_attempt_id: portfolio.source_result_attempt_id,
-        benchmark_security_code: portfolio.benchmark_security_code,
-        start_date: portfolio.source_start_date,
-        end_date: portfolio.source_end_date,
-    })
+    Err(RearviewError::PortfolioPendingFirstRun(format!(
+        "strategy portfolio {strategy_portfolio_id} has no live daily run result yet"
+    )))
 }
 
 async fn strategy_portfolio_dashboard_read_model(
@@ -5136,7 +5463,7 @@ async fn strategy_portfolio_dashboard_read_model(
 ) -> RearviewResult<StrategyPortfolioDashboardReadModel> {
     let nav = state
         .clickhouse
-        .query_portfolio_nav(&resolved.portfolio_run_id, &resolved.result_attempt_id)
+        .query_strategy_portfolio_live_nav(&resolved.portfolio_run_id, &resolved.result_attempt_id)
         .await?;
     let latest_nav = nav.last().map(|row| row.nav);
     let recent_change = nav.last().and_then(|row| row.daily_return);
@@ -5180,7 +5507,11 @@ async fn strategy_portfolio_dashboard_read_model(
         dashboard_metrics(performance.as_ref(), excess_return, daily_win_rate);
     let targets = state
         .clickhouse
-        .query_portfolio_latest_targets(&resolved.portfolio_run_id, &resolved.result_attempt_id, 5)
+        .query_strategy_portfolio_live_latest_targets(
+            &resolved.portfolio_run_id,
+            &resolved.result_attempt_id,
+            5,
+        )
         .await?;
     let security_codes = collect_portfolio_target_security_codes(&targets);
     let display_by_code = required_security_display_map(
@@ -5191,15 +5522,20 @@ async fn strategy_portfolio_dashboard_read_model(
     .await?;
     let today_signals = targets
         .into_iter()
-        .filter_map(|target| {
-            target
-                .source_score
-                .map(|score| StrategyPortfolioDashboardSignal {
+        .filter_map(|target| match (target.source_rank, target.source_score) {
+            (Some(rank), Some(score)) => {
+                let rank = u32::try_from(rank).ok()?;
+                Some(StrategyPortfolioDashboardSignal {
                     name: security_display_name(&display_by_code, &target.security_code)
                         .unwrap_or_else(|| target.security_code.clone()),
                     code: target.security_code,
                     score,
+                    rank,
+                    signal_date: target.signal_date,
+                    execution_date: target.execution_date,
                 })
+            }
+            _ => None,
         })
         .collect();
 
@@ -5211,8 +5547,48 @@ async fn strategy_portfolio_dashboard_read_model(
         efficiency,
         relative,
         today_signals,
+        pending_buy_signals: Vec::new(),
         curve,
     })
+}
+
+fn strategy_portfolio_pending_dashboard_read_model(
+    portfolio: &StrategyPortfolioRecord,
+) -> RearviewResult<StrategyPortfolioDashboardReadModel> {
+    let pending_signals = pending_dashboard_signals(portfolio)?;
+    Ok(StrategyPortfolioDashboardReadModel {
+        latest_nav: None,
+        recent_change: None,
+        returns: Vec::new(),
+        risk: Vec::new(),
+        efficiency: Vec::new(),
+        relative: Vec::new(),
+        today_signals: pending_signals.clone(),
+        pending_buy_signals: pending_signals,
+        curve: Vec::new(),
+    })
+}
+
+fn pending_dashboard_signals(
+    portfolio: &StrategyPortfolioRecord,
+) -> RearviewResult<Vec<StrategyPortfolioDashboardSignal>> {
+    let pending = serde_json::from_value::<Vec<StrategyPortfolioPendingBuySignal>>(
+        portfolio.pending_buy_signal_snapshot.clone(),
+    )?;
+    Ok(pending
+        .into_iter()
+        .map(|signal| StrategyPortfolioDashboardSignal {
+            name: signal
+                .security_name
+                .clone()
+                .unwrap_or_else(|| signal.security_code.clone()),
+            code: signal.security_code,
+            score: signal.source_score,
+            rank: signal.source_rank,
+            signal_date: signal.signal_date,
+            execution_date: signal.execution_date,
+        })
+        .collect())
 }
 
 async fn optional_portfolio_performance_metric(
@@ -5224,7 +5600,7 @@ async fn optional_portfolio_performance_metric(
 ) -> RearviewResult<Option<PortfolioPerformanceMetricRecord>> {
     match state
         .clickhouse
-        .query_portfolio_performance(
+        .query_strategy_portfolio_live_performance(
             portfolio_run_id,
             result_attempt_id,
             security_code,
@@ -5400,10 +5776,21 @@ async fn resolve_strategy_portfolio_live_start_date(
             &format!("strategy-portfolio-live-start-{source_end_date}"),
         )
         .await?;
-    Ok(trade_dates
+    next_trade_date_after(trade_dates, source_end_date).ok_or_else(|| {
+        RearviewError::Conflict(format!(
+            "could not resolve next trading date after source_signal_date {source_end_date}"
+        ))
+    })
+}
+
+fn next_trade_date_after(
+    mut trade_dates: Vec<NaiveDate>,
+    source_signal_date: NaiveDate,
+) -> Option<NaiveDate> {
+    trade_dates.sort_unstable();
+    trade_dates
         .into_iter()
-        .find(|date| *date > source_end_date)
-        .unwrap_or(source_end_date))
+        .find(|date| *date > source_signal_date)
 }
 
 struct StrategyBacktestRiskFreePreflight<'a> {
@@ -6175,6 +6562,58 @@ mod tests {
     }
 
     #[test]
+    fn pending_dashboard_read_model_should_only_use_publish_snapshot() {
+        let portfolio = strategy_portfolio_record(json!([
+            {
+                "security_code": "600000.SH",
+                "security_name": "浦发银行",
+                "source_rank": 1,
+                "source_score": 91.5,
+                "signal_date": "2026-06-26",
+                "execution_date": "2026-06-29"
+            }
+        ]));
+
+        let model = strategy_portfolio_pending_dashboard_read_model(&portfolio)
+            .expect("pending dashboard model should parse snapshot");
+
+        assert_eq!(model.latest_nav, None);
+        assert_eq!(model.recent_change, None);
+        assert!(model.returns.is_empty());
+        assert!(model.risk.is_empty());
+        assert!(model.efficiency.is_empty());
+        assert!(model.relative.is_empty());
+        assert!(model.curve.is_empty());
+        assert_eq!(model.pending_buy_signals.len(), 1);
+        assert_eq!(model.today_signals.len(), 1);
+        assert_eq!(model.pending_buy_signals[0].code, "600000.SH");
+        assert_eq!(model.today_signals[0].code, "600000.SH");
+        assert_eq!(model.pending_buy_signals[0].rank, 1);
+        assert_eq!(model.pending_buy_signals[0].signal_date, date("2026-06-26"));
+        assert_eq!(
+            model.pending_buy_signals[0].execution_date,
+            date("2026-06-29")
+        );
+    }
+
+    #[test]
+    fn next_trade_date_after_should_resolve_weekend_publish_sample() {
+        let trade_dates = vec![date("2026-06-30"), date("2026-06-26"), date("2026-06-29")];
+
+        assert_eq!(
+            next_trade_date_after(trade_dates, date("2026-06-26")),
+            Some(date("2026-06-29"))
+        );
+    }
+
+    #[test]
+    fn next_trade_date_after_should_return_none_without_later_trade_date() {
+        let trade_dates = vec![date("2026-06-25")];
+
+        assert_eq!(next_trade_date_after(trade_dates, date("2026-06-25")), None);
+    }
+
+    #[test]
     fn strategy_backtest_overview_ui_response_should_stay_compact() {
         let value = serde_json::to_value(StrategyBacktestOverviewUiResponse {
             status: StrategyBacktestRunStatusView {
@@ -6580,6 +7019,41 @@ mod tests {
             end_date: date(end_date),
             preview_row_limit: Some(top_n),
             top_n: None,
+        }
+    }
+
+    fn strategy_portfolio_record(pending_buy_signal_snapshot: Value) -> StrategyPortfolioRecord {
+        StrategyPortfolioRecord {
+            strategy_portfolio_id: "portfolio-1".to_string(),
+            portfolio_code: "PF-20260627-0001".to_string(),
+            name: "低位反转组合".to_string(),
+            status: "active".to_string(),
+            rule_snapshot: json!({"universe": "cn_a_share"}),
+            rule_hash: "rule-hash".to_string(),
+            execution_config: json!({"signal_policy": {"buy_signal_top_n": 5}}),
+            execution_config_hash: "execution-hash".to_string(),
+            benchmark_security_code: "000300.SH".to_string(),
+            price_basis: "backward_adjusted".to_string(),
+            catalog_hash: Some("catalog-hash".to_string()),
+            required_metrics: json!([]),
+            required_marts: json!([]),
+            source_strategy_backtest_run_id: "backtest-run-1".to_string(),
+            source_result_attempt_id: "attempt-1".to_string(),
+            source_period_key: "1y".to_string(),
+            source_start_date: date("2025-06-26"),
+            source_end_date: date("2026-06-26"),
+            initial_signal_date: date("2026-06-26"),
+            live_start_date: date("2026-06-29"),
+            pending_buy_signal_snapshot,
+            latest_daily_run_id: None,
+            current_result_attempt_id: None,
+            current_live_result_attempt_id: None,
+            ui_display_snapshot: json!({}),
+            client_request_id: Some("request-1".to_string()),
+            request_hash: "request-hash".to_string(),
+            created_at: Utc::now(),
+            updated_at: Utc::now(),
+            archived_at: None,
         }
     }
 

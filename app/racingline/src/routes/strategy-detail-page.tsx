@@ -46,8 +46,10 @@ import {
   useStrategyPortfolioSignalsQuery,
   useStrategyPortfolioSignalTimelineQuery,
 } from "@/api/hooks"
+import { ApiError } from "@/api/client"
 import { cn } from "@/lib/utils"
 import type {
+  StrategyPortfolioDashboardCard,
   StrategyBacktestNavPoint,
   StrategyBacktestRebalanceRecord,
   StrategyBacktestTargetRecord,
@@ -82,9 +84,12 @@ type SignalScoreItem = {
 
 type SignalStock = {
   code: string
+  executionDate?: string
   name: string
+  rank?: number
   score: number
   scoreItems: SignalScoreItem[]
+  signalDate?: string
 }
 
 type SignalPool = {
@@ -100,9 +105,14 @@ function StrategyDetailPage() {
   const rebalanceDateScrollerRef = useRef<HTMLDivElement | null>(null)
   const strategyPortfolioId = portfolioId ?? null
   const portfolioQuery = useStrategyPortfolioQuery(strategyPortfolioId)
-  const navQuery = useStrategyPortfolioNavQuery(strategyPortfolioId)
-  const performanceQuery =
-    useStrategyPortfolioPerformanceQuery(strategyPortfolioId)
+  const isKnownPendingFirstRun =
+    portfolioQuery.data?.live_status === "pending_first_run"
+  const liveResultPortfolioId =
+    !portfolioQuery.data || isKnownPendingFirstRun ? null : strategyPortfolioId
+  const navQuery = useStrategyPortfolioNavQuery(liveResultPortfolioId)
+  const performanceQuery = useStrategyPortfolioPerformanceQuery(
+    liveResultPortfolioId
+  )
   const signalTimelineQuery =
     useStrategyPortfolioSignalTimelineQuery(strategyPortfolioId)
   const latestSignalDate =
@@ -115,29 +125,39 @@ function StrategyDetailPage() {
   )
   const latestNavDate = navQuery.data?.points.at(-1)?.trade_date ?? null
   const positionsQuery = useStrategyPortfolioPositionsQuery(
-    strategyPortfolioId,
+    liveResultPortfolioId,
     latestNavDate
   )
   const rebalanceRecordsQuery = useStrategyPortfolioRebalanceRecordsQuery(
-    strategyPortfolioId,
+    liveResultPortfolioId,
     selectedRebalanceDate || null
   )
+  const isPendingFirstRun =
+    isKnownPendingFirstRun ||
+    isPortfolioPendingFirstRunError(navQuery.error) ||
+    isPortfolioPendingFirstRunError(performanceQuery.error) ||
+    isPortfolioPendingFirstRunError(positionsQuery.error) ||
+    isPortfolioPendingFirstRunError(rebalanceRecordsQuery.error)
   const portfolio = portfolioQuery.data
     ? buildDetailPortfolioView(
         portfolioQuery.data,
-        navQuery.data?.points ?? [],
-        performanceQuery.data ?? null
+        isPendingFirstRun ? [] : (navQuery.data?.points ?? []),
+        isPendingFirstRun ? null : (performanceQuery.data ?? null)
       )
     : null
   const signalPools = buildSignalPoolsFromApi(
     signalTimelineQuery.data?.trade_dates ?? [],
     latestSignalDate,
-    signalsQuery.data?.items ?? []
+    signalsQuery.data?.items ?? [],
+    signalsQuery.data?.pending_buy_signals ?? []
   )
-  const records = (rebalanceRecordsQuery.data?.records ?? []).map(
-    mapApiRebalanceRecord
-  )
-  const livePositionCount = positionsQuery.data?.items.length ?? null
+  const records = isPendingFirstRun
+    ? []
+    : (rebalanceRecordsQuery.data?.records ?? []).map(mapApiRebalanceRecord)
+  const livePositionCount =
+    isPendingFirstRun || positionsQuery.isError
+      ? null
+      : (positionsQuery.data?.items.length ?? null)
 
   useEffect(() => {
     const scroller = rebalanceDateScrollerRef.current
@@ -194,7 +214,9 @@ function StrategyDetailPage() {
   const latestPoint = portfolio.curve.at(-1)
   const previousPoint = portfolio.curve.at(-2)
   const latestStrategyReturn =
-    latestPoint && previousPoint ? latestPoint.nav / previousPoint.nav - 1 : null
+    latestPoint && previousPoint
+      ? latestPoint.nav / previousPoint.nav - 1
+      : null
   const latestBenchmarkReturn =
     latestPoint && previousPoint
       ? latestPoint.benchmark / previousPoint.benchmark - 1
@@ -273,11 +295,13 @@ function StrategyDetailPage() {
           <div className="flex w-full flex-col gap-4">
             <section className="flex flex-col gap-3">
               <div className="flex items-center justify-between gap-3">
-                <div className="text-sm font-medium">策略信号</div>
+                <div className="text-sm font-medium">
+                  {isPendingFirstRun ? "待调入信号" : "策略信号"}
+                </div>
                 {selectedSignalPool ? (
                   <div className="text-xs text-muted-foreground tabular-nums">
                     {selectedSignalPool.date} / {selectedSignalPool.signalCount}{" "}
-                    次
+                    只
                   </div>
                 ) : null}
               </div>
@@ -317,7 +341,9 @@ function StrategyDetailPage() {
                             <TableHead className="h-7 w-[9.5rem] px-1">
                               股票
                             </TableHead>
-                            <TableHead className="h-7 px-1">得分项</TableHead>
+                            <TableHead className="h-7 px-1">
+                              {isPendingFirstRun ? "信号 / 建仓" : "得分项"}
+                            </TableHead>
                             <TableHead className="h-7 w-16 px-1 text-right">
                               得分
                             </TableHead>
@@ -339,11 +365,9 @@ function StrategyDetailPage() {
                               <TableCell className="px-1 py-1">
                                 <div
                                   className="w-full truncate text-muted-foreground tabular-nums"
-                                  title={formatSignalScoreItems(
-                                    stock.scoreItems
-                                  )}
+                                  title={formatSignalDetail(stock)}
                                 >
-                                  {formatSignalScoreItems(stock.scoreItems)}
+                                  {formatSignalDetail(stock)}
                                 </div>
                               </TableCell>
                               <TableCell className="px-1 py-1 text-right">
@@ -374,7 +398,11 @@ function StrategyDetailPage() {
                 <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
                   <DetailSummaryMetric
                     label="业绩日期"
-                    value={latestPoint?.time ?? portfolio.startDate}
+                    value={
+                      isPendingFirstRun
+                        ? "待建仓"
+                        : (latestPoint?.time ?? portfolio.startDate)
+                    }
                   />
                   <DetailSummaryMetric
                     label="业绩基准"
@@ -386,7 +414,9 @@ function StrategyDetailPage() {
                       <DetailSummaryMetric
                         label="策略净值"
                         value={latestPoint.nav.toFixed(4)}
-                        detail={formatOptionalSignedPercent(latestStrategyReturn)}
+                        detail={formatOptionalSignedPercent(
+                          latestStrategyReturn
+                        )}
                         detailClassName={getSignedValueClassName(
                           formatOptionalSignedPercent(latestStrategyReturn)
                         )}
@@ -394,7 +424,9 @@ function StrategyDetailPage() {
                       <DetailSummaryMetric
                         label="基准净值"
                         value={latestPoint.benchmark.toFixed(4)}
-                        detail={formatOptionalSignedPercent(latestBenchmarkReturn)}
+                        detail={formatOptionalSignedPercent(
+                          latestBenchmarkReturn
+                        )}
                         detailClassName={getSignedValueClassName(
                           formatOptionalSignedPercent(latestBenchmarkReturn)
                         )}
@@ -402,15 +434,26 @@ function StrategyDetailPage() {
                     </>
                   ) : null}
                 </div>
-                <div className="grid gap-x-6 gap-y-3 md:grid-cols-2 xl:grid-cols-4">
-                  {metricGroups.map((group) => (
-                    <MetricGroup
-                      key={group.title}
-                      title={group.title}
-                      metrics={group.metrics}
-                    />
-                  ))}
-                </div>
+                {isPendingFirstRun ? (
+                  <Empty className="border border-dashed border-border/70 py-8">
+                    <EmptyHeader>
+                      <EmptyTitle>尚未产生 live 业绩</EmptyTitle>
+                      <EmptyDescription>
+                        首个建仓日运行成功后，这里会展示组合 live 净值和绩效。
+                      </EmptyDescription>
+                    </EmptyHeader>
+                  </Empty>
+                ) : (
+                  <div className="grid gap-x-6 gap-y-3 md:grid-cols-2 xl:grid-cols-4">
+                    {metricGroups.map((group) => (
+                      <MetricGroup
+                        key={group.title}
+                        title={group.title}
+                        metrics={group.metrics}
+                      />
+                    ))}
+                  </div>
+                )}
               </div>
             </section>
 
@@ -441,7 +484,9 @@ function StrategyDetailPage() {
                   <EmptyHeader>
                     <EmptyTitle>暂无净值数据</EmptyTitle>
                     <EmptyDescription>
-                      当前组合尚未产生可展示的净值曲线。
+                      {isPendingFirstRun
+                        ? "当前组合待建仓，尚未产生 live 净值曲线。"
+                        : "当前组合尚未产生可展示的净值曲线。"}
                     </EmptyDescription>
                   </EmptyHeader>
                 </Empty>
@@ -608,7 +653,18 @@ function StrategyDetailPage() {
                     </TableBody>
                   </Table>
                 </div>
-              ) : null}
+              ) : (
+                <Empty className="border border-dashed border-border/70 py-8">
+                  <EmptyHeader>
+                    <EmptyTitle>暂无持仓记录</EmptyTitle>
+                    <EmptyDescription>
+                      {isPendingFirstRun
+                        ? "当前组合待建仓，首个 live daily run 成功后会生成持仓记录。"
+                        : "当前组合尚未产生可展示的调仓记录。"}
+                    </EmptyDescription>
+                  </EmptyHeader>
+                </Empty>
+              )}
             </section>
           </div>
         </div>
@@ -813,11 +869,7 @@ function buildDetailPortfolioView(
     ],
     risk: [
       metricFromPerformance("最大回撤", performance, "max_drawdown", "down"),
-      metricFromPerformance(
-        "年化波动率",
-        performance,
-        "annualized_volatility"
-      ),
+      metricFromPerformance("年化波动率", performance, "annualized_volatility"),
       metricFromPerformance("下行波动率", performance, "downside_deviation"),
     ],
     efficiency: [
@@ -883,16 +935,21 @@ function readPerformanceMetric(
 function buildSignalPoolsFromApi(
   timeline: StrategyPortfolioSignalTimelinePoint[],
   selectedDate: string | null,
-  signals: StrategyBacktestTargetRecord[]
+  signals: StrategyBacktestTargetRecord[],
+  pendingSignals: StrategyPortfolioDashboardCard["pending_buy_signals"]
 ): SignalPool[] {
   return timeline.map((point) => ({
     date: point.trade_date,
     signalCount: point.signal_count ?? point.target_count,
     stocks:
       point.trade_date === selectedDate
-        ? signals
-            .map(mapApiSignalTarget)
-            .filter((stock): stock is SignalStock => stock !== null)
+        ? pendingSignals.length > 0
+          ? pendingSignals
+              .filter((signal) => signal.signal_date === point.trade_date)
+              .map(mapPendingBuySignal)
+          : signals
+              .map(mapApiSignalTarget)
+              .filter((stock): stock is SignalStock => stock !== null)
         : [],
   }))
 }
@@ -909,6 +966,20 @@ function mapApiSignalTarget(
     name: target.security_name?.trim() || target.security_code,
     score: target.source_score,
     scoreItems: [],
+  }
+}
+
+function mapPendingBuySignal(
+  signal: StrategyPortfolioDashboardCard["pending_buy_signals"][number]
+): SignalStock {
+  return {
+    code: signal.code,
+    executionDate: signal.execution_date,
+    name: signal.name.trim() || signal.code,
+    rank: signal.rank,
+    score: signal.score,
+    scoreItems: [],
+    signalDate: signal.signal_date,
   }
 }
 
@@ -978,6 +1049,21 @@ function formatSignalScoreItems(scoreItems: SignalScoreItem[]) {
   return scoreItems
     .map((item) => `${item.label} ${item.score.toFixed(1)}`)
     .join(" / ")
+}
+
+function formatSignalDetail(stock: SignalStock) {
+  if (stock.signalDate && stock.executionDate) {
+    return `${stock.signalDate} -> ${stock.executionDate}`
+  }
+
+  return formatSignalScoreItems(stock.scoreItems)
+}
+
+function isPortfolioPendingFirstRunError(error: unknown) {
+  return (
+    error instanceof ApiError &&
+    error.errorType === "portfolio_pending_first_run"
+  )
 }
 
 function buildRebalanceTradeSections(trades: DetailTrade[]) {

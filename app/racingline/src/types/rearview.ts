@@ -504,6 +504,8 @@ export type StrategyPortfolioLiveStatus =
   | "failed"
 
 export type StrategyPortfolioCurveSource =
+  | "none"
+  | "publish_preview"
   | "source_backtest"
   | "live_daily_run"
 
@@ -526,9 +528,12 @@ export type StrategyPortfolioRecord = {
   source_period_key: StrategyBacktestPeriodKey
   source_start_date: string
   source_end_date: string
+  initial_signal_date: string
   live_start_date: string
+  pending_buy_signal_snapshot: StrategyPortfolioPendingBuySignal[]
   latest_daily_run_id?: string | null
   current_result_attempt_id?: string | null
+  current_live_result_attempt_id?: string | null
   ui_display_snapshot: JsonValue
   client_request_id?: string | null
   request_hash: string
@@ -536,13 +541,59 @@ export type StrategyPortfolioRecord = {
   updated_at: string
   archived_at?: string | null
   live_status: StrategyPortfolioLiveStatus
+  backtest_segment: StrategyPortfolioBacktestSegment
+  live_segment: StrategyPortfolioLiveSegment
 }
 
 export type StrategyPortfolioCreateRequest = {
   source_strategy_backtest_run_id: string
   source_result_attempt_id: string
   name: string
+  expected_source_signal_date: string
+  expected_live_start_date: string
   client_request_id?: string
+}
+
+export type StrategyPortfolioPendingBuySignal = {
+  security_code: string
+  security_name?: string | null
+  source_rank: number
+  source_score: number
+  signal_date: string
+  execution_date: string
+}
+
+export type StrategyPortfolioPublishPreviewResponse = {
+  can_publish: boolean
+  blockers: string[]
+  source_strategy_backtest_run_id: string
+  source_result_attempt_id: string
+  source_signal_date: string
+  planned_live_start_date?: string | null
+  source_period_key: StrategyBacktestPeriodKey
+  source_start_date: string
+  source_end_date: string
+  benchmark_security_code: string
+  pending_buy_signals: StrategyPortfolioPendingBuySignal[]
+}
+
+export type StrategyPortfolioBacktestSegment = {
+  source_strategy_backtest_run_id: string
+  source_result_attempt_id: string
+  period_key: StrategyBacktestPeriodKey
+  start_date: string
+  end_date: string
+  benchmark_security_code: string
+}
+
+export type StrategyPortfolioLiveSegment = {
+  live_status: StrategyPortfolioLiveStatus
+  live_start_date: string
+  initial_signal_date: string
+  latest_daily_run_id?: string | null
+  current_live_result_attempt_id?: string | null
+  performance_source: "none" | "live_daily_run"
+  signal_source: "publish_preview" | "live_daily_run"
 }
 
 export type StrategyPortfolioDashboardCard = {
@@ -559,7 +610,10 @@ export type StrategyPortfolioDashboardCard = {
   source_period_key: StrategyBacktestPeriodKey
   source_start_date: string
   source_end_date: string
+  initial_signal_date: string
   live_start_date: string
+  backtest_segment: StrategyPortfolioBacktestSegment
+  live_segment: StrategyPortfolioLiveSegment
   source_backtest_summary: JsonValue
   live_summary?: JsonValue | null
   ui_display_snapshot: JsonValue
@@ -593,6 +647,17 @@ export type StrategyPortfolioDashboardCard = {
     code: string
     name: string
     score: number
+    rank: number
+    signal_date: string
+    execution_date: string
+  }[]
+  pending_buy_signals: {
+    code: string
+    name: string
+    score: number
+    rank: number
+    signal_date: string
+    execution_date: string
   }[]
   curve: {
     time: string
@@ -612,13 +677,20 @@ export type StrategyPortfolioNavResponse = {
   points: StrategyBacktestNavPoint[]
 }
 
-export type StrategyPortfolioPerformanceView = StrategyBacktestPerformanceView & {
-  source: StrategyPortfolioCurveSource
-}
+export type StrategyPortfolioPerformanceView =
+  StrategyBacktestPerformanceView & {
+    source: StrategyPortfolioCurveSource
+  }
 
 export type StrategyPortfolioListResult<T> = ListResult<T> & {
   source: StrategyPortfolioCurveSource
 }
+
+export type StrategyPortfolioSignalsResponse =
+  StrategyPortfolioListResult<StrategyBacktestTargetRecord> & {
+    signal_source: "publish_preview" | "live_daily_run"
+    pending_buy_signals: StrategyPortfolioDashboardCard["pending_buy_signals"]
+  }
 
 export type StrategyPortfolioSignalTimelinePoint = {
   trade_date: string
@@ -628,6 +700,7 @@ export type StrategyPortfolioSignalTimelinePoint = {
 
 export type StrategyPortfolioSignalTimelineResponse = {
   source: StrategyPortfolioCurveSource
+  signal_source: "publish_preview" | "live_daily_run"
   trade_dates: StrategyPortfolioSignalTimelinePoint[]
 }
 
@@ -688,9 +761,10 @@ export type StrategyBacktestPerformanceUiView = {
   }
 }
 
-export type StrategyBacktestPerformanceView = StrategyBacktestPerformanceUiView & {
-  statuses: JsonRecord[]
-}
+export type StrategyBacktestPerformanceView =
+  StrategyBacktestPerformanceUiView & {
+    statuses: JsonRecord[]
+  }
 
 export type StrategyBacktestTargetRecord = {
   portfolio_run_id: string
