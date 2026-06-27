@@ -4,7 +4,7 @@ resolver = "2"
 
 [workspace.package]
 edition = "2024"
-license = "Proprietary"
+license = "MIT"
 publish = false
 
 [workspace.lints.rust]

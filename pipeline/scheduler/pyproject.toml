@@ -2,6 +2,7 @@
 name = "scheduler"
 requires-python = ">=3.12"
 version = "0.1.0"
+license = "MIT"
 dependencies = [
     "aiohttp>=3.13.5",
     "clickhouse-connect>=1.1.1",

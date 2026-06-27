@@ -2,6 +2,7 @@
   "name": "racingline",
   "private": true,
   "version": "0.0.1",
+  "license": "MIT",
   "type": "module",
   "packageManager": "npm@11.13.0",
   "scripts": {
