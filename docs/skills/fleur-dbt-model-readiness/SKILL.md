@@ -1,6 +1,6 @@
 ---
 name: fleur-dbt-model-readiness
-description: mono-fleur 的 dbt staging 前置准备工作流。用于新增或重写 staging model、讨论 staging 清洗规则、为 raw table 设计 canonical 字段、或需要先完成 raw source profiling 再写 stg SQL/YAML/tests 的任务。
+description: fleur 的 dbt staging 前置准备工作流。用于新增或重写 staging model、讨论 staging 清洗规则、为 raw table 设计 canonical 字段、或需要先完成 raw source profiling 再写 stg SQL/YAML/tests 的任务。
 ---
 
 # Staging Model Readiness

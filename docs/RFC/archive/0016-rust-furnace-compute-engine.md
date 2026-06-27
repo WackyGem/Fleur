@@ -4,13 +4,13 @@
 
 ## 摘要
 
-本文档记录 mono-fleur 新增 Rust 计算引擎 `furnace` 的原始需求。`furnace` 的第一阶段目标是作为高性能批处理计算引擎，计算 RSV/KDJ 等金融技术指标，由 Dagster 调度，从 dbt intermediate 层表读取行情数据，并将计算结果写回可被 marts 层消费的 ClickHouse 表。
+本文档记录 fleur 新增 Rust 计算引擎 `furnace` 的原始需求。`furnace` 的第一阶段目标是作为高性能批处理计算引擎，计算 RSV/KDJ 等金融技术指标，由 Dagster 调度，从 dbt intermediate 层表读取行情数据，并将计算结果写回可被 marts 层消费的 ClickHouse 表。
 
 本文档不是最终实现方案，也不创建代码。它用于冻结当前需求基线，后续可拆分为 ADR、实施 plan 和具体 crate 设计。
 
 ## 背景
 
-当前 mono-fleur 已形成以下数据链路：
+当前 fleur 已形成以下数据链路：
 
 ```text
 Dagster source assets
@@ -26,7 +26,7 @@ Dagster source assets
 现有 Python/dbt/Dagster 工作区位于 `pipeline/`，并由 `uv` 管理。Rust 计算引擎不应混入该 Python 工作区。为支持 `furnace` 以及未来更多 Rust 后端工程，Rust 代码建议放在新的顶层 Cargo workspace：
 
 ```text
-mono-fleur/
+fleur/
 ├── pipeline/              # Python / dbt / Dagster 工作区
 ├── deploy/
 ├── docs/
@@ -196,7 +196,7 @@ cargo clippy --workspace --all-targets --all-features -- -D warnings
 cargo test --workspace
 ```
 
-与 mono-fleur 现有质量门禁的关系：
+与 fleur 现有质量门禁的关系：
 
 1. Python/dbt/Dagster 仍按 `pipeline/` 下既有 `uv run ...` 命令执行。
 2. Rust 检查在 `engines/` 下执行，不改变 `pipeline/` 的 uv workspace。

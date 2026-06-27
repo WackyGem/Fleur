@@ -10,7 +10,7 @@ UTC time: 2026-06-25T23:10:00Z
 - Compacted source asset: `source/baostock__query_history_k_data_plus_daily_compacted`
 - Raw asset: `clickhouse/raw/baostock__query_history_k_data_plus_daily_compacted`
 - ClickHouse raw table: `fleur_raw.baostock__query_history_k_data_plus_daily_compacted`
-- Environment file: `/storage/program/mono-fleur/.env`
+- Environment file: `/storage/program/fleur/.env`
 
 ## Date Boundary
 
@@ -25,11 +25,11 @@ The final compacted and raw validation covers `2026-01-05..2026-06-25`.
 
 ## Dagster Runs
 
-Commands were executed from `pipeline/` after loading `/storage/program/mono-fleur/.env`.
+Commands were executed from `pipeline/` after loading `/storage/program/fleur/.env`.
 
 ```bash
 set -a
-. /storage/program/mono-fleur/.env
+. /storage/program/fleur/.env
 set +a
 cd pipeline
 

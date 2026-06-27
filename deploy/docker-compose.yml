@@ -1,7 +1,7 @@
 services:
   rustfs:
     image: rustfs/rustfs:latest
-    container_name: mono-fleur-rustfs
+    container_name: fleur-rustfs
     restart: unless-stopped
     deploy:
       resources:
@@ -26,11 +26,11 @@ services:
       retries: 3
       start_period: 30s
     networks:
-      - mono-fleur
+      - fleur
 
   rustfs-init:
     image: minio/mc:latest
-    container_name: mono-fleur-rustfs-init
+    container_name: fleur-rustfs-init
     depends_on:
       rustfs:
         condition: service_healthy
@@ -45,11 +45,11 @@ services:
       RUSTFS_SECRET_KEY: ${RUSTFS_SECRET_KEY}
       RUSTFS_BUCKET: ${RUSTFS_BUCKET}
     networks:
-      - mono-fleur
+      - fleur
 
   clickhouse:
     image: clickhouse/clickhouse-server:latest-alpine
-    container_name: mono-fleur-clickhouse
+    container_name: fleur-clickhouse
     restart: unless-stopped
     deploy:
       resources:
@@ -77,11 +77,11 @@ services:
       retries: 3
       start_period: 30s
     networks:
-      - mono-fleur
+      - fleur
 
   postgres:
     image: postgres:18-alpine
-    container_name: mono-fleur-postgres
+    container_name: fleur-postgres
     restart: unless-stopped
     deploy:
       resources:
@@ -110,11 +110,11 @@ services:
       retries: 10
       start_period: 20s
     networks:
-      - mono-fleur
+      - fleur
 
   nats:
     image: nats:2-alpine
-    container_name: mono-fleur-nats
+    container_name: fleur-nats
     restart: unless-stopped
     deploy:
       resources:
@@ -141,11 +141,11 @@ services:
       retries: 3
       start_period: 10s
     networks:
-      - mono-fleur
+      - fleur
 
 networks:
-  mono-fleur:
-    name: mono-fleur
+  fleur:
+    name: fleur
 
 volumes:
   rustfs-data:

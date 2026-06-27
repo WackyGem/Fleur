@@ -17,7 +17,7 @@ dbt 命令均在 `pipeline/` 目录通过 `uv run` 执行。
 ClickHouse：
 
 ```text
-container = mono-fleur-clickhouse
+container = fleur-clickhouse
 user = mono_fleur
 ```
 

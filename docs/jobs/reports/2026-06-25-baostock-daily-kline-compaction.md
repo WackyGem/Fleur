@@ -11,7 +11,7 @@ UTC time: 2026-06-25T20:42:51Z
 - Old S3 object pattern: `source/baostock__query_history_k_data_plus_daily/year=YYYY/000000_0.parquet`
 - New S3 object pattern: `source/baostock__query_history_k_data_plus_daily_compacted/year=YYYY/000000_0.parquet`
 - ClickHouse raw table: `fleur_raw.baostock__query_history_k_data_plus_daily_compacted`
-- Environment file: `/storage/program/mono-fleur/.env`
+- Environment file: `/storage/program/fleur/.env`
 
 ## S3 Migration
 
@@ -71,7 +71,7 @@ Commands:
 ```bash
 cd pipeline
 set -a
-. /storage/program/mono-fleur/.env
+. /storage/program/fleur/.env
 set +a
 uv run dg launch --target-path scheduler \
   --assets "key:clickhouse/raw/baostock__query_history_k_data_plus_daily_compacted" \
@@ -83,7 +83,7 @@ for year in $(seq 1990 2025); do
 done
 ```
 
-`make dagster-home` could not run in this worktree because the Makefile requires `DAGSTER_HOME` to originate from a local `.env` file, and this isolated worktree intentionally does not contain `.env`. The equivalent target actions were run manually after loading `/storage/program/mono-fleur/.env`: create `DAGSTER_HOME`, then create the default `dagster.yaml` if missing.
+`make dagster-home` could not run in this worktree because the Makefile requires `DAGSTER_HOME` to originate from a local `.env` file, and this isolated worktree intentionally does not contain `.env`. The equivalent target actions were run manually after loading `/storage/program/fleur/.env`: create `DAGSTER_HOME`, then create the default `dagster.yaml` if missing.
 
 Raw sync run IDs:
 
@@ -185,7 +185,7 @@ Targeted build command:
 ```bash
 cd pipeline
 set -a
-. /storage/program/mono-fleur/.env
+. /storage/program/fleur/.env
 set +a
 uv run dbt build --project-dir elt --profiles-dir elt \
   --select stg_baostock__query_history_k_data_plus_daily+

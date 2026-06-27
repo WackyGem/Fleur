@@ -1,6 +1,6 @@
 # Architecture
 
-本目录是 mono-fleur 当前项目状态和架构事实入口。原 `docs/systems/` 的代码根、职责边界、运行入口和质量门禁已并入本目录；长期决策仍进入 `docs/ADR/`，历史方案讨论仍进入 `docs/RFC/`。
+本目录是 fleur 当前项目状态和架构事实入口。原 `docs/systems/` 的代码根、职责边界、运行入口和质量门禁已并入本目录；长期决策仍进入 `docs/ADR/`，历史方案讨论仍进入 `docs/RFC/`。
 
 ## 当前入口
 

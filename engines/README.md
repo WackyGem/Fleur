@@ -1,6 +1,6 @@
-# mono-fleur Rust Engines 文档地图
+# fleur Rust Engines 文档地图
 
-`engines/` 是 mono-fleur 的 Rust / Cargo workspace，用于承载高性能后端计算引擎和应用服务。
+`engines/` 是 fleur 的 Rust / Cargo workspace，用于承载高性能后端计算引擎和应用服务。
 当前主要实现包括：
 
 - `furnace`：由 Dagster 调度的金融技术指标计算 CLI，支持日频 KDJ、MA、RSI、BOLL 和价格行为结构指标计算。
@@ -96,7 +96,7 @@ ClickHouse CLI 环境变量：
 | 变量 | 用途 |
 |------|------|
 | `FURNACE_CLICKHOUSE_CLIENT` / `CLICKHOUSE_CLIENT` | `clickhouse-client` 命令，或用于本地 Docker 包装的命令 |
-| `FURNACE_CLICKHOUSE_CLIENT_ARGS` | 追加给 client 命令的参数，例如 `exec -i mono-fleur-clickhouse clickhouse-client` |
+| `FURNACE_CLICKHOUSE_CLIENT_ARGS` | 追加给 client 命令的参数，例如 `exec -i fleur-clickhouse clickhouse-client` |
 | `CLICKHOUSE_HOST` | ClickHouse host，默认 `127.0.0.1` |
 | `CLICKHOUSE_NATIVE_PORT` | Native port，默认 `9000` |
 | `CLICKHOUSE_USER` / `CLICKHOUSE_PASSWORD` | 可选认证信息 |

@@ -4,7 +4,7 @@
 
 ## 摘要
 
-本文档设计 mono-fleur 中 `pipeline/scheduler` 与 `pipeline/elt` 的集成方案：将现有 dbt
+本文档设计 fleur 中 `pipeline/scheduler` 与 `pipeline/elt` 的集成方案：将现有 dbt
 项目的 sources、models 和 tests 接入 Dagster asset graph，由 Dagster 负责调度 dbt
 资产，由 dbt 继续负责 staging、intermediate、marts 三层模型的 SQL transformation 和
 tests。

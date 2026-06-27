@@ -1,4 +1,4 @@
-# mono-fleur
+# fleur
 
 ![Python](https://img.shields.io/badge/Python-3.12-3776AB?logo=python&logoColor=white)
 ![Rust](https://img.shields.io/badge/Rust-2024-000000?logo=rust&logoColor=white)
@@ -6,7 +6,7 @@
 ![dbt](https://img.shields.io/badge/dbt-ClickHouse-FF694B?logo=dbt&logoColor=white)
 ![License](https://img.shields.io/badge/License-MIT-yellow)
 
-mono-fleur 是一个基于 harness-engineering 实践的面向 A 股市场研究的多工程量化平台，覆盖行情与财务数据采集、技术指标计算、规则选股、策略回测、T+1 策略组合发布以及组合运行监控。
+fleur 是一个基于 harness-engineering 实践的面向 A 股市场研究的多工程量化平台，覆盖行情与财务数据采集、技术指标计算、规则选股、策略回测、T+1 策略组合发布以及组合运行监控。
 
 仓库将 Python 数据平台、Rust 计算与服务引擎、React 前端工作台统一收纳在同一个 monorepo 中：
 
@@ -20,7 +20,7 @@ mono-fleur 是一个基于 harness-engineering 实践的面向 A 股市场研究
 
 ## 风险提示与免责声明
 
-为使用户更好地了解开发者 WackyGem（以下简称"本人"）开发的 mono-fleur 沪深 A 股投研模拟项目（以下简称"本项目"），请务必详细阅读并充分理解以下风险：
+为使用户更好地了解开发者 WackyGem（以下简称"本人"）开发的 fleur 沪深 A 股投研模拟项目（以下简称"本项目"），请务必详细阅读并充分理解以下风险：
 
 1. 本项目使用中文互联网免费公开数据源作为基础数据进行数据加工、计算和分析，但不保证数据的及时性、准确性、真实性与完整性。
 2. 在遵守国家相关法律、法规、规章及自律组织规则、监管政策的前提下，本项目尽力为用户提供高速、完整、准确的金融数据服务；但因受数据来源、技术能力等多种因素影响，本人不保证数据源的及时性、准确性或完整性。因数据源遗漏、错误、丢失、延迟、中断可能造成的损失将由您自行承担，本人不承担任何责任。
@@ -200,7 +200,7 @@ make rust-doc-serve
 
 | 字段 | 值 |
 |---|---|
-| Release | `mono-fleur-2026.06.1` |
+| Release | `fleur-2026.06.1` |
 | Commit | `3c20eb538e8aabc1622bbcaada450868b1f6a61c` |
 | Pipeline database head | `0008_strategy_portfolio_cp` |
 | Rearview database head | `0008_strategy_portfolio_cp` |

@@ -116,7 +116,7 @@
 
 `deploy/docker-compose.yml` 中的 S3 兼容服务为 `rustfs`：
 
-- 容器名：`mono-fleur-rustfs`
+- 容器名：`fleur-rustfs`
 - 容器内 API 端口：`9000`
 - 宿主机默认 API 端口：`${RUSTFS_API_PORT:-34050}`
 - 访问密钥环境变量：`RUSTFS_ACCESS_KEY`
@@ -132,7 +132,7 @@
 
 建议 bucket：
 
-- `mono-fleur`
+- `fleur`
 
 建议对象 key：
 
@@ -181,7 +181,7 @@
 默认值建议：
 
 - `RUSTFS_ENDPOINT=http://127.0.0.1:34050`
-- `RUSTFS_BUCKET=mono-fleur`
+- `RUSTFS_BUCKET=fleur`
 
 工程约束：
 
@@ -296,7 +296,7 @@ Python 依赖建议：
 
 - `deploy/docker-compose.yml` 中的 `rustfs` 已启动。
 - 已配置 `RUSTFS_ACCESS_KEY` 和 `RUSTFS_SECRET_KEY`。
-- bucket `mono-fleur` 已存在，或 `s3_io_manager` 在启动时确保 bucket 存在。
+- bucket `fleur` 已存在，或 `s3_io_manager` 在启动时确保 bucket 存在。
 
 ## 验收标准
 

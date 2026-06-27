@@ -2,7 +2,7 @@
 
 状态：当前架构事实入口（2026-06-27）
 
-本文件记录 mono-fleur 当前项目状态和子域入口。新需求先从这里确认影响范围，再进入对应架构事实文档、ADR、RFC、plan、job report、reference 或代码实现。
+本文件记录 fleur 当前项目状态和子域入口。新需求先从这里确认影响范围，再进入对应架构事实文档、ADR、RFC、plan、job report、reference 或代码实现。
 
 ## 当前状态
 

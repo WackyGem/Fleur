@@ -4,7 +4,7 @@
 
 ## 摘要
 
-本文档记录 mono-fleur 规则选股器的初始 RFC 构想。服务名定为 `rearview`。目标是在现有 mart 层日频行情和技术指标已经成型的基础上，新增一个 Rust HTTP 选股服务：
+本文档记录 fleur 规则选股器的初始 RFC 构想。服务名定为 `rearview`。目标是在现有 mart 层日频行情和技术指标已经成型的基础上，新增一个 Rust HTTP 选股服务：
 
 ```text
 PostgreSQL instance
@@ -31,7 +31,7 @@ ClickHouse fleur_marts
 
 ## 背景
 
-当前 mono-fleur 已有一批可支持选股的 ClickHouse mart 表：
+当前 fleur 已有一批可支持选股的 ClickHouse mart 表：
 
 | Mart | 当前职责 | 主要字段组 | 当前物化特征 |
 |---|---|---|---|

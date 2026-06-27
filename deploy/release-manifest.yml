@@ -1,4 +1,4 @@
-release: mono-fleur-2026.06.1
+release: fleur-2026.06.1
 commit: 3c20eb538e8aabc1622bbcaada450868b1f6a61c
 components:
   scheduler: "0.1.0"

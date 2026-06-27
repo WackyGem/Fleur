@@ -250,7 +250,7 @@ Workload shape：market data / financial services，混合时序 OLAP 和按 run
 
 架构分类：
 
-- append-only attempt 模型：derived，来自 ClickHouse mutation avoidance 与 mono-fleur 审计需求。
+- append-only attempt 模型：derived，来自 ClickHouse mutation avoidance 与 fleur 审计需求。
 - `calc_portfolio_performance_metric` 不分区：derived，基于行数小、点查为主、无明确生命周期删除需求。
 - closed trade ledger 月分区：derived，基于时间序列保留和按退出日期分析。
 - 交易级指标单独建表而不塞入 benchmark-scoped performance row：field，避免 benchmark-independent 指标被每个 benchmark 重复。

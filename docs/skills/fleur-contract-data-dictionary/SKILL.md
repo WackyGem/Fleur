@@ -1,6 +1,6 @@
 ---
 name: fleur-contract-data-dictionary
-description: mono-fleur 的 raw 层数据契约、Parquet schema adapter、字段 glossary、dbt sources.yml 和 data_dict 生成工作流。用于新增或修改 pipeline/contracts/datasets、维护 parquet.fields/source/clickhouse_raw 字段事实、维护 external_description_zh/description_zh、运行 fleur-contracts 与 scheduler contract schema 边界校验、修复生成物漂移。
+description: fleur 的 raw 层数据契约、Parquet schema adapter、字段 glossary、dbt sources.yml 和 data_dict 生成工作流。用于新增或修改 pipeline/contracts/datasets、维护 parquet.fields/source/clickhouse_raw 字段事实、维护 external_description_zh/description_zh、运行 fleur-contracts 与 scheduler contract schema 边界校验、修复生成物漂移。
 ---
 
 # Fleur Contract Data Dictionary

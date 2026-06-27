@@ -13,7 +13,7 @@ fleur_intermediate
 fleur_marts
 ```
 
-本文档把该决策展开为概要设计：在不要求用户手工敲 ClickHouse DDL/DML 的前提下，让现有 mono-fleur 项目从历史 `raw`/`analytics` 命名迁移到四层 database 结构。
+本文档把该决策展开为概要设计：在不要求用户手工敲 ClickHouse DDL/DML 的前提下，让现有 fleur 项目从历史 `raw`/`analytics` 命名迁移到四层 database 结构。
 
 核心方案：
 

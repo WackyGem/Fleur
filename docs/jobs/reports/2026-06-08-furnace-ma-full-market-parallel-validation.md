@@ -53,7 +53,7 @@ cargo build --release -p furnace
 
 ```bash
 FURNACE_CLICKHOUSE_CLIENT=docker \
-FURNACE_CLICKHOUSE_CLIENT_ARGS='exec -i mono-fleur-clickhouse clickhouse-client' \
+FURNACE_CLICKHOUSE_CLIENT_ARGS='exec -i fleur-clickhouse clickhouse-client' \
 CLICKHOUSE_HOST=127.0.0.1 \
 CLICKHOUSE_NATIVE_PORT=9000 \
 CLICKHOUSE_USER=mono_fleur \
@@ -70,7 +70,7 @@ target/release/furnace ma \
 
 ```bash
 FURNACE_CLICKHOUSE_CLIENT=docker \
-FURNACE_CLICKHOUSE_CLIENT_ARGS='exec -i mono-fleur-clickhouse clickhouse-client' \
+FURNACE_CLICKHOUSE_CLIENT_ARGS='exec -i fleur-clickhouse clickhouse-client' \
 CLICKHOUSE_HOST=127.0.0.1 \
 CLICKHOUSE_NATIVE_PORT=9000 \
 CLICKHOUSE_USER=mono_fleur \
@@ -250,7 +250,7 @@ RowBinary 类型修正：`int_stock_quotes_daily_unadj.volume` 是 `Nullable(Int
 
 ```bash
 FURNACE_CLICKHOUSE_CLIENT=docker \
-FURNACE_CLICKHOUSE_CLIENT_ARGS='exec -i mono-fleur-clickhouse clickhouse-client' \
+FURNACE_CLICKHOUSE_CLIENT_ARGS='exec -i fleur-clickhouse clickhouse-client' \
 CLICKHOUSE_HOST=127.0.0.1 \
 CLICKHOUSE_NATIVE_PORT=9000 \
 CLICKHOUSE_USER=mono_fleur \
@@ -310,7 +310,7 @@ CLICKHOUSE_USER=mono_fleur \
 CLICKHOUSE_PASSWORD=change-me-clickhouse-password \
 CLICKHOUSE_QUERY_TIMEOUT_SECONDS=900 \
 FURNACE_CLICKHOUSE_CLIENT=docker \
-FURNACE_CLICKHOUSE_CLIENT_ARGS='exec -i mono-fleur-clickhouse clickhouse-client' \
+FURNACE_CLICKHOUSE_CLIENT_ARGS='exec -i fleur-clickhouse clickhouse-client' \
 RAYON_NUM_THREADS=8 \
 uv run dg launch \
   --job furnace__ma_dry_run_job \

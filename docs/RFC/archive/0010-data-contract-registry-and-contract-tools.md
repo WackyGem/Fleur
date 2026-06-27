@@ -4,12 +4,12 @@
 
 ## 摘要
 
-本文档定义 mono-fleur 的数据契约治理方案，用于统一管理外源字段、系统规范字段、中文描述、类型转换、dbt staging 命名和生成物校验。
+本文档定义 fleur 的数据契约治理方案，用于统一管理外源字段、系统规范字段、中文描述、类型转换、dbt staging 命名和生成物校验。
 
 核心决策：
 
 1. **raw 层保留外源命名**：HTTP/TCP source、S3 Parquet、ClickHouse raw 在 stg 之前不做系统级字段重命名。
-2. **stg 层是规范命名边界**：dbt staging models 第一次把外源字段映射为 mono-fleur canonical field names。
+2. **stg 层是规范命名边界**：dbt staging models 第一次把外源字段映射为 fleur canonical field names。
 3. **contract registry 是字段事实源**：字段类型、转换链路、raw/stg 映射、schema version 和中文描述不再以 Markdown data_dict 为唯一事实源。
 4. **glossary 管理系统统一语义**：`stock_code`、`trade_date`、`report_date` 等系统规范字段的中文名称、中文描述、命名规则和外源 aliases 集中维护。
 5. **contract_tools 是独立 workspace 工程包**：代码生成、静态校验、Parquet schema 校验、ClickHouse schema 校验和 dbt YAML 生成放在 `pipeline/contract_tools`，不放进 scheduler 或 elt。
@@ -39,7 +39,7 @@ http/tcp source payload
 ## 目标
 
 1. 为当前 ClickHouse raw 和 dbt stg 数据集建立机器可读 contract。
-2. 区分外源表/字段命名与 mono-fleur 系统规范命名。
+2. 区分外源表/字段命名与 fleur 系统规范命名。
 3. 集中维护中文描述，避免描述散落在 SQL、dbt YAML 和 Markdown 中。
 4. 通过生成器和校验器维护 dbt YAML、data_dict Markdown、ClickHouse raw specs 的一致性。
 5. 提供可在 CI 和本地运行的 contract CLI。
@@ -89,7 +89,7 @@ clickhouse raw field
 | 字段 | 归属 | 说明 |
 |------|------|------|
 | `external_description_zh` | dataset contract | 外源文档或供应商语境下的字段说明 |
-| `description_zh` | glossary | mono-fleur 系统内统一语义 |
+| `description_zh` | glossary | fleur 系统内统一语义 |
 | `dataset_note_zh` | dataset contract | 当前数据集特有的异常值、清洗规则、口径差异 |
 
 生成 data_dict 或 dbt docs 时，可以组合这些描述，但事实来源仍是 contract 和 glossary。

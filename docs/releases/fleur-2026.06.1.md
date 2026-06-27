@@ -1,4 +1,4 @@
-# mono-fleur-2026.06.1
+# fleur-2026.06.1
 
 日期：2026-06-26
 
@@ -8,7 +8,7 @@
 
 | 项 | 值 |
 |---|---|
-| 集成 release | `mono-fleur-2026.06.1` |
+| 集成 release | `fleur-2026.06.1` |
 | Git commit | `3c20eb538e8aabc1622bbcaada450868b1f6a61c` |
 | Manifest | [deploy/release-manifest.yml](../../deploy/release-manifest.yml) |
 

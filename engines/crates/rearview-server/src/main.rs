@@ -397,7 +397,7 @@ fn find_repo_root() -> RearviewResult<PathBuf> {
         }
     }
     Err(RearviewError::Config(format!(
-        "could not find mono-fleur repo root from {}",
+        "could not find fleur repo root from {}",
         current_dir.display()
     )))
 }

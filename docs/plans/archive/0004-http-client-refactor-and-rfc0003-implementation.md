@@ -356,7 +356,7 @@ async def fetch_sina_trade_calendar() -> str:
 迁移完成后执行：
 
 ```bash
-cd /storage/program/mono-fleur
+cd /storage/program/fleur
 rg -n "requests|aiohttp.ClientSession|TCPConnector|ClientTimeout|raise_for_status" pipeline/scheduler/src/scheduler/defs
 test ! -d pipeline/scheduler/src/scheduler/defs/eastmoney
 test ! -d pipeline/scheduler/src/scheduler/defs/http_client

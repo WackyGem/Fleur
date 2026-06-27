@@ -6,7 +6,7 @@
 
 ## 背景
 
-[RFC 0033](../../RFC/0033-project-version-management.md) 已经提出 mono-fleur 的版本治理方案：采用“组件独立版本 + 仓库集成发布标记”，把 Component SemVer、dataset contract version、Alembic revision、deploy release manifest、集成 tag 和运行时版本暴露分开维护。
+[RFC 0033](../../RFC/0033-project-version-management.md) 已经提出 fleur 的版本治理方案：采用“组件独立版本 + 仓库集成发布标记”，把 Component SemVer、dataset contract version、Alembic revision、deploy release manifest、集成 tag 和运行时版本暴露分开维护。
 
 当前仓库已经具备部分版本事实：
 
@@ -198,7 +198,7 @@ cargo test --workspace
    - `rearview`
 6. 新增统一 release note 入口：
    - `docs/releases/README.md`
-   - 首个模板或首个 release note，例如 `docs/releases/mono-fleur-2026.06.1.md`
+   - 首个模板或首个 release note，例如 `docs/releases/fleur-2026.06.1.md`
 7. 同步 docs 入口：
    - `docs/README.md`
    - 必要时更新 `docs/architecture/deploy-ops.md`
@@ -345,7 +345,7 @@ racingline-v0.1.0
 2. 明确集成 tag 格式：
 
 ```text
-mono-fleur-YYYY.MM.N
+fleur-YYYY.MM.N
 ```
 
 3. 编写 tag 前检查：
@@ -462,7 +462,7 @@ npm run build
 3. `contract-tools` 已提供 `fleur-contracts --version`。
 4. scheduler 已通过 Dagster materialization metadata 暴露 `scheduler_version`。
 5. Racingline 已在 Vite build 中注入 `window.__RACINGLINE_BUILD_METADATA__`，包含 app version、git sha 和 build time。
-6. 已新增 `deploy/release-manifest.yml`、`docs/releases/README.md` 和 `docs/releases/mono-fleur-2026.06.1.md`。
+6. 已新增 `deploy/release-manifest.yml`、`docs/releases/README.md` 和 `docs/releases/fleur-2026.06.1.md`。
 7. 已新增 `scripts/check_component_versions.py` 和 `make versions-check`，覆盖 SemVer、Rust 独立版本、dataset contract version、Racingline lockfile、manifest 一致性和计划/RFC 索引链接。
 8. 已将版本校验入口同步到 `AGENTS.md`、`docs/README.md`、`docs/architecture/deploy-ops.md` 和 `docs/skills/fleur-version-management/SKILL.md`。
 
@@ -483,4 +483,4 @@ npm run build
 
 ## 验证结果
 
-详见 [mono-fleur-2026.06.1 release note](../../releases/mono-fleur-2026.06.1.md)。
+详见 [fleur-2026.06.1 release note](../../releases/fleur-2026.06.1.md)。

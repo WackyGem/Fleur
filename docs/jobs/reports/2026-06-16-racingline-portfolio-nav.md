@@ -6,9 +6,9 @@
 
 ## 环境
 
-- PostgreSQL：`mono-fleur-postgres`，healthy
-- ClickHouse：`mono-fleur-clickhouse`，healthy
-- NATS：`mono-fleur-nats`，healthy，`GET http://127.0.0.1:34056/healthz` 返回 `{"status":"ok"}`
+- PostgreSQL：`fleur-postgres`，healthy
+- ClickHouse：`fleur-clickhouse`，healthy
+- NATS：`fleur-nats`，healthy，`GET http://127.0.0.1:34056/healthz` 返回 `{"status":"ok"}`
 - Rearview server：`cargo run -p rearview-server -- serve`
 - Rearview portfolio worker：`cargo run -p rearview-portfolio-worker -- run`
 - Racingline：`npm run dev -- --host 127.0.0.1 --port 5173`

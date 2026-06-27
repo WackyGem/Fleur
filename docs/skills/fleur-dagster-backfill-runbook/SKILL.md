@@ -1,6 +1,6 @@
 ---
 name: fleur-dagster-backfill-runbook
-description: mono-fleur 的 Dagster 回填操作手册。用于选择 dg launch 命令、资产选择、partition 或 partition-range 参数，以及各数据源的回填模板。
+description: fleur 的 Dagster 回填操作手册。用于选择 dg launch 命令、资产选择、partition 或 partition-range 参数，以及各数据源的回填模板。
 ---
 
 # DG 回填手册

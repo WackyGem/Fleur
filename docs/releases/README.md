@@ -1,12 +1,12 @@
 # Releases
 
-本目录记录 mono-fleur 集成发布快照。单个组件的权威版本仍保留在各自工程文件中，集成 release note 用于回答一次部署包含哪些组件、迁移 head、contract 变更和验证结果。
+本目录记录 fleur 集成发布快照。单个组件的权威版本仍保留在各自工程文件中，集成 release note 用于回答一次部署包含哪些组件、迁移 head、contract 变更和验证结果。
 
 ## 当前发布记录
 
 | Release | Commit | 用途 |
 |---|---|---|
-| [mono-fleur-2026.06.1](mono-fleur-2026.06.1.md) | `3c20eb538e8aabc1622bbcaada450868b1f6a61c` | 首个版本治理快照，建立 manifest、release note、版本校验和运行时版本暴露 |
+| [fleur-2026.06.1](fleur-2026.06.1.md) | `3c20eb538e8aabc1622bbcaada450868b1f6a61c` | 首个版本治理快照，建立 manifest、release note、版本校验和运行时版本暴露 |
 
 ## Manifest Schema
 
@@ -14,7 +14,7 @@
 
 | 字段 | 说明 |
 |---|---|
-| `release` | 集成 release 名称，格式为 `mono-fleur-YYYY.MM.N` |
+| `release` | 集成 release 名称，格式为 `fleur-YYYY.MM.N` |
 | `commit` | release manifest 采集时的 Git commit |
 | `components` | 可部署或可执行组件版本，不包含 `pipeline` root meta package |
 | `database_heads` | Alembic target 实际 revision head，至少包含 `pipeline` 和 `rearview` |

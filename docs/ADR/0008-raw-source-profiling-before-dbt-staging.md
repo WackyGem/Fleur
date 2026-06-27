@@ -75,7 +75,7 @@ dbt 作为执行和校验底座使用：
 
 dbt 提供 source metadata、source tests、source freshness、`dbt show`、dbt docs、data tests、unit tests 和 model contracts 等能力，但 dbt Core 不会自动完成面向项目语义的 raw profiling，也不会自动判断清洗逻辑应该位于 staging 还是 intermediate。
 
-mono-fleur 已经有 raw contract、generated source catalog、dbt field glossary 和 manifest lint。当前更适合先用项目内脚本、报告模板和 skill 固化流程，等 raw/staging 规模扩大后再评估是否引入外部数据质量平台。
+fleur 已经有 raw contract、generated source catalog、dbt field glossary 和 manifest lint。当前更适合先用项目内脚本、报告模板和 skill 固化流程，等 raw/staging 规模扩大后再评估是否引入外部数据质量平台。
 
 ## 后果
 

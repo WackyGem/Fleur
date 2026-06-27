@@ -134,7 +134,7 @@ uv run dg check defs
 ## 分类
 
 - `fleur_raw` / `fleur_staging` / `fleur_intermediate` / `fleur_marts` 作为 dbt 与 raw 同步治理边界：derived。
-- `fleur_calculation` 作为外部计算产物治理边界：field。该建议基于 mono-fleur 引入 Rust Furnace 计算引擎后的 owner、权限、重算和 dbt wrapper 需求；如外部计算引擎规模变化，应重新评估。
-- `fleur_calculation.*` 采用 dbt source + Dagster asset metadata + thin dbt wrapper 的消费规则：derived / field。`source()` 与 `ref()` lineage 来自 dbt 和 Dagster dbt 集成的常规语义；强制 thin wrapper 是 mono-fleur 为保持 `fleur_intermediate` 分层契约、降低 marts 对物理计算表耦合而采用的项目规则。
+- `fleur_calculation` 作为外部计算产物治理边界：field。该建议基于 fleur 引入 Rust Furnace 计算引擎后的 owner、权限、重算和 dbt wrapper 需求；如外部计算引擎规模变化，应重新评估。
+- `fleur_calculation.*` 采用 dbt source + Dagster asset metadata + thin dbt wrapper 的消费规则：derived / field。`source()` 与 `ref()` lineage 来自 dbt 和 Dagster dbt 集成的常规语义；强制 thin wrapper 是 fleur 为保持 `fleur_intermediate` 分层契约、降低 marts 对物理计算表耦合而采用的项目规则。
 - 不按数据源默认继续拆库：field。该建议是项目规模、权限模型和 dbt 运维复杂度下的启发式选择；若未来出现源级隔离需求，应重新评估。
 - database 分层不替代表级 `ORDER BY`、partition、TTL 和 materialization 设计：official / derived。

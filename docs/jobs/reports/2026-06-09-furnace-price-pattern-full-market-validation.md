@@ -44,7 +44,7 @@
 ```bash
 cd engines
 FURNACE_CLICKHOUSE_CLIENT=docker \
-FURNACE_CLICKHOUSE_CLIENT_ARGS='exec -i mono-fleur-clickhouse clickhouse-client' \
+FURNACE_CLICKHOUSE_CLIENT_ARGS='exec -i fleur-clickhouse clickhouse-client' \
 CLICKHOUSE_HOST=127.0.0.1 \
 CLICKHOUSE_NATIVE_PORT=9000 \
 CLICKHOUSE_USER=mono_fleur \
@@ -100,7 +100,7 @@ dry-run 瓶颈是 ClickHouse RowBinary 输入读取和分组，计算本身约 1
 ```bash
 cd engines
 FURNACE_CLICKHOUSE_CLIENT=docker \
-FURNACE_CLICKHOUSE_CLIENT_ARGS='exec -i mono-fleur-clickhouse clickhouse-client' \
+FURNACE_CLICKHOUSE_CLIENT_ARGS='exec -i fleur-clickhouse clickhouse-client' \
 CLICKHOUSE_HOST=127.0.0.1 \
 CLICKHOUSE_NATIVE_PORT=9000 \
 CLICKHOUSE_USER=mono_fleur \

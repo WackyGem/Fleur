@@ -1,4 +1,4 @@
-# mono-fleur dbt project
+# fleur dbt project
 
 `pipeline/elt` owns canonical field names, staging transformations, reusable dbt field docs, generic data tests, and dbt manifest linting.
 

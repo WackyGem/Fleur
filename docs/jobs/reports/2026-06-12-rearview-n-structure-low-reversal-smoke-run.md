@@ -23,8 +23,8 @@
 Compose 状态：
 
 ```text
-mono-fleur-postgres: Up, healthy, 127.0.0.1:34054
-mono-fleur-clickhouse: Up, healthy, 127.0.0.1:34052 HTTP / 34053 native
+fleur-postgres: Up, healthy, 127.0.0.1:34054
+fleur-clickhouse: Up, healthy, 127.0.0.1:34052 HTTP / 34053 native
 ```
 
 ## 命令

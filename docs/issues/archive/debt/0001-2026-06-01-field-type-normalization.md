@@ -32,7 +32,7 @@ uv run fleur-contracts validate-clickhouse --all-available
 
 ## 背景
 
-BaoStock 数据进入 stg 层后，应从外源字段命名和编码值逐步收敛为 mono-fleur 的 canonical 字段语义。当前仍有两类债务：
+BaoStock 数据进入 stg 层后，应从外源字段命名和编码值逐步收敛为 fleur 的 canonical 字段语义。当前仍有两类债务：
 
 - 部分字段在外源响应中以 `"0"` / `"1"` 字符串承载，但字段语义不是普通整数。
 - 部分 stg 字段仍沿用外源泛化命名，例如用 `code` 表示证券代码。

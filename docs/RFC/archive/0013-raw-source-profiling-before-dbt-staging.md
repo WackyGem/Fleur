@@ -538,4 +538,4 @@ uv run dbt build --project-dir elt --profiles-dir elt --select staging
 
 ## 结论
 
-mono-fleur 第一版采用项目内轻量 raw profiling 工作流：报告在 `docs/references/raw_profile/`，脚本在 `pipeline/elt/scripts/`，skill 在 `docs/skills/stg-model-readiness/`。dbt 提供 source metadata、查询执行和 tests 校验，项目脚本和报告模板负责把 staging 前置分析固化为可审查、可复用的工程流程。
+fleur 第一版采用项目内轻量 raw profiling 工作流：报告在 `docs/references/raw_profile/`，脚本在 `pipeline/elt/scripts/`，skill 在 `docs/skills/stg-model-readiness/`。dbt 提供 source metadata、查询执行和 tests 校验，项目脚本和报告模板负责把 staging 前置分析固化为可审查、可复用的工程流程。

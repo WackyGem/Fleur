@@ -146,7 +146,7 @@ wait-postgres:
 	$(require-env-file)
 	@printf '%s\n' 'Waiting for PostgreSQL container'
 	@for attempt in $$(seq 1 60); do \
-		if docker exec mono-fleur-postgres sh -c 'pg_isready -U "$$POSTGRES_USER" -d "$$POSTGRES_DB"' >/dev/null 2>&1; then \
+		if docker exec fleur-postgres sh -c 'pg_isready -U "$$POSTGRES_USER" -d "$$POSTGRES_DB"' >/dev/null 2>&1; then \
 			printf '%s\n' 'PostgreSQL is healthy'; \
 			exit 0; \
 		fi; \
@@ -159,7 +159,7 @@ wait-clickhouse:
 	$(require-env-file)
 	@printf '%s\n' 'Waiting for ClickHouse container'
 	@for attempt in $$(seq 1 60); do \
-		if docker exec mono-fleur-clickhouse sh -c 'clickhouse-client --host 127.0.0.1 --user "$$CLICKHOUSE_USER" --password "$$CLICKHOUSE_PASSWORD" --query "SELECT 1"' >/dev/null 2>&1; then \
+		if docker exec fleur-clickhouse sh -c 'clickhouse-client --host 127.0.0.1 --user "$$CLICKHOUSE_USER" --password "$$CLICKHOUSE_PASSWORD" --query "SELECT 1"' >/dev/null 2>&1; then \
 			printf '%s\n' 'ClickHouse is healthy'; \
 			exit 0; \
 		fi; \

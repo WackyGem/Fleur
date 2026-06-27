@@ -1,6 +1,6 @@
 ---
 name: fleur-dagster-http-source
-description: mono-fleur 的 Dagster HTTP 数据源资产开发流程。用于当用户提供远端 HTTP/HTTPS 链接、API endpoint 或接口样例，希望新增或修改 Dagster source asset，将远端数据抓取并写入 S3 Parquet，再通过 contract 驱动同步到 ClickHouse raw 层；覆盖 endpoint profiling、数据契约、scheduler SourceBundle、PyArrow schema 转换、测试和 dg 验收。
+description: fleur 的 Dagster HTTP 数据源资产开发流程。用于当用户提供远端 HTTP/HTTPS 链接、API endpoint 或接口样例，希望新增或修改 Dagster source asset，将远端数据抓取并写入 S3 Parquet，再通过 contract 驱动同步到 ClickHouse raw 层；覆盖 endpoint profiling、数据契约、scheduler SourceBundle、PyArrow schema 转换、测试和 dg 验收。
 ---
 
 # Dagster HTTP Source Asset
@@ -8,7 +8,7 @@ description: mono-fleur 的 Dagster HTTP 数据源资产开发流程。用于当
 当用户只提供一个远端 HTTP 链接，并希望生成 `HTTP -> S3 Parquet -> ClickHouse raw`
 链路代码时，使用本 skill。
 
-目标不是生成孤立 asset，而是把新数据集纳入 mono-fleur 的长期边界：
+目标不是生成孤立 asset，而是把新数据集纳入 fleur 的长期边界：
 
 - 远端接口事实记录在 `docs/references/remote_endpoint/`。
 - 字段事实源记录在 `pipeline/contracts/datasets/*.yml`。

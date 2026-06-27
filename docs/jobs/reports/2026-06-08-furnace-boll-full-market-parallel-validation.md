@@ -46,7 +46,7 @@ FROM fleur_intermediate.int_stock_quotes_daily_adj
 ```bash
 cd engines
 FURNACE_CLICKHOUSE_CLIENT=docker \
-FURNACE_CLICKHOUSE_CLIENT_ARGS='exec -i mono-fleur-clickhouse clickhouse-client' \
+FURNACE_CLICKHOUSE_CLIENT_ARGS='exec -i fleur-clickhouse clickhouse-client' \
 CLICKHOUSE_HOST=127.0.0.1 \
 CLICKHOUSE_NATIVE_PORT=9000 \
 CLICKHOUSE_USER=mono_fleur \
@@ -119,7 +119,7 @@ WHERE NOT isFinite(close_price_forward_adj)
 ```bash
 cd engines
 FURNACE_CLICKHOUSE_CLIENT=docker \
-FURNACE_CLICKHOUSE_CLIENT_ARGS='exec -i mono-fleur-clickhouse clickhouse-client' \
+FURNACE_CLICKHOUSE_CLIENT_ARGS='exec -i fleur-clickhouse clickhouse-client' \
 CLICKHOUSE_HOST=127.0.0.1 \
 CLICKHOUSE_NATIVE_PORT=9000 \
 CLICKHOUSE_USER=mono_fleur \
@@ -164,7 +164,7 @@ RAYON_NUM_THREADS=8 \
 ```bash
 cd engines
 FURNACE_CLICKHOUSE_CLIENT=docker \
-FURNACE_CLICKHOUSE_CLIENT_ARGS='exec -i mono-fleur-clickhouse clickhouse-client' \
+FURNACE_CLICKHOUSE_CLIENT_ARGS='exec -i fleur-clickhouse clickhouse-client' \
 CLICKHOUSE_HOST=127.0.0.1 \
 CLICKHOUSE_NATIVE_PORT=9000 \
 CLICKHOUSE_USER=mono_fleur \

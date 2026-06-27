@@ -9,7 +9,7 @@ UTC time: 2026-06-26T00:05:00Z
 ```bash
 cd pipeline
 set -a
-. /storage/program/mono-fleur/.env
+. /storage/program/fleur/.env
 set +a
 uv run dbt build --project-dir elt --profiles-dir elt \
   --select stg_baostock__query_history_k_data_plus_daily+

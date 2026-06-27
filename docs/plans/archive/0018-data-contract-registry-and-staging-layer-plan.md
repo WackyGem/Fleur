@@ -31,7 +31,7 @@ http/tcp source payload
 
 - 每个进入 ClickHouse raw 和 dbt staging 的数据集都有一份机器可读 contract。
 - contract 记录字段粒度、主键候选、分区策略、类型转换、nullable/default 策略和字段重命名规则。
-- contract 区分外源字段命名和 mono-fleur canonical 字段命名。
+- contract 区分外源字段命名和 fleur canonical 字段命名。
 - 中文描述集中维护在 dataset contract 和 glossary 中，不散落在 SQL、dbt YAML 和 Markdown 里。
 - raw sync specs、dbt source YAML、staging YAML 和 data_dict 文档不再各自手写一套字段事实。
 - CI 可以检查 contract 与 ClickHouse `system.columns`、Parquet schema、dbt model YAML 的一致性。
@@ -89,21 +89,21 @@ http/tcp source payload
 
 ### 4.2 命名与中文描述边界
 
-raw 层保留外源命名，stg 层开始使用 mono-fleur canonical naming：
+raw 层保留外源命名，stg 层开始使用 fleur canonical naming：
 
 | 层 | 字段命名 |
 |----|----------|
 | source payload | 外源原始字段名 |
 | S3 Parquet | 外源字段名或当前 source asset 发布字段名 |
 | ClickHouse raw | 外源字段名，不做系统级重命名 |
-| dbt staging | mono-fleur canonical `snake_case` 字段名 |
+| dbt staging | fleur canonical `snake_case` 字段名 |
 
 中文描述分三类维护：
 
 | 字段 | 位置 | 说明 |
 |------|------|------|
 | `external_description_zh` | `pipeline/contracts/datasets/*.yml` | 外源文档或供应商语境下的字段描述 |
-| `description_zh` | `pipeline/contracts/glossary/fields.yml` | mono-fleur 系统统一字段语义 |
+| `description_zh` | `pipeline/contracts/glossary/fields.yml` | fleur 系统统一字段语义 |
 | `dataset_note_zh` | `pipeline/contracts/datasets/*.yml` | 当前数据集特有异常值、清洗规则或口径说明 |
 
 ### 4.3 ClickHouse 类型约束

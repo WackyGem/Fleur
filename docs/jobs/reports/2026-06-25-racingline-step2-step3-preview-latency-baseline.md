@@ -8,7 +8,7 @@
 
 | 项 | 值 |
 |---|---|
-| Baseline worktree | `/storage/program/mono-fleur-worktrees/0055-baseline` |
+| Baseline worktree | `/storage/program/fleur-worktrees/0055-baseline` |
 | Baseline commit | `451620f` |
 | Rearview baseline | `http://127.0.0.1:34058` |
 | Racingline baseline | `http://127.0.0.1:5174/strategies` |
@@ -20,18 +20,18 @@
 ## 启动命令
 
 ```bash
-git worktree add --detach /storage/program/mono-fleur-worktrees/0055-baseline 451620f
-ln -s /storage/program/mono-fleur/.env /storage/program/mono-fleur-worktrees/0055-baseline/.env
-ln -s /storage/program/mono-fleur/app/racingline/node_modules /storage/program/mono-fleur-worktrees/0055-baseline/app/racingline/node_modules
+git worktree add --detach /storage/program/fleur-worktrees/0055-baseline 451620f
+ln -s /storage/program/fleur/.env /storage/program/fleur-worktrees/0055-baseline/.env
+ln -s /storage/program/fleur/app/racingline/node_modules /storage/program/fleur-worktrees/0055-baseline/app/racingline/node_modules
 ```
 
 ```bash
-cd /storage/program/mono-fleur-worktrees/0055-baseline/engines
+cd /storage/program/fleur-worktrees/0055-baseline/engines
 REARVIEW_HTTP_BIND=127.0.0.1:34058 cargo run -p rearview-server -- serve
 ```
 
 ```bash
-cd /storage/program/mono-fleur-worktrees/0055-baseline/app/racingline
+cd /storage/program/fleur-worktrees/0055-baseline/app/racingline
 VITE_REARVIEW_API_BASE_URL=http://127.0.0.1:34058 npm run dev -- --host 127.0.0.1 --port 5174
 ```
 
@@ -96,4 +96,4 @@ indicator_panels, ma, price_overlays, series
 
 ## Cleanup
 
-baseline 后端和前端已用 Ctrl-C 停止。采样完成后，临时 worktree 已通过 `git worktree remove /storage/program/mono-fleur-worktrees/0055-baseline` 删除。
+baseline 后端和前端已用 Ctrl-C 停止。采样完成后，临时 worktree 已通过 `git worktree remove /storage/program/fleur-worktrees/0055-baseline` 删除。

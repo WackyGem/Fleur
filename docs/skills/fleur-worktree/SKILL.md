@@ -1,11 +1,11 @@
 ---
 name: fleur-worktree
-description: mono-fleur 的 Git worktree 与多分支协作技能。用于为 Codex/agent 并行任务创建、命名、隔离、验证、合并和清理 worktree；适用于多 agent 同仓库开发、分支实验、并行修复、代码评审和长期任务隔离。
+description: fleur 的 Git worktree 与多分支协作技能。用于为 Codex/agent 并行任务创建、命名、隔离、验证、合并和清理 worktree；适用于多 agent 同仓库开发、分支实验、并行修复、代码评审和长期任务隔离。
 ---
 
 # Fleur Worktree
 
-当同一个 mono-fleur 仓库需要同时推进多个 Codex/agent 任务时，使用这个 skill。目标是一任务一 worktree、一任务一分支、一套明确验证和清理规则，避免 agent 互相踩文件、共享运行时状态或把未完成分支混入主工作区。
+当同一个 fleur 仓库需要同时推进多个 Codex/agent 任务时，使用这个 skill。目标是一任务一 worktree、一任务一分支、一套明确验证和清理规则，避免 agent 互相踩文件、共享运行时状态或把未完成分支混入主工作区。
 
 ## 依据
 
@@ -16,7 +16,7 @@ description: mono-fleur 的 Git worktree 与多分支协作技能。用于为 Co
 ## 原则
 
 - 每个并行任务使用独立 worktree 和独立 branch。
-- worktree 放在仓库外部的兄弟目录，不放进 `mono-fleur/` 内部。
+- worktree 放在仓库外部的兄弟目录，不放进 `fleur/` 内部。
 - 不从脏工作区创建新任务，除非用户明确要求把当前未提交改动带过去。
 - worktree 只隔离文件系统和 Git checkout，不隔离 S3、PostgreSQL、Dagster run storage、端口、后台进程或外部 API。
 - 能串行就不伪装并行：两个任务会改同一模块、同一迁移、同一资产契约或同一运行状态时，指定 integrator 分支串行合并。
@@ -27,13 +27,13 @@ description: mono-fleur 的 Git worktree 与多分支协作技能。用于为 Co
 主仓库：
 
 ```text
-/storage/program/mono-fleur
+/storage/program/fleur
 ```
 
 推荐 worktree 根目录：
 
 ```text
-/storage/program/mono-fleur-worktrees/
+/storage/program/fleur-worktrees/
 ```
 
 命名规则：
@@ -45,7 +45,7 @@ description: mono-fleur 的 Git worktree 与多分支协作技能。用于为 Co
 示例：
 
 ```text
-/storage/program/mono-fleur-worktrees/20260531-scheduler-runner
+/storage/program/fleur-worktrees/20260531-scheduler-runner
 branch: codex/20260531-scheduler-runner
 ```
 
@@ -58,21 +58,21 @@ git status --short
 git worktree list
 git fetch --all --prune
 
-mkdir -p ../mono-fleur-worktrees
-git worktree add -b codex/20260531-topic ../mono-fleur-worktrees/20260531-topic HEAD
+mkdir -p ../fleur-worktrees
+git worktree add -b codex/20260531-topic ../fleur-worktrees/20260531-topic HEAD
 ```
 
 如果要基于远端主线创建，先确认默认分支名，再显式指定：
 
 ```bash
 git branch --show-current
-git worktree add -b codex/20260531-topic ../mono-fleur-worktrees/20260531-topic origin/main
+git worktree add -b codex/20260531-topic ../fleur-worktrees/20260531-topic origin/main
 ```
 
 进入新 worktree 后先同步依赖：
 
 ```bash
-cd ../mono-fleur-worktrees/20260531-topic/pipeline
+cd ../fleur-worktrees/20260531-topic/pipeline
 uv sync --all-packages --all-groups
 ```
 
@@ -116,20 +116,20 @@ Dagster 运行建议：
 推荐命名：
 
 - branch：`codex/integration-<yyyymmdd>-<topic>`
-- worktree：`../mono-fleur-worktrees/integration-<yyyymmdd>-<topic>`
+- worktree：`../fleur-worktrees/integration-<yyyymmdd>-<topic>`
 
 创建聚合 worktree：
 
 ```bash
 git fetch --all --prune
-mkdir -p ../mono-fleur-worktrees
-git worktree add -b codex/integration-20260531-topic ../mono-fleur-worktrees/integration-20260531-topic origin/main
+mkdir -p ../fleur-worktrees
+git worktree add -b codex/integration-20260531-topic ../fleur-worktrees/integration-20260531-topic origin/main
 ```
 
 在聚合分支按顺序合并候选分支：
 
 ```bash
-cd ../mono-fleur-worktrees/integration-20260531-topic
+cd ../fleur-worktrees/integration-20260531-topic
 git merge codex/branch-a
 git merge codex/branch-b
 git merge codex/branch-c
@@ -223,7 +223,7 @@ git diff --check
 
 ```bash
 git worktree list
-git worktree remove ../mono-fleur-worktrees/20260531-topic
+git worktree remove ../fleur-worktrees/20260531-topic
 git worktree prune
 git branch -d codex/20260531-topic
 ```
@@ -231,8 +231,8 @@ git branch -d codex/20260531-topic
 如果 worktree 有未提交内容，不要用 `-f`。先查看：
 
 ```bash
-git -C ../mono-fleur-worktrees/20260531-topic status --short
-git -C ../mono-fleur-worktrees/20260531-topic diff --stat
+git -C ../fleur-worktrees/20260531-topic status --short
+git -C ../fleur-worktrees/20260531-topic diff --stat
 ```
 
 只有用户明确确认废弃时，才允许强制删除。

@@ -1,9 +1,9 @@
-# AGENTS.md — mono-fleur 项目指南
+# AGENTS.md — fleur 项目指南
 
 ## 项目结构
 
 ```
-mono-fleur/
+fleur/
 ├── pipeline/           # Python 数据工作区，由 uv 管理
 │   ├── scheduler/      # Dagster 调度项目（scheduler）
 │   ├── elt/            # dbt 转换项目（elt）
@@ -102,7 +102,7 @@ make rust-doc-serve
 - 项目名称：`scheduler`
 - 在 `pipeline/` 目录下使用 `uv run dg ...` 和 `uv run dagster ...`
 - 优先使用 `dg` CLI 进行项目检查和脚手架操作
-- Dagster 主目录：`/storage/program/mono-fleur/.dagster`
+- Dagster 主目录：`/storage/program/fleur/.dagster`
 - 架构入口：`docs/architecture/scheduler-architecture.md`
 - 模块边界和禁止模式：`docs/architecture/scheduler-module-boundaries.md`
 - 回填操作：`docs/skills/fleur-dagster-backfill-runbook/SKILL.md`
@@ -235,13 +235,13 @@ cargo test --workspace
 | `dignified-python` | Python 代码质量、类型提示、现代 Python 风格、pathlib、异常处理、接口、CLI 模式或 Python 审查/重构 |
 | `fetching-dbt-docs` | 查找 dbt Core、dbt Cloud/平台或 dbt 语义层的 dbt 文档 |
 | `fleur-contract-data-dictionary` | 维护数据契约、字段 glossary、中文字段描述、dbt YAML 和 data_dict 生成/校验工作流 |
-| `fleur-dagster-backfill-runbook` | mono-fleur 的 Dagster 回填操作手册，用于选择 `dg launch` 命令、资产选择、partition 参数和各数据源回填模板 |
+| `fleur-dagster-backfill-runbook` | fleur 的 Dagster 回填操作手册，用于选择 `dg launch` 命令、资产选择、partition 参数和各数据源回填模板 |
 | `fleur-dagster-http-source` | 用户提供远端 HTTP/HTTPS 链接、API endpoint 或样例，希望新增 Dagster source asset，落 S3 Parquet 并按 contract 同步 ClickHouse raw 层时使用 |
 | `fleur-dbt-model-readiness` | 新增或重写 dbt staging model 前使用，完成 raw source profiling、报告、staging 清洗建议和 readiness 校验 |
 | `fleur-harness` | 维护项目 harness、agent 可读性、docs/skills 路由、架构约束、长期计划、文档治理和质量闭环 |
 | `fleur-playwright-cdp-debug` | 使用全局 `playwright-cli` 通过 `vnc-mini-desktop` 暴露的 CDP 端点调试 `app/` 前端，检查截图、DOM、console、network 和响应式布局 |
-| `fleur-version-management` | 维护 mono-fleur 多工程版本，包括组件 SemVer、dataset contract version、Alembic revision 记录、release manifest、组件 tag、集成 tag、release note 和运行时版本暴露 |
-| `fleur-worktree` | 管理 mono-fleur 的 Git worktree、多分支、多 agent 并行任务、隔离验证、合并和清理流程 |
+| `fleur-version-management` | 维护 fleur 多工程版本，包括组件 SemVer、dataset contract version、Alembic revision 记录、release manifest、组件 tag、集成 tag、release note 和运行时版本暴露 |
+| `fleur-worktree` | 管理 fleur 的 Git worktree、多分支、多 agent 并行任务、隔离验证、合并和清理流程 |
 | `running-dbt-commands` | 格式化或执行 dbt CLI 命令、选择 dbt 可执行文件、选择资源、编译、构建、测试或显示查询输出 |
 | `rust-async-patterns` | 构建或调试 Tokio/async Rust 应用、异步 I/O、任务并发、channel、取消和 async 性能问题时使用 |
 | `rust-best-practices` | 编写、审查或重构 Rust 代码时使用，覆盖所有权/借用、错误处理、性能、Clippy、文档和基础测试规范 |

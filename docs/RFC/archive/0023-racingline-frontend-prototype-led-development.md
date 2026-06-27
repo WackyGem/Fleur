@@ -14,7 +14,7 @@
 
 ## 背景
 
-mono-fleur 的数据平台、dbt、Dagster、Rust 后端和数据契约任务，通常可以用较清晰的输入、输出、schema、状态机和质量门禁描述。适合的开发模式是：
+fleur 的数据平台、dbt、Dagster、Rust 后端和数据契约任务，通常可以用较清晰的输入、输出、schema、状态机和质量门禁描述。适合的开发模式是：
 
 1. 需求进入 intake。
 2. 复杂需求写 RFC。

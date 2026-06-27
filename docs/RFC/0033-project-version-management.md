@@ -8,7 +8,7 @@
 
 ## 摘要
 
-mono-fleur 是一个 monorepo，但不是单一可发布产品。当前仓库同时包含 Dagster 调度项目、dbt 转换项目、数据契约工具、数据契约注册表、Alembic 迁移、Rust CLI/服务/worker、Racingline 前端和部署配置。它们的发布节奏、兼容性边界和回滚方式不同，不适合只用一个仓库级版本号表达全部状态。
+fleur 是一个 monorepo，但不是单一可发布产品。当前仓库同时包含 Dagster 调度项目、dbt 转换项目、数据契约工具、数据契约注册表、Alembic 迁移、Rust CLI/服务/worker、Racingline 前端和部署配置。它们的发布节奏、兼容性边界和回滚方式不同，不适合只用一个仓库级版本号表达全部状态。
 
 本 RFC 建议采用“组件独立版本 + 仓库集成发布标记”的模式：
 
@@ -31,7 +31,7 @@ mono-fleur 是一个 monorepo，但不是单一可发布产品。当前仓库同
 2. 本 RFC 不引入外部发布平台、私有包仓库或制品仓库。
 3. 本 RFC 不要求每个目录都拥有 SemVer；只有具备发布或兼容性边界的单元才维护版本。
 4. 本 RFC 不改变现有 Python、Cargo、npm、dbt、Alembic 的构建方式。
-5. 本 RFC 不把 lockfile 中的第三方依赖版本当作 mono-fleur 自身版本。
+5. 本 RFC 不把 lockfile 中的第三方依赖版本当作 fleur 自身版本。
 
 ## 当前版本基线
 
@@ -97,13 +97,13 @@ MAJOR.MINOR.PATCH
 建议格式：
 
 ```text
-mono-fleur-YYYY.MM.N
+fleur-YYYY.MM.N
 ```
 
 示例：
 
 ```text
-mono-fleur-2026.06.1
+fleur-2026.06.1
 ```
 
 组件 tag 使用组件名加 SemVer：
@@ -207,7 +207,7 @@ deploy/release-manifest.yml
 建议字段：
 
 ```yaml
-release: mono-fleur-2026.06.1
+release: fleur-2026.06.1
 components:
   scheduler: 0.1.0
   contract-tools: 0.1.0
@@ -256,7 +256,7 @@ contracts:
 1. 开发 PR 中修改代码、测试、文档和受影响组件版本。
 2. PR 描述列出 `Version impact`：组件、旧版本、新版本、bump 原因。
 3. 合并后按需创建组件 tag，例如 `racingline-v0.1.0`。
-4. 当一组组件共同完成验收后创建集成 tag，例如 `mono-fleur-2026.06.1`。
+4. 当一组组件共同完成验收后创建集成 tag，例如 `fleur-2026.06.1`。
 5. 如果涉及部署，更新 `deploy/release-manifest.yml` 并记录 migration head、dbt version、组件版本和镜像 tag。
 
 组件 tag 指向实际完成该版本 bump 的 commit。集成 tag 指向完成集成验证的 commit。
@@ -359,7 +359,7 @@ npm run build
 
 ```text
 docs/releases/README.md
-docs/releases/mono-fleur-2026.06.1.md
+docs/releases/fleur-2026.06.1.md
 ```
 
 单次 release note 应包含：
@@ -379,14 +379,14 @@ docs/releases/components/rearview-server.md
 docs/releases/components/racingline.md
 ```
 
-理由：当前 mono-fleur 的主要痛点是“整套系统用了哪些版本”不可追溯，而不是“每个组件都需要公开发布说明”。先维护集成 release note，可以用更少文件覆盖主要运维和回溯需求。
+理由：当前 fleur 的主要痛点是“整套系统用了哪些版本”不可追溯，而不是“每个组件都需要公开发布说明”。先维护集成 release note，可以用更少文件覆盖主要运维和回溯需求。
 
 ### 集成 tag 格式
 
 集成 tag 建议使用：
 
 ```text
-mono-fleur-YYYY.MM.N
+fleur-YYYY.MM.N
 ```
 
 不建议使用 SemVer。
@@ -401,9 +401,9 @@ mono-fleur-YYYY.MM.N
 示例：
 
 ```text
-mono-fleur-2026.06.1
-mono-fleur-2026.06.2
-mono-fleur-2026.07.1
+fleur-2026.06.1
+fleur-2026.06.2
+fleur-2026.07.1
 ```
 
 如果同一天有多次集成验收，可以继续递增 `N`，不需要把 patch/minor/major 语义强加到整仓快照上。

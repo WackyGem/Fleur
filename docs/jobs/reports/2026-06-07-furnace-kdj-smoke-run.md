@@ -16,7 +16,7 @@
 
 ```bash
 FURNACE_CLICKHOUSE_CLIENT=docker
-FURNACE_CLICKHOUSE_CLIENT_ARGS='exec -i mono-fleur-clickhouse clickhouse-client'
+FURNACE_CLICKHOUSE_CLIENT_ARGS='exec -i fleur-clickhouse clickhouse-client'
 CLICKHOUSE_HOST=127.0.0.1
 CLICKHOUSE_NATIVE_PORT=9000
 ```
@@ -44,7 +44,7 @@ securities = 5532
 ```bash
 cd engines
 FURNACE_CLICKHOUSE_CLIENT=docker \
-FURNACE_CLICKHOUSE_CLIENT_ARGS='exec -i mono-fleur-clickhouse clickhouse-client' \
+FURNACE_CLICKHOUSE_CLIENT_ARGS='exec -i fleur-clickhouse clickhouse-client' \
 CLICKHOUSE_HOST=127.0.0.1 \
 CLICKHOUSE_NATIVE_PORT=9000 \
 ./target/debug/furnace kdj \
@@ -135,7 +135,7 @@ active parts: partition 2026, parts = 1, rows = 19
 ```bash
 cd engines
 FURNACE_CLICKHOUSE_CLIENT=docker \
-FURNACE_CLICKHOUSE_CLIENT_ARGS='exec -i mono-fleur-clickhouse clickhouse-client' \
+FURNACE_CLICKHOUSE_CLIENT_ARGS='exec -i fleur-clickhouse clickhouse-client' \
 CLICKHOUSE_HOST=127.0.0.1 \
 CLICKHOUSE_NATIVE_PORT=9000 \
 ./target/debug/furnace kdj \
@@ -191,9 +191,9 @@ uv run dbt build --project-dir elt --profiles-dir elt --select int_stock_kdj_dai
 
 ```bash
 cd pipeline
-DAGSTER_HOME=/storage/program/mono-fleur/.dagster \
+DAGSTER_HOME=/storage/program/fleur/.dagster \
 FURNACE_CLICKHOUSE_CLIENT=docker \
-FURNACE_CLICKHOUSE_CLIENT_ARGS='exec -i mono-fleur-clickhouse clickhouse-client' \
+FURNACE_CLICKHOUSE_CLIENT_ARGS='exec -i fleur-clickhouse clickhouse-client' \
 CLICKHOUSE_HOST=127.0.0.1 \
 CLICKHOUSE_NATIVE_PORT=9000 \
 uv run dg launch \

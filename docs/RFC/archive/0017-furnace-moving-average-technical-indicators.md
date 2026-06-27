@@ -4,7 +4,7 @@
 
 ## 摘要
 
-本文档记录 mono-fleur 在 Rust 计算引擎 `furnace` 中新增 Moving Average 日线技术指标的需求基线。第一版目标是基于 `fleur_intermediate.int_stock_quotes_daily_adj` 的前复权收盘价，计算多组简单移动平均线、两个组合均线和一个双重 EMA 指标，并通过 dbt thin wrapper 暴露为：
+本文档记录 fleur 在 Rust 计算引擎 `furnace` 中新增 Moving Average 日线技术指标的需求基线。第一版目标是基于 `fleur_intermediate.int_stock_quotes_daily_adj` 的前复权收盘价，计算多组简单移动平均线、两个组合均线和一个双重 EMA 指标，并通过 dbt thin wrapper 暴露为：
 
 ```text
 fleur_intermediate.int_stock_ma_daily

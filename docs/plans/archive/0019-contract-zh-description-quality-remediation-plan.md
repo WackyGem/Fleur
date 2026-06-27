@@ -43,7 +43,7 @@ Plan 0018 已经把字段事实源收敛到 `pipeline/contracts`，并让 dbt YA
 本计划完成后应满足：
 
 - 所有 `source.fields[].external_description_zh` 都是中文自然语言描述，不允许为空、不允许等于字段名、不允许只有英文/拼音/缩写。
-- 所有 `glossary.fields[].description_zh` 都表达 mono-fleur canonical 字段语义，不允许等于 canonical 字段名。
+- 所有 `glossary.fields[].description_zh` 都表达 fleur canonical 字段语义，不允许等于 canonical 字段名。
 - data_dict 中展示的中文描述来自高质量 contract/glossary，而不是字段名占位。
 - `uv run fleur-contracts validate` 能直接失败并指出低质量描述的位置。
 - 后续新增 dataset 或字段时，低质量中文描述会在本地测试或 CI 阶段被拦截。
@@ -85,7 +85,7 @@ external_description_zh: 证券上市状态。
 
 ### 5.2 `glossary.description_zh`
 
-`glossary.description_zh` 表达 mono-fleur 系统内统一语义，写作标准：
+`glossary.description_zh` 表达 fleur 系统内统一语义，写作标准：
 
 - 必须说明 canonical 字段在系统内代表什么。
 - 不写供应商特有字段名，供应商别名留在 dataset contract 中体现。

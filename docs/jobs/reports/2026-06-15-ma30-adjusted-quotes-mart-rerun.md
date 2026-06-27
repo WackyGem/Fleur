@@ -42,7 +42,7 @@ cargo build --release -p furnace
 cd engines
 set -a; . ../.env; set +a
 FURNACE_CLICKHOUSE_CLIENT=docker \
-FURNACE_CLICKHOUSE_CLIENT_ARGS='exec -i mono-fleur-clickhouse clickhouse-client' \
+FURNACE_CLICKHOUSE_CLIENT_ARGS='exec -i fleur-clickhouse clickhouse-client' \
 CLICKHOUSE_HOST=127.0.0.1 \
 CLICKHOUSE_NATIVE_PORT=9000 \
 CLICKHOUSE_QUERY_TIMEOUT_SECONDS=900 \
@@ -84,7 +84,7 @@ Dry-run 摘要：
 cd engines
 set -a; . ../.env; set +a
 FURNACE_CLICKHOUSE_CLIENT=docker \
-FURNACE_CLICKHOUSE_CLIENT_ARGS='exec -i mono-fleur-clickhouse clickhouse-client' \
+FURNACE_CLICKHOUSE_CLIENT_ARGS='exec -i fleur-clickhouse clickhouse-client' \
 CLICKHOUSE_HOST=127.0.0.1 \
 CLICKHOUSE_NATIVE_PORT=9000 \
 CLICKHOUSE_QUERY_TIMEOUT_SECONDS=900 \

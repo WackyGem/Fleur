@@ -1,11 +1,11 @@
 ---
 name: fleur-version-management
-description: mono-fleur 的多工程版本管理技能。用于判断和执行组件 SemVer bump、dataset contract version bump、Alembic revision/version 记录、Rust crate 独立版本维护、deploy release manifest、集成 tag、release note 和运行时版本暴露；适用于用户要求处理版本号、发布版本、组件 tag、集成 tag、release manifest、changelog/release note、运行时版本展示或版本一致性校验时。
+description: fleur 的多工程版本管理技能。用于判断和执行组件 SemVer bump、dataset contract version bump、Alembic revision/version 记录、Rust crate 独立版本维护、deploy release manifest、集成 tag、release note 和运行时版本暴露；适用于用户要求处理版本号、发布版本、组件 tag、集成 tag、release manifest、changelog/release note、运行时版本展示或版本一致性校验时。
 ---
 
 # Fleur Version Management
 
-使用此 skill 维护 mono-fleur 的版本事实和发布追溯。skill 只保留日常操作流程、决策规则、验证命令和停止条件。
+使用此 skill 维护 fleur 的版本事实和发布追溯。skill 只保留日常操作流程、决策规则、验证命令和停止条件。
 
 ## 先读事实
 
@@ -159,7 +159,7 @@ deploy/release-manifest.yml
 至少记录：
 
 ```yaml
-release: mono-fleur-2026.06.1
+release: fleur-2026.06.1
 components:
   scheduler: 0.1.0
   contract-tools: 0.1.0
@@ -189,7 +189,7 @@ contracts:
 
 ```text
 docs/releases/README.md
-docs/releases/mono-fleur-2026.06.1.md
+docs/releases/fleur-2026.06.1.md
 ```
 
 release note 至少包含：
@@ -220,7 +220,7 @@ racingline-v0.1.0
 集成 tag：
 
 ```text
-mono-fleur-YYYY.MM.N
+fleur-YYYY.MM.N
 ```
 
 集成 tag 不使用 SemVer，因为它表达整仓验收快照，不表达公共 API 兼容性。

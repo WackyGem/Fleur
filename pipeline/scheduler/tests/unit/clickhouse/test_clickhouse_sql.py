@@ -121,13 +121,13 @@ def test_replace_partition_sql_does_not_drop_or_mutate_rows() -> None:
 def test_s3_input_config_renders_path_style_url_without_exposing_secret_in_url() -> None:
     s3_input = sql.ClickHouseS3InputConfig(
         endpoint="http://rustfs.test/",
-        bucket="/mono-fleur/",
+        bucket="/fleur/",
         access_key="access",
         secret_key="secret",
     )
 
     assert s3_input.object_url("source/a/000000_0.parquet") == (
-        "http://rustfs.test/mono-fleur/source/a/000000_0.parquet"
+        "http://rustfs.test/fleur/source/a/000000_0.parquet"
     )
     assert "secret" not in s3_input.redacted_object_url("source/a/000000_0.parquet")
     assert "secret" not in repr(s3_input)
@@ -137,7 +137,7 @@ def test_s3_input_config_supports_clickhouse_endpoint_override() -> None:
     s3_input = sql.ClickHouseS3InputConfig.from_s3_config(
         S3Config(
             endpoint="http://127.0.0.1:34050",
-            bucket="mono-fleur",
+            bucket="fleur",
             access_key="access",
             secret_key="secret",
         ),
@@ -145,5 +145,5 @@ def test_s3_input_config_supports_clickhouse_endpoint_override() -> None:
     )
 
     assert s3_input.object_url("source/a/000000_0.parquet") == (
-        "http://rustfs:9000/mono-fleur/source/a/000000_0.parquet"
+        "http://rustfs:9000/fleur/source/a/000000_0.parquet"
     )

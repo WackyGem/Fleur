@@ -11,7 +11,7 @@ UTC time: 2026-06-16T20:22:16Z
 - Source storage: `source/chinabond__government_bond/year=YYYY/000000_0.parquet`
 - ClickHouse raw table: `fleur_raw.chinabond__government_bond`
 - Partition range: `2006` through `2026`
-- Environment file: `/storage/program/mono-fleur/.env`
+- Environment file: `/storage/program/fleur/.env`
 
 ## Commands
 
@@ -20,7 +20,7 @@ Small-batch source/S3:
 ```bash
 cd pipeline
 set -a
-. /storage/program/mono-fleur/.env
+. /storage/program/fleur/.env
 set +a
 uv run dg launch --target-path scheduler --assets "key:source/chinabond__government_bond" --partition 2026
 uv run dg launch --target-path scheduler --assets "key:source/chinabond__government_bond" --partition 2006
@@ -31,7 +31,7 @@ Full source/S3:
 ```bash
 cd pipeline
 set -a
-. /storage/program/mono-fleur/.env
+. /storage/program/fleur/.env
 set +a
 for year in 2007 2008 2009 2010 2011 2012 2013 2014 2015 2016 2017 2018 2019 2020 2021 2022 2023 2024 2025; do
   uv run dg launch --target-path scheduler --assets "key:source/chinabond__government_bond" --partition "$year"
@@ -43,7 +43,7 @@ Small-batch and full ClickHouse raw sync:
 ```bash
 cd pipeline
 set -a
-. /storage/program/mono-fleur/.env
+. /storage/program/fleur/.env
 set +a
 for year in 2026 2006 2007 2008 2009 2010 2011 2012 2013 2014 2015 2016 2017 2018 2019 2020 2021 2022 2023 2024 2025; do
   uv run dg launch --target-path scheduler --assets "key:clickhouse/raw/chinabond__government_bond" --partition "$year"
