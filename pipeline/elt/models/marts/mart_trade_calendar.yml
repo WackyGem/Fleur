@@ -1,0 +1,28 @@
+version: 2
+
+models:
+  - name: mart_trade_calendar
+    description: A 股交易日历 mart 薄封装；作为 Rearview 服务解析交易日边界和 T+1 建仓日期的稳定入口。
+    config:
+      meta:
+        grain_zh: 每个 A 股交易日一行。
+        business_logic_zh:
+          - 仅从 int_trade_calendar 透传 trade_date 和 prev_trade_date。
+          - 用作后端服务消费的 mart 层 contract，避免 Rearview 直接读取 intermediate 层模型。
+          - 不在 mart 层补全自然日历或派生交易周、交易月、月末交易日等扩展字段。
+    columns:
+      - name: trade_date
+        description: "{{ doc('field_trade_date') }}"
+        data_type: Date
+        data_tests:
+          - not_null
+          - unique
+
+      - name: prev_trade_date
+        description: 当前交易日在 A 股交易日序列中的前一个交易日；最早交易日为 NULL。
+        data_type: Nullable(Date)
+        data_tests:
+          - relationships:
+              arguments:
+                to: ref('mart_trade_calendar')
+                field: trade_date

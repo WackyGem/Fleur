@@ -5770,7 +5770,7 @@ async fn resolve_strategy_portfolio_live_start_date(
         })?;
     let trade_dates = state
         .clickhouse
-        .query_trade_dates(
+        .query_trade_calendar_dates(
             start_date,
             end_date,
             &format!("strategy-portfolio-live-start-{source_end_date}"),

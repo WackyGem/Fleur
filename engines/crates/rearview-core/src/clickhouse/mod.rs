@@ -930,15 +930,32 @@ FORMAT JSONEachRow"#,
         query_id: &str,
     ) -> RearviewResult<Vec<NaiveDate>> {
         validate_identifier(&self.config.marts_database)?;
-        let sql = format!(
-            r#"
-SELECT DISTINCT
-    trade_date
-FROM {database}.`mart_stock_quotes_daily`
-WHERE trade_date BETWEEN toDate('{start_date}') AND toDate('{end_date}')
-ORDER BY trade_date ASC
-FORMAT JSONEachRow"#,
-            database = quote_identifier(&self.config.marts_database),
+        let sql = trade_dates_sql(
+            &quote_identifier(&self.config.marts_database),
+            "mart_stock_quotes_daily",
+            start_date,
+            end_date,
+        );
+        let body = self.execute_text(&sql, query_id).await?;
+        let mut trade_dates = Vec::new();
+        for row in parse_json_each_row::<TradeDateRow>(&body)? {
+            trade_dates.push(row.trade_date);
+        }
+        Ok(trade_dates)
+    }
+
+    pub async fn query_trade_calendar_dates(
+        &self,
+        start_date: NaiveDate,
+        end_date: NaiveDate,
+        query_id: &str,
+    ) -> RearviewResult<Vec<NaiveDate>> {
+        validate_identifier(&self.config.marts_database)?;
+        let sql = trade_dates_sql(
+            &quote_identifier(&self.config.marts_database),
+            "mart_trade_calendar",
+            start_date,
+            end_date,
         );
         let body = self.execute_text(&sql, query_id).await?;
         let mut trade_dates = Vec::new();
@@ -3194,6 +3211,24 @@ fn quote_string_literal(value: &str) -> String {
     format!("'{}'", value.replace('\'', "''"))
 }
 
+fn trade_dates_sql(
+    quoted_database: &str,
+    table: &str,
+    start_date: NaiveDate,
+    end_date: NaiveDate,
+) -> String {
+    format!(
+        r#"
+SELECT DISTINCT
+    trade_date
+FROM {quoted_database}.{}
+WHERE trade_date BETWEEN toDate('{start_date}') AND toDate('{end_date}')
+ORDER BY trade_date ASC
+FORMAT JSONEachRow"#,
+        quote_identifier(table),
+    )
+}
+
 fn quote_select_columns() -> &'static str {
     r#"    security_code,
     trade_date,
@@ -3598,7 +3633,7 @@ mod tests {
         AnalysisQuoteAdjustment, BacktestSignalRow, MarketDataDemand, QuoteMartRow, ScreeningRow,
         chart_context_chart_quote_select_columns, chart_context_selected_quote_select_columns,
         chart_context_trend_select_columns, portfolio_price_bars_demand_join_sql,
-        portfolio_price_bars_sql, quote_select_columns, trend_select_columns,
+        portfolio_price_bars_sql, quote_select_columns, trade_dates_sql, trend_select_columns,
         validate_security_code, validate_source_tenor, validate_window_key,
     };
     use chrono::NaiveDate;
@@ -3673,6 +3708,32 @@ mod tests {
         );
         assert_eq!(row.score, 42.5);
         assert_eq!(row.signal_rank, 1);
+    }
+
+    #[test]
+    fn trade_dates_sql_reads_quote_mart_when_database_is_marts() {
+        let sql = trade_dates_sql(
+            "`fleur_marts`",
+            "mart_stock_quotes_daily",
+            NaiveDate::from_ymd_opt(2026, 6, 26).unwrap(),
+            NaiveDate::from_ymd_opt(2026, 6, 29).unwrap(),
+        );
+
+        assert!(sql.contains("FROM `fleur_marts`.`mart_stock_quotes_daily`"));
+        assert!(!sql.contains("int_trade_calendar"));
+    }
+
+    #[test]
+    fn trade_dates_sql_reads_trade_calendar_mart_when_database_is_marts() {
+        let sql = trade_dates_sql(
+            "`fleur_marts`",
+            "mart_trade_calendar",
+            NaiveDate::from_ymd_opt(2026, 6, 27).unwrap(),
+            NaiveDate::from_ymd_opt(2026, 8, 10).unwrap(),
+        );
+
+        assert!(sql.contains("FROM `fleur_marts`.`mart_trade_calendar`"));
+        assert!(!sql.contains("mart_stock_quotes_daily"));
     }
 
     #[test]
