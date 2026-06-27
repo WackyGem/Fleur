@@ -1,4 +1,4 @@
-# fleur
+# Fleur
 
 ![Python](https://img.shields.io/badge/Python-3.12-3776AB?logo=python&logoColor=white)
 ![Rust](https://img.shields.io/badge/Rust-2024-000000?logo=rust&logoColor=white)
@@ -6,59 +6,90 @@
 ![dbt](https://img.shields.io/badge/dbt-ClickHouse-FF694B?logo=dbt&logoColor=white)
 ![License](https://img.shields.io/badge/License-MIT-yellow)
 
-fleur 是一个基于 harness-engineering 实践的面向 A 股市场研究的多工程量化平台，覆盖行情与财务数据采集、技术指标计算、规则选股、策略回测、T+1 策略组合发布以及组合运行监控。
+使用本项目前请先阅读 [`风险提示与免责声明`](SECURITY.md#风险提示与免责声明)
 
-仓库将 Python 数据平台、Rust 计算与服务引擎、React 前端工作台统一收纳在同一个 monorepo 中：
+## 📖 项目介绍
 
-- **Pipeline**：基于 Dagster 编排外部数据采集，落盘至 S3 兼容的 Parquet，并同步到 ClickHouse raw 层。
-- **ELT**：基于 dbt 在 ClickHouse 之上分层维护 staging、intermediate、calculation wrapper 与 marts 模型。
-- **Contracts**：以数据契约治理 source payload、Parquet schema、raw 表、自动生成的 dbt sources 及数据字典。
-- **Furnace**：Rust CLI，负责计算 KDJ、MA、RSI、BOLL、MACD 等技术指标及价格行为结构指标。
-- **Rearview**：Rust HTTP 服务与异步 worker，提供规则选股、策略回测、组合发布与订阅策略跟踪法能力。
-- **Racingline**：React 前端工作台，支持策略创建、股池预览、回测结果查看、T+1 模拟建仓与订阅组合监控。
+Fleur 是一个由 harness-engineering 驱动的 100% AI Coding 的面向沪深 A 股投研平台，覆盖行情与财务数据采集、技术指标计算、规则选股、策略回测、及组合运行监控。
 
+### 🎯 Fleur 聚焦的问题
 
-## 风险提示与免责声明
+- **数据自采自洽**：采集中文互联网公开数据，从源头治理字段事实，做到数据高质量、口径自洽、可重放、可回填。
+- **指标公式可解释**: 实现指标计算引擎，技术指标指标算法可溯源。
+- **可视化策略构建**：支持 `行情涨跌\趋势指标\动量指标\形态特征\量能指标` 等数上百个技术指标的可视化实时筛选，构建策略零代码。
+- **快速策略回测**：实现高性能回测引擎与投资组合评价体系，快速多维度评价策略过往业绩表现。
+- **成本控制**：完全免费、从数据到应用不产生任何费用。
 
-为使用户更好地了解开发者 WackyGem（以下简称"本人"）开发的 fleur 沪深 A 股投研模拟项目（以下简称"本项目"），请务必详细阅读并充分理解以下风险：
+## 🧩 工程特性
 
-1. 本项目使用中文互联网免费公开数据源作为基础数据进行数据加工、计算和分析，但不保证数据的及时性、准确性、真实性与完整性。
-2. 在遵守国家相关法律、法规、规章及自律组织规则、监管政策的前提下，本项目尽力为用户提供高速、完整、准确的金融数据服务；但因受数据来源、技术能力等多种因素影响，本人不保证数据源的及时性、准确性或完整性。因数据源遗漏、错误、丢失、延迟、中断可能造成的损失将由您自行承担，本人不承担任何责任。
-3. 本项目所提供的信息、数据等全部内容仅供参考。使用者须自行确认具备理解相关内容的专业能力并保持独立判断。任何情况下，本项目提供的内容均不构成对投资者的投资建议；据此操作的一切风险与损失由投资者自行承担，本人不对任何人因参考上述内容造成的直接或间接损失或与此相关的其他损失承担任何责任。
-4. 本项目提供的 Skill 示例、MCP 示例、Python 库、提示词等均为学习与参考用途，不构成业务承诺、技术保证或服务合约，不构成任何投资建议、投资分析或投资咨询意见，不承诺收益、不保证盈利。
-5. 本项目可能不时更新或升级。因您未及时变更或升级而发生的任何损失，由您自行承担。
-6. 本项目不提供 AI 模型。因 AI 模型存在算法局限性、推理误差、上下文理解偏差，可能出现数据错误、逻辑疏漏、结果不准确等问题。本人不对 AI 调用结果、数据准确性、使用效果、投资收益作任何明示或暗示的担保，不对您因使用相关内容产生的任何直接或间接损失承担责任。
-7. 本免责声明无法揭示您使用本项目及通过本项目从事投资交易的所有风险。在使用本项目之前，应全面了解相关法律法规与有关规定，对自身的经济承受能力、风险承受能力、投资目标、风险控制能力等综合考虑，作出客观判断，对投资交易作仔细研究。
-8. 您需妥善保管账号、密钥与运行环境。因您自身保管不当、第三方工具、网络攻击、设备故障等导致的风险与损失，由您自行负责。
+| 领域 | 工程 | 感知 |
+| :--- | :--- | :--- |
+| **数据基座** | 数据管道（Pipeline） | 稳定、可追溯的数据接入，确保原始数据完整留存，支持回放与审计。 |
+| | ELT 分层建模 | 清晰的数据分层，降低分析复杂度；指标口径统一，即用即查，减少重复开发。 |
+| | 数据契约治理 | 数据质量有保障，字段变更可追踪；自动生成的文档让新人快速上手，减少沟通成本。 |
+| **计算引擎与服务** | Furnace（指标计算） | 毫秒级批量计算，支持海量证券标的；指标结果可靠，可直接用于策略逻辑，无需自行实现。 |
+| | Rearview（主服务） | 实时信号推送、组合监控，辅助决策与风险控制。 |
+| | Rearview-worker（回测引擎） | 快速验证投资想法，回测历史表现，获取绩效指标。 |
+| **工作台** | Racingline（前端） | 一站式交互界面，无需编写代码即可构建策略、观察回测绩效、管理模拟持仓，降低使用门槛。 |
 
-本声明适用本项目发布的所有代码、工具、接口与文档。如有更新，以本项目仓库为准恕不另行通知。
+### 🧱 数据基座
 
+本项目所使用数据均来自中文互联网可合法免费获取的公开数据源，所有数据采集、加工、建模均在本项目内编码实现，不产生、不收取任何费用。
 
-## 架构概览
+| 顺序 | 流向 | 落点 | 责任边界 |
+|---|---|---|---|
+| 1 | 公开数据源 | BaoStock、EastMoney、Sina、THS、ChinaBond、JiuYan 等 | 提供行情、会计财务报表、分红派息、涨停池、题材、图片等原始输入 |
+| 2 | 数据资产管理 | `pipeline/scheduler`  | 采集、分区、重试、回填和运行观测 |
+| 3 | 源层数据 |  RustFS(S3) 对象存储中的 Parquet | 保存可重放的源层数据对象 |
+| 4 | 数据建模与治理 | `pipeline/elt` |  数据加工、清洗、跨源组合、计算、可复用业务中间结构及业务口径输出 |
+| 5 | 业绩指标计算引擎 | `engines/crates/furnace` |  计算 KDJ、MA、RSI、BOLL、MACD、price-pattern 等技术指标 |
+| 7 | 分层模型 | ClickHouse | raw 原始数据层、staging 字段规范化层、intermediate 可复用业务中间结构 、 calculation 业绩指标计算 、 marts 应用数据集市 |
+| 8 | 应用消费 | Rearview API、Portfolio worker、Racingline 工作台 | 规则选股、策略回测、组合运行 |
 
-```mermaid
-flowchart LR
-    External[外部行情与财务数据 API] --> Dagster[Dagster 调度与采集]
-    Dagster --> ObjectStore[S3 兼容 Parquet]
-    Dagster --> Raw[ClickHouse raw 层]
-    Contracts[数据契约] --> Sources[生成 dbt sources]
-    Raw --> Dbt[dbt staging / intermediate / marts]
-    Sources --> Dbt
-    Dbt --> Marts[ClickHouse marts]
-    Dbt --> Intermediate[中间层行情输入]
-    Intermediate --> Furnace[Furnace Rust 指标 CLI]
-    Furnace --> Calculation[ClickHouse calculation 层]
-    Calculation --> Dbt
-    Marts --> Rearview[Rearview Rust API]
-    Rearview --> Postgres[PostgreSQL Rearview 状态]
-    Rearview --> Nats[NATS JetStream]
-    Nats --> Worker[Rearview 组合 worker]
-    Worker --> Backtest[ClickHouse 回测 / live 事实]
-    Backtest --> Rearview
-    Racingline[Racingline React 工作台] --> Rearview
-```
+### 📡 多源沪深 A 股数据采集
 
-## 目录结构
+通过 Dagster 编排六类外部数据源，统一落盘 Parquet 文件格式（zstd压缩编码）上传至RustFS（S3 兼容），后同步至 ClickHouse raw 层。下表汇总各数据源的数据范围、分区策略与调度（均为 `Asia/Shanghai` 时区）：
+
+| 数据源 | 采集内容 | 数据范围  | 调度 |
+|---|---|---|---|
+| **BaoStock 证券宝** | 沪深 A 股基础信息快照、日 K 线（OHLC） | 1990-12-19 至今 | 每日 17:35 |
+| **EastMoney 东方财富** | 资产负债表、利润表（SQ/YTD）、现金流（SQ/YTD）、分红派息、股权历史、十大流通股东等 | 1990-12-19 至今  | 每日 16:00 |
+| **Sina 新浪财经** | A 股交易日历（压缩位流解码） | 1990-12-19 至今年年末| 年末 12/25–12/31 每日 09:00 |
+| **THS 同花顺** | 涨停股池 | 近380个自然日  | 每日 16:45 |
+| **ChinaBond 中国债券信息网** | 国债收益率曲线（3月期–30年期 共 11 个期限） | 2006 至今  | 每日 16:00 |
+| **JiuYan 韭研公社 （非必须）** | 个股异动、题材热点 | 2021-01-01 至今  | 异动每日 16:45；题材 17:30、OCR 17:35 |
+
+JiuYan 的题材热点经**图片下载 + OCR**（基于 OpenAI 兼容视觉模型，带 Postgres 状态机与失败重跑，`force_download` / `force_ocr` 可强制重跑）。回填受窗口上限约束：THS 380 自然日、JiuYan 80 交易日。
+
+### ⚙️ 技术指标与组合评价体系
+
+Furnace 负责技术指标计算；Rearview portfolio worker 负责组合绩效与交易质量评价。
+
+| 体系 | 分类 | 已支持 |
+|---|---|---|
+| 技术指标 | 动量指标 | KDJ、RSI、MACD |
+| 技术指标 | 趋势均线 | MA、EMA、BOLL |
+| 技术指标 | 量能指标 | 成交量均线 |
+| 技术指标 | 价格结构 | 连阳连阴、前低 / 次低结构 |
+| 组合评价 | 收益表现 | 持有期收益、年化收益 |
+| 组合评价 | 风险回撤 | 年化波动率、最大回撤、下行波动 |
+| 组合评价 | 风险调整收益 | Sharpe、Sortino、Calmar |
+| 组合评价 | 相对市场 | Alpha、Beta、Information Ratio、Treynor |
+| 组合评价 | 交易质量 | 闭合交易数、胜率、盈亏比、平均持仓天数、最大盈利 / 亏损 |
+
+## 🖥️ 工作台
+
+| 能力域 | 已实现功能 |
+|---|---|
+| 策略创建 | 指标选股、权重配置、股池预览、模拟建仓、异步回测五步流程 |
+| 规则选股 | 条件组合、评分排序、股池预览、分页候选股和个股分析 |
+| 策略回测 | 回测任务创建、状态跟踪、净值曲线、调仓记录、持仓交易和绩效结果 |
+| 组合发布 | 从回测结果建立 T+1 策略组合，发布前完成信号日和运行日预检 |
+| 组合监控 | Dashboard 组合概览、组合详情、待调入信号、净值、绩效和调仓记录 |
+| 后台执行 | Rearview HTTP API、portfolio worker、异步任务分发和组合每日运行 |
+| 自动化运行 | 交易日调度、数据采集、dbt + Furnace 构建和定向回填 |
+
+## 🗂️ 工程目录
 
 | 路径 | 说明 |
 |---|---|
@@ -72,9 +103,9 @@ flowchart LR
 | [`deploy/`](deploy/) | Docker Compose、本地基础设施、PostgreSQL 配置与 release manifest |
 | [`docs/`](docs/) | 架构事实、ADR、RFC、运行报告、发布记录、reference 与 runbook |
 
-## 快速开始
+## 🚀 快速开始
 
-### 前置依赖
+### ✅ 前置依赖
 
 - Docker 与 Docker Compose
 - `make`
@@ -83,7 +114,7 @@ flowchart LR
 - 支持 Rust 2024 edition 的 Rust toolchain
 - Node.js 与 npm；Racingline 当前声明 `npm@11.13.0`
 
-### 准备本地配置
+### 🔐 准备本地配置
 
 ```bash
 cp .env.example .env
@@ -91,7 +122,7 @@ cp .env.example .env
 
 运行服务前请先编辑 `.env`，真实凭据与本地密钥请勿提交到 Git。
 
-### 安装依赖
+### 📦 安装依赖
 
 ```bash
 cd pipeline
@@ -103,7 +134,7 @@ npm install
 
 Rust 依赖由 Cargo 在 `engines/` 下构建或运行命令时自动解析。
 
-### 启动完整工作台
+### ▶️ 启动完整工作台
 
 在仓库根目录执行：
 
@@ -128,97 +159,9 @@ make racingline-dev-stop
 make dev-down
 ```
 
-## 常用命令
-
-### 数据平台
-
-```bash
-cd pipeline
-uv run dbt parse --project-dir elt --profiles-dir elt
-
-cd scheduler
-uv run dg check defs
-```
-
-### 数据契约
-
-```bash
-cd pipeline
-uv run fleur-contracts validate
-uv run fleur-contracts generate --check
-```
-
-### Rust engines
-
-```bash
-cd engines
-cargo fmt --check
-cargo clippy --workspace --all-targets --all-features -- -D warnings
-cargo test --workspace
-```
-
-Furnace dry-run 示例：
-
-```bash
-cd engines
-cargo run -p furnace -- kdj \
-  --from 2026-05-06 \
-  --to 2026-06-01 \
-  --symbols 000069.SZ \
-  --mode dry-run \
-  --output-format json
-```
-
-### Racingline 前端
-
-```bash
-cd app/racingline
-npm run lint
-npm run typecheck
-npm test
-npm run build
-```
-
-### 文档与版本检查
-
-```bash
-make docs-check
-make versions-check
-git diff --check
-```
-
-生成本地文档：
-
-```bash
-make dbt-docs-serve
-make rust-doc-serve
-```
-
-## 当前发布快照
-
-当前集成发布快照记录在 [`deploy/release-manifest.yml`](deploy/release-manifest.yml)。
-
-| 字段 | 值 |
-|---|---|
-| Release | `fleur-2026.06.1` |
-| Commit | `3c20eb538e8aabc1622bbcaada450868b1f6a61c` |
-| Pipeline database head | `0008_strategy_portfolio_cp` |
-| Rearview database head | `0008_strategy_portfolio_cp` |
-| 验证状态 | `versions-check`、`docs-check`、Rust、Python、data platform 与 Racingline 均已通过 |
-
-| 组件 | 版本 |
-|---|---|
-| `scheduler` | `0.1.0` |
-| `contract-tools` | `0.1.0` |
-| `elt` | `1.0.0` |
-| `furnace` | `0.1.0` |
-| `rearview-server` | `0.1.0` |
-| `rearview-portfolio-worker` | `0.1.0` |
-| `racingline` | `0.0.1` |
-
 发布记录与 tag 前检查见 [`docs/releases/`](docs/releases/)。
 
-## 文档入口
+## 🧭 文档入口
 
 | 主题 | 入口 |
 |---|---|
@@ -232,18 +175,16 @@ make rust-doc-serve
 | 运行报告 | [`docs/jobs/reports/`](docs/jobs/reports/) |
 | 接口与数据参考 | [`docs/references/`](docs/references/) |
 
-## 许可证与发布说明
+## 🤝 致谢 | Acknowledgments
+
+| 类别 | 项目 / 社区 |
+|---|---|
+| 资产管理 | [Dagster](https://dagster.io/) |
+| 数据建模 | [dbt](https://www.getdbt.com/) |
+| UI 组件 | [shadcn/ui](https://ui.shadcn.com/) |
+| 数据来源 | [BaoStock 证券宝](http://baostock.com/) |
+| 社区推广 | [Linux.do](https://linux.do/) |
+
+## 📄 许可证与发布说明
 
 本项目使用 MIT License，完整条款见 [`LICENSE`](LICENSE)。
-
-Rust workspace 当前标记为 `license = "MIT"` 且 `publish = false`。`publish = false` 仅表示当前 crates 不会发布到公开 registry，不影响仓库源码按 MIT 协议发布。
-
-## 数据与安全提示
-
-- `.env` 包含凭据，请勿提交到版本控制。
-- `.env.example` 中的默认值仅适合本地占位。
-- 外部行情、财务与图片数据的可用性、限流及凭据均依赖上游服务。
-- 回测与组合结果属于研究产物，使用前需复核数据范围、模型假设与执行约束。
-
-
-
