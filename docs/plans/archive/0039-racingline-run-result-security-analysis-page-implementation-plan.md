@@ -18,12 +18,12 @@
 - [RFC 0020: Racingline Run Result 个股分析页](../../RFC/archive/0020-racingline-run-result-security-analysis-page.md)
 - [RFC 0019: Racingline Rearview 前端工作台](../../RFC/archive/0019-racingline-rearview-frontend-workbench.md)
 - [RFC 0018: Rust Rearview 规则选股服务与 mart 指标库](../../RFC/archive/0018-rust-stock-screening-service.md)
-- [System: Racingline](../../systems/racingline.md)
-- [System: Rearview](../../systems/rearview.md)
+- [System: Racingline](../../architecture/racingline.md)
+- [System: Rearview](../../architecture/rearview.md)
 - [Plan 0038: MA30 and adjusted quotes mart implementation](0038-ma30-and-adjusted-quotes-mart-implementation-plan.md)
-- [mart_stock_quotes_daily 设计](../../design/dbt_layer/fleur_marts/mart_stock_quotes_daily.md)
-- [mart_stock_trend_indicator_daily 设计](../../design/dbt_layer/fleur_marts/mart_stock_trend_indicator_daily.md)
-- [mart_stock_momentum_indicator_daily 设计](../../design/dbt_layer/fleur_marts/mart_stock_momentum_indicator_daily.md)
+- [mart_stock_quotes_daily 设计](../../architecture/dbt_layer/fleur_marts/mart_stock_quotes_daily.md)
+- [mart_stock_trend_indicator_daily 设计](../../architecture/dbt_layer/fleur_marts/mart_stock_trend_indicator_daily.md)
+- [mart_stock_momentum_indicator_daily 设计](../../architecture/dbt_layer/fleur_marts/mart_stock_momentum_indicator_daily.md)
 
 相关规则：
 
@@ -377,8 +377,8 @@ node scripts/check_playwright_cdp.mjs
    - console 无 runtime error
    - network analysis API 返回 200 或预期错误
 4. 更新系统地图：
-   - [System: Racingline](../../systems/racingline.md)：新增个股分析页入口和验收报告链接。
-   - [System: Rearview](../../systems/rearview.md)：新增 analysis API 事实。
+   - [System: Racingline](../../architecture/racingline.md)：新增个股分析页入口和验收报告链接。
+   - [System: Rearview](../../architecture/rearview.md)：新增 analysis API 事实。
 5. 新增 job report 到 `docs/jobs/reports/`，记录命令、样本 run、截图路径、network/console 结果和遗留问题。
 6. 完成后将本计划移入 `docs/plans/archive/`，并同步 `docs/plans/README.md`。
 

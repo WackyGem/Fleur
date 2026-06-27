@@ -12,8 +12,8 @@
 
 - [RFC 0018: Rust Rearview 规则选股服务与 mart 指标库](0018-rust-stock-screening-service.md)
 - [RFC 0019: Racingline Rearview 前端工作台](0019-racingline-rearview-frontend-workbench.md)
-- [System: Racingline](../../systems/racingline.md)
-- [System: Rearview](../../systems/rearview.md)
+- [System: Racingline](../../architecture/racingline.md)
+- [System: Rearview](../../architecture/rearview.md)
 
 ## 背景
 

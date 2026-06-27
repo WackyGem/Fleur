@@ -4,7 +4,7 @@
 领域：racingline, rearview
 关联系统：racingline, rearview, clickhouse marts
 代码根：app/racingline/, engines/crates/rearview-core/, engines/crates/rearview-server/
-系统地图：docs/systems/racingline.md, docs/systems/rearview.md
+系统地图：docs/architecture/racingline.md, docs/architecture/rearview.md
 
 ## 摘要
 
@@ -420,8 +420,8 @@ Step 4/5 gate
 | `engines/crates/rearview-core/src/planner/sql.rs` | preview timeline、preview rows、pool-page SQL 编译 |
 | `engines/crates/rearview-core/src/clickhouse/mod.rs` | ClickHouse HTTP query execution 与 analysis query helpers |
 | `docs/RFC/archive/0026-racingline-strategy-pool-preview-step3.md` | Step 3 原始边界和历史实现方案 |
-| `docs/systems/racingline.md` | 当前 Racingline 系统事实 |
-| `docs/systems/rearview.md` | 当前 Rearview 系统事实 |
+| `docs/architecture/racingline.md` | 当前 Racingline 系统事实 |
+| `docs/architecture/rearview.md` | 当前 Rearview 系统事实 |
 
 ## 后续计划建议
 

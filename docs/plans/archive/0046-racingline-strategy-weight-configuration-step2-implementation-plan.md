@@ -12,8 +12,8 @@
 - [Racingline Strategy Step 1 Gap Closure 报告](../../jobs/reports/2026-06-21-racingline-strategy-step1-gap-closure.md)
 - [Racingline Strategy Step 2 Preview Implementation 报告](../../jobs/reports/2026-06-22-racingline-strategy-step2-preview.md)
 - [Q&A 0004: Racingline 原型看板到策略创建闭环用户故事](../../Q&A/0004-racingline-prototype-dashboard-to-strategy-loop.md)
-- [System: Racingline](../../systems/racingline.md)
-- [System: Rearview](../../systems/rearview.md)
+- [System: Racingline](../../architecture/racingline.md)
+- [System: Rearview](../../architecture/rearview.md)
 
 ## 目标
 

@@ -6,14 +6,14 @@
 
 关联文档：
 
-- [Debt 0005: Strategies Step 3 股池预览二次实现漂移](../../debt/archive/0005-2026-06-22-strategies-step3-implemennt-drift2.md)
+- [Debt 0005: Strategies Step 3 股池预览二次实现漂移](../../issues/archive/debt/0005-2026-06-22-strategies-step3-implemennt-drift2.md)
 - [RFC 0026: Racingline 股池预览 Step 3 实现方案](../../RFC/archive/0026-racingline-strategy-pool-preview-step3.md)
 - [RFC 0025: Racingline 策略权重配置 Step 2 实现方案](../../RFC/archive/0025-racingline-strategy-weight-configuration-step2.md)
 - [Plan 0048: Racingline Step 3 股池预览漂移修正实施计划](0048-racingline-strategy-step3-drift-remediation-plan.md)
 - [Step3 Drift Remediation 报告](../../jobs/reports/2026-06-22-racingline-strategy-step3-drift-remediation.md)
-- [System: Racingline](../../systems/racingline.md)
-- [System: Rearview](../../systems/rearview.md)
-- [mart_stock_basic_snapshot 设计](../../design/dbt_layer/fleur_marts/mart_stock_basic_snapshot.md)
+- [System: Racingline](../../architecture/racingline.md)
+- [System: Rearview](../../architecture/rearview.md)
+- [mart_stock_basic_snapshot 设计](../../architecture/dbt_layer/fleur_marts/mart_stock_basic_snapshot.md)
 
 ## 目标
 
@@ -84,7 +84,7 @@
 1. dbt mart：
    - 修改 `pipeline/elt/models/marts/mart_stock_basic_snapshot.sql`，从 `int_stock_basic_snapshot` 透出 `security_board`。
    - 更新 `pipeline/elt/models/marts/mart_stock_basic_snapshot.yml`，增加字段描述和 accepted values。
-   - 更新 `docs/design/dbt_layer/fleur_marts/mart_stock_basic_snapshot.md`，明确 `security_board` 是交易板块，不是行业。
+   - 更新 `docs/architecture/dbt_layer/fleur_marts/mart_stock_basic_snapshot.md`，明确 `security_board` 是交易板块，不是行业。
 2. Rearview：
    - `SecurityDisplayRow` 增加 `security_board`。
    - `query_security_display_rows()` 查询 `security_board`。
@@ -279,10 +279,10 @@ npm run typecheck
    - 明确 Step 3 允许权重微调，但只更新 draft，必须点击更新股池才替换 applied preview。
    - 明确 `security_board` 是交易板块，不是行业。
 2. 更新系统地图：
-   - `docs/systems/racingline.md` 增加 board、volume、dynamic window、weight tuning 和 performance 边界。
-   - `docs/systems/rearview.md` 增加 `security_board` 和 `include_quote_rows` contract。
+   - `docs/architecture/racingline.md` 增加 board、volume、dynamic window、weight tuning 和 performance 边界。
+   - `docs/architecture/rearview.md` 增加 `security_board` 和 `include_quote_rows` contract。
 3. 更新 mart 设计：
-   - `docs/design/dbt_layer/fleur_marts/mart_stock_basic_snapshot.md` 增加 `security_board`。
+   - `docs/architecture/dbt_layer/fleur_marts/mart_stock_basic_snapshot.md` 增加 `security_board`。
 4. 新增 job report：
    - 记录命令、API samples、browser observations、response size 对比和未解决限制。
 5. 浏览器验收：

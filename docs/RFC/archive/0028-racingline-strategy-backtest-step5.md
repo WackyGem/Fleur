@@ -4,7 +4,7 @@
 领域：racingline, rearview
 关联系统：racingline, rearview, data-platform
 代码根：app/racingline_new/, engines/crates/rearview-core/, engines/crates/rearview-server/, engines/crates/rearview-portfolio-worker/, pipeline/migrate/
-系统地图：docs/systems/racingline.md
+系统地图：docs/architecture/racingline.md
 
 路径说明：本文写于 Plan 0053 迁移前；文中的 `app/racingline_new/` 均为历史实现路径，当前 Racingline 前端代码根为 `app/racingline/`。
 

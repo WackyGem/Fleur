@@ -19,8 +19,8 @@
 
 关联文档：
 
-- `docs/design/dbt_layer/fleur_intermediate/int_stock_quotes_daily_unadj.md`
-- `docs/design/dbt_layer/fleur_marts/mart_stock_quotes_daily.md`
+- `docs/architecture/dbt_layer/fleur_intermediate/int_stock_quotes_daily_unadj.md`
+- `docs/architecture/dbt_layer/fleur_marts/mart_stock_quotes_daily.md`
 - `pipeline/elt/models/intermediate/int_stock_quotes_daily_unadj.sql`
 - `pipeline/elt/models/intermediate/int_stock_quotes_daily_unadj.yml`
 - `pipeline/elt/models/marts/mart_stock_quotes_daily.sql`
@@ -182,8 +182,8 @@ pipeline/elt/tests/marts/mart_stock_quotes_daily_quote_passthrough_matches.sql
 - `pipeline/elt/models/marts/mart_stock_quotes_daily.sql`
 - `pipeline/elt/models/marts/mart_stock_quotes_daily.yml`
 - `pipeline/elt/tests/marts/mart_stock_quotes_daily_quote_passthrough_matches.sql`
-- `docs/design/dbt_layer/fleur_intermediate/int_stock_quotes_daily_unadj.md`
-- `docs/design/dbt_layer/fleur_marts/mart_stock_quotes_daily.md`
+- `docs/architecture/dbt_layer/fleur_intermediate/int_stock_quotes_daily_unadj.md`
+- `docs/architecture/dbt_layer/fleur_marts/mart_stock_quotes_daily.md`
 
 动作：
 
@@ -239,7 +239,7 @@ volume
 范围：
 
 - `pipeline/elt/models/intermediate/int_stock_quotes_daily_unadj.yml`
-- `docs/design/dbt_layer/fleur_intermediate/int_stock_quotes_daily_unadj.md`
+- `docs/architecture/dbt_layer/fleur_intermediate/int_stock_quotes_daily_unadj.md`
 
 动作：
 
@@ -266,7 +266,7 @@ volume
 
 - `pipeline/elt/models/marts/mart_stock_quotes_daily.sql`
 - `pipeline/elt/models/marts/mart_stock_quotes_daily.yml`
-- `docs/design/dbt_layer/fleur_marts/mart_stock_quotes_daily.md`
+- `docs/architecture/dbt_layer/fleur_marts/mart_stock_quotes_daily.md`
 
 动作：
 

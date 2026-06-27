@@ -10,10 +10,10 @@
 - `engines/crates/rearview-portfolio-worker/`
 - `pipeline/migrate/`
 - `pipeline/elt/`
-系统地图：
-- docs/systems/racingline.md
-- docs/systems/rearview.md
-- docs/systems/data-platform.md
+架构事实：
+- docs/architecture/racingline.md
+- docs/architecture/rearview.md
+- docs/architecture/data-platform.md
 关联文档：docs/RFC/archive/0029-racingline-strategy-portfolio-publish-and-daily-run.md
 
 ## 摘要

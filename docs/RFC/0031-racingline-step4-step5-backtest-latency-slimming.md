@@ -4,7 +4,7 @@
 领域：racingline, rearview
 关联系统：racingline, rearview, clickhouse marts
 代码根：app/racingline/, engines/crates/rearview-core/, engines/crates/rearview-server/, engines/crates/rearview-portfolio-worker/, pipeline/migrate/
-系统地图：docs/systems/racingline.md, docs/systems/rearview.md
+架构事实：docs/architecture/racingline.md, docs/architecture/rearview.md
 实测报告：docs/jobs/reports/2026-06-25-racingline-step4-step5-backtest-latency-baseline.md
 
 ## 摘要

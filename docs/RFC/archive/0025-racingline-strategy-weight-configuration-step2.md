@@ -4,7 +4,7 @@
 领域：racingline, rearview
 关联系统：racingline, rearview
 代码根：app/racingline_new/, app/racingline/, engines/crates/rearview-core/
-系统地图：docs/systems/racingline.md
+系统地图：docs/architecture/racingline.md
 
 路径说明：本文写于 Plan 0053 迁移前；文中的 `app/racingline_new/` 均为历史实现路径，当前 Racingline 前端代码根为 `app/racingline/`。
 
@@ -543,5 +543,5 @@ playwright-cli attach --cdp="${PLAYWRIGHT_CDP_ENDPOINT:-http://127.0.0.1:9222}"
 - [Racingline Strategy Step 1 Gap Closure 报告](../../jobs/reports/2026-06-21-racingline-strategy-step1-gap-closure.md)
 - [Plan 0046: Racingline 策略权重配置 Step 2 实施计划](../../plans/archive/0046-racingline-strategy-weight-configuration-step2-implementation-plan.md)
 - [Racingline Strategy Step 2 Preview Implementation 报告](../../jobs/reports/2026-06-22-racingline-strategy-step2-preview.md)
-- [System: Racingline](../../systems/racingline.md)
-- [System: Rearview](../../systems/rearview.md)
+- [System: Racingline](../../architecture/racingline.md)
+- [System: Rearview](../../architecture/rearview.md)

@@ -4,7 +4,7 @@
 领域：racingline, rearview
 关联系统：racingline, rearview
 代码根：app/racingline_new/, app/racingline/, engines/crates/rearview-core/, engines/crates/rearview-server/, engines/crates/rearview-portfolio-worker/
-系统地图：docs/systems/racingline.md
+系统地图：docs/architecture/racingline.md
 实现报告：docs/jobs/reports/2026-06-23-racingline-strategy-step4-draft-handoff.md
 
 路径说明：本文写于 Plan 0053 迁移前；文中的 `app/racingline_new/` 均为历史实现路径，当前 Racingline 前端代码根为 `app/racingline/`。
@@ -187,8 +187,8 @@ Step 5 可以选择后端实现形态：
 | [RFC 0021](0021-racingline-virtual-account-portfolio-rebalancing.md) | 定义虚拟账户、费率、滑点、调仓、止盈止损、T+1 成交和研究型净值边界 |
 | [RFC 0026](0026-racingline-strategy-pool-preview-step3.md) | 定义 Step 3 applied snapshot 和 stale gate |
 | [Plan 0041](../../plans/archive/0041-racingline-virtual-account-portfolio-rebalancing-implementation-plan.md) | 提供 portfolio run/worker 的实现背景 |
-| [System: Racingline](../../systems/racingline.md) | 确认 `app/racingline_new` 是策略创建工作台 |
-| [System: Rearview](../../systems/rearview.md) | 确认 Rearview 已有 preview-only API 和 portfolio APIs |
+| [System: Racingline](../../architecture/racingline.md) | 确认 `app/racingline_new` 是策略创建工作台 |
+| [System: Rearview](../../architecture/rearview.md) | 确认 Rearview 已有 preview-only API 和 portfolio APIs |
 
 ## 实施缺口与填充方案
 
@@ -590,5 +590,5 @@ cargo test --workspace
 - [RFC 0025: Racingline 策略权重配置 Step 2 实现方案](0025-racingline-strategy-weight-configuration-step2.md)
 - [RFC 0026: Racingline 股池预览 Step 3 实现方案](0026-racingline-strategy-pool-preview-step3.md)
 - [Plan 0041: Racingline 虚拟账户与组合调仓净值实施计划](../../plans/archive/0041-racingline-virtual-account-portfolio-rebalancing-implementation-plan.md)
-- [System: Racingline](../../systems/racingline.md)
-- [System: Rearview](../../systems/rearview.md)
+- [System: Racingline](../../architecture/racingline.md)
+- [System: Rearview](../../architecture/rearview.md)

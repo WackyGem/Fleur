@@ -22,8 +22,8 @@
 - [ADR 0012: 组合净值递推与绩效指标权威计算留在 Rust](../../ADR/0012-portfolio-nav-recursion-stays-in-rust.md)
 - [ADR 0009: ClickHouse 按 dbt 建模层分库](../../ADR/0009-clickhouse-layered-databases.md)
 - [RFC 0021: Racingline 虚拟账户与组合调仓净值](0021-racingline-virtual-account-portfolio-rebalancing.md)
-- [System: Rearview](../../systems/rearview.md)
-- [System: Data Platform](../../systems/data-platform.md)
+- [System: Rearview](../../architecture/rearview.md)
+- [System: Data Platform](../../architecture/data-platform.md)
 
 ## 背景
 
@@ -382,7 +382,7 @@ worker 权威计算使用此口径；口径变更必须同步更新 `portfolio_m
 - [ADR 0009: ClickHouse 按 dbt 建模层分库](../../ADR/0009-clickhouse-layered-databases.md)
 - [ADR 0012: 组合净值递推与绩效指标权威计算留在 Rust](../../ADR/0012-portfolio-nav-recursion-stays-in-rust.md)
 - [RFC 0021: Racingline 虚拟账户与组合调仓净值](0021-racingline-virtual-account-portfolio-rebalancing.md)
-- [System: Rearview](../../systems/rearview.md)
-- [System: Data Platform](../../systems/data-platform.md)
+- [System: Rearview](../../architecture/rearview.md)
+- [System: Data Platform](../../architecture/data-platform.md)
 - [engines/crates/rearview-core/src/portfolio/mod.rs](../../../engines/crates/rearview-core/src/portfolio/mod.rs)
 - [pipeline/migrate/versions/rearview/0003_create_rearview_portfolio_schema.py](../../../pipeline/migrate/versions/rearview/0003_create_rearview_portfolio_schema.py)

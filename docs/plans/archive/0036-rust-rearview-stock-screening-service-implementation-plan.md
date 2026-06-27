@@ -8,11 +8,11 @@
 
 - `docs/RFC/archive/0018-rust-stock-screening-service.md`
 - `docs/plans/archive/0035-stock-technical-indicator-marts-implementation-plan.md`
-- `docs/design/dbt_layer/fleur_marts/mart_stock_quotes_daily.md`
-- `docs/design/dbt_layer/fleur_marts/mart_stock_trend_indicator.md`
-- `docs/design/dbt_layer/fleur_marts/mart_stock_momentum_indicator.md`
-- `docs/design/dbt_layer/fleur_marts/mart_stock_volume_indicator.md`
-- `docs/design/dbt_layer/fleur_marts/mart_stock_price_pattern_daily.md`
+- `docs/architecture/dbt_layer/fleur_marts/mart_stock_quotes_daily.md`
+- `docs/architecture/dbt_layer/fleur_marts/mart_stock_trend_indicator.md`
+- `docs/architecture/dbt_layer/fleur_marts/mart_stock_momentum_indicator.md`
+- `docs/architecture/dbt_layer/fleur_marts/mart_stock_volume_indicator.md`
+- `docs/architecture/dbt_layer/fleur_marts/mart_stock_price_pattern_daily.md`
 - `engines/README.md`
 - `.env.example`
 - `deploy/docker-compose.yml`

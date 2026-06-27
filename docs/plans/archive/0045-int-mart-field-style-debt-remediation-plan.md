@@ -6,8 +6,8 @@
 
 关联文档：
 
-- `docs/debt/archive/0002-2026-06-21-int-field-style-consistency.md`（int 层债务，13 项）
-- `docs/debt/archive/0003-2026-06-21-mart-field-style-consistency.md`（mart 层债务，12 项）
+- `docs/issues/archive/debt/0002-2026-06-21-int-field-style-consistency.md`（int 层债务，13 项）
+- `docs/issues/archive/debt/0003-2026-06-21-mart-field-style-consistency.md`（mart 层债务，12 项）
 - `docs/ADR/0007-dbt-staging-cleaning-boundary.md`
 - `docs/ADR/0008-raw-source-profiling-before-dbt-staging.md`
 

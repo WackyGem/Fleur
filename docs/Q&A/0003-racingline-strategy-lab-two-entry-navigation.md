@@ -82,4 +82,4 @@
 - [docs/Q&A/user-logic.md](user-logic.md)
 - [RFC 0019: Racingline Rearview 前端工作台](../RFC/archive/0019-racingline-rearview-frontend-workbench.md)
 - [RFC 0021: Racingline 虚拟账户与组合调仓净值](../RFC/archive/0021-racingline-virtual-account-portfolio-rebalancing.md)
-- [System: Racingline](../systems/racingline.md)
+- [System: Racingline](../architecture/racingline.md)

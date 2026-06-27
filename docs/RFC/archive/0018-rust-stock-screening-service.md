@@ -1136,11 +1136,11 @@ RFC 落地后的第一版应满足：
 - `docs/RFC/archive/0014-clickhouse-layered-database-migration.md`
 - `docs/RFC/archive/0016-rust-furnace-compute-engine.md`
 - `engines/README.md`
-- `docs/design/dbt_layer/fleur_marts/mart_stock_quotes_daily.md`
-- `docs/design/dbt_layer/fleur_marts/mart_stock_trend_indicator.md`
-- `docs/design/dbt_layer/fleur_marts/mart_stock_momentum_indicator.md`
-- `docs/design/dbt_layer/fleur_marts/mart_stock_volume_indicator.md`
-- `docs/design/dbt_layer/fleur_marts/mart_stock_price_pattern_daily.md`
+- `docs/architecture/dbt_layer/fleur_marts/mart_stock_quotes_daily.md`
+- `docs/architecture/dbt_layer/fleur_marts/mart_stock_trend_indicator.md`
+- `docs/architecture/dbt_layer/fleur_marts/mart_stock_momentum_indicator.md`
+- `docs/architecture/dbt_layer/fleur_marts/mart_stock_volume_indicator.md`
+- `docs/architecture/dbt_layer/fleur_marts/mart_stock_price_pattern_daily.md`
 
 ## 外部依据
 

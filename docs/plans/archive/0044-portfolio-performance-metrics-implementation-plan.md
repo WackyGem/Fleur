@@ -270,9 +270,9 @@ Workload shape：market data / financial services，混合时序 OLAP 和按 run
 5. `pipeline/elt/models/marts/mart_benchmark_returns_daily.sql`
 6. `pipeline/elt/models/marts/mart_benchmark_returns_daily.yml`
 7. 对应设计文档：
-   - `docs/design/dbt_layer/fleur_intermediate/int_risk_free_rate_daily.md`
-   - `docs/design/dbt_layer/fleur_marts/mart_risk_free_rate_daily.md`
-   - `docs/design/dbt_layer/fleur_marts/mart_benchmark_returns_daily.md`
+   - `docs/architecture/dbt_layer/fleur_intermediate/int_risk_free_rate_daily.md`
+   - `docs/architecture/dbt_layer/fleur_marts/mart_risk_free_rate_daily.md`
+   - `docs/architecture/dbt_layer/fleur_marts/mart_benchmark_returns_daily.md`
 
 **分层决策**：
 

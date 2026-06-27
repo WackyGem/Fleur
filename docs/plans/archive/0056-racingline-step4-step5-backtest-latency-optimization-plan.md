@@ -56,8 +56,8 @@ RFC 0031 还确认了额外字段和数据面问题：
 | [RFC 0031](../../RFC/0031-racingline-step4-step5-backtest-latency-slimming.md) | 设计依据、执行流、字段审计和阶段建议 |
 | [性能基线报告](../../jobs/reports/2026-06-25-racingline-step4-step5-backtest-latency-baseline.md) | 1y/2y 受控样本、ClickHouse query log、parts 和 wrapper 响应实测 |
 | [优化验收报告](../../jobs/reports/2026-06-25-racingline-step4-step5-backtest-latency-optimization.md) | 1y/2y live smoke、payload、worker timing、ClickHouse query log、outbox publish 和 stale active 诊断验收 |
-| [Racingline 系统地图](../../systems/racingline.md) | 前端职责、运行入口和质量门禁 |
-| [Rearview 系统地图](../../systems/rearview.md) | Rearview API、worker、ClickHouse 和 NATS 边界 |
+| [Racingline 系统地图](../../architecture/racingline.md) | 前端职责、运行入口和质量门禁 |
+| [Rearview 系统地图](../../architecture/rearview.md) | Rearview API、worker、ClickHouse 和 NATS 边界 |
 | [Plan 0051](0051-racingline-strategy-backtest-step5-implementation-plan.md) | Step 5 原始实现计划 |
 | [Step 5 验收报告](../../jobs/reports/2026-06-23-racingline-strategy-step5-backtest.md) | Step 5 原始 live smoke 和 rerun 验收 |
 
@@ -371,8 +371,8 @@ Worker
    - 包含优化前后 1y/2y 对比。
    - 记录 click-to-Step5、create HTTP、outbox publish、worker elapsed、price bars read_bytes/memory、wrapper payload size。
 2. 更新当前事实文档：
-   - [Racingline 系统地图](../../systems/racingline.md)：Step 5 handoff 行为改为 create accepted 后进入状态页。
-   - [Rearview 系统地图](../../systems/rearview.md)：如新增 status/compact endpoints 或 worker timing，需要更新职责和相关文档指针。
+   - [Racingline 系统地图](../../architecture/racingline.md)：Step 5 handoff 行为改为 create accepted 后进入状态页。
+   - [Rearview 系统地图](../../architecture/rearview.md)：如新增 status/compact endpoints 或 worker timing，需要更新职责和相关文档指针。
    - [RFC 0031](../../RFC/0031-racingline-step4-step5-backtest-latency-slimming.md)：标注 implemented phases 和验收报告。
 3. 归档计划：
    - 完成后将本计划移入 `docs/plans/archive/`，状态改为 `Completed`。

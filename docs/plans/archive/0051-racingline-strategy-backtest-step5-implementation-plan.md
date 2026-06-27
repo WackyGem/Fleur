@@ -24,8 +24,8 @@
 - [RFC 0022: 组合数据面迁移 ClickHouse 与绩效指标分层](../../RFC/archive/0022-portfolio-data-plane-clickhouse-and-metrics.md)
 - [RFC 0021: Racingline 虚拟账户与组合调仓净值](../../RFC/archive/0021-racingline-virtual-account-portfolio-rebalancing.md)
 - [ADR 0012: 组合净值递推与绩效指标权威计算留在 Rust](../../ADR/0012-portfolio-nav-recursion-stays-in-rust.md)
-- [System: Racingline](../../systems/racingline.md)
-- [System: Rearview](../../systems/rearview.md)
+- [System: Racingline](../../architecture/racingline.md)
+- [System: Rearview](../../architecture/rearview.md)
 
 相关规则：
 
@@ -1054,6 +1054,6 @@ make racingline-dev
 ## 后续维护动作
 
 1. 实现完成后将本计划状态改为 `Completed`，移入 `docs/plans/archive/`，并更新 `docs/plans/README.md`。
-2. 同步 `docs/systems/racingline.md` 和 `docs/systems/rearview.md` 的当前事实，标记 Step 5 已实现。
+2. 同步 `docs/architecture/racingline.md` 和 `docs/architecture/rearview.md` 的当前事实，标记 Step 5 已实现。
 3. 写入 `docs/jobs/reports/<date>-racingline-strategy-step5-backtest.md` 验收报告。
 4. 如“运行策略”进入开发，基于成功 backtest run 另起 RFC/plan，定义正式策略发布、账户模板和看板回流。

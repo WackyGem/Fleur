@@ -14,4 +14,4 @@
 
 ## Archive
 
-归档 RFC 只用于追溯方案背景。引用归档 RFC 时，应同时以对应 `docs/systems/`、`docs/ADR/`、`docs/architecture/`、运行报告或当前代码作为当前事实依据。
+归档 RFC 只用于追溯方案背景。引用归档 RFC 时，应同时以对应 `docs/architecture/`、`docs/ADR/`、运行报告或当前代码作为当前事实依据。

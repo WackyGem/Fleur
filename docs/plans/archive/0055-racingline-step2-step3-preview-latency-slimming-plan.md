@@ -32,8 +32,8 @@ Step 3 首屏的最小必要信息只有近一年 timeline 和最新可展示交
 | 文档 | 用途 |
 |---|---|
 | [RFC 0030](../../RFC/archive/0030-racingline-step2-step3-preview-latency-slimming.md) | 设计依据、依赖分析和目标调用图 |
-| [Racingline 系统地图](../../systems/racingline.md) | 前端职责、运行入口和质量门禁 |
-| [Rearview 系统地图](../../systems/rearview.md) | Rearview API、ClickHouse mart 依赖和质量门禁 |
+| [Racingline 系统地图](../../architecture/racingline.md) | 前端职责、运行入口和质量门禁 |
+| [Rearview 系统地图](../../architecture/rearview.md) | Rearview API、ClickHouse mart 依赖和质量门禁 |
 | [Plan 0047](0047-racingline-strategy-pool-preview-step3-implementation-plan.md) | Step 3 preview 原始实现计划 |
 | [Plan 0049](0049-racingline-strategy-step3-drift2-remediation-plan.md) | Step 3 MA、量柱和 analysis payload 历史修正 |
 

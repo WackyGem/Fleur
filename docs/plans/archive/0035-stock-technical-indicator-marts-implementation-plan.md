@@ -10,8 +10,8 @@
 
 关联文档：
 
-- `docs/design/README.md`
-- `docs/design/dbt_layer/fleur_marts/mart_stock_quotes_daily.md`
+- `docs/architecture/README.md`
+- `docs/architecture/dbt_layer/fleur_marts/mart_stock_quotes_daily.md`
 - `docs/Q&A/int-layer-indicators-2026-06-10.md`
 - `docs/RFC/archive/0016-rust-furnace-compute-engine.md`
 - `docs/plans/archive/0034-furnace-macd-technical-indicator-implementation-plan.md`
@@ -219,9 +219,9 @@ docs/plans/archive/0034-furnace-macd-technical-indicator-implementation-plan.md
 新增或更新：
 
 ```text
-docs/design/dbt_layer/fleur_marts/mart_stock_trend_indicator.md
-docs/design/dbt_layer/fleur_marts/mart_stock_momentum_indicator.md
-docs/design/dbt_layer/fleur_marts/mart_stock_volume_indicator.md
+docs/architecture/dbt_layer/fleur_marts/mart_stock_trend_indicator.md
+docs/architecture/dbt_layer/fleur_marts/mart_stock_momentum_indicator.md
+docs/architecture/dbt_layer/fleur_marts/mart_stock_volume_indicator.md
 ```
 
 每个设计文档至少包含：

@@ -10,7 +10,7 @@
 
 代码根：`app/racingline/`
 
-系统地图：`docs/systems/racingline.md`
+系统地图：`docs/architecture/racingline.md`
 
 完成报告：
 
@@ -476,7 +476,7 @@ playwright-cli attach --cdp="${PLAYWRIGHT_CDP_ENDPOINT:-http://127.0.0.1:9222}"
 1. 在 `docs/jobs/reports/` 记录骨架和必要工程门禁报告。
 2. 在 `docs/jobs/reports/` 记录前后端联调报告，作为 CDP network 证据的补充。
 3. 在 `docs/jobs/reports/` 记录交互调试和截图验收报告，作为第一版验收主报告。
-4. 更新 `docs/systems/racingline.md` 的实际运行命令和质量门禁。
+4. 更新 `docs/architecture/racingline.md` 的实际运行命令和质量门禁。
 5. 如第一版完成，将本 plan 状态改为 `Completed` 并移入 `docs/plans/archive/`，同步更新 `docs/plans/README.md`。
 
 完成标准：
@@ -504,7 +504,7 @@ playwright-cli attach --cdp="${PLAYWRIGHT_CDP_ENDPOINT:-http://127.0.0.1:9222}"
 3. `docs/jobs/reports/YYYY-MM-DD-racingline-playwright-cdp-acceptance.md`
 4. CDP 验收截图目录，建议使用 `docs/references/screenshots/racingline/YYYY-MM-DD/`
 5. CDP 验收截图清单，随 acceptance report 记录每张截图对应步骤、视口、URL 和结论
-6. `docs/systems/racingline.md` 实现后命令更新
+6. `docs/architecture/racingline.md` 实现后命令更新
 7. 如接口协议变化，更新 `docs/RFC/archive/0019-racingline-rearview-frontend-workbench.md`
 8. 如技术栈变化，更新 `docs/ADR/0011-racingline-frontend-technology-stack.md`
 
@@ -595,5 +595,5 @@ cargo test --workspace
 4. lint、typecheck、build 全部通过；只有实际新增纯逻辑时才要求定向单元测试通过。
 5. Playwright CDP 验收覆盖桌面和移动视口，关键交互步骤、截图、console/network 结论记录在 job report。
 6. 仓库根目录 `.env` 和 `.env.example` 是唯一环境变量控制入口；`app/racingline/vite.config.ts` 通过 `envDir` 读取根目录 env，项目代码子路径没有 `.env*` 文件。
-7. `docs/systems/racingline.md` 更新为实现后的当前事实。
+7. `docs/architecture/racingline.md` 更新为实现后的当前事实。
 8. 本 plan 移入 `docs/plans/archive/`，`docs/plans/README.md` 同步移除 active entry。

@@ -4,7 +4,7 @@
 领域：racingline, rearview
 关联系统：racingline, rearview
 代码根：app/racingline_new/, app/racingline/, engines/crates/rearview-core/
-系统地图：docs/systems/racingline.md
+系统地图：docs/architecture/racingline.md
 
 路径说明：本文写于 Plan 0053 迁移前；文中的 `app/racingline_new/` 均为历史实现路径，当前 Racingline 前端代码根为 `app/racingline/`。
 
@@ -101,7 +101,7 @@
 | 资源 | 路径 | 当前能力 | 欠缺 |
 |---|---|---|---|
 | 趋势指标 mart | `pipeline/elt/models/marts/mart_stock_trend_indicator_daily.sql` | 每证券、交易日输出 MA、组合 MA、EMA、BOLL 和 MACD 当期值 | 尚无 `prev_*` 前值字段，无法稳定表达上穿/下穿 |
-| 趋势指标设计文档 | `docs/design/dbt_layer/fleur_marts/mart_stock_trend_indicator_daily.md` | 已记录趋势 mart 粒度、字段分组、NULL 语义和验证命令 | 需要补充前值字段语义：同一证券上一交易行，不是自然日前一日 |
+| 趋势指标设计文档 | `docs/architecture/dbt_layer/fleur_marts/mart_stock_trend_indicator_daily.md` | 已记录趋势 mart 粒度、字段分组、NULL 语义和验证命令 | 需要补充前值字段语义：同一证券上一交易行，不是自然日前一日 |
 | 趋势指标 YAML | `pipeline/elt/models/marts/mart_stock_trend_indicator_daily.yml` | 已声明趋势 mart 字段描述和主键测试 | 需要补充 `prev_*` 字段描述和必要测试 |
 
 ## 欠缺资源
@@ -367,7 +367,7 @@ mart_stock_trend_indicator_daily
 任务：
 
 1. 在 `mart_stock_trend_indicator_daily.sql` 为 crossing-eligible 趋势字段增加 `prev_*`。
-2. 更新 `mart_stock_trend_indicator_daily.yml` 和 `docs/design/dbt_layer/fleur_marts/mart_stock_trend_indicator_daily.md`。
+2. 更新 `mart_stock_trend_indicator_daily.yml` 和 `docs/architecture/dbt_layer/fleur_marts/mart_stock_trend_indicator_daily.md`。
 3. 修正 `metric_policy.yml` 中的旧 mart 表名、旧字段名和 BOLL 上下轨命名，使其与当前 dbt mart YAML 一致。
 4. 在 Rearview metric policy/catalog 中登记 `cross.previous_metric`，并由 catalog 构建阶段推导 crossing 能力。
 5. 增加操作符 profile、display hint 和 `ignored_fields` 结构，减少重复并明确未开放字段原因。
@@ -580,5 +580,5 @@ playwright-cli attach --cdp="${PLAYWRIGHT_CDP_ENDPOINT:-http://127.0.0.1:9222}"
 - [RFC 0019: Racingline Rearview 前端工作台](0019-racingline-rearview-frontend-workbench.md)
 - [RFC 0023: Racingline 前端原型驱动开发流程](0023-racingline-frontend-prototype-led-development.md)
 - [Plan 0045: Racingline 策略选股 Step 1 缺口填补实施计划](../../plans/archive/0045-racingline-strategy-selection-step1-gap-closure-plan.md)
-- [System: Racingline](../../systems/racingline.md)
-- [System: Rearview](../../systems/rearview.md)
+- [System: Racingline](../../architecture/racingline.md)
+- [System: Rearview](../../architecture/rearview.md)

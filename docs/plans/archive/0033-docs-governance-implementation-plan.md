@@ -31,7 +31,7 @@
 - `docs/plans/` 顶层包含多个已完成计划，`docs/plans/archive/` 又保留历史计划；顶层“活跃计划”和“历史记录”的边界不够硬。
 - `docs/RFC/` 与 `docs/RFC/archive/` 并存，部分实现完成后的 RFC、plan、job report、optimize 文档之间需要更明确的引用方向。
 - `docs/jobs/` 同时包含回填 runbook、运行报告目录和 definitions snapshot，需要把“操作手册”和“运行事实”区分清楚。
-- `docs/design/` 已存在 dbt layer 设计文档，但不在 `AGENTS.md` 当前文档入口列表中，发现成本偏高。
+- `docs/architecture/` 已存在 dbt layer 设计文档，但不在 `AGENTS.md` 当前文档入口列表中，发现成本偏高。
 - 计划编号已经出现过重号，例如 `docs/plans/0030-*` 有两个文件，说明文档命名缺少轻量校验。
 
 ## 1. 目标
@@ -76,8 +76,8 @@
 | 当前运行手册 | `docs/skills/` 或 `docs/jobs/*.md` | 可复用操作步骤 |
 | 实际运行事实 | `docs/jobs/reports/` | 命令、时间、范围、结果 |
 | 接口和数据事实 | `docs/references/` | OpenAPI、remote endpoint、raw profile、data dict |
-| dbt 模型设计 | `docs/design/dbt_layer/` | 每个模型的设计和字段语义 |
-| 质量审计和治理建议 | `docs/optimize/archive/` | 质量扫描、后续优化方向 |
+| dbt 模型设计 | `docs/architecture/dbt_layer/` | 每个模型的设计和字段语义 |
+| 质量审计和治理建议 | `docs/issues/archive/optimize/` | 质量扫描、后续优化方向 |
 
 其他文档引用事实时，应链接到权威位置，不复制长段规则。
 
@@ -143,9 +143,9 @@ docs/
 1. `docs/README.md`
 2. `docs/plans/README.md`
 3. `docs/jobs/README.md`
-4. `docs/design/README.md`
+4. `docs/architecture/README.md`
 5. `docs/references/README.md`
-6. `docs/optimize/README.md`
+6. `docs/issues/README.md`
 
 ## 5. 文档状态模型
 
@@ -194,14 +194,14 @@ docs/
 动作：
 
 1. 生成 docs inventory，按目录统计文件数、最近修改时间和状态字段。
-2. 列出没有被任何入口引用的顶层目录，例如当前 `docs/design/`。
+2. 列出没有被任何入口引用的顶层目录，例如当前 `docs/architecture/`。
 3. 检查 `docs/plans/` 顶层状态，标记已完成但未归档的计划。
 4. 检查编号重复，先记录不改名，避免破坏历史链接。
 5. 检查 `docs/jobs/` 中 runbook、snapshot、report 的混放点。
 
 完成标准：
 
-1. 形成一份 inventory 表，记录到本计划的执行报告或 `docs/optimize/archive/`。
+1. 形成一份 inventory 表，记录到本计划的执行报告或 `docs/issues/archive/optimize/`。
 2. 所有待归档、待补入口、待加状态的文档有清单。
 
 验证：
@@ -219,9 +219,9 @@ find docs/plans -maxdepth 1 -type f | sort
 - `docs/README.md`
 - `docs/plans/README.md`
 - `docs/jobs/README.md`
-- `docs/design/README.md`
+- `docs/architecture/README.md`
 - `docs/references/README.md`
-- `docs/optimize/README.md`
+- `docs/issues/README.md`
 - `AGENTS.md`
 
 动作：
@@ -229,19 +229,19 @@ find docs/plans -maxdepth 1 -type f | sort
 1. 新增 `docs/README.md`，作为人类和 agent 的 docs 总入口。
 2. 在 `docs/README.md` 中明确“先看当前事实，再看历史材料”的阅读顺序。
 3. 为 `plans/jobs/design/references/optimize` 添加简短 README，说明目录职责、命名规则和归档规则。
-4. 更新 `AGENTS.md` 文档入口，补充 `docs/design/`，并把细节指向 `docs/README.md`。
+4. 更新 `AGENTS.md` 文档入口，补充 `docs/architecture/`，并把细节指向 `docs/README.md`。
 5. 不在 `AGENTS.md` 中复制目录 README 的详细规则。
 
 完成标准：
 
 1. 新人能从 `docs/README.md` 判断该看 architecture、ADR、plans、jobs、references 还是 design。
 2. `AGENTS.md` 仍保持短地图角色。
-3. `docs/design/` 不再是隐性目录。
+3. `docs/architecture/` 不再是隐性目录。
 
 验证：
 
 ```bash
-rg -n "docs/design|docs/README|docs/plans|docs/jobs" AGENTS.md docs/README.md docs/*/README.md
+rg -n "docs/architecture|docs/README|docs/plans|docs/jobs" AGENTS.md docs/README.md docs/*/README.md
 git diff --check
 ```
 
@@ -280,7 +280,7 @@ find docs/plans/archive -maxdepth 1 -type f | sort
 
 - `docs/RFC/`
 - `docs/RFC/archive/`
-- `docs/optimize/archive/`
+- `docs/issues/archive/optimize/`
 - `docs/jobs/`
 - `docs/jobs/reports/`
 
@@ -288,7 +288,7 @@ find docs/plans/archive -maxdepth 1 -type f | sort
 
 1. 对活跃 RFC 标注当前状态：仍在指导实现、已完成、已被 ADR 接收、或仅历史参考。
 2. 已被 ADR 或 plan 完成吸收的 RFC 移入 archive，文首保留当前入口链接。
-3. `docs/optimize/archive/` 保留质量审计和治理建议，已转为执行计划的文档要指向对应 plan。
+3. `docs/issues/archive/optimize/` 保留质量审计和治理建议，已转为执行计划的文档要指向对应 plan。
 4. `docs/jobs/README.md` 区分：
    - runbook：可复用操作步骤。
    - snapshot：某一时点的 definitions、lineage、状态盘点。
@@ -304,7 +304,7 @@ find docs/plans/archive -maxdepth 1 -type f | sort
 验证：
 
 ```bash
-rg -n "^状态：|^记录日期：|^日期：" docs/RFC docs/optimize docs/jobs
+rg -n "^状态：|^记录日期：|^日期：" docs/RFC docs/issues docs/jobs
 rg -n "命令|范围|结果" docs/jobs/reports
 git diff --check
 ```
@@ -390,7 +390,7 @@ git diff --check
 
 1. 大型迁移完成当天，`Completed` plan 可以短暂停留在顶层，等待同一 PR 归档。
 2. 历史文档可以保留原格式，只要 archive 入口或文首状态说明足够清楚。
-3. 一次性调查笔记可以先落 `docs/optimize/archive/`，但若产生执行动作，应升级为 plan。
+3. 一次性调查笔记可以先落 `docs/issues/archive/optimize/`，但若产生执行动作，应升级为 plan。
 4. 外部接口样例、图片和生成数据字典不强制使用 plan 模板。
 
 ## 8. 验证命令

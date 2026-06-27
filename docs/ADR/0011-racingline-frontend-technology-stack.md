@@ -68,12 +68,12 @@ VITE_REARVIEW_API_BASE_URL=http://127.0.0.1:34057
 ## 后果
 
 - RFC 0019 继续描述 Racingline 第一版页面、接口和交互流程；本 ADR 是前端技术选型和工程边界的权威来源。
-- `docs/systems/racingline.md` 只保留当前事实和指向本 ADR 的摘要，不重复维护完整技术栈决策。
+- `docs/architecture/racingline.md` 只保留当前事实和指向本 ADR 的摘要，不重复维护完整技术栈决策。
 - 实现 `app/racingline/` 时，脚手架、依赖安装、lint/typecheck/build 命令必须与本 ADR 对齐。
 - 如果未来需要登录鉴权、顶层 workspace、SSR、共享组件包、替换图标库或替换状态管理方案，应通过新 ADR 或更新本 ADR 处理。
 
 ## 关联文档
 
 - `docs/RFC/archive/0019-racingline-rearview-frontend-workbench.md`
-- `docs/systems/racingline.md`
-- `docs/systems/racingline.md`
+- `docs/architecture/racingline.md`
+- `docs/architecture/racingline.md`

@@ -9,11 +9,11 @@
 关联文档：
 
 - `docs/RFC/archive/0020-racingline-run-result-security-analysis-page.md`
-- `docs/systems/data-platform.md`
-- `docs/systems/data-platform.md`
-- `docs/design/dbt_layer/fleur_intermediate/int_stock_quotes_daily_adj.md`
-- `docs/design/dbt_layer/fleur_marts/mart_stock_quotes_daily.md`
-- `docs/design/dbt_layer/fleur_marts/mart_stock_trend_indicator.md`
+- `docs/architecture/data-platform.md`
+- `docs/architecture/data-platform.md`
+- `docs/architecture/dbt_layer/fleur_intermediate/int_stock_quotes_daily_adj.md`
+- `docs/architecture/dbt_layer/fleur_marts/mart_stock_quotes_daily.md`
+- `docs/architecture/dbt_layer/fleur_marts/mart_stock_trend_indicator.md`
 - `docs/plans/archive/0029-furnace-moving-average-technical-indicators-implementation-plan.md`
 - `docs/plans/archive/0035-stock-technical-indicator-marts-implementation-plan.md`
 - `pipeline/elt/models/sources_fleur_calculation.yml`
@@ -109,7 +109,7 @@ price_ma_30
 | dbt source | `pipeline/elt/models/sources_fleur_calculation.yml` | `calc_stock_ma_daily` column 文档增加 `price_ma_30` |
 | dbt intermediate | `pipeline/elt/models/intermediate/int_stock_ma_daily.sql/.yml` | wrapper 透传和字段文档 |
 | dbt mart | `pipeline/elt/models/marts/mart_stock_trend_indicator.sql/.yml` | trend mart 透传和字段文档 |
-| 设计文档 | `docs/design/dbt_layer/fleur_marts/mart_stock_trend_indicator.md` | 字段列表和验证命令同步 |
+| 设计文档 | `docs/architecture/dbt_layer/fleur_marts/mart_stock_trend_indicator.md` | 字段列表和验证命令同步 |
 
 ### 4.2 复权 OHLC 现状
 
@@ -229,7 +229,7 @@ prev_close_price_unadj
 1. 在 `pipeline/elt/models/sources_fleur_calculation.yml` 的 `calc_stock_ma_daily` 下新增 `price_ma_30` 字段文档。
 2. 在 `int_stock_ma_daily.sql` 和 `.yml` 中透传并描述 `price_ma_30`。
 3. 在 `mart_stock_trend_indicator.sql` 和 `.yml` 中透传并描述 `price_ma_30`。
-4. 更新 `docs/design/dbt_layer/fleur_marts/mart_stock_trend_indicator.md` 的价格 MA 字段列表。
+4. 更新 `docs/architecture/dbt_layer/fleur_marts/mart_stock_trend_indicator.md` 的价格 MA 字段列表。
 5. 如 Rearview metric catalog 自动从 mart YAML 同步字段，执行 catalog sync；如果 `metric_policy.yml` 需要手工暴露图表字段，再补 `price_ma_30` 对应配置。
 
 完成标准：
@@ -249,7 +249,7 @@ prev_close_price_unadj
    - 模型描述说明同时暴露未复权、前复权和后复权价格。
    - 为新增字段补中文描述和 `data_type`。
    - 因子字段如果来自 upstream 非空，可在 mart 层追加 `not_null` 测试，或用专门数据测试检测缺口。
-5. 更新 `docs/design/dbt_layer/fleur_marts/mart_stock_quotes_daily.md`，移除“本模型不做复权价格输出”的过期描述，改为“复权价格只透传 `int_stock_quotes_daily_adj`，不在 mart 重算”。
+5. 更新 `docs/architecture/dbt_layer/fleur_marts/mart_stock_quotes_daily.md`，移除“本模型不做复权价格输出”的过期描述，改为“复权价格只透传 `int_stock_quotes_daily_adj`，不在 mart 重算”。
 
 完成标准：
 
@@ -338,7 +338,7 @@ cargo run -p rearview -- catalog sync
 
 计划完成后：
 
-1. `rg price_ma_30 engines pipeline/elt docs/design` 能定位到 Rust 计算、ClickHouse DDL、dbt source、intermediate、mart 和设计文档。
+1. `rg price_ma_30 engines pipeline/elt docs/architecture` 能定位到 Rust 计算、ClickHouse DDL、dbt source、intermediate、mart 和设计文档。
 2. `mart_stock_trend_indicator` 提供 `price_ma_30`，且不改变已有 MA 字段。
 3. `mart_stock_quotes_daily` 提供前复权和后复权 OHLC，并保留未复权 OHLC。
 4. 定向 Rust 和 dbt 验证命令通过。

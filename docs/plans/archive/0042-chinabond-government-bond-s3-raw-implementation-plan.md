@@ -13,7 +13,7 @@
 - `docs/ADR/0008-raw-source-profiling-before-dbt-staging.md`
 - `docs/plans/archive/0017-dagster-clickhouse-raw-sync-implementation-plan.md`
 - `docs/plans/archive/0023-contract-driven-parquet-schema-adapter-backfill-test-plan.md`
-- `docs/systems/data-platform.md`
+- `docs/architecture/data-platform.md`
 - `docs/architecture/scheduler-module-boundaries.md`
 
 Context7 Dagster 文档核验点：

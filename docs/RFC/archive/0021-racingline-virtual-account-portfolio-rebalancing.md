@@ -4,7 +4,7 @@
 领域：racingline
 关联系统：racingline, rearview, data-platform
 代码根：app/racingline/, engines/crates/rearview-core/, engines/crates/rearview-server/, engines/crates/rearview-portfolio-worker/, pipeline/migrate/
-系统地图：docs/systems/racingline.md
+系统地图：docs/architecture/racingline.md
 
 ## 摘要
 
@@ -17,9 +17,9 @@
 - [RFC 0018: Rust Rearview 规则选股服务与 mart 指标库](0018-rust-stock-screening-service.md)
 - [RFC 0019: Racingline Rearview 前端工作台](0019-racingline-rearview-frontend-workbench.md)
 - [RFC 0020: Racingline Run Result 个股分析页](0020-racingline-run-result-security-analysis-page.md)
-- [System: Racingline](../../systems/racingline.md)
-- [System: Rearview](../../systems/rearview.md)
-- [System: Deploy Ops](../../systems/deploy-ops.md)
+- [System: Racingline](../../architecture/racingline.md)
+- [System: Rearview](../../architecture/rearview.md)
+- [System: Deploy Ops](../../architecture/deploy-ops.md)
 
 ## 背景
 

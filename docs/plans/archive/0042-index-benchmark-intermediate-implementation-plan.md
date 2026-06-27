@@ -26,8 +26,8 @@
 
 - [Q&A 0001: PostgreSQL Control Plane 与 ClickHouse Portfolio Data Plane](../../Q&A/0001-postgresql-control-plane-clickhouse-portfolio-data-plane.md)
 - [Plan 0041: Racingline 虚拟账户与组合调仓净值实施计划](0041-racingline-virtual-account-portfolio-rebalancing-implementation-plan.md)
-- [stg_baostock__query_stock_basic 设计](../../design/dbt_layer/fleur_staging/stg_baostock__query_stock_basic.md)
-- [int_stock_basic_snapshot 设计](../../design/dbt_layer/fleur_intermediate/int_stock_basic_snapshot.md)
+- [stg_baostock__query_stock_basic 设计](../../architecture/dbt_layer/fleur_staging/stg_baostock__query_stock_basic.md)
+- [int_stock_basic_snapshot 设计](../../architecture/dbt_layer/fleur_intermediate/int_stock_basic_snapshot.md)
 
 ## 当前事实基线
 
@@ -85,7 +85,7 @@
 
 - SQL：`pipeline/elt/models/intermediate/int_index_basic_snapshot.sql`
 - YAML：`pipeline/elt/models/intermediate/int_index_basic_snapshot.yml`
-- 设计文档：`docs/design/dbt_layer/fleur_intermediate/int_index_basic_snapshot.md`
+- 设计文档：`docs/architecture/dbt_layer/fleur_intermediate/int_index_basic_snapshot.md`
 
 粒度：每 `security_code` 一行。
 
@@ -121,7 +121,7 @@
 
 - SQL：`pipeline/elt/models/intermediate/int_index_quotes_daily.sql`
 - YAML：`pipeline/elt/models/intermediate/int_index_quotes_daily.yml`
-- 设计文档：`docs/design/dbt_layer/fleur_intermediate/int_index_quotes_daily.md`
+- 设计文档：`docs/architecture/dbt_layer/fleur_intermediate/int_index_quotes_daily.md`
 
 粒度：每 `security_code`、`trade_date` 一行。
 
@@ -164,7 +164,7 @@ if(prev_close_price > 0, close_price / prev_close_price - 1, null)
 
 - SQL：`pipeline/elt/models/intermediate/int_benchmark_basic_snapshot.sql`
 - YAML：`pipeline/elt/models/intermediate/int_benchmark_basic_snapshot.yml`
-- 设计文档：`docs/design/dbt_layer/fleur_intermediate/int_benchmark_basic_snapshot.md`
+- 设计文档：`docs/architecture/dbt_layer/fleur_intermediate/int_benchmark_basic_snapshot.md`
 
 粒度：每 `benchmark_key`、`security_code` 一行；第一版每个 `benchmark_key` 只保留一个选中 `security_code`。
 
@@ -211,7 +211,7 @@ if(prev_close_price > 0, close_price / prev_close_price - 1, null)
 
 - SQL：`pipeline/elt/models/intermediate/int_benchmark_returns_daily.sql`
 - YAML：`pipeline/elt/models/intermediate/int_benchmark_returns_daily.yml`
-- 设计文档：`docs/design/dbt_layer/fleur_intermediate/int_benchmark_returns_daily.md`
+- 设计文档：`docs/architecture/dbt_layer/fleur_intermediate/int_benchmark_returns_daily.md`
 
 粒度：每 `benchmark_key`、`security_code`、`trade_date` 一行。
 
@@ -248,7 +248,7 @@ if(prev_close_price > 0, close_price / prev_close_price - 1, null)
 1. 用 `dbt show` 查询 `stg_baostock__query_stock_basic` 中 `security_type = 'index'` 的候选代码。
 2. 对沪深双代码指数分别确认是否都有基础信息和日行情。
 3. 对未标明交易所的代码确认实际存在后缀，特别是 `930050`、`000510`、`000852` 和 `931643`。
-4. 将 profile 结果写入 `docs/design/dbt_layer/fleur_intermediate/int_benchmark_basic_snapshot.md` 和 `docs/design/dbt_layer/fleur_intermediate/int_benchmark_returns_daily.md`。
+4. 将 profile 结果写入 `docs/architecture/dbt_layer/fleur_intermediate/int_benchmark_basic_snapshot.md` 和 `docs/architecture/dbt_layer/fleur_intermediate/int_benchmark_returns_daily.md`。
 
 完成标准：
 
@@ -353,7 +353,7 @@ if(prev_close_price > 0, close_price / prev_close_price - 1, null)
 
 工作项：
 
-1. 更新 `docs/design/dbt_layer/fleur_intermediate/` 下四个模型设计文档。
+1. 更新 `docs/architecture/dbt_layer/fleur_intermediate/` 下四个模型设计文档。
 2. 在 YAML column descriptions 中说明价格指数、不含分红再投资和 source lineage。
 3. 如后续新增 benchmark 且 profile 发现候选代码不存在，新增待决问题或 job report，而不是在模型中静默补空值。
 4. 记录 dbt build 和 sample output。

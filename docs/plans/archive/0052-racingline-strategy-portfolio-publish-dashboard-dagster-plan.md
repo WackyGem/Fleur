@@ -25,9 +25,9 @@
 - [Plan 0051: Racingline 策略回测 Step 5 异步执行实施计划](0051-racingline-strategy-backtest-step5-implementation-plan.md)
 - [Plan 0043: 组合数据面迁移 ClickHouse 第一阶段实施计划](0043-portfolio-data-plane-clickhouse-phase1-implementation-plan.md)
 - [Plan 0044: 组合绩效指标、dbt 输入与交易级指标实施计划](0044-portfolio-performance-metrics-implementation-plan.md)
-- [System: Racingline](../../systems/racingline.md)
-- [System: Rearview](../../systems/rearview.md)
-- [System: Data Platform](../../systems/data-platform.md)
+- [System: Racingline](../../architecture/racingline.md)
+- [System: Rearview](../../architecture/rearview.md)
+- [System: Data Platform](../../architecture/data-platform.md)
 
 ## 文档 review 结论
 

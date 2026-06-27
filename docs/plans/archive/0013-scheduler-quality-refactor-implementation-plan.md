@@ -4,7 +4,7 @@
 
 关联设计文档：
 
-- `docs/optimize/archive/scheduler-2026-05-30-quality-maintainability-optimization.md`
+- `docs/issues/archive/optimize/scheduler-2026-05-30-quality-maintainability-optimization.md`
 
 ## 1. 目标
 

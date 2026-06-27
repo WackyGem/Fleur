@@ -53,8 +53,8 @@ Accept -> Plan -> Signals -> Market Data Demand -> Simulation -> Metrics -> Comm
 | [Plan 0056](0056-racingline-step4-step5-backtest-latency-optimization-plan.md) | Step 4/5 handoff、status/compact API、worker timing、动态 price bars 和 outbox 唤醒已完成计划 |
 | [0056 验收报告](../../jobs/reports/2026-06-25-racingline-step4-step5-backtest-latency-optimization.md) | 当前性能样本、payload、worker timing、ClickHouse query log 和 stale active 诊断 |
 | [0056 前基线报告](../../jobs/reports/2026-06-25-racingline-step4-step5-backtest-latency-baseline.md) | 历史 worker elapsed、price bars 全字段读取和 wrapper 重复 nav 读取基线 |
-| [Racingline 系统地图](../../systems/racingline.md) | Step 5 前端当前事实、运行入口和质量门禁 |
-| [Rearview 系统地图](../../systems/rearview.md) | Rearview API、worker、ClickHouse、NATS 和质量门禁 |
+| [Racingline 系统地图](../../architecture/racingline.md) | Step 5 前端当前事实、运行入口和质量门禁 |
+| [Rearview 系统地图](../../architecture/rearview.md) | Rearview API、worker、ClickHouse、NATS 和质量门禁 |
 
 ## 当前事实基线
 
@@ -433,8 +433,8 @@ npm run build
    - 覆盖 1y/2y/3y before/after。
    - 记录所有命令、环境、run id、query_id、性能指标、结果一致性和残余风险。
 2. 更新当前事实文档：
-   - `docs/systems/rearview.md`：worker 热路径、并发模式、result wrapper 现状。
-   - `docs/systems/racingline.md`：若 Step 5 overview 或首屏契约变化，同步更新。
+   - `docs/architecture/rearview.md`：worker 热路径、并发模式、result wrapper 现状。
+   - `docs/architecture/racingline.md`：若 Step 5 overview 或首屏契约变化，同步更新。
    - `docs/RFC/0032`：若最终设计与 RFC 草案不同，补充实施结论或后续开放问题。
 3. 完成后归档本 plan：
    - 移动到 `docs/plans/archive/0058-...md`。
@@ -516,7 +516,7 @@ docker compose --env-file .env -f deploy/docker-compose.yml exec -T postgres sh 
 | Phase 3 | `MarketDataDemand`、SQL 形态对比、采用或不采用的性能结论 |
 | Phase 4 | 固化指标、compact/overview read model、Step 5 首屏 payload 报告 |
 | Phase 5 | worker 并发/隔离方案、pickup wait 报告、可靠性 smoke |
-| Phase 6 | 最终验收报告、systems/RFC 更新、plan 归档 |
+| Phase 6 | 最终验收报告、architecture/RFC 更新、plan 归档 |
 
 ## 完成标准
 

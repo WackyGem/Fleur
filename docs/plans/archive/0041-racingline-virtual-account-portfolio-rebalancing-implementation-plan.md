@@ -25,9 +25,9 @@
 - [RFC 0018: Rust Rearview 规则选股服务与 mart 指标库](../../RFC/archive/0018-rust-stock-screening-service.md)
 - [RFC 0019: Racingline Rearview 前端工作台](../../RFC/archive/0019-racingline-rearview-frontend-workbench.md)
 - [RFC 0020: Racingline Run Result 个股分析页](../../RFC/archive/0020-racingline-run-result-security-analysis-page.md)
-- [System: Rearview](../../systems/rearview.md)
-- [System: Racingline](../../systems/racingline.md)
-- [System: Deploy Ops](../../systems/deploy-ops.md)
+- [System: Rearview](../../architecture/rearview.md)
+- [System: Racingline](../../architecture/racingline.md)
+- [System: Deploy Ops](../../architecture/deploy-ops.md)
 
 相关规则：
 
@@ -541,12 +541,12 @@ curl -fsS "http://127.0.0.1:34057/rearview/portfolio-runs/<portfolio_run_id>/pos
 
 任务：
 
-1. 更新 [System: Rearview](../../systems/rearview.md)：
+1. 更新 [System: Rearview](../../architecture/rearview.md)：
    - 新 crate 路径。
    - server / worker 运行入口。
    - NATS 和 outbox 职责。
    - 新 API。
-2. 更新 [System: Racingline](../../systems/racingline.md)：
+2. 更新 [System: Racingline](../../architecture/racingline.md)：
    - `/portfolios` 和 `/portfolios/:portfolioRunId`。
    - 虚拟账户表单和组合结果页。
 3. 更新 `engines/README.md`，说明 Rearview crate 拆分后的命令。

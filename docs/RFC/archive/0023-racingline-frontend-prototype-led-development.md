@@ -4,7 +4,7 @@
 领域：racingline
 关联系统：racingline
 代码根：app/racingline/
-系统地图：docs/systems/racingline.md
+系统地图：docs/architecture/racingline.md
 
 ## 摘要
 
@@ -38,7 +38,7 @@ mono-fleur 的数据平台、dbt、Dagster、Rust 后端和数据契约任务，
 - [RFC 0019: Racingline Rearview 前端工作台](0019-racingline-rearview-frontend-workbench.md)
 - [RFC 0021: Racingline 虚拟账户与组合调仓净值](0021-racingline-virtual-account-portfolio-rebalancing.md)
 - [ADR 0011: Racingline 前端技术栈和工程边界](../../ADR/0011-racingline-frontend-technology-stack.md)
-- [System: Racingline](../../systems/racingline.md)
+- [System: Racingline](../../architecture/racingline.md)
 
 ## 目标
 
@@ -234,7 +234,7 @@ npm run build
 
 1. 新工程主要页面和交互验收通过。
 2. 旧工程需要保留的 API 类型、工具函数和业务逻辑已迁移或明确丢弃。
-3. `docs/systems/racingline.md` 更新代码根和运行命令。
+3. `docs/architecture/racingline.md` 更新代码根和运行命令。
 4. `Makefile` 或相关 dev 命令切换到新工程。
 5. 旧工程归档、删除或重命名策略明确。
 
@@ -247,8 +247,8 @@ npm run build
 
 ## 相关文档
 
-- [docs/systems/racingline.md](../../systems/racingline.md)
-- [docs/systems/racingline.md](../../systems/racingline.md)
+- [docs/architecture/racingline.md](../../architecture/racingline.md)
+- [docs/architecture/racingline.md](../../architecture/racingline.md)
 - [docs/Q&A/0003-racingline-strategy-lab-two-entry-navigation.md](../../Q&A/0003-racingline-strategy-lab-two-entry-navigation.md)
 - [docs/ADR/0011-racingline-frontend-technology-stack.md](../../ADR/0011-racingline-frontend-technology-stack.md)
 - [docs/ADR/0013-racingline-ui-stack-variant-evaluation.md](../../ADR/0013-racingline-ui-stack-variant-evaluation.md)

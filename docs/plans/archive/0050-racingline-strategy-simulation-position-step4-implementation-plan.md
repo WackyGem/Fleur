@@ -25,8 +25,8 @@
 - [RFC 0021: Racingline 虚拟账户与组合调仓净值](../../RFC/archive/0021-racingline-virtual-account-portfolio-rebalancing.md)
 - [Plan 0041: Racingline 虚拟账户与组合调仓净值实施计划](0041-racingline-virtual-account-portfolio-rebalancing-implementation-plan.md)
 - [Step 4 Draft Handoff 报告](../../jobs/reports/2026-06-23-racingline-strategy-step4-draft-handoff.md)
-- [System: Racingline](../../systems/racingline.md)
-- [System: Rearview](../../systems/rearview.md)
+- [System: Racingline](../../architecture/racingline.md)
+- [System: Rearview](../../architecture/rearview.md)
 - [Q&A 0004: Racingline 原型看板到策略创建闭环用户故事](../../Q&A/0004-racingline-prototype-dashboard-to-strategy-loop.md)
 
 ## 目标
@@ -496,7 +496,7 @@ npm run lint
    - Step 4 `buyTopN` 不改变 Step 3 preview。
    - 断开 Rearview 后默认模板失败，不能进入 Step 5。
 3. 如果实现中触碰 Rearview API 或 portfolio engine contract，追加 Rust 验证。
-4. 完成后新增 job report，并在归档计划时同步 `docs/plans/README.md` 和 `docs/systems/racingline.md`。
+4. 完成后新增 job report，并在归档计划时同步 `docs/plans/README.md` 和 `docs/architecture/racingline.md`。
 
 最小验证命令：
 
@@ -559,6 +559,6 @@ playwright-cli attach --cdp="${PLAYWRIGHT_CDP_ENDPOINT:-http://127.0.0.1:9222}"
 ## 完成后的维护动作
 
 1. 新增验收报告到 `docs/jobs/reports/`。
-2. 更新 [System: Racingline](../../systems/racingline.md)，说明 `/strategies` Step 4 已生成 `BacktestExecutionDraft`。
-3. 如果后端新增 Step 5 API，更新 [System: Rearview](../../systems/rearview.md) 和 `engines/README.md`。
+2. 更新 [System: Racingline](../../architecture/racingline.md)，说明 `/strategies` Step 4 已生成 `BacktestExecutionDraft`。
+3. 如果后端新增 Step 5 API，更新 [System: Rearview](../../architecture/rearview.md) 和 `engines/README.md`。
 4. 计划完成后移入 `docs/plans/archive/`，并在 `docs/plans/README.md` 的 Recently Completed 中记录报告链接。

@@ -11,9 +11,9 @@
 - [ADR 0011: Racingline 前端技术栈和工程边界](../../ADR/0011-racingline-frontend-technology-stack.md)
 - [ADR 0013: Racingline UI 栈变体评估](../../ADR/0013-racingline-ui-stack-variant-evaluation.md)
 - [ADR 0010: 技术指标字段命名区分窗口参数和算子重数](../../ADR/0010-technical-indicator-field-naming.md)
-- [System: Racingline](../../systems/racingline.md)
-- [System: Rearview](../../systems/rearview.md)
-- [mart_stock_trend_indicator_daily 设计](../../design/dbt_layer/fleur_marts/mart_stock_trend_indicator_daily.md)
+- [System: Racingline](../../architecture/racingline.md)
+- [System: Rearview](../../architecture/rearview.md)
+- [mart_stock_trend_indicator_daily 设计](../../architecture/dbt_layer/fleur_marts/mart_stock_trend_indicator_daily.md)
 - [验收报告：Racingline Strategy Step 1 Gap Closure](../../jobs/reports/2026-06-21-racingline-strategy-step1-gap-closure.md)
 
 ## 目标
@@ -80,7 +80,7 @@
 1. 在 `mart_stock_trend_indicator_daily.sql` 中为 crossing-eligible 数值趋势字段增加 `prev_*` 字段，使用 `lag(field) over (partition by security_code order by trade_date)`。
 2. 初始覆盖 RFC 0024 列出的 MA、组合 MA、`price_ema2_10`、BOLL 和 MACD 字段。
 3. 同步 `mart_stock_trend_indicator_daily.yml`，为每个 `prev_*` 声明 `Nullable(Float64)` 和“同一证券上一交易行”的描述。
-4. 更新 `docs/design/dbt_layer/fleur_marts/mart_stock_trend_indicator_daily.md`，记录 NULL 语义、停牌/非交易日语义和 crossing 消费边界。
+4. 更新 `docs/architecture/dbt_layer/fleur_marts/mart_stock_trend_indicator_daily.md`，记录 NULL 语义、停牌/非交易日语义和 crossing 消费边界。
 5. 保持 `(security_code, trade_date)` 唯一粒度不变。
 
 测试策略：

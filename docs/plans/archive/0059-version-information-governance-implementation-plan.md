@@ -50,13 +50,13 @@
 | [RFC 0033](../../RFC/0033-project-version-management.md) | 多工程版本管理方案、版本主体矩阵和后续实施优先级 |
 | [fleur-version-management skill](../../skills/fleur-version-management/SKILL.md) | 后续执行版本 bump、manifest、tag、release note 和运行时版本暴露时的操作手册 |
 | [docs/README.md](../../README.md) | docs 生命周期和最小文档校验 |
-| [systems/README.md](../../systems/README.md) | 系统地图入口 |
-| [deploy-ops 系统地图](../../systems/deploy-ops.md) | 部署、迁移和运行记录入口 |
-| [furnace 系统地图](../../systems/furnace.md) | Furnace Rust CLI/crate 边界 |
-| [rearview 系统地图](../../systems/rearview.md) | Rearview server/worker/crate 边界 |
-| [racingline 系统地图](../../systems/racingline.md) | Racingline frontend 版本和质量门禁 |
-| [data-platform 系统地图](../../systems/data-platform.md) | scheduler/dbt/migrate 边界 |
-| [data-governance 系统地图](../../systems/data-governance.md) | contracts 和 contract-tools 边界 |
+| [architecture/project-status.md](../../architecture/README.md) | 系统地图入口 |
+| [deploy-ops 系统地图](../../architecture/deploy-ops.md) | 部署、迁移和运行记录入口 |
+| [furnace 系统地图](../../architecture/furnace.md) | Furnace Rust CLI/crate 边界 |
+| [rearview 系统地图](../../architecture/rearview.md) | Rearview server/worker/crate 边界 |
+| [racingline 系统地图](../../architecture/racingline.md) | Racingline frontend 版本和质量门禁 |
+| [data-platform 系统地图](../../architecture/data-platform.md) | scheduler/dbt/migrate 边界 |
+| [data-governance 系统地图](../../architecture/data-governance.md) | contracts 和 contract-tools 边界 |
 
 ## Review 信息缺口
 
@@ -201,7 +201,7 @@ cargo test --workspace
    - 首个模板或首个 release note，例如 `docs/releases/mono-fleur-2026.06.1.md`
 7. 同步 docs 入口：
    - `docs/README.md`
-   - 必要时更新 `docs/systems/deploy-ops.md`
+   - 必要时更新 `docs/architecture/deploy-ops.md`
 8. 提供 `Version impact` 模板，用于后续 PR/变更说明。
 
 验证命令：
@@ -464,7 +464,7 @@ npm run build
 5. Racingline 已在 Vite build 中注入 `window.__RACINGLINE_BUILD_METADATA__`，包含 app version、git sha 和 build time。
 6. 已新增 `deploy/release-manifest.yml`、`docs/releases/README.md` 和 `docs/releases/mono-fleur-2026.06.1.md`。
 7. 已新增 `scripts/check_component_versions.py` 和 `make versions-check`，覆盖 SemVer、Rust 独立版本、dataset contract version、Racingline lockfile、manifest 一致性和计划/RFC 索引链接。
-8. 已将版本校验入口同步到 `AGENTS.md`、`docs/README.md`、`docs/systems/deploy-ops.md` 和 `docs/skills/fleur-version-management/SKILL.md`。
+8. 已将版本校验入口同步到 `AGENTS.md`、`docs/README.md`、`docs/architecture/deploy-ops.md` 和 `docs/skills/fleur-version-management/SKILL.md`。
 
 ## 已补齐的信息缺口
 
@@ -474,7 +474,7 @@ npm run build
 | Alembic head 获取方式未机械化 | 已验证当前 Alembic graph 是全局线性 head；manifest 使用 `database_heads` 记录实际 revision head，使用 `target_schema_heads` 记录每个 target 最后执行 DDL 的 migration |
 | Rust crate version 迁移影响 `Cargo.lock` 未确认 | 已运行 `cargo metadata --format-version 1 --no-deps`，`Cargo.lock` 未发生变更 |
 | npm version 与 lockfile 同步策略未定 | `make versions-check` 已校验 `package.json` 与 `package-lock.json` root version 一致 |
-| release note 目录职责未纳入 docs 入口 | 已同步 `docs/README.md` 和 `docs/systems/deploy-ops.md` |
+| release note 目录职责未纳入 docs 入口 | 已同步 `docs/README.md` 和 `docs/architecture/deploy-ops.md` |
 | 运行时版本来源未统一 | Python 从 package metadata 或源 `pyproject.toml` 读取；Rust 从 `CARGO_PKG_VERSION` 读取；Racingline 从 `package.json` 构建注入 |
 | `scheduler` 版本如何进入 Dagster metadata 未定 | 已写入 Furnace assets 和 Rearview daily run asset materialization metadata |
 | release manifest 中 contract registry 表达粒度未定 | 首版采用 `registry_commit` + `changed_datasets` |

@@ -4,7 +4,7 @@
 领域：repository governance, release management, pipeline, engines, racingline
 关联系统：data-platform, data-governance, furnace, rearview, racingline, deploy-ops
 代码根：pipeline/, engines/, app/racingline/, deploy/
-关联文档：docs/README.md, docs/systems/README.md, docs/systems/data-platform.md, docs/systems/data-governance.md, docs/systems/furnace.md, docs/systems/rearview.md, docs/systems/racingline.md, docs/systems/deploy-ops.md
+关联文档：docs/README.md, docs/architecture/README.md, docs/architecture/data-platform.md, docs/architecture/data-governance.md, docs/architecture/furnace.md, docs/architecture/rearview.md, docs/architecture/racingline.md, docs/architecture/deploy-ops.md
 
 ## 摘要
 
@@ -333,7 +333,7 @@ npm run build
 
 1. 新增 `deploy/release-manifest.yml`。
 2. 记录当前组件版本和 Alembic head。
-3. 在部署 runbook 或系统地图中链接该清单。
+3. 在部署 runbook 或架构事实文档中链接该清单。
 
 完成标准：
 

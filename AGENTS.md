@@ -14,7 +14,7 @@ mono-fleur/
 ├── deploy/             # 部署配置
 │   ├── docker-compose.yml
 │   ├── postgres/       # PostgreSQL 配置
-│   └── jiuyan_industry_ocr.dev.yaml
+│   └── release-manifest.yml
 ├── app/                # 前端应用工作区（racingline）
 ├── docs/               # 项目文档与计划
 ├── .env                # 环境变量（不提交）
@@ -24,21 +24,21 @@ mono-fleur/
 ## 文档入口
 
 - 文档总入口：`docs/README.md`
-- 多工程系统地图：`docs/systems/README.md`
-- 数据平台地图：`docs/systems/data-platform.md`
-- 数据治理地图：`docs/systems/data-governance.md`
-- Furnace 计算引擎地图：`docs/systems/furnace.md`
-- Rearview 后端服务地图：`docs/systems/rearview.md`
-- Racingline 前端工作台地图：`docs/systems/racingline.md`
-- 部署与运行地图：`docs/systems/deploy-ops.md`
+- 多工程项目状态：`docs/architecture/project-status.md`
+- 数据平台地图：`docs/architecture/data-platform.md`
+- 数据治理地图：`docs/architecture/data-governance.md`
+- Furnace 计算引擎地图：`docs/architecture/furnace.md`
+- Rearview 后端服务地图：`docs/architecture/rearview.md`
+- Racingline 前端工作台地图：`docs/architecture/racingline.md`
+- 部署与运行地图：`docs/architecture/deploy-ops.md`
 - 架构边界：`docs/architecture/`
 - 模块边界：`docs/architecture/scheduler-module-boundaries.md`
 - 长期决策：`docs/ADR/`
 - 方案与历史设计：`docs/RFC/`
 - 执行计划：`docs/plans/README.md`
-- 质量优化：`docs/optimize/`
+- 技术债与质量优化：`docs/issues/`
 - 运行报告：`docs/jobs/reports/`
-- dbt 模型设计：`docs/design/`
+- dbt 模型设计：`docs/architecture/dbt_layer/`
 - 接口、数据字典和样例：`docs/references/`
 - 项目 skills：`docs/skills/`
 - Rust engines 文档地图：`engines/README.md`
@@ -149,7 +149,7 @@ uv run alembic upgrade head
 ## 前端与浏览器调试
 
 - `racingline` 前端路径：`app/racingline/`
-- 前端系统地图：`docs/systems/racingline.md`
+- 前端架构事实文档：`docs/architecture/racingline.md`
 - 快速启动 Rearview + Racingline dev 环境：`make racingline-dev`；按端口清理：`make racingline-dev-stop`
 - Playwright CLI 使用全局安装的 `@playwright/cli`，命令为 `playwright-cli`
 - 当前浏览器调试环境通过 Docker `vnc-mini-desktop` 暴露 Chromium CDP 端口，默认 `PLAYWRIGHT_CDP_ENDPOINT=http://127.0.0.1:9222`

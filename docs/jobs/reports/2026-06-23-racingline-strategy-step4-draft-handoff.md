@@ -103,7 +103,7 @@ Template error path:
 
 - Plan 0050 已归档到 `docs/plans/archive/`。
 - `docs/plans/README.md` 已从 Active Plans 移除 Plan 0050，并加入 Recently Completed。
-- `docs/systems/racingline.md`、`docs/systems/rearview.md` 和 `engines/README.md` 已补充当前 API 和职责边界。
+- `docs/architecture/racingline.md`、`docs/architecture/rearview.md` 和 `engines/README.md` 已补充当前 API 和职责边界。
 
 ## 保留限制
 
