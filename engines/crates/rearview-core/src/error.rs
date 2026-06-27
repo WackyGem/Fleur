@@ -13,6 +13,8 @@ pub enum RearviewError {
     NotFound(String),
     #[error("conflict: {0}")]
     Conflict(String),
+    #[error("portfolio pending first run: {0}")]
+    PortfolioPendingFirstRun(String),
     #[error("validation error: {0}")]
     Validation(String),
     #[error("metric catalog error: {0}")]
@@ -45,7 +47,7 @@ impl RearviewError {
     pub fn status_code(&self) -> StatusCode {
         match self {
             Self::NotFound(_) => StatusCode::NOT_FOUND,
-            Self::Conflict(_) => StatusCode::CONFLICT,
+            Self::Conflict(_) | Self::PortfolioPendingFirstRun(_) => StatusCode::CONFLICT,
             Self::Config(_)
             | Self::Postgres(_)
             | Self::ClickHouse(_)
@@ -64,6 +66,7 @@ impl RearviewError {
             Self::Config(_) => "config",
             Self::NotFound(_) => "not_found",
             Self::Conflict(_) => "conflict",
+            Self::PortfolioPendingFirstRun(_) => "portfolio_pending_first_run",
             Self::Validation(_) => "validation",
             Self::MetricCatalog(_) => "metric_catalog",
             Self::Planner(_) => "planner",

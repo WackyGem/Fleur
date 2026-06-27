@@ -8,9 +8,8 @@ export const queryKeys = {
   metrics: (query: MetricsQuery = {}) => ["metrics", query] as const,
   defaultMarketFeeTemplate: (market: string) =>
     ["market-fee-templates", "default", market] as const,
-  strategyBacktestValidate: (
-    request: StrategyBacktestValidateRequest | null
-  ) => ["strategy-backtests", "validate", request] as const,
+  strategyBacktestValidate: (request: StrategyBacktestValidateRequest | null) =>
+    ["strategy-backtests", "validate", request] as const,
   strategyBacktestOptions: (benchmarkSecurityCode: string) =>
     ["strategy-backtests", "options", benchmarkSecurityCode] as const,
   strategyBacktest: (strategyBacktestRunId: string | null) =>
@@ -97,6 +96,16 @@ export const queryKeys = {
       strategyBacktestRunId,
       "trade-metrics",
       query,
+    ] as const,
+  strategyPortfolioPublishPreview: (
+    strategyBacktestRunId: string | null,
+    sourceResultAttemptId: string | null
+  ) =>
+    [
+      "strategy-backtests",
+      strategyBacktestRunId,
+      "portfolio-publish-preview",
+      sourceResultAttemptId,
     ] as const,
   strategyPortfolioDashboard: () =>
     ["strategy-portfolios", "dashboard"] as const,

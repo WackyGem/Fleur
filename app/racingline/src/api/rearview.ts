@@ -39,8 +39,10 @@ import type {
   StrategyPortfolioListResult,
   StrategyPortfolioNavResponse,
   StrategyPortfolioPerformanceView,
+  StrategyPortfolioPublishPreviewResponse,
   StrategyPortfolioRecord,
   StrategyPortfolioRebalanceRecordsResponse,
+  StrategyPortfolioSignalsResponse,
   StrategyPortfolioSignalTimelineResponse,
   StrategyPreviewPoolPageRequest,
   StrategyPreviewPoolPageResponse,
@@ -158,10 +160,13 @@ export function getStrategyBacktestOverviewUi(
   tradeDate?: string | null
 ) {
   return requestJson<StrategyBacktestOverviewUiResponse>(
-    buildPath(`/rearview/strategy-backtests/${strategyBacktestRunId}/overview`, {
-      trade_date: tradeDate ?? undefined,
-      view: "ui",
-    })
+    buildPath(
+      `/rearview/strategy-backtests/${strategyBacktestRunId}/overview`,
+      {
+        trade_date: tradeDate ?? undefined,
+        view: "ui",
+      }
+    )
   )
 }
 
@@ -208,7 +213,10 @@ export function listStrategyBacktestTargets(
   query: QueryParams = {}
 ) {
   return requestJson<ListResult<StrategyBacktestTargetRecord>>(
-    buildPath(`/rearview/strategy-backtests/${strategyBacktestRunId}/targets`, query)
+    buildPath(
+      `/rearview/strategy-backtests/${strategyBacktestRunId}/targets`,
+      query
+    )
   )
 }
 
@@ -217,7 +225,10 @@ export function listStrategyBacktestOrders(
   query: QueryParams = {}
 ) {
   return requestJson<ListResult<StrategyBacktestOrderRecord>>(
-    buildPath(`/rearview/strategy-backtests/${strategyBacktestRunId}/orders`, query)
+    buildPath(
+      `/rearview/strategy-backtests/${strategyBacktestRunId}/orders`,
+      query
+    )
   )
 }
 
@@ -226,7 +237,10 @@ export function listStrategyBacktestTrades(
   query: QueryParams = {}
 ) {
   return requestJson<ListResult<StrategyBacktestTradeRecord>>(
-    buildPath(`/rearview/strategy-backtests/${strategyBacktestRunId}/trades`, query)
+    buildPath(
+      `/rearview/strategy-backtests/${strategyBacktestRunId}/trades`,
+      query
+    )
   )
 }
 
@@ -247,7 +261,10 @@ export function listStrategyBacktestEvents(
   query: QueryParams = {}
 ) {
   return requestJson<ListResult<StrategyBacktestEventRecord>>(
-    buildPath(`/rearview/strategy-backtests/${strategyBacktestRunId}/events`, query)
+    buildPath(
+      `/rearview/strategy-backtests/${strategyBacktestRunId}/events`,
+      query
+    )
   )
 }
 
@@ -257,7 +274,9 @@ export function getStrategyBacktestPerformance(strategyBacktestRunId: string) {
   )
 }
 
-export function getStrategyBacktestPerformanceUi(strategyBacktestRunId: string) {
+export function getStrategyBacktestPerformanceUi(
+  strategyBacktestRunId: string
+) {
   return requestJson<StrategyBacktestPerformanceUiView>(
     buildPath(
       `/rearview/strategy-backtests/${strategyBacktestRunId}/performance`,
@@ -290,10 +309,24 @@ export function listStrategyBacktestTradeMetrics(
   )
 }
 
-export function createStrategyPortfolio(request: StrategyPortfolioCreateRequest) {
+export function createStrategyPortfolio(
+  request: StrategyPortfolioCreateRequest
+) {
   return requestJson<StrategyPortfolioRecord>(
     "/rearview/strategy-portfolios",
     jsonBody(request)
+  )
+}
+
+export function getStrategyPortfolioPublishPreview(
+  strategyBacktestRunId: string,
+  sourceResultAttemptId: string
+) {
+  return requestJson<StrategyPortfolioPublishPreviewResponse>(
+    buildPath(
+      `/rearview/strategy-backtests/${strategyBacktestRunId}/portfolio-publish-preview`,
+      { source_result_attempt_id: sourceResultAttemptId }
+    )
   )
 }
 
@@ -325,8 +358,11 @@ export function listStrategyPortfolioSignals(
   strategyPortfolioId: string,
   query: QueryParams = {}
 ) {
-  return requestJson<StrategyPortfolioListResult<StrategyBacktestTargetRecord>>(
-    buildPath(`/rearview/strategy-portfolios/${strategyPortfolioId}/signals`, query)
+  return requestJson<StrategyPortfolioSignalsResponse>(
+    buildPath(
+      `/rearview/strategy-portfolios/${strategyPortfolioId}/signals`,
+      query
+    )
   )
 }
 
@@ -342,7 +378,9 @@ export function listStrategyPortfolioPositions(
   strategyPortfolioId: string,
   query: QueryParams = {}
 ) {
-  return requestJson<StrategyPortfolioListResult<StrategyBacktestPositionRecord>>(
+  return requestJson<
+    StrategyPortfolioListResult<StrategyBacktestPositionRecord>
+  >(
     buildPath(
       `/rearview/strategy-portfolios/${strategyPortfolioId}/positions`,
       query
@@ -366,8 +404,8 @@ export function securityAnalysis(
   request: SecurityAnalysisRequest,
   signal?: AbortSignal
 ) {
-  return requestJson<SecurityAnalysisResponse>(
-    "/rearview/security-analysis",
-    { ...jsonBody(request), signal }
-  )
+  return requestJson<SecurityAnalysisResponse>("/rearview/security-analysis", {
+    ...jsonBody(request),
+    signal,
+  })
 }

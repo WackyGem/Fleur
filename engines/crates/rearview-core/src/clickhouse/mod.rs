@@ -19,6 +19,26 @@ pub mod portfolio_write;
 use portfolio_schema::all_table_sqls;
 use portfolio_write::WriteBatch;
 
+const BACKTEST_RESULT_DATABASE: &str = "fleur_backtest";
+const BACKTEST_RUN_ID_FIELD: &str = "strategy_backtest_run_id";
+const LIVE_RUN_ID_FIELD: &str = "strategy_portfolio_daily_run_id";
+
+#[derive(Debug, Clone, Copy)]
+struct SplitTargetFamily<'a> {
+    database: &'a str,
+    table: &'a str,
+    run_id_field: &'a str,
+    query_prefix: &'a str,
+}
+
+#[derive(Debug, Clone, Copy)]
+struct SplitPerformanceFamily<'a> {
+    database: &'a str,
+    prefix: &'a str,
+    run_id_field: &'a str,
+    query_prefix: &'a str,
+}
+
 #[derive(Debug, Clone, Deserialize)]
 struct TradeDateRow {
     trade_date: NaiveDate,
@@ -363,6 +383,28 @@ impl ClickHouseClient {
             self.execute_text(&table_sql, "rearview-portfolio-schema-table")
                 .await?;
         }
+        for table_sql in portfolio_schema::all_live_table_sqls(database) {
+            self.execute_text(&table_sql, "rearview-live-schema-table")
+                .await?;
+        }
+        for table_sql in calculation_schema::all_live_table_sqls(database) {
+            self.execute_text(&table_sql, "rearview-live-calculation-schema-table")
+                .await?;
+        }
+
+        validate_identifier(BACKTEST_RESULT_DATABASE)?;
+        let db_sql = portfolio_schema::create_database_sql(BACKTEST_RESULT_DATABASE);
+        self.execute_text(&db_sql, "rearview-backtest-schema-db")
+            .await?;
+        for table_sql in portfolio_schema::all_backtest_table_sqls(BACKTEST_RESULT_DATABASE) {
+            self.execute_text(&table_sql, "rearview-backtest-schema-table")
+                .await?;
+        }
+        for table_sql in calculation_schema::all_backtest_table_sqls(BACKTEST_RESULT_DATABASE) {
+            self.execute_text(&table_sql, "rearview-backtest-calculation-schema-table")
+                .await?;
+        }
+
         let calculation_database = &self.config.calculation_database;
         validate_identifier(calculation_database)?;
         let db_sql = calculation_schema::create_database_sql(calculation_database);
@@ -433,6 +475,207 @@ impl ClickHouseClient {
         let query_id = format!("rearview-portfolio-write-{result_attempt_id}");
         self.insert_single(database, "portfolio_run_snapshot", run_snapshot, &query_id)
             .await?;
+        Ok(())
+    }
+
+    pub async fn write_strategy_backtest_result_facts(
+        &self,
+        run: &crate::postgres::PortfolioRunRecord,
+        result_attempt_id: &str,
+        output: &crate::portfolio::PortfolioSimulationOutput,
+    ) -> RearviewResult<WriteBatch> {
+        validate_identifier(BACKTEST_RESULT_DATABASE)?;
+        let batch = WriteBatch::from_output(run, result_attempt_id, output);
+        let query_id = format!("rearview-backtest-write-{result_attempt_id}");
+        self.write_split_result_fact_batch(
+            BACKTEST_RESULT_DATABASE,
+            "backtest",
+            BACKTEST_RUN_ID_FIELD,
+            &query_id,
+            &batch,
+        )
+        .await?;
+        Ok(batch)
+    }
+
+    pub async fn write_strategy_backtest_calculation_outputs(
+        &self,
+        result_attempt_id: &str,
+        batch: &calculation_write::CalculationWriteBatch,
+    ) -> RearviewResult<()> {
+        validate_identifier(BACKTEST_RESULT_DATABASE)?;
+        let query_id = format!("rearview-backtest-calculation-write-{result_attempt_id}");
+        self.write_split_calculation_batch(
+            BACKTEST_RESULT_DATABASE,
+            "backtest",
+            BACKTEST_RUN_ID_FIELD,
+            &query_id,
+            batch,
+        )
+        .await
+    }
+
+    pub async fn write_strategy_backtest_run_snapshot(
+        &self,
+        result_attempt_id: &str,
+        run_snapshot: &portfolio_write::RunSnapshotRow,
+    ) -> RearviewResult<()> {
+        validate_identifier(BACKTEST_RESULT_DATABASE)?;
+        let query_id = format!("rearview-backtest-write-{result_attempt_id}");
+        self.insert_single_with_run_id_field(
+            BACKTEST_RESULT_DATABASE,
+            "backtest_run_snapshot",
+            run_snapshot,
+            &query_id,
+            BACKTEST_RUN_ID_FIELD,
+        )
+        .await
+    }
+
+    pub async fn write_strategy_portfolio_live_result_facts(
+        &self,
+        run: &crate::postgres::PortfolioRunRecord,
+        result_attempt_id: &str,
+        output: &crate::portfolio::PortfolioSimulationOutput,
+    ) -> RearviewResult<WriteBatch> {
+        let database = &self.config.portfolio_database;
+        validate_identifier(database)?;
+        let batch = WriteBatch::from_output(run, result_attempt_id, output);
+        let query_id = format!("rearview-live-write-{result_attempt_id}");
+        self.write_split_result_fact_batch(database, "live", LIVE_RUN_ID_FIELD, &query_id, &batch)
+            .await?;
+        Ok(batch)
+    }
+
+    pub async fn write_strategy_portfolio_live_calculation_outputs(
+        &self,
+        result_attempt_id: &str,
+        batch: &calculation_write::CalculationWriteBatch,
+    ) -> RearviewResult<()> {
+        let database = &self.config.portfolio_database;
+        validate_identifier(database)?;
+        let query_id = format!("rearview-live-calculation-write-{result_attempt_id}");
+        self.write_split_calculation_batch(database, "live", LIVE_RUN_ID_FIELD, &query_id, batch)
+            .await
+    }
+
+    pub async fn write_strategy_portfolio_live_run_snapshot(
+        &self,
+        result_attempt_id: &str,
+        run_snapshot: &portfolio_write::RunSnapshotRow,
+    ) -> RearviewResult<()> {
+        let database = &self.config.portfolio_database;
+        validate_identifier(database)?;
+        let query_id = format!("rearview-live-write-{result_attempt_id}");
+        self.insert_single_with_run_id_field(
+            database,
+            "live_run_snapshot",
+            run_snapshot,
+            &query_id,
+            LIVE_RUN_ID_FIELD,
+        )
+        .await
+    }
+
+    async fn write_split_result_fact_batch(
+        &self,
+        database: &str,
+        prefix: &str,
+        run_id_field: &str,
+        query_id: &str,
+        batch: &WriteBatch,
+    ) -> RearviewResult<()> {
+        self.insert_rows_with_run_id_field(
+            database,
+            &format!("{prefix}_target"),
+            &batch.targets,
+            query_id,
+            run_id_field,
+        )
+        .await?;
+        self.insert_rows_with_run_id_field(
+            database,
+            &format!("{prefix}_order"),
+            &batch.orders,
+            query_id,
+            run_id_field,
+        )
+        .await?;
+        self.insert_rows_with_run_id_field(
+            database,
+            &format!("{prefix}_trade"),
+            &batch.trades,
+            query_id,
+            run_id_field,
+        )
+        .await?;
+        self.insert_rows_with_run_id_field(
+            database,
+            &format!("{prefix}_position_day"),
+            &batch.positions,
+            query_id,
+            run_id_field,
+        )
+        .await?;
+        self.insert_rows_with_run_id_field(
+            database,
+            &format!("{prefix}_nav_daily"),
+            &batch.nav,
+            query_id,
+            run_id_field,
+        )
+        .await?;
+        self.insert_rows_with_run_id_field(
+            database,
+            &format!("{prefix}_event"),
+            &batch.events,
+            query_id,
+            run_id_field,
+        )
+        .await?;
+        Ok(())
+    }
+
+    async fn write_split_calculation_batch(
+        &self,
+        database: &str,
+        prefix: &str,
+        run_id_field: &str,
+        query_id: &str,
+        batch: &calculation_write::CalculationWriteBatch,
+    ) -> RearviewResult<()> {
+        self.insert_rows_with_run_id_field(
+            database,
+            &format!("{prefix}_performance_metric"),
+            &batch.performance_metrics,
+            query_id,
+            run_id_field,
+        )
+        .await?;
+        self.insert_rows_with_run_id_field(
+            database,
+            &format!("{prefix}_performance_metric_status"),
+            &batch.performance_metric_statuses,
+            query_id,
+            run_id_field,
+        )
+        .await?;
+        self.insert_rows_with_run_id_field(
+            database,
+            &format!("{prefix}_closed_trade"),
+            &batch.closed_trades,
+            query_id,
+            run_id_field,
+        )
+        .await?;
+        self.insert_rows_with_run_id_field(
+            database,
+            &format!("{prefix}_trade_metric"),
+            &batch.trade_metrics,
+            query_id,
+            run_id_field,
+        )
+        .await?;
         Ok(())
     }
 
@@ -550,6 +793,22 @@ FORMAT JSONEachRow"#
         self.execute_insert(&sql, &body, query_id).await
     }
 
+    async fn insert_rows_with_run_id_field<T: serde::Serialize>(
+        &self,
+        database: &str,
+        table: &str,
+        rows: &[T],
+        query_id: &str,
+        run_id_field: &str,
+    ) -> RearviewResult<()> {
+        if rows.is_empty() {
+            return Ok(());
+        }
+        let body = portfolio_write::to_json_each_row_with_run_id_field(rows, run_id_field)?;
+        let sql = format!("INSERT INTO {database}.{table} FORMAT JSONEachRow");
+        self.execute_insert(&sql, &body, query_id).await
+    }
+
     async fn insert_single<T: serde::Serialize>(
         &self,
         database: &str,
@@ -558,6 +817,22 @@ FORMAT JSONEachRow"#
         query_id: &str,
     ) -> RearviewResult<()> {
         let body = portfolio_write::to_json_each_row(std::slice::from_ref(row))?;
+        let sql = format!("INSERT INTO {database}.{table} FORMAT JSONEachRow");
+        self.execute_insert(&sql, &body, query_id).await
+    }
+
+    async fn insert_single_with_run_id_field<T: serde::Serialize>(
+        &self,
+        database: &str,
+        table: &str,
+        row: &T,
+        query_id: &str,
+        run_id_field: &str,
+    ) -> RearviewResult<()> {
+        let body = portfolio_write::to_json_each_row_with_run_id_field(
+            std::slice::from_ref(row),
+            run_id_field,
+        )?;
         let sql = format!("INSERT INTO {database}.{table} FORMAT JSONEachRow");
         self.execute_insert(&sql, &body, query_id).await
     }
@@ -1028,6 +1303,1018 @@ FORMAT JSONEachRow"#
     }
 
     // ---- Portfolio result reads (Phase 5: API read source switch) ----
+
+    pub async fn query_strategy_backtest_nav(
+        &self,
+        strategy_backtest_run_id: &str,
+        result_attempt_id: &str,
+    ) -> RearviewResult<Vec<crate::postgres::PortfolioNavRecord>> {
+        self.query_split_nav(
+            BACKTEST_RESULT_DATABASE,
+            "backtest_nav_daily",
+            BACKTEST_RUN_ID_FIELD,
+            strategy_backtest_run_id,
+            result_attempt_id,
+            "rearview-backtest-read-nav",
+        )
+        .await
+    }
+
+    pub async fn query_strategy_portfolio_live_nav(
+        &self,
+        strategy_portfolio_daily_run_id: &str,
+        result_attempt_id: &str,
+    ) -> RearviewResult<Vec<crate::postgres::PortfolioNavRecord>> {
+        let database = &self.config.portfolio_database;
+        self.query_split_nav(
+            database,
+            "live_nav_daily",
+            LIVE_RUN_ID_FIELD,
+            strategy_portfolio_daily_run_id,
+            result_attempt_id,
+            "rearview-live-read-nav",
+        )
+        .await
+    }
+
+    async fn query_split_nav(
+        &self,
+        database: &str,
+        table: &str,
+        run_id_field: &str,
+        portfolio_run_id: &str,
+        result_attempt_id: &str,
+        query_prefix: &str,
+    ) -> RearviewResult<Vec<crate::postgres::PortfolioNavRecord>> {
+        validate_identifier(database)?;
+        validate_identifier(table)?;
+        validate_identifier(run_id_field)?;
+        let database = quote_identifier(database);
+        let table = quote_identifier(table);
+        let run_id_field = quote_identifier(run_id_field);
+        let run_id = quote_string_literal(portfolio_run_id);
+        let attempt = quote_string_literal(result_attempt_id);
+        let sql = format!(
+            r#"
+SELECT {run_id_field} AS portfolio_run_id, trade_date, cash_balance, position_market_value,
+       total_equity, nav, daily_return, drawdown, gross_exposure,
+       position_count, turnover, fee_amount, warning_count
+FROM {database}.{table}
+WHERE {run_id_field} = {run_id}
+  AND result_attempt_id = {attempt}
+ORDER BY trade_date
+FORMAT JSONEachRow"#
+        );
+        let body = self
+            .execute_text(
+                &sql,
+                &portfolio_read_query_id(query_prefix, portfolio_run_id, result_attempt_id),
+            )
+            .await?;
+        parse_json_each_row(&body)
+    }
+
+    pub async fn query_strategy_backtest_targets(
+        &self,
+        filter: &crate::postgres::PortfolioTargetFilter,
+        result_attempt_id: &str,
+    ) -> RearviewResult<crate::postgres::ListResult<crate::postgres::PortfolioTargetRecord>> {
+        self.query_split_targets(
+            BACKTEST_RESULT_DATABASE,
+            "backtest_target",
+            BACKTEST_RUN_ID_FIELD,
+            filter,
+            result_attempt_id,
+            "rearview-backtest-read-targets",
+        )
+        .await
+    }
+
+    pub async fn query_strategy_portfolio_live_targets(
+        &self,
+        filter: &crate::postgres::PortfolioTargetFilter,
+        result_attempt_id: &str,
+    ) -> RearviewResult<crate::postgres::ListResult<crate::postgres::PortfolioTargetRecord>> {
+        let database = &self.config.portfolio_database;
+        self.query_split_targets(
+            database,
+            "live_target",
+            LIVE_RUN_ID_FIELD,
+            filter,
+            result_attempt_id,
+            "rearview-live-read-targets",
+        )
+        .await
+    }
+
+    async fn query_split_targets(
+        &self,
+        database: &str,
+        table: &str,
+        run_id_field: &str,
+        filter: &crate::postgres::PortfolioTargetFilter,
+        result_attempt_id: &str,
+        query_prefix: &str,
+    ) -> RearviewResult<crate::postgres::ListResult<crate::postgres::PortfolioTargetRecord>> {
+        validate_identifier(database)?;
+        validate_identifier(table)?;
+        validate_identifier(run_id_field)?;
+        let database = quote_identifier(database);
+        let table = quote_identifier(table);
+        let run_id_field = quote_identifier(run_id_field);
+        let run_id = quote_string_literal(&filter.portfolio_run_id);
+        let attempt = quote_string_literal(result_attempt_id);
+        let signal_filter = match filter.signal_date {
+            Some(date) => format!("AND signal_date = toDate('{date}')"),
+            None => String::new(),
+        };
+        let fetch_limit = filter.page.fetch_limit();
+        let sql = format!(
+            r#"
+SELECT {run_id_field} AS portfolio_run_id, signal_date, execution_date, security_code,
+       source_rank, source_score, target_weight, target_amount,
+       target_quantity, target_reason
+FROM {database}.{table}
+WHERE {run_id_field} = {run_id}
+  AND result_attempt_id = {attempt}
+  {signal_filter}
+ORDER BY signal_date, source_rank, security_code
+LIMIT {fetch_limit} OFFSET {offset}
+FORMAT JSONEachRow"#,
+            offset = filter.page.offset
+        );
+        let body = self
+            .execute_text(
+                &sql,
+                &portfolio_read_query_id(query_prefix, &filter.portfolio_run_id, result_attempt_id),
+            )
+            .await?;
+        let rows: Vec<crate::postgres::PortfolioTargetRecord> = parse_json_each_row(&body)?;
+        Ok(crate::postgres::ListResult::from_rows(rows, filter.page))
+    }
+
+    pub async fn query_strategy_backtest_latest_targets(
+        &self,
+        strategy_backtest_run_id: &str,
+        result_attempt_id: &str,
+        limit: usize,
+    ) -> RearviewResult<Vec<crate::postgres::PortfolioTargetRecord>> {
+        self.query_split_latest_targets(
+            SplitTargetFamily {
+                database: BACKTEST_RESULT_DATABASE,
+                table: "backtest_target",
+                run_id_field: BACKTEST_RUN_ID_FIELD,
+                query_prefix: "rearview-backtest-read-latest-targets",
+            },
+            strategy_backtest_run_id,
+            result_attempt_id,
+            limit,
+        )
+        .await
+    }
+
+    pub async fn query_strategy_portfolio_live_latest_targets(
+        &self,
+        strategy_portfolio_daily_run_id: &str,
+        result_attempt_id: &str,
+        limit: usize,
+    ) -> RearviewResult<Vec<crate::postgres::PortfolioTargetRecord>> {
+        let database = &self.config.portfolio_database;
+        self.query_split_latest_targets(
+            SplitTargetFamily {
+                database,
+                table: "live_target",
+                run_id_field: LIVE_RUN_ID_FIELD,
+                query_prefix: "rearview-live-read-latest-targets",
+            },
+            strategy_portfolio_daily_run_id,
+            result_attempt_id,
+            limit,
+        )
+        .await
+    }
+
+    async fn query_split_latest_targets(
+        &self,
+        family: SplitTargetFamily<'_>,
+        portfolio_run_id: &str,
+        result_attempt_id: &str,
+        limit: usize,
+    ) -> RearviewResult<Vec<crate::postgres::PortfolioTargetRecord>> {
+        validate_identifier(family.database)?;
+        validate_identifier(family.table)?;
+        validate_identifier(family.run_id_field)?;
+        let database = quote_identifier(family.database);
+        let table = quote_identifier(family.table);
+        let run_id_field = quote_identifier(family.run_id_field);
+        let run_id = quote_string_literal(portfolio_run_id);
+        let attempt = quote_string_literal(result_attempt_id);
+        let sql = format!(
+            r#"
+WITH latest_signal_date AS (
+    SELECT max(signal_date) AS signal_date
+    FROM {database}.{table}
+    WHERE {run_id_field} = {run_id}
+      AND result_attempt_id = {attempt}
+)
+SELECT {run_id_field} AS portfolio_run_id, signal_date, execution_date, security_code,
+       source_rank, source_score, target_weight, target_amount,
+       target_quantity, target_reason
+FROM {database}.{table}
+WHERE {run_id_field} = {run_id}
+  AND result_attempt_id = {attempt}
+  AND signal_date = (SELECT signal_date FROM latest_signal_date)
+ORDER BY source_rank, security_code
+LIMIT {limit}
+FORMAT JSONEachRow"#
+        );
+        let body = self
+            .execute_text(
+                &sql,
+                &portfolio_read_query_id(family.query_prefix, portfolio_run_id, result_attempt_id),
+            )
+            .await?;
+        parse_json_each_row(&body)
+    }
+
+    pub async fn query_strategy_backtest_orders(
+        &self,
+        filter: &crate::postgres::PortfolioOrderFilter,
+        result_attempt_id: &str,
+    ) -> RearviewResult<crate::postgres::ListResult<crate::postgres::PortfolioOrderRecord>> {
+        self.query_split_orders(
+            BACKTEST_RESULT_DATABASE,
+            "backtest_order",
+            BACKTEST_RUN_ID_FIELD,
+            filter,
+            result_attempt_id,
+            "rearview-backtest-read-orders",
+        )
+        .await
+    }
+
+    pub async fn query_strategy_portfolio_live_orders(
+        &self,
+        filter: &crate::postgres::PortfolioOrderFilter,
+        result_attempt_id: &str,
+    ) -> RearviewResult<crate::postgres::ListResult<crate::postgres::PortfolioOrderRecord>> {
+        let database = &self.config.portfolio_database;
+        self.query_split_orders(
+            database,
+            "live_order",
+            LIVE_RUN_ID_FIELD,
+            filter,
+            result_attempt_id,
+            "rearview-live-read-orders",
+        )
+        .await
+    }
+
+    async fn query_split_orders(
+        &self,
+        database: &str,
+        table: &str,
+        run_id_field: &str,
+        filter: &crate::postgres::PortfolioOrderFilter,
+        result_attempt_id: &str,
+        query_prefix: &str,
+    ) -> RearviewResult<crate::postgres::ListResult<crate::postgres::PortfolioOrderRecord>> {
+        validate_identifier(database)?;
+        validate_identifier(table)?;
+        validate_identifier(run_id_field)?;
+        let database = quote_identifier(database);
+        let table = quote_identifier(table);
+        let run_id_field = quote_identifier(run_id_field);
+        let run_id = quote_string_literal(&filter.portfolio_run_id);
+        let attempt = quote_string_literal(result_attempt_id);
+        let exec_filter = match filter.execution_date {
+            Some(date) => format!("AND execution_date = toDate('{date}')"),
+            None => String::new(),
+        };
+        let code_filter = match &filter.security_code {
+            Some(code) => {
+                validate_security_code(code)?;
+                format!("AND security_code = {}", quote_string_literal(code))
+            }
+            None => String::new(),
+        };
+        let fetch_limit = filter.page.fetch_limit();
+        let sql = format!(
+            r#"
+SELECT portfolio_order_id, {run_id_field} AS portfolio_run_id, order_seq, signal_date,
+       execution_date, security_code, side, order_quantity, order_amount,
+       reference_price, reason, status, event_ref
+FROM {database}.{table}
+WHERE {run_id_field} = {run_id}
+  AND result_attempt_id = {attempt}
+  {exec_filter}
+  {code_filter}
+ORDER BY execution_date, order_seq
+LIMIT {fetch_limit} OFFSET {offset}
+FORMAT JSONEachRow"#,
+            offset = filter.page.offset
+        );
+        let body = self
+            .execute_text(
+                &sql,
+                &portfolio_read_query_id(query_prefix, &filter.portfolio_run_id, result_attempt_id),
+            )
+            .await?;
+        let rows: Vec<crate::postgres::PortfolioOrderRecord> = parse_json_each_row(&body)?;
+        Ok(crate::postgres::ListResult::from_rows(rows, filter.page))
+    }
+
+    pub async fn query_strategy_backtest_trades(
+        &self,
+        filter: &crate::postgres::PortfolioTradeFilter,
+        result_attempt_id: &str,
+    ) -> RearviewResult<crate::postgres::ListResult<crate::postgres::PortfolioTradeRecord>> {
+        self.query_split_trades(
+            BACKTEST_RESULT_DATABASE,
+            "backtest_trade",
+            BACKTEST_RUN_ID_FIELD,
+            filter,
+            result_attempt_id,
+            "rearview-backtest-read-trades",
+        )
+        .await
+    }
+
+    pub async fn query_strategy_portfolio_live_trades(
+        &self,
+        filter: &crate::postgres::PortfolioTradeFilter,
+        result_attempt_id: &str,
+    ) -> RearviewResult<crate::postgres::ListResult<crate::postgres::PortfolioTradeRecord>> {
+        let database = &self.config.portfolio_database;
+        self.query_split_trades(
+            database,
+            "live_trade",
+            LIVE_RUN_ID_FIELD,
+            filter,
+            result_attempt_id,
+            "rearview-live-read-trades",
+        )
+        .await
+    }
+
+    async fn query_split_trades(
+        &self,
+        database: &str,
+        table: &str,
+        run_id_field: &str,
+        filter: &crate::postgres::PortfolioTradeFilter,
+        result_attempt_id: &str,
+        query_prefix: &str,
+    ) -> RearviewResult<crate::postgres::ListResult<crate::postgres::PortfolioTradeRecord>> {
+        validate_identifier(database)?;
+        validate_identifier(table)?;
+        validate_identifier(run_id_field)?;
+        let database = quote_identifier(database);
+        let table = quote_identifier(table);
+        let run_id_field = quote_identifier(run_id_field);
+        let run_id = quote_string_literal(&filter.portfolio_run_id);
+        let attempt = quote_string_literal(result_attempt_id);
+        let date_filter = match filter.trade_date {
+            Some(date) => format!("AND trade_date = toDate('{date}')"),
+            None => String::new(),
+        };
+        let code_filter = match &filter.security_code {
+            Some(code) => {
+                validate_security_code(code)?;
+                format!("AND security_code = {}", quote_string_literal(code))
+            }
+            None => String::new(),
+        };
+        let fetch_limit = filter.page.fetch_limit();
+        let sql = format!(
+            r#"
+SELECT portfolio_trade_id, {run_id_field} AS portfolio_run_id, trade_seq, portfolio_order_id,
+       trade_date, signal_date, security_code, side, quantity, reference_price,
+       execution_price, gross_amount, commission, stamp_duty, transfer_fee,
+       total_fee, slippage_cost, reason
+FROM {database}.{table}
+WHERE {run_id_field} = {run_id}
+  AND result_attempt_id = {attempt}
+  {date_filter}
+  {code_filter}
+ORDER BY trade_date, trade_seq
+LIMIT {fetch_limit} OFFSET {offset}
+FORMAT JSONEachRow"#,
+            offset = filter.page.offset
+        );
+        let body = self
+            .execute_text(
+                &sql,
+                &portfolio_read_query_id(query_prefix, &filter.portfolio_run_id, result_attempt_id),
+            )
+            .await?;
+        let rows: Vec<crate::postgres::PortfolioTradeRecord> = parse_json_each_row(&body)?;
+        Ok(crate::postgres::ListResult::from_rows(rows, filter.page))
+    }
+
+    pub async fn query_strategy_backtest_rebalance_trade_counts(
+        &self,
+        strategy_backtest_run_id: &str,
+        result_attempt_id: &str,
+    ) -> RearviewResult<Vec<crate::postgres::PortfolioRebalanceTradeCountRecord>> {
+        self.query_split_rebalance_trade_counts(
+            BACKTEST_RESULT_DATABASE,
+            "backtest_trade",
+            BACKTEST_RUN_ID_FIELD,
+            strategy_backtest_run_id,
+            result_attempt_id,
+            "rearview-backtest-read-rebalance-counts",
+        )
+        .await
+    }
+
+    pub async fn query_strategy_portfolio_live_rebalance_trade_counts(
+        &self,
+        strategy_portfolio_daily_run_id: &str,
+        result_attempt_id: &str,
+    ) -> RearviewResult<Vec<crate::postgres::PortfolioRebalanceTradeCountRecord>> {
+        let database = &self.config.portfolio_database;
+        self.query_split_rebalance_trade_counts(
+            database,
+            "live_trade",
+            LIVE_RUN_ID_FIELD,
+            strategy_portfolio_daily_run_id,
+            result_attempt_id,
+            "rearview-live-read-rebalance-counts",
+        )
+        .await
+    }
+
+    async fn query_split_rebalance_trade_counts(
+        &self,
+        database: &str,
+        table: &str,
+        run_id_field: &str,
+        portfolio_run_id: &str,
+        result_attempt_id: &str,
+        query_prefix: &str,
+    ) -> RearviewResult<Vec<crate::postgres::PortfolioRebalanceTradeCountRecord>> {
+        validate_identifier(database)?;
+        validate_identifier(table)?;
+        validate_identifier(run_id_field)?;
+        let database = quote_identifier(database);
+        let table = quote_identifier(table);
+        let run_id_field = quote_identifier(run_id_field);
+        let run_id = quote_string_literal(portfolio_run_id);
+        let attempt = quote_string_literal(result_attempt_id);
+        let sql = format!(
+            r#"
+SELECT
+    trade_date,
+    toInt32(countDistinctIf(security_code, lower(side) = 'buy')) AS buy_count,
+    toInt32(countDistinctIf(security_code, lower(side) = 'sell')) AS sell_count
+FROM {database}.{table}
+WHERE {run_id_field} = {run_id}
+  AND result_attempt_id = {attempt}
+GROUP BY trade_date
+ORDER BY trade_date
+FORMAT JSONEachRow"#
+        );
+        let body = self
+            .execute_text(
+                &sql,
+                &portfolio_read_query_id(query_prefix, portfolio_run_id, result_attempt_id),
+            )
+            .await?;
+        parse_json_each_row(&body)
+    }
+
+    pub async fn query_strategy_backtest_positions(
+        &self,
+        filter: &crate::postgres::PortfolioPositionFilter,
+        result_attempt_id: &str,
+    ) -> RearviewResult<crate::postgres::ListResult<crate::postgres::PortfolioPositionRecord>> {
+        self.query_split_positions(
+            BACKTEST_RESULT_DATABASE,
+            "backtest_position_day",
+            BACKTEST_RUN_ID_FIELD,
+            filter,
+            result_attempt_id,
+            "rearview-backtest-read-positions",
+        )
+        .await
+    }
+
+    pub async fn query_strategy_portfolio_live_positions(
+        &self,
+        filter: &crate::postgres::PortfolioPositionFilter,
+        result_attempt_id: &str,
+    ) -> RearviewResult<crate::postgres::ListResult<crate::postgres::PortfolioPositionRecord>> {
+        let database = &self.config.portfolio_database;
+        self.query_split_positions(
+            database,
+            "live_position_day",
+            LIVE_RUN_ID_FIELD,
+            filter,
+            result_attempt_id,
+            "rearview-live-read-positions",
+        )
+        .await
+    }
+
+    async fn query_split_positions(
+        &self,
+        database: &str,
+        table: &str,
+        run_id_field: &str,
+        filter: &crate::postgres::PortfolioPositionFilter,
+        result_attempt_id: &str,
+        query_prefix: &str,
+    ) -> RearviewResult<crate::postgres::ListResult<crate::postgres::PortfolioPositionRecord>> {
+        validate_identifier(database)?;
+        validate_identifier(table)?;
+        validate_identifier(run_id_field)?;
+        let quoted_database = quote_identifier(database);
+        let quoted_table = quote_identifier(table);
+        let quoted_run_id_field = quote_identifier(run_id_field);
+        let run_id = quote_string_literal(&filter.portfolio_run_id);
+        let attempt = quote_string_literal(result_attempt_id);
+
+        let trade_date = match filter.trade_date {
+            Some(date) => Some(date),
+            None => {
+                let max_sql = format!(
+                    r#"
+SELECT max(trade_date) AS max_date
+FROM {quoted_database}.{quoted_table}
+WHERE {quoted_run_id_field} = {run_id}
+  AND result_attempt_id = {attempt}
+FORMAT JSONEachRow"#
+                );
+                let body = self
+                    .execute_text(
+                        &max_sql,
+                        &portfolio_read_query_id(
+                            query_prefix,
+                            &filter.portfolio_run_id,
+                            result_attempt_id,
+                        ),
+                    )
+                    .await?;
+                #[derive(Deserialize)]
+                struct MaxDateRow {
+                    max_date: Option<NaiveDate>,
+                }
+                let rows: Vec<MaxDateRow> = parse_json_each_row(&body)?;
+                rows.into_iter().next().and_then(|r| r.max_date)
+            }
+        };
+
+        let date_filter = match trade_date {
+            Some(date) => format!("AND trade_date = toDate('{date}')"),
+            None => String::new(),
+        };
+        let code_filter = match &filter.security_code {
+            Some(code) => {
+                validate_security_code(code)?;
+                format!("AND security_code = {}", quote_string_literal(code))
+            }
+            None => String::new(),
+        };
+        let fetch_limit = filter.page.fetch_limit();
+        let sql = format!(
+            r#"
+SELECT {quoted_run_id_field} AS portfolio_run_id, trade_date, security_code, quantity, cost_basis,
+       average_entry_price, close_price, market_value, unrealized_pnl,
+       unrealized_return, holding_days, is_stale_price
+FROM {quoted_database}.{quoted_table}
+WHERE {quoted_run_id_field} = {run_id}
+  AND result_attempt_id = {attempt}
+  {date_filter}
+  {code_filter}
+ORDER BY trade_date, security_code
+LIMIT {fetch_limit} OFFSET {offset}
+FORMAT JSONEachRow"#,
+            offset = filter.page.offset
+        );
+        let body = self
+            .execute_text(
+                &sql,
+                &portfolio_read_query_id(query_prefix, &filter.portfolio_run_id, result_attempt_id),
+            )
+            .await?;
+        let rows: Vec<crate::postgres::PortfolioPositionRecord> = parse_json_each_row(&body)?;
+        Ok(crate::postgres::ListResult::from_rows(rows, filter.page))
+    }
+
+    pub async fn query_strategy_backtest_events(
+        &self,
+        filter: &crate::postgres::PortfolioEventFilter,
+        result_attempt_id: &str,
+    ) -> RearviewResult<crate::postgres::ListResult<crate::postgres::PortfolioEventRecord>> {
+        self.query_split_events(
+            BACKTEST_RESULT_DATABASE,
+            "backtest_event",
+            BACKTEST_RUN_ID_FIELD,
+            filter,
+            result_attempt_id,
+            "rearview-backtest-read-events",
+        )
+        .await
+    }
+
+    pub async fn query_strategy_portfolio_live_events(
+        &self,
+        filter: &crate::postgres::PortfolioEventFilter,
+        result_attempt_id: &str,
+    ) -> RearviewResult<crate::postgres::ListResult<crate::postgres::PortfolioEventRecord>> {
+        let database = &self.config.portfolio_database;
+        self.query_split_events(
+            database,
+            "live_event",
+            LIVE_RUN_ID_FIELD,
+            filter,
+            result_attempt_id,
+            "rearview-live-read-events",
+        )
+        .await
+    }
+
+    async fn query_split_events(
+        &self,
+        database: &str,
+        table: &str,
+        run_id_field: &str,
+        filter: &crate::postgres::PortfolioEventFilter,
+        result_attempt_id: &str,
+        query_prefix: &str,
+    ) -> RearviewResult<crate::postgres::ListResult<crate::postgres::PortfolioEventRecord>> {
+        validate_identifier(database)?;
+        validate_identifier(table)?;
+        validate_identifier(run_id_field)?;
+        let database = quote_identifier(database);
+        let table = quote_identifier(table);
+        let run_id_field = quote_identifier(run_id_field);
+        let run_id = quote_string_literal(&filter.portfolio_run_id);
+        let attempt = quote_string_literal(result_attempt_id);
+        let date_filter = match filter.trade_date {
+            Some(date) => format!("AND trade_date = toDate('{date}')"),
+            None => String::new(),
+        };
+        let type_filter = match &filter.event_type {
+            Some(et) => format!("AND event_type = {}", quote_string_literal(et)),
+            None => String::new(),
+        };
+        let fetch_limit = filter.page.fetch_limit();
+        let sql = format!(
+            r#"
+SELECT portfolio_event_id, {run_id_field} AS portfolio_run_id, event_seq, trade_date, security_code,
+       event_type, severity, message, payload
+FROM {database}.{table}
+WHERE {run_id_field} = {run_id}
+  AND result_attempt_id = {attempt}
+  {date_filter}
+  {type_filter}
+ORDER BY event_seq
+LIMIT {fetch_limit} OFFSET {offset}
+FORMAT JSONEachRow"#,
+            offset = filter.page.offset
+        );
+        let body = self
+            .execute_text(
+                &sql,
+                &portfolio_read_query_id(query_prefix, &filter.portfolio_run_id, result_attempt_id),
+            )
+            .await?;
+        #[derive(Deserialize)]
+        struct ChEventRow {
+            portfolio_event_id: String,
+            portfolio_run_id: String,
+            event_seq: i32,
+            trade_date: Option<NaiveDate>,
+            security_code: Option<String>,
+            event_type: String,
+            severity: String,
+            message: String,
+            payload: String,
+        }
+        let ch_rows: Vec<ChEventRow> = parse_json_each_row(&body)?;
+        let rows: Vec<crate::postgres::PortfolioEventRecord> = ch_rows
+            .into_iter()
+            .map(|r| crate::postgres::PortfolioEventRecord {
+                portfolio_event_id: r.portfolio_event_id,
+                portfolio_run_id: r.portfolio_run_id,
+                event_seq: r.event_seq,
+                trade_date: r.trade_date,
+                security_code: r.security_code,
+                event_type: r.event_type,
+                severity: r.severity,
+                message: r.message,
+                payload: serde_json::from_str(&r.payload).unwrap_or_else(|_| serde_json::json!({})),
+            })
+            .collect();
+        Ok(crate::postgres::ListResult::from_rows(rows, filter.page))
+    }
+
+    pub async fn query_strategy_backtest_performance(
+        &self,
+        strategy_backtest_run_id: &str,
+        result_attempt_id: &str,
+        security_code: &str,
+        window_key: &str,
+    ) -> RearviewResult<crate::postgres::PortfolioPerformanceResponse> {
+        self.query_split_performance(
+            SplitPerformanceFamily {
+                database: BACKTEST_RESULT_DATABASE,
+                prefix: "backtest",
+                run_id_field: BACKTEST_RUN_ID_FIELD,
+                query_prefix: "rearview-backtest-read-performance",
+            },
+            strategy_backtest_run_id,
+            result_attempt_id,
+            security_code,
+            window_key,
+        )
+        .await
+    }
+
+    pub async fn query_strategy_portfolio_live_performance(
+        &self,
+        strategy_portfolio_daily_run_id: &str,
+        result_attempt_id: &str,
+        security_code: &str,
+        window_key: &str,
+    ) -> RearviewResult<crate::postgres::PortfolioPerformanceResponse> {
+        let database = &self.config.portfolio_database;
+        self.query_split_performance(
+            SplitPerformanceFamily {
+                database,
+                prefix: "live",
+                run_id_field: LIVE_RUN_ID_FIELD,
+                query_prefix: "rearview-live-read-performance",
+            },
+            strategy_portfolio_daily_run_id,
+            result_attempt_id,
+            security_code,
+            window_key,
+        )
+        .await
+    }
+
+    async fn query_split_performance(
+        &self,
+        family: SplitPerformanceFamily<'_>,
+        portfolio_run_id: &str,
+        result_attempt_id: &str,
+        security_code: &str,
+        window_key: &str,
+    ) -> RearviewResult<crate::postgres::PortfolioPerformanceResponse> {
+        validate_identifier(family.database)?;
+        validate_identifier(family.prefix)?;
+        validate_identifier(family.run_id_field)?;
+        validate_security_code(security_code)?;
+        validate_window_key(window_key)?;
+        let database = quote_identifier(family.database);
+        let run_id_field = quote_identifier(family.run_id_field);
+        let run_id = quote_string_literal(portfolio_run_id);
+        let attempt = quote_string_literal(result_attempt_id);
+        let security_code = quote_string_literal(security_code);
+        let window_key = quote_string_literal(window_key);
+        let metric_table = quote_identifier(&format!("{}_performance_metric", family.prefix));
+        let status_table =
+            quote_identifier(&format!("{}_performance_metric_status", family.prefix));
+        let sql = format!(
+            r#"
+SELECT {run_id_field} AS portfolio_run_id, result_attempt_id, security_code, window_key,
+       window_start, window_end, config_hash, metric_status, observation_count,
+       holding_period_return, annualized_return, annualized_volatility,
+       max_drawdown, calmar_ratio, downside_deviation, sortino_ratio,
+       sharpe_ratio, information_ratio, beta, alpha, treynor_ratio
+FROM {database}.{metric_table}
+WHERE {run_id_field} = {run_id}
+  AND result_attempt_id = {attempt}
+  AND security_code = {security_code}
+  AND window_key = {window_key}
+LIMIT 1
+FORMAT JSONEachRow"#
+        );
+        let body = self
+            .execute_text(
+                &sql,
+                &portfolio_read_query_id(family.query_prefix, portfolio_run_id, result_attempt_id),
+            )
+            .await?;
+        let metric =
+            parse_json_each_row::<crate::postgres::PortfolioPerformanceMetricRecord>(&body)?
+                .into_iter()
+                .next()
+                .ok_or_else(|| {
+                    RearviewError::NotFound(format!(
+                        "portfolio performance metric not found for run {portfolio_run_id} attempt {result_attempt_id}"
+                    ))
+                })?;
+
+        let status_sql = format!(
+            r#"
+SELECT {run_id_field} AS portfolio_run_id, result_attempt_id, security_code, window_key,
+       metric_name, metric_status, reason_code
+FROM {database}.{status_table}
+WHERE {run_id_field} = {run_id}
+  AND result_attempt_id = {attempt}
+  AND security_code = {security_code}
+  AND window_key = {window_key}
+ORDER BY metric_name
+FORMAT JSONEachRow"#
+        );
+        let body = self
+            .execute_text(
+                &status_sql,
+                &portfolio_read_query_id(
+                    &format!("{}-status", family.query_prefix),
+                    portfolio_run_id,
+                    result_attempt_id,
+                ),
+            )
+            .await?;
+        let statuses =
+            parse_json_each_row::<crate::postgres::PortfolioPerformanceMetricStatusRecord>(&body)?;
+        Ok(crate::postgres::PortfolioPerformanceResponse { metric, statuses })
+    }
+
+    pub async fn query_strategy_backtest_closed_trades(
+        &self,
+        filter: &crate::postgres::PortfolioClosedTradeFilter,
+        result_attempt_id: &str,
+    ) -> RearviewResult<crate::postgres::ListResult<crate::postgres::PortfolioClosedTradeRecord>>
+    {
+        self.query_split_closed_trades(
+            BACKTEST_RESULT_DATABASE,
+            "backtest_closed_trade",
+            BACKTEST_RUN_ID_FIELD,
+            filter,
+            result_attempt_id,
+            "rearview-backtest-read-closed-trades",
+        )
+        .await
+    }
+
+    pub async fn query_strategy_portfolio_live_closed_trades(
+        &self,
+        filter: &crate::postgres::PortfolioClosedTradeFilter,
+        result_attempt_id: &str,
+    ) -> RearviewResult<crate::postgres::ListResult<crate::postgres::PortfolioClosedTradeRecord>>
+    {
+        let database = &self.config.portfolio_database;
+        self.query_split_closed_trades(
+            database,
+            "live_closed_trade",
+            LIVE_RUN_ID_FIELD,
+            filter,
+            result_attempt_id,
+            "rearview-live-read-closed-trades",
+        )
+        .await
+    }
+
+    async fn query_split_closed_trades(
+        &self,
+        database: &str,
+        table: &str,
+        run_id_field: &str,
+        filter: &crate::postgres::PortfolioClosedTradeFilter,
+        result_attempt_id: &str,
+        query_prefix: &str,
+    ) -> RearviewResult<crate::postgres::ListResult<crate::postgres::PortfolioClosedTradeRecord>>
+    {
+        validate_identifier(database)?;
+        validate_identifier(table)?;
+        validate_identifier(run_id_field)?;
+        let database = quote_identifier(database);
+        let table = quote_identifier(table);
+        let run_id_field = quote_identifier(run_id_field);
+        let run_id = quote_string_literal(&filter.portfolio_run_id);
+        let attempt = quote_string_literal(result_attempt_id);
+        let code_filter = match &filter.security_code {
+            Some(code) => {
+                validate_security_code(code)?;
+                format!("AND security_code = {}", quote_string_literal(code))
+            }
+            None => String::new(),
+        };
+        let exit_date_filter = match filter.exit_date {
+            Some(date) => format!("AND exit_date = toDate('{date}')"),
+            None => String::new(),
+        };
+        let fetch_limit = filter.page.fetch_limit();
+        let sql = format!(
+            r#"
+SELECT {run_id_field} AS portfolio_run_id, result_attempt_id, closed_trade_id, closed_trade_seq,
+       position_lot_id, entry_trade_seq, exit_trade_seq, security_code,
+       entry_date, exit_date, quantity, entry_gross_amount, exit_gross_amount,
+       entry_fee, exit_fee, entry_fee + exit_fee AS total_fee, realized_pnl,
+       if(entry_gross_amount + entry_fee = 0, null, realized_pnl / (entry_gross_amount + entry_fee)) AS realized_return,
+       holding_days, exit_reason
+FROM {database}.{table}
+WHERE {run_id_field} = {run_id}
+  AND result_attempt_id = {attempt}
+  {exit_date_filter}
+  {code_filter}
+ORDER BY exit_date, security_code, closed_trade_seq
+LIMIT {fetch_limit} OFFSET {offset}
+FORMAT JSONEachRow"#,
+            offset = filter.page.offset
+        );
+        let body = self
+            .execute_text(
+                &sql,
+                &portfolio_read_query_id(query_prefix, &filter.portfolio_run_id, result_attempt_id),
+            )
+            .await?;
+        let rows = parse_json_each_row::<crate::postgres::PortfolioClosedTradeRecord>(&body)?;
+        Ok(crate::postgres::ListResult::from_rows(rows, filter.page))
+    }
+
+    pub async fn query_strategy_backtest_trade_metrics(
+        &self,
+        filter: &crate::postgres::PortfolioTradeMetricFilter,
+        result_attempt_id: &str,
+    ) -> RearviewResult<crate::postgres::ListResult<crate::postgres::PortfolioTradeMetricRecord>>
+    {
+        self.query_split_trade_metrics(
+            BACKTEST_RESULT_DATABASE,
+            "backtest_trade_metric",
+            BACKTEST_RUN_ID_FIELD,
+            filter,
+            result_attempt_id,
+            "rearview-backtest-read-trade-metrics",
+        )
+        .await
+    }
+
+    pub async fn query_strategy_portfolio_live_trade_metrics(
+        &self,
+        filter: &crate::postgres::PortfolioTradeMetricFilter,
+        result_attempt_id: &str,
+    ) -> RearviewResult<crate::postgres::ListResult<crate::postgres::PortfolioTradeMetricRecord>>
+    {
+        let database = &self.config.portfolio_database;
+        self.query_split_trade_metrics(
+            database,
+            "live_trade_metric",
+            LIVE_RUN_ID_FIELD,
+            filter,
+            result_attempt_id,
+            "rearview-live-read-trade-metrics",
+        )
+        .await
+    }
+
+    async fn query_split_trade_metrics(
+        &self,
+        database: &str,
+        table: &str,
+        run_id_field: &str,
+        filter: &crate::postgres::PortfolioTradeMetricFilter,
+        result_attempt_id: &str,
+        query_prefix: &str,
+    ) -> RearviewResult<crate::postgres::ListResult<crate::postgres::PortfolioTradeMetricRecord>>
+    {
+        validate_identifier(database)?;
+        validate_identifier(table)?;
+        validate_identifier(run_id_field)?;
+        let database = quote_identifier(database);
+        let table = quote_identifier(table);
+        let run_id_field = quote_identifier(run_id_field);
+        let run_id = quote_string_literal(&filter.portfolio_run_id);
+        let attempt = quote_string_literal(result_attempt_id);
+        let window_filter = match &filter.window_key {
+            Some(window_key) => {
+                validate_window_key(window_key)?;
+                format!("AND window_key = {}", quote_string_literal(window_key))
+            }
+            None => String::new(),
+        };
+        let fetch_limit = filter.page.fetch_limit();
+        let sql = format!(
+            r#"
+SELECT {run_id_field} AS portfolio_run_id, result_attempt_id, window_key, window_start, window_end,
+       closed_trade_count, winning_trade_count, losing_trade_count,
+       breakeven_trade_count, win_rate_closed_trades, average_win_return,
+       average_loss_return, profit_loss_ratio, average_holding_days,
+       largest_win_return, largest_loss_return
+FROM {database}.{table}
+WHERE {run_id_field} = {run_id}
+  AND result_attempt_id = {attempt}
+  {window_filter}
+ORDER BY window_key
+LIMIT {fetch_limit} OFFSET {offset}
+FORMAT JSONEachRow"#,
+            offset = filter.page.offset
+        );
+        let body = self
+            .execute_text(
+                &sql,
+                &portfolio_read_query_id(query_prefix, &filter.portfolio_run_id, result_attempt_id),
+            )
+            .await?;
+        let rows = parse_json_each_row::<crate::postgres::PortfolioTradeMetricRecord>(&body)?;
+        Ok(crate::postgres::ListResult::from_rows(rows, filter.page))
+    }
 
     pub async fn query_portfolio_nav(
         &self,

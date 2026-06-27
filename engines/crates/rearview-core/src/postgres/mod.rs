@@ -35,7 +35,7 @@ impl RearviewPg {
             sqlx::query_scalar("select version_num from alembic_version limit 1")
                 .fetch_optional(&self.pool)
                 .await?;
-        if version.as_deref() != Some("0008_strategy_portfolio_cp") {
+        if version.as_deref() != Some("0009_strategy_portfolio_ctx") {
             return Err(RearviewError::Config(format!(
                 "rearview schema version is not compatible: {:?}",
                 version
@@ -1293,7 +1293,9 @@ impl RearviewPg {
                 source_period_key,
                 source_start_date,
                 source_end_date,
+                initial_signal_date,
                 live_start_date,
+                pending_buy_signal_snapshot,
                 ui_display_snapshot,
                 client_request_id,
                 request_hash
@@ -1301,7 +1303,7 @@ impl RearviewPg {
             values (
                 $1, $2, $3, 'active', $4::jsonb, $5, $6::jsonb, $7, $8,
                 'backward_adjusted', $9, $10::jsonb, $11::jsonb, $12, $13,
-                $14, $15, $16, $17, $18::jsonb, $19, $20
+                $14, $15, $16, $17, $18, $19::jsonb, $20::jsonb, $21, $22
             )
             "#,
         )
@@ -1321,7 +1323,9 @@ impl RearviewPg {
         .bind(&input.source_period_key)
         .bind(input.source_start_date)
         .bind(input.source_end_date)
+        .bind(input.initial_signal_date)
         .bind(input.live_start_date)
+        .bind(&input.pending_buy_signal_snapshot)
         .bind(&input.ui_display_snapshot)
         .bind(&input.client_request_id)
         .bind(&input.request_hash)
@@ -1341,8 +1345,9 @@ impl RearviewPg {
                    rule_hash, execution_config, execution_config_hash,
                    benchmark_security_code, price_basis, catalog_hash, required_metrics,
                    required_marts, source_strategy_backtest_run_id, source_result_attempt_id,
-                   source_period_key, source_start_date, source_end_date, live_start_date,
-                   latest_daily_run_id, current_result_attempt_id, ui_display_snapshot,
+                   source_period_key, source_start_date, source_end_date, initial_signal_date,
+                   live_start_date, pending_buy_signal_snapshot, latest_daily_run_id,
+                   current_result_attempt_id, current_live_result_attempt_id, ui_display_snapshot,
                    client_request_id, request_hash, created_at, updated_at, archived_at
             from strategy_portfolio
             where strategy_portfolio_id = $1
@@ -1369,8 +1374,9 @@ impl RearviewPg {
                    rule_hash, execution_config, execution_config_hash,
                    benchmark_security_code, price_basis, catalog_hash, required_metrics,
                    required_marts, source_strategy_backtest_run_id, source_result_attempt_id,
-                   source_period_key, source_start_date, source_end_date, live_start_date,
-                   latest_daily_run_id, current_result_attempt_id, ui_display_snapshot,
+                   source_period_key, source_start_date, source_end_date, initial_signal_date,
+                   live_start_date, pending_buy_signal_snapshot, latest_daily_run_id,
+                   current_result_attempt_id, current_live_result_attempt_id, ui_display_snapshot,
                    client_request_id, request_hash, created_at, updated_at, archived_at
             from strategy_portfolio
             where client_request_id = $1
@@ -1393,8 +1399,9 @@ impl RearviewPg {
                    rule_hash, execution_config, execution_config_hash,
                    benchmark_security_code, price_basis, catalog_hash, required_metrics,
                    required_marts, source_strategy_backtest_run_id, source_result_attempt_id,
-                   source_period_key, source_start_date, source_end_date, live_start_date,
-                   latest_daily_run_id, current_result_attempt_id, ui_display_snapshot,
+                   source_period_key, source_start_date, source_end_date, initial_signal_date,
+                   live_start_date, pending_buy_signal_snapshot, latest_daily_run_id,
+                   current_result_attempt_id, current_live_result_attempt_id, ui_display_snapshot,
                    client_request_id, request_hash, created_at, updated_at, archived_at
             from strategy_portfolio
             where status = 'active'
@@ -1424,8 +1431,9 @@ impl RearviewPg {
                       rule_hash, execution_config, execution_config_hash,
                       benchmark_security_code, price_basis, catalog_hash, required_metrics,
                       required_marts, source_strategy_backtest_run_id, source_result_attempt_id,
-                      source_period_key, source_start_date, source_end_date, live_start_date,
-                      latest_daily_run_id, current_result_attempt_id, ui_display_snapshot,
+                      source_period_key, source_start_date, source_end_date, initial_signal_date,
+                      live_start_date, pending_buy_signal_snapshot, latest_daily_run_id,
+                      current_result_attempt_id, current_live_result_attempt_id, ui_display_snapshot,
                       client_request_id, request_hash, created_at, updated_at, archived_at
             "#,
         )
@@ -1472,7 +1480,7 @@ impl RearviewPg {
             )
             .bind(&daily_run_id)
             .bind(&portfolio.strategy_portfolio_id)
-            .bind(portfolio.live_start_date)
+            .bind(portfolio.initial_signal_date)
             .bind(trade_date)
             .execute(&mut *transaction)
             .await?;
@@ -1700,7 +1708,7 @@ impl RearviewPg {
             r#"
             update strategy_portfolio
             set latest_daily_run_id = $2,
-                current_result_attempt_id = $3,
+                current_live_result_attempt_id = $3,
                 updated_at = now()
             where strategy_portfolio_id = $1
             "#,
@@ -3119,7 +3127,9 @@ pub struct NewStrategyPortfolio {
     pub source_period_key: String,
     pub source_start_date: NaiveDate,
     pub source_end_date: NaiveDate,
+    pub initial_signal_date: NaiveDate,
     pub live_start_date: NaiveDate,
+    pub pending_buy_signal_snapshot: Value,
     pub ui_display_snapshot: Value,
     pub client_request_id: Option<String>,
     pub request_hash: String,
@@ -3263,9 +3273,12 @@ pub struct StrategyPortfolioRecord {
     pub source_period_key: String,
     pub source_start_date: NaiveDate,
     pub source_end_date: NaiveDate,
+    pub initial_signal_date: NaiveDate,
     pub live_start_date: NaiveDate,
+    pub pending_buy_signal_snapshot: Value,
     pub latest_daily_run_id: Option<String>,
     pub current_result_attempt_id: Option<String>,
+    pub current_live_result_attempt_id: Option<String>,
     pub ui_display_snapshot: Value,
     pub client_request_id: Option<String>,
     pub request_hash: String,
@@ -3797,9 +3810,12 @@ fn strategy_portfolio_from_row(row: &sqlx::postgres::PgRow) -> StrategyPortfolio
         source_period_key: row.get("source_period_key"),
         source_start_date: row.get("source_start_date"),
         source_end_date: row.get("source_end_date"),
+        initial_signal_date: row.get("initial_signal_date"),
         live_start_date: row.get("live_start_date"),
+        pending_buy_signal_snapshot: row.get("pending_buy_signal_snapshot"),
         latest_daily_run_id: row.get("latest_daily_run_id"),
         current_result_attempt_id: row.get("current_result_attempt_id"),
+        current_live_result_attempt_id: row.get("current_live_result_attempt_id"),
         ui_display_snapshot: row.get("ui_display_snapshot"),
         client_request_id: row.get("client_request_id"),
         request_hash: row.get("request_hash"),

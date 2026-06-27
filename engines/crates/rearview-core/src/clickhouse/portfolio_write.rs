@@ -321,6 +321,37 @@ pub fn to_json_each_row<T: Serialize>(rows: &[T]) -> RearviewResult<String> {
     Ok(body)
 }
 
+/// Serialize rows after replacing the legacy `portfolio_run_id` JSON field
+/// with the concrete family identity field used by split result tables.
+pub fn to_json_each_row_with_run_id_field<T: Serialize>(
+    rows: &[T],
+    run_id_field: &str,
+) -> RearviewResult<String> {
+    let mut body = String::new();
+    for row in rows {
+        let mut value = serde_json::to_value(row).map_err(RearviewError::Json)?;
+        let object = value.as_object_mut().ok_or_else(|| {
+            RearviewError::Json(serde_json::Error::io(std::io::Error::new(
+                std::io::ErrorKind::InvalidData,
+                "ClickHouse row must serialize to a JSON object",
+            )))
+        })?;
+        let Some(run_id) = object.remove("portfolio_run_id") else {
+            return Err(RearviewError::Json(serde_json::Error::io(
+                std::io::Error::new(
+                    std::io::ErrorKind::InvalidData,
+                    "ClickHouse row is missing portfolio_run_id",
+                ),
+            )));
+        };
+        object.insert(run_id_field.to_string(), run_id);
+        let line = serde_json::to_string(&value).map_err(RearviewError::Json)?;
+        body.push_str(&line);
+        body.push('\n');
+    }
+    Ok(body)
+}
+
 // Re-export for the macro-like usage in to_json_each_row
 use crate::error::{RearviewError, RearviewResult};
 
@@ -408,5 +439,17 @@ mod tests {
         let parsed: Value = serde_json::from_str(lines[0]).unwrap();
         assert_eq!(parsed["result_attempt_id"], "a1");
         assert_eq!(parsed["daily_return"], Value::Null);
+    }
+
+    #[test]
+    fn to_json_each_row_with_run_id_field_rewrites_identity_column() {
+        let run = sample_run();
+        let output = sample_output();
+        let batch = WriteBatch::from_output(&run, "a1", &output);
+        let body =
+            to_json_each_row_with_run_id_field(&batch.nav, "strategy_backtest_run_id").unwrap();
+        let parsed: Value = serde_json::from_str(body.lines().next().unwrap()).unwrap();
+        assert_eq!(parsed["strategy_backtest_run_id"], "run-1");
+        assert!(parsed.get("portfolio_run_id").is_none());
     }
 }

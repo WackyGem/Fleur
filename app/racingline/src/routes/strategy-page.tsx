@@ -23,16 +23,12 @@ import {
   useStrategyBacktestStatusQuery,
   useStrategyBacktestValidateQuery,
   useStrategyPortfolioCreateMutation,
+  useStrategyPortfolioPublishPreviewQuery,
   useStrategyPreviewOpenMutation,
 } from "@/api/hooks"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import {
   Dialog,
   DialogContent,
@@ -59,6 +55,7 @@ import {
 import { Separator } from "@/components/ui/separator"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Spinner } from "@/components/ui/spinner"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import {
   Table,
   TableBody,
@@ -461,7 +458,8 @@ function BacktestPanel({
   const selectedRebalanceDate =
     rebalanceSelection.runId === activeRunId ? rebalanceSelection.date : null
   const setSelectedRebalanceDate = useCallback(
-    (date: string | null) => setRebalanceSelection({ date, runId: activeRunId }),
+    (date: string | null) =>
+      setRebalanceSelection({ date, runId: activeRunId }),
     [activeRunId]
   )
   const overviewQuery = useStrategyBacktestOverviewUiQuery(
@@ -476,14 +474,13 @@ function BacktestPanel({
     selectedRebalanceDate ?? overviewSelectedRebalanceDate
   const shouldFetchSelectedRebalanceRows = Boolean(
     selectedRebalanceDate &&
-      selectedRebalanceDate !== overviewSelectedRebalanceDate
+    selectedRebalanceDate !== overviewSelectedRebalanceDate
   )
-  const selectedRebalanceRowsQuery =
-    useStrategyBacktestRebalanceRecordsUiQuery(
-      activeRunId,
-      selectedRebalanceDate,
-      isResultReady && shouldFetchSelectedRebalanceRows
-    )
+  const selectedRebalanceRowsQuery = useStrategyBacktestRebalanceRecordsUiQuery(
+    activeRunId,
+    selectedRebalanceDate,
+    isResultReady && shouldFetchSelectedRebalanceRows
+  )
   const selectedRebalanceRowsResponse =
     shouldFetchSelectedRebalanceRows &&
     selectedRebalanceRowsQuery.data?.selected_trade_date ===
@@ -554,32 +551,26 @@ function BacktestPanel({
       : ""
   const rebalanceRecords = useMemo(
     () =>
-      mapApiBacktestRebalanceRecordSummaries(
-        overviewRebalance?.records ?? []
-      ),
+      mapApiBacktestRebalanceRecordSummaries(overviewRebalance?.records ?? []),
     [overviewRebalance?.records]
   )
   const selectedRebalanceRecordSummary =
     rebalanceRecords.find(
       (record) => record.date === effectiveSelectedRebalanceDate
-    ) ??
-    rebalanceRecords.at(-1)
-  const selectedRebalanceRows = useMemo(
-    () => {
-      if (
-        !selectedRebalanceRowsResponse ||
-        selectedRebalanceRowsResponse.selected_trade_date !==
-          selectedRebalanceRecordSummary?.date
-      ) {
-        return []
-      }
+    ) ?? rebalanceRecords.at(-1)
+  const selectedRebalanceRows = useMemo(() => {
+    if (
+      !selectedRebalanceRowsResponse ||
+      selectedRebalanceRowsResponse.selected_trade_date !==
+        selectedRebalanceRecordSummary?.date
+    ) {
+      return []
+    }
 
-      return mapApiBacktestRebalanceUiRows(
-        selectedRebalanceRowsResponse.selected_rows
-      )
-    },
-    [selectedRebalanceRecordSummary?.date, selectedRebalanceRowsResponse]
-  )
+    return mapApiBacktestRebalanceUiRows(
+      selectedRebalanceRowsResponse.selected_rows
+    )
+  }, [selectedRebalanceRecordSummary?.date, selectedRebalanceRowsResponse])
   const selectedRebalanceRecord = selectedRebalanceRecordSummary
     ? {
         ...selectedRebalanceRecordSummary,
@@ -592,8 +583,8 @@ function BacktestPanel({
   const selectedRebalanceRecordDate = selectedRebalanceRecord?.date ?? null
   const isSelectedRebalanceRowsLoading = Boolean(
     shouldFetchSelectedRebalanceRows &&
-      selectedRebalanceRowsQuery.isFetching &&
-      !selectedRebalanceRowsResponse
+    selectedRebalanceRowsQuery.isFetching &&
+    !selectedRebalanceRowsResponse
   )
 
   useEffect(() => {
@@ -616,7 +607,11 @@ function BacktestPanel({
     })
 
     return () => window.cancelAnimationFrame(frameId)
-  }, [rebalanceRecords.length, selectedRebalanceDate, selectedRebalanceRecordDate])
+  }, [
+    rebalanceRecords.length,
+    selectedRebalanceDate,
+    selectedRebalanceRecordDate,
+  ])
   const performanceGroups = useMemo(
     () =>
       buildBacktestPerformanceGroups(
@@ -627,17 +622,17 @@ function BacktestPanel({
   )
   const actionDisabled = Boolean(
     !previewSnapshot ||
-      previewSnapshot.stale ||
-      !backtestExecutionDraft ||
-      backtestValidationError ||
-      isBacktestValidationPending ||
-      isMarketTemplateLoading ||
-      isMarketTemplateError ||
-      optionsQuery.isLoading ||
-      optionsQuery.isError ||
-      selectedBenchmarkOption?.availabilityStatus === "unavailable" ||
-      createBacktestMutation.isPending ||
-      isRunInProgress
+    previewSnapshot.stale ||
+    !backtestExecutionDraft ||
+    backtestValidationError ||
+    isBacktestValidationPending ||
+    isMarketTemplateLoading ||
+    isMarketTemplateError ||
+    optionsQuery.isLoading ||
+    optionsQuery.isError ||
+    selectedBenchmarkOption?.availabilityStatus === "unavailable" ||
+    createBacktestMutation.isPending ||
+    isRunInProgress
   )
   const actionLabel = createBacktestMutation.isPending
     ? "提交中"
@@ -839,7 +834,7 @@ function BacktestPanel({
               <>
                 <div
                   ref={rebalanceDateScrollerRef}
-                  className="h-[32px] shrink-0 overflow-x-auto overflow-y-hidden overscroll-x-contain pb-3 [scrollbar-width:thin] [&::-webkit-scrollbar]:h-[2px] [&::-webkit-scrollbar-thumb]:bg-border [&::-webkit-scrollbar-track]:bg-transparent"
+                  className="h-[32px] shrink-0 [scrollbar-width:thin] overflow-x-auto overflow-y-hidden overscroll-x-contain pb-3 [&::-webkit-scrollbar]:h-[2px] [&::-webkit-scrollbar-thumb]:bg-border [&::-webkit-scrollbar-track]:bg-transparent"
                 >
                   <div className="flex min-w-max gap-1.5 pr-1">
                     {rebalanceRecords.map((record) => {
@@ -893,8 +888,8 @@ function BacktestPanel({
                     ) : isSelectedRebalanceRowsLoading ? (
                       <Skeleton className="min-h-32 w-full" />
                     ) : selectedRebalanceTradeSections.some(
-                      (section) => section.trades.length > 0
-                    ) ? (
+                        (section) => section.trades.length > 0
+                      ) ? (
                       <Table className="w-full table-fixed text-xs leading-snug [&_td]:overflow-hidden [&_th]:overflow-hidden">
                         <TableHeader>
                           <TableRow className="hover:bg-transparent">
@@ -1003,7 +998,6 @@ function BacktestPanel({
               </Empty>
             )}
           </section>
-
         </div>
       }
       aside={
@@ -1334,9 +1328,7 @@ function BacktestRunStatusToast({
       )}
     >
       <AlertTitle className="flex flex-wrap items-center gap-x-2 gap-y-1">
-        <span>
-          {getStrategyBacktestStatusLabel(run.status)}
-        </span>
+        <span>{getStrategyBacktestStatusLabel(run.status)}</span>
         {!isTerminal ? <Spinner data-icon="inline-start" /> : null}
       </AlertTitle>
     </Alert>
@@ -1379,7 +1371,9 @@ function mapStrategyBacktestNavPoints(
 function mapApiBacktestRebalanceRecordSummaries(
   records: ApiBacktestRebalanceRecordSummary[]
 ): BacktestRebalanceRecord[] {
-  return records.map((record) => mapApiBacktestRebalanceRecordSummary(record, []))
+  return records.map((record) =>
+    mapApiBacktestRebalanceRecordSummary(record, [])
+  )
 }
 
 function mapApiBacktestRebalanceRecordSummary(
@@ -1505,7 +1499,9 @@ function buildBacktestPerformanceGroups(
         },
         {
           label: "Beta",
-          value: formatOptionalRatio(readPerformanceMetric(performance, "beta")),
+          value: formatOptionalRatio(
+            readPerformanceMetric(performance, "beta")
+          ),
         },
         {
           label: "Information Ratio",
@@ -1877,23 +1873,23 @@ export function StrategyPage() {
       : null)
   const isBacktestValidationPending = Boolean(
     backtestValidateDraft.request &&
-      (backtestDraftQuery.isLoading || backtestDraftQuery.isFetching)
+    (backtestDraftQuery.isLoading || backtestDraftQuery.isFetching)
   )
   const canEditConditions = strategyCatalogOptions.length > 0
   const canEditWeights = hasRealScoringCatalog
   const canReuseActiveBacktestRun = Boolean(
     activeBacktestRun &&
-      !hasStrategyBacktestConfigChanged(
-        activeBacktestRun,
-        backtestExecutionDraft,
-        backtestPeriod,
-        backtestBenchmark
-      )
+    !hasStrategyBacktestConfigChanged(
+      activeBacktestRun,
+      backtestExecutionDraft,
+      backtestPeriod,
+      backtestBenchmark
+    )
   )
   const canPublishPortfolio = Boolean(
     activeBacktestRun?.status === "succeeded" &&
-      activeBacktestRun.current_result_attempt_id &&
-      canReuseActiveBacktestRun
+    activeBacktestRun.current_result_attempt_id &&
+    canReuseActiveBacktestRun
   )
   const selectedBacktestPeriodLabel =
     backtestPeriodOptions.find((option) => option.value === backtestPeriod)
@@ -1903,8 +1899,16 @@ export function StrategyPage() {
       (option) => option.securityCode === backtestBenchmark
     )?.label ?? backtestBenchmark
   const publishBacktestRunId = canPublishPortfolio
-    ? activeBacktestRun?.strategy_backtest_run_id ?? null
+    ? (activeBacktestRun?.strategy_backtest_run_id ?? null)
     : null
+  const publishResultAttemptId = canPublishPortfolio
+    ? (activeBacktestRun?.current_result_attempt_id ?? null)
+    : null
+  const publishPreviewQuery = useStrategyPortfolioPublishPreviewQuery(
+    publishBacktestRunId,
+    publishResultAttemptId,
+    publishDialogOpen && canPublishPortfolio
+  )
   const publishNavQuery = useStrategyBacktestNavQuery(
     publishBacktestRunId,
     canPublishPortfolio
@@ -1941,9 +1945,7 @@ export function StrategyPage() {
           expression: formatComparableIndicator(condition),
           groupLabel: group.name || `指标组 ${groupIndex + 1}`,
           logicLabel:
-            conditionIndex === 0
-              ? "组内起始"
-              : condition.logic.toUpperCase(),
+            conditionIndex === 0 ? "组内起始" : condition.logic.toUpperCase(),
         }))
       ),
     [conditionGroups]
@@ -1957,6 +1959,75 @@ export function StrategyPage() {
         score: indicator.score,
       })),
     [weightIndicators]
+  )
+  const publishRiskRules = useMemo(() => {
+    const rules: string[] = []
+    if (effectiveSimulationSettings.fixedStopLoss.enabled) {
+      rules.push(
+        `固定止损 ${formatUiPercent(
+          effectiveSimulationSettings.fixedStopLoss.lossPercent
+        )}`
+      )
+    }
+    if (effectiveSimulationSettings.takeProfit.enabled) {
+      rules.push(
+        `止盈 ${formatUiPercent(
+          effectiveSimulationSettings.takeProfit.profitPercent
+        )}`
+      )
+    }
+    if (effectiveSimulationSettings.timeStopLoss.enabled) {
+      rules.push(
+        `时间止损 ${effectiveSimulationSettings.timeStopLoss.holdingDays} 天`
+      )
+    }
+    if (effectiveSimulationSettings.indicatorStopLoss.enabled) {
+      rules.push(
+        `指标止损 ${effectiveSimulationSettings.indicatorStopLoss.metric}`
+      )
+    }
+    return rules
+  }, [
+    effectiveSimulationSettings.fixedStopLoss.enabled,
+    effectiveSimulationSettings.fixedStopLoss.lossPercent,
+    effectiveSimulationSettings.indicatorStopLoss.enabled,
+    effectiveSimulationSettings.indicatorStopLoss.metric,
+    effectiveSimulationSettings.takeProfit.enabled,
+    effectiveSimulationSettings.takeProfit.profitPercent,
+    effectiveSimulationSettings.timeStopLoss.enabled,
+    effectiveSimulationSettings.timeStopLoss.holdingDays,
+  ])
+  const publishBuildSummaryRows = useMemo(
+    () => [
+      ["初始资金", formatCurrency(effectiveSimulationSettings.initialCapital)],
+      ["每日候选", `Top ${effectiveSimulationSettings.buyTopN}`],
+      ["最大持仓", `${effectiveSimulationSettings.maxPositions} 只`],
+      [
+        "单票上限",
+        formatUiPercent(effectiveSimulationSettings.singlePositionLimitPercent),
+      ],
+      [
+        "交易成本",
+        `佣金 ${formatUiPercent(
+          effectiveSimulationSettings.transactionFees.commissionRatePercent
+        )} / 滑点 ${formatUiPercent(
+          effectiveSimulationSettings.transactionFees.slippageRatePercent
+        )}`,
+      ],
+      [
+        "风控",
+        publishRiskRules.length > 0 ? publishRiskRules.join("，") : "未启用",
+      ],
+    ],
+    [
+      effectiveSimulationSettings.buyTopN,
+      effectiveSimulationSettings.initialCapital,
+      effectiveSimulationSettings.maxPositions,
+      effectiveSimulationSettings.singlePositionLimitPercent,
+      effectiveSimulationSettings.transactionFees.commissionRatePercent,
+      effectiveSimulationSettings.transactionFees.slippageRatePercent,
+      publishRiskRules,
+    ]
   )
 
   function markRuleDraftChanged() {
@@ -1987,6 +2058,8 @@ export function StrategyPage() {
   async function publishPortfolio() {
     if (
       !activeBacktestRun?.current_result_attempt_id ||
+      !publishPreviewQuery.data?.can_publish ||
+      !publishPreviewQuery.data.planned_live_start_date ||
       !portfolioName.trim()
     ) {
       return
@@ -1994,9 +2067,13 @@ export function StrategyPage() {
 
     await createPortfolioMutation.mutateAsync({
       client_request_id: `strategy-portfolio-${activeBacktestRun.strategy_backtest_run_id}-${activeBacktestRun.current_result_attempt_id}`,
+      expected_live_start_date:
+        publishPreviewQuery.data.planned_live_start_date,
+      expected_source_signal_date: publishPreviewQuery.data.source_signal_date,
       name: portfolioName.trim(),
       source_result_attempt_id: activeBacktestRun.current_result_attempt_id,
-      source_strategy_backtest_run_id: activeBacktestRun.strategy_backtest_run_id,
+      source_strategy_backtest_run_id:
+        activeBacktestRun.strategy_backtest_run_id,
     })
     await queryClient.invalidateQueries({
       queryKey: queryKeys.strategyPortfolioDashboard(),
@@ -2223,11 +2300,7 @@ export function StrategyPage() {
   }
 
   async function openBacktest() {
-    if (
-      !canEnterBacktest ||
-      !backtestExecutionDraft ||
-      !previewSnapshot
-    ) {
+    if (!canEnterBacktest || !backtestExecutionDraft || !previewSnapshot) {
       return
     }
 
@@ -2242,8 +2315,9 @@ export function StrategyPage() {
 
     try {
       const selectedPeriodOption =
-        backtestPeriodOptions.find((option) => option.value === backtestPeriod) ??
-        backtestPeriodOptions[0]
+        backtestPeriodOptions.find(
+          (option) => option.value === backtestPeriod
+        ) ?? backtestPeriodOptions[0]
       const selectedBenchmarkOption =
         backtestBenchmarkOptions.find(
           (option) => option.securityCode === backtestBenchmark
@@ -2290,9 +2364,7 @@ export function StrategyPage() {
   }
 
   const content = stepContent[activeStep]
-  const isPreviewPending =
-    isOpeningPreview ||
-    previewOpenMutation.isPending
+  const isPreviewPending = isOpeningPreview || previewOpenMutation.isPending
   const isSplitStep =
     activeStep === "preview" ||
     activeStep === "simulation" ||
@@ -2307,10 +2379,10 @@ export function StrategyPage() {
   )
   const canEnterBacktest = Boolean(
     canEnterSimulation &&
-      backtestExecutionDraft &&
-      !backtestValidationError &&
-      !isBacktestValidationPending &&
-      !initialBacktestMutation.isPending
+    backtestExecutionDraft &&
+    !backtestValidationError &&
+    !isBacktestValidationPending &&
+    !initialBacktestMutation.isPending
   )
 
   return (
@@ -2455,7 +2527,10 @@ export function StrategyPage() {
               ) : null}
             </div>
 
-            <Dialog open={publishDialogOpen} onOpenChange={setPublishDialogOpen}>
+            <Dialog
+              open={publishDialogOpen}
+              onOpenChange={setPublishDialogOpen}
+            >
               <DialogContent className="max-h-[calc(100svh-4rem)] overflow-y-auto sm:max-w-5xl">
                 <DialogHeader>
                   <DialogTitle>建立策略组合</DialogTitle>
@@ -2464,336 +2539,216 @@ export function StrategyPage() {
                   </DialogDescription>
                 </DialogHeader>
                 <div className="flex flex-col gap-4 text-xs">
-                  <FieldGroup className="grid gap-3 md:grid-cols-[minmax(12rem,1fr)_minmax(18rem,2fr)] md:items-end">
+                  <div className="grid gap-3 md:grid-cols-[minmax(12rem,1fr)_auto] md:items-end">
                     <Field>
                       <FieldLabel>策略名称</FieldLabel>
                       <Input
                         value={portfolioName}
-                        onChange={(event) => setPortfolioName(event.target.value)}
+                        onChange={(event) =>
+                          setPortfolioName(event.target.value)
+                        }
                         placeholder="请输入策略名称"
                       />
                     </Field>
-                    <div className="grid grid-cols-2 gap-2 md:grid-cols-4">
-                      <div className="border border-border/70 p-2">
-                        <div className="text-muted-foreground">条件指标</div>
-                        <div className="mt-1 text-sm font-medium">
-                          {publishConditionRows.length} 条
-                        </div>
-                      </div>
-                      <div className="border border-border/70 p-2">
-                        <div className="text-muted-foreground">评分项</div>
-                        <div className="mt-1 text-sm font-medium">
-                          {publishScoringRows.length} 项
-                        </div>
-                      </div>
-                      <div className="border border-border/70 p-2">
-                        <div className="text-muted-foreground">候选 / 持仓</div>
-                        <div className="mt-1 text-sm font-medium">
-                          {effectiveSimulationSettings.buyTopN} /{" "}
-                          {effectiveSimulationSettings.maxPositions}
-                        </div>
-                      </div>
-                      <div className="border border-border/70 p-2">
-                        <div className="text-muted-foreground">回测结束日</div>
-                        <div className="mt-1 text-sm font-medium">
-                          {activeBacktestRun?.end_date ?? "—"}
-                        </div>
+                    <div className="border border-border/70 px-3 py-2">
+                      <div className="text-muted-foreground">建仓日期</div>
+                      <div className="mt-1 flex flex-wrap items-baseline gap-x-2 gap-y-1">
+                        <span className="text-sm font-medium">
+                          {publishPreviewQuery.data?.planned_live_start_date ??
+                            "—"}
+                        </span>
+                        <span className="text-muted-foreground">
+                          T+1 交易日
+                        </span>
                       </div>
                     </div>
-                  </FieldGroup>
-
-                  <div className="grid gap-3 xl:grid-cols-[1.05fr_0.95fr]">
-                    <Card>
-                      <CardHeader className="pb-2">
-                        <CardTitle className="text-sm">条件指标</CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        <div className="max-h-64 overflow-y-auto border border-border/70">
-                          <Table>
-                            <TableHeader>
-                              <TableRow>
-                                <TableHead className="h-8">分组</TableHead>
-                                <TableHead className="h-8">关系</TableHead>
-                                <TableHead className="h-8">条件表达式</TableHead>
-                              </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                              {publishConditionRows.length > 0 ? (
-                                publishConditionRows.map((row) => (
-                                  <TableRow key={row.id}>
-                                    <TableCell className="py-1.5">
-                                      {row.groupLabel}
-                                    </TableCell>
-                                    <TableCell className="py-1.5">
-                                      {row.logicLabel}
-                                    </TableCell>
-                                    <TableCell className="py-1.5 font-mono text-[11px]">
-                                      {row.expression}
-                                    </TableCell>
-                                  </TableRow>
-                                ))
-                              ) : (
-                                <TableRow>
-                                  <TableCell
-                                    className="py-4 text-center text-muted-foreground"
-                                    colSpan={3}
-                                  >
-                                    暂无条件指标
-                                  </TableCell>
-                                </TableRow>
-                              )}
-                            </TableBody>
-                          </Table>
-                        </div>
-                      </CardContent>
-                    </Card>
-
-                    <Card>
-                      <CardHeader className="pb-2">
-                        <CardTitle className="text-sm">评分项</CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        <div className="max-h-64 overflow-y-auto border border-border/70">
-                          <Table>
-                            <TableHeader>
-                              <TableRow>
-                                <TableHead className="h-8">序号</TableHead>
-                                <TableHead className="h-8">得分</TableHead>
-                                <TableHead className="h-8">评分条件</TableHead>
-                              </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                              {publishScoringRows.length > 0 ? (
-                                publishScoringRows.map((row) => (
-                                  <TableRow key={row.id}>
-                                    <TableCell className="py-1.5">
-                                      {row.index}
-                                    </TableCell>
-                                    <TableCell className="py-1.5 font-medium">
-                                      +{row.score}
-                                    </TableCell>
-                                    <TableCell className="py-1.5 font-mono text-[11px]">
-                                      {row.expression}
-                                    </TableCell>
-                                  </TableRow>
-                                ))
-                              ) : (
-                                <TableRow>
-                                  <TableCell
-                                    className="py-4 text-center text-muted-foreground"
-                                    colSpan={3}
-                                  >
-                                    暂无评分项
-                                  </TableCell>
-                                </TableRow>
-                              )}
-                            </TableBody>
-                          </Table>
-                        </div>
-                      </CardContent>
-                    </Card>
                   </div>
 
-                  <div className="grid gap-3 xl:grid-cols-[0.95fr_1.05fr]">
-                    <Card>
-                      <CardHeader className="pb-2">
-                        <CardTitle className="text-sm">建仓摘要</CardTitle>
-                      </CardHeader>
-                      <CardContent className="grid grid-cols-2 gap-2 md:grid-cols-3">
-                        <div>
-                          <div className="text-muted-foreground">初始资金</div>
-                          <div className="mt-1 font-medium">
-                            {formatCurrency(
-                              effectiveSimulationSettings.initialCapital
-                            )}
-                          </div>
-                        </div>
-                        <div>
-                          <div className="text-muted-foreground">每日候选</div>
-                          <div className="mt-1 font-medium">
-                            Top {effectiveSimulationSettings.buyTopN}
-                          </div>
-                        </div>
-                        <div>
-                          <div className="text-muted-foreground">最大持仓</div>
-                          <div className="mt-1 font-medium">
-                            {effectiveSimulationSettings.maxPositions} 只
-                          </div>
-                        </div>
-                        <div>
-                          <div className="text-muted-foreground">单票上限</div>
-                          <div className="mt-1 font-medium">
-                            {formatUiPercent(
-                              effectiveSimulationSettings.singlePositionLimitPercent
-                            )}
-                          </div>
-                        </div>
-                        <div>
-                          <div className="text-muted-foreground">佣金率</div>
-                          <div className="mt-1 font-medium">
-                            {formatUiPercent(
-                              effectiveSimulationSettings.transactionFees
-                                .commissionRatePercent
-                            )}
-                          </div>
-                        </div>
-                        <div>
-                          <div className="text-muted-foreground">滑点</div>
-                          <div className="mt-1 font-medium">
-                            {formatUiPercent(
-                              effectiveSimulationSettings.transactionFees
-                                .slippageRatePercent
-                            )}
-                          </div>
-                        </div>
-                        <div>
-                          <div className="text-muted-foreground">印花税</div>
-                          <div className="mt-1 font-medium">
-                            {formatUiPercent(
-                              effectiveSimulationSettings.transactionFees
-                                .stampDutyRatePercent
-                            )}
-                          </div>
-                        </div>
-                        <div>
-                          <div className="text-muted-foreground">过户费</div>
-                          <div className="mt-1 font-medium">
-                            {formatUiPercent(
-                              effectiveSimulationSettings.transactionFees
-                                .transferFeeRatePercent
-                            )}
-                          </div>
-                        </div>
-                        <div>
-                          <div className="text-muted-foreground">风控规则</div>
-                          <div className="mt-1 font-medium">
-                            {backtestExecutionDraft?.summary
-                              .enabled_exit_rule_count ?? 0}{" "}
-                            条启用
-                          </div>
-                        </div>
-                        <div className="col-span-2 md:col-span-3">
-                          <div className="text-muted-foreground">风控摘要</div>
-                          <div className="mt-1 leading-5">
-                            固定止损{" "}
-                            {effectiveSimulationSettings.fixedStopLoss.enabled
-                              ? formatUiPercent(
-                                  effectiveSimulationSettings.fixedStopLoss
-                                    .lossPercent
-                                )
-                              : "未启用"}
-                            ，止盈{" "}
-                            {effectiveSimulationSettings.takeProfit.enabled
-                              ? formatUiPercent(
-                                  effectiveSimulationSettings.takeProfit
-                                    .profitPercent
-                                )
-                              : "未启用"}
-                            ，时间止损{" "}
-                            {effectiveSimulationSettings.timeStopLoss.enabled
-                              ? `${effectiveSimulationSettings.timeStopLoss.holdingDays} 天`
-                              : "未启用"}
-                            ，指标止损{" "}
-                            {effectiveSimulationSettings.indicatorStopLoss.enabled
-                              ? effectiveSimulationSettings.indicatorStopLoss.metric
-                              : "未启用"}
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
+                  {publishPreviewQuery.isLoading ||
+                  publishPreviewQuery.isFetching ? (
+                    <Skeleton className="h-10 w-full" />
+                  ) : null}
+                  {publishPreviewQuery.data?.blockers.length ? (
+                    <Alert variant="destructive">
+                      <AlertTitle>发布预检未通过</AlertTitle>
+                      <AlertDescription>
+                        {publishPreviewQuery.data.blockers.join("；")}
+                      </AlertDescription>
+                    </Alert>
+                  ) : null}
+                  {publishPreviewQuery.isError ? (
+                    <Alert variant="destructive">
+                      <AlertTitle>发布预检失败</AlertTitle>
+                      <AlertDescription>
+                        {formatErrorMessage(publishPreviewQuery.error)}
+                      </AlertDescription>
+                    </Alert>
+                  ) : null}
 
-                    <Card>
-                      <CardHeader className="pb-2">
-                        <CardTitle className="text-sm">回测业绩</CardTitle>
-                      </CardHeader>
-                      <CardContent className="flex flex-col gap-3">
+                  <Tabs defaultValue="config" className="gap-4">
+                    <TabsList>
+                      <TabsTrigger value="config">策略配置</TabsTrigger>
+                      <TabsTrigger value="performance">回测业绩</TabsTrigger>
+                    </TabsList>
+
+                    <TabsContent value="config" className="flex flex-col gap-4">
+                      <section className="flex flex-col gap-2">
+                        <h3 className="text-sm font-medium">指标过滤</h3>
+                        <div className="flex flex-col divide-y divide-border/70 border-y border-border/70">
+                          {publishConditionRows.length > 0 ? (
+                            publishConditionRows.map((row) => (
+                              <div
+                                className="grid gap-1 py-2 md:grid-cols-[9rem_5rem_1fr]"
+                                key={row.id}
+                              >
+                                <div className="text-muted-foreground">
+                                  {row.groupLabel}
+                                </div>
+                                <div>{row.logicLabel}</div>
+                                <div className="font-mono text-[11px] break-words">
+                                  {row.expression}
+                                </div>
+                              </div>
+                            ))
+                          ) : (
+                            <div className="py-3 text-muted-foreground">
+                              暂无条件指标
+                            </div>
+                          )}
+                        </div>
+                      </section>
+
+                      <section className="flex flex-col gap-2">
+                        <h3 className="text-sm font-medium">权重得分</h3>
+                        <div className="flex flex-col divide-y divide-border/70 border-y border-border/70">
+                          {publishScoringRows.length > 0 ? (
+                            publishScoringRows.map((row) => (
+                              <div
+                                className="grid gap-1 py-2 md:grid-cols-[4rem_5rem_1fr]"
+                                key={row.id}
+                              >
+                                <div className="text-muted-foreground">
+                                  #{row.index}
+                                </div>
+                                <div className="font-medium">+{row.score}</div>
+                                <div className="font-mono text-[11px] break-words">
+                                  {row.expression}
+                                </div>
+                              </div>
+                            ))
+                          ) : (
+                            <div className="py-3 text-muted-foreground">
+                              暂无评分项
+                            </div>
+                          )}
+                        </div>
+                      </section>
+
+                      <section className="flex flex-col gap-2">
+                        <h3 className="text-sm font-medium">建仓摘要</h3>
+                        <div className="flex flex-col divide-y divide-border/70 border-y border-border/70">
+                          {publishBuildSummaryRows.map(([label, value]) => (
+                            <div
+                              className="grid gap-1 py-2 md:grid-cols-[9rem_1fr]"
+                              key={label}
+                            >
+                              <div className="text-muted-foreground">
+                                {label}
+                              </div>
+                              <div>{value}</div>
+                            </div>
+                          ))}
+                        </div>
+                      </section>
+                    </TabsContent>
+
+                    <TabsContent
+                      value="performance"
+                      className="flex flex-col gap-4"
+                    >
+                      <section className="flex flex-col gap-2">
+                        <div className="grid gap-1 border-y border-border/70 py-2 md:grid-cols-[9rem_1fr]">
+                          <div className="text-muted-foreground">周期</div>
+                          <div>
+                            {selectedBacktestPeriodLabel}（
+                            {activeBacktestRun
+                              ? `${activeBacktestRun.start_date} - ${activeBacktestRun.end_date}`
+                              : "—"}
+                            ）
+                          </div>
+                        </div>
+                        <div className="grid gap-1 border-b border-border/70 py-2 md:grid-cols-[9rem_1fr]">
+                          <div className="text-muted-foreground">业绩基准</div>
+                          <div>{selectedBacktestBenchmarkLabel}</div>
+                        </div>
+                      </section>
+
+                      <section className="flex flex-col gap-2">
+                        <h3 className="text-sm font-medium">业绩表现</h3>
                         {publishNavQuery.isLoading ||
                         publishPerformanceQuery.isLoading ? (
                           <Skeleton className="h-28 w-full" />
                         ) : (
-                          <>
-                            <div className="grid grid-cols-2 gap-2 md:grid-cols-4">
-                              <div>
+                          <div className="flex flex-col divide-y divide-border/70 border-y border-border/70">
+                            {[
+                              [
+                                "业绩日期",
+                                publishLatestNetValuePoint?.time ?? "—",
+                              ],
+                              [
+                                "策略净值",
+                                publishLatestNetValuePoint
+                                  ? formatNetValue(
+                                      publishLatestNetValuePoint.strategy
+                                    )
+                                  : "—",
+                              ],
+                              [
+                                "基准净值",
+                                publishLatestNetValuePoint?.benchmark !==
+                                  null &&
+                                publishLatestNetValuePoint?.benchmark !==
+                                  undefined
+                                  ? formatNetValue(
+                                      publishLatestNetValuePoint.benchmark
+                                    )
+                                  : "—",
+                              ],
+                              ["超额收益", publishLatestExcessReturn || "—"],
+                              [
+                                "日胜率",
+                                formatOptionalPercent(
+                                  publishPerformanceQuery.data?.daily_win_rate
+                                    .value
+                                ),
+                              ],
+                            ].map(([label, value]) => (
+                              <div
+                                className="grid gap-1 py-2 md:grid-cols-[9rem_1fr]"
+                                key={label}
+                              >
                                 <div className="text-muted-foreground">
-                                  最新交易日
+                                  {label}
                                 </div>
-                                <div className="mt-1 font-medium">
-                                  {publishLatestNetValuePoint?.time ?? "—"}
-                                </div>
+                                <div className="font-medium">{value}</div>
                               </div>
-                              <div>
-                                <div className="text-muted-foreground">
-                                  策略净值
-                                </div>
-                                <div className="mt-1 font-medium">
-                                  {publishLatestNetValuePoint
-                                    ? formatNetValue(
-                                        publishLatestNetValuePoint.strategy
-                                      )
-                                    : "—"}
-                                </div>
-                              </div>
-                              <div>
-                                <div className="text-muted-foreground">
-                                  基准净值
-                                </div>
-                                <div className="mt-1 font-medium">
-                                  {publishLatestNetValuePoint?.benchmark !== null &&
-                                  publishLatestNetValuePoint?.benchmark !==
-                                    undefined
-                                    ? formatNetValue(
-                                        publishLatestNetValuePoint.benchmark
-                                      )
-                                    : "—"}
-                                </div>
-                              </div>
-                              <div>
-                                <div className="text-muted-foreground">
-                                  日胜率
-                                </div>
-                                <div className="mt-1 font-medium">
-                                  {formatOptionalPercent(
-                                    publishPerformanceQuery.data?.daily_win_rate
-                                      .value
-                                  )}
-                                </div>
-                              </div>
-                            </div>
-                            <div className="grid gap-2 md:grid-cols-2">
-                              {publishPerformanceGroups.map((group) => (
+                            ))}
+                            {publishPerformanceGroups.flatMap((group) =>
+                              group.metrics.map((metric) => (
                                 <div
-                                  className="border border-border/70 p-2"
-                                  key={group.title}
+                                  className="grid gap-1 py-2 md:grid-cols-[9rem_1fr]"
+                                  key={`${group.title}-${metric.label}`}
                                 >
-                                  <div className="mb-1 font-medium">
-                                    {group.title}
+                                  <div className="text-muted-foreground">
+                                    {metric.label}
                                   </div>
-                                  <div className="grid grid-cols-2 gap-x-3 gap-y-1">
-                                    {group.metrics.map((metric) => (
-                                      <Fragment
-                                        key={`${group.title}-${metric.label}`}
-                                      >
-                                        <div className="text-muted-foreground">
-                                          {metric.label}
-                                        </div>
-                                        <div className="text-right font-medium">
-                                          {metric.value}
-                                        </div>
-                                      </Fragment>
-                                    ))}
+                                  <div className="font-medium">
+                                    {metric.value}
                                   </div>
                                 </div>
-                              ))}
-                            </div>
-                            <div className="text-muted-foreground">
-                              日胜率样本{" "}
-                              {publishPerformanceQuery.data?.daily_win_rate
-                                .winning_day_count ?? "—"}{" "}
-                              /{" "}
-                              {publishPerformanceQuery.data?.daily_win_rate
-                                .observation_count ?? "—"}
-                            </div>
-                          </>
+                              ))
+                            )}
+                          </div>
                         )}
                         {publishNavQuery.isError ||
                         publishPerformanceQuery.isError ? (
@@ -2808,52 +2763,9 @@ export function StrategyPage() {
                             </AlertDescription>
                           </Alert>
                         ) : null}
-                      </CardContent>
-                    </Card>
-                  </div>
-
-                  <Card>
-                    <CardHeader className="pb-2">
-                      <CardTitle className="text-sm">回测快照</CardTitle>
-                    </CardHeader>
-                    <CardContent className="grid gap-2 md:grid-cols-3">
-                      <div>
-                        <div className="text-muted-foreground">周期 / 基准</div>
-                        <div className="mt-1 font-medium">
-                          {selectedBacktestPeriodLabel} /{" "}
-                          {selectedBacktestBenchmarkLabel}
-                        </div>
-                      </div>
-                      <div>
-                        <div className="text-muted-foreground">回测区间</div>
-                        <div className="mt-1 font-medium">
-                          {activeBacktestRun
-                            ? `${activeBacktestRun.start_date} - ${activeBacktestRun.end_date}`
-                            : "—"}
-                        </div>
-                      </div>
-                      <div>
-                        <div className="text-muted-foreground">当前结果</div>
-                        <div className="mt-1 font-medium">
-                          {activeBacktestRun?.current_result_attempt_id ?? "—"}
-                        </div>
-                      </div>
-                      <div className="md:col-span-2">
-                        <div className="text-muted-foreground">回测 Run ID</div>
-                        <div className="mt-1 break-all font-mono text-[11px]">
-                          {activeBacktestRun?.strategy_backtest_run_id ?? "—"}
-                        </div>
-                      </div>
-                      <div>
-                        <div className="text-muted-foreground">股池预览</div>
-                        <div className="mt-1 font-medium">
-                          {previewSnapshot?.range.selectedTradeDate ??
-                            previewSnapshot?.range.endDate ??
-                            "—"}
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
+                      </section>
+                    </TabsContent>
+                  </Tabs>
 
                   {createPortfolioMutation.isError ? (
                     <Alert variant="destructive">
@@ -2876,6 +2788,8 @@ export function StrategyPage() {
                       disabled={
                         !portfolioName.trim() ||
                         !canPublishPortfolio ||
+                        !publishPreviewQuery.data?.can_publish ||
+                        !publishPreviewQuery.data.planned_live_start_date ||
                         createPortfolioMutation.isPending
                       }
                       type="button"

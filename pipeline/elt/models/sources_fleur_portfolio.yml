@@ -31,3 +31,159 @@ sources:
           - name: end_date
             description: Portfolio simulation end date.
             data_type: Date
+
+      - name: live_run_snapshot
+        description: Complete live strategy portfolio daily-run result attempt marker.
+        columns:
+          - name: strategy_portfolio_daily_run_id
+            description: Strategy portfolio daily run identifier.
+            data_type: String
+            data_tests:
+              - not_null
+
+          - name: result_attempt_id
+            description: Append-only live result attempt identifier.
+            data_type: String
+            data_tests:
+              - not_null
+
+      - name: live_nav_daily
+        description: Live strategy portfolio daily NAV, rebased to live_start_date.
+        columns:
+          - name: strategy_portfolio_daily_run_id
+            data_type: String
+            data_tests:
+              - not_null
+
+          - name: result_attempt_id
+            data_type: String
+            data_tests:
+              - not_null
+
+          - name: trade_date
+            data_type: Date
+            data_tests:
+              - not_null
+
+      - name: live_target
+        description: Live strategy portfolio target rows produced by daily runs.
+        columns:
+          - name: strategy_portfolio_daily_run_id
+            data_type: String
+            data_tests:
+              - not_null
+
+          - name: result_attempt_id
+            data_type: String
+            data_tests:
+              - not_null
+
+          - name: signal_date
+            data_type: Date
+
+          - name: execution_date
+            data_type: Date
+
+      - name: live_order
+        description: Live strategy portfolio order ledger.
+        columns:
+          - name: strategy_portfolio_daily_run_id
+            data_type: String
+            data_tests:
+              - not_null
+
+          - name: result_attempt_id
+            data_type: String
+            data_tests:
+              - not_null
+
+      - name: live_trade
+        description: Live strategy portfolio trade ledger.
+        columns:
+          - name: strategy_portfolio_daily_run_id
+            data_type: String
+            data_tests:
+              - not_null
+
+          - name: result_attempt_id
+            data_type: String
+            data_tests:
+              - not_null
+
+      - name: live_position_day
+        description: Live strategy portfolio daily positions.
+        columns:
+          - name: strategy_portfolio_daily_run_id
+            data_type: String
+            data_tests:
+              - not_null
+
+          - name: result_attempt_id
+            data_type: String
+            data_tests:
+              - not_null
+
+      - name: live_event
+        description: Live strategy portfolio worker events.
+        columns:
+          - name: strategy_portfolio_daily_run_id
+            data_type: String
+            data_tests:
+              - not_null
+
+          - name: result_attempt_id
+            data_type: String
+            data_tests:
+              - not_null
+
+      - name: live_performance_metric
+        description: Live strategy portfolio performance metrics over live_start_date..trade_date.
+        columns:
+          - name: strategy_portfolio_daily_run_id
+            data_type: String
+            data_tests:
+              - not_null
+
+          - name: result_attempt_id
+            data_type: String
+            data_tests:
+              - not_null
+
+      - name: live_performance_metric_status
+        description: Metric-level status rows for live strategy portfolio performance metrics.
+        columns:
+          - name: strategy_portfolio_daily_run_id
+            data_type: String
+            data_tests:
+              - not_null
+
+          - name: result_attempt_id
+            data_type: String
+            data_tests:
+              - not_null
+
+      - name: live_closed_trade
+        description: Live strategy portfolio closed-trade ledger.
+        columns:
+          - name: strategy_portfolio_daily_run_id
+            data_type: String
+            data_tests:
+              - not_null
+
+          - name: result_attempt_id
+            data_type: String
+            data_tests:
+              - not_null
+
+      - name: live_trade_metric
+        description: Live strategy portfolio trade quality metrics.
+        columns:
+          - name: strategy_portfolio_daily_run_id
+            data_type: String
+            data_tests:
+              - not_null
+
+          - name: result_attempt_id
+            data_type: String
+            data_tests:
+              - not_null

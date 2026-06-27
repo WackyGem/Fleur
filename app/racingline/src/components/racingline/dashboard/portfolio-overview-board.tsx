@@ -167,13 +167,19 @@ function MetricSection({
   )
 }
 
-function TodaySignalSection({ stocks }: { stocks: SignalStock[] }) {
+function TodaySignalSection({
+  isPending,
+  stocks,
+}: {
+  isPending: boolean
+  stocks: SignalStock[]
+}) {
   const placeholderCount = Math.max(0, VISIBLE_SIGNAL_ROW_COUNT - stocks.length)
 
   return (
     <section className="flex flex-col gap-2">
       <div className="text-[11px] font-medium text-muted-foreground">
-        今日信号
+        {isPending ? "待调入信号" : "买入信号"}
       </div>
       <div className="max-h-[11rem] min-h-0 overflow-y-auto">
         <Table className="w-full table-fixed text-xs">
@@ -190,7 +196,9 @@ function TodaySignalSection({ stocks }: { stocks: SignalStock[] }) {
                   <div className="grid min-w-0 grid-cols-[4.5em_minmax(0,1fr)] items-center gap-1">
                     <span className="truncate font-medium">{stock.name}</span>
                     <span className="truncate text-muted-foreground tabular-nums">
-                      {stock.code}
+                      {isPending && stock.signalDate && stock.executionDate
+                        ? `${stock.signalDate} -> ${stock.executionDate}`
+                        : stock.code}
                     </span>
                   </div>
                 </TableCell>
@@ -241,21 +249,29 @@ function PortfolioOverviewCard({
           </div>
 
           <CardAction className="static flex shrink-0 flex-col items-end gap-1">
-            <div className="text-[11px] text-muted-foreground">最新净值</div>
-            <div className="flex items-end justify-end gap-2">
-              <div
-                className={`text-xs leading-none font-medium tabular-nums ${getChangeToneClassName(
-                  portfolio.recentChange
-                )}`}
-              >
-                {formatChangeValue(portfolio.recentChange)}
-              </div>
-              <div className="text-xl leading-none font-medium tabular-nums">
-                {portfolio.latestNav === null
-                  ? "--"
-                  : portfolio.latestNav.toFixed(4)}
-              </div>
+            <div className="text-[11px] text-muted-foreground">
+              {portfolio.liveStatus === "pending_first_run"
+                ? "状态"
+                : "最新净值"}
             </div>
+            {portfolio.liveStatus === "pending_first_run" ? (
+              <div className="text-xl leading-none font-medium">待建仓</div>
+            ) : (
+              <div className="flex items-end justify-end gap-2">
+                <div
+                  className={`text-xs leading-none font-medium tabular-nums ${getChangeToneClassName(
+                    portfolio.recentChange
+                  )}`}
+                >
+                  {formatChangeValue(portfolio.recentChange)}
+                </div>
+                <div className="text-xl leading-none font-medium tabular-nums">
+                  {portfolio.latestNav === null
+                    ? "--"
+                    : portfolio.latestNav.toFixed(4)}
+                </div>
+              </div>
+            )}
           </CardAction>
         </div>
       </CardHeader>
@@ -264,7 +280,10 @@ function PortfolioOverviewCard({
         <div className="grid gap-4">
           <MetricSection title="收益指标" metrics={portfolio.returns} />
           <MetricSection title="风险指标" metrics={portfolio.risk} />
-          <TodaySignalSection stocks={portfolio.todaySignals} />
+          <TodaySignalSection
+            isPending={portfolio.liveStatus === "pending_first_run"}
+            stocks={portfolio.todaySignals}
+          />
         </div>
 
         <Separator />
@@ -339,10 +358,15 @@ function mapStrategyPortfolioCard(
   card: StrategyPortfolioDashboardCard
 ): PortfolioCardData {
   const latestCurvePoint = card.curve.at(-1)
+  const signals =
+    card.live_status === "pending_first_run"
+      ? card.pending_buy_signals
+      : card.today_signals
 
   return {
     id: card.strategy_portfolio_id,
     name: card.name,
+    liveStatus: card.live_status,
     startDate: card.live_start_date,
     backtestDays: daysBetween(card.source_start_date, card.source_end_date),
     simulationDays:
@@ -355,7 +379,14 @@ function mapStrategyPortfolioCard(
     risk: card.risk.map(mapDashboardMetric),
     efficiency: card.efficiency.map(mapDashboardMetric),
     relative: card.relative.map(mapDashboardMetric),
-    todaySignals: card.today_signals,
+    todaySignals: signals.map((signal) => ({
+      code: signal.code,
+      executionDate: signal.execution_date,
+      name: signal.name,
+      rank: signal.rank,
+      score: signal.score,
+      signalDate: signal.signal_date,
+    })),
     curve: card.curve,
   }
 }
