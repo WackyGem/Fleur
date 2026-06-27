@@ -6,6 +6,7 @@
 
 | Plan | 状态 | 说明 |
 |---|---|---|
+| [0060](0060-racingline-step5-portfolio-publish-dialog-tplus1-plan.md) | Proposed | Racingline Step 5「建立组合」弹层 Tab 改造、T+1 发布预检、pending Dashboard 语义、backtest/live 两段数据分离和首个 daily run 信号窗口修正 |
 
 ## Recently Completed
 
