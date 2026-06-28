@@ -6,6 +6,7 @@
 
 | Plan | 状态 | 说明 |
 |---|---|---|
+| [0062](0062-racingline-strategy-portfolio-statement-plan.md) | Proposed | Racingline 策略组合详情页对账单、Rearview statement read model、Dagster 清算作业终态校验和 2025 首个交易日建仓验收 |
 
 ## Recently Completed
 
