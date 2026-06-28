@@ -115,6 +115,8 @@ export const queryKeys = {
     ["strategy-portfolios", strategyPortfolioId, "nav"] as const,
   strategyPortfolioPerformance: (strategyPortfolioId: string | null) =>
     ["strategy-portfolios", strategyPortfolioId, "performance"] as const,
+  strategyPortfolioVirtualAccount: (strategyPortfolioId: string | null) =>
+    ["strategy-portfolios", strategyPortfolioId, "virtual-account"] as const,
   strategyPortfolioSignals: (
     strategyPortfolioId: string | null,
     query: QueryParams = {}

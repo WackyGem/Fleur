@@ -3,6 +3,7 @@ import { afterEach, describe, expect, it, vi } from "vitest"
 import {
   createStrategyPortfolio,
   getStrategyPortfolioPublishPreview,
+  getStrategyPortfolioVirtualAccount,
 } from "@/api/rearview"
 
 describe("strategy portfolio API", () => {
@@ -57,6 +58,33 @@ describe("strategy portfolio API", () => {
         body: JSON.stringify(request),
         method: "POST",
       })
+    )
+  })
+
+  it("requests strategy portfolio virtual account by portfolio id", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      jsonResponse({
+        account_date: "2026-06-27",
+        cash_balance: 200_000,
+        currency: "CNY",
+        daily_pnl: -2_345.67,
+        daily_return: -0.0023,
+        holding_unrealized_pnl: 12_345.67,
+        position_count: 5,
+        position_market_value: 812_345.67,
+        result_attempt_id: "attempt-1",
+        source: "live_daily_run",
+        strategy_portfolio_daily_run_id: "daily-run-1",
+        strategy_portfolio_id: "portfolio-1",
+        total_equity: 1_012_345.67,
+      })
+    )
+    vi.stubGlobal("fetch", fetchMock)
+
+    await getStrategyPortfolioVirtualAccount("portfolio-1")
+
+    expect(fetchMock.mock.calls[0]?.[0]).toBe(
+      "http://127.0.0.1:34057/rearview/strategy-portfolios/portfolio-1/virtual-account"
     )
   })
 })

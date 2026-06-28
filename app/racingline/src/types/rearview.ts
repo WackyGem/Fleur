@@ -682,6 +682,22 @@ export type StrategyPortfolioPerformanceView =
     source: StrategyPortfolioCurveSource
   }
 
+export type StrategyPortfolioVirtualAccount = {
+  source: "live_daily_run"
+  strategy_portfolio_id: string
+  strategy_portfolio_daily_run_id: string
+  result_attempt_id: string
+  account_date: string
+  currency: "CNY"
+  total_equity: number
+  position_market_value: number
+  cash_balance: number
+  holding_unrealized_pnl: number
+  daily_pnl?: number | null
+  daily_return?: number | null
+  position_count: number
+}
+
 export type StrategyPortfolioListResult<T> = ListResult<T> & {
   source: StrategyPortfolioCurveSource
 }

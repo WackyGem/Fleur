@@ -23,6 +23,7 @@ import {
   EmptyTitle,
 } from "@/components/ui/empty"
 import { Separator } from "@/components/ui/separator"
+import { Skeleton } from "@/components/ui/skeleton"
 import {
   Table,
   TableBody,
@@ -45,6 +46,7 @@ import {
   useStrategyPortfolioRebalanceRecordsQuery,
   useStrategyPortfolioSignalsQuery,
   useStrategyPortfolioSignalTimelineQuery,
+  useStrategyPortfolioVirtualAccountQuery,
 } from "@/api/hooks"
 import { ApiError } from "@/api/client"
 import { cn } from "@/lib/utils"
@@ -56,6 +58,7 @@ import type {
   StrategyPortfolioPerformanceView,
   StrategyPortfolioRecord,
   StrategyPortfolioSignalTimelinePoint,
+  StrategyPortfolioVirtualAccount,
 } from "@/types/rearview"
 
 type DetailTradeDirection = "buy" | "hold" | "sell"
@@ -113,6 +116,8 @@ function StrategyDetailPage() {
   const performanceQuery = useStrategyPortfolioPerformanceQuery(
     liveResultPortfolioId
   )
+  const virtualAccountQuery =
+    useStrategyPortfolioVirtualAccountQuery(liveResultPortfolioId)
   const signalTimelineQuery =
     useStrategyPortfolioSignalTimelineQuery(strategyPortfolioId)
   const latestSignalDate =
@@ -136,6 +141,7 @@ function StrategyDetailPage() {
     isKnownPendingFirstRun ||
     isPortfolioPendingFirstRunError(navQuery.error) ||
     isPortfolioPendingFirstRunError(performanceQuery.error) ||
+    isPortfolioPendingFirstRunError(virtualAccountQuery.error) ||
     isPortfolioPendingFirstRunError(positionsQuery.error) ||
     isPortfolioPendingFirstRunError(rebalanceRecordsQuery.error)
   const portfolio = portfolioQuery.data
@@ -495,6 +501,19 @@ function StrategyDetailPage() {
 
             <Separator className="bg-border/60" />
 
+            <VirtualAccountSection
+              account={virtualAccountQuery.data ?? null}
+              isError={
+                !isPendingFirstRun &&
+                virtualAccountQuery.isError &&
+                !isPortfolioPendingFirstRunError(virtualAccountQuery.error)
+              }
+              isLoading={!isPendingFirstRun && virtualAccountQuery.isLoading}
+              isPendingFirstRun={isPendingFirstRun}
+            />
+
+            <Separator className="bg-border/60" />
+
             <section className="flex flex-col gap-3">
               <div className="flex items-center justify-between gap-3">
                 <div className="text-sm font-medium">持仓记录</div>
@@ -735,6 +754,120 @@ function MetricGroup({ metrics, title }: { metrics: Metric[]; title: string }) {
         ))}
       </div>
     </div>
+  )
+}
+
+function VirtualAccountSection({
+  account,
+  isError,
+  isLoading,
+  isPendingFirstRun,
+}: {
+  account: StrategyPortfolioVirtualAccount | null
+  isError: boolean
+  isLoading: boolean
+  isPendingFirstRun: boolean
+}) {
+  const metrics = account
+    ? [
+        {
+          label: "账户资产",
+          tone: "neutral" as const,
+          value: formatAccountCurrency(account.total_equity),
+        },
+        {
+          label: "持股市值",
+          tone: "neutral" as const,
+          value: formatAccountCurrency(account.position_market_value),
+        },
+        {
+          label: "可用金额",
+          tone: "neutral" as const,
+          value: formatAccountCurrency(account.cash_balance),
+        },
+        {
+          label: "持仓盈亏",
+          tone: signedTone(account.holding_unrealized_pnl),
+          value: formatAccountSignedCurrency(account.holding_unrealized_pnl),
+        },
+        {
+          label: "当日盈亏",
+          tone: signedTone(account.daily_pnl),
+          value: formatAccountOptionalSignedCurrency(account.daily_pnl),
+        },
+        {
+          label: "当日盈亏比",
+          tone: signedTone(account.daily_return),
+          value: formatAccountOptionalSignedPercent(account.daily_return),
+        },
+      ]
+    : []
+
+  return (
+    <section className="flex flex-col gap-3">
+      <div className="flex items-center justify-between gap-3">
+        <div className="text-sm font-medium">虚拟资金账户</div>
+        {account ? (
+          <div className="text-xs text-muted-foreground tabular-nums">
+            {account.account_date}
+          </div>
+        ) : null}
+      </div>
+
+      {isPendingFirstRun ? (
+        <Empty className="py-8">
+          <EmptyHeader>
+            <EmptyTitle>尚未产生虚拟资金账户</EmptyTitle>
+            <EmptyDescription>
+              首个 live daily run 成功后展示虚拟资金账户。
+            </EmptyDescription>
+          </EmptyHeader>
+        </Empty>
+      ) : isLoading ? (
+        <div className="grid min-h-[8.5rem] gap-x-6 gap-y-4 py-3 sm:grid-cols-2 lg:grid-cols-3">
+          {Array.from({ length: 6 }).map((_, index) => (
+            <div key={index} className="min-w-0 py-1">
+              <Skeleton className="h-3 w-20 bg-muted/70" />
+              <Skeleton className="mt-2 h-5 w-32 bg-muted" />
+            </div>
+          ))}
+        </div>
+      ) : isError || !account ? (
+        <Empty className="py-8">
+          <EmptyHeader>
+            <EmptyTitle>虚拟资金账户加载失败</EmptyTitle>
+            <EmptyDescription>
+              当前组合尚未返回可展示的账户快照。
+            </EmptyDescription>
+          </EmptyHeader>
+        </Empty>
+      ) : (
+        <div className="grid gap-x-6 gap-y-4 py-3 sm:grid-cols-2 lg:grid-cols-3">
+          {metrics.map((metric) => (
+            <div
+              key={metric.label}
+              className="min-w-0 py-1"
+            >
+              <div className="truncate text-xs text-muted-foreground">
+                {metric.label}
+              </div>
+              <div
+                className={cn(
+                  "mt-1 min-w-0 break-words text-sm leading-tight font-medium tabular-nums",
+                  metric.tone === "up"
+                    ? "text-[color:var(--portfolio-up)]"
+                    : metric.tone === "down"
+                      ? "text-[color:var(--portfolio-down)]"
+                      : "text-foreground"
+                )}
+              >
+                {metric.value}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </section>
   )
 }
 
@@ -1099,10 +1232,27 @@ function formatCurrency(value: number) {
   return `¥${value.toFixed(2)}`
 }
 
+function formatAccountCurrency(value: number) {
+  return value.toFixed(2)
+}
+
+function formatAccountSignedCurrency(value: number) {
+  const sign = value > 0 ? "+" : value < 0 ? "-" : ""
+  const absolute = Math.abs(value)
+
+  return `${sign}${absolute.toFixed(2)}`
+}
+
 function formatOptionalCurrency(value: number | null | undefined) {
   return typeof value === "number" && Number.isFinite(value)
     ? formatCurrency(value)
     : "—"
+}
+
+function formatAccountOptionalSignedCurrency(value: number | null | undefined) {
+  return typeof value === "number" && Number.isFinite(value)
+    ? formatAccountSignedCurrency(value)
+    : "--"
 }
 
 function formatSignedPercent(value: number) {
@@ -1115,6 +1265,12 @@ function formatOptionalSignedPercent(value: number | null | undefined) {
   return typeof value === "number" && Number.isFinite(value)
     ? formatSignedPercent(value)
     : "—"
+}
+
+function formatAccountOptionalSignedPercent(value: number | null | undefined) {
+  return typeof value === "number" && Number.isFinite(value)
+    ? formatSignedPercent(value)
+    : "--"
 }
 
 function getScoreBadgeVariant(score: number) {
@@ -1139,6 +1295,14 @@ function getSignedValueClassName(value: string) {
   }
 
   return "text-foreground"
+}
+
+function signedTone(value: number | null | undefined) {
+  if (typeof value !== "number" || !Number.isFinite(value) || value === 0) {
+    return "neutral" as const
+  }
+
+  return value > 0 ? ("up" as const) : ("down" as const)
 }
 
 export { StrategyDetailPage }

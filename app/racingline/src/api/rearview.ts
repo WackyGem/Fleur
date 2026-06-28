@@ -44,6 +44,7 @@ import type {
   StrategyPortfolioRebalanceRecordsResponse,
   StrategyPortfolioSignalsResponse,
   StrategyPortfolioSignalTimelineResponse,
+  StrategyPortfolioVirtualAccount,
   StrategyPreviewPoolPageRequest,
   StrategyPreviewPoolPageResponse,
   StrategyPreviewOpenRequest,
@@ -351,6 +352,14 @@ export function listStrategyPortfolioNav(strategyPortfolioId: string) {
 export function getStrategyPortfolioPerformance(strategyPortfolioId: string) {
   return requestJson<StrategyPortfolioPerformanceView>(
     `/rearview/strategy-portfolios/${strategyPortfolioId}/performance`
+  )
+}
+
+export function getStrategyPortfolioVirtualAccount(
+  strategyPortfolioId: string
+) {
+  return requestJson<StrategyPortfolioVirtualAccount>(
+    `/rearview/strategy-portfolios/${strategyPortfolioId}/virtual-account`
   )
 }
 

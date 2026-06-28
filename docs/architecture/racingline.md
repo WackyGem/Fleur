@@ -1,6 +1,6 @@
 # Architecture: Racingline
 
-状态：单一正式前端工作台已落到 `app/racingline/`；Step 4 到 Step 5 回测 handoff 已改为 create accepted 后进入状态页（2026-06-25）；Step 5 succeeded 首屏已切到 Rearview overview compact endpoint，HTTP live 计时和前端质量门禁已通过（2026-06-26）；Step 5「建立组合」已接入 T+1 publish preview、pending 首次运行展示和 live/backtest 语义分离（2026-06-27）
+状态：单一正式前端工作台已落到 `app/racingline/`；Step 4 到 Step 5 回测 handoff 已改为 create accepted 后进入状态页（2026-06-25）；Step 5 succeeded 首屏已切到 Rearview overview compact endpoint，HTTP live 计时和前端质量门禁已通过（2026-06-26）；Step 5「建立组合」已接入 T+1 publish preview、pending 首次运行展示和 live/backtest 语义分离（2026-06-27）；组合详情页已在「净值走势」和「持仓记录」之间展示 live 虚拟资金账户 read model（2026-06-28）
 
 ## 代码根
 
@@ -18,7 +18,7 @@
 4. 通过 Rearview preview-only API 展示 applied preview snapshot、动态近一年交易日股池、分页候选股、rank、score、Step 2 得分项、Step 1 指标列、证券交易板块、K 线复权、MA5/MA10/MA30 和成交量柱。
 5. 通过 Rearview strategy backtest API 展示 validate、options、create、status、overview、nav、rebalance records、targets、orders、trades、positions、events、performance、closed trades 和 trade metrics；`/strategies` Step 4 创建 backtest run 成功后立即进入 Step 5，Step 5 内部按 status view 轮询并在 succeeded 后优先读取 `overview?view=ui` 作为首屏 compact result wrapper，detail/publish 场景继续使用原明细接口。
 6. Step 5「建立组合」弹层使用「策略配置」和「回测业绩」两段视图，打开时调用 Rearview publish preview，以后端返回的 `source_signal_date` 和 `planned_live_start_date` 作为确认条件；preview blocked 或 expected date 过期时禁止确认。
-7. 通过 Rearview strategy portfolio API 展示看板、详情、净值、信号、signal timeline、持仓和调仓记录。`pending_first_run` 组合展示待建仓和待调入信号，不展示 live nav、绩效或曲线跳转；详情页在 portfolio record 可用后再查询 live endpoints，并把 `portfolio_pending_first_run` 映射为空 live 状态。
+7. 通过 Rearview strategy portfolio API 展示看板、详情、净值、信号、signal timeline、虚拟资金账户、持仓和调仓记录。`pending_first_run` 组合展示待建仓和待调入信号，不展示 live nav、绩效、账户资金或曲线跳转；详情页在 portfolio record 可用后再查询 live endpoints，并把 `portfolio_pending_first_run` 映射为空 live 状态。
 8. 继续使用 Rearview default market fee template 初始化 Step 4 草稿，并在 UI 中区分 draft、applied snapshot、backtest result、publish preview、pending portfolio 和 live portfolio result。
 
 ## 非职责
@@ -106,5 +106,7 @@ npm run build
 | [../jobs/reports/2026-06-26-racingline-step5-backtest-worker-latency-optimization.md](../jobs/reports/2026-06-26-racingline-step5-backtest-worker-latency-optimization.md) | Step 5 worker latency live smoke、frontend overview 门禁和 queue smoke 报告 |
 | [../plans/archive/0060-racingline-step5-portfolio-publish-dialog-tplus1-plan.md](../plans/archive/0060-racingline-step5-portfolio-publish-dialog-tplus1-plan.md) | Step 5「建立组合」弹层、T+1 publish preview、pending dashboard/detail 和 live/backtest 语义分离完成计划 |
 | [../jobs/reports/2026-06-27-racingline-portfolio-publish-tplus1-smoke.md](../jobs/reports/2026-06-27-racingline-portfolio-publish-tplus1-smoke.md) | T+1 publish、pending endpoint、daily run、ClickHouse split 和 performance success 端到端验收报告 |
+| [../plans/archive/0061-racingline-strategy-portfolio-virtual-account-panel-plan.md](../plans/archive/0061-racingline-strategy-portfolio-virtual-account-panel-plan.md) | 组合详情页「虚拟资金账户」区块、Rearview account read model 和前后端闭环完成计划 |
+| [../jobs/reports/2026-06-28-racingline-portfolio-virtual-account-panel.md](../jobs/reports/2026-06-28-racingline-portfolio-virtual-account-panel.md) | 虚拟资金账户 API、pending 语义、桌面/移动端 UI 和质量门禁验收报告 |
 | [../plans/archive/0053-racingline-legacy-cleanup-and-rename-plan.md](../plans/archive/0053-racingline-legacy-cleanup-and-rename-plan.md) | 旧工程清理和目录重命名实施计划 |
 | [../jobs/reports/2026-06-25-racingline-legacy-cleanup-rename.md](../jobs/reports/2026-06-25-racingline-legacy-cleanup-rename.md) | 清理和重命名验收报告 |

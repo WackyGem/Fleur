@@ -216,6 +216,10 @@ pub fn routes() -> Router<AppState> {
             get(get_strategy_portfolio_performance),
         )
         .route(
+            "/rearview/strategy-portfolios/{strategy_portfolio_id}/virtual-account",
+            get(get_strategy_portfolio_virtual_account),
+        )
+        .route(
             "/rearview/strategy-portfolios/{strategy_portfolio_id}/signals",
             get(list_strategy_portfolio_signals),
         )
@@ -1700,6 +1704,36 @@ async fn get_strategy_portfolio_performance(
         metric: performance.metric,
         statuses: performance.statuses,
         daily_win_rate: daily_win_rate(&nav),
+    }))
+}
+
+async fn get_strategy_portfolio_virtual_account(
+    State(state): State<AppState>,
+    Path(strategy_portfolio_id): Path<String>,
+) -> RearviewResult<Json<StrategyPortfolioVirtualAccountResponse>> {
+    let resolved = resolve_strategy_portfolio_result(&state, &strategy_portfolio_id).await?;
+    let account = state
+        .clickhouse
+        .query_strategy_portfolio_virtual_account(
+            &resolved.portfolio_run_id,
+            &resolved.result_attempt_id,
+        )
+        .await?;
+
+    Ok(Json(StrategyPortfolioVirtualAccountResponse {
+        source: resolved.source,
+        strategy_portfolio_id,
+        strategy_portfolio_daily_run_id: resolved.portfolio_run_id,
+        result_attempt_id: resolved.result_attempt_id,
+        account_date: account.account_date,
+        currency: "CNY".to_string(),
+        total_equity: account.total_equity,
+        position_market_value: account.position_market_value,
+        cash_balance: account.cash_balance,
+        holding_unrealized_pnl: account.holding_unrealized_pnl,
+        daily_pnl: account.daily_pnl,
+        daily_return: account.daily_return,
+        position_count: account.position_count,
     }))
 }
 
@@ -3635,6 +3669,23 @@ struct StrategyPortfolioPerformanceView {
     metric: PortfolioPerformanceMetricRecord,
     statuses: Vec<PortfolioPerformanceMetricStatusRecord>,
     daily_win_rate: StrategyBacktestDailyWinRate,
+}
+
+#[derive(Debug, Serialize)]
+struct StrategyPortfolioVirtualAccountResponse {
+    source: String,
+    strategy_portfolio_id: String,
+    strategy_portfolio_daily_run_id: String,
+    result_attempt_id: String,
+    account_date: NaiveDate,
+    currency: String,
+    total_equity: f64,
+    position_market_value: f64,
+    cash_balance: f64,
+    holding_unrealized_pnl: f64,
+    daily_pnl: Option<f64>,
+    daily_return: Option<f64>,
+    position_count: i32,
 }
 
 #[derive(Debug, Serialize)]
@@ -6540,6 +6591,30 @@ mod tests {
         assert!(value.get("statuses").is_none());
         assert!(value["metric"].get("portfolio_run_id").is_none());
         assert_eq!(value["metric"]["holding_period_return"], 0.12);
+    }
+
+    #[test]
+    fn strategy_portfolio_virtual_account_response_should_expose_account_fields() {
+        let value = serde_json::to_value(StrategyPortfolioVirtualAccountResponse {
+            source: "live_daily_run".to_string(),
+            strategy_portfolio_id: "portfolio-1".to_string(),
+            strategy_portfolio_daily_run_id: "daily-run-1".to_string(),
+            result_attempt_id: "attempt-1".to_string(),
+            account_date: date("2026-06-27"),
+            currency: "CNY".to_string(),
+            total_equity: 101_000.0,
+            position_market_value: 81_000.0,
+            cash_balance: 20_000.0,
+            holding_unrealized_pnl: 1_200.0,
+            daily_pnl: Some(-300.0),
+            daily_return: Some(-0.003),
+            position_count: 5,
+        })
+        .unwrap();
+
+        assert_eq!(value["holding_unrealized_pnl"], 1_200.0);
+        assert_eq!(value["daily_pnl"], -300.0);
+        assert_eq!(value["currency"], "CNY");
     }
 
     #[test]

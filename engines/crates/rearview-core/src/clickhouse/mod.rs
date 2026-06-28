@@ -52,6 +52,34 @@ struct BenchmarkReturnRow {
 }
 
 #[derive(Debug, Clone, Deserialize)]
+struct VirtualAccountNavRow {
+    trade_date: NaiveDate,
+    cash_balance: f64,
+    position_market_value: f64,
+    total_equity: f64,
+    #[serde(default, deserialize_with = "deserialize_optional_f64")]
+    daily_return: Option<f64>,
+    position_count: i32,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+struct VirtualAccountHoldingRow {
+    holding_unrealized_pnl: f64,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct StrategyPortfolioVirtualAccountRecord {
+    pub account_date: NaiveDate,
+    pub cash_balance: f64,
+    pub position_market_value: f64,
+    pub total_equity: f64,
+    pub holding_unrealized_pnl: f64,
+    pub daily_pnl: Option<f64>,
+    pub daily_return: Option<f64>,
+    pub position_count: i32,
+}
+
+#[derive(Debug, Clone, Deserialize)]
 struct RiskFreeRateRow {
     trade_date: NaiveDate,
     #[serde(default, deserialize_with = "deserialize_optional_f64")]
@@ -1389,6 +1417,83 @@ FORMAT JSONEachRow"#
             )
             .await?;
         parse_json_each_row(&body)
+    }
+
+    pub async fn query_strategy_portfolio_virtual_account(
+        &self,
+        strategy_portfolio_daily_run_id: &str,
+        result_attempt_id: &str,
+    ) -> RearviewResult<StrategyPortfolioVirtualAccountRecord> {
+        let database = &self.config.portfolio_database;
+        self.query_split_virtual_account(
+            database,
+            LIVE_RUN_ID_FIELD,
+            strategy_portfolio_daily_run_id,
+            result_attempt_id,
+        )
+        .await
+    }
+
+    async fn query_split_virtual_account(
+        &self,
+        database: &str,
+        run_id_field: &str,
+        portfolio_run_id: &str,
+        result_attempt_id: &str,
+    ) -> RearviewResult<StrategyPortfolioVirtualAccountRecord> {
+        validate_identifier(database)?;
+        validate_identifier(run_id_field)?;
+        let quoted_database = quote_identifier(database);
+        let quoted_run_id_field = quote_identifier(run_id_field);
+        let run_id = quote_string_literal(portfolio_run_id);
+        let attempt = quote_string_literal(result_attempt_id);
+        let nav_sql =
+            virtual_account_nav_sql(&quoted_database, &quoted_run_id_field, &run_id, &attempt);
+        let nav_body = self
+            .execute_text(
+                &nav_sql,
+                &portfolio_read_query_id(
+                    "rearview-live-read-virtual-account-nav",
+                    portfolio_run_id,
+                    result_attempt_id,
+                ),
+            )
+            .await?;
+        let nav_rows: Vec<VirtualAccountNavRow> = parse_json_each_row(&nav_body)?;
+        let Some(latest_nav) = nav_rows.first() else {
+            return Err(RearviewError::NotFound(format!(
+                "no live nav rows found for strategy portfolio daily run {portfolio_run_id}"
+            )));
+        };
+        let previous_nav = nav_rows.get(1);
+        let holding_sql = virtual_account_holding_sql(
+            &quoted_database,
+            &quoted_run_id_field,
+            &run_id,
+            &attempt,
+            latest_nav.trade_date,
+        );
+        let holding_body = self
+            .execute_text(
+                &holding_sql,
+                &portfolio_read_query_id(
+                    "rearview-live-read-virtual-account-holding",
+                    portfolio_run_id,
+                    result_attempt_id,
+                ),
+            )
+            .await?;
+        let holding_unrealized_pnl =
+            parse_json_each_row::<VirtualAccountHoldingRow>(&holding_body)?
+                .into_iter()
+                .next()
+                .map_or(0.0, |row| row.holding_unrealized_pnl);
+
+        Ok(virtual_account_record(
+            latest_nav,
+            previous_nav,
+            holding_unrealized_pnl,
+        ))
     }
 
     pub async fn query_strategy_backtest_targets(
@@ -3211,6 +3316,60 @@ fn quote_string_literal(value: &str) -> String {
     format!("'{}'", value.replace('\'', "''"))
 }
 
+fn virtual_account_nav_sql(
+    quoted_database: &str,
+    quoted_run_id_field: &str,
+    quoted_run_id: &str,
+    quoted_attempt: &str,
+) -> String {
+    format!(
+        r#"
+SELECT trade_date, cash_balance, position_market_value, total_equity,
+       daily_return, position_count
+FROM {quoted_database}.live_nav_daily
+WHERE {quoted_run_id_field} = {quoted_run_id}
+  AND result_attempt_id = {quoted_attempt}
+ORDER BY trade_date DESC
+LIMIT 2
+FORMAT JSONEachRow"#
+    )
+}
+
+fn virtual_account_holding_sql(
+    quoted_database: &str,
+    quoted_run_id_field: &str,
+    quoted_run_id: &str,
+    quoted_attempt: &str,
+    account_date: NaiveDate,
+) -> String {
+    format!(
+        r#"
+SELECT coalesce(sum(unrealized_pnl), 0) AS holding_unrealized_pnl
+FROM {quoted_database}.live_position_day
+WHERE {quoted_run_id_field} = {quoted_run_id}
+  AND result_attempt_id = {quoted_attempt}
+  AND trade_date = toDate('{account_date}')
+FORMAT JSONEachRow"#
+    )
+}
+
+fn virtual_account_record(
+    latest_nav: &VirtualAccountNavRow,
+    previous_nav: Option<&VirtualAccountNavRow>,
+    holding_unrealized_pnl: f64,
+) -> StrategyPortfolioVirtualAccountRecord {
+    StrategyPortfolioVirtualAccountRecord {
+        account_date: latest_nav.trade_date,
+        cash_balance: latest_nav.cash_balance,
+        position_market_value: latest_nav.position_market_value,
+        total_equity: latest_nav.total_equity,
+        holding_unrealized_pnl,
+        daily_pnl: previous_nav.map(|row| latest_nav.total_equity - row.total_equity),
+        daily_return: latest_nav.daily_return,
+        position_count: latest_nav.position_count,
+    }
+}
+
 fn trade_dates_sql(
     quoted_database: &str,
     table: &str,
@@ -3635,6 +3794,7 @@ mod tests {
         chart_context_trend_select_columns, portfolio_price_bars_demand_join_sql,
         portfolio_price_bars_sql, quote_select_columns, trade_dates_sql, trend_select_columns,
         validate_security_code, validate_source_tenor, validate_window_key,
+        virtual_account_holding_sql, virtual_account_nav_sql, virtual_account_record,
     };
     use chrono::NaiveDate;
 
@@ -3711,6 +3871,58 @@ mod tests {
     }
 
     #[test]
+    fn virtual_account_record_should_derive_daily_pnl_from_total_equity_delta() {
+        let latest = virtual_account_nav_row("2026-06-27", 101_000.0, Some(0.01));
+        let previous = virtual_account_nav_row("2026-06-26", 100_000.0, None);
+
+        let record = virtual_account_record(&latest, Some(&previous), 2_500.0);
+
+        assert_eq!(record.daily_pnl, Some(1_000.0));
+    }
+
+    #[test]
+    fn virtual_account_record_should_leave_daily_pnl_empty_without_previous_nav() {
+        let latest = virtual_account_nav_row("2026-06-27", 101_000.0, None);
+
+        let record = virtual_account_record(&latest, None, 0.0);
+
+        assert_eq!(record.daily_pnl, None);
+    }
+
+    #[test]
+    fn virtual_account_nav_sql_should_filter_live_attempt_and_limit_latest_two_rows() {
+        let sql = virtual_account_nav_sql(
+            "`fleur_portfolio`",
+            "`strategy_portfolio_daily_run_id`",
+            "'daily-run-1'",
+            "'attempt-1'",
+        );
+
+        assert!(sql.contains("FROM `fleur_portfolio`.live_nav_daily"));
+        assert!(sql.contains("`strategy_portfolio_daily_run_id` = 'daily-run-1'"));
+        assert!(sql.contains("result_attempt_id = 'attempt-1'"));
+        assert!(sql.contains("ORDER BY trade_date DESC"));
+        assert!(sql.contains("LIMIT 2"));
+    }
+
+    #[test]
+    fn virtual_account_holding_sql_should_aggregate_unrealized_pnl_for_account_date() {
+        let sql = virtual_account_holding_sql(
+            "`fleur_portfolio`",
+            "`strategy_portfolio_daily_run_id`",
+            "'daily-run-1'",
+            "'attempt-1'",
+            NaiveDate::from_ymd_opt(2026, 6, 27).unwrap(),
+        );
+
+        assert!(sql.contains("coalesce(sum(unrealized_pnl), 0)"));
+        assert!(sql.contains("FROM `fleur_portfolio`.live_position_day"));
+        assert!(sql.contains("`strategy_portfolio_daily_run_id` = 'daily-run-1'"));
+        assert!(sql.contains("result_attempt_id = 'attempt-1'"));
+        assert!(sql.contains("trade_date = toDate('2026-06-27')"));
+    }
+
+    #[test]
     fn trade_dates_sql_reads_quote_mart_when_database_is_marts() {
         let sql = trade_dates_sql(
             "`fleur_marts`",
@@ -3734,6 +3946,21 @@ mod tests {
 
         assert!(sql.contains("FROM `fleur_marts`.`mart_trade_calendar`"));
         assert!(!sql.contains("mart_stock_quotes_daily"));
+    }
+
+    fn virtual_account_nav_row(
+        trade_date: &str,
+        total_equity: f64,
+        daily_return: Option<f64>,
+    ) -> super::VirtualAccountNavRow {
+        super::VirtualAccountNavRow {
+            trade_date: NaiveDate::parse_from_str(trade_date, "%Y-%m-%d").unwrap(),
+            cash_balance: 10_000.0,
+            position_market_value: total_equity - 10_000.0,
+            total_equity,
+            daily_return,
+            position_count: 3,
+        }
     }
 
     #[test]
