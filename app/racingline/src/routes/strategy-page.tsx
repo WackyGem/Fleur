@@ -128,7 +128,7 @@ import type {
   StrategyBacktestRunStatusView,
   StrategyBacktestValidateRequest,
 } from "@/types/rearview"
-import { Play } from "lucide-react"
+import { LineChart, Play, SlidersHorizontal } from "lucide-react"
 
 const stepContent: Record<Step, { description: string; title: string }> = {
   indicators: {
@@ -2531,18 +2531,17 @@ export function StrategyPage() {
               open={publishDialogOpen}
               onOpenChange={setPublishDialogOpen}
             >
-              <DialogContent className="max-h-[calc(100svh-4rem)] overflow-y-auto sm:max-w-5xl">
-                <DialogHeader>
+              <DialogContent className="h-[min(44rem,calc(100svh-4rem))] max-h-[calc(100svh-4rem)] grid-rows-[auto_minmax(0,1fr)] gap-2 overflow-hidden sm:max-w-5xl">
+                <DialogHeader className="gap-1 pb-0">
                   <DialogTitle>建立策略组合</DialogTitle>
                   <DialogDescription>
                     确认配置并填写策略名称，发布后返回看板。
                   </DialogDescription>
-                </DialogHeader>
-                <div className="flex flex-col gap-4 text-xs">
-                  <div className="grid gap-3 md:grid-cols-[minmax(12rem,1fr)_auto] md:items-end">
-                    <Field>
+                  <div className="mt-1 grid gap-2 md:grid-cols-[minmax(12rem,1fr)_minmax(13rem,16rem)] md:items-end">
+                    <Field className="gap-1">
                       <FieldLabel>策略名称</FieldLabel>
                       <Input
+                        className="h-8"
                         value={portfolioName}
                         onChange={(event) =>
                           setPortfolioName(event.target.value)
@@ -2550,20 +2549,21 @@ export function StrategyPage() {
                         placeholder="请输入策略名称"
                       />
                     </Field>
-                    <div className="border border-border/70 px-3 py-2">
-                      <div className="text-muted-foreground">建仓日期</div>
-                      <div className="mt-1 flex flex-wrap items-baseline gap-x-2 gap-y-1">
-                        <span className="text-sm font-medium">
+                    <Field className="gap-1">
+                      <FieldLabel>建仓日期</FieldLabel>
+                      <div className="flex h-8 items-center justify-between gap-3 border border-input bg-transparent px-2.5">
+                        <span className="font-medium tabular-nums">
                           {publishPreviewQuery.data?.planned_live_start_date ??
                             "—"}
                         </span>
-                        <span className="text-muted-foreground">
-                          T+1 交易日
+                        <span className="shrink-0 text-muted-foreground">
+                          T+1
                         </span>
                       </div>
-                    </div>
+                    </Field>
                   </div>
-
+                </DialogHeader>
+                <div className="flex min-h-0 flex-1 flex-col gap-0.5 overflow-hidden text-xs">
                   {publishPreviewQuery.isLoading ||
                   publishPreviewQuery.isFetching ? (
                     <Skeleton className="h-10 w-full" />
@@ -2585,144 +2585,93 @@ export function StrategyPage() {
                     </Alert>
                   ) : null}
 
-                  <Tabs defaultValue="config" className="gap-4">
-                    <TabsList>
-                      <TabsTrigger value="config">策略配置</TabsTrigger>
-                      <TabsTrigger value="performance">回测业绩</TabsTrigger>
-                    </TabsList>
-
-                    <TabsContent value="config" className="flex flex-col gap-4">
-                      <section className="flex flex-col gap-2">
-                        <h3 className="text-sm font-medium">指标过滤</h3>
-                        <div className="flex flex-col divide-y divide-border/70 border-y border-border/70">
-                          {publishConditionRows.length > 0 ? (
-                            publishConditionRows.map((row) => (
-                              <div
-                                className="grid gap-1 py-2 md:grid-cols-[9rem_5rem_1fr]"
-                                key={row.id}
-                              >
-                                <div className="text-muted-foreground">
-                                  {row.groupLabel}
-                                </div>
-                                <div>{row.logicLabel}</div>
-                                <div className="font-mono text-[11px] break-words">
-                                  {row.expression}
-                                </div>
-                              </div>
-                            ))
-                          ) : (
-                            <div className="py-3 text-muted-foreground">
-                              暂无条件指标
-                            </div>
-                          )}
-                        </div>
-                      </section>
-
-                      <section className="flex flex-col gap-2">
-                        <h3 className="text-sm font-medium">权重得分</h3>
-                        <div className="flex flex-col divide-y divide-border/70 border-y border-border/70">
-                          {publishScoringRows.length > 0 ? (
-                            publishScoringRows.map((row) => (
-                              <div
-                                className="grid gap-1 py-2 md:grid-cols-[4rem_5rem_1fr]"
-                                key={row.id}
-                              >
-                                <div className="text-muted-foreground">
-                                  #{row.index}
-                                </div>
-                                <div className="font-medium">+{row.score}</div>
-                                <div className="font-mono text-[11px] break-words">
-                                  {row.expression}
-                                </div>
-                              </div>
-                            ))
-                          ) : (
-                            <div className="py-3 text-muted-foreground">
-                              暂无评分项
-                            </div>
-                          )}
-                        </div>
-                      </section>
-
-                      <section className="flex flex-col gap-2">
-                        <h3 className="text-sm font-medium">建仓摘要</h3>
-                        <div className="flex flex-col divide-y divide-border/70 border-y border-border/70">
-                          {publishBuildSummaryRows.map(([label, value]) => (
-                            <div
-                              className="grid gap-1 py-2 md:grid-cols-[9rem_1fr]"
-                              key={label}
-                            >
-                              <div className="text-muted-foreground">
-                                {label}
-                              </div>
-                              <div>{value}</div>
-                            </div>
-                          ))}
-                        </div>
-                      </section>
-                    </TabsContent>
-
-                    <TabsContent
-                      value="performance"
-                      className="flex flex-col gap-4"
+                  <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+                    <Tabs
+                      defaultValue="config"
+                      className="flex min-h-0 flex-1 flex-col gap-3"
                     >
-                      <section className="flex flex-col gap-2">
-                        <div className="grid gap-1 border-y border-border/70 py-2 md:grid-cols-[9rem_1fr]">
-                          <div className="text-muted-foreground">周期</div>
-                          <div>
-                            {selectedBacktestPeriodLabel}（
-                            {activeBacktestRun
-                              ? `${activeBacktestRun.start_date} - ${activeBacktestRun.end_date}`
-                              : "—"}
-                            ）
-                          </div>
-                        </div>
-                        <div className="grid gap-1 border-b border-border/70 py-2 md:grid-cols-[9rem_1fr]">
-                          <div className="text-muted-foreground">业绩基准</div>
-                          <div>{selectedBacktestBenchmarkLabel}</div>
-                        </div>
-                      </section>
+                      <TabsList
+                        variant="line"
+                        className="h-9 w-full shrink-0 justify-start border-b border-border/70 p-0"
+                      >
+                        <TabsTrigger
+                          value="config"
+                          className="h-8 flex-none px-3"
+                        >
+                          <SlidersHorizontal data-icon="inline-start" />
+                          策略配置
+                        </TabsTrigger>
+                        <TabsTrigger
+                          value="performance"
+                          className="h-8 flex-none px-3"
+                        >
+                          <LineChart data-icon="inline-start" />
+                          回测业绩
+                        </TabsTrigger>
+                      </TabsList>
 
-                      <section className="flex flex-col gap-2">
-                        <h3 className="text-sm font-medium">业绩表现</h3>
-                        {publishNavQuery.isLoading ||
-                        publishPerformanceQuery.isLoading ? (
-                          <Skeleton className="h-28 w-full" />
-                        ) : (
+                      <TabsContent
+                        value="config"
+                        className="flex h-full min-h-0 flex-1 flex-col gap-4 overflow-x-hidden overflow-y-auto pt-1 pr-1"
+                      >
+                        <section className="flex flex-col gap-2">
+                          <h3 className="text-sm font-medium">指标过滤</h3>
                           <div className="flex flex-col divide-y divide-border/70 border-y border-border/70">
-                            {[
-                              [
-                                "业绩日期",
-                                publishLatestNetValuePoint?.time ?? "—",
-                              ],
-                              [
-                                "策略净值",
-                                publishLatestNetValuePoint
-                                  ? formatNetValue(
-                                      publishLatestNetValuePoint.strategy
-                                    )
-                                  : "—",
-                              ],
-                              [
-                                "基准净值",
-                                publishLatestNetValuePoint?.benchmark !==
-                                  null &&
-                                publishLatestNetValuePoint?.benchmark !==
-                                  undefined
-                                  ? formatNetValue(
-                                      publishLatestNetValuePoint.benchmark
-                                    )
-                                  : "—",
-                              ],
-                              ["超额收益", publishLatestExcessReturn || "—"],
-                              [
-                                "日胜率",
-                                formatOptionalPercent(
-                                  publishPerformanceQuery.data?.daily_win_rate
-                                    .value
-                                ),
-                              ],
-                            ].map(([label, value]) => (
+                            {publishConditionRows.length > 0 ? (
+                              publishConditionRows.map((row) => (
+                                <div
+                                  className="grid gap-1 py-2 md:grid-cols-[9rem_5rem_1fr]"
+                                  key={row.id}
+                                >
+                                  <div className="text-muted-foreground">
+                                    {row.groupLabel}
+                                  </div>
+                                  <div>{row.logicLabel}</div>
+                                  <div className="font-mono text-[11px] break-words">
+                                    {row.expression}
+                                  </div>
+                                </div>
+                              ))
+                            ) : (
+                              <div className="py-3 text-muted-foreground">
+                                暂无条件指标
+                              </div>
+                            )}
+                          </div>
+                        </section>
+
+                        <section className="flex flex-col gap-2">
+                          <h3 className="text-sm font-medium">权重得分</h3>
+                          <div className="flex flex-col divide-y divide-border/70 border-y border-border/70">
+                            {publishScoringRows.length > 0 ? (
+                              publishScoringRows.map((row) => (
+                                <div
+                                  className="grid gap-1 py-2 md:grid-cols-[4rem_5rem_1fr]"
+                                  key={row.id}
+                                >
+                                  <div className="text-muted-foreground">
+                                    #{row.index}
+                                  </div>
+                                  <div className="font-medium">
+                                    +{row.score}
+                                  </div>
+                                  <div className="font-mono text-[11px] break-words">
+                                    {row.expression}
+                                  </div>
+                                </div>
+                              ))
+                            ) : (
+                              <div className="py-3 text-muted-foreground">
+                                暂无评分项
+                              </div>
+                            )}
+                          </div>
+                        </section>
+
+                        <section className="flex flex-col gap-2">
+                          <h3 className="text-sm font-medium">建仓摘要</h3>
+                          <div className="flex flex-col divide-y divide-border/70 border-y border-border/70">
+                            {publishBuildSummaryRows.map(([label, value]) => (
                               <div
                                 className="grid gap-1 py-2 md:grid-cols-[9rem_1fr]"
                                 key={label}
@@ -2730,42 +2679,147 @@ export function StrategyPage() {
                                 <div className="text-muted-foreground">
                                   {label}
                                 </div>
-                                <div className="font-medium">{value}</div>
+                                <div>{value}</div>
                               </div>
                             ))}
-                            {publishPerformanceGroups.flatMap((group) =>
-                              group.metrics.map((metric) => (
-                                <div
-                                  className="grid gap-1 py-2 md:grid-cols-[9rem_1fr]"
-                                  key={`${group.title}-${metric.label}`}
-                                >
+                          </div>
+                        </section>
+                      </TabsContent>
+
+                      <TabsContent
+                        value="performance"
+                        className="flex h-full min-h-0 flex-1 flex-col gap-4 overflow-x-hidden overflow-y-auto pt-1 pr-1"
+                      >
+                        <section className="flex flex-col gap-2">
+                          <h3 className="text-sm font-medium">回测配置</h3>
+                          <div className="grid gap-1 border-y border-border/70 py-2 md:grid-cols-[9rem_1fr]">
+                            <div className="text-muted-foreground">周期</div>
+                            <div>
+                              {selectedBacktestPeriodLabel}（
+                              {activeBacktestRun
+                                ? `${activeBacktestRun.start_date} - ${activeBacktestRun.end_date}`
+                                : "—"}
+                              ）
+                            </div>
+                          </div>
+                          <div className="grid gap-1 border-b border-border/70 py-2 md:grid-cols-[9rem_1fr]">
+                            <div className="text-muted-foreground">
+                              业绩基准
+                            </div>
+                            <div>{selectedBacktestBenchmarkLabel}</div>
+                          </div>
+                        </section>
+
+                        <section className="flex flex-col gap-2">
+                          <h3 className="text-sm font-medium">业绩表现</h3>
+                          {publishNavQuery.isLoading ||
+                          publishPerformanceQuery.isLoading ? (
+                            <Skeleton className="h-28 w-full" />
+                          ) : (
+                            <div className="flex flex-col gap-2">
+                              <section className="rounded-md border border-border/70 p-2">
+                                <div className="grid gap-1.5 md:grid-cols-[9rem_1fr]">
                                   <div className="text-muted-foreground">
-                                    {metric.label}
+                                    业绩日期
                                   </div>
                                   <div className="font-medium">
-                                    {metric.value}
+                                    {publishLatestNetValuePoint?.time ?? "—"}
                                   </div>
                                 </div>
-                              ))
-                            )}
-                          </div>
-                        )}
-                        {publishNavQuery.isError ||
-                        publishPerformanceQuery.isError ? (
-                          <Alert variant="destructive">
-                            <AlertTitle>回测业绩读取失败</AlertTitle>
-                            <AlertDescription>
-                              {publishNavQuery.isError
-                                ? formatErrorMessage(publishNavQuery.error)
-                                : formatErrorMessage(
-                                    publishPerformanceQuery.error
-                                  )}
-                            </AlertDescription>
-                          </Alert>
-                        ) : null}
-                      </section>
-                    </TabsContent>
-                  </Tabs>
+                                <div className="mt-1.5 grid gap-1.5 md:grid-cols-[9rem_1fr]">
+                                  <div className="text-muted-foreground">
+                                    策略净值
+                                  </div>
+                                  <div className="font-medium">
+                                    {publishLatestNetValuePoint
+                                      ? formatNetValue(
+                                          publishLatestNetValuePoint.strategy
+                                        )
+                                      : "—"}
+                                  </div>
+                                </div>
+                                <div className="mt-1.5 grid gap-1.5 md:grid-cols-[9rem_1fr]">
+                                  <div className="text-muted-foreground">
+                                    基准净值
+                                  </div>
+                                  <div className="font-medium">
+                                    {publishLatestNetValuePoint?.benchmark !==
+                                      null &&
+                                    publishLatestNetValuePoint?.benchmark !==
+                                      undefined
+                                      ? formatNetValue(
+                                          publishLatestNetValuePoint.benchmark
+                                        )
+                                      : "—"}
+                                  </div>
+                                </div>
+                              </section>
+
+                              <div className="grid gap-0 xl:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)_auto_minmax(0,1fr)_auto_minmax(0,1fr)]">
+                                {publishPerformanceGroups.map(
+                                  (group, groupIndex) => (
+                                    <Fragment key={group.title}>
+                                      <section className="flex flex-col gap-2 py-2 xl:px-3 xl:first:pl-0 xl:last:pr-0">
+                                        <div className="text-xs font-medium text-muted-foreground">
+                                          {group.title}
+                                        </div>
+                                        <div className="flex flex-col gap-1.5">
+                                          {group.metrics.map((metric) => (
+                                            <div
+                                              key={`${group.title}-${metric.label}`}
+                                              className="grid grid-cols-[minmax(0,1fr)_auto] items-baseline gap-3"
+                                            >
+                                              <div className="truncate text-xs text-muted-foreground">
+                                                {metric.label}
+                                              </div>
+                                              <div
+                                                className={cn(
+                                                  "text-sm font-medium tabular-nums",
+                                                  getBacktestPerformanceToneClassName(
+                                                    metric.label,
+                                                    metric.value
+                                                  )
+                                                )}
+                                              >
+                                                {metric.value}
+                                              </div>
+                                            </div>
+                                          ))}
+                                        </div>
+                                      </section>
+                                      {groupIndex <
+                                      publishPerformanceGroups.length - 1 ? (
+                                        <>
+                                          <Separator className="xl:hidden" />
+                                          <Separator
+                                            orientation="vertical"
+                                            className="hidden xl:block"
+                                          />
+                                        </>
+                                      ) : null}
+                                    </Fragment>
+                                  )
+                                )}
+                              </div>
+                            </div>
+                          )}
+                          {publishNavQuery.isError ||
+                          publishPerformanceQuery.isError ? (
+                            <Alert variant="destructive">
+                              <AlertTitle>回测业绩读取失败</AlertTitle>
+                              <AlertDescription>
+                                {publishNavQuery.isError
+                                  ? formatErrorMessage(publishNavQuery.error)
+                                  : formatErrorMessage(
+                                      publishPerformanceQuery.error
+                                    )}
+                              </AlertDescription>
+                            </Alert>
+                          ) : null}
+                        </section>
+                      </TabsContent>
+                    </Tabs>
+                  </div>
 
                   {createPortfolioMutation.isError ? (
                     <Alert variant="destructive">
