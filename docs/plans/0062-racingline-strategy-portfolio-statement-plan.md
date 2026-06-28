@@ -372,16 +372,26 @@ Response：
 2. 确认 `rearview-portfolio-worker` 正常消费 daily run task。
 3. 用低位反转规则创建并发布 `2025-01-02` 建仓 portfolio。
 4. 通过 Dagster range/backfill 清算到 settlement target date。
-5. 打开策略详情页，截图：
-   - Step 1 filters。
-   - Step 2 scoring。
-   - Step 4 defaults/risk。
-   - 发布 preview 和 portfolio。
-   - Dagster 清算 materialization metadata。
-   - 对账单 summary period 切换。
-   - 全部区间操作记录。
-   - 非全部区间操作记录。
-6. 写入 `docs/jobs/reports/` 验收报告，链接截图证据链。
+5. 使用 Playwright 连接现有 CDP 浏览器完成截图证据链，不使用本机新开浏览器：
+
+```bash
+node scripts/check_playwright_cdp.mjs
+playwright-cli attach --cdp="${PLAYWRIGHT_CDP_ENDPOINT:-http://127.0.0.1:9222}"
+```
+
+6. 截图保存到 `docs/jobs/reports/assets/<date>/statement/`，验收报告使用相对路径 `assets/<date>/statement/...` 链接，文件名固定为：
+   - `statement-acceptance-01-step1-filters.png`：Step 1 filters。
+   - `statement-acceptance-02-step2-scoring.png`：Step 2 scoring。
+   - `statement-acceptance-03-step4-defaults-risk.png`：Step 4 defaults/risk。
+   - `statement-acceptance-04-publish-preview.png`：发布 preview 和 portfolio。
+   - `statement-acceptance-05-dagster-materialization.png`：Dagster 清算 materialization metadata。
+   - `statement-acceptance-06-summary-periods-desktop.png`：桌面视口下对账单 summary 和 period 切换。
+   - `statement-acceptance-07-operations-all-desktop.png`：桌面视口下全部区间操作记录。
+   - `statement-acceptance-08-operations-period-desktop.png`：桌面视口下非全部区间操作记录。
+   - `statement-acceptance-09-summary-mobile.png`：移动视口下账户盈亏面板。
+   - `statement-acceptance-10-operations-mobile.png`：移动视口下操作记录。
+7. Playwright 验收必须记录 desktop 和 mobile viewport，检查页面无文本重叠、无 horizontal overflow、console 无未处理错误、statement API network response 使用真实 Rearview 数据。
+8. 写入 `docs/jobs/reports/` 验收报告，链接 Playwright 截图证据链，并记录 CDP endpoint、viewport、portfolio id、period key、daily run ids 和 result attempt id。
 
 完成标准：
 
@@ -389,6 +399,7 @@ Response：
 2. 最新 attempt 的 ClickHouse facts 覆盖超过一年。
 3. 对账单 `全部` 区间和至少一个非全部区间展示正确。
 4. 无 mock 成功路径。
+5. Playwright 截图证据链完整，覆盖 desktop/mobile，且验收报告逐张链接。
 
 ### Phase 8: 文档收敛
 
@@ -451,6 +462,13 @@ cd ../pipeline
 uv run dg launch --job strategy_portfolio__daily_run_job
 ```
 
+Playwright 证据链：
+
+```bash
+node scripts/check_playwright_cdp.mjs
+playwright-cli attach --cdp="${PLAYWRIGHT_CDP_ENDPOINT:-http://127.0.0.1:9222}"
+```
+
 实际 Dagster range/backfill 命令以实施后的 job/asset 名称为准，验收报告必须记录最终命令、portfolio id、daily run ids、result attempt id 和 ClickHouse row counts。
 
 ## 完成标准
@@ -464,7 +482,7 @@ uv run dg launch --job strategy_portfolio__daily_run_job
 7. 2025 首个交易日建仓验收样例产生超过一年 live facts。
 8. Racingline 详情页展示对账单 summary 和 operation rows，pending/loading/error/empty 状态明确。
 9. Rust、scheduler、frontend 和 docs 验证通过。
-10. 验收报告包含命令、数据范围、portfolio id、daily run ids、attempt id、Dagster metadata、SQL 验证结果和截图证据链。
+10. 验收报告包含命令、数据范围、portfolio id、daily run ids、attempt id、Dagster metadata、SQL 验证结果和 Playwright 截图证据链。
 
 ## 计划 Review 补充缺口
 
