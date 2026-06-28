@@ -15,3 +15,5 @@
 ## Archive
 
 归档 RFC 只用于追溯方案背景。引用归档 RFC 时，应同时以对应 `docs/architecture/`、`docs/ADR/`、运行报告或当前代码作为当前事实依据。
+
+- [0035-baostock-daily-kline-unified-range-request.md](archive/0035-baostock-daily-kline-unified-range-request.md) | Completed | BaoStock 日 K 取消 daily/range_backfill mode 分支，统一由 Dagster partition selection 推导区间请求

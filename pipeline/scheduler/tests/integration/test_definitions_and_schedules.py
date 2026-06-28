@@ -75,7 +75,7 @@ def test_registered_definitions_match_source_bundles() -> None:
     assert registered_asset_keys >= expected_rearview_assets
     assert (
         len(registered_asset_keys)
-        == len(expected_assets | expected_clickhouse_assets | expected_rearview_assets) + 57
+        == len(expected_assets | expected_clickhouse_assets | expected_rearview_assets) + 58
     )
     assert {job.name for job in loaded_defs.jobs or []} == (
         expected_jobs
@@ -131,8 +131,8 @@ def test_dbt_assets_are_registered_with_raw_lineage_and_checks() -> None:
     mart_volume_key = dg.AssetKey("mart_stock_volume_indicator_daily")
     dbt_asset_def = next(asset for asset in loaded_defs.assets or [] if stg_ths_key in asset.keys)
 
-    assert len(dbt_asset_def.keys) == 51
-    assert len(dbt_asset_def.check_keys) == 383
+    assert len(dbt_asset_def.keys) == 52
+    assert len(dbt_asset_def.check_keys) == 386
     assert "stg_ths__limit_up_pool_compacted" in loaded_asset_keys
     assert "int_stock_kdj_daily" in loaded_asset_keys
     assert "int_stock_ma_daily" in loaded_asset_keys

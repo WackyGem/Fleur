@@ -109,6 +109,38 @@ def test_bounded_task_runner_stops_queued_work_on_fail_fast() -> None:
     assert started == [1]
     assert result.successes == []
     assert result.failure_count == 1
+    assert result.skipped_due_to_stop_count == 2
+
+
+def test_bounded_task_runner_stops_after_failure_threshold_for_error_type() -> None:
+    class NetworkError(RuntimeError):
+        pass
+
+    started: list[int] = []
+
+    async def worker(item: int) -> int:
+        started.append(item)
+        raise NetworkError("timeout")
+
+    result = asyncio.run(
+        BoundedTaskRunner(
+            BoundedTaskOptions(
+                max_concurrent_tasks=1,
+                stop_on_error_types=(NetworkError,),
+                max_failures_before_stop=2,
+                fail_when_all_failed=False,
+            )
+        ).run(
+            [1, 2, 3, 4, 5],
+            item_key=str,
+            worker=worker,
+        )
+    )
+
+    assert started == [1, 2]
+    assert result.failure_count == 2
+    assert result.skipped_due_to_stop_count == 3
+    assert result.stopped_due_to_failure_threshold is True
 
 
 def test_bounded_task_runner_preserves_success_order_when_requested() -> None:
@@ -170,3 +202,5 @@ def test_bounded_task_result_metadata_uses_item_name() -> None:
     assert isinstance(failed_errors, JsonMetadataValue)
     assert failed_keys.data == ["task-2"]
     assert failed_errors.data == {"task-2": {"type": "RuntimeError", "message": "boom"}}
+    assert metadata["task_runner_skipped_partition_count"] == 0
+    assert metadata["task_runner_stopped_due_to_failure_threshold"] is False

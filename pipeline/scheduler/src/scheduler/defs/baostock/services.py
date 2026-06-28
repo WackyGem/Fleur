@@ -11,7 +11,7 @@ from typing import Protocol
 import dagster as dg
 import pyarrow as pa
 
-from scheduler.defs.baostock.protocol import BaostockResponse
+from scheduler.defs.baostock.protocol import BaostockNetworkError, BaostockResponse
 from scheduler.defs.baostock.schemas import (
     K_HISTORY_DAILY_SCHEMA,
     k_history_daily_response_to_table,
@@ -19,12 +19,17 @@ from scheduler.defs.baostock.schemas import (
 )
 from scheduler.defs.common.async_boundary import run_async_boundary
 from scheduler.defs.common.clock import elapsed_seconds
-from scheduler.defs.common.concurrency import BoundedTaskOptions, BoundedTaskRunner
+from scheduler.defs.common.concurrency import (
+    BoundedTaskOptions,
+    BoundedTaskResult,
+    BoundedTaskRunner,
+)
 from scheduler.defs.common.metadata import RawMetadataValue
 from scheduler.defs.market.securities import SecurityDateRange, filter_active_security_ranges
 
 BAOSTOCK_DAILY_KLINE_CONNECTIONS = 4
 BAOSTOCK_DAILY_KLINE_SECURITY_TYPES = frozenset({"1", "2"})
+BAOSTOCK_DAILY_KLINE_NETWORK_FAILURE_STOP_THRESHOLD = 20
 
 
 @dataclass(frozen=True)
@@ -119,7 +124,7 @@ async def fetch_k_history_table_for_trade_date(
             tasks_scheduled_at=tasks_scheduled_at,
             tasks_finished_at=tasks_scheduled_at,
             table_built_at=table_built_at,
-            runner_metadata={},
+            runner_metadata=_empty_kline_runner_metadata(),
         )
 
     async with client_factory.client(max_connections=BAOSTOCK_DAILY_KLINE_CONNECTIONS) as client:
@@ -136,7 +141,9 @@ async def fetch_k_history_table_for_trade_date(
         runner_result = await BoundedTaskRunner(
             BoundedTaskOptions(
                 max_concurrent_tasks=BAOSTOCK_DAILY_KLINE_CONNECTIONS,
-                max_failure_ratio=0,
+                fail_when_all_failed=False,
+                stop_on_error_types=(BaostockNetworkError,),
+                max_failures_before_stop=(BAOSTOCK_DAILY_KLINE_NETWORK_FAILURE_STOP_THRESHOLD),
             )
         ).run(
             security_ranges,
@@ -145,6 +152,7 @@ async def fetch_k_history_table_for_trade_date(
         )
         tasks_finished_at = time.perf_counter()
 
+    _raise_for_kline_request_failures(runner_result)
     fetched_tables = [table for table in runner_result.successes if table.num_rows > 0]
     table = (
         pa.concat_tables(fetched_tables, promote_options="default")
@@ -163,7 +171,7 @@ async def fetch_k_history_table_for_trade_date(
         tasks_scheduled_at=tasks_scheduled_at,
         tasks_finished_at=tasks_finished_at,
         table_built_at=table_built_at,
-        runner_metadata=runner_result.metadata(item_name="security"),
+        runner_metadata=_kline_runner_metadata(runner_result),
     )
 
 
@@ -211,6 +219,12 @@ async def fetch_k_history_tables_for_trade_date_range(
                 "uniq_code": 0,
                 "max_connections": BAOSTOCK_DAILY_KLINE_CONNECTIONS,
                 "max_concurrent_security_requests": BAOSTOCK_DAILY_KLINE_CONNECTIONS,
+                "network_failure_count": 0,
+                "circuit_breaker_triggered": False,
+                "skipped_due_to_circuit_breaker_count": 0,
+                "network_failure_stop_threshold": (
+                    BAOSTOCK_DAILY_KLINE_NETWORK_FAILURE_STOP_THRESHOLD
+                ),
                 "baostock_client_start_seconds": 0.0,
                 "security_filter_and_task_schedule_seconds": 0.0,
                 "baostock_kline_task_wall_seconds": 0.0,
@@ -251,7 +265,9 @@ async def fetch_k_history_tables_for_trade_date_range(
             runner_result = await BoundedTaskRunner(
                 BoundedTaskOptions(
                     max_concurrent_tasks=BAOSTOCK_DAILY_KLINE_CONNECTIONS,
-                    max_failure_ratio=0,
+                    fail_when_all_failed=False,
+                    stop_on_error_types=(BaostockNetworkError,),
+                    max_failures_before_stop=(BAOSTOCK_DAILY_KLINE_NETWORK_FAILURE_STOP_THRESHOLD),
                 )
             ).run(
                 security_ranges,
@@ -259,8 +275,9 @@ async def fetch_k_history_tables_for_trade_date_range(
                 worker=fetch_one,
             )
             tasks_finished_at = time.perf_counter()
+        _raise_for_kline_request_failures(runner_result)
         fetched_tables = [table for table in runner_result.successes if table.num_rows > 0]
-        runner_metadata = runner_result.metadata(item_name="security")
+        runner_metadata = _kline_runner_metadata(runner_result)
 
     combined_table = (
         pa.concat_tables(fetched_tables, promote_options="default")
@@ -337,6 +354,73 @@ async def _fetch_one_daily_k_table(
 ) -> pa.Table:
     response = await client.query_history_k_data_plus_daily(code, start_date, end_date)
     return k_history_daily_response_to_table(response)
+
+
+def _raise_for_kline_request_failures(
+    runner_result: BoundedTaskResult[pa.Table],
+) -> None:
+    if not runner_result.failures:
+        return
+
+    network_failure_count = sum(
+        1
+        for failure in runner_result.failures
+        if failure.error_type == BaostockNetworkError.__name__
+    )
+    failure_sample = "; ".join(
+        f"{failure.item_key}: {failure.error_type}: {failure.error_message}"
+        for failure in runner_result.failures[:5]
+    )
+    omitted_count = len(runner_result.failures) - 5
+    if omitted_count > 0:
+        failure_sample = f"{failure_sample}; ... {omitted_count} more"
+    if runner_result.stopped_due_to_failure_threshold:
+        msg = (
+            "BaoStock K history request circuit breaker stopped scheduling securities "
+            f"after {network_failure_count} network failures; "
+            f"skipped_due_to_circuit_breaker_count="
+            f"{runner_result.skipped_due_to_stop_count}; failures: {failure_sample}"
+        )
+        raise RuntimeError(msg)
+
+    msg = (
+        f"BaoStock K history requests failed for {len(runner_result.failures)} securities; "
+        f"network_failure_count={network_failure_count}; failures: {failure_sample}"
+    )
+    raise RuntimeError(msg)
+
+
+def _kline_runner_metadata(
+    runner_result: BoundedTaskResult[pa.Table],
+) -> dict[str, RawMetadataValue]:
+    network_failure_count = sum(
+        1
+        for failure in runner_result.failures
+        if failure.error_type == BaostockNetworkError.__name__
+    )
+    return {
+        **runner_result.metadata(item_name="security"),
+        "network_failure_count": network_failure_count,
+        "circuit_breaker_triggered": runner_result.stopped_due_to_failure_threshold,
+        "skipped_due_to_circuit_breaker_count": runner_result.skipped_due_to_stop_count,
+        "network_failure_stop_threshold": (BAOSTOCK_DAILY_KLINE_NETWORK_FAILURE_STOP_THRESHOLD),
+    }
+
+
+def _empty_kline_runner_metadata() -> dict[str, RawMetadataValue]:
+    return {
+        "successful_security_count": 0,
+        "failed_security_count": 0,
+        "failed_security_keys": dg.MetadataValue.json([]),
+        "failed_security_errors": dg.MetadataValue.json({}),
+        "task_runner_seconds": 0.0,
+        "task_runner_skipped_security_count": 0,
+        "task_runner_stopped_due_to_failure_threshold": False,
+        "network_failure_count": 0,
+        "circuit_breaker_triggered": False,
+        "skipped_due_to_circuit_breaker_count": 0,
+        "network_failure_stop_threshold": (BAOSTOCK_DAILY_KLINE_NETWORK_FAILURE_STOP_THRESHOLD),
+    }
 
 
 def empty_k_history_table() -> pa.Table:

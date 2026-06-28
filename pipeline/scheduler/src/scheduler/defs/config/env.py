@@ -2,6 +2,33 @@ from __future__ import annotations
 
 import dagster as dg
 
+
+def required_env_str(name: str) -> str:
+    value = dg.EnvVar(name).get_value()
+    if value is None:
+        msg = f"Environment variable {name} is required"
+        raise RuntimeError(msg)
+    return value
+
+
+def required_env_int(name: str) -> int:
+    value = dg.EnvVar.int(name).get_value()
+    if isinstance(value, bool) or value is None:
+        msg = f"Environment variable {name} is required"
+        raise RuntimeError(msg)
+    return int(value)
+
+
+def optional_env_int(name: str, default: int) -> int:
+    value = dg.EnvVar.int(name).get_value()
+    if isinstance(value, bool):
+        msg = f"Environment variable {name} must be an integer"
+        raise RuntimeError(msg)
+    if value is None:
+        return default
+    return int(value)
+
+
 RUSTFS_ENDPOINT = dg.EnvVar("RUSTFS_ENDPOINT")
 RUSTFS_BUCKET = dg.EnvVar("RUSTFS_BUCKET")
 RUSTFS_ACCESS_KEY = dg.EnvVar("RUSTFS_ACCESS_KEY")
@@ -13,6 +40,22 @@ BAOSTOCK_HOST = dg.EnvVar("BAOSTOCK_HOST")
 BAOSTOCK_PORT = dg.EnvVar.int("BAOSTOCK_PORT")
 BAOSTOCK_USERNAME = dg.EnvVar("BAOSTOCK_USERNAME")
 BAOSTOCK_PASSWORD = dg.EnvVar("BAOSTOCK_PASSWORD")
+BAOSTOCK_CONNECT_TIMEOUT_SECONDS = optional_env_int(
+    "BAOSTOCK_CONNECT_TIMEOUT_SECONDS",
+    15,
+)
+BAOSTOCK_REQUEST_TIMEOUT_SECONDS = optional_env_int(
+    "BAOSTOCK_REQUEST_TIMEOUT_SECONDS",
+    20,
+)
+BAOSTOCK_LOGIN_TIMEOUT_SECONDS = optional_env_int(
+    "BAOSTOCK_LOGIN_TIMEOUT_SECONDS",
+    15,
+)
+BAOSTOCK_MAX_REQUEST_ATTEMPTS = optional_env_int(
+    "BAOSTOCK_MAX_REQUEST_ATTEMPTS",
+    4,
+)
 
 CLICKHOUSE_HOST = dg.EnvVar("CLICKHOUSE_HOST")
 CLICKHOUSE_PORT = dg.EnvVar.int("CLICKHOUSE_PORT")
@@ -37,19 +80,3 @@ SLACK_CHANNEL_ID = dg.EnvVar("SLACK_CHANNEL_ID")
 SLACK_HTTP_PROXY = dg.EnvVar("SLACK_HTTP_PROXY")
 DAGSTER_WEBSERVER_BASE_URL = dg.EnvVar("DAGSTER_WEBSERVER_BASE_URL")
 DAGSTER_CODE_LOCATION_NAME = dg.EnvVar("DAGSTER_CODE_LOCATION_NAME")
-
-
-def required_env_str(name: str) -> str:
-    value = dg.EnvVar(name).get_value()
-    if value is None:
-        msg = f"Environment variable {name} is required"
-        raise RuntimeError(msg)
-    return value
-
-
-def required_env_int(name: str) -> int:
-    value = dg.EnvVar.int(name).get_value()
-    if isinstance(value, bool) or value is None:
-        msg = f"Environment variable {name} is required"
-        raise RuntimeError(msg)
-    return int(value)

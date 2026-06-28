@@ -13,6 +13,8 @@ from scheduler.defs.common.metadata import FailureMetadataBuilder, RawMetadataVa
 class BoundedTaskOptions:
     max_concurrent_tasks: int
     fail_fast: bool = False
+    stop_on_error_types: tuple[type[BaseException], ...] = ()
+    max_failures_before_stop: int | None = None
     max_failure_ratio: float | None = None
     fail_when_all_failed: bool = True
     preserve_order: bool = False
@@ -20,6 +22,9 @@ class BoundedTaskOptions:
     def validate(self) -> None:
         if self.max_concurrent_tasks < 1:
             msg = "max_concurrent_tasks must be positive"
+            raise ValueError(msg)
+        if self.max_failures_before_stop is not None and self.max_failures_before_stop < 1:
+            msg = "max_failures_before_stop must be positive"
             raise ValueError(msg)
         if self.max_failure_ratio is not None and not 0 <= self.max_failure_ratio <= 1:
             msg = "max_failure_ratio must be between 0 and 1"
@@ -43,6 +48,8 @@ class TaskFailure:
 class BoundedTaskResult[T]:
     successes: list[T] = field(default_factory=list)
     failures: list[TaskFailure] = field(default_factory=list)
+    skipped_due_to_stop_count: int = 0
+    stopped_due_to_failure_threshold: bool = False
     elapsed_seconds: float = 0.0
 
     @property
@@ -59,7 +66,10 @@ class BoundedTaskResult[T]:
             success_count=self.success_count,
             failures={failure.item_key: failure.as_dict() for failure in self.failures},
             elapsed_seconds=self.elapsed_seconds,
-        )
+        ) | {
+            f"task_runner_skipped_{item_name}_count": self.skipped_due_to_stop_count,
+            "task_runner_stopped_due_to_failure_threshold": (self.stopped_due_to_failure_threshold),
+        }
 
 
 @dataclass(frozen=True)
@@ -86,12 +96,19 @@ class BoundedTaskRunner:
         successes_by_index: dict[int, R] = {}
         failures: list[TaskFailure] = []
         stop_scheduling = asyncio.Event()
+        skipped_due_to_stop_count = 0
+        stop_failure_count = 0
+        stopped_due_to_failure_threshold = False
 
         async def run_one(index: int, item: T) -> None:
+            nonlocal skipped_due_to_stop_count, stop_failure_count
+            nonlocal stopped_due_to_failure_threshold
             if stop_scheduling.is_set():
+                skipped_due_to_stop_count += 1
                 return
             async with semaphore:
                 if stop_scheduling.is_set():
+                    skipped_due_to_stop_count += 1
                     return
                 try:
                     successes_by_index[index] = await worker(item)
@@ -103,6 +120,14 @@ class BoundedTaskRunner:
                             error_message=str(error),
                         )
                     )
+                    if _matches_stop_error_type(error, options.stop_on_error_types):
+                        stop_failure_count += 1
+                    if (
+                        options.max_failures_before_stop is not None
+                        and stop_failure_count >= options.max_failures_before_stop
+                    ):
+                        stopped_due_to_failure_threshold = True
+                        stop_scheduling.set()
                     if options.fail_fast:
                         stop_scheduling.set()
 
@@ -115,6 +140,8 @@ class BoundedTaskRunner:
         result = BoundedTaskResult(
             successes=successes,
             failures=failures,
+            skipped_due_to_stop_count=skipped_due_to_stop_count,
+            stopped_due_to_failure_threshold=stopped_due_to_failure_threshold,
             elapsed_seconds=elapsed_seconds(started_at, finished_at),
         )
         _validate_failure_threshold(
@@ -123,6 +150,15 @@ class BoundedTaskRunner:
             options=options,
         )
         return result
+
+
+def _matches_stop_error_type(
+    error: Exception,
+    stop_on_error_types: tuple[type[BaseException], ...],
+) -> bool:
+    if not stop_on_error_types:
+        return True
+    return isinstance(error, stop_on_error_types)
 
 
 def _validate_failure_threshold(

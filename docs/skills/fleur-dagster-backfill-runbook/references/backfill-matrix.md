@@ -6,7 +6,7 @@
 | --- | --- | --- | --- | --- |
 | `source/sina__trade_calendar` | `sina__trade_calendar_job` | none | n/a | `uv run dg launch --target-path scheduler --job sina__trade_calendar_job` |
 | `source/baostock__query_stock_basic` | `baostock__daily_job` | none | n/a | `uv run dg launch --target-path scheduler --assets "key:source/baostock__query_stock_basic"` |
-| `source/baostock__query_history_k_data_plus_daily` | `baostock__daily_job` | trade date（日） | `single_run()` | 单日用 `--partition YYYY-MM-DD`；区间补数用 `--partition-range` 且必须配置 `mode=range_backfill` |
+| `source/baostock__query_history_k_data_plus_daily` | `baostock__daily_job` | trade date（日） | `single_run()` | 单日用 `--partition YYYY-MM-DD`；区间补数用 `--partition-range`，无需配置 mode |
 | `source/baostock__query_history_k_data_plus_daily_compacted` | `baostock__query_history_k_data_plus_daily_compacted_job` | year | `multi_run(max_partitions_per_run=1)` | 按 `--partition YYYY` 循环 |
 | `source/jiuyan__industry_list` | `jiuyan__industry_list_snapshot_job` | none | n/a | `uv run dg launch --target-path scheduler --job jiuyan__industry_list_snapshot_job` |
 | `source/jiuyan__industry_images` | `jiuyan__industry_ocr_pipeline_job` | none | n/a | `uv run dg launch --target-path scheduler --assets "key:source/jiuyan__industry_images"` |
@@ -60,10 +60,12 @@
 - `ths__limit_up_pool` 默认单次只处理最近窗口内的交易日；回填时按自然日范围分段
 - `ths__limit_up_pool_compacted` 是年分区资产，必须按 `--partition YYYY` 运行
 - `baostock__query_history_k_data_plus_daily` 是日分区 source；ClickHouse raw 同步使用 `_compacted` 年分区资产
-- `baostock__query_history_k_data_plus_daily` 的多日区间补数必须显式传 `mode="range_backfill"`；默认 `daily` 模式只允许单日分区
-- BaoStock range backfill 默认拒绝覆盖已存在的 `trade_date=*` 分区；修复已存在分区时必须显式传 `overwrite_existing_partitions=true`
+- `baostock__query_history_k_data_plus_daily` 的单日增量和多日区间补数都由 partition selection 推导请求窗口，无需配置 mode
+- BaoStock 日 K 默认拒绝覆盖已存在的 `trade_date=*` 分区；修复已存在分区时必须显式传 `overwrite_existing_partitions=true`
 - 当前年 BaoStock range backfill 建议显式传 `cutoff_trade_date`；该日期不能晚于 `--partition-range` 的结束日
 - 当前年 BaoStock compacted 重建建议同步传 `cutoff_trade_date`，避免上海时钟已进入下一交易日时误要求尚未回填的 daily 分区
+- BaoStock TCP 默认 connect timeout 为 15s、request read/write timeout 为 20s、login timeout 为 15s、request attempts 为 4；可通过 `BAOSTOCK_CONNECT_TIMEOUT_SECONDS`、`BAOSTOCK_REQUEST_TIMEOUT_SECONDS`、`BAOSTOCK_LOGIN_TIMEOUT_SECONDS`、`BAOSTOCK_MAX_REQUEST_ATTEMPTS` 覆盖
+- BaoStock 日 K 遇到持续网络超时会在累计网络失败达到阈值后停止调度剩余证券；run 最终失败且不会写出 daily partition，修复服务端或网络后重跑同一 partition selection
 - 如果 range backfill 在 S3 final 写入阶段失败，错误会列出 `attempted_partition_keys`、`written_partition_keys`、`failed_partition_keys`；记录旧对象 row count / ETag / size 后，用 `overwrite_existing_partitions=true` 修复失败窗口，再重新运行 compacted 和 raw sync
 - `clickhouse/raw/*` 资产依赖对应的 `source/*` 资产；补 ClickHouse 前先确认 S3/source 分区或 snapshot 已存在
 - ClickHouse snapshot 资产没有分区；补单表时用精确 `key:clickhouse/raw/...`，只有需要同步全部 snapshot raw 表时才用 `clickhouse__raw_sync_snapshot_job`
@@ -94,9 +96,9 @@ cd pipeline
 uv run dg launch --target-path scheduler --assets "key:source/baostock__query_history_k_data_plus_daily_compacted" --partition 2024
 ```
 
-### BaoStock 日 K range backfill
+### BaoStock 日 K 区间补数
 
-BaoStock 日 K 区间补数使用同一个 daily source asset，但必须显式配置 `range_backfill`。示例补齐 2026 年首个有效交易日到 2026-06-24 的候选窗口，实际处理日期由 Sina trade calendar 收敛：
+BaoStock 日 K 区间补数使用同一个 daily source asset，由 `--partition-range` 自动推导请求窗口。示例补齐 2026 年首个有效交易日到 2026-06-24 的候选窗口，实际处理日期由 Sina trade calendar 收敛：
 
 ```bash
 cd pipeline
@@ -107,7 +109,6 @@ uv run dg launch --target-path scheduler \
     "ops": {
       "source__baostock__query_history_k_data_plus_daily": {
         "config": {
-          "mode": "range_backfill",
           "overwrite_existing_partitions": false,
           "cutoff_trade_date": "2026-06-24"
         }
@@ -127,7 +128,6 @@ uv run dg launch --target-path scheduler \
     "ops": {
       "source__baostock__query_history_k_data_plus_daily": {
         "config": {
-          "mode": "range_backfill",
           "overwrite_existing_partitions": false,
           "cutoff_trade_date": "2026-06-25"
         }
@@ -147,7 +147,6 @@ uv run dg launch --target-path scheduler \
     "ops": {
       "source__baostock__query_history_k_data_plus_daily": {
         "config": {
-          "mode": "range_backfill",
           "overwrite_existing_partitions": true,
           "cutoff_trade_date": "2026-06-24"
         }

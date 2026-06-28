@@ -2,7 +2,17 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
-from scheduler.defs.config.env import RUSTFS_REGION_NAME, required_env_int, required_env_str
+from scheduler.defs.config.env import (
+    RUSTFS_REGION_NAME,
+    optional_env_int,
+    required_env_int,
+    required_env_str,
+)
+
+DEFAULT_BAOSTOCK_CONNECT_TIMEOUT_SECONDS = 15
+DEFAULT_BAOSTOCK_REQUEST_TIMEOUT_SECONDS = 20
+DEFAULT_BAOSTOCK_LOGIN_TIMEOUT_SECONDS = 15
+DEFAULT_BAOSTOCK_MAX_REQUEST_ATTEMPTS = 4
 
 
 @dataclass(frozen=True)
@@ -30,6 +40,10 @@ class BaostockClientConfig:
     username: str
     password: str
     max_connections: int = 1
+    connect_timeout_seconds: int = DEFAULT_BAOSTOCK_CONNECT_TIMEOUT_SECONDS
+    request_timeout_seconds: int = DEFAULT_BAOSTOCK_REQUEST_TIMEOUT_SECONDS
+    login_timeout_seconds: int = DEFAULT_BAOSTOCK_LOGIN_TIMEOUT_SECONDS
+    max_request_attempts: int = DEFAULT_BAOSTOCK_MAX_REQUEST_ATTEMPTS
 
     @classmethod
     def from_env(cls) -> BaostockClientConfig:
@@ -38,6 +52,22 @@ class BaostockClientConfig:
             port=required_env_int("BAOSTOCK_PORT"),
             username=required_env_str("BAOSTOCK_USERNAME"),
             password=required_env_str("BAOSTOCK_PASSWORD"),
+            connect_timeout_seconds=optional_env_int(
+                "BAOSTOCK_CONNECT_TIMEOUT_SECONDS",
+                DEFAULT_BAOSTOCK_CONNECT_TIMEOUT_SECONDS,
+            ),
+            request_timeout_seconds=optional_env_int(
+                "BAOSTOCK_REQUEST_TIMEOUT_SECONDS",
+                DEFAULT_BAOSTOCK_REQUEST_TIMEOUT_SECONDS,
+            ),
+            login_timeout_seconds=optional_env_int(
+                "BAOSTOCK_LOGIN_TIMEOUT_SECONDS",
+                DEFAULT_BAOSTOCK_LOGIN_TIMEOUT_SECONDS,
+            ),
+            max_request_attempts=optional_env_int(
+                "BAOSTOCK_MAX_REQUEST_ATTEMPTS",
+                DEFAULT_BAOSTOCK_MAX_REQUEST_ATTEMPTS,
+            ),
         )
 
 
