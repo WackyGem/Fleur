@@ -18,3 +18,5 @@
 5. n_structure_20_second_low_ratio > 1 (+15)
 6. forward_close_price < boll_dn_20_2 (+15)
 7. rsi_6 < 25 (+5)
+
+

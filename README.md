@@ -35,7 +35,7 @@ Fleur 是一个由 harness-engineering 驱动的 100% AI Coding 的面向沪深 
 
 ## 🏗️ 架构总览
 <div align="center">
-    <img src="assets/architecture.svg" alt="Fleur 技术架构图" width="100%" />
+    <img src="assets/architecture.png" alt="Fleur 技术架构图" width="75%" />
 </div>
 
 ### 🧱 数据基座
