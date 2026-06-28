@@ -37,6 +37,17 @@ import {
 } from "@/components/ui/table"
 
 const VISIBLE_SIGNAL_ROW_COUNT = 5
+const EMPTY_RETURN_METRICS: Metric[] = [
+  { label: "持仓收益", value: null, kind: "percent", tone: "neutral" },
+  { label: "超额收益", value: null, kind: "percent", tone: "neutral" },
+  { label: "年化收益", value: null, kind: "percent", tone: "neutral" },
+  { label: "日胜率", value: null, kind: "percent", tone: "neutral" },
+]
+const EMPTY_RISK_METRICS: Metric[] = [
+  { label: "最大回撤", value: null, kind: "percent", tone: "down" },
+  { label: "年化波动率", value: null, kind: "percent", tone: "neutral" },
+  { label: "下行波动率", value: null, kind: "percent", tone: "neutral" },
+]
 
 function NavBenchmarkChart({
   className = "h-38",
@@ -132,24 +143,23 @@ function NavBenchmarkChart({
 }
 
 function MetricSection({
+  emptyMetrics,
   title,
   metrics,
 }: {
+  emptyMetrics: Metric[]
   title: string
   metrics: Metric[]
 }) {
+  const displayMetrics = metrics.length > 0 ? metrics : emptyMetrics
+
   return (
     <section className="flex flex-col gap-2">
       <div className="text-[11px] font-medium text-muted-foreground">
         {title}
       </div>
       <div className="flex flex-col gap-1">
-        {metrics.length === 0 ? (
-          <div className="border-b border-border/50 py-1 text-xs text-muted-foreground">
-            暂无真实指标
-          </div>
-        ) : null}
-        {metrics.map((metric) => (
+        {displayMetrics.map((metric) => (
           <div
             key={metric.label}
             className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3 border-b border-border/50 py-1 last:border-b-0 last:pb-0"
@@ -168,10 +178,8 @@ function MetricSection({
 }
 
 function TodaySignalSection({
-  isPending,
   stocks,
 }: {
-  isPending: boolean
   stocks: SignalStock[]
 }) {
   const placeholderCount = Math.max(0, VISIBLE_SIGNAL_ROW_COUNT - stocks.length)
@@ -179,7 +187,7 @@ function TodaySignalSection({
   return (
     <section className="flex flex-col gap-2">
       <div className="text-[11px] font-medium text-muted-foreground">
-        {isPending ? "待调入信号" : "买入信号"}
+        买入信号
       </div>
       <div className="max-h-[11rem] min-h-0 overflow-y-auto">
         <Table className="w-full table-fixed text-xs">
@@ -196,9 +204,7 @@ function TodaySignalSection({
                   <div className="grid min-w-0 grid-cols-[4.5em_minmax(0,1fr)] items-center gap-1">
                     <span className="truncate font-medium">{stock.name}</span>
                     <span className="truncate text-muted-foreground tabular-nums">
-                      {isPending && stock.signalDate && stock.executionDate
-                        ? `${stock.signalDate} -> ${stock.executionDate}`
-                        : stock.code}
+                      {stock.code}
                     </span>
                   </div>
                 </TableCell>
@@ -231,59 +237,61 @@ function PortfolioOverviewCard({
 }: {
   portfolio: PortfolioCardData
 }) {
+  const isPendingFirstRun = portfolio.liveStatus === "pending_first_run"
+
   return (
     <Card
       size="sm"
       className="h-full py-0 transition-colors group-hover:border-foreground/35 group-hover:bg-muted/10"
     >
-      <CardHeader className="border-b border-border/70 py-4">
-        <div className="flex items-start justify-between gap-3">
-          <div className="flex min-w-0 flex-col gap-2">
-            <CardTitle className="text-xl leading-none">
-              {portfolio.name}
-            </CardTitle>
-            <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-              <span>建仓: {portfolio.startDate}</span>
-              <span>运行: {portfolio.simulationDays} 天</span>
+      <CardHeader className="grid-cols-[minmax(0,1fr)_auto] gap-3 border-b border-border/70 py-4">
+        <div className="flex min-w-0 flex-col gap-2">
+          <CardTitle
+            className="truncate text-xl leading-tight"
+            title={portfolio.name}
+          >
+            {portfolio.name}
+          </CardTitle>
+          <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+            <span>建仓: {portfolio.startDate}</span>
+            <span>运行: {portfolio.simulationDays} 天</span>
+          </div>
+        </div>
+
+        <CardAction className="flex shrink-0 flex-col items-end gap-1">
+          <div className="text-[11px] text-muted-foreground">最新净值</div>
+          <div className="flex items-end justify-end gap-2">
+            <div
+              className={`text-xs leading-none font-medium tabular-nums ${getChangeToneClassName(
+                portfolio.recentChange
+              )}`}
+            >
+              {formatChangeValue(portfolio.recentChange)}
+            </div>
+            <div className="text-xl leading-none font-medium tabular-nums">
+              {isPendingFirstRun
+                ? "待建仓"
+                : portfolio.latestNav === null
+                  ? "--"
+                  : portfolio.latestNav.toFixed(4)}
             </div>
           </div>
-
-          <CardAction className="static flex shrink-0 flex-col items-end gap-1">
-            <div className="text-[11px] text-muted-foreground">
-              {portfolio.liveStatus === "pending_first_run"
-                ? "状态"
-                : "最新净值"}
-            </div>
-            {portfolio.liveStatus === "pending_first_run" ? (
-              <div className="text-xl leading-none font-medium">待建仓</div>
-            ) : (
-              <div className="flex items-end justify-end gap-2">
-                <div
-                  className={`text-xs leading-none font-medium tabular-nums ${getChangeToneClassName(
-                    portfolio.recentChange
-                  )}`}
-                >
-                  {formatChangeValue(portfolio.recentChange)}
-                </div>
-                <div className="text-xl leading-none font-medium tabular-nums">
-                  {portfolio.latestNav === null
-                    ? "--"
-                    : portfolio.latestNav.toFixed(4)}
-                </div>
-              </div>
-            )}
-          </CardAction>
-        </div>
+        </CardAction>
       </CardHeader>
 
       <CardContent className="flex flex-col gap-4 py-4">
         <div className="grid gap-4">
-          <MetricSection title="收益指标" metrics={portfolio.returns} />
-          <MetricSection title="风险指标" metrics={portfolio.risk} />
-          <TodaySignalSection
-            isPending={portfolio.liveStatus === "pending_first_run"}
-            stocks={portfolio.todaySignals}
+          <MetricSection
+            emptyMetrics={EMPTY_RETURN_METRICS}
+            title="收益指标"
+            metrics={portfolio.returns}
           />
+          <MetricSection
+            emptyMetrics={EMPTY_RISK_METRICS}
+            title="风险指标"
+            metrics={portfolio.risk}
+          />
+          <TodaySignalSection stocks={portfolio.todaySignals} />
         </div>
 
         <Separator />
@@ -408,7 +416,7 @@ export function PortfolioOverviewBoard() {
     dashboardQuery.data?.portfolios.map(mapStrategyPortfolioCard) ?? []
 
   return (
-    <section className="mx-auto flex min-h-[calc(100svh-8rem)] w-full max-w-[72rem] flex-col gap-4">
+    <section className="mx-auto flex min-h-[calc(100svh-8rem)] w-full max-w-[88rem] flex-col gap-4">
       <div className="flex h-9 items-center gap-4">
         <h1 className="text-lg font-medium">策略看板</h1>
         <div aria-hidden="true" className="h-5 w-px shrink-0 bg-border/90" />
