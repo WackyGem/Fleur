@@ -8,7 +8,7 @@ use axum::middleware::{self, Next};
 use axum::response::Response;
 use axum::routing::{get, patch, post};
 use axum::{Json, Router};
-use chrono::{DateTime, Days, Months, NaiveDate, Utc};
+use chrono::{DateTime, Datelike, Days, Months, NaiveDate, Utc};
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
 use tower_http::cors::CorsLayer;
@@ -218,6 +218,10 @@ pub fn routes() -> Router<AppState> {
         .route(
             "/rearview/strategy-portfolios/{strategy_portfolio_id}/virtual-account",
             get(get_strategy_portfolio_virtual_account),
+        )
+        .route(
+            "/rearview/strategy-portfolios/{strategy_portfolio_id}/statement",
+            get(get_strategy_portfolio_statement),
         )
         .route(
             "/rearview/strategy-portfolios/{strategy_portfolio_id}/signals",
@@ -1734,6 +1738,112 @@ async fn get_strategy_portfolio_virtual_account(
         daily_pnl: account.daily_pnl,
         daily_return: account.daily_return,
         position_count: account.position_count,
+    }))
+}
+
+async fn get_strategy_portfolio_statement(
+    State(state): State<AppState>,
+    Path(strategy_portfolio_id): Path<String>,
+    Query(query): Query<StrategyPortfolioStatementQuery>,
+) -> RearviewResult<Json<StrategyPortfolioStatementResponse>> {
+    let resolved = resolve_strategy_portfolio_result(&state, &strategy_portfolio_id).await?;
+    let nav = state
+        .clickhouse
+        .query_strategy_portfolio_live_nav(&resolved.portfolio_run_id, &resolved.result_attempt_id)
+        .await?;
+    let latest_live_trade_date = nav.last().map(|row| row.trade_date).ok_or_else(|| {
+        RearviewError::NotFound(format!(
+            "no live nav rows found for strategy portfolio: {strategy_portfolio_id}"
+        ))
+    })?;
+    let period_key = StatementPeriodKey::parse(query.period.as_deref())?;
+    let resolved_period =
+        resolve_statement_period(period_key, resolved.start_date, latest_live_trade_date)?;
+    let page = statement_page(query.limit, query.offset)?;
+    let summary = state
+        .clickhouse
+        .query_strategy_portfolio_statement_summary(
+            &resolved.portfolio_run_id,
+            &resolved.result_attempt_id,
+            resolved_period.start_date,
+            resolved_period.end_date,
+        )
+        .await?;
+    let operations = state
+        .clickhouse
+        .query_strategy_portfolio_statement_operations(
+            &resolved.portfolio_run_id,
+            &resolved.result_attempt_id,
+            resolved_period.start_date,
+            resolved_period.end_date,
+            page,
+        )
+        .await?;
+    let security_codes = operations
+        .items
+        .iter()
+        .map(|operation| operation.security_code.clone())
+        .collect::<BTreeSet<_>>()
+        .into_iter()
+        .collect::<Vec<_>>();
+    let display_by_code = required_security_display_map(
+        &state,
+        &security_codes,
+        &format!("strategy-portfolio-{strategy_portfolio_id}-statement-display"),
+    )
+    .await?;
+    let operation_items = operations
+        .items
+        .into_iter()
+        .map(|operation| StrategyPortfolioStatementOperation {
+            security_name: security_display_name(&display_by_code, &operation.security_code),
+            portfolio_trade_id: operation.portfolio_trade_id,
+            trade_seq: operation.trade_seq,
+            trade_date: operation.trade_date,
+            security_code: operation.security_code,
+            side: operation.side,
+            execution_price: operation.execution_price,
+            quantity: operation.quantity,
+            lot_size: operation.lot_size,
+            lot_count: operation.lot_count,
+            gross_amount: operation.gross_amount,
+            commission: operation.commission,
+            stamp_duty: operation.stamp_duty,
+            transfer_fee: operation.transfer_fee,
+            total_fee: operation.total_fee,
+            position_balance_quantity: operation.position_balance_quantity,
+            realized_pnl: operation.realized_pnl,
+            reason: operation.reason,
+        })
+        .collect();
+
+    Ok(Json(StrategyPortfolioStatementResponse {
+        source: resolved.source,
+        strategy_portfolio_id,
+        strategy_portfolio_daily_run_id: resolved.portfolio_run_id,
+        result_attempt_id: resolved.result_attempt_id,
+        period: StrategyPortfolioStatementPeriod {
+            key: period_key.key().to_string(),
+            label: period_key.label().to_string(),
+            start_date: resolved_period.start_date,
+            end_date: resolved_period.end_date,
+            latest_live_trade_date,
+        },
+        summary: StrategyPortfolioStatementSummary {
+            average_position_pct: summary.average_position_pct,
+            traded_security_count: summary.traded_security_count,
+            trade_count: summary.trade_count,
+            trade_win_rate: summary.trade_win_rate,
+            winning_security_count: summary.winning_security_count,
+            losing_security_count: summary.losing_security_count,
+            holding_days: summary.holding_days,
+        },
+        operations: StrategyPortfolioStatementOperations {
+            items: operation_items,
+            limit: operations.limit,
+            offset: operations.offset,
+            has_more: operations.has_more,
+        },
     }))
 }
 
@@ -3688,6 +3798,77 @@ struct StrategyPortfolioVirtualAccountResponse {
     position_count: i32,
 }
 
+#[derive(Debug, Deserialize)]
+struct StrategyPortfolioStatementQuery {
+    #[serde(default)]
+    period: Option<String>,
+    #[serde(default)]
+    limit: Option<u32>,
+    #[serde(default)]
+    offset: Option<u32>,
+}
+
+#[derive(Debug, Serialize)]
+struct StrategyPortfolioStatementResponse {
+    source: String,
+    strategy_portfolio_id: String,
+    strategy_portfolio_daily_run_id: String,
+    result_attempt_id: String,
+    period: StrategyPortfolioStatementPeriod,
+    summary: StrategyPortfolioStatementSummary,
+    operations: StrategyPortfolioStatementOperations,
+}
+
+#[derive(Debug, Serialize)]
+struct StrategyPortfolioStatementPeriod {
+    key: String,
+    label: String,
+    start_date: NaiveDate,
+    end_date: NaiveDate,
+    latest_live_trade_date: NaiveDate,
+}
+
+#[derive(Debug, Serialize)]
+struct StrategyPortfolioStatementSummary {
+    average_position_pct: Option<f64>,
+    traded_security_count: u64,
+    trade_count: u64,
+    trade_win_rate: Option<f64>,
+    winning_security_count: u64,
+    losing_security_count: u64,
+    holding_days: u64,
+}
+
+#[derive(Debug, Serialize)]
+struct StrategyPortfolioStatementOperations {
+    items: Vec<StrategyPortfolioStatementOperation>,
+    limit: i64,
+    offset: i64,
+    has_more: bool,
+}
+
+#[derive(Debug, Serialize)]
+struct StrategyPortfolioStatementOperation {
+    portfolio_trade_id: String,
+    trade_seq: i32,
+    trade_date: NaiveDate,
+    security_code: String,
+    security_name: Option<String>,
+    side: String,
+    execution_price: f64,
+    quantity: f64,
+    lot_size: u32,
+    lot_count: f64,
+    gross_amount: f64,
+    commission: f64,
+    stamp_duty: f64,
+    transfer_fee: f64,
+    total_fee: f64,
+    position_balance_quantity: f64,
+    realized_pnl: Option<f64>,
+    reason: String,
+}
+
 #[derive(Debug, Serialize)]
 struct StrategyPortfolioListResult<T> {
     source: String,
@@ -5006,6 +5187,120 @@ fn page(limit: Option<u32>, offset: Option<u32>) -> RearviewResult<Page> {
     Ok(Page {
         limit: i64::from(limit),
         offset: i64::from(offset.unwrap_or(0)),
+    })
+}
+
+fn statement_page(limit: Option<u32>, offset: Option<u32>) -> RearviewResult<Page> {
+    const DEFAULT_LIMIT: u32 = 100;
+    const MAX_LIMIT: u32 = 200;
+    let limit = limit.unwrap_or(DEFAULT_LIMIT);
+    if limit == 0 || limit > MAX_LIMIT {
+        return Err(RearviewError::Validation(format!(
+            "statement limit must be between 1 and {MAX_LIMIT}"
+        )));
+    }
+    Ok(Page {
+        limit: i64::from(limit),
+        offset: i64::from(offset.unwrap_or(0)),
+    })
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum StatementPeriodKey {
+    Month,
+    ThreeMonths,
+    SixMonths,
+    Ytd,
+    All,
+}
+
+impl StatementPeriodKey {
+    fn parse(value: Option<&str>) -> RearviewResult<Self> {
+        match value.unwrap_or("month") {
+            "month" => Ok(Self::Month),
+            "three_months" => Ok(Self::ThreeMonths),
+            "six_months" => Ok(Self::SixMonths),
+            "ytd" => Ok(Self::Ytd),
+            "all" => Ok(Self::All),
+            other => Err(RearviewError::Validation(format!(
+                "unsupported statement period: {other}"
+            ))),
+        }
+    }
+
+    fn key(self) -> &'static str {
+        match self {
+            Self::Month => "month",
+            Self::ThreeMonths => "three_months",
+            Self::SixMonths => "six_months",
+            Self::Ytd => "ytd",
+            Self::All => "all",
+        }
+    }
+
+    fn label(self) -> &'static str {
+        match self {
+            Self::Month => "本月",
+            Self::ThreeMonths => "近三月",
+            Self::SixMonths => "近半年",
+            Self::Ytd => "今年",
+            Self::All => "全部",
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+struct ResolvedStatementPeriod {
+    start_date: NaiveDate,
+    end_date: NaiveDate,
+}
+
+fn resolve_statement_period(
+    key: StatementPeriodKey,
+    live_start_date: NaiveDate,
+    latest_live_trade_date: NaiveDate,
+) -> RearviewResult<ResolvedStatementPeriod> {
+    if live_start_date > latest_live_trade_date {
+        return Err(RearviewError::Validation(format!(
+            "live_start_date must be <= latest_live_trade_date: {live_start_date} > {latest_live_trade_date}"
+        )));
+    }
+    let raw_start = match key {
+        StatementPeriodKey::Month => NaiveDate::from_ymd_opt(
+            latest_live_trade_date.year(),
+            latest_live_trade_date.month(),
+            1,
+        )
+        .ok_or_else(|| {
+            RearviewError::Validation(format!(
+                "could not resolve month start for {latest_live_trade_date}"
+            ))
+        })?,
+        StatementPeriodKey::ThreeMonths => latest_live_trade_date
+            .checked_sub_months(Months::new(3))
+            .ok_or_else(|| {
+                RearviewError::Validation(format!(
+                    "could not resolve three-month statement start for {latest_live_trade_date}"
+                ))
+            })?,
+        StatementPeriodKey::SixMonths => latest_live_trade_date
+            .checked_sub_months(Months::new(6))
+            .ok_or_else(|| {
+                RearviewError::Validation(format!(
+                    "could not resolve six-month statement start for {latest_live_trade_date}"
+                ))
+            })?,
+        StatementPeriodKey::Ytd => NaiveDate::from_ymd_opt(latest_live_trade_date.year(), 1, 1)
+            .ok_or_else(|| {
+                RearviewError::Validation(format!(
+                    "could not resolve ytd statement start for {latest_live_trade_date}"
+                ))
+            })?,
+        StatementPeriodKey::All => live_start_date,
+    };
+    Ok(ResolvedStatementPeriod {
+        start_date: raw_start.max(live_start_date),
+        end_date: latest_live_trade_date,
     })
 }
 
@@ -6514,6 +6809,78 @@ mod tests {
     #[test]
     fn page_should_reject_zero_limit() {
         let error = page(Some(0), None).unwrap_err();
+
+        assert!(matches!(error, RearviewError::Validation(_)));
+    }
+
+    #[test]
+    fn statement_page_should_default_to_hundred_and_cap_at_two_hundred() {
+        let default_page = statement_page(None, None).unwrap();
+        assert_eq!(default_page.limit, 100);
+        assert_eq!(default_page.offset, 0);
+
+        let capped_page = statement_page(Some(200), Some(20)).unwrap();
+        assert_eq!(capped_page.limit, 200);
+        assert_eq!(capped_page.offset, 20);
+
+        let error = statement_page(Some(201), None).unwrap_err();
+        assert!(matches!(error, RearviewError::Validation(_)));
+    }
+
+    #[test]
+    fn resolve_statement_period_should_clip_month_to_live_start() {
+        let period = resolve_statement_period(
+            StatementPeriodKey::Month,
+            date("2026-06-12"),
+            date("2026-06-26"),
+        )
+        .unwrap();
+
+        assert_eq!(period.start_date, date("2026-06-12"));
+        assert_eq!(period.end_date, date("2026-06-26"));
+    }
+
+    #[test]
+    fn resolve_statement_period_should_resolve_lookback_periods() {
+        let three_months = resolve_statement_period(
+            StatementPeriodKey::ThreeMonths,
+            date("2025-01-02"),
+            date("2026-06-26"),
+        )
+        .unwrap();
+        let six_months = resolve_statement_period(
+            StatementPeriodKey::SixMonths,
+            date("2025-01-02"),
+            date("2026-06-26"),
+        )
+        .unwrap();
+
+        assert_eq!(three_months.start_date, date("2026-03-26"));
+        assert_eq!(six_months.start_date, date("2025-12-26"));
+    }
+
+    #[test]
+    fn resolve_statement_period_should_resolve_ytd_and_all() {
+        let ytd = resolve_statement_period(
+            StatementPeriodKey::Ytd,
+            date("2025-01-02"),
+            date("2026-06-26"),
+        )
+        .unwrap();
+        let all = resolve_statement_period(
+            StatementPeriodKey::All,
+            date("2025-01-02"),
+            date("2026-06-26"),
+        )
+        .unwrap();
+
+        assert_eq!(ytd.start_date, date("2026-01-01"));
+        assert_eq!(all.start_date, date("2025-01-02"));
+    }
+
+    #[test]
+    fn statement_period_key_should_reject_unknown_key() {
+        let error = StatementPeriodKey::parse(Some("quarter")).unwrap_err();
 
         assert!(matches!(error, RearviewError::Validation(_)));
     }
