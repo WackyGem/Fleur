@@ -1,5 +1,6 @@
 import type {
   MetricsQuery,
+  StrategyPortfolioStatementPeriodKey,
   StrategyBacktestValidateRequest,
 } from "@/types/rearview"
 import type { QueryParams } from "@/api/client"
@@ -117,6 +118,20 @@ export const queryKeys = {
     ["strategy-portfolios", strategyPortfolioId, "performance"] as const,
   strategyPortfolioVirtualAccount: (strategyPortfolioId: string | null) =>
     ["strategy-portfolios", strategyPortfolioId, "virtual-account"] as const,
+  strategyPortfolioStatement: (
+    strategyPortfolioId: string | null,
+    period: StrategyPortfolioStatementPeriodKey,
+    limit: number,
+    offset: number
+  ) =>
+    [
+      "strategy-portfolios",
+      strategyPortfolioId,
+      "statement",
+      period,
+      limit,
+      offset,
+    ] as const,
   strategyPortfolioSignals: (
     strategyPortfolioId: string | null,
     query: QueryParams = {}

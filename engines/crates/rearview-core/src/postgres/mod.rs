@@ -1458,7 +1458,9 @@ impl RearviewPg {
             .iter()
             .filter(|portfolio| portfolio.live_start_date <= trade_date)
             .collect::<Vec<_>>();
+        let mut daily_run_ids = Vec::new();
         let mut created_daily_run_ids = Vec::new();
+        let mut skipped_daily_run_ids = Vec::new();
         let mut skipped_run_count = 0_usize;
         let mut transaction = self.pool.begin().await?;
 
@@ -1487,6 +1489,20 @@ impl RearviewPg {
 
             if insert_result.rows_affected() == 0 {
                 skipped_run_count += 1;
+                let existing_daily_run_id: String = sqlx::query_scalar(
+                    r#"
+                    select strategy_portfolio_daily_run_id
+                    from strategy_portfolio_daily_run
+                    where strategy_portfolio_id = $1
+                      and trade_date = $2
+                    "#,
+                )
+                .bind(&portfolio.strategy_portfolio_id)
+                .bind(trade_date)
+                .fetch_one(&mut *transaction)
+                .await?;
+                daily_run_ids.push(existing_daily_run_id.clone());
+                skipped_daily_run_ids.push(existing_daily_run_id);
                 continue;
             }
 
@@ -1514,6 +1530,7 @@ impl RearviewPg {
             .bind(&payload)
             .execute(&mut *transaction)
             .await?;
+            daily_run_ids.push(daily_run_id.clone());
             created_daily_run_ids.push(daily_run_id);
         }
 
@@ -1531,7 +1548,9 @@ impl RearviewPg {
             skipped_run_count: i32::try_from(skipped_run_count).map_err(|error| {
                 RearviewError::Validation(format!("skipped run count is out of range: {error}"))
             })?,
-            daily_run_ids: created_daily_run_ids,
+            daily_run_ids,
+            created_daily_run_ids,
+            skipped_daily_run_ids,
         })
     }
 
@@ -1689,7 +1708,7 @@ impl RearviewPg {
                 completed_at = now(),
                 updated_at = now()
             where strategy_portfolio_daily_run_id = $1
-            returning strategy_portfolio_id
+            returning strategy_portfolio_id, trade_date
             "#,
         )
         .bind(strategy_portfolio_daily_run_id)
@@ -1703,19 +1722,30 @@ impl RearviewPg {
             ))
         })?;
         let strategy_portfolio_id: String = row.get("strategy_portfolio_id");
+        let trade_date: NaiveDate = row.get("trade_date");
 
         sqlx::query(
             r#"
-            update strategy_portfolio
+            update strategy_portfolio as portfolio
             set latest_daily_run_id = $2,
                 current_live_result_attempt_id = $3,
                 updated_at = now()
-            where strategy_portfolio_id = $1
+            where portfolio.strategy_portfolio_id = $1
+              and (
+                portfolio.latest_daily_run_id is null
+                or not exists (
+                    select 1
+                    from strategy_portfolio_daily_run as latest_run
+                    where latest_run.strategy_portfolio_daily_run_id = portfolio.latest_daily_run_id
+                      and latest_run.trade_date > $4
+                )
+              )
             "#,
         )
         .bind(&strategy_portfolio_id)
         .bind(strategy_portfolio_daily_run_id)
         .bind(result_attempt_id)
+        .bind(trade_date)
         .execute(&mut *transaction)
         .await?;
         transaction.commit().await?;
@@ -3320,6 +3350,8 @@ pub struct StrategyPortfolioDailyRunBatchRecord {
     pub created_run_count: i32,
     pub skipped_run_count: i32,
     pub daily_run_ids: Vec<String>,
+    pub created_daily_run_ids: Vec<String>,
+    pub skipped_daily_run_ids: Vec<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

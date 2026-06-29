@@ -42,6 +42,8 @@ import type {
   StrategyPortfolioPublishPreviewResponse,
   StrategyPortfolioRecord,
   StrategyPortfolioRebalanceRecordsResponse,
+  StrategyPortfolioStatementQuery,
+  StrategyPortfolioStatementResponse,
   StrategyPortfolioSignalsResponse,
   StrategyPortfolioSignalTimelineResponse,
   StrategyPortfolioVirtualAccount,
@@ -360,6 +362,18 @@ export function getStrategyPortfolioVirtualAccount(
 ) {
   return requestJson<StrategyPortfolioVirtualAccount>(
     `/rearview/strategy-portfolios/${strategyPortfolioId}/virtual-account`
+  )
+}
+
+export function getStrategyPortfolioStatement(
+  strategyPortfolioId: string,
+  query: StrategyPortfolioStatementQuery
+) {
+  return requestJson<StrategyPortfolioStatementResponse>(
+    buildPath(
+      `/rearview/strategy-portfolios/${strategyPortfolioId}/statement`,
+      query
+    )
   )
 }
 

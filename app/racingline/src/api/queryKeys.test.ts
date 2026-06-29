@@ -10,20 +10,35 @@ describe("strategy backtest query keys", () => {
   })
 
   it("keeps full and ui result wrapper views in separate caches", () => {
-    expect(queryKeys.strategyBacktestOverviewUi("run-1", "2025-01-02")).not.toEqual(
-      queryKeys.strategyBacktestNavUi("run-1")
-    )
-    expect(queryKeys.strategyBacktestOverviewUi("run-1", "2025-01-02")).not.toEqual(
-      queryKeys.strategyBacktestPerformanceUi("run-1")
-    )
+    expect(
+      queryKeys.strategyBacktestOverviewUi("run-1", "2025-01-02")
+    ).not.toEqual(queryKeys.strategyBacktestNavUi("run-1"))
+    expect(
+      queryKeys.strategyBacktestOverviewUi("run-1", "2025-01-02")
+    ).not.toEqual(queryKeys.strategyBacktestPerformanceUi("run-1"))
     expect(queryKeys.strategyBacktestNav("run-1")).not.toEqual(
       queryKeys.strategyBacktestNavUi("run-1")
     )
     expect(queryKeys.strategyBacktestPerformance("run-1")).not.toEqual(
       queryKeys.strategyBacktestPerformanceUi("run-1")
     )
-    expect(queryKeys.strategyBacktestRebalanceRecords("run-1", "2025-01-02")).not.toEqual(
+    expect(
+      queryKeys.strategyBacktestRebalanceRecords("run-1", "2025-01-02")
+    ).not.toEqual(
       queryKeys.strategyBacktestRebalanceRecordsUi("run-1", "2025-01-02")
+    )
+  })
+
+  it("keeps statement period and page in separate caches", () => {
+    expect(
+      queryKeys.strategyPortfolioStatement("portfolio-1", "month", 100, 0)
+    ).not.toEqual(
+      queryKeys.strategyPortfolioStatement("portfolio-1", "three_months", 100, 0)
+    )
+    expect(
+      queryKeys.strategyPortfolioStatement("portfolio-1", "month", 100, 0)
+    ).not.toEqual(
+      queryKeys.strategyPortfolioStatement("portfolio-1", "month", 100, 100)
     )
   })
 })

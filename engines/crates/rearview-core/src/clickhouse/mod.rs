@@ -45,6 +45,11 @@ struct TradeDateRow {
 }
 
 #[derive(Debug, Clone, Deserialize)]
+struct LatestDateRow {
+    max_date: Option<NaiveDate>,
+}
+
+#[derive(Debug, Clone, Deserialize)]
 struct BenchmarkReturnRow {
     trade_date: NaiveDate,
     #[serde(default, deserialize_with = "deserialize_optional_f64")]
@@ -112,6 +117,13 @@ pub struct StrategyPortfolioStatementOperationRecord {
     #[serde(default, deserialize_with = "deserialize_optional_f64")]
     pub realized_pnl: Option<f64>,
     pub reason: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Deserialize)]
+pub struct StrategyPortfolioLiveFactCountsRecord {
+    pub nav_row_count: u64,
+    pub trade_row_count: u64,
+    pub closed_trade_row_count: u64,
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -1028,6 +1040,52 @@ FORMAT JSONEachRow"#,
         Ok(trade_dates)
     }
 
+    pub async fn query_mart_latest_trade_date(
+        &self,
+        mart_reference: &str,
+        query_id: &str,
+    ) -> RearviewResult<Option<NaiveDate>> {
+        let (database, table) = parse_mart_reference(&self.config.marts_database, mart_reference)?;
+        let sql = mart_latest_trade_date_sql(&quote_identifier(&database), &table);
+        self.query_latest_date_sql(&sql, query_id).await
+    }
+
+    pub async fn query_benchmark_latest_trade_date(
+        &self,
+        security_code: &str,
+        query_id: &str,
+    ) -> RearviewResult<Option<NaiveDate>> {
+        validate_identifier(&self.config.marts_database)?;
+        validate_security_code(security_code)?;
+        let database = quote_identifier(&self.config.marts_database);
+        let security_code = quote_string_literal(security_code);
+        let sql = benchmark_latest_trade_date_sql(&database, &security_code);
+        self.query_latest_date_sql(&sql, query_id).await
+    }
+
+    pub async fn query_risk_free_latest_trade_date(
+        &self,
+        source_tenor: &str,
+        query_id: &str,
+    ) -> RearviewResult<Option<NaiveDate>> {
+        validate_identifier(&self.config.marts_database)?;
+        validate_source_tenor(source_tenor)?;
+        let database = quote_identifier(&self.config.marts_database);
+        let source_tenor = quote_string_literal(source_tenor);
+        let sql = risk_free_latest_trade_date_sql(&database, &source_tenor);
+        self.query_latest_date_sql(&sql, query_id).await
+    }
+
+    async fn query_latest_date_sql(
+        &self,
+        sql: &str,
+        query_id: &str,
+    ) -> RearviewResult<Option<NaiveDate>> {
+        let body = self.execute_text(sql, query_id).await?;
+        let rows: Vec<LatestDateRow> = parse_json_each_row(&body)?;
+        Ok(rows.into_iter().next().and_then(|row| row.max_date))
+    }
+
     pub async fn query_trade_date_lookback_start(
         &self,
         end_date: NaiveDate,
@@ -1608,6 +1666,38 @@ FORMAT JSONEachRow"#
             .await?;
         let rows = parse_json_each_row::<StrategyPortfolioStatementOperationRecord>(&body)?;
         Ok(crate::postgres::ListResult::from_rows(rows, page))
+    }
+
+    pub async fn query_strategy_portfolio_live_fact_counts(
+        &self,
+        strategy_portfolio_daily_run_id: &str,
+        result_attempt_id: &str,
+    ) -> RearviewResult<StrategyPortfolioLiveFactCountsRecord> {
+        let database = &self.config.portfolio_database;
+        validate_identifier(database)?;
+        let quoted_database = quote_identifier(database);
+        let quoted_run_id_field = quote_identifier(LIVE_RUN_ID_FIELD);
+        let run_id = quote_string_literal(strategy_portfolio_daily_run_id);
+        let attempt = quote_string_literal(result_attempt_id);
+        let sql = live_fact_counts_sql(&quoted_database, &quoted_run_id_field, &run_id, &attempt);
+        let body = self
+            .execute_text(
+                &sql,
+                &portfolio_read_query_id(
+                    "rearview-live-read-fact-counts",
+                    strategy_portfolio_daily_run_id,
+                    result_attempt_id,
+                ),
+            )
+            .await?;
+        parse_json_each_row::<StrategyPortfolioLiveFactCountsRecord>(&body)?
+            .into_iter()
+            .next()
+            .ok_or_else(|| {
+                RearviewError::NotFound(format!(
+                    "no live fact count row found for strategy portfolio daily run {strategy_portfolio_daily_run_id}"
+                ))
+            })
     }
 
     pub async fn query_strategy_backtest_targets(
@@ -3430,6 +3520,29 @@ fn quote_string_literal(value: &str) -> String {
     format!("'{}'", value.replace('\'', "''"))
 }
 
+fn parse_mart_reference(
+    default_database: &str,
+    mart_reference: &str,
+) -> RearviewResult<(String, String)> {
+    validate_identifier(default_database)?;
+    let trimmed = mart_reference.trim();
+    let parts = trimmed.split('.').collect::<Vec<_>>();
+    match parts.as_slice() {
+        [table] => {
+            validate_identifier(table)?;
+            Ok((default_database.to_string(), (*table).to_string()))
+        }
+        [database, table] => {
+            validate_identifier(database)?;
+            validate_identifier(table)?;
+            Ok(((*database).to_string(), (*table).to_string()))
+        }
+        _ => Err(RearviewError::Validation(format!(
+            "invalid mart reference: {mart_reference}"
+        ))),
+    }
+}
+
 fn virtual_account_nav_sql(
     quoted_database: &str,
     quoted_run_id_field: &str,
@@ -3654,6 +3767,37 @@ FORMAT JSONEachRow"#
     )
 }
 
+fn live_fact_counts_sql(
+    quoted_database: &str,
+    quoted_run_id_field: &str,
+    quoted_run_id: &str,
+    quoted_attempt: &str,
+) -> String {
+    format!(
+        r#"
+SELECT
+  (
+    SELECT count()
+    FROM {quoted_database}.live_nav_daily
+    WHERE {quoted_run_id_field} = {quoted_run_id}
+      AND result_attempt_id = {quoted_attempt}
+  ) AS nav_row_count,
+  (
+    SELECT count()
+    FROM {quoted_database}.live_trade
+    WHERE {quoted_run_id_field} = {quoted_run_id}
+      AND result_attempt_id = {quoted_attempt}
+  ) AS trade_row_count,
+  (
+    SELECT count()
+    FROM {quoted_database}.live_closed_trade
+    WHERE {quoted_run_id_field} = {quoted_run_id}
+      AND result_attempt_id = {quoted_attempt}
+  ) AS closed_trade_row_count
+FORMAT JSONEachRow"#
+    )
+}
+
 fn trade_dates_sql(
     quoted_database: &str,
     table: &str,
@@ -3669,6 +3813,36 @@ WHERE trade_date BETWEEN toDate('{start_date}') AND toDate('{end_date}')
 ORDER BY trade_date ASC
 FORMAT JSONEachRow"#,
         quote_identifier(table),
+    )
+}
+
+fn mart_latest_trade_date_sql(quoted_database: &str, table: &str) -> String {
+    format!(
+        r#"
+SELECT maxOrNull(trade_date) AS max_date
+FROM {quoted_database}.{}
+FORMAT JSONEachRow"#,
+        quote_identifier(table),
+    )
+}
+
+fn benchmark_latest_trade_date_sql(quoted_database: &str, quoted_security_code: &str) -> String {
+    format!(
+        r#"
+SELECT maxOrNull(trade_date) AS max_date
+FROM {quoted_database}.`mart_benchmark_returns_daily`
+WHERE security_code = {quoted_security_code}
+FORMAT JSONEachRow"#
+    )
+}
+
+fn risk_free_latest_trade_date_sql(quoted_database: &str, quoted_source_tenor: &str) -> String {
+    format!(
+        r#"
+SELECT maxOrNull(trade_date) AS max_date
+FROM {quoted_database}.`mart_risk_free_rate_daily`
+WHERE source_tenor = {quoted_source_tenor}
+FORMAT JSONEachRow"#
     )
 }
 
@@ -4074,9 +4248,11 @@ where
 mod tests {
     use super::{
         AnalysisQuoteAdjustment, BacktestSignalRow, MarketDataDemand, QuoteMartRow, ScreeningRow,
-        chart_context_chart_quote_select_columns, chart_context_selected_quote_select_columns,
-        chart_context_trend_select_columns, portfolio_price_bars_demand_join_sql,
-        portfolio_price_bars_sql, quote_select_columns, trade_dates_sql, trend_select_columns,
+        benchmark_latest_trade_date_sql, chart_context_chart_quote_select_columns,
+        chart_context_selected_quote_select_columns, chart_context_trend_select_columns,
+        live_fact_counts_sql, mart_latest_trade_date_sql, parse_mart_reference,
+        portfolio_price_bars_demand_join_sql, portfolio_price_bars_sql, quote_select_columns,
+        risk_free_latest_trade_date_sql, trade_dates_sql, trend_select_columns,
         validate_security_code, validate_source_tenor, validate_window_key,
         virtual_account_holding_sql, virtual_account_nav_sql, virtual_account_record,
     };
@@ -4263,6 +4439,22 @@ mod tests {
     }
 
     #[test]
+    fn live_fact_counts_sql_should_count_three_live_fact_tables() {
+        let sql = live_fact_counts_sql(
+            "`fleur_portfolio`",
+            "`strategy_portfolio_daily_run_id`",
+            "'daily-run-1'",
+            "'attempt-1'",
+        );
+
+        assert!(sql.contains("FROM `fleur_portfolio`.live_nav_daily"));
+        assert!(sql.contains("FROM `fleur_portfolio`.live_trade"));
+        assert!(sql.contains("FROM `fleur_portfolio`.live_closed_trade"));
+        assert!(sql.contains("WHERE `strategy_portfolio_daily_run_id` = 'daily-run-1'"));
+        assert!(sql.contains("result_attempt_id = 'attempt-1'"));
+    }
+
+    #[test]
     fn trade_dates_sql_reads_quote_mart_when_database_is_marts() {
         let sql = trade_dates_sql(
             "`fleur_marts`",
@@ -4286,6 +4478,55 @@ mod tests {
 
         assert!(sql.contains("FROM `fleur_marts`.`mart_trade_calendar`"));
         assert!(!sql.contains("mart_stock_quotes_daily"));
+    }
+
+    #[test]
+    fn parse_mart_reference_should_accept_table_or_database_table() {
+        assert_eq!(
+            parse_mart_reference("fleur_marts", "mart_stock_quotes_daily").unwrap(),
+            (
+                "fleur_marts".to_string(),
+                "mart_stock_quotes_daily".to_string()
+            )
+        );
+        assert_eq!(
+            parse_mart_reference(
+                "fleur_marts",
+                "fleur_marts.mart_stock_momentum_indicator_daily"
+            )
+            .unwrap(),
+            (
+                "fleur_marts".to_string(),
+                "mart_stock_momentum_indicator_daily".to_string()
+            )
+        );
+    }
+
+    #[test]
+    fn parse_mart_reference_should_reject_multi_part_or_invalid_identifier() {
+        assert!(matches!(
+            parse_mart_reference("fleur_marts", "a.b.c").unwrap_err(),
+            RearviewError::Validation(_)
+        ));
+        assert!(matches!(
+            parse_mart_reference("fleur_marts", "mart_stock_quotes_daily;drop").unwrap_err(),
+            RearviewError::ClickHouse(_)
+        ));
+    }
+
+    #[test]
+    fn latest_trade_date_sql_should_use_max_or_null() {
+        let mart_sql = mart_latest_trade_date_sql("`fleur_marts`", "mart_trade_calendar");
+        assert!(mart_sql.contains("SELECT maxOrNull(trade_date) AS max_date"));
+        assert!(mart_sql.contains("FROM `fleur_marts`.`mart_trade_calendar`"));
+
+        let benchmark_sql = benchmark_latest_trade_date_sql("`fleur_marts`", "'000300.SH'");
+        assert!(benchmark_sql.contains("FROM `fleur_marts`.`mart_benchmark_returns_daily`"));
+        assert!(benchmark_sql.contains("WHERE security_code = '000300.SH'"));
+
+        let risk_free_sql = risk_free_latest_trade_date_sql("`fleur_marts`", "'1y'");
+        assert!(risk_free_sql.contains("FROM `fleur_marts`.`mart_risk_free_rate_daily`"));
+        assert!(risk_free_sql.contains("WHERE source_tenor = '1y'"));
     }
 
     fn virtual_account_nav_row(

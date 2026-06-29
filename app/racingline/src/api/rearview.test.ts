@@ -3,6 +3,7 @@ import { afterEach, describe, expect, it, vi } from "vitest"
 import {
   createStrategyPortfolio,
   getStrategyPortfolioPublishPreview,
+  getStrategyPortfolioStatement,
   getStrategyPortfolioVirtualAccount,
 } from "@/api/rearview"
 
@@ -85,6 +86,45 @@ describe("strategy portfolio API", () => {
 
     expect(fetchMock.mock.calls[0]?.[0]).toBe(
       "http://127.0.0.1:34057/rearview/strategy-portfolios/portfolio-1/virtual-account"
+    )
+  })
+
+  it("requests strategy portfolio statement with period and page", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      jsonResponse({
+        operations: { has_more: false, items: [], limit: 100, offset: 20 },
+        period: {
+          end_date: "2026-06-26",
+          key: "three_months",
+          label: "近三月",
+          latest_live_trade_date: "2026-06-26",
+          start_date: "2026-03-26",
+        },
+        result_attempt_id: "attempt-1",
+        source: "live_daily_run",
+        strategy_portfolio_daily_run_id: "daily-run-1",
+        strategy_portfolio_id: "portfolio-1",
+        summary: {
+          average_position_pct: 0.72,
+          holding_days: 57,
+          losing_security_count: 2,
+          trade_count: 18,
+          trade_win_rate: 0.5,
+          traded_security_count: 12,
+          winning_security_count: 5,
+        },
+      })
+    )
+    vi.stubGlobal("fetch", fetchMock)
+
+    await getStrategyPortfolioStatement("portfolio-1", {
+      limit: 100,
+      offset: 20,
+      period: "three_months",
+    })
+
+    expect(fetchMock.mock.calls[0]?.[0]).toBe(
+      "http://127.0.0.1:34057/rearview/strategy-portfolios/portfolio-1/statement?limit=100&offset=20&period=three_months"
     )
   })
 })

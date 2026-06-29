@@ -698,6 +698,69 @@ export type StrategyPortfolioVirtualAccount = {
   position_count: number
 }
 
+export type StrategyPortfolioStatementPeriodKey =
+  | "month"
+  | "three_months"
+  | "six_months"
+  | "ytd"
+  | "all"
+
+export type StrategyPortfolioStatementQuery = {
+  period: StrategyPortfolioStatementPeriodKey
+  limit?: number
+  offset?: number
+}
+
+export type StrategyPortfolioStatementResponse = {
+  source: "live_daily_run"
+  strategy_portfolio_id: string
+  strategy_portfolio_daily_run_id: string
+  result_attempt_id: string
+  period: {
+    key: StrategyPortfolioStatementPeriodKey
+    label: string
+    start_date: string
+    end_date: string
+    latest_live_trade_date: string
+  }
+  summary: {
+    average_position_pct?: number | null
+    traded_security_count: number
+    trade_count: number
+    trade_win_rate?: number | null
+    winning_security_count: number
+    losing_security_count: number
+    holding_days: number
+  }
+  operations: {
+    items: StrategyPortfolioStatementOperation[]
+    limit: number
+    offset: number
+    has_more: boolean
+  }
+}
+
+export type StrategyPortfolioStatementOperation = {
+  portfolio_trade_id: string
+  trade_seq: number
+  trade_date: string
+  security_code: string
+  security_name?: string | null
+  side: "buy" | "sell"
+  execution_price: number
+  quantity: number
+  lot_size: number
+  lot_count: number
+  gross_amount: number
+  commission: number
+  stamp_duty: number
+  transfer_fee: number
+  total_fee: number
+  position_balance_quantity: number
+  realized_pnl?: number | null
+  reason: string
+}
+
 export type StrategyPortfolioListResult<T> = ListResult<T> & {
   source: StrategyPortfolioCurveSource
 }

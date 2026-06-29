@@ -208,6 +208,22 @@ pub fn routes() -> Router<AppState> {
             post(create_strategy_portfolio_daily_runs),
         )
         .route(
+            "/rearview/strategy-portfolios/daily-runs/range",
+            post(create_strategy_portfolio_daily_runs_range),
+        )
+        .route(
+            "/rearview/strategy-portfolios/daily-runs/settlement-target",
+            get(get_strategy_portfolio_daily_runs_settlement_target),
+        )
+        .route(
+            "/rearview/strategy-portfolios/daily-runs/{daily_run_id}/fact-counts",
+            get(get_strategy_portfolio_daily_run_fact_counts),
+        )
+        .route(
+            "/rearview/strategy-portfolios/daily-runs/{daily_run_id}",
+            get(get_strategy_portfolio_daily_run),
+        )
+        .route(
             "/rearview/strategy-portfolios/{strategy_portfolio_id}/nav",
             get(list_strategy_portfolio_nav),
         )
@@ -1653,9 +1669,207 @@ async fn create_strategy_portfolio_daily_runs(
             created_run_count: record.created_run_count,
             skipped_run_count: record.skipped_run_count,
             daily_run_ids: record.daily_run_ids,
+            created_daily_run_ids: record.created_daily_run_ids,
+            skipped_daily_run_ids: record.skipped_daily_run_ids,
             client_request_id: request.client_request_id,
         }),
     ))
+}
+
+async fn create_strategy_portfolio_daily_runs_range(
+    State(state): State<AppState>,
+    Json(request): Json<StrategyPortfolioDailyRunsRangeCreateRequest>,
+) -> RearviewResult<(
+    StatusCode,
+    Json<StrategyPortfolioDailyRunsRangeCreateResponse>,
+)> {
+    if request.start_date > request.end_date {
+        return Err(RearviewError::Validation(
+            "start_date must be earlier than or equal to end_date".to_string(),
+        ));
+    }
+    let max_trade_dates = daily_run_range_max_trade_dates(request.max_trade_dates)?;
+    let resolved_trade_dates = state
+        .clickhouse
+        .query_trade_calendar_dates(
+            request.start_date,
+            request.end_date,
+            "strategy-portfolio-daily-runs-range-calendar",
+        )
+        .await?;
+    if resolved_trade_dates.len() > max_trade_dates {
+        return Err(RearviewError::Validation(format!(
+            "resolved trade dates exceed max_trade_dates: {} > {max_trade_dates}",
+            resolved_trade_dates.len()
+        )));
+    }
+
+    let mut trade_date_results = Vec::with_capacity(resolved_trade_dates.len());
+    let mut daily_run_ids = Vec::new();
+    let mut created_daily_run_ids = Vec::new();
+    let mut skipped_daily_run_ids = Vec::new();
+    let mut created_run_count = 0_i32;
+    let mut skipped_run_count = 0_i32;
+    let mut active_portfolio_count = 0_i32;
+
+    for trade_date in &resolved_trade_dates {
+        let record = state
+            .postgres
+            .create_strategy_portfolio_daily_runs_for_trade_date(
+                *trade_date,
+                &state.config.nats.portfolio_request_subject,
+            )
+            .await?;
+        active_portfolio_count = active_portfolio_count.max(record.active_portfolio_count);
+        created_run_count += record.created_run_count;
+        skipped_run_count += record.skipped_run_count;
+        daily_run_ids.extend(record.daily_run_ids.clone());
+        created_daily_run_ids.extend(record.created_daily_run_ids.clone());
+        skipped_daily_run_ids.extend(record.skipped_daily_run_ids.clone());
+        trade_date_results.push(StrategyPortfolioDailyRunsDateResult {
+            trade_date: record.trade_date,
+            active_portfolio_count: record.active_portfolio_count,
+            created_run_count: record.created_run_count,
+            skipped_run_count: record.skipped_run_count,
+            daily_run_ids: record.daily_run_ids,
+            created_daily_run_ids: record.created_daily_run_ids,
+            skipped_daily_run_ids: record.skipped_daily_run_ids,
+        });
+    }
+
+    Ok((
+        StatusCode::ACCEPTED,
+        Json(StrategyPortfolioDailyRunsRangeCreateResponse {
+            start_date: request.start_date,
+            end_date: request.end_date,
+            resolved_trade_dates,
+            active_portfolio_count,
+            created_run_count,
+            skipped_run_count,
+            daily_run_ids,
+            created_daily_run_ids,
+            skipped_daily_run_ids,
+            trade_date_results,
+            client_request_id: request.client_request_id,
+        }),
+    ))
+}
+
+async fn get_strategy_portfolio_daily_run(
+    State(state): State<AppState>,
+    Path(daily_run_id): Path<String>,
+) -> RearviewResult<Json<StrategyPortfolioDailyRunStatusResponse>> {
+    let record = state
+        .postgres
+        .get_strategy_portfolio_daily_run(&daily_run_id)
+        .await?;
+    Ok(Json(strategy_portfolio_daily_run_status_response(record)))
+}
+
+async fn get_strategy_portfolio_daily_run_fact_counts(
+    State(state): State<AppState>,
+    Path(daily_run_id): Path<String>,
+) -> RearviewResult<Json<StrategyPortfolioDailyRunFactCountsResponse>> {
+    let record = state
+        .postgres
+        .get_strategy_portfolio_daily_run(&daily_run_id)
+        .await?;
+    let result_attempt_id = record.current_result_attempt_id.clone().ok_or_else(|| {
+        RearviewError::Conflict(format!(
+            "strategy_portfolio_daily_run has no current_result_attempt_id: {daily_run_id}"
+        ))
+    })?;
+    let counts = state
+        .clickhouse
+        .query_strategy_portfolio_live_fact_counts(&daily_run_id, &result_attempt_id)
+        .await?;
+    Ok(Json(StrategyPortfolioDailyRunFactCountsResponse {
+        strategy_portfolio_daily_run_id: daily_run_id,
+        strategy_portfolio_id: record.strategy_portfolio_id,
+        trade_date: record.trade_date,
+        result_attempt_id,
+        nav_row_count: counts.nav_row_count,
+        trade_row_count: counts.trade_row_count,
+        closed_trade_row_count: counts.closed_trade_row_count,
+    }))
+}
+
+async fn get_strategy_portfolio_daily_runs_settlement_target(
+    State(state): State<AppState>,
+) -> RearviewResult<Json<StrategyPortfolioDailyRunsSettlementTargetResponse>> {
+    const RISK_FREE_TENOR: &str = "1y";
+    let active_portfolios = state.postgres.list_active_strategy_portfolios().await?;
+    let mut mart_references = BTreeSet::from([
+        "mart_trade_calendar".to_string(),
+        "mart_stock_quotes_daily".to_string(),
+    ]);
+    let mut benchmark_security_codes = BTreeSet::new();
+    for portfolio in &active_portfolios {
+        benchmark_security_codes.insert(portfolio.benchmark_security_code.clone());
+        for mart_reference in required_marts_from_value(&portfolio.required_marts)? {
+            mart_references.insert(mart_reference);
+        }
+    }
+
+    let mut dependencies = Vec::new();
+    for mart_reference in &mart_references {
+        let latest_trade_date = state
+            .clickhouse
+            .query_mart_latest_trade_date(
+                mart_reference,
+                &format!(
+                    "strategy-portfolio-daily-runs-settlement-target-mart-{}",
+                    settlement_dependency_query_key(mart_reference)
+                ),
+            )
+            .await?;
+        dependencies.push(StrategyPortfolioSettlementDependency {
+            kind: settlement_mart_dependency_kind(mart_reference).to_string(),
+            name: mart_reference.clone(),
+            latest_trade_date,
+        });
+    }
+
+    for benchmark_security_code in &benchmark_security_codes {
+        let latest_trade_date = state
+            .clickhouse
+            .query_benchmark_latest_trade_date(
+                benchmark_security_code,
+                &format!(
+                    "strategy-portfolio-daily-runs-settlement-target-benchmark-{}",
+                    settlement_dependency_query_key(benchmark_security_code)
+                ),
+            )
+            .await?;
+        dependencies.push(StrategyPortfolioSettlementDependency {
+            kind: "benchmark_returns".to_string(),
+            name: benchmark_security_code.clone(),
+            latest_trade_date,
+        });
+    }
+
+    let risk_free_latest_trade_date = state
+        .clickhouse
+        .query_risk_free_latest_trade_date(
+            RISK_FREE_TENOR,
+            "strategy-portfolio-daily-runs-settlement-target-risk-free",
+        )
+        .await?;
+    dependencies.push(StrategyPortfolioSettlementDependency {
+        kind: "risk_free_rate".to_string(),
+        name: RISK_FREE_TENOR.to_string(),
+        latest_trade_date: risk_free_latest_trade_date,
+    });
+
+    let settlement_target_date = settlement_target_date(&dependencies);
+    Ok(Json(StrategyPortfolioDailyRunsSettlementTargetResponse {
+        settlement_target_date,
+        active_portfolio_count: active_portfolios.len(),
+        required_marts: mart_references.into_iter().collect(),
+        benchmark_security_codes: benchmark_security_codes.into_iter().collect(),
+        risk_free_tenor: RISK_FREE_TENOR.to_string(),
+        dependencies,
+    }))
 }
 
 async fn list_strategy_portfolio_nav(
@@ -3763,8 +3977,101 @@ struct StrategyPortfolioDailyRunsCreateResponse {
     created_run_count: i32,
     skipped_run_count: i32,
     daily_run_ids: Vec<String>,
+    created_daily_run_ids: Vec<String>,
+    skipped_daily_run_ids: Vec<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     client_request_id: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+struct StrategyPortfolioDailyRunsRangeCreateRequest {
+    start_date: NaiveDate,
+    end_date: NaiveDate,
+    #[serde(default)]
+    client_request_id: Option<String>,
+    #[serde(default)]
+    max_trade_dates: Option<u32>,
+}
+
+#[derive(Debug, Serialize)]
+struct StrategyPortfolioDailyRunsRangeCreateResponse {
+    start_date: NaiveDate,
+    end_date: NaiveDate,
+    resolved_trade_dates: Vec<NaiveDate>,
+    active_portfolio_count: i32,
+    created_run_count: i32,
+    skipped_run_count: i32,
+    daily_run_ids: Vec<String>,
+    created_daily_run_ids: Vec<String>,
+    skipped_daily_run_ids: Vec<String>,
+    trade_date_results: Vec<StrategyPortfolioDailyRunsDateResult>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    client_request_id: Option<String>,
+}
+
+#[derive(Debug, Serialize)]
+struct StrategyPortfolioDailyRunsDateResult {
+    trade_date: NaiveDate,
+    active_portfolio_count: i32,
+    created_run_count: i32,
+    skipped_run_count: i32,
+    daily_run_ids: Vec<String>,
+    created_daily_run_ids: Vec<String>,
+    skipped_daily_run_ids: Vec<String>,
+}
+
+#[derive(Debug, Serialize)]
+struct StrategyPortfolioDailyRunStatusResponse {
+    strategy_portfolio_daily_run_id: String,
+    strategy_portfolio_id: String,
+    run_start_date: NaiveDate,
+    trade_date: NaiveDate,
+    status: String,
+    dispatch_status: String,
+    nats_stream_sequence: Option<i64>,
+    worker_attempt_no: i32,
+    claimed_at: Option<DateTime<Utc>>,
+    heartbeat_at: Option<DateTime<Utc>>,
+    claim_expires_at: Option<DateTime<Utc>>,
+    progress: Value,
+    summary: Value,
+    signal_summary: Value,
+    data_coverage_summary: Value,
+    error_type: Option<String>,
+    error_message: Option<String>,
+    current_result_attempt_id: Option<String>,
+    created_at: DateTime<Utc>,
+    updated_at: DateTime<Utc>,
+    started_at: Option<DateTime<Utc>>,
+    completed_at: Option<DateTime<Utc>>,
+}
+
+#[derive(Debug, Serialize)]
+struct StrategyPortfolioDailyRunFactCountsResponse {
+    strategy_portfolio_daily_run_id: String,
+    strategy_portfolio_id: String,
+    trade_date: NaiveDate,
+    result_attempt_id: String,
+    nav_row_count: u64,
+    trade_row_count: u64,
+    closed_trade_row_count: u64,
+}
+
+#[derive(Debug, Serialize)]
+struct StrategyPortfolioDailyRunsSettlementTargetResponse {
+    settlement_target_date: Option<NaiveDate>,
+    active_portfolio_count: usize,
+    required_marts: Vec<String>,
+    benchmark_security_codes: Vec<String>,
+    risk_free_tenor: String,
+    dependencies: Vec<StrategyPortfolioSettlementDependency>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+struct StrategyPortfolioSettlementDependency {
+    kind: String,
+    name: String,
+    latest_trade_date: Option<NaiveDate>,
 }
 
 #[derive(Debug, Serialize)]
@@ -5188,6 +5495,116 @@ fn page(limit: Option<u32>, offset: Option<u32>) -> RearviewResult<Page> {
         limit: i64::from(limit),
         offset: i64::from(offset.unwrap_or(0)),
     })
+}
+
+fn daily_run_range_max_trade_dates(max_trade_dates: Option<u32>) -> RearviewResult<usize> {
+    const DEFAULT_MAX_TRADE_DATES: u32 = 20;
+    const HARD_MAX_TRADE_DATES: u32 = 250;
+    let max_trade_dates = max_trade_dates.unwrap_or(DEFAULT_MAX_TRADE_DATES);
+    if max_trade_dates == 0 || max_trade_dates > HARD_MAX_TRADE_DATES {
+        return Err(RearviewError::Validation(format!(
+            "max_trade_dates must be between 1 and {HARD_MAX_TRADE_DATES}"
+        )));
+    }
+    usize::try_from(max_trade_dates).map_err(|error| {
+        RearviewError::Validation(format!("max_trade_dates is out of range: {error}"))
+    })
+}
+
+fn strategy_portfolio_daily_run_status_response(
+    record: crate::postgres::StrategyPortfolioDailyRunRecord,
+) -> StrategyPortfolioDailyRunStatusResponse {
+    StrategyPortfolioDailyRunStatusResponse {
+        strategy_portfolio_daily_run_id: record.strategy_portfolio_daily_run_id,
+        strategy_portfolio_id: record.strategy_portfolio_id,
+        run_start_date: record.run_start_date,
+        trade_date: record.trade_date,
+        status: record.status,
+        dispatch_status: record.dispatch_status,
+        nats_stream_sequence: record.nats_stream_sequence,
+        worker_attempt_no: record.worker_attempt_no,
+        claimed_at: record.claimed_at,
+        heartbeat_at: record.heartbeat_at,
+        claim_expires_at: record.claim_expires_at,
+        progress: record.progress,
+        summary: record.summary,
+        signal_summary: record.signal_summary,
+        data_coverage_summary: record.data_coverage_summary,
+        error_type: record.error_type,
+        error_message: record.error_message,
+        current_result_attempt_id: record.current_result_attempt_id,
+        created_at: record.created_at,
+        updated_at: record.updated_at,
+        started_at: record.started_at,
+        completed_at: record.completed_at,
+    }
+}
+
+fn required_marts_from_value(value: &Value) -> RearviewResult<Vec<String>> {
+    let Some(items) = value.as_array() else {
+        return Err(RearviewError::Validation(
+            "strategy portfolio required_marts must be a string array".to_string(),
+        ));
+    };
+    let mut marts = Vec::with_capacity(items.len());
+    for item in items {
+        let Some(mart) = item.as_str() else {
+            return Err(RearviewError::Validation(
+                "strategy portfolio required_marts must contain only strings".to_string(),
+            ));
+        };
+        let mart = mart.trim();
+        if mart.is_empty() {
+            return Err(RearviewError::Validation(
+                "strategy portfolio required_marts must not contain empty strings".to_string(),
+            ));
+        }
+        marts.push(mart.to_string());
+    }
+    Ok(marts)
+}
+
+fn settlement_mart_dependency_kind(mart_reference: &str) -> &'static str {
+    match mart_reference.rsplit('.').next().unwrap_or(mart_reference) {
+        "mart_trade_calendar" => "trade_calendar",
+        "mart_stock_quotes_daily" => "quotes",
+        _ => "required_mart",
+    }
+}
+
+fn settlement_dependency_query_key(value: &str) -> String {
+    let key = value
+        .chars()
+        .map(|char| {
+            if char.is_ascii_alphanumeric() {
+                char.to_ascii_lowercase()
+            } else {
+                '-'
+            }
+        })
+        .collect::<String>()
+        .trim_matches('-')
+        .to_string();
+    if key.is_empty() {
+        "dependency".to_string()
+    } else {
+        key
+    }
+}
+
+fn settlement_target_date(
+    dependencies: &[StrategyPortfolioSettlementDependency],
+) -> Option<NaiveDate> {
+    if dependencies
+        .iter()
+        .any(|dependency| dependency.latest_trade_date.is_none())
+    {
+        return None;
+    }
+    dependencies
+        .iter()
+        .filter_map(|dependency| dependency.latest_trade_date)
+        .min()
 }
 
 fn statement_page(limit: Option<u32>, offset: Option<u32>) -> RearviewResult<Page> {
@@ -6811,6 +7228,72 @@ mod tests {
         let error = page(Some(0), None).unwrap_err();
 
         assert!(matches!(error, RearviewError::Validation(_)));
+    }
+
+    #[test]
+    fn daily_run_range_max_trade_dates_should_default_and_cap() {
+        assert_eq!(daily_run_range_max_trade_dates(None).unwrap(), 20);
+        assert_eq!(daily_run_range_max_trade_dates(Some(250)).unwrap(), 250);
+
+        assert!(matches!(
+            daily_run_range_max_trade_dates(Some(0)).unwrap_err(),
+            RearviewError::Validation(_)
+        ));
+        assert!(matches!(
+            daily_run_range_max_trade_dates(Some(251)).unwrap_err(),
+            RearviewError::Validation(_)
+        ));
+    }
+
+    #[test]
+    fn required_marts_from_value_should_accept_string_array_only() {
+        assert_eq!(
+            required_marts_from_value(&json!(["fleur_marts.mart_stock_quotes_daily"])).unwrap(),
+            vec!["fleur_marts.mart_stock_quotes_daily".to_string()]
+        );
+
+        assert!(matches!(
+            required_marts_from_value(&json!({"mart": "mart_stock_quotes_daily"})).unwrap_err(),
+            RearviewError::Validation(_)
+        ));
+        assert!(matches!(
+            required_marts_from_value(&json!([""])).unwrap_err(),
+            RearviewError::Validation(_)
+        ));
+    }
+
+    #[test]
+    fn settlement_target_date_should_require_every_dependency() {
+        let dependencies = vec![
+            StrategyPortfolioSettlementDependency {
+                kind: "quotes".to_string(),
+                name: "mart_stock_quotes_daily".to_string(),
+                latest_trade_date: Some(date("2026-06-26")),
+            },
+            StrategyPortfolioSettlementDependency {
+                kind: "benchmark_returns".to_string(),
+                name: "000300.SH".to_string(),
+                latest_trade_date: Some(date("2026-06-25")),
+            },
+        ];
+        assert_eq!(
+            settlement_target_date(&dependencies),
+            Some(date("2026-06-25"))
+        );
+
+        let missing = vec![
+            StrategyPortfolioSettlementDependency {
+                kind: "quotes".to_string(),
+                name: "mart_stock_quotes_daily".to_string(),
+                latest_trade_date: Some(date("2026-06-26")),
+            },
+            StrategyPortfolioSettlementDependency {
+                kind: "risk_free_rate".to_string(),
+                name: "1y".to_string(),
+                latest_trade_date: None,
+            },
+        ];
+        assert_eq!(settlement_target_date(&missing), None);
     }
 
     #[test]
