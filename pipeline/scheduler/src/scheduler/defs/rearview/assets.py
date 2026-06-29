@@ -17,6 +17,7 @@ class StrategyPortfolioDailyRunConfig(dg.Config):
     trade_date: str = ""
     start_date: str = ""
     end_date: str = ""
+    strategy_portfolio_id: str = ""
     wait_for_completion: bool = True
     poll_interval_seconds: int = 10
     timeout_seconds: int = 1800
@@ -74,6 +75,7 @@ def strategy_portfolio_daily_runs(
                 end_date=chunk_end,
                 client_request_id=f"dagster-{context.run_id}-{chunk_start}-{chunk_end}",
                 max_trade_dates=chunk_size,
+                strategy_portfolio_id=config.strategy_portfolio_id,
             )
         )
 
@@ -103,6 +105,7 @@ def strategy_portfolio_daily_runs(
             partition_key=context.partition_key,
             requested_start_date=request.start_date,
             requested_end_date=request.end_date,
+            strategy_portfolio_id=config.strategy_portfolio_id.strip(),
             settlement_target=request.settlement_target,
             response=response,
             statuses=statuses,
@@ -240,6 +243,7 @@ def _daily_run_metadata(
     partition_key: str,
     requested_start_date: str,
     requested_end_date: str,
+    strategy_portfolio_id: str,
     settlement_target: dict[str, Any] | None,
     response: dict[str, Any],
     statuses: dict[str, dict[str, Any]],
@@ -262,6 +266,7 @@ def _daily_run_metadata(
         "partition_key": partition_key,
         "requested_start_date": requested_start_date,
         "requested_end_date": requested_end_date,
+        "strategy_portfolio_id": strategy_portfolio_id or None,
         "settlement_target_date": (
             settlement_target.get("settlement_target_date") if settlement_target else None
         ),

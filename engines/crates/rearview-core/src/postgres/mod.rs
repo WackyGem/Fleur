@@ -797,6 +797,84 @@ impl RearviewPg {
             .await
     }
 
+    pub async fn create_succeeded_strategy_backtest_seed(
+        &self,
+        input: NewSucceededStrategyBacktestSeed,
+    ) -> RearviewResult<StrategyBacktestRunRecord> {
+        let strategy_backtest_run_id = Uuid::new_v4().to_string();
+        sqlx::query(
+            r#"
+            insert into strategy_backtest_run (
+                strategy_backtest_run_id,
+                rule_snapshot,
+                rule_hash,
+                execution_config,
+                execution_config_hash,
+                catalog_hash,
+                compiled_sql_hash,
+                required_metrics,
+                required_marts,
+                data_preflight_snapshot,
+                period_key,
+                range_as_of_date,
+                range_resolved_at,
+                range_resolution_snapshot,
+                start_date,
+                end_date,
+                benchmark_security_code,
+                price_basis,
+                ui_display_snapshot,
+                client_request_id,
+                request_hash,
+                status,
+                dispatch_status,
+                current_result_attempt_id,
+                progress,
+                summary,
+                signal_summary,
+                data_coverage_summary,
+                completed_at
+            )
+            values (
+                $1, $2::jsonb, $3, $4::jsonb, $5, $6, $7, $8::jsonb,
+                $9::jsonb, $10::jsonb, $11, $12, now(), $13::jsonb,
+                $14, $15, $16, 'backward_adjusted', $17::jsonb, $18, $19,
+                'succeeded', 'published', $20, $21::jsonb, $22::jsonb,
+                $23::jsonb, $24::jsonb, now()
+            )
+            "#,
+        )
+        .bind(&strategy_backtest_run_id)
+        .bind(&input.rule_snapshot)
+        .bind(&input.rule_hash)
+        .bind(&input.execution_config)
+        .bind(&input.execution_config_hash)
+        .bind(&input.catalog_hash)
+        .bind(&input.compiled_sql_hash)
+        .bind(&input.required_metrics)
+        .bind(&input.required_marts)
+        .bind(&input.data_preflight_snapshot)
+        .bind(&input.period_key)
+        .bind(input.range_as_of_date)
+        .bind(&input.range_resolution_snapshot)
+        .bind(input.start_date)
+        .bind(input.end_date)
+        .bind(&input.benchmark_security_code)
+        .bind(&input.ui_display_snapshot)
+        .bind(&input.client_request_id)
+        .bind(&input.request_hash)
+        .bind(&input.current_result_attempt_id)
+        .bind(&input.progress)
+        .bind(&input.summary)
+        .bind(&input.signal_summary)
+        .bind(&input.data_coverage_summary)
+        .execute(&self.pool)
+        .await?;
+
+        self.get_strategy_backtest_run(&strategy_backtest_run_id)
+            .await
+    }
+
     pub async fn get_strategy_backtest_run(
         &self,
         strategy_backtest_run_id: &str,
@@ -1452,8 +1530,19 @@ impl RearviewPg {
         &self,
         trade_date: NaiveDate,
         subject: &str,
+        strategy_portfolio_id: Option<&str>,
     ) -> RearviewResult<StrategyPortfolioDailyRunBatchRecord> {
-        let portfolios = self.list_active_strategy_portfolios().await?;
+        let portfolios = match strategy_portfolio_id {
+            Some(strategy_portfolio_id) => {
+                let portfolio = self.get_strategy_portfolio(strategy_portfolio_id).await?;
+                if portfolio.status == "active" {
+                    vec![portfolio]
+                } else {
+                    Vec::new()
+                }
+            }
+            None => self.list_active_strategy_portfolios().await?,
+        };
         let eligible = portfolios
             .iter()
             .filter(|portfolio| portfolio.live_start_date <= trade_date)
@@ -3138,6 +3227,33 @@ pub struct NewStrategyBacktestRun {
     pub client_request_id: Option<String>,
     pub request_hash: String,
     pub subject: String,
+}
+
+#[derive(Debug, Clone)]
+pub struct NewSucceededStrategyBacktestSeed {
+    pub rule_snapshot: Value,
+    pub rule_hash: String,
+    pub execution_config: Value,
+    pub execution_config_hash: String,
+    pub catalog_hash: Option<String>,
+    pub compiled_sql_hash: String,
+    pub required_metrics: Value,
+    pub required_marts: Value,
+    pub data_preflight_snapshot: Value,
+    pub period_key: String,
+    pub range_as_of_date: Option<NaiveDate>,
+    pub range_resolution_snapshot: Value,
+    pub start_date: NaiveDate,
+    pub end_date: NaiveDate,
+    pub benchmark_security_code: String,
+    pub ui_display_snapshot: Value,
+    pub client_request_id: Option<String>,
+    pub request_hash: String,
+    pub current_result_attempt_id: String,
+    pub progress: Value,
+    pub summary: Value,
+    pub signal_summary: Value,
+    pub data_coverage_summary: Value,
 }
 
 #[derive(Debug, Clone)]

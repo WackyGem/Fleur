@@ -1659,12 +1659,14 @@ async fn create_strategy_portfolio_daily_runs(
         .create_strategy_portfolio_daily_runs_for_trade_date(
             request.trade_date,
             &state.config.nats.portfolio_request_subject,
+            request.strategy_portfolio_id.as_deref(),
         )
         .await?;
     Ok((
         StatusCode::ACCEPTED,
         Json(StrategyPortfolioDailyRunsCreateResponse {
             trade_date: record.trade_date,
+            strategy_portfolio_id: request.strategy_portfolio_id,
             active_portfolio_count: record.active_portfolio_count,
             created_run_count: record.created_run_count,
             skipped_run_count: record.skipped_run_count,
@@ -1718,6 +1720,7 @@ async fn create_strategy_portfolio_daily_runs_range(
             .create_strategy_portfolio_daily_runs_for_trade_date(
                 *trade_date,
                 &state.config.nats.portfolio_request_subject,
+                request.strategy_portfolio_id.as_deref(),
             )
             .await?;
         active_portfolio_count = active_portfolio_count.max(record.active_portfolio_count);
@@ -1728,6 +1731,7 @@ async fn create_strategy_portfolio_daily_runs_range(
         skipped_daily_run_ids.extend(record.skipped_daily_run_ids.clone());
         trade_date_results.push(StrategyPortfolioDailyRunsDateResult {
             trade_date: record.trade_date,
+            strategy_portfolio_id: request.strategy_portfolio_id.clone(),
             active_portfolio_count: record.active_portfolio_count,
             created_run_count: record.created_run_count,
             skipped_run_count: record.skipped_run_count,
@@ -1742,6 +1746,7 @@ async fn create_strategy_portfolio_daily_runs_range(
         Json(StrategyPortfolioDailyRunsRangeCreateResponse {
             start_date: request.start_date,
             end_date: request.end_date,
+            strategy_portfolio_id: request.strategy_portfolio_id,
             resolved_trade_dates,
             active_portfolio_count,
             created_run_count,
@@ -2003,7 +2008,10 @@ async fn get_strategy_portfolio_statement(
     let display_by_code = required_security_display_map(
         &state,
         &security_codes,
-        &format!("strategy-portfolio-{strategy_portfolio_id}-statement-display"),
+        &format!(
+            "strategy-portfolio-{strategy_portfolio_id}-statement-display-{}",
+            ulid::Ulid::new()
+        ),
     )
     .await?;
     let operation_items = operations
@@ -3967,12 +3975,16 @@ struct PatchStrategyPortfolioRequest {
 struct StrategyPortfolioDailyRunsCreateRequest {
     trade_date: NaiveDate,
     #[serde(default)]
+    strategy_portfolio_id: Option<String>,
+    #[serde(default)]
     client_request_id: Option<String>,
 }
 
 #[derive(Debug, Serialize)]
 struct StrategyPortfolioDailyRunsCreateResponse {
     trade_date: NaiveDate,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    strategy_portfolio_id: Option<String>,
     active_portfolio_count: i32,
     created_run_count: i32,
     skipped_run_count: i32,
@@ -3988,6 +4000,8 @@ struct StrategyPortfolioDailyRunsRangeCreateRequest {
     start_date: NaiveDate,
     end_date: NaiveDate,
     #[serde(default)]
+    strategy_portfolio_id: Option<String>,
+    #[serde(default)]
     client_request_id: Option<String>,
     #[serde(default)]
     max_trade_dates: Option<u32>,
@@ -3997,6 +4011,8 @@ struct StrategyPortfolioDailyRunsRangeCreateRequest {
 struct StrategyPortfolioDailyRunsRangeCreateResponse {
     start_date: NaiveDate,
     end_date: NaiveDate,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    strategy_portfolio_id: Option<String>,
     resolved_trade_dates: Vec<NaiveDate>,
     active_portfolio_count: i32,
     created_run_count: i32,
@@ -4012,6 +4028,8 @@ struct StrategyPortfolioDailyRunsRangeCreateResponse {
 #[derive(Debug, Serialize)]
 struct StrategyPortfolioDailyRunsDateResult {
     trade_date: NaiveDate,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    strategy_portfolio_id: Option<String>,
     active_portfolio_count: i32,
     created_run_count: i32,
     skipped_run_count: i32,

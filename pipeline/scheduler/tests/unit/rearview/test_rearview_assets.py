@@ -35,6 +35,7 @@ def test_daily_run_metadata_includes_worker_and_fact_evidence() -> None:
         partition_key="2026-06-26",
         requested_start_date="2026-06-25",
         requested_end_date="2026-06-26",
+        strategy_portfolio_id="portfolio-1",
         settlement_target={"settlement_target_date": "2026-06-26"},
         response={
             "active_portfolio_count": 2,
@@ -72,6 +73,7 @@ def test_daily_run_metadata_includes_worker_and_fact_evidence() -> None:
     assert metadata["scheduler_version"] == "0.1.0"
     assert metadata["partition_key"] == "2026-06-26"
     assert metadata["requested_start_date"] == "2026-06-25"
+    assert metadata["strategy_portfolio_id"] == "portfolio-1"
     assert metadata["succeeded_run_count"] == 2
     assert metadata["failed_run_count"] == 0
     assert metadata["latest_daily_run_id"] == "daily-2"

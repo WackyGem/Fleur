@@ -36,15 +36,19 @@ class RearviewApiResource(dg.ConfigurableResource):
         end_date: str,
         client_request_id: str,
         max_trade_dates: int,
+        strategy_portfolio_id: str = "",
     ) -> dict[str, Any]:
+        payload: dict[str, Any] = {
+            "start_date": start_date,
+            "end_date": end_date,
+            "client_request_id": client_request_id,
+            "max_trade_dates": max_trade_dates,
+        }
+        if strategy_portfolio_id.strip():
+            payload["strategy_portfolio_id"] = strategy_portfolio_id.strip()
         return self._post_json(
             "/rearview/strategy-portfolios/daily-runs/range",
-            {
-                "start_date": start_date,
-                "end_date": end_date,
-                "client_request_id": client_request_id,
-                "max_trade_dates": max_trade_dates,
-            },
+            payload,
         )
 
     def get_strategy_portfolio_daily_run_status(self, daily_run_id: str) -> dict[str, Any]:

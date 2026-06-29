@@ -406,7 +406,7 @@ LIMIT {limit_plus_one} OFFSET {offset}
 
 ## 生产化验收样例
 
-对账单验收建议复用 `docs/plans/archive/0051-racingline-strategy-backtest-step5-implementation-plan.md` 中“前端验收样例：低位反转回测”的规则，因为它覆盖多 mart 过滤、字段比较、字段乘常数、分段打分、TopN、仓位约束、费率和风险退出配置，比较接近真实生产组合。对账单场景需要把 Step 5 的默认“一年期回测”调整为“2025 年首个交易日建仓，并持续每日清算到当前可用数据日”，从而得到超过一年长度的 live 成交、持仓、净值和 closed trade 事实。
+对账单验收建议复用 `docs/plans/archive/0051-racingline-strategy-backtest-step5-implementation-plan.md` 中“前端验收样例：低位反转回测”的规则，因为它覆盖多 mart 过滤、字段比较、字段乘常数、分段打分、TopN、仓位约束、费率和风险退出配置，比较接近真实生产组合。对账单场景需要把 Step 5 的默认“一年期回测”调整为“从 `2025-01-02` 起查找首个真实买入信号日，并用该信号日的 T+1 交易日建仓，然后持续每日清算到当前可用数据日”，从而得到超过一年长度的 live 成交、持仓、净值和 closed trade 事实。
 
 ### 验收规则沿用范围
 
@@ -452,19 +452,19 @@ Step 4 继续使用默认执行配置：
 
 原 Step 5 验收是进入 Step 5 后用默认 `近一年 + 000300.SH` 创建回测 run，并验证 rerun 和结果展示。对账单验收应改为：
 
-1. 使用同一套 Step 1、Step 2 和 Step 4 配置，创建一个可发布为 strategy portfolio 的 source backtest。
-2. 让发布预检解析出 `source_signal_date = 2024-12-31`、`planned_live_start_date = 2025-01-02`。当前发布逻辑把 source backtest 的 `end_date` 作为 `initial_signal_date`，并从交易日历解析下一交易日为 `live_start_date`；因此首选方案是重跑一次截至 2024 年最后一个交易日的 source backtest，获取 `2024-12-31` 的买入信号。如果补充需求中的“2014 年”不是笔误，则对应的是 2015 年首个交易日建仓，不能满足本文“2025 年首个交易日建仓”的验收目标。
-3. 发布 portfolio 后，从 `2025-01-02` 开始按交易日执行 strategy portfolio daily run，一直执行到当前各依赖数据共同可用的最新交易日。当前本地数据盘点中，`mart_trade_calendar` 的 2025 首个交易日是 `2025-01-02`，2025 年共有 243 个交易日；行情、动量、趋势和 `000300.SH` benchmark 在本轮盘点时共同覆盖到 `2026-06-26`，这能产生超过一年长度的 live 事实。
-4. 使用最新成功的 daily run 作为对账单读取源。worker 当前对每个 daily run 采用从 `run_start_date` 到 `trade_date` 的全窗口重算，并在写入前按 `live_start_date` 归一化输出；因此最新成功 attempt 已经包含从 `2025-01-02` 到最终清算日的完整 live 对账历史。
+1. 使用同一套 Step 1、Step 2 和 Step 4 配置，创建一个可发布为 strategy portfolio 的 source backtest 或受控 dev seed。
+2. 从 `2025-01-02` 起查找首个真实买入信号日，再用交易日历解析下一交易日作为 `live_start_date`。本轮实施的实际样本为 `initial_signal_date = 2025-01-07`、`live_start_date = 2025-01-08`。此前“重跑截至 2024 年最后一个交易日以获得 `2024-12-31 -> 2025-01-02`”可作为候选路径，但最终验收采用 first-signal T+1，避免手工伪造不存在的首日信号。
+3. 发布或 seed portfolio 后，从 T+1 建仓日开始按交易日执行 strategy portfolio daily run，一直执行到当前各依赖数据共同可用的最新交易日。当前本地数据盘点中，行情、动量、趋势和 `000300.SH` benchmark 在本轮盘点时共同覆盖到 `2026-06-26`，这能产生超过一年长度的 live 事实。
+4. 使用最新成功的 daily run 作为对账单读取源。worker 当前对每个 daily run 采用从 `run_start_date` 到 `trade_date` 的全窗口重算，并在写入前按 `live_start_date` 归一化输出；因此最新成功 attempt 已经包含从 T+1 建仓日到最终清算日的完整 live 对账历史。
 5. 在策略详情页打开对账单，依次切换 `本月`、`近三月`、`近半年`、`今年`、`全部`，确认 summary 和 operation rows 都绑定同一个最新 `strategy_portfolio_daily_run_id` 与 `result_attempt_id`。
 
 ### 期望验收证据
 
 验收报告应记录以下事实和截图：
 
-1. `strategy_portfolio.initial_signal_date = 2024-12-31`，`strategy_portfolio.live_start_date = 2025-01-02`。
+1. `strategy_portfolio.initial_signal_date` 为 `2025-01-02` 之后首个真实买入信号日，`strategy_portfolio.live_start_date` 为该信号日的 T+1 交易日；本轮验收为 `2025-01-07 -> 2025-01-08`。
 2. 最新成功 `strategy_portfolio_daily_run.trade_date` 晚于 `2026-01-02`，推荐使用当前共同可用最新交易日，例如本轮盘点中的 `2026-06-26`。
-3. `fleur_portfolio.live_nav_daily` 在最新 attempt 下覆盖 `2025-01-02` 到最终清算日，并且行数超过一年交易日长度。
+3. `fleur_portfolio.live_nav_daily` 在最新 attempt 下覆盖 T+1 建仓日到最终清算日，并且行数超过一年交易日长度。
 4. `fleur_portfolio.live_trade` 有真实 buy/sell rows，`quantity` 均为 100 的整数倍。
 5. `fleur_portfolio.live_closed_trade` 有非空 `realized_pnl`，卖出操作行按 `exit_trade_seq` 汇总后能展示实现盈亏。
 6. 对账单 `全部` 区间包含超过一年长度的 operation rows；`本月`、`近三月`、`近半年`、`今年` 的 `start_date/end_date` 由后端返回。
@@ -476,7 +476,7 @@ Step 4 继续使用默认执行配置：
 
 ## 每日清算缺口与改造范围
 
-现有 strategy portfolio daily run 能支撑“最新 attempt 包含完整 live 历史”的对账单读取模型，但要稳定产生 2025 首个交易日建仓、超过一年期的验收数据，还需要补齐以下能力。
+现有 strategy portfolio daily run 能支撑“最新 attempt 包含完整 live 历史”的对账单读取模型，但要稳定产生 2025 年初 first-signal T+1 建仓、超过一年期的验收数据，还需要补齐以下能力。
 
 ### 已有能力
 
@@ -489,11 +489,11 @@ Step 4 继续使用默认执行配置：
 
 ### 实现缺口
 
-1. `POST /rearview/strategy-portfolios/daily-runs` 只能处理单个 `trade_date`，没有 `start_date/end_date` range API。要补 2025-01-02 到 2026-06-26 的验收数据，当前只能通过大量单日请求或 Dagster backfill 绕行。
+1. `POST /rearview/strategy-portfolios/daily-runs` 只能处理单个 `trade_date`，没有 `start_date/end_date` range API。要补 T+1 建仓日到 `2026-06-26` 的验收数据，当前只能通过大量单日请求或 Dagster backfill 绕行。
 2. Dagster `STRATEGY_PORTFOLIO_DAILY_PARTITIONS` 当前从 `2026-06-24` 开始，无法自然选择 2025 年分区来生成长周期验收 daily runs。
 3. daily run 创建接口本身没有查询交易日历；只要请求日期满足 `live_start_date <= trade_date` 就会建 run。worker 后续会查询 `run_start_date` 到 `trade_date` 的交易日，并要求至少两个交易日。调度层需要避免非交易日和数据未齐日期进入队列。
 4. 当前没有“最新可清算交易日”解析器。对账单验收不应使用浏览器日期或系统日期，而应取交易日历、行情、规则依赖 mart、benchmark 和无风险利率等依赖数据的共同可用上限。
-5. 发布路径当前通过 source backtest 的 `end_date` 推导 `initial_signal_date`。验收应优先重跑截至 2024 年最后一个交易日的 source backtest 来获得 `2024-12-31` 买入信号。如果现有 backtest options 不能生成 `end_date = 2024-12-31` 的 source run，就需要受控测试种子或测试专用后门；不能手工改生产记录字段来伪造日期。
+5. 发布路径当前通过 source backtest 的 `end_date` 推导 `initial_signal_date`。验收最终采用从 `2025-01-02` 起查找首个真实买入信号日并取 T+1 的方式；如果现有 backtest options 不能直接生成该 source run，就需要受控测试种子或测试专用后门；不能手工改生产记录字段来伪造日期。
 6. worker 对每个 daily run 都做全窗口重算。长周期 backfill 在功能验收上可接受，但生产回补需要控制并发、队列压力、ClickHouse 查询成本和失败重试观测。
 7. 对账单 read model 需要明确读取“最新成功 daily run 的当前 attempt”，而不是跨多个 daily run 拼接历史。现有 `resolve_strategy_portfolio_result()` 已经返回 latest daily run 和 `current_live_result_attempt_id`，可以复用。
 8. Dagster 清算作业当前的成功语义不等于清算完成。`strategy_portfolio_daily_runs` asset 在 Rearview 返回 `202 Accepted` 后即 materialize；如果 worker 后续失败、NATS/outbox 未消费、ClickHouse 写入失败或 `strategy_portfolio_daily_run.status` 停留在 queued/running，Dagster 仍可能显示本次 asset 成功。该行为会让本验收用例出现调度成功但对账单无数据的假阳性。
@@ -506,12 +506,12 @@ Step 4 继续使用默认执行配置：
 1. Rearview range daily-run API：新增 `POST /rearview/strategy-portfolios/daily-runs/range`，接收 `start_date`、`end_date`、可选 `client_request_id`，只按交易日历中的交易日建 run，返回 created/skipped/errors 汇总，并设置最大区间保护。
 2. Dagster backfill 能力：要么把 partition 起点调整到 `2025-01-02`，要么新增 range backfill asset/config 来调用 range API。生产 schedule 继续跑自然日触发，但 asset 内应解析最近可清算交易日并跳过非交易日。
 3. 数据可用性解析：后端或调度层增加 settlement target resolver，取 `mart_trade_calendar`、`mart_stock_quotes_daily`、策略规则 required marts、`mart_benchmark_returns_daily` 和 performance 所需无风险利率的共同最新交易日。
-4. 受控验收种子：提供一种可审计的方式创建 `initial_signal_date = 2024-12-31`、`live_start_date = 2025-01-02` 的 portfolio。优先走真实 source backtest 和 publish preview，即重跑截至 2024 年最后一个交易日的回测并发布；如果数据窗口限制导致 source backtest 无法落在 2024-12-31，则使用明确标记为 dev/test 的 fixture 命令，并在验收报告记录 fixture 输入和生成的 portfolio id。
+4. 受控验收种子：提供一种可审计的方式从 `2025-01-02` 起查找首个真实买入信号日，并用 T+1 交易日作为 `live_start_date` 创建 portfolio。fixture 命令必须明确标记为 dev/test，并在验收报告记录搜索区间、实际信号日、建仓日和生成的 portfolio id。
 5. Dagster 清算完成校验：改造调度链路，使 Dagster 能确认 daily run 最终 `succeeded` 且 ClickHouse live facts 已写入。可以在同一个 asset 内轮询 Rearview 状态，也可以拆出下游 `strategy_portfolio_daily_run_results` 观测/校验 asset；无论采用哪种实现，验收不能只以“创建 daily run 成功”作为清算成功。
 
 ### Dagster 清算作业适配要求
 
-2025 首个交易日建仓的对账单验收依赖 Dagster 能稳定执行长周期清算。这里的“清算作业成功”应定义为：目标交易日的 active portfolio daily run 已创建、worker 已消费并写入结果、PostgreSQL 状态已 finalized、ClickHouse live facts 可查询。仅有 Dagster materialization 成功或 Rearview 返回 `202 Accepted` 不足以证明对账单数据可用。
+2025 年初 first-signal T+1 建仓的对账单验收依赖 Dagster 能稳定执行长周期清算。这里的“清算作业成功”应定义为：目标交易日的 active portfolio daily run 已创建、worker 已消费并写入结果、PostgreSQL 状态已 finalized、ClickHouse live facts 可查询。仅有 Dagster materialization 成功或 Rearview 返回 `202 Accepted` 不足以证明对账单数据可用。
 
 建议把 Dagster 改造拆成以下能力：
 
@@ -521,7 +521,7 @@ Step 4 继续使用默认执行配置：
 4. 结果完成等待：Dagster 需要读取被创建或命中的 daily run ids，并等待它们进入终态。成功终态要求 `strategy_portfolio_daily_run.status = succeeded`、`current_result_attempt_id` 非空、`strategy_portfolio.latest_daily_run_id` 指向本次或更晚成功 run。
 5. ClickHouse 写入核验：对最新成功 attempt 至少检查 `live_nav_daily` 有 rows，且 `max(trade_date)` 等于本次清算 trade date；对账单验收场景还应检查 `live_trade`、`live_closed_trade` 是否可查询，并把 row count 写入 Dagster metadata。
 6. 失败可观测：如果任一 daily run 进入 failed 状态，Dagster 作业应失败并输出 `error_type`、`error_message`、`data_coverage_summary`、`signal_summary` 和对应 `strategy_portfolio_daily_run_id`。如果超时仍处于 queued/running，也应失败或标记为明确的 timeout，而不是静默成功。
-7. 长周期回补节流：从 `2025-01-02` 回补到 `2026-06-26` 可能创建数百个交易日 run。Dagster 应支持 chunk size、最大并发、轮询间隔和超时配置，避免一次 materialization 压垮 Rearview worker、NATS/outbox 或 ClickHouse。
+7. 长周期回补节流：从 T+1 建仓日回补到 `2026-06-26` 可能创建数百个交易日 run。Dagster 应支持 chunk size、最大并发、轮询间隔和超时配置，避免一次 materialization 压垮 Rearview worker、NATS/outbox 或 ClickHouse。
 8. worker 前置检查：验收运行前必须确认 rearview server、NATS/outbox publisher 和 `rearview-portfolio-worker` 正在运行。若 worker 未运行，Dagster 应能通过状态等待超时暴露问题。
 9. 生产 schedule 语义：每天 20:00 的 schedule 仍可保留，但它应该以“最近可清算交易日”为目标，而不是简单使用当天自然日 partition key。非交易日或依赖数据未齐时，作业应产生可解释 skip metadata。
 
@@ -593,7 +593,7 @@ where strategy_portfolio_daily_run_id = {latest_daily_run_id}
 1. “盈利股票数/亏损股票数”只统计已卖出的实现盈亏，不包含未卖出持仓的浮动盈亏。
 2. “持股天数”展示区间内有仓位的天数，第一版按 `live_nav_daily.position_count > 0` 的交易日数计算。
 3. 第一版前端不实现操作记录按证券过滤。
-4. 2025 首个交易日建仓验收优先重跑截至 2024 年最后一个交易日的 source backtest，获取 `2024-12-31` 买入信号后再发布 portfolio。
+4. 2025 年初建仓验收采用从 `2025-01-02` 起查找首个真实买入信号日，并取该信号日 T+1 交易日作为建仓日；受控 seed 只能创建控制面，不允许写入或伪造 ClickHouse `live_*` facts。
 
 ## 验收建议
 

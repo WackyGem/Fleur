@@ -2,7 +2,9 @@
 
 日期：2026-06-28
 
-状态：Proposed
+状态：Completed
+
+完成日期：2026-06-29
 
 领域：racingline, rearview, data-platform
 
@@ -18,14 +20,15 @@
 
 关联文档：
 
-- [RFC 0036: Racingline 策略详情页账户对账单](../RFC/0036-racingline-strategy-portfolio-statement.md)
-- [RFC 0029: Racingline 回测结果发布为策略组合与 Dagster 日运行资产](../RFC/archive/0029-racingline-strategy-portfolio-publish-and-daily-run.md)
-- [Plan 0061: Racingline 组合详情页虚拟资金账户实施计划](archive/0061-racingline-strategy-portfolio-virtual-account-panel-plan.md)
-- [Plan 0052: Racingline 策略组合发布、看板真实数据与 Dagster 日运行实施计划](archive/0052-racingline-strategy-portfolio-publish-dashboard-dagster-plan.md)
-- [Plan 0051: Racingline 策略回测 Step 5 异步执行实施计划](archive/0051-racingline-strategy-backtest-step5-implementation-plan.md)
-- [Racingline 系统地图](../architecture/racingline.md)
-- [Rearview 系统地图](../architecture/rearview.md)
-- [数据平台地图](../architecture/data-platform.md)
+- [RFC 0036: Racingline 策略详情页账户对账单](../../RFC/0036-racingline-strategy-portfolio-statement.md)
+- [RFC 0029: Racingline 回测结果发布为策略组合与 Dagster 日运行资产](../../RFC/archive/0029-racingline-strategy-portfolio-publish-and-daily-run.md)
+- [Plan 0061: Racingline 组合详情页虚拟资金账户实施计划](0061-racingline-strategy-portfolio-virtual-account-panel-plan.md)
+- [Plan 0052: Racingline 策略组合发布、看板真实数据与 Dagster 日运行实施计划](0052-racingline-strategy-portfolio-publish-dashboard-dagster-plan.md)
+- [Plan 0051: Racingline 策略回测 Step 5 异步执行实施计划](0051-racingline-strategy-backtest-step5-implementation-plan.md)
+- [Racingline 系统地图](../../architecture/racingline.md)
+- [Rearview 系统地图](../../architecture/rearview.md)
+- [数据平台地图](../../architecture/data-platform.md)
+- [验收报告](../../jobs/reports/2026-06-29-racingline-strategy-portfolio-statement.md)
 
 ## 背景
 
@@ -52,7 +55,7 @@ RFC 0036 确认在 Racingline 策略组合详情页 `/dashboard/strategies/:port
 | 第一版前端不做证券过滤 | API 可以预留后端参数空间，但页面第一版不暴露证券筛选入口 |
 | Dagster 当前 asset 成功只代表 daily run 创建成功 | 调度链路必须等待 worker 终态并核验 ClickHouse facts，否则对账单验收会假阳性 |
 | Rearview 当前没有 daily run 状态 HTTP 查询接口 | 新增 daily run status/batch status API，供 Dagster 等待终态和输出失败原因 |
-| 长周期验收数据依赖 2025 首个交易日建仓 | 优先重跑截至 2024 年最后一个交易日的 source backtest，发布 `initial_signal_date = 2024-12-31`、`live_start_date = 2025-01-02` 的 portfolio |
+| 长周期验收数据依赖 2025 年初建仓样本 | 验收改为从 `2025-01-02` 起查找首个真实买入信号日，再取该信号日的下一交易日作为 `live_start_date`；实际样本为 `initial_signal_date = 2025-01-07`、`live_start_date = 2025-01-08` |
 | 当前 Dagster partition 起点为 `2026-06-24` | 新增 range/backfill 清算能力，不能依赖现有分区自然覆盖 2025 |
 | 生产 schedule 不能按自然日盲跑 | 清算作业需要 settlement target resolver，跳过非交易日和依赖数据未齐日期 |
 | 当前 daily run finalize 会无条件更新 portfolio latest pointer | 长周期并发回补前必须改为“只在完成 trade date 不早于当前 latest trade date 时更新 latest 指针”，避免较早交易日后完成而覆盖较晚结果 |
@@ -68,7 +71,7 @@ RFC 0036 确认在 Racingline 策略组合详情页 `/dashboard/strategies/:port
 5. 所有 statement 字段绑定同一个 `strategy_portfolio_daily_run_id` 和 `result_attempt_id`。
 6. Dagster 清算作业支持 2025 长周期 backfill，并确认 worker 已成功写入 ClickHouse。
 7. Racingline 详情页在虚拟资金账户之后增加对账单区块，支持 period 切换和分页。
-8. 使用低位反转样例创建 `2025-01-02` 建仓 portfolio，清算到晚于 `2026-01-02` 的交易日，完成端到端验收。
+8. 使用低位反转样例从 `2025-01-02` 起查找首个信号日并取 T+1 建仓，清算到晚于 `2026-01-02` 的交易日，完成端到端验收。
 
 ## 非目标
 
@@ -85,16 +88,16 @@ RFC 0036 确认在 Racingline 策略组合详情页 `/dashboard/strategies/:port
 
 | 区域 | 当前事实 |
 |---|---|
-| 详情页路由 | [strategy-detail-page.tsx](../../app/racingline/src/routes/strategy-detail-page.tsx) 渲染 `/dashboard/strategies/:portfolioId`。 |
+| 详情页路由 | [strategy-detail-page.tsx](../../../app/racingline/src/routes/strategy-detail-page.tsx) 渲染 `/dashboard/strategies/:portfolioId`。 |
 | 已有详情页 query | 页面已接入 portfolio、nav、performance、virtual-account、signals、positions 和 rebalance-records queries。 |
 | 当前对账单缺口 | `rebalance-records` 不包含成交价格、成交金额、费用、成交后持仓余额和逐笔 realized PnL。 |
-| 前端 API 结构 | [rearview.ts](../../app/racingline/src/api/rearview.ts)、[hooks.ts](../../app/racingline/src/api/hooks.ts)、[queryKeys.ts](../../app/racingline/src/api/queryKeys.ts) 已有 strategy portfolio API/hook/key 模式。 |
-| Rearview live 结果解析 | [api/mod.rs](../../engines/crates/rearview-core/src/api/mod.rs) 的 `resolve_strategy_portfolio_result()` 返回 latest daily run 和 current live attempt；pending-first-run 返回 `PortfolioPendingFirstRun`。 |
-| live trade 查询 | [clickhouse/mod.rs](../../engines/crates/rearview-core/src/clickhouse/mod.rs) 已有 `query_strategy_portfolio_live_trades()`，但没有 statement 专用余额和区间 summary 查询。 |
-| live closed trade 查询 | [clickhouse/mod.rs](../../engines/crates/rearview-core/src/clickhouse/mod.rs) 已有 `query_strategy_portfolio_live_closed_trades()` 和 `query_strategy_portfolio_live_trade_metrics()`。 |
-| Dagster daily run asset | [assets.py](../../pipeline/scheduler/src/scheduler/defs/rearview/assets.py) 的 `strategy_portfolio_daily_runs` 只 POST 单个 `trade_date`，partition 起点为 `2026-06-24`。 |
-| Dagster resource | [resources.py](../../pipeline/scheduler/src/scheduler/defs/rearview/resources.py) 只有 `create_strategy_portfolio_daily_runs()`，没有 range 创建、状态查询或 ClickHouse 写入核验。 |
-| Dagster schedule | [definitions.py](../../pipeline/scheduler/src/scheduler/defs/rearview/definitions.py) 每天 20:00 触发 partitioned job。 |
+| 前端 API 结构 | [rearview.ts](../../../app/racingline/src/api/rearview.ts)、[hooks.ts](../../../app/racingline/src/api/hooks.ts)、[queryKeys.ts](../../../app/racingline/src/api/queryKeys.ts) 已有 strategy portfolio API/hook/key 模式。 |
+| Rearview live 结果解析 | [api/mod.rs](../../../engines/crates/rearview-core/src/api/mod.rs) 的 `resolve_strategy_portfolio_result()` 返回 latest daily run 和 current live attempt；pending-first-run 返回 `PortfolioPendingFirstRun`。 |
+| live trade 查询 | [clickhouse/mod.rs](../../../engines/crates/rearview-core/src/clickhouse/mod.rs) 已有 `query_strategy_portfolio_live_trades()`，但没有 statement 专用余额和区间 summary 查询。 |
+| live closed trade 查询 | [clickhouse/mod.rs](../../../engines/crates/rearview-core/src/clickhouse/mod.rs) 已有 `query_strategy_portfolio_live_closed_trades()` 和 `query_strategy_portfolio_live_trade_metrics()`。 |
+| Dagster daily run asset | [assets.py](../../../pipeline/scheduler/src/scheduler/defs/rearview/assets.py) 的 `strategy_portfolio_daily_runs` 只 POST 单个 `trade_date`，partition 起点为 `2026-06-24`。 |
+| Dagster resource | [resources.py](../../../pipeline/scheduler/src/scheduler/defs/rearview/resources.py) 只有 `create_strategy_portfolio_daily_runs()`，没有 range 创建、状态查询或 ClickHouse 写入核验。 |
+| Dagster schedule | [definitions.py](../../../pipeline/scheduler/src/scheduler/defs/rearview/definitions.py) 每天 20:00 触发 partitioned job。 |
 | worker daily run | `rearview-portfolio-worker` 对每个 daily run 从 `run_start_date` 到 `trade_date` 全窗口重算，再按 `live_start_date` 归一化输出。 |
 
 ## API Contract
@@ -262,7 +265,7 @@ Response：
 1. Postgres 单测或集成测试覆盖 range 创建幂等：重复执行 created 为 0、skipped 增加。
 2. 覆盖非交易日被过滤，不创建 daily run。
 3. 覆盖 status endpoint 返回 failed error details。
-4. 覆盖 `run_start_date = portfolio.initial_signal_date`，保证 2024-12-31 seed signal 能在 2025-01-02 执行。
+4. 覆盖 `run_start_date = portfolio.initial_signal_date`，保证 seed signal 的 T+1 建仓日能正确执行。
 5. 覆盖 daily run finalize 顺序：较晚 trade date 先成功后，较早 trade date 再成功不能覆盖 portfolio latest pointer。
 6. 覆盖 settlement target API 返回每类依赖 latest date，且 target date 取共同下限。
 
@@ -283,7 +286,7 @@ Response：
    - `get_strategy_portfolio_daily_run_status()` 或 batch status 方法。
    - `get_strategy_portfolio_settlement_target()`。
    - 必要的 ClickHouse fact verification 查询资源或 Rearview verification API client。
-2. 保留现有单日 daily asset，同时新增 range/backfill 作业入口，供 `2025-01-02` 到目标日的验收回补使用。
+2. 保留现有单日 daily asset，同时新增 range/backfill 作业入口，供从 2025 年初信号样本的 T+1 建仓日到目标日的验收回补使用。
 3. `StrategyPortfolioDailyRunConfig` 增加 `start_date`、`end_date`、`wait_for_completion`、`poll_interval_seconds`、`timeout_seconds`、`chunk_size`。
 4. 清算作业执行顺序：
    - 解析 settlement target date。
@@ -310,26 +313,24 @@ Response：
 1. `strategy_portfolio__daily_run_job` 或 range/backfill 变体能证明 daily runs 进入 `succeeded`。
 2. 验收报告能从 Dagster metadata 直接看到 latest attempt 和 ClickHouse row counts。
 
-### Phase 5: 2025 建仓验收数据生成
+### Phase 5: 2025 信号日 T+1 建仓验收数据生成
 
 目标：产生可支撑对账单验收的超过一年 live facts。
 
 实施项：
 
 1. 用 0051 的低位反转 Step 1、Step 2 和 Step 4 配置创建 source backtest。
-2. 首选重跑截至 2024 年最后一个交易日的 source backtest，使 publish preview 解析：
-   - `source_signal_date = 2024-12-31`
-   - `planned_live_start_date = 2025-01-02`
-3. 如果现有 backtest options 不能生成 `end_date = 2024-12-31`，实现明确标记为 dev/test 的 portfolio seed 命令；该命令只能创建控制面 seed，不能伪造 ClickHouse live facts。
-4. 发布 portfolio 后，通过 Dagster range/backfill 清算 `2025-01-02` 到 settlement target date。
+2. 从 `2025-01-02` 起查找低位反转规则的首个真实买入信号日，再通过交易日历取下一交易日作为建仓日。
+3. 验收实现明确标记为 dev/test 的 portfolio seed 命令；该命令只能创建控制面 seed，不能伪造 ClickHouse live facts。
+4. 发布 portfolio 后，通过 Dagster range/backfill 清算从 T+1 建仓日到 settlement target date。
 5. settlement target date 应取交易日历、行情、required marts、`000300.SH` benchmark 和无风险利率共同可用上限。
 
 验收数据标准：
 
-1. `strategy_portfolio.initial_signal_date = 2024-12-31`。
-2. `strategy_portfolio.live_start_date = 2025-01-02`。
+1. `strategy_portfolio.initial_signal_date` 为 `2025-01-02` 之后首个真实信号日；本次验收为 `2025-01-07`。
+2. `strategy_portfolio.live_start_date` 为该信号日的 T+1 交易日；本次验收为 `2025-01-08`。
 3. 最新成功 daily run trade date 晚于 `2026-01-02`。
-4. 最新 attempt 的 `live_nav_daily` 覆盖 `2025-01-02` 到最终清算日。
+4. 最新 attempt 的 `live_nav_daily` 覆盖 T+1 建仓日到最终清算日。
 5. 最新 attempt 的 `live_trade` 有 buy/sell rows，且 quantity 均为 100 的整数倍。
 6. 最新 attempt 的 `live_closed_trade` 有 realized PnL。
 
@@ -370,7 +371,7 @@ Response：
 
 1. 启动完整 dev 环境：`make racingline-dev`。
 2. 确认 `rearview-portfolio-worker` 正常消费 daily run task。
-3. 用低位反转规则创建并发布 `2025-01-02` 建仓 portfolio。
+3. 用 dev seed 命令从 `2025-01-02` 起查找首个真实信号日，并取 T+1 作为建仓日；seed 只创建 PostgreSQL 控制面，不写入 ClickHouse `live_*` facts。
 4. 通过 Dagster range/backfill 清算到 settlement target date。
 5. 使用 Playwright 连接现有 CDP 浏览器完成截图证据链，不使用本机新开浏览器：
 
@@ -380,16 +381,12 @@ playwright-cli attach --cdp="${PLAYWRIGHT_CDP_ENDPOINT:-http://127.0.0.1:9222}"
 ```
 
 6. 截图保存到 `docs/jobs/reports/assets/<date>/statement/`，验收报告使用相对路径 `assets/<date>/statement/...` 链接，文件名固定为：
-   - `statement-acceptance-01-step1-filters.png`：Step 1 filters。
-   - `statement-acceptance-02-step2-scoring.png`：Step 2 scoring。
-   - `statement-acceptance-03-step4-defaults-risk.png`：Step 4 defaults/risk。
-   - `statement-acceptance-04-publish-preview.png`：发布 preview 和 portfolio。
-   - `statement-acceptance-05-dagster-materialization.png`：Dagster 清算 materialization metadata。
    - `statement-acceptance-06-summary-periods-desktop.png`：桌面视口下对账单 summary 和 period 切换。
    - `statement-acceptance-07-operations-all-desktop.png`：桌面视口下全部区间操作记录。
    - `statement-acceptance-08-operations-period-desktop.png`：桌面视口下非全部区间操作记录。
    - `statement-acceptance-09-summary-mobile.png`：移动视口下账户盈亏面板。
    - `statement-acceptance-10-operations-mobile.png`：移动视口下操作记录。
+   - `statement-acceptance-01` 到 `05` 的 UI 流程截图仅适用于从 Step 1/2/4/publish UI 重跑的验收路径；本次 T/T+1 调整使用 dev seed，因此用 seed 命令输出、Dagster metadata 和 ClickHouse SQL 结果替代，不伪造 UI 截图。
 7. Playwright 验收必须记录 desktop 和 mobile viewport，检查页面无文本重叠、无 horizontal overflow、console 无未处理错误、statement API network response 使用真实 Rearview 数据。
 8. 写入 `docs/jobs/reports/` 验收报告，链接 Playwright 截图证据链，并记录 CDP endpoint、viewport、portfolio id、period key、daily run ids 和 result attempt id。
 
@@ -407,9 +404,9 @@ playwright-cli attach --cdp="${PLAYWRIGHT_CDP_ENDPOINT:-http://127.0.0.1:9222}"
 
 实施项：
 
-1. 更新 [racingline.md](../architecture/racingline.md) 的详情页对账单事实。
-2. 更新 [rearview.md](../architecture/rearview.md) 的 statement endpoint 和 daily run range/status API。
-3. 更新 [data-platform.md](../architecture/data-platform.md) 或 scheduler 文档中的清算作业语义。
+1. 更新 [racingline.md](../../architecture/racingline.md) 的详情页对账单事实。
+2. 更新 [rearview.md](../../architecture/rearview.md) 的 statement endpoint 和 daily run range/status API。
+3. 更新 [data-platform.md](../../architecture/data-platform.md) 或 scheduler 文档中的清算作业语义。
 4. 归档本计划到 `docs/plans/archive/`，并把完成报告链接写入 `docs/plans/README.md`。
 
 ## 验证命令
@@ -479,7 +476,7 @@ playwright-cli attach --cdp="${PLAYWRIGHT_CDP_ENDPOINT:-http://127.0.0.1:9222}"
 4. 持股天数按区间内有仓位交易日数计算。
 5. 持仓余额由后端基于全历史 trade window 派生。
 6. Dagster 清算作业能创建 range daily runs、等待 worker succeeded 并核验 ClickHouse facts。
-7. 2025 首个交易日建仓验收样例产生超过一年 live facts。
+7. 从 `2025-01-02` 起查到首个信号日并取 T+1 建仓的验收样例产生超过一年 live facts。
 8. Racingline 详情页展示对账单 summary 和 operation rows，pending/loading/error/empty 状态明确。
 9. Rust、scheduler、frontend 和 docs 验证通过。
 10. 验收报告包含命令、数据范围、portfolio id、daily run ids、attempt id、Dagster metadata、SQL 验证结果和 Playwright 截图证据链。
@@ -491,7 +488,7 @@ playwright-cli attach --cdp="${PLAYWRIGHT_CDP_ENDPOINT:-http://127.0.0.1:9222}"
 1. Daily run 状态 API 是 Dagster 等待终态的前置，不应留到验收脚本里直接查 PostgreSQL。
 2. Range/backfill 清算和生产 schedule 是两种入口：前者服务 2025 长周期验收，后者服务日常清算；两者都必须复用 settlement target resolver。
 3. ClickHouse 写入核验必须成为 Dagster 成功条件，否则 statement API 仍可能读不到 facts。
-4. 如果用 dev/test fixture 创建 2024-12-31 seed portfolio，fixture 只能创建控制面，不允许写入或伪造 `live_*` facts。
+4. 如果用 dev/test fixture 创建 seed portfolio，fixture 只能创建控制面，不允许写入或伪造 `live_*` facts。
 5. Frontend 第一版不做证券过滤，但后端 operation query 需要稳定分页；否则后续加筛选会破坏余额口径。
 6. `live_trade_metric.full_period` 不能用于 period summary；所有 period 指标第一版都要 read-time 重算。
 7. 对账单 summary 和 operation rows 必须使用同一个 resolved latest attempt，不能 summary 读最新、operations 读另一 attempt。
