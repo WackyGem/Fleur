@@ -6,11 +6,13 @@
 
 | Plan | 状态 | 说明 |
 |---|---|---|
+| _None_ |  |  |
 
 ## Recently Completed
 
 | Plan | 状态 | 说明 |
 |---|---|---|
+| [0062](archive/0062-racingline-strategy-portfolio-statement-plan.md) | Completed | Racingline 策略组合详情页对账单、Rearview statement read model、Dagster 清算作业终态校验和 2025 first-signal T+1 建仓验收；验收见 [2026-06-29 report](../jobs/reports/2026-06-29-racingline-strategy-portfolio-statement.md) |
 | [0061](archive/0061-racingline-strategy-portfolio-virtual-account-panel-plan.md) | Completed | Racingline 组合详情页「虚拟资金账户」区块、Rearview account read model、pending-first-run 空态和前后端闭环；验收见 [2026-06-28 report](../jobs/reports/2026-06-28-racingline-portfolio-virtual-account-panel.md) |
 | [0060](archive/0060-racingline-step5-portfolio-publish-dialog-tplus1-plan.md) | Completed | Racingline Step 5「建立组合」弹层 Tab 改造、T+1 发布预检、pending Dashboard 语义、backtest/live 两段数据分离和首个 daily run 信号窗口修正；控制面审计见 [audit report](../jobs/reports/2026-06-27-racingline-portfolio-control-plane-audit.md)，端到端验收见 [smoke report](../jobs/reports/2026-06-27-racingline-portfolio-publish-tplus1-smoke.md) |
 | [0059](archive/0059-version-information-governance-implementation-plan.md) | Completed | 版本信息治理实施：Rust crate 独立版本、release manifest/release note、版本校验脚本、运行时版本暴露、Alembic head 表达修正和 tag 前检查入口 |

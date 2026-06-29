@@ -1,6 +1,6 @@
 import { Fragment, useEffect, useRef, useState } from "react"
 import { Link, useParams } from "react-router-dom"
-import { createChart, LineSeries } from "lightweight-charts"
+import { createChart, LineSeries, TickMarkType } from "lightweight-charts"
 import { ArrowLeft, Trash2 } from "lucide-react"
 
 import { Badge } from "@/components/ui/badge"
@@ -44,6 +44,7 @@ import {
   useStrategyPortfolioPositionsQuery,
   useStrategyPortfolioQuery,
   useStrategyPortfolioRebalanceRecordsQuery,
+  useStrategyPortfolioStatementQuery,
   useStrategyPortfolioSignalsQuery,
   useStrategyPortfolioSignalTimelineQuery,
   useStrategyPortfolioVirtualAccountQuery,
@@ -58,6 +59,8 @@ import type {
   StrategyPortfolioPerformanceView,
   StrategyPortfolioRecord,
   StrategyPortfolioSignalTimelinePoint,
+  StrategyPortfolioStatementPeriodKey,
+  StrategyPortfolioStatementResponse,
   StrategyPortfolioVirtualAccount,
 } from "@/types/rearview"
 
@@ -101,10 +104,26 @@ type SignalPool = {
   stocks: SignalStock[]
 }
 
+const STATEMENT_PAGE_LIMIT = 100
+
+const STATEMENT_PERIOD_OPTIONS: {
+  key: StrategyPortfolioStatementPeriodKey
+  label: string
+}[] = [
+  { key: "month", label: "本月" },
+  { key: "three_months", label: "近三月" },
+  { key: "six_months", label: "近半年" },
+  { key: "ytd", label: "今年" },
+  { key: "all", label: "全部" },
+]
+
 function StrategyDetailPage() {
   const { portfolioId } = useParams()
   const [selectedSignalDate, setSelectedSignalDate] = useState("")
   const [selectedRebalanceDate, setSelectedRebalanceDate] = useState("")
+  const [statementPeriod, setStatementPeriod] =
+    useState<StrategyPortfolioStatementPeriodKey>("month")
+  const [statementOffset, setStatementOffset] = useState(0)
   const rebalanceDateScrollerRef = useRef<HTMLDivElement | null>(null)
   const strategyPortfolioId = portfolioId ?? null
   const portfolioQuery = useStrategyPortfolioQuery(strategyPortfolioId)
@@ -118,17 +137,26 @@ function StrategyDetailPage() {
   )
   const virtualAccountQuery =
     useStrategyPortfolioVirtualAccountQuery(liveResultPortfolioId)
+  const statementQuery = useStrategyPortfolioStatementQuery(
+    liveResultPortfolioId,
+    {
+      period: statementPeriod,
+      limit: STATEMENT_PAGE_LIMIT,
+      offset: statementOffset,
+    }
+  )
   const signalTimelineQuery =
     useStrategyPortfolioSignalTimelineQuery(strategyPortfolioId)
+  const latestNavDate = navQuery.data?.points.at(-1)?.trade_date ?? null
   const latestSignalDate =
     selectedSignalDate ||
+    latestNavDate ||
     signalTimelineQuery.data?.trade_dates.at(-1)?.trade_date ||
     null
   const signalsQuery = useStrategyPortfolioSignalsQuery(
     strategyPortfolioId,
     latestSignalDate
   )
-  const latestNavDate = navQuery.data?.points.at(-1)?.trade_date ?? null
   const positionsQuery = useStrategyPortfolioPositionsQuery(
     liveResultPortfolioId,
     latestNavDate
@@ -142,6 +170,7 @@ function StrategyDetailPage() {
     isPortfolioPendingFirstRunError(navQuery.error) ||
     isPortfolioPendingFirstRunError(performanceQuery.error) ||
     isPortfolioPendingFirstRunError(virtualAccountQuery.error) ||
+    isPortfolioPendingFirstRunError(statementQuery.error) ||
     isPortfolioPendingFirstRunError(positionsQuery.error) ||
     isPortfolioPendingFirstRunError(rebalanceRecordsQuery.error)
   const portfolio = portfolioQuery.data
@@ -501,19 +530,6 @@ function StrategyDetailPage() {
 
             <Separator className="bg-border/60" />
 
-            <VirtualAccountSection
-              account={virtualAccountQuery.data ?? null}
-              isError={
-                !isPendingFirstRun &&
-                virtualAccountQuery.isError &&
-                !isPortfolioPendingFirstRunError(virtualAccountQuery.error)
-              }
-              isLoading={!isPendingFirstRun && virtualAccountQuery.isLoading}
-              isPendingFirstRun={isPendingFirstRun}
-            />
-
-            <Separator className="bg-border/60" />
-
             <section className="flex flex-col gap-3">
               <div className="flex items-center justify-between gap-3">
                 <div className="text-sm font-medium">持仓记录</div>
@@ -685,6 +701,46 @@ function StrategyDetailPage() {
                 </Empty>
               )}
             </section>
+
+            <Separator className="bg-border/60" />
+
+            <VirtualAccountSection
+              account={virtualAccountQuery.data ?? null}
+              isError={
+                !isPendingFirstRun &&
+                virtualAccountQuery.isError &&
+                !isPortfolioPendingFirstRunError(virtualAccountQuery.error)
+              }
+              isLoading={!isPendingFirstRun && virtualAccountQuery.isLoading}
+              isPendingFirstRun={isPendingFirstRun}
+            />
+
+            <Separator className="bg-border/60" />
+
+            <StatementSection
+              statement={statementQuery.data ?? null}
+              period={statementPeriod}
+              offset={statementOffset}
+              isError={
+                !isPendingFirstRun &&
+                statementQuery.isError &&
+                !isPortfolioPendingFirstRunError(statementQuery.error)
+              }
+              isLoading={!isPendingFirstRun && statementQuery.isLoading}
+              isPendingFirstRun={isPendingFirstRun}
+              onNextPage={() =>
+                setStatementOffset((current) => current + STATEMENT_PAGE_LIMIT)
+              }
+              onPeriodChange={(period) => {
+                setStatementPeriod(period)
+                setStatementOffset(0)
+              }}
+              onPreviousPage={() =>
+                setStatementOffset((current) =>
+                  Math.max(0, current - STATEMENT_PAGE_LIMIT)
+                )
+              }
+            />
           </div>
         </div>
       </div>
@@ -871,6 +927,292 @@ function VirtualAccountSection({
   )
 }
 
+function StatementSection({
+  isError,
+  isLoading,
+  isPendingFirstRun,
+  offset,
+  onNextPage,
+  onPeriodChange,
+  onPreviousPage,
+  period,
+  statement,
+}: {
+  isError: boolean
+  isLoading: boolean
+  isPendingFirstRun: boolean
+  offset: number
+  onNextPage: () => void
+  onPeriodChange: (period: StrategyPortfolioStatementPeriodKey) => void
+  onPreviousPage: () => void
+  period: StrategyPortfolioStatementPeriodKey
+  statement: StrategyPortfolioStatementResponse | null
+}) {
+  const operations = statement?.operations.items ?? []
+  const summaryMetrics = statement
+    ? [
+        {
+          label: "平均仓位",
+          value: formatOptionalPercent(statement.summary.average_position_pct),
+          tone: "neutral" as const,
+        },
+        {
+          label: "交易股票数",
+          value: formatInteger(statement.summary.traded_security_count),
+          tone: "neutral" as const,
+        },
+        {
+          label: "交易笔数",
+          value: formatInteger(statement.summary.trade_count),
+          tone: "neutral" as const,
+        },
+        {
+          label: "交易成功率",
+          value: formatOptionalPercent(statement.summary.trade_win_rate),
+          tone: signedTone(statement.summary.trade_win_rate),
+        },
+        {
+          label: "盈利股票数",
+          value: formatInteger(statement.summary.winning_security_count),
+          tone: "up" as const,
+        },
+        {
+          label: "亏损股票数",
+          value: formatInteger(statement.summary.losing_security_count),
+          tone: "down" as const,
+        },
+        {
+          label: "持股天数",
+          value: `${formatInteger(statement.summary.holding_days)}天`,
+          tone: "neutral" as const,
+        },
+      ]
+    : []
+  const pageStart = operations.length > 0 ? offset + 1 : 0
+  const pageEnd = offset + operations.length
+
+  return (
+    <section className="flex flex-col gap-3">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="min-w-0">
+          <div className="text-sm font-medium">对账单</div>
+          {statement ? (
+            <div className="mt-1 text-xs text-muted-foreground tabular-nums">
+              {statement.period.start_date} 至 {statement.period.end_date}
+            </div>
+          ) : null}
+        </div>
+        <div className="flex h-8 max-w-full shrink-0 items-center overflow-x-auto rounded-md border border-border/70 p-0.5">
+          {STATEMENT_PERIOD_OPTIONS.map((option) => {
+            const selected = option.key === period
+
+            return (
+              <Button
+                key={option.key}
+                aria-pressed={selected}
+                data-state={selected ? "selected" : "idle"}
+                className="h-6 shrink-0 px-2 text-xs text-muted-foreground data-[state=selected]:bg-muted data-[state=selected]:text-foreground"
+                size="sm"
+                type="button"
+                variant="ghost"
+                onClick={() => onPeriodChange(option.key)}
+              >
+                {option.label}
+              </Button>
+            )
+          })}
+        </div>
+      </div>
+
+      {isPendingFirstRun ? (
+        <Empty className="py-8">
+          <EmptyHeader>
+            <EmptyTitle>尚未产生对账单</EmptyTitle>
+            <EmptyDescription>
+              首个 live daily run 成功后展示账户盈亏和操作记录。
+            </EmptyDescription>
+          </EmptyHeader>
+        </Empty>
+      ) : isLoading ? (
+        <div className="grid min-h-[8.5rem] gap-x-6 gap-y-4 py-3 sm:grid-cols-2 lg:grid-cols-4">
+          {Array.from({ length: 7 }).map((_, index) => (
+            <div key={index} className="min-w-0 py-1">
+              <Skeleton className="h-3 w-20 bg-muted/70" />
+              <Skeleton className="mt-2 h-5 w-24 bg-muted" />
+            </div>
+          ))}
+        </div>
+      ) : isError || !statement ? (
+        <Empty className="py-8">
+          <EmptyHeader>
+            <EmptyTitle>对账单加载失败</EmptyTitle>
+            <EmptyDescription>
+              当前组合尚未返回可展示的对账单数据。
+            </EmptyDescription>
+          </EmptyHeader>
+        </Empty>
+      ) : (
+        <>
+          <div className="grid gap-x-6 gap-y-4 py-3 sm:grid-cols-2 lg:grid-cols-4">
+            {summaryMetrics.map((metric) => (
+              <div key={metric.label} className="min-w-0 py-1">
+                <div className="truncate text-xs text-muted-foreground">
+                  {metric.label}
+                </div>
+                <div
+                  className={cn(
+                    "mt-1 min-w-0 break-words text-sm leading-tight font-medium tabular-nums",
+                    metric.tone === "up"
+                      ? "text-[color:var(--portfolio-up)]"
+                      : metric.tone === "down"
+                        ? "text-[color:var(--portfolio-down)]"
+                        : "text-foreground"
+                  )}
+                >
+                  {metric.value}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div className="flex items-center justify-between gap-3">
+            <div className="text-sm font-medium">操作记录</div>
+            <div className="text-xs text-muted-foreground tabular-nums">
+              {pageStart}-{pageEnd}
+            </div>
+          </div>
+
+          {operations.length > 0 ? (
+            <div className="overflow-x-auto [scrollbar-width:thin]">
+              <Table className="min-w-[980px] table-fixed text-xs leading-snug [&_td]:overflow-hidden [&_th]:overflow-hidden">
+                <TableHeader>
+                  <TableRow className="hover:bg-transparent">
+                    <TableHead className="h-6 w-[9%] px-1">调仓日</TableHead>
+                    <TableHead className="h-6 w-[7%] px-1">方向</TableHead>
+                    <TableHead className="h-6 w-[17%] px-1">个股</TableHead>
+                    <TableHead className="h-6 w-[9%] px-1 text-right">
+                      价格
+                    </TableHead>
+                    <TableHead className="h-6 w-[9%] px-1 text-right">
+                      数量
+                    </TableHead>
+                    <TableHead className="h-6 w-[7%] px-1 text-right">
+                      手数
+                    </TableHead>
+                    <TableHead className="h-6 w-[11%] px-1 text-right">
+                      金额
+                    </TableHead>
+                    <TableHead className="h-6 w-[10%] px-1 text-right">
+                      费用
+                    </TableHead>
+                    <TableHead className="h-6 w-[10%] px-1 text-right">
+                      持仓余额
+                    </TableHead>
+                    <TableHead className="h-6 w-[11%] px-1 text-right">
+                      实现盈亏
+                    </TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {operations.map((operation) => (
+                    <TableRow key={operation.portfolio_trade_id}>
+                      <TableCell className="px-1 py-0.5 tabular-nums">
+                        {operation.trade_date}
+                      </TableCell>
+                      <TableCell
+                        className={cn(
+                          "px-1 py-0.5 font-medium",
+                          operation.side === "sell"
+                            ? "text-[color:var(--portfolio-down)]"
+                            : "text-[color:var(--portfolio-up)]"
+                        )}
+                      >
+                        {formatStatementSide(operation.side)}
+                      </TableCell>
+                      <TableCell className="px-1 py-0.5">
+                        <div className="grid min-w-0 grid-cols-[4.25em_minmax(0,1fr)] items-center gap-1">
+                          <span className="truncate font-medium">
+                            {operation.security_name || operation.security_code}
+                          </span>
+                          <span className="truncate text-muted-foreground tabular-nums">
+                            {operation.security_code}
+                          </span>
+                        </div>
+                      </TableCell>
+                      <TableCell className="px-1 py-0.5 text-right tabular-nums">
+                        {formatAccountCurrency(operation.execution_price)}
+                      </TableCell>
+                      <TableCell className="px-1 py-0.5 text-right tabular-nums">
+                        {formatShareQuantity(operation.quantity)}
+                      </TableCell>
+                      <TableCell className="px-1 py-0.5 text-right tabular-nums">
+                        {formatLotCount(operation.lot_count)}
+                      </TableCell>
+                      <TableCell className="px-1 py-0.5 text-right tabular-nums">
+                        {formatAccountCurrency(operation.gross_amount)}
+                      </TableCell>
+                      <TableCell className="px-1 py-0.5 text-right tabular-nums">
+                        {formatAccountCurrency(operation.total_fee)}
+                      </TableCell>
+                      <TableCell className="px-1 py-0.5 text-right tabular-nums">
+                        {formatShareQuantity(operation.position_balance_quantity)}
+                      </TableCell>
+                      <TableCell
+                        className={cn(
+                          "px-1 py-0.5 text-right font-medium tabular-nums",
+                          getSignedValueClassName(
+                            formatAccountOptionalSignedCurrency(
+                              operation.realized_pnl
+                            )
+                          )
+                        )}
+                      >
+                        {formatAccountOptionalSignedCurrency(
+                          operation.realized_pnl
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          ) : (
+            <Empty className="border border-dashed border-border/70 py-8">
+              <EmptyHeader>
+                <EmptyTitle>暂无操作记录</EmptyTitle>
+                <EmptyDescription>
+                  当前区间内没有买入或卖出记录。
+                </EmptyDescription>
+              </EmptyHeader>
+            </Empty>
+          )}
+
+          <div className="flex items-center justify-end gap-2">
+            <Button
+              disabled={offset <= 0}
+              size="sm"
+              type="button"
+              variant="outline"
+              onClick={onPreviousPage}
+            >
+              上一页
+            </Button>
+            <Button
+              disabled={!statement.operations.has_more}
+              size="sm"
+              type="button"
+              variant="outline"
+              onClick={onNextPage}
+            >
+              下一页
+            </Button>
+          </div>
+        </>
+      )}
+    </section>
+  )
+}
+
 function SignalCountChart({
   onTimeSelect,
   points,
@@ -897,6 +1239,9 @@ function SignalCountChart({
         textColor: "rgba(99, 95, 89, 0.78)",
         attributionLogo: false,
       },
+      localization: {
+        timeFormatter: formatChartDate,
+      },
       grid: {
         vertLines: { visible: false },
         horzLines: { color: "rgba(120, 114, 108, 0.12)" },
@@ -914,6 +1259,8 @@ function SignalCountChart({
       timeScale: {
         borderVisible: false,
         timeVisible: false,
+        tickMarkFormatter: formatChartAxisDate,
+        tickMarkMaxCharacterLength: 7,
       },
       handleScroll: false,
       handleScale: false,
@@ -1071,7 +1418,7 @@ function buildSignalPoolsFromApi(
   signals: StrategyBacktestTargetRecord[],
   pendingSignals: StrategyPortfolioDashboardCard["pending_buy_signals"]
 ): SignalPool[] {
-  return timeline.map((point) => ({
+  const points = timeline.map((point) => ({
     date: point.trade_date,
     signalCount: point.signal_count ?? point.target_count,
     stocks:
@@ -1085,6 +1432,20 @@ function buildSignalPoolsFromApi(
               .filter((stock): stock is SignalStock => stock !== null)
         : [],
   }))
+
+  if (selectedDate && !points.some((point) => point.date === selectedDate)) {
+    const selectedStocks = signals
+      .map(mapApiSignalTarget)
+      .filter((stock): stock is SignalStock => stock !== null)
+
+    points.push({
+      date: selectedDate,
+      signalCount: selectedStocks.length,
+      stocks: selectedStocks,
+    })
+  }
+
+  return points.sort((left, right) => left.date.localeCompare(right.date))
 }
 
 function mapApiSignalTarget(
@@ -1228,6 +1589,53 @@ function formatCompactDate(date: string) {
   return `${month}/${day}`
 }
 
+function formatChartDate(time: unknown) {
+  const date = chartTimeToDateKey(time)
+
+  return date ? date.replaceAll("-", "/") : String(time)
+}
+
+function formatChartAxisDate(time: unknown, tickMarkType: TickMarkType) {
+  const date = chartTimeToDateKey(time)
+
+  if (!date) {
+    return String(time)
+  }
+
+  const [year, month, day] = date.split("-")
+
+  if (tickMarkType === TickMarkType.Year) {
+    return year
+  }
+
+  if (tickMarkType === TickMarkType.Month) {
+    return `${year}/${month}`
+  }
+
+  return `${month}/${day}`
+}
+
+function chartTimeToDateKey(time: unknown) {
+  if (typeof time === "string") {
+    return time
+  }
+
+  if (
+    time &&
+    typeof time === "object" &&
+    "year" in time &&
+    "month" in time &&
+    "day" in time
+  ) {
+    const value = time as { day: number; month: number; year: number }
+    return `${value.year}-${String(value.month).padStart(2, "0")}-${String(
+      value.day
+    ).padStart(2, "0")}`
+  }
+
+  return null
+}
+
 function formatCurrency(value: number) {
   return `¥${value.toFixed(2)}`
 }
@@ -1236,11 +1644,29 @@ function formatAccountCurrency(value: number) {
   return value.toFixed(2)
 }
 
+function formatInteger(value: number) {
+  return Math.trunc(value).toLocaleString("zh-CN")
+}
+
+function formatShareQuantity(value: number) {
+  return Math.trunc(value).toLocaleString("zh-CN")
+}
+
+function formatLotCount(value: number) {
+  return Number.isInteger(value) ? value.toFixed(0) : value.toFixed(2)
+}
+
 function formatAccountSignedCurrency(value: number) {
   const sign = value > 0 ? "+" : value < 0 ? "-" : ""
   const absolute = Math.abs(value)
 
   return `${sign}${absolute.toFixed(2)}`
+}
+
+function formatOptionalPercent(value: number | null | undefined) {
+  return typeof value === "number" && Number.isFinite(value)
+    ? `${(value * 100).toFixed(2)}%`
+    : "--"
 }
 
 function formatOptionalCurrency(value: number | null | undefined) {
@@ -1271,6 +1697,10 @@ function formatAccountOptionalSignedPercent(value: number | null | undefined) {
   return typeof value === "number" && Number.isFinite(value)
     ? formatSignedPercent(value)
     : "--"
+}
+
+function formatStatementSide(side: "buy" | "sell") {
+  return side === "sell" ? "卖出" : "买入"
 }
 
 function getScoreBadgeVariant(score: number) {

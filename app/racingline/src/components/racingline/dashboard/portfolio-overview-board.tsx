@@ -178,16 +178,25 @@ function MetricSection({
 }
 
 function TodaySignalSection({
+  signalDate,
   stocks,
 }: {
+  signalDate: string | null
   stocks: SignalStock[]
 }) {
   const placeholderCount = Math.max(0, VISIBLE_SIGNAL_ROW_COUNT - stocks.length)
 
   return (
     <section className="flex flex-col gap-2">
-      <div className="text-[11px] font-medium text-muted-foreground">
-        买入信号
+      <div className="flex items-center justify-between gap-3">
+        <div className="text-[11px] font-medium text-muted-foreground">
+          买入信号
+        </div>
+        {signalDate ? (
+          <div className="text-[11px] text-muted-foreground tabular-nums">
+            {formatDisplayDate(signalDate)}
+          </div>
+        ) : null}
       </div>
       <div className="max-h-[11rem] min-h-0 overflow-y-auto">
         <Table className="w-full table-fixed text-xs">
@@ -291,7 +300,10 @@ function PortfolioOverviewCard({
             title="风险指标"
             metrics={portfolio.risk}
           />
-          <TodaySignalSection stocks={portfolio.todaySignals} />
+          <TodaySignalSection
+            signalDate={portfolio.signalDate}
+            stocks={portfolio.todaySignals}
+          />
         </div>
 
         <Separator />
@@ -387,6 +399,10 @@ function mapStrategyPortfolioCard(
     risk: card.risk.map(mapDashboardMetric),
     efficiency: card.efficiency.map(mapDashboardMetric),
     relative: card.relative.map(mapDashboardMetric),
+    signalDate:
+      card.live_status === "pending_first_run"
+        ? (signals[0]?.signal_date ?? card.initial_signal_date)
+        : (latestCurvePoint?.time ?? null),
     todaySignals: signals.map((signal) => ({
       code: signal.code,
       executionDate: signal.execution_date,
@@ -397,6 +413,10 @@ function mapStrategyPortfolioCard(
     })),
     curve: card.curve,
   }
+}
+
+function formatDisplayDate(date: string) {
+  return date.replaceAll("-", "/")
 }
 
 function mapDashboardMetric(

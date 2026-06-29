@@ -9,6 +9,7 @@ import {
   getStrategyPortfolioDashboard,
   getStrategyPortfolioPerformance,
   getStrategyPortfolioPublishPreview,
+  getStrategyPortfolioStatement,
   getStrategyPortfolioVirtualAccount,
   getStrategyBacktest,
   getStrategyBacktestOptions,
@@ -50,6 +51,7 @@ import type {
   StrategyBacktestCreateRequest,
   StrategyBacktestValidateRequest,
   StrategyPortfolioCreateRequest,
+  StrategyPortfolioStatementPeriodKey,
   StrategyPreviewPoolPageRequest,
   StrategyPreviewOpenRequest,
   StrategyPreviewRequest,
@@ -242,6 +244,33 @@ export function useStrategyPortfolioVirtualAccountQuery(
       }
       return getStrategyPortfolioVirtualAccount(strategyPortfolioId)
     },
+    retry: 1,
+  })
+}
+
+export function useStrategyPortfolioStatementQuery(
+  strategyPortfolioId: string | null,
+  query: {
+    period: StrategyPortfolioStatementPeriodKey
+    limit: number
+    offset: number
+  }
+) {
+  return useQuery({
+    enabled: Boolean(strategyPortfolioId),
+    queryKey: queryKeys.strategyPortfolioStatement(
+      strategyPortfolioId,
+      query.period,
+      query.limit,
+      query.offset
+    ),
+    queryFn: () => {
+      if (!strategyPortfolioId) {
+        throw new Error("strategy portfolio id is missing")
+      }
+      return getStrategyPortfolioStatement(strategyPortfolioId, query)
+    },
+    placeholderData: keepPreviousData,
     retry: 1,
   })
 }

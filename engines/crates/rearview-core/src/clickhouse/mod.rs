@@ -45,6 +45,11 @@ struct TradeDateRow {
 }
 
 #[derive(Debug, Clone, Deserialize)]
+struct LatestDateRow {
+    max_date: Option<NaiveDate>,
+}
+
+#[derive(Debug, Clone, Deserialize)]
 struct BenchmarkReturnRow {
     trade_date: NaiveDate,
     #[serde(default, deserialize_with = "deserialize_optional_f64")]
@@ -77,6 +82,48 @@ pub struct StrategyPortfolioVirtualAccountRecord {
     pub daily_pnl: Option<f64>,
     pub daily_return: Option<f64>,
     pub position_count: i32,
+}
+
+#[derive(Debug, Clone, PartialEq, Deserialize)]
+pub struct StrategyPortfolioStatementSummaryRecord {
+    #[serde(default, deserialize_with = "deserialize_optional_f64")]
+    pub average_position_pct: Option<f64>,
+    pub traded_security_count: u64,
+    pub trade_count: u64,
+    #[serde(default, deserialize_with = "deserialize_optional_f64")]
+    pub trade_win_rate: Option<f64>,
+    pub winning_security_count: u64,
+    pub losing_security_count: u64,
+    pub holding_days: u64,
+}
+
+#[derive(Debug, Clone, PartialEq, Deserialize)]
+pub struct StrategyPortfolioStatementOperationRecord {
+    pub portfolio_trade_id: String,
+    pub trade_seq: i32,
+    pub trade_date: NaiveDate,
+    pub security_code: String,
+    pub side: String,
+    pub execution_price: f64,
+    pub quantity: f64,
+    pub lot_size: u32,
+    pub lot_count: f64,
+    pub gross_amount: f64,
+    pub commission: f64,
+    pub stamp_duty: f64,
+    pub transfer_fee: f64,
+    pub total_fee: f64,
+    pub position_balance_quantity: f64,
+    #[serde(default, deserialize_with = "deserialize_optional_f64")]
+    pub realized_pnl: Option<f64>,
+    pub reason: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Deserialize)]
+pub struct StrategyPortfolioLiveFactCountsRecord {
+    pub nav_row_count: u64,
+    pub trade_row_count: u64,
+    pub closed_trade_row_count: u64,
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -993,6 +1040,52 @@ FORMAT JSONEachRow"#,
         Ok(trade_dates)
     }
 
+    pub async fn query_mart_latest_trade_date(
+        &self,
+        mart_reference: &str,
+        query_id: &str,
+    ) -> RearviewResult<Option<NaiveDate>> {
+        let (database, table) = parse_mart_reference(&self.config.marts_database, mart_reference)?;
+        let sql = mart_latest_trade_date_sql(&quote_identifier(&database), &table);
+        self.query_latest_date_sql(&sql, query_id).await
+    }
+
+    pub async fn query_benchmark_latest_trade_date(
+        &self,
+        security_code: &str,
+        query_id: &str,
+    ) -> RearviewResult<Option<NaiveDate>> {
+        validate_identifier(&self.config.marts_database)?;
+        validate_security_code(security_code)?;
+        let database = quote_identifier(&self.config.marts_database);
+        let security_code = quote_string_literal(security_code);
+        let sql = benchmark_latest_trade_date_sql(&database, &security_code);
+        self.query_latest_date_sql(&sql, query_id).await
+    }
+
+    pub async fn query_risk_free_latest_trade_date(
+        &self,
+        source_tenor: &str,
+        query_id: &str,
+    ) -> RearviewResult<Option<NaiveDate>> {
+        validate_identifier(&self.config.marts_database)?;
+        validate_source_tenor(source_tenor)?;
+        let database = quote_identifier(&self.config.marts_database);
+        let source_tenor = quote_string_literal(source_tenor);
+        let sql = risk_free_latest_trade_date_sql(&database, &source_tenor);
+        self.query_latest_date_sql(&sql, query_id).await
+    }
+
+    async fn query_latest_date_sql(
+        &self,
+        sql: &str,
+        query_id: &str,
+    ) -> RearviewResult<Option<NaiveDate>> {
+        let body = self.execute_text(sql, query_id).await?;
+        let rows: Vec<LatestDateRow> = parse_json_each_row(&body)?;
+        Ok(rows.into_iter().next().and_then(|row| row.max_date))
+    }
+
     pub async fn query_trade_date_lookback_start(
         &self,
         end_date: NaiveDate,
@@ -1494,6 +1587,117 @@ FORMAT JSONEachRow"#
             previous_nav,
             holding_unrealized_pnl,
         ))
+    }
+
+    pub async fn query_strategy_portfolio_statement_summary(
+        &self,
+        strategy_portfolio_daily_run_id: &str,
+        result_attempt_id: &str,
+        start_date: NaiveDate,
+        end_date: NaiveDate,
+    ) -> RearviewResult<StrategyPortfolioStatementSummaryRecord> {
+        let database = &self.config.portfolio_database;
+        validate_identifier(database)?;
+        let quoted_database = quote_identifier(database);
+        let quoted_run_id_field = quote_identifier(LIVE_RUN_ID_FIELD);
+        let run_id = quote_string_literal(strategy_portfolio_daily_run_id);
+        let attempt = quote_string_literal(result_attempt_id);
+        let sql = statement_summary_sql(
+            &quoted_database,
+            &quoted_run_id_field,
+            &run_id,
+            &attempt,
+            start_date,
+            end_date,
+        );
+        let body = self
+            .execute_text(
+                &sql,
+                &portfolio_read_query_id(
+                    "rearview-live-read-statement-summary",
+                    strategy_portfolio_daily_run_id,
+                    result_attempt_id,
+                ),
+            )
+            .await?;
+        parse_json_each_row::<StrategyPortfolioStatementSummaryRecord>(&body)?
+            .into_iter()
+            .next()
+            .ok_or_else(|| {
+                RearviewError::NotFound(format!(
+                    "no statement summary row found for strategy portfolio daily run {strategy_portfolio_daily_run_id}"
+                ))
+            })
+    }
+
+    pub async fn query_strategy_portfolio_statement_operations(
+        &self,
+        strategy_portfolio_daily_run_id: &str,
+        result_attempt_id: &str,
+        start_date: NaiveDate,
+        end_date: NaiveDate,
+        page: crate::postgres::Page,
+    ) -> RearviewResult<crate::postgres::ListResult<StrategyPortfolioStatementOperationRecord>>
+    {
+        let database = &self.config.portfolio_database;
+        validate_identifier(database)?;
+        let quoted_database = quote_identifier(database);
+        let quoted_run_id_field = quote_identifier(LIVE_RUN_ID_FIELD);
+        let run_id = quote_string_literal(strategy_portfolio_daily_run_id);
+        let attempt = quote_string_literal(result_attempt_id);
+        let sql = statement_operations_sql(
+            &quoted_database,
+            &quoted_run_id_field,
+            &run_id,
+            &attempt,
+            start_date,
+            end_date,
+            page,
+        );
+        let body = self
+            .execute_text(
+                &sql,
+                &portfolio_read_query_id(
+                    "rearview-live-read-statement-operations",
+                    strategy_portfolio_daily_run_id,
+                    result_attempt_id,
+                ),
+            )
+            .await?;
+        let rows = parse_json_each_row::<StrategyPortfolioStatementOperationRecord>(&body)?;
+        Ok(crate::postgres::ListResult::from_rows(rows, page))
+    }
+
+    pub async fn query_strategy_portfolio_live_fact_counts(
+        &self,
+        strategy_portfolio_daily_run_id: &str,
+        result_attempt_id: &str,
+    ) -> RearviewResult<StrategyPortfolioLiveFactCountsRecord> {
+        let database = &self.config.portfolio_database;
+        validate_identifier(database)?;
+        let quoted_database = quote_identifier(database);
+        let quoted_run_id_field = quote_identifier(LIVE_RUN_ID_FIELD);
+        let run_id = quote_string_literal(strategy_portfolio_daily_run_id);
+        let attempt = quote_string_literal(result_attempt_id);
+        let sql = live_fact_counts_sql(&quoted_database, &quoted_run_id_field, &run_id, &attempt);
+        let body = self
+            .execute_text(
+                &sql,
+                &portfolio_read_query_id(
+                    "rearview-live-read-fact-counts",
+                    strategy_portfolio_daily_run_id,
+                    result_attempt_id,
+                ),
+            )
+            .await?;
+        parse_json_each_row::<StrategyPortfolioLiveFactCountsRecord>(&body)?
+            .into_iter()
+            .next()
+            .ok_or_else(|| {
+                RearviewError::NotFound(format!(
+                    "no live fact count row found for strategy portfolio daily run {strategy_portfolio_daily_run_id}"
+                ))
+            })
     }
 
     pub async fn query_strategy_backtest_targets(
@@ -3316,6 +3520,29 @@ fn quote_string_literal(value: &str) -> String {
     format!("'{}'", value.replace('\'', "''"))
 }
 
+fn parse_mart_reference(
+    default_database: &str,
+    mart_reference: &str,
+) -> RearviewResult<(String, String)> {
+    validate_identifier(default_database)?;
+    let trimmed = mart_reference.trim();
+    let parts = trimmed.split('.').collect::<Vec<_>>();
+    match parts.as_slice() {
+        [table] => {
+            validate_identifier(table)?;
+            Ok((default_database.to_string(), (*table).to_string()))
+        }
+        [database, table] => {
+            validate_identifier(database)?;
+            validate_identifier(table)?;
+            Ok(((*database).to_string(), (*table).to_string()))
+        }
+        _ => Err(RearviewError::Validation(format!(
+            "invalid mart reference: {mart_reference}"
+        ))),
+    }
+}
+
 fn virtual_account_nav_sql(
     quoted_database: &str,
     quoted_run_id_field: &str,
@@ -3370,6 +3597,207 @@ fn virtual_account_record(
     }
 }
 
+fn statement_summary_sql(
+    quoted_database: &str,
+    quoted_run_id_field: &str,
+    quoted_run_id: &str,
+    quoted_attempt: &str,
+    start_date: NaiveDate,
+    end_date: NaiveDate,
+) -> String {
+    format!(
+        r#"
+SELECT
+  (
+    SELECT avg(gross_exposure)
+    FROM {quoted_database}.live_nav_daily
+    WHERE {quoted_run_id_field} = {quoted_run_id}
+      AND result_attempt_id = {quoted_attempt}
+      AND trade_date >= toDate('{start_date}')
+      AND trade_date <= toDate('{end_date}')
+  ) AS average_position_pct,
+  (
+    SELECT countDistinct(security_code)
+    FROM {quoted_database}.live_trade
+    WHERE {quoted_run_id_field} = {quoted_run_id}
+      AND result_attempt_id = {quoted_attempt}
+      AND trade_date >= toDate('{start_date}')
+      AND trade_date <= toDate('{end_date}')
+  ) AS traded_security_count,
+  (
+    SELECT count()
+    FROM {quoted_database}.live_trade
+    WHERE {quoted_run_id_field} = {quoted_run_id}
+      AND result_attempt_id = {quoted_attempt}
+      AND trade_date >= toDate('{start_date}')
+      AND trade_date <= toDate('{end_date}')
+  ) AS trade_count,
+  (
+    SELECT if(count() = 0, null, countIf(realized_pnl > 0) / toFloat64(count()))
+    FROM (
+      SELECT
+        trade.trade_seq,
+        trade.security_code,
+        sum(coalesce(closed.realized_pnl, 0.0)) AS realized_pnl
+      FROM {quoted_database}.live_trade AS trade
+      LEFT JOIN {quoted_database}.live_closed_trade AS closed
+        ON closed.strategy_portfolio_daily_run_id = trade.strategy_portfolio_daily_run_id
+       AND closed.result_attempt_id = trade.result_attempt_id
+       AND closed.exit_trade_seq = trade.trade_seq
+       AND closed.security_code = trade.security_code
+      WHERE trade.strategy_portfolio_daily_run_id = {quoted_run_id}
+        AND trade.result_attempt_id = {quoted_attempt}
+        AND lower(trade.side) = 'sell'
+        AND trade.trade_date >= toDate('{start_date}')
+        AND trade.trade_date <= toDate('{end_date}')
+      GROUP BY trade.trade_seq, trade.security_code
+    )
+  ) AS trade_win_rate,
+  (
+    SELECT countIf(realized_pnl_by_security > 0)
+    FROM (
+      SELECT security_code, sum(realized_pnl) AS realized_pnl_by_security
+      FROM {quoted_database}.live_closed_trade
+      WHERE {quoted_run_id_field} = {quoted_run_id}
+        AND result_attempt_id = {quoted_attempt}
+        AND exit_date >= toDate('{start_date}')
+        AND exit_date <= toDate('{end_date}')
+      GROUP BY security_code
+    )
+  ) AS winning_security_count,
+  (
+    SELECT countIf(realized_pnl_by_security < 0)
+    FROM (
+      SELECT security_code, sum(realized_pnl) AS realized_pnl_by_security
+      FROM {quoted_database}.live_closed_trade
+      WHERE {quoted_run_id_field} = {quoted_run_id}
+        AND result_attempt_id = {quoted_attempt}
+        AND exit_date >= toDate('{start_date}')
+        AND exit_date <= toDate('{end_date}')
+      GROUP BY security_code
+    )
+  ) AS losing_security_count,
+  (
+    SELECT countIf(position_count > 0)
+    FROM {quoted_database}.live_nav_daily
+    WHERE {quoted_run_id_field} = {quoted_run_id}
+      AND result_attempt_id = {quoted_attempt}
+      AND trade_date >= toDate('{start_date}')
+      AND trade_date <= toDate('{end_date}')
+  ) AS holding_days
+FORMAT JSONEachRow"#
+    )
+}
+
+fn statement_operations_sql(
+    quoted_database: &str,
+    quoted_run_id_field: &str,
+    quoted_run_id: &str,
+    quoted_attempt: &str,
+    start_date: NaiveDate,
+    end_date: NaiveDate,
+    page: crate::postgres::Page,
+) -> String {
+    let fetch_limit = page.fetch_limit();
+    let offset = page.offset;
+    format!(
+        r#"
+WITH trade_with_balance AS (
+  SELECT
+    portfolio_trade_id,
+    trade_seq,
+    trade_date,
+    security_code,
+    side,
+    quantity,
+    execution_price,
+    gross_amount,
+    commission,
+    stamp_duty,
+    transfer_fee,
+    total_fee,
+    reason,
+    sum(if(lower(side) = 'buy', quantity, -quantity))
+      OVER (
+        PARTITION BY security_code
+        ORDER BY trade_date, trade_seq
+        ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
+      ) AS position_balance_quantity
+  FROM {quoted_database}.live_trade
+  WHERE {quoted_run_id_field} = {quoted_run_id}
+    AND result_attempt_id = {quoted_attempt}
+),
+realized_by_exit_trade AS (
+  SELECT
+    exit_trade_seq,
+    security_code,
+    sum(realized_pnl) AS realized_pnl
+  FROM {quoted_database}.live_closed_trade
+  WHERE {quoted_run_id_field} = {quoted_run_id}
+    AND result_attempt_id = {quoted_attempt}
+  GROUP BY exit_trade_seq, security_code
+)
+SELECT
+  trade_with_balance.portfolio_trade_id,
+  trade_with_balance.trade_seq,
+  trade_with_balance.trade_date,
+  trade_with_balance.security_code,
+  trade_with_balance.side,
+  trade_with_balance.execution_price,
+  trade_with_balance.quantity,
+  toUInt32(100) AS lot_size,
+  trade_with_balance.quantity / 100.0 AS lot_count,
+  trade_with_balance.gross_amount,
+  trade_with_balance.commission,
+  trade_with_balance.stamp_duty,
+  trade_with_balance.transfer_fee,
+  trade_with_balance.total_fee,
+  trade_with_balance.position_balance_quantity,
+  realized_by_exit_trade.realized_pnl,
+  trade_with_balance.reason
+FROM trade_with_balance
+LEFT JOIN realized_by_exit_trade
+  ON realized_by_exit_trade.exit_trade_seq = trade_with_balance.trade_seq
+ AND realized_by_exit_trade.security_code = trade_with_balance.security_code
+WHERE trade_with_balance.trade_date >= toDate('{start_date}')
+  AND trade_with_balance.trade_date <= toDate('{end_date}')
+ORDER BY trade_with_balance.trade_date DESC, trade_with_balance.trade_seq DESC
+LIMIT {fetch_limit} OFFSET {offset}
+FORMAT JSONEachRow"#
+    )
+}
+
+fn live_fact_counts_sql(
+    quoted_database: &str,
+    quoted_run_id_field: &str,
+    quoted_run_id: &str,
+    quoted_attempt: &str,
+) -> String {
+    format!(
+        r#"
+SELECT
+  (
+    SELECT count()
+    FROM {quoted_database}.live_nav_daily
+    WHERE {quoted_run_id_field} = {quoted_run_id}
+      AND result_attempt_id = {quoted_attempt}
+  ) AS nav_row_count,
+  (
+    SELECT count()
+    FROM {quoted_database}.live_trade
+    WHERE {quoted_run_id_field} = {quoted_run_id}
+      AND result_attempt_id = {quoted_attempt}
+  ) AS trade_row_count,
+  (
+    SELECT count()
+    FROM {quoted_database}.live_closed_trade
+    WHERE {quoted_run_id_field} = {quoted_run_id}
+      AND result_attempt_id = {quoted_attempt}
+  ) AS closed_trade_row_count
+FORMAT JSONEachRow"#
+    )
+}
+
 fn trade_dates_sql(
     quoted_database: &str,
     table: &str,
@@ -3385,6 +3813,36 @@ WHERE trade_date BETWEEN toDate('{start_date}') AND toDate('{end_date}')
 ORDER BY trade_date ASC
 FORMAT JSONEachRow"#,
         quote_identifier(table),
+    )
+}
+
+fn mart_latest_trade_date_sql(quoted_database: &str, table: &str) -> String {
+    format!(
+        r#"
+SELECT maxOrNull(trade_date) AS max_date
+FROM {quoted_database}.{}
+FORMAT JSONEachRow"#,
+        quote_identifier(table),
+    )
+}
+
+fn benchmark_latest_trade_date_sql(quoted_database: &str, quoted_security_code: &str) -> String {
+    format!(
+        r#"
+SELECT maxOrNull(trade_date) AS max_date
+FROM {quoted_database}.`mart_benchmark_returns_daily`
+WHERE security_code = {quoted_security_code}
+FORMAT JSONEachRow"#
+    )
+}
+
+fn risk_free_latest_trade_date_sql(quoted_database: &str, quoted_source_tenor: &str) -> String {
+    format!(
+        r#"
+SELECT maxOrNull(trade_date) AS max_date
+FROM {quoted_database}.`mart_risk_free_rate_daily`
+WHERE source_tenor = {quoted_source_tenor}
+FORMAT JSONEachRow"#
     )
 }
 
@@ -3790,15 +4248,18 @@ where
 mod tests {
     use super::{
         AnalysisQuoteAdjustment, BacktestSignalRow, MarketDataDemand, QuoteMartRow, ScreeningRow,
-        chart_context_chart_quote_select_columns, chart_context_selected_quote_select_columns,
-        chart_context_trend_select_columns, portfolio_price_bars_demand_join_sql,
-        portfolio_price_bars_sql, quote_select_columns, trade_dates_sql, trend_select_columns,
+        benchmark_latest_trade_date_sql, chart_context_chart_quote_select_columns,
+        chart_context_selected_quote_select_columns, chart_context_trend_select_columns,
+        live_fact_counts_sql, mart_latest_trade_date_sql, parse_mart_reference,
+        portfolio_price_bars_demand_join_sql, portfolio_price_bars_sql, quote_select_columns,
+        risk_free_latest_trade_date_sql, trade_dates_sql, trend_select_columns,
         validate_security_code, validate_source_tenor, validate_window_key,
         virtual_account_holding_sql, virtual_account_nav_sql, virtual_account_record,
     };
     use chrono::NaiveDate;
 
     use crate::RearviewError;
+    use crate::postgres::Page;
 
     fn row_json(is_buy_signal: &str) -> String {
         format!(
@@ -3923,6 +4384,77 @@ mod tests {
     }
 
     #[test]
+    fn statement_summary_sql_should_bind_attempt_and_compute_sell_trade_win_rate() {
+        let sql = super::statement_summary_sql(
+            "`fleur_portfolio`",
+            "`strategy_portfolio_daily_run_id`",
+            "'daily-run-1'",
+            "'attempt-1'",
+            NaiveDate::from_ymd_opt(2026, 3, 26).unwrap(),
+            NaiveDate::from_ymd_opt(2026, 6, 26).unwrap(),
+        );
+
+        assert!(sql.contains("FROM `fleur_portfolio`.live_nav_daily"));
+        assert!(sql.contains("FROM `fleur_portfolio`.live_trade"));
+        assert!(sql.contains("FROM `fleur_portfolio`.live_closed_trade"));
+        assert!(sql.contains("`strategy_portfolio_daily_run_id` = 'daily-run-1'"));
+        assert!(sql.contains("result_attempt_id = 'attempt-1'"));
+        assert!(sql.contains("lower(trade.side) = 'sell'"));
+        assert!(sql.contains("closed.exit_trade_seq = trade.trade_seq"));
+        assert!(sql.contains("countIf(realized_pnl > 0) / toFloat64(count())"));
+        assert!(sql.contains("countIf(position_count > 0)"));
+        assert!(sql.contains("trade_date >= toDate('2026-03-26')"));
+        assert!(sql.contains("trade_date <= toDate('2026-06-26')"));
+    }
+
+    #[test]
+    fn statement_operations_sql_should_compute_balance_before_period_filter() {
+        let sql = super::statement_operations_sql(
+            "`fleur_portfolio`",
+            "`strategy_portfolio_daily_run_id`",
+            "'daily-run-1'",
+            "'attempt-1'",
+            NaiveDate::from_ymd_opt(2026, 3, 26).unwrap(),
+            NaiveDate::from_ymd_opt(2026, 6, 26).unwrap(),
+            Page {
+                limit: 100,
+                offset: 20,
+            },
+        );
+
+        assert!(sql.contains("WITH trade_with_balance AS"));
+        assert!(sql.contains("ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW"));
+        assert!(sql.contains("WHERE `strategy_portfolio_daily_run_id` = 'daily-run-1'"));
+        assert!(sql.contains("result_attempt_id = 'attempt-1'"));
+        assert!(sql.contains("LEFT JOIN realized_by_exit_trade"));
+        assert!(
+            sql.contains("realized_by_exit_trade.exit_trade_seq = trade_with_balance.trade_seq")
+        );
+        assert!(sql.contains("WHERE trade_with_balance.trade_date >= toDate('2026-03-26')"));
+        assert!(sql.contains("AND trade_with_balance.trade_date <= toDate('2026-06-26')"));
+        assert!(sql.contains(
+            "ORDER BY trade_with_balance.trade_date DESC, trade_with_balance.trade_seq DESC"
+        ));
+        assert!(sql.contains("LIMIT 101 OFFSET 20"));
+    }
+
+    #[test]
+    fn live_fact_counts_sql_should_count_three_live_fact_tables() {
+        let sql = live_fact_counts_sql(
+            "`fleur_portfolio`",
+            "`strategy_portfolio_daily_run_id`",
+            "'daily-run-1'",
+            "'attempt-1'",
+        );
+
+        assert!(sql.contains("FROM `fleur_portfolio`.live_nav_daily"));
+        assert!(sql.contains("FROM `fleur_portfolio`.live_trade"));
+        assert!(sql.contains("FROM `fleur_portfolio`.live_closed_trade"));
+        assert!(sql.contains("WHERE `strategy_portfolio_daily_run_id` = 'daily-run-1'"));
+        assert!(sql.contains("result_attempt_id = 'attempt-1'"));
+    }
+
+    #[test]
     fn trade_dates_sql_reads_quote_mart_when_database_is_marts() {
         let sql = trade_dates_sql(
             "`fleur_marts`",
@@ -3946,6 +4478,55 @@ mod tests {
 
         assert!(sql.contains("FROM `fleur_marts`.`mart_trade_calendar`"));
         assert!(!sql.contains("mart_stock_quotes_daily"));
+    }
+
+    #[test]
+    fn parse_mart_reference_should_accept_table_or_database_table() {
+        assert_eq!(
+            parse_mart_reference("fleur_marts", "mart_stock_quotes_daily").unwrap(),
+            (
+                "fleur_marts".to_string(),
+                "mart_stock_quotes_daily".to_string()
+            )
+        );
+        assert_eq!(
+            parse_mart_reference(
+                "fleur_marts",
+                "fleur_marts.mart_stock_momentum_indicator_daily"
+            )
+            .unwrap(),
+            (
+                "fleur_marts".to_string(),
+                "mart_stock_momentum_indicator_daily".to_string()
+            )
+        );
+    }
+
+    #[test]
+    fn parse_mart_reference_should_reject_multi_part_or_invalid_identifier() {
+        assert!(matches!(
+            parse_mart_reference("fleur_marts", "a.b.c").unwrap_err(),
+            RearviewError::Validation(_)
+        ));
+        assert!(matches!(
+            parse_mart_reference("fleur_marts", "mart_stock_quotes_daily;drop").unwrap_err(),
+            RearviewError::ClickHouse(_)
+        ));
+    }
+
+    #[test]
+    fn latest_trade_date_sql_should_use_max_or_null() {
+        let mart_sql = mart_latest_trade_date_sql("`fleur_marts`", "mart_trade_calendar");
+        assert!(mart_sql.contains("SELECT maxOrNull(trade_date) AS max_date"));
+        assert!(mart_sql.contains("FROM `fleur_marts`.`mart_trade_calendar`"));
+
+        let benchmark_sql = benchmark_latest_trade_date_sql("`fleur_marts`", "'000300.SH'");
+        assert!(benchmark_sql.contains("FROM `fleur_marts`.`mart_benchmark_returns_daily`"));
+        assert!(benchmark_sql.contains("WHERE security_code = '000300.SH'"));
+
+        let risk_free_sql = risk_free_latest_trade_date_sql("`fleur_marts`", "'1y'");
+        assert!(risk_free_sql.contains("FROM `fleur_marts`.`mart_risk_free_rate_daily`"));
+        assert!(risk_free_sql.contains("WHERE source_tenor = '1y'"));
     }
 
     fn virtual_account_nav_row(
