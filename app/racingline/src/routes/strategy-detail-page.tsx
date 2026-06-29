@@ -1,6 +1,6 @@
 import { Fragment, useEffect, useRef, useState } from "react"
 import { Link, useParams } from "react-router-dom"
-import { createChart, LineSeries } from "lightweight-charts"
+import { createChart, LineSeries, TickMarkType } from "lightweight-charts"
 import { ArrowLeft, Trash2 } from "lucide-react"
 
 import { Badge } from "@/components/ui/badge"
@@ -147,15 +147,16 @@ function StrategyDetailPage() {
   )
   const signalTimelineQuery =
     useStrategyPortfolioSignalTimelineQuery(strategyPortfolioId)
+  const latestNavDate = navQuery.data?.points.at(-1)?.trade_date ?? null
   const latestSignalDate =
     selectedSignalDate ||
+    latestNavDate ||
     signalTimelineQuery.data?.trade_dates.at(-1)?.trade_date ||
     null
   const signalsQuery = useStrategyPortfolioSignalsQuery(
     strategyPortfolioId,
     latestSignalDate
   )
-  const latestNavDate = navQuery.data?.points.at(-1)?.trade_date ?? null
   const positionsQuery = useStrategyPortfolioPositionsQuery(
     liveResultPortfolioId,
     latestNavDate
@@ -529,46 +530,6 @@ function StrategyDetailPage() {
 
             <Separator className="bg-border/60" />
 
-            <VirtualAccountSection
-              account={virtualAccountQuery.data ?? null}
-              isError={
-                !isPendingFirstRun &&
-                virtualAccountQuery.isError &&
-                !isPortfolioPendingFirstRunError(virtualAccountQuery.error)
-              }
-              isLoading={!isPendingFirstRun && virtualAccountQuery.isLoading}
-              isPendingFirstRun={isPendingFirstRun}
-            />
-
-            <Separator className="bg-border/60" />
-
-            <StatementSection
-              statement={statementQuery.data ?? null}
-              period={statementPeriod}
-              offset={statementOffset}
-              isError={
-                !isPendingFirstRun &&
-                statementQuery.isError &&
-                !isPortfolioPendingFirstRunError(statementQuery.error)
-              }
-              isLoading={!isPendingFirstRun && statementQuery.isLoading}
-              isPendingFirstRun={isPendingFirstRun}
-              onNextPage={() =>
-                setStatementOffset((current) => current + STATEMENT_PAGE_LIMIT)
-              }
-              onPeriodChange={(period) => {
-                setStatementPeriod(period)
-                setStatementOffset(0)
-              }}
-              onPreviousPage={() =>
-                setStatementOffset((current) =>
-                  Math.max(0, current - STATEMENT_PAGE_LIMIT)
-                )
-              }
-            />
-
-            <Separator className="bg-border/60" />
-
             <section className="flex flex-col gap-3">
               <div className="flex items-center justify-between gap-3">
                 <div className="text-sm font-medium">持仓记录</div>
@@ -740,6 +701,46 @@ function StrategyDetailPage() {
                 </Empty>
               )}
             </section>
+
+            <Separator className="bg-border/60" />
+
+            <VirtualAccountSection
+              account={virtualAccountQuery.data ?? null}
+              isError={
+                !isPendingFirstRun &&
+                virtualAccountQuery.isError &&
+                !isPortfolioPendingFirstRunError(virtualAccountQuery.error)
+              }
+              isLoading={!isPendingFirstRun && virtualAccountQuery.isLoading}
+              isPendingFirstRun={isPendingFirstRun}
+            />
+
+            <Separator className="bg-border/60" />
+
+            <StatementSection
+              statement={statementQuery.data ?? null}
+              period={statementPeriod}
+              offset={statementOffset}
+              isError={
+                !isPendingFirstRun &&
+                statementQuery.isError &&
+                !isPortfolioPendingFirstRunError(statementQuery.error)
+              }
+              isLoading={!isPendingFirstRun && statementQuery.isLoading}
+              isPendingFirstRun={isPendingFirstRun}
+              onNextPage={() =>
+                setStatementOffset((current) => current + STATEMENT_PAGE_LIMIT)
+              }
+              onPeriodChange={(period) => {
+                setStatementPeriod(period)
+                setStatementOffset(0)
+              }}
+              onPreviousPage={() =>
+                setStatementOffset((current) =>
+                  Math.max(0, current - STATEMENT_PAGE_LIMIT)
+                )
+              }
+            />
           </div>
         </div>
       </div>
@@ -1238,6 +1239,9 @@ function SignalCountChart({
         textColor: "rgba(99, 95, 89, 0.78)",
         attributionLogo: false,
       },
+      localization: {
+        timeFormatter: formatChartDate,
+      },
       grid: {
         vertLines: { visible: false },
         horzLines: { color: "rgba(120, 114, 108, 0.12)" },
@@ -1255,6 +1259,8 @@ function SignalCountChart({
       timeScale: {
         borderVisible: false,
         timeVisible: false,
+        tickMarkFormatter: formatChartAxisDate,
+        tickMarkMaxCharacterLength: 7,
       },
       handleScroll: false,
       handleScale: false,
@@ -1412,7 +1418,7 @@ function buildSignalPoolsFromApi(
   signals: StrategyBacktestTargetRecord[],
   pendingSignals: StrategyPortfolioDashboardCard["pending_buy_signals"]
 ): SignalPool[] {
-  return timeline.map((point) => ({
+  const points = timeline.map((point) => ({
     date: point.trade_date,
     signalCount: point.signal_count ?? point.target_count,
     stocks:
@@ -1426,6 +1432,20 @@ function buildSignalPoolsFromApi(
               .filter((stock): stock is SignalStock => stock !== null)
         : [],
   }))
+
+  if (selectedDate && !points.some((point) => point.date === selectedDate)) {
+    const selectedStocks = signals
+      .map(mapApiSignalTarget)
+      .filter((stock): stock is SignalStock => stock !== null)
+
+    points.push({
+      date: selectedDate,
+      signalCount: selectedStocks.length,
+      stocks: selectedStocks,
+    })
+  }
+
+  return points.sort((left, right) => left.date.localeCompare(right.date))
 }
 
 function mapApiSignalTarget(
@@ -1567,6 +1587,53 @@ function formatCompactDate(date: string) {
   const [, month, day] = date.split("-")
 
   return `${month}/${day}`
+}
+
+function formatChartDate(time: unknown) {
+  const date = chartTimeToDateKey(time)
+
+  return date ? date.replaceAll("-", "/") : String(time)
+}
+
+function formatChartAxisDate(time: unknown, tickMarkType: TickMarkType) {
+  const date = chartTimeToDateKey(time)
+
+  if (!date) {
+    return String(time)
+  }
+
+  const [year, month, day] = date.split("-")
+
+  if (tickMarkType === TickMarkType.Year) {
+    return year
+  }
+
+  if (tickMarkType === TickMarkType.Month) {
+    return `${year}/${month}`
+  }
+
+  return `${month}/${day}`
+}
+
+function chartTimeToDateKey(time: unknown) {
+  if (typeof time === "string") {
+    return time
+  }
+
+  if (
+    time &&
+    typeof time === "object" &&
+    "year" in time &&
+    "month" in time &&
+    "day" in time
+  ) {
+    const value = time as { day: number; month: number; year: number }
+    return `${value.year}-${String(value.month).padStart(2, "0")}-${String(
+      value.day
+    ).padStart(2, "0")}`
+  }
+
+  return null
 }
 
 function formatCurrency(value: number) {

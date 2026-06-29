@@ -40,6 +40,7 @@ type PortfolioCardData = {
   risk: Metric[]
   efficiency: Metric[]
   relative: Metric[]
+  signalDate: string | null
   todaySignals: SignalStock[]
   curve: CurvePoint[]
 }

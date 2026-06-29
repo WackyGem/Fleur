@@ -6288,12 +6288,19 @@ async fn strategy_portfolio_dashboard_read_model(
         dashboard_metrics(performance.as_ref(), excess_return, daily_win_rate);
     let targets = state
         .clickhouse
-        .query_strategy_portfolio_live_latest_targets(
-            &resolved.portfolio_run_id,
+        .query_strategy_portfolio_live_targets(
+            &PortfolioTargetFilter {
+                portfolio_run_id: resolved.portfolio_run_id.clone(),
+                signal_date: Some(resolved.end_date),
+                page: Page {
+                    limit: 5,
+                    offset: 0,
+                },
+            },
             &resolved.result_attempt_id,
-            5,
         )
-        .await?;
+        .await?
+        .items;
     let security_codes = collect_portfolio_target_security_codes(&targets);
     let display_by_code = required_security_display_map(
         state,
