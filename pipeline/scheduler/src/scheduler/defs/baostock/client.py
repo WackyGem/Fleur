@@ -24,10 +24,6 @@ from scheduler.defs.baostock.schemas import K_HISTORY_DAILY_FIELD_PARAM
 from scheduler.defs.common.retry import DEFAULT_RETRY_POLICY, ExponentialBackoffPolicy
 from scheduler.defs.config.models import BaostockClientConfig
 
-CONNECT_TIMEOUT_SECONDS = 5
-REQUEST_TIMEOUT_SECONDS = 30
-LOGIN_TIMEOUT_SECONDS = 15
-MAX_REQUEST_ATTEMPTS = 4
 LOGIN_TTL_SECONDS = 55 * 60
 NO_LOGIN_ERROR_CODE = "10001001"
 RESPONSE_STREAM_LIMIT_BYTES = 64 * 1024 * 1024
@@ -90,7 +86,7 @@ class BaostockAioTcpClient:
         *,
         max_connections: int | None = None,
         retry_policy: ExponentialBackoffPolicy = DEFAULT_RETRY_POLICY,
-        max_attempts: int = MAX_REQUEST_ATTEMPTS,
+        max_attempts: int | None = None,
         send_once: BaostockSendOnceProtocol | None = None,
     ) -> None:
         base_config = config or BaostockClientConfig.from_env()
@@ -101,14 +97,33 @@ class BaostockAioTcpClient:
                 username=base_config.username,
                 password=base_config.password,
                 max_connections=max_connections,
+                connect_timeout_seconds=base_config.connect_timeout_seconds,
+                request_timeout_seconds=base_config.request_timeout_seconds,
+                login_timeout_seconds=base_config.login_timeout_seconds,
+                max_request_attempts=base_config.max_request_attempts,
             )
         if base_config.max_connections < 1:
             msg = "max_connections must be positive"
             raise ValueError(msg)
+        if base_config.connect_timeout_seconds <= 0:
+            msg = "connect_timeout_seconds must be positive"
+            raise ValueError(msg)
+        if base_config.request_timeout_seconds <= 0:
+            msg = "request_timeout_seconds must be positive"
+            raise ValueError(msg)
+        if base_config.login_timeout_seconds <= 0:
+            msg = "login_timeout_seconds must be positive"
+            raise ValueError(msg)
+        if base_config.max_request_attempts < 1:
+            msg = "max_request_attempts must be positive"
+            raise ValueError(msg)
+        if max_attempts is not None and max_attempts < 1:
+            msg = "max_attempts must be positive"
+            raise ValueError(msg)
 
         self._config = base_config
         self._retry_policy = retry_policy
-        self._max_attempts = max_attempts
+        self._max_attempts = max_attempts or base_config.max_request_attempts
         self._send_once_override = send_once
         self._semaphore = asyncio.Semaphore(base_config.max_connections)
         self._idle_connections: asyncio.LifoQueue[BaostockTcpConnection] = asyncio.LifoQueue()
@@ -213,7 +228,7 @@ class BaostockAioTcpClient:
                 params=params,
                 page=page,
                 page_size=page_size,
-                timeout_seconds=REQUEST_TIMEOUT_SECONDS,
+                timeout_seconds=self._config.request_timeout_seconds,
             )
             responses.append(response)
             if not response.has_next_page():
@@ -323,7 +338,7 @@ class BaostockAioTcpClient:
 
             response = await self._send_override_with_retries(
                 self._login_payload(),
-                timeout_seconds=LOGIN_TIMEOUT_SECONDS,
+                timeout_seconds=self._config.login_timeout_seconds,
             )
             if response.error_code != "0":
                 self._override_logged_in = False
@@ -428,7 +443,7 @@ class BaostockAioTcpClient:
 
         response = await connection.request(
             self._login_payload(),
-            timeout_seconds=LOGIN_TIMEOUT_SECONDS,
+            timeout_seconds=self._config.login_timeout_seconds,
         )
         if response.error_code != "0":
             connection.logged_in = False
@@ -500,7 +515,7 @@ class BaostockAioTcpClient:
                     self._config.port,
                     limit=RESPONSE_STREAM_LIMIT_BYTES,
                 ),
-                timeout=CONNECT_TIMEOUT_SECONDS,
+                timeout=self._config.connect_timeout_seconds,
             )
         except (TimeoutError, OSError) as error:
             msg = (

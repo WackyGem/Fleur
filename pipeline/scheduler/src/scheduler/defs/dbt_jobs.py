@@ -4,13 +4,32 @@ from datetime import UTC, datetime
 
 import dagster as dg
 
+from scheduler.defs.clickhouse.definitions import CLICKHOUSE_RAW_JOBS
+
 DBT_STAGING_SELECTION = dg.AssetSelection.groups("dbt_staging")
 DBT_MODEL_SELECTION = (
     dg.AssetSelection.groups("dbt_staging")
     | dg.AssetSelection.groups("dbt_intermediate")
     | dg.AssetSelection.groups("dbt_marts")
 )
-STOCK_DAILY_SELECTION = DBT_MODEL_SELECTION | dg.AssetSelection.groups("calculation")
+CLICKHOUSE_RAW_SYNC_BAOSTOCK_JOB = next(
+    job for job in CLICKHOUSE_RAW_JOBS if job.name == "clickhouse__raw_sync_baostock_job"
+)
+STOCK_DAILY_DBT_QUOTE_REBUILD_SELECTION = dg.AssetSelection.assets(
+    "int_stock_quotes_daily_unadj",
+    "int_stock_adjustment_factor",
+    "int_stock_quotes_daily_adj",
+)
+STOCK_DAILY_CALCULATION_SELECTION = dg.AssetSelection.groups("calculation")
+STOCK_DAILY_MART_REBUILD_SELECTION = dg.AssetSelection.assets(
+    "int_stock_kdj_daily",
+    "mart_stock_quotes_daily",
+)
+STOCK_DAILY_SELECTION = (
+    STOCK_DAILY_DBT_QUOTE_REBUILD_SELECTION
+    | STOCK_DAILY_CALCULATION_SELECTION
+    | STOCK_DAILY_MART_REBUILD_SELECTION
+)
 
 DBT_JOBS: tuple[dg.UnresolvedAssetJobDefinition, ...] = (
     dg.define_asset_job(
@@ -33,14 +52,7 @@ STOCK_JOBS: tuple[dg.UnresolvedAssetJobDefinition, ...] = (
 TRANSFORMATION_JOBS: tuple[dg.UnresolvedAssetJobDefinition, ...] = (*DBT_JOBS, *STOCK_JOBS)
 
 
-def stock_daily_run_config(context: dg.ScheduleEvaluationContext) -> dict[str, object]:
-    try:
-        scheduled_time = context.scheduled_execution_time
-    except Exception:
-        scheduled_time = datetime.now(tz=UTC)
-    if scheduled_time is None:
-        scheduled_time = datetime.now(tz=UTC)
-    trade_date = scheduled_time.date().isoformat()
+def stock_daily_run_config_for_trade_date(trade_date: str) -> dict[str, object]:
     return {
         "ops": {
             "fleur_calculation__calc_stock_kdj_daily": {
@@ -125,6 +137,16 @@ def stock_daily_run_config(context: dg.ScheduleEvaluationContext) -> dict[str, o
     }
 
 
+def stock_daily_run_config(context: dg.ScheduleEvaluationContext) -> dict[str, object]:
+    try:
+        scheduled_time = context.scheduled_execution_time
+    except Exception:
+        scheduled_time = datetime.now(tz=UTC)
+    if scheduled_time is None:
+        scheduled_time = datetime.now(tz=UTC)
+    return stock_daily_run_config_for_trade_date(scheduled_time.date().isoformat())
+
+
 TRANSFORMATION_SCHEDULES: tuple[dg.ScheduleDefinition, ...] = (
     dg.ScheduleDefinition(
         name="stock__daily_build_schedule",
@@ -132,4 +154,36 @@ TRANSFORMATION_SCHEDULES: tuple[dg.ScheduleDefinition, ...] = (
         cron_schedule="30 18 * * *",
         run_config_fn=stock_daily_run_config,
     ),
+)
+
+
+@dg.run_status_sensor(
+    run_status=dg.DagsterRunStatus.SUCCESS,
+    name="baostock_raw_sync_success_triggers_stock_daily_build",
+    monitored_jobs=[CLICKHOUSE_RAW_SYNC_BAOSTOCK_JOB],
+    request_job=STOCK_JOBS[0],
+    default_status=dg.DefaultSensorStatus.RUNNING,
+    minimum_interval_seconds=30,
+)
+def baostock_raw_sync_success_triggers_stock_daily_build(
+    context: dg.RunStatusSensorContext,
+) -> dg.RunRequest:
+    trade_date = datetime.now(tz=UTC).date().isoformat()
+    raw_run_id = context.dagster_run.run_id
+    raw_partition_key = context.partition_key or ""
+    return dg.RunRequest(
+        run_key=f"stock-daily-after-baostock-raw-sync:{raw_run_id}",
+        run_config=stock_daily_run_config_for_trade_date(trade_date),
+        tags={
+            "trigger": "baostock_raw_sync_success",
+            "upstream_job": context.dagster_run.job_name,
+            "upstream_run_id": raw_run_id,
+            "upstream_partition_key": raw_partition_key,
+            "stock_daily_trade_date": trade_date,
+        },
+    )
+
+
+TRANSFORMATION_SENSORS: tuple[dg.RunStatusSensorDefinition, ...] = (
+    baostock_raw_sync_success_triggers_stock_daily_build,
 )

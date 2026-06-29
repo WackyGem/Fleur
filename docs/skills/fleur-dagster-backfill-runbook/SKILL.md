@@ -47,7 +47,7 @@ cd pipeline
 
 uv run dg launch --target-path scheduler --assets "key:source/ths__limit_up_pool" --partition-range "2024-01-01...2024-01-31"
 uv run dg launch --target-path scheduler --assets "key:source/baostock__query_history_k_data_plus_daily" --partition 2024-01-02
-uv run dg launch --target-path scheduler --assets "key:source/baostock__query_history_k_data_plus_daily" --partition-range "2026-01-01...2026-06-24" --config-json '{"ops":{"source__baostock__query_history_k_data_plus_daily":{"config":{"mode":"range_backfill","overwrite_existing_partitions":false,"cutoff_trade_date":"2026-06-24"}}}}'
+uv run dg launch --target-path scheduler --assets "key:source/baostock__query_history_k_data_plus_daily" --partition-range "2026-01-01...2026-06-24" --config-json '{"ops":{"source__baostock__query_history_k_data_plus_daily":{"config":{"overwrite_existing_partitions":false,"cutoff_trade_date":"2026-06-24"}}}}'
 uv run dg launch --target-path scheduler --assets "key:source/baostock__query_history_k_data_plus_daily_compacted" --partition 2024
 uv run dg launch --target-path scheduler --job eastmoney__daily_job --partition 2024
 uv run dg launch --target-path scheduler --assets "key:clickhouse/raw/jiuyan__industry_ocr_snapshot"

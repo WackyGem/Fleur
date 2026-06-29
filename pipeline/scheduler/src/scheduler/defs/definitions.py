@@ -7,7 +7,11 @@ import dagster as dg
 from scheduler.defs.automation.slack_alerts import slack_asset_failure_sensor
 from scheduler.defs.baostock.definitions import baostock_bundle
 from scheduler.defs.clickhouse.definitions import CLICKHOUSE_RAW_ASSETS, CLICKHOUSE_RAW_JOBS
-from scheduler.defs.dbt_jobs import TRANSFORMATION_JOBS, TRANSFORMATION_SCHEDULES
+from scheduler.defs.dbt_jobs import (
+    TRANSFORMATION_JOBS,
+    TRANSFORMATION_SCHEDULES,
+    TRANSFORMATION_SENSORS,
+)
 from scheduler.defs.io_managers.s3_io_manager import S3IOManager
 from scheduler.defs.rearview.definitions import REARVIEW_DEFS
 from scheduler.defs.resources.baostock import BaostockClientFactoryResource
@@ -45,7 +49,7 @@ def defs() -> dg.Definitions:
         assets=[*bundle_assets(SOURCE_BUNDLES), *CLICKHOUSE_RAW_ASSETS],
         jobs=[*bundle_jobs(SOURCE_BUNDLES), *CLICKHOUSE_RAW_JOBS, *TRANSFORMATION_JOBS],
         schedules=[*bundle_schedules(SOURCE_BUNDLES), *TRANSFORMATION_SCHEDULES],
-        sensors=[slack_asset_failure_sensor],
+        sensors=[slack_asset_failure_sensor, *TRANSFORMATION_SENSORS],
         resources={
             "s3_io_manager": S3IOManager(),
             "s3_settings": S3SettingsResource(),

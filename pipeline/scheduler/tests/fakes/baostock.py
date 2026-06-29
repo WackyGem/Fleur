@@ -148,6 +148,7 @@ class QueuedBaostockSender:
     def __init__(self, responses: list[BaostockResponse]) -> None:
         self.responses = responses
         self.payloads: list[bytes] = []
+        self.timeout_seconds: list[float] = []
 
     async def __call__(
         self,
@@ -156,6 +157,7 @@ class QueuedBaostockSender:
         timeout_seconds: float,
     ) -> BaostockResponse:
         self.payloads.append(payload)
+        self.timeout_seconds.append(timeout_seconds)
         return self.responses.pop(0)
 
 

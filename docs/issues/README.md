@@ -13,4 +13,4 @@
 | 目录 | 用途 |
 |---|---|
 | [archive/debt/](archive/debt/) | 已关闭技术债和实现漂移记录 |
-| [archive/optimize/](archive/optimize/) | 质量扫描、维护性审计和治理建议 |
+| [archive/optimize/](archive/optimize/) | 已关闭质量扫描、维护性审计和治理建议 |
