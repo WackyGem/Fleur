@@ -148,7 +148,7 @@ quotes_with_financial_valuation as (
     left any join adjusted_quotes
         on quotes.security_code = adjusted_quotes.security_code
         and quotes.trade_date = adjusted_quotes.trade_date
-    left join kdj
+    left any join kdj
         on quotes.security_code = kdj.security_code
         and quotes.trade_date = kdj.trade_date
 )

@@ -11,6 +11,7 @@
 
 | Plan | 状态 | 说明 |
 |---|---|---|
+| [0062](archive/0062-dbt-baostock-downstream-performance-optimization-plan.md) | Completed | BaoStock dbt 下游存量作业性能优化：删除低价值 mart 字段匹配测试、收敛日常 stock build selection、raw latest year 后触发固定 int/mart/calc 链路，并用 query log 基准完成 KDJ join 优化；验收见 [2026-06-29 report](../jobs/reports/2026-06-29-dbt-baostock-downstream-performance-optimization.md) |
 | [0061](archive/0061-baostock-daily-kline-unified-range-timeout-plan.md) | Completed | BaoStock 日 K 取消 daily/range_backfill mode 分支，统一由 Dagster partition selection 推导区间请求，并补强 TCP timeout 与网络 fail-fast |
 | [0060](archive/0060-racingline-step5-portfolio-publish-dialog-tplus1-plan.md) | Completed | Racingline Step 5「建立组合」弹层 Tab 改造、T+1 发布预检、pending Dashboard 语义、backtest/live 两段数据分离和首个 daily run 信号窗口修正；控制面审计见 [audit report](../jobs/reports/2026-06-27-racingline-portfolio-control-plane-audit.md)，端到端验收见 [smoke report](../jobs/reports/2026-06-27-racingline-portfolio-publish-tplus1-smoke.md) |
 | [0059](archive/0059-version-information-governance-implementation-plan.md) | Completed | 版本信息治理实施：Rust crate 独立版本、release manifest/release note、版本校验脚本、运行时版本暴露、Alembic head 表达修正和 tag 前检查入口 |

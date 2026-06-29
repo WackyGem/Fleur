@@ -86,7 +86,10 @@ def test_registered_definitions_match_source_bundles() -> None:
     assert {schedule.name for schedule in loaded_defs.schedules or []} == (
         expected_schedules | expected_transformation_schedules | {PORTFOLIO_DAILY_RUN_SCHEDULE.name}
     )
-    assert {sensor.name for sensor in loaded_defs.sensors or []} == {"slack_asset_failure_sensor"}
+    assert {sensor.name for sensor in loaded_defs.sensors or []} == {
+        "baostock_raw_sync_success_triggers_stock_daily_build",
+        "slack_asset_failure_sensor",
+    }
     assert set(loaded_defs.resources) >= {
         "s3_io_manager",
         "s3_settings",
@@ -225,7 +228,6 @@ def test_dbt_assets_are_registered_with_raw_lineage_and_checks() -> None:
 def test_stock_daily_job_splits_dbt_around_furnace_assets() -> None:
     loaded_defs = scheduler_defs.load_fn()
     job = loaded_defs.resolve_job_def("stock__daily_build_job")
-    dbt_node_names = {node.name for node in job.graph.nodes if node.definition.name == "elt"}
     calc_node_names = {
         "fleur_calculation__calc_stock_kdj_daily",
         "fleur_calculation__calc_stock_ma_daily",
@@ -235,13 +237,51 @@ def test_stock_daily_job_splits_dbt_around_furnace_assets() -> None:
         "fleur_calculation__calc_stock_price_pattern_daily",
     }
 
-    assert len(dbt_node_names) == 2
+    selected_asset_keys = {
+        key.to_user_string()
+        for layer_data in job.asset_layer.data
+        for key in layer_data.assets_def.keys
+    }
+    assert selected_asset_keys == {
+        "fleur_calculation/calc_stock_boll_daily",
+        "fleur_calculation/calc_stock_kdj_daily",
+        "fleur_calculation/calc_stock_ma_daily",
+        "fleur_calculation/calc_stock_macd_daily",
+        "fleur_calculation/calc_stock_price_pattern_daily",
+        "fleur_calculation/calc_stock_rsi_daily",
+        "int_stock_adjustment_factor",
+        "int_stock_kdj_daily",
+        "int_stock_quotes_daily_adj",
+        "int_stock_quotes_daily_unadj",
+        "mart_stock_quotes_daily",
+    }
+    dbt_assets_by_node = {
+        layer_data.node_handle.name: {key.to_user_string() for key in layer_data.assets_def.keys}
+        for layer_data in job.asset_layer.data
+        if layer_data.node_handle.name.startswith("elt") and layer_data.assets_def.keys
+    }
+    assert {frozenset(asset_keys) for asset_keys in dbt_assets_by_node.values()} == {
+        frozenset(
+            {
+                "int_stock_adjustment_factor",
+                "int_stock_quotes_daily_adj",
+                "int_stock_quotes_daily_unadj",
+            }
+        ),
+        frozenset({"int_stock_kdj_daily", "mart_stock_quotes_daily"}),
+    }
 
     dependency_structure = job.graph.dependency_structure
     deps_by_node = {
         node.name: dependency_structure.input_to_upstream_outputs_for_node(node.name)
         for node in job.graph.nodes
     }
+    quote_dbt_nodes = [
+        node_name
+        for node_name, asset_keys_for_node in dbt_assets_by_node.items()
+        if "int_stock_quotes_daily_adj" in asset_keys_for_node
+    ]
+    assert len(quote_dbt_nodes) == 1
 
     for calc_node_name in calc_node_names:
         upstream_node_names = {
@@ -249,19 +289,29 @@ def test_stock_daily_job_splits_dbt_around_furnace_assets() -> None:
             for upstream_outputs in deps_by_node[calc_node_name].values()
             for output in upstream_outputs
         }
-        assert upstream_node_names & dbt_node_names
+        assert quote_dbt_nodes[0] in upstream_node_names
 
-    downstream_dbt_nodes = [
+    mart_dbt_nodes = [
         node_name
-        for node_name in dbt_node_names
-        if calc_node_names
-        <= {
-            output.node_name
-            for upstream_outputs in deps_by_node[node_name].values()
-            for output in upstream_outputs
-        }
+        for node_name, asset_keys_for_node in dbt_assets_by_node.items()
+        if "mart_stock_quotes_daily" in asset_keys_for_node
     ]
-    assert len(downstream_dbt_nodes) == 1
+    assert len(mart_dbt_nodes) == 1
+    mart_upstream_node_names = {
+        output.node_name
+        for upstream_outputs in deps_by_node[mart_dbt_nodes[0]].values()
+        for output in upstream_outputs
+    }
+    assert "fleur_calculation__calc_stock_kdj_daily" in mart_upstream_node_names
+    assert (
+        not (
+            calc_node_names
+            - {
+                "fleur_calculation__calc_stock_kdj_daily",
+            }
+        )
+        & mart_upstream_node_names
+    )
 
 
 def test_source_bundle_contracts_are_stable() -> None:
