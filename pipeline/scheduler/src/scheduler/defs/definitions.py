@@ -5,6 +5,7 @@ from pathlib import Path
 import dagster as dg
 
 from scheduler.defs.automation.slack_alerts import slack_asset_failure_sensor
+from scheduler.defs.automation.source_raw_backfill import backfill__fetch_sources_to_raw_job
 from scheduler.defs.baostock.definitions import baostock_bundle
 from scheduler.defs.clickhouse.definitions import CLICKHOUSE_RAW_ASSETS, CLICKHOUSE_RAW_JOBS
 from scheduler.defs.dbt_jobs import (
@@ -47,7 +48,12 @@ SOURCE_BUNDLES: tuple[SourceBundle, ...] = (
 def defs() -> dg.Definitions:
     base_defs = dg.Definitions(
         assets=[*bundle_assets(SOURCE_BUNDLES), *CLICKHOUSE_RAW_ASSETS],
-        jobs=[*bundle_jobs(SOURCE_BUNDLES), *CLICKHOUSE_RAW_JOBS, *TRANSFORMATION_JOBS],
+        jobs=[
+            *bundle_jobs(SOURCE_BUNDLES),
+            *CLICKHOUSE_RAW_JOBS,
+            *TRANSFORMATION_JOBS,
+            backfill__fetch_sources_to_raw_job,
+        ],
         schedules=[*bundle_schedules(SOURCE_BUNDLES), *TRANSFORMATION_SCHEDULES],
         sensors=[slack_asset_failure_sensor, *TRANSFORMATION_SENSORS],
         resources={

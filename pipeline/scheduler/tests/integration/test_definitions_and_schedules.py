@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import Any, cast
 
 import dagster as dg
+from scheduler.defs.automation.source_raw_backfill import BACKFILL_JOB_NAME
 from scheduler.defs.baostock.assets import baostock__query_history_k_data_plus_daily_compacted
 from scheduler.defs.baostock.schedules import baostock__daily_job
 from scheduler.defs.clickhouse.definitions import CLICKHOUSE_RAW_ASSETS, CLICKHOUSE_RAW_JOBS
@@ -81,8 +82,11 @@ def test_registered_definitions_match_source_bundles() -> None:
         expected_jobs
         | expected_clickhouse_jobs
         | expected_transformation_jobs
-        | {STRATEGY_PORTFOLIO_DAILY_RUN_JOB.name}
+        | {STRATEGY_PORTFOLIO_DAILY_RUN_JOB.name, BACKFILL_JOB_NAME}
     )
+    assert "baostock__history_k_data_year_range_backfill_job" not in {
+        job.name for job in loaded_defs.jobs or []
+    }
     assert {schedule.name for schedule in loaded_defs.schedules or []} == (
         expected_schedules | expected_transformation_schedules | {PORTFOLIO_DAILY_RUN_SCHEDULE.name}
     )

@@ -12,6 +12,7 @@
 
 | Plan | 状态 | 说明 |
 |---|---|---|
+| [0065](archive/0065-source-raw-unified-backfill-controller-implementation-plan.md) | Completed | Source/Raw 统一手动回填 controller：按 `target_scope` 生成 source、compacted source 与 ClickHouse raw sync 子 runs，替换 BaoStock 专用 shell-out controller；验收见 [2026-06-30 report](../jobs/reports/2026-06-30-source-raw-unified-backfill-controller.md) |
 | [0064](archive/0064-dbt-baostock-downstream-performance-optimization-plan.md) | Completed | BaoStock dbt 下游存量作业性能优化：删除低价值 mart 字段匹配测试、收敛日常 stock build selection、raw latest year 后触发固定 int/mart/calc 链路，并用 query log 基准完成 KDJ join 优化；验收见 [2026-06-29 report](../jobs/reports/2026-06-29-dbt-baostock-downstream-performance-optimization.md) |
 | [0063](archive/0063-baostock-daily-kline-unified-range-timeout-plan.md) | Completed | BaoStock 日 K 取消 daily/range_backfill mode 分支，统一由 Dagster partition selection 推导区间请求，并补强 TCP timeout 与网络 fail-fast |
 | [0062](archive/0062-racingline-strategy-portfolio-statement-plan.md) | Completed | Racingline 策略组合详情页对账单、Rearview statement read model、Dagster 清算作业终态校验和 2025 first-signal T+1 建仓验收；验收见 [2026-06-29 report](../jobs/reports/2026-06-29-racingline-strategy-portfolio-statement.md) |

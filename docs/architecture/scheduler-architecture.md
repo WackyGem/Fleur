@@ -57,6 +57,8 @@
 ## Related Documents
 
 - 模块职责与禁止模式：`docs/architecture/scheduler-module-boundaries.md`
+- Source/Raw 统一回填 RFC：`docs/RFC/archive/0039-source-raw-backfill-complexity-baseline.md`
+- Source/Raw 统一回填实施计划：`docs/plans/archive/0065-source-raw-unified-backfill-controller-implementation-plan.md`
 - 市场数据 raw assets 决策：`docs/ADR/0001-market-data-raw-assets-on-dagster.md`
 - S3 Parquet layout 决策：`docs/ADR/0002-s3-parquet-storage-layout.md`
 - 交易日调度决策：`docs/ADR/0003-trade-calendar-driven-market-schedules.md`

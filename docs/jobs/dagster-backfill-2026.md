@@ -1,5 +1,18 @@
 # Dagster 回填执行计划
 
+状态：部分被统一入口替代
+
+说明：Source 到 ClickHouse raw 的新手动入口已实现为 `backfill__fetch_sources_to_raw_job`。本文保留 2026 年早期逐资产命令和执行顺序作为历史/诊断参考；后续 source/raw 回填优先使用统一入口，并在真实运行后补充新的运行报告。
+
+统一入口 dry-run 示例：
+
+```bash
+cd pipeline
+uv run dg launch --target-path scheduler \
+  --job backfill__fetch_sources_to_raw_job \
+  --config-json '{"ops":{"backfill__fetch_sources_to_raw_controller":{"config":{"target_scope":"baostock_daily_kline","start_date":"2026-01-01","end_date":"2026-06-30","dry_run":true}}}}'
+```
+
 ## 目标
 
 本计划用于执行以下回填：
