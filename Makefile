@@ -24,7 +24,7 @@ export
 endif
 
 POSTGRES_DB ?= pipeline
-POSTGRES_USER ?= mono_fleur
+POSTGRES_USER ?= fleur
 POSTGRES_PASSWORD ?= change-me-postgres-password
 POSTGRES_PORT ?= 34054
 PIPELINE_DATABASE_URL ?= postgresql://$(POSTGRES_USER):$(POSTGRES_PASSWORD)@127.0.0.1:$(POSTGRES_PORT)/$(POSTGRES_DB)
