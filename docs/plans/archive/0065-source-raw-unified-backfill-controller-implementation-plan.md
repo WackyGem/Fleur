@@ -388,3 +388,10 @@ uv run dg launch --target-path scheduler \
 - 成功真实回填：`target_scope=chinabond`，`execution_mode=full`，`2006-01-01..2006-12-31`，controller run `d0eb1436-e984-4b04-b423-8d7bf49b42ce` 成功，source child run `e093c9bd-dc70-4054-8afa-e0422b521acc` 成功，raw child run `d7f393c5-d901-4e9b-8074-ec90460a4bf4` 成功，三者均带同一个 `backfill.id=chinabond-2006-01-01-2006-12-31-d0eb1436e984`。
 - ClickHouse 核验：`fleur_raw.chinabond__government_bond WHERE year = 2006` 返回 `count=214`，日期范围 `2006-03-01..2006-12-31`。
 - 运行报告：[2026-06-30-source-raw-unified-backfill-controller.md](../../jobs/reports/2026-06-30-source-raw-unified-backfill-controller.md)。
+
+2026-06-30 后续实现偏移修正：
+
+- 日期型 Web UI 入口 `backfill__fetch_sources_to_raw_job` 的 `target_scope` 改为枚举，覆盖 `baostock_daily_kline`、`market_events`、`eastmoney_f10`、`chinabond` 和 `all_raw_yearly`；该入口不再展示 Jiuyan OCR 专项配置。
+- 日期型 Web UI 入口的 `start_date` / `end_date` 改为非默认必填字段，避免用户漏填后才在 controller 运行时失败。
+- 新增非日期型 Web UI 入口 `backfill__fetch_snapshot_sources_to_raw_job`，只覆盖 `snapshot_reference_data` 和 `jiuyan_ocr_pipeline`，并且不展示 `start_date` / `end_date`。
+- 两个 Web UI 入口仍共用同一个 `BackfillPlan` 生成和提交路径；本次不改变 source/raw materialization 语义。

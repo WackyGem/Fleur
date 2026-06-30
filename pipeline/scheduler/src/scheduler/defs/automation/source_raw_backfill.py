@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass
 from datetime import date, datetime
-from typing import Protocol
+from typing import Literal, Protocol
 from zoneinfo import ZoneInfo
 
 import dagster as dg
@@ -10,6 +10,7 @@ from dagster._core.storage.tags import (  # noqa: PLC2701 - Dagster exposes no p
     ASSET_PARTITION_RANGE_END_TAG,
     ASSET_PARTITION_RANGE_START_TAG,
 )
+from pydantic import Field
 
 from scheduler.defs.baostock.assets import (
     baostock__query_history_k_data_plus_daily,
@@ -36,7 +37,9 @@ from scheduler.defs.sources.ths.limit_up_pool_compact import ths__limit_up_pool_
 
 BACKFILL_KIND = "fetch_sources_to_raw"
 BACKFILL_JOB_NAME = "backfill__fetch_sources_to_raw_job"
+BACKFILL_SNAPSHOT_JOB_NAME = "backfill__fetch_snapshot_sources_to_raw_job"
 BACKFILL_CONTROLLER_OP_NAME = "backfill__fetch_sources_to_raw_controller"
+BACKFILL_SNAPSHOT_CONTROLLER_OP_NAME = "backfill__fetch_snapshot_sources_to_raw_controller"
 DEFAULT_JIUYAN_OCR_LIMIT = 100
 BACKFILL_TIMEZONE = ZoneInfo("Asia/Shanghai")
 
@@ -51,6 +54,30 @@ ALL_FETCH_SOURCES_TO_RAW_SCOPE = "all_fetch_sources_to_raw"
 
 EXECUTION_MODE_FULL = "full"
 EXECUTION_MODE_RAW_ONLY = "raw_only"
+DATE_REQUIRED_TARGET_SCOPES = (
+    BAOSTOCK_DAILY_KLINE_SCOPE,
+    MARKET_EVENTS_SCOPE,
+    EASTMONEY_F10_SCOPE,
+    CHINABOND_SCOPE,
+    ALL_RAW_YEARLY_SCOPE,
+)
+DATE_OPTIONAL_TARGET_SCOPES = (
+    SNAPSHOT_REFERENCE_DATA_SCOPE,
+    JIUYAN_OCR_PIPELINE_SCOPE,
+)
+
+DateRequiredTargetScope = Literal[
+    "baostock_daily_kline",
+    "market_events",
+    "eastmoney_f10",
+    "chinabond",
+    "all_raw_yearly",
+]
+DateOptionalTargetScope = Literal[
+    "snapshot_reference_data",
+    "jiuyan_ocr_pipeline",
+]
+BackfillExecutionMode = Literal["full", "raw_only"]
 
 STEP_SNAPSHOT_PREREQUISITE = "snapshot_prerequisite"
 STEP_SOURCE_SNAPSHOT = "source_snapshot"
@@ -63,17 +90,108 @@ TERMINAL_SUCCESS_STATUSES = {"SUCCESS"}
 TERMINAL_FAILURE_STATUSES = {"FAILURE", "CANCELED"}
 
 
-class BackfillControllerConfig(dg.Config):
+@dataclass(frozen=True)
+class BackfillControllerRequest:
     target_scope: str
-    start_date: str | None = None
-    end_date: str | None = None
-    execution_mode: str = EXECUTION_MODE_FULL
-    refresh_prerequisite_snapshots: bool = False
-    overwrite_source_partitions: bool = False
-    jiuyan_ocr_limit: int | None = DEFAULT_JIUYAN_OCR_LIMIT
-    jiuyan_force_download: bool = False
-    jiuyan_force_ocr: bool = False
-    dry_run: bool = True
+    start_date: str | None
+    end_date: str | None
+    execution_mode: str
+    refresh_prerequisite_snapshots: bool
+    overwrite_source_partitions: bool
+    jiuyan_ocr_limit: int | None
+    jiuyan_force_download: bool
+    jiuyan_force_ocr: bool
+    dry_run: bool
+
+
+class BackfillControllerConfig(dg.Config):
+    target_scope: DateRequiredTargetScope = Field(
+        ...,
+        description=(
+            "Date-partitioned source/raw backfill scope. Options: "
+            "baostock_daily_kline, market_events, eastmoney_f10, chinabond, "
+            "all_raw_yearly."
+        ),
+    )
+    start_date: str = Field(
+        ...,
+        description="Inclusive business date, formatted as YYYY-MM-DD.",
+    )
+    end_date: str = Field(
+        ...,
+        description="Inclusive business date, formatted as YYYY-MM-DD.",
+    )
+    execution_mode: BackfillExecutionMode = Field(
+        default=EXECUTION_MODE_FULL,
+        description="full runs source and raw steps; raw_only runs only raw sync steps.",
+    )
+    refresh_prerequisite_snapshots: bool = Field(
+        default=False,
+        description="Refresh only prerequisite source snapshots declared by the selected scope.",
+    )
+    overwrite_source_partitions: bool = Field(
+        default=False,
+        description="Forward overwrite behavior only to source assets that explicitly support it.",
+    )
+    dry_run: bool = Field(
+        default=True,
+        description="When true, log the expanded backfill plan without submitting child runs.",
+    )
+
+    def to_request(self) -> BackfillControllerRequest:
+        return BackfillControllerRequest(
+            target_scope=self.target_scope,
+            start_date=self.start_date,
+            end_date=self.end_date,
+            execution_mode=self.execution_mode,
+            refresh_prerequisite_snapshots=self.refresh_prerequisite_snapshots,
+            overwrite_source_partitions=self.overwrite_source_partitions,
+            jiuyan_ocr_limit=DEFAULT_JIUYAN_OCR_LIMIT,
+            jiuyan_force_download=False,
+            jiuyan_force_ocr=False,
+            dry_run=self.dry_run,
+        )
+
+
+class SnapshotBackfillControllerConfig(dg.Config):
+    target_scope: DateOptionalTargetScope = Field(
+        ...,
+        description="Non-date-partitioned scope. Options: snapshot_reference_data, jiuyan_ocr_pipeline.",
+    )
+    execution_mode: BackfillExecutionMode = Field(
+        default=EXECUTION_MODE_FULL,
+        description="full runs source and raw steps; raw_only runs only raw sync steps.",
+    )
+    jiuyan_ocr_limit: int | None = Field(
+        default=DEFAULT_JIUYAN_OCR_LIMIT,
+        description="Jiuyan OCR item limit. Set null only when an unrestricted OCR run is intended.",
+    )
+    jiuyan_force_download: bool = Field(
+        default=False,
+        description="Force Jiuyan image downloads when the selected scope includes OCR steps.",
+    )
+    jiuyan_force_ocr: bool = Field(
+        default=False,
+        description="Force Jiuyan OCR when the selected scope includes OCR steps.",
+    )
+    dry_run: bool = Field(
+        default=True,
+        description="When true, log the expanded backfill plan without submitting child runs.",
+    )
+
+    def to_request(self) -> BackfillControllerRequest:
+        return BackfillControllerRequest(
+            target_scope=self.target_scope,
+            start_date=None,
+            end_date=None,
+            execution_mode=self.execution_mode,
+            refresh_prerequisite_snapshots=False,
+            overwrite_source_partitions=False,
+            jiuyan_ocr_limit=self.jiuyan_ocr_limit,
+            jiuyan_force_download=self.jiuyan_force_download,
+            jiuyan_force_ocr=self.jiuyan_force_ocr,
+            dry_run=self.dry_run,
+        )
 
 
 @dataclass(frozen=True)
@@ -292,7 +410,7 @@ class AssetStepSpec:
 
 
 def build_backfill_plan(
-    config: BackfillControllerConfig,
+    config: BackfillControllerRequest,
     *,
     today: date,
     controller_run_id: str,
@@ -410,6 +528,21 @@ def backfill__fetch_sources_to_raw_controller(
     context: dg.OpExecutionContext,
     config: BackfillControllerConfig,
 ) -> None:
+    _execute_controller_request(context, config.to_request())
+
+
+@dg.op(name=BACKFILL_SNAPSHOT_CONTROLLER_OP_NAME)
+def backfill__fetch_snapshot_sources_to_raw_controller(
+    context: dg.OpExecutionContext,
+    config: SnapshotBackfillControllerConfig,
+) -> None:
+    _execute_controller_request(context, config.to_request())
+
+
+def _execute_controller_request(
+    context: dg.OpExecutionContext,
+    config: BackfillControllerRequest,
+) -> None:
     plan = build_backfill_plan(
         config,
         today=current_shanghai_date(),
@@ -434,6 +567,14 @@ def backfill__fetch_sources_to_raw_controller(
 )
 def backfill__fetch_sources_to_raw_job() -> None:
     backfill__fetch_sources_to_raw_controller()
+
+
+@dg.job(
+    name=BACKFILL_SNAPSHOT_JOB_NAME,
+    description="Manually plan and submit snapshot/OCR source-to-ClickHouse-raw backfill runs.",
+)
+def backfill__fetch_snapshot_sources_to_raw_job() -> None:
+    backfill__fetch_snapshot_sources_to_raw_controller()
 
 
 def op_name_for_asset_key(asset_key: str) -> str:
@@ -463,7 +604,7 @@ def _asset_key_from_user_string(asset_key: str) -> dg.AssetKey:
 def _scope_step_specs(
     scope: str,
     *,
-    config: BackfillControllerConfig,
+    config: BackfillControllerRequest,
     execution_mode: str,
     start_date: date | None,
     end_date: date | None,
@@ -544,7 +685,7 @@ def _snapshot_reference_step_specs(*, execution_mode: str) -> tuple[AssetStepSpe
 
 def _baostock_daily_kline_step_specs(
     *,
-    config: BackfillControllerConfig,
+    config: BackfillControllerRequest,
     execution_mode: str,
     start_date: date,
     end_date: date,
@@ -695,7 +836,7 @@ def _year_source_to_raw_step_specs(
 
 def _jiuyan_ocr_step_specs(
     *,
-    config: BackfillControllerConfig,
+    config: BackfillControllerRequest,
     execution_mode: str,
 ) -> tuple[AssetStepSpec, ...]:
     raw_asset_key = raw_key_for_source_key(JIUYAN_INDUSTRY_OCR_SNAPSHOT_KEY)
@@ -837,7 +978,7 @@ def _validated_execution_mode(execution_mode: str) -> str:
 
 
 def _validated_date_range(
-    config: BackfillControllerConfig,
+    config: BackfillControllerRequest,
     *,
     requires_date_range: bool,
     today: date,

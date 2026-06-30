@@ -2,20 +2,26 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 from datetime import date
+from typing import Any, Protocol, cast, get_args
 
 import pytest
 from scheduler.defs.automation.source_raw_backfill import (
     ALL_FETCH_SOURCES_TO_RAW_SCOPE,
     ALL_RAW_YEARLY_SCOPE,
     BAOSTOCK_DAILY_KLINE_SCOPE,
+    DATE_OPTIONAL_TARGET_SCOPES,
+    DATE_REQUIRED_TARGET_SCOPES,
     DEFAULT_JIUYAN_OCR_LIMIT,
+    EXECUTION_MODE_FULL,
     EXECUTION_MODE_RAW_ONLY,
     JIUYAN_OCR_PIPELINE_SCOPE,
     STEP_RAW,
     BackfillControllerConfig,
+    BackfillControllerRequest,
     BackfillRunSubmitter,
     BackfillStep,
     BackfillStepResult,
+    SnapshotBackfillControllerConfig,
     add_controller_run_tags,
     all_registered_raw_asset_keys,
     all_registered_source_asset_keys,
@@ -36,7 +42,7 @@ def test_all_fetch_scope_covers_all_current_source_and_raw_assets() -> None:
 
 def test_all_raw_yearly_scope_excludes_snapshot_and_ocr_pipeline_assets() -> None:
     plan = build_backfill_plan(
-        BackfillControllerConfig(
+        controller_request(
             target_scope=ALL_RAW_YEARLY_SCOPE,
             start_date="2024-01-01",
             end_date="2024-12-31",
@@ -56,7 +62,7 @@ def test_all_raw_yearly_scope_excludes_snapshot_and_ocr_pipeline_assets() -> Non
 
 def test_baostock_daily_kline_plan_matches_expected_year_order() -> None:
     plan = build_backfill_plan(
-        BackfillControllerConfig(
+        controller_request(
             target_scope=BAOSTOCK_DAILY_KLINE_SCOPE,
             start_date="2024-01-01",
             end_date="2026-06-30",
@@ -103,7 +109,7 @@ def test_baostock_daily_kline_plan_matches_expected_year_order() -> None:
 
 def test_raw_only_plan_contains_only_raw_steps() -> None:
     plan = build_backfill_plan(
-        BackfillControllerConfig(
+        controller_request(
             target_scope=BAOSTOCK_DAILY_KLINE_SCOPE,
             start_date="2024-01-01",
             end_date="2025-12-31",
@@ -123,7 +129,7 @@ def test_raw_only_plan_contains_only_raw_steps() -> None:
 
 def test_all_fetch_dedupes_snapshot_source_materialization() -> None:
     plan = build_backfill_plan(
-        BackfillControllerConfig(
+        controller_request(
             target_scope=ALL_FETCH_SOURCES_TO_RAW_SCOPE,
             start_date="2026-01-01",
             end_date="2026-06-30",
@@ -146,7 +152,7 @@ def test_all_fetch_dedupes_snapshot_source_materialization() -> None:
 
 def test_jiuyan_ocr_plan_uses_safe_default_limit() -> None:
     plan = build_backfill_plan(
-        BackfillControllerConfig(target_scope=JIUYAN_OCR_PIPELINE_SCOPE),
+        controller_request(target_scope=JIUYAN_OCR_PIPELINE_SCOPE),
         today=date(2026, 6, 30),
         controller_run_id="controller-run-005",
     )
@@ -196,7 +202,7 @@ def test_op_config_mappings_resolve_real_op_names() -> None:
 
 def test_execute_backfill_plan_stops_after_failed_step() -> None:
     plan = build_backfill_plan(
-        BackfillControllerConfig(
+        controller_request(
             target_scope=BAOSTOCK_DAILY_KLINE_SCOPE,
             start_date="2024-01-01",
             end_date="2024-12-31",
@@ -217,7 +223,7 @@ def test_execute_backfill_plan_stops_after_failed_step() -> None:
 
 def test_execute_backfill_plan_rejects_non_terminal_status() -> None:
     plan = build_backfill_plan(
-        BackfillControllerConfig(
+        controller_request(
             target_scope=BAOSTOCK_DAILY_KLINE_SCOPE,
             start_date="2024-01-01",
             end_date="2024-12-31",
@@ -233,7 +239,7 @@ def test_execute_backfill_plan_rejects_non_terminal_status() -> None:
 
 def test_add_controller_run_tags_writes_common_backfill_tags() -> None:
     plan = build_backfill_plan(
-        BackfillControllerConfig(
+        controller_request(
             target_scope=BAOSTOCK_DAILY_KLINE_SCOPE,
             start_date="2024-01-01",
             end_date="2024-12-31",
@@ -258,21 +264,21 @@ def test_add_controller_run_tags_writes_common_backfill_tags() -> None:
 def test_invalid_scope_and_date_range_fail_explicitly() -> None:
     with pytest.raises(ValueError, match="Unsupported target_scope"):
         build_backfill_plan(
-            BackfillControllerConfig(target_scope="unknown"),
+            controller_request(target_scope="unknown"),
             today=date(2026, 6, 30),
             controller_run_id="controller-run-006",
         )
 
     with pytest.raises(ValueError, match="requires start_date and end_date"):
         build_backfill_plan(
-            BackfillControllerConfig(target_scope=BAOSTOCK_DAILY_KLINE_SCOPE),
+            controller_request(target_scope=BAOSTOCK_DAILY_KLINE_SCOPE),
             today=date(2026, 6, 30),
             controller_run_id="controller-run-007",
         )
 
     with pytest.raises(ValueError, match="start_date cannot be later"):
         build_backfill_plan(
-            BackfillControllerConfig(
+            controller_request(
                 target_scope=BAOSTOCK_DAILY_KLINE_SCOPE,
                 start_date="2025-01-01",
                 end_date="2024-01-01",
@@ -283,7 +289,7 @@ def test_invalid_scope_and_date_range_fail_explicitly() -> None:
 
     with pytest.raises(ValueError, match="end_date cannot be later"):
         build_backfill_plan(
-            BackfillControllerConfig(
+            controller_request(
                 target_scope=BAOSTOCK_DAILY_KLINE_SCOPE,
                 start_date="2026-01-01",
                 end_date="2026-07-01",
@@ -291,6 +297,77 @@ def test_invalid_scope_and_date_range_fail_explicitly() -> None:
             today=date(2026, 6, 30),
             controller_run_id="controller-run-009",
         )
+
+
+def test_web_ui_config_schema_exposes_scope_choices_and_required_dates() -> None:
+    fields = config_schema_fields(BackfillControllerConfig)
+
+    assert fields["target_scope"].is_required
+    assert fields["start_date"].is_required
+    assert fields["end_date"].is_required
+    assert "jiuyan_ocr_limit" not in fields
+    assert "jiuyan_force_download" not in fields
+    assert "jiuyan_force_ocr" not in fields
+    assert set(get_args(BackfillControllerConfig.model_fields["target_scope"].annotation)) == set(
+        DATE_REQUIRED_TARGET_SCOPES
+    )
+    assert set(get_args(BackfillControllerConfig.model_fields["execution_mode"].annotation)) == {
+        EXECUTION_MODE_FULL,
+        EXECUTION_MODE_RAW_ONLY,
+    }
+
+
+def test_snapshot_web_ui_config_schema_omits_dates_and_limits_scope_choices() -> None:
+    fields = config_schema_fields(SnapshotBackfillControllerConfig)
+
+    assert "start_date" not in fields
+    assert "end_date" not in fields
+    assert fields["target_scope"].is_required
+    assert set(
+        get_args(SnapshotBackfillControllerConfig.model_fields["target_scope"].annotation)
+    ) == set(DATE_OPTIONAL_TARGET_SCOPES)
+
+
+def config_schema_fields(
+    config_cls: type[BackfillControllerConfig] | type[SnapshotBackfillControllerConfig],
+) -> Mapping[str, Any]:
+    config_type = config_cls.to_config_schema().as_field().config_type
+    assert hasattr(config_type, "fields"), f"Expected shape config type, got {type(config_type)}"
+    config_type_with_fields = cast(ConfigTypeWithFields, config_type)
+    fields = config_type_with_fields.fields
+    assert isinstance(fields, Mapping), f"Expected mapping fields, got {type(fields)}"
+    return fields
+
+
+class ConfigTypeWithFields(Protocol):
+    fields: Mapping[str, Any]
+
+
+def controller_request(
+    *,
+    target_scope: str,
+    start_date: str | None = None,
+    end_date: str | None = None,
+    execution_mode: str = EXECUTION_MODE_FULL,
+    refresh_prerequisite_snapshots: bool = False,
+    overwrite_source_partitions: bool = False,
+    jiuyan_ocr_limit: int | None = DEFAULT_JIUYAN_OCR_LIMIT,
+    jiuyan_force_download: bool = False,
+    jiuyan_force_ocr: bool = False,
+    dry_run: bool = True,
+) -> BackfillControllerRequest:
+    return BackfillControllerRequest(
+        target_scope=target_scope,
+        start_date=start_date,
+        end_date=end_date,
+        execution_mode=execution_mode,
+        refresh_prerequisite_snapshots=refresh_prerequisite_snapshots,
+        overwrite_source_partitions=overwrite_source_partitions,
+        jiuyan_ocr_limit=jiuyan_ocr_limit,
+        jiuyan_force_download=jiuyan_force_download,
+        jiuyan_force_ocr=jiuyan_force_ocr,
+        dry_run=dry_run,
+    )
 
 
 class FakeSubmitter(BackfillRunSubmitter):

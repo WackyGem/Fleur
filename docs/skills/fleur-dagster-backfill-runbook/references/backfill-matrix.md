@@ -2,7 +2,9 @@
 
 ## 首选统一入口
 
-Source 到 ClickHouse raw 的手动回填优先使用 `backfill__fetch_sources_to_raw_job`。用户只配置 `target_scope`、日期区间和少量执行参数，controller 会展开 source、compacted source 和 raw sync 子 run。
+Source 到 ClickHouse raw 的日期型手动回填优先使用 `backfill__fetch_sources_to_raw_job`。用户必须配置 `target_scope`、`start_date`、`end_date` 和少量执行参数，controller 会展开 source、compacted source 和 raw sync 子 run。
+
+Snapshot reference data 和 Jiuyan OCR 使用 `backfill__fetch_snapshot_sources_to_raw_job`。这个 Web UI 入口只展示非日期型 `target_scope`，不展示 `start_date` / `end_date`。
 
 | target_scope | 覆盖范围 | 日期要求 | 说明 |
 | --- | --- | --- | --- |
@@ -10,18 +12,31 @@ Source 到 ClickHouse raw 的手动回填优先使用 `backfill__fetch_sources_t
 | `market_events` | Jiuyan action field、THS limit up pool 两条 daily -> compacted -> raw 链路 | 必填 | 适合市场事件类 source/raw 回填 |
 | `eastmoney_f10` | EastMoney 9 个 year source/raw assets | 必填 | partial year source 传 `refresh_until_date` |
 | `chinabond` | ChinaBond government bond year source/raw | 必填 | partial year source 传 `refresh_until_date` |
-| `snapshot_reference_data` | Sina trade calendar、BaoStock stock basic、Jiuyan industry list 及其 snapshot raw | 可为空 | 不使用日期做 partition selection |
-| `jiuyan_ocr_pipeline` | Jiuyan industry list -> images -> OCR -> OCR snapshot -> raw | 可为空 | 默认 `jiuyan_ocr_limit=100` |
 | `all_raw_yearly` | 当前所有 year raw 链路 | 必填 | 不包含 snapshot reference data 和 OCR pipeline |
-| `all_fetch_sources_to_raw` | 当前全部 source/raw 资产 | 必填 | 包含 snapshot、year、daily compacted 和 OCR pipeline |
 
-dry-run 示例：
+日期型 dry-run 示例：
 
 ```bash
 cd pipeline
 uv run dg launch --target-path scheduler \
   --job backfill__fetch_sources_to_raw_job \
   --config-json '{"ops":{"backfill__fetch_sources_to_raw_controller":{"config":{"target_scope":"baostock_daily_kline","start_date":"2026-01-01","end_date":"2026-06-30","dry_run":true}}}}'
+```
+
+| target_scope | 覆盖范围 | 日期要求 | 说明 |
+| --- | --- | --- | --- |
+| `snapshot_reference_data` | Sina trade calendar、BaoStock stock basic、Jiuyan industry list 及其 snapshot raw | 不展示 | 不使用日期做 partition selection |
+| `jiuyan_ocr_pipeline` | Jiuyan industry list -> images -> OCR -> OCR snapshot -> raw | 不展示 | 默认 `jiuyan_ocr_limit=100` |
+
+覆盖全部 source/raw 时，在 Web UI 中分三次启动：日期型入口选择 `all_raw_yearly`，非日期型入口分别选择 `snapshot_reference_data` 和 `jiuyan_ocr_pipeline`。
+
+非日期型 dry-run 示例：
+
+```bash
+cd pipeline
+uv run dg launch --target-path scheduler \
+  --job backfill__fetch_snapshot_sources_to_raw_job \
+  --config-json '{"ops":{"backfill__fetch_snapshot_sources_to_raw_controller":{"config":{"target_scope":"snapshot_reference_data","dry_run":true}}}}'
 ```
 
 ## Source / S3 目标资产
