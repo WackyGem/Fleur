@@ -3,10 +3,11 @@ from __future__ import annotations
 import dagster as dg
 
 from scheduler.defs.furnace.definitions import build_furnace_defs
+from scheduler.defs.resources.furnace import DEFAULT_FURNACE_BINARY_PATH
 
 
 class FurnaceKdjComponent(dg.Component, dg.Resolvable, dg.Model):
-    binary_path: str = "engines/target/debug/furnace"
+    binary_path: str = DEFAULT_FURNACE_BINARY_PATH
     working_dir: str = "."
     rayon_num_threads: int | None = 8
 

@@ -4,12 +4,6 @@ from typing import cast
 
 import dagster as dg
 import pytest
-from scheduler.defs.dbt_jobs import (
-    STOCK_JOBS,
-    TRANSFORMATION_SCHEDULES,
-    TRANSFORMATION_SENSORS,
-    baostock_raw_sync_success_triggers_stock_daily_build,
-)
 from scheduler.defs.furnace.assets import (
     FURNACE_BOLL_ASSET_KEY,
     FURNACE_BOLL_GROUP,
@@ -40,6 +34,7 @@ from scheduler.defs.furnace.assets import (
     _metadata_from_summary,
 )
 from scheduler.defs.furnace.definitions import build_furnace_defs
+from scheduler.defs.resources.furnace import DEFAULT_FURNACE_BINARY_PATH, FurnaceCliResource
 
 
 def _asset_for_key(loaded_defs: dg.Definitions, key: dg.AssetKey) -> dg.AssetsDefinition:
@@ -102,114 +97,13 @@ def test_furnace_defs_only_register_assets_and_resource() -> None:
     assert set(loaded_defs.resources) == {"furnace_cli"}
 
 
-def test_stock_daily_job_selects_dbt_calculation_and_mart_assets() -> None:
-    assert {job.name for job in STOCK_JOBS} == {"stock__daily_build_job"}
-    selection = str(STOCK_JOBS[0].selection)
+def test_furnace_defs_default_to_release_binary() -> None:
+    loaded_defs = build_furnace_defs()
 
-    assert 'group:"calculation"' in selection
-    assert 'group:"dbt_staging"' not in selection
-    assert 'group:"dbt_intermediate"' not in selection
-    assert 'group:"dbt_marts"' not in selection
-    assert 'key:"int_stock_quotes_daily_unadj"' in selection
-    assert 'key:"int_stock_adjustment_factor"' in selection
-    assert 'key:"int_stock_quotes_daily_adj"' in selection
-    assert 'key:"int_stock_kdj_daily"' in selection
-    assert 'key:"mart_stock_quotes_daily"' in selection
-
-
-def test_baostock_raw_sync_success_sensor_launches_stock_daily_job() -> None:
-    assert {sensor.name for sensor in TRANSFORMATION_SENSORS} == {
-        "baostock_raw_sync_success_triggers_stock_daily_build"
-    }
-    assert (
-        baostock_raw_sync_success_triggers_stock_daily_build.default_status
-        == dg.DefaultSensorStatus.RUNNING
-    )
-    run = dg.DagsterRun(
-        job_name="clickhouse__raw_sync_baostock_job",
-        run_id="raw-run-1",
-    )
-    event = dg.DagsterEvent(
-        event_type_value=dg.DagsterEventType.RUN_SUCCESS.value,
-        job_name="clickhouse__raw_sync_baostock_job",
-    )
-    context = dg.build_run_status_sensor_context(
-        sensor_name="baostock_raw_sync_success_triggers_stock_daily_build",
-        dagster_event=event,
-        dagster_instance=dg.DagsterInstance.ephemeral(),
-        dagster_run=run,
-        partition_key="2026",
-    )
-
-    request = cast(dg.RunRequest, baostock_raw_sync_success_triggers_stock_daily_build(context))
-
-    assert request.run_key == "stock-daily-after-baostock-raw-sync:raw-run-1"
-    assert request.tags == {
-        "trigger": "baostock_raw_sync_success",
-        "upstream_job": "clickhouse__raw_sync_baostock_job",
-        "upstream_run_id": "raw-run-1",
-        "upstream_partition_key": "2026",
-        "stock_daily_trade_date": request.tags["stock_daily_trade_date"],
-    }
-    assert "_sync_at" not in str(request.run_config)
-    assert (
-        request.run_config["ops"]["fleur_calculation__calc_stock_kdj_daily"]["config"]["mode"]
-        == "append-latest"
-    )
-
-
-def test_stock_daily_schedule_uses_append_latest_furnace_config() -> None:
-    schedules = {schedule.name: schedule for schedule in TRANSFORMATION_SCHEDULES}
-
-    tick = schedules["stock__daily_build_schedule"].evaluate_tick(dg.build_schedule_context())
-    assert tick.run_requests is not None
-    run_config = tick.run_requests[0].run_config
-    assert (
-        run_config["ops"]["fleur_calculation__calc_stock_kdj_daily"]["config"]["mode"]
-        == "append-latest"
-    )
-
-    ma_config = run_config["ops"]["fleur_calculation__calc_stock_ma_daily"]["config"]
-    assert ma_config["mode"] == "append-latest"
-    assert ma_config["volume_input_table"] == "fleur_intermediate.int_stock_quotes_daily_unadj"
-    assert ma_config["price_column"] == "close_price_forward_adj"
-    assert ma_config["volume_column"] == "volume"
-
-    rsi_config = run_config["ops"]["furnace__calc_stock_rsi_daily"]["config"]
-    assert rsi_config["mode"] == "append-latest"
-    assert rsi_config["price_column"] == "close_price_forward_adj"
-
-    boll_config = run_config["ops"]["furnace__calc_stock_boll_daily"]["config"]
-    assert boll_config["mode"] == "append-latest"
-    assert boll_config["output_table"] == "fleur_calculation.calc_stock_boll_daily"
-    assert boll_config["price_column"] == "close_price_forward_adj"
-    assert boll_config["insert_batch_size"] == 10_000
-
-    macd_config = run_config["ops"]["fleur_calculation__calc_stock_macd_daily"]["config"]
-    assert macd_config["mode"] == "append-latest"
-    assert macd_config["input_table"] == "fleur_intermediate.int_stock_quotes_daily_adj"
-    assert macd_config["output_table"] == "fleur_calculation.calc_stock_macd_daily"
-    assert macd_config["price_column"] == "close_price_forward_adj"
-    assert macd_config["insert_batch_size"] == 10_000
-
-    price_pattern_config = run_config["ops"]["furnace__calc_stock_price_pattern_daily"]["config"]
-    assert price_pattern_config["mode"] == "append-latest"
-    assert (
-        price_pattern_config["structure_input_table"]
-        == "fleur_intermediate.int_stock_quotes_daily_adj"
-    )
-    assert (
-        price_pattern_config["streak_input_table"]
-        == "fleur_intermediate.int_stock_quotes_daily_unadj"
-    )
-    assert price_pattern_config["output_table"] == (
-        "fleur_calculation.calc_stock_price_pattern_daily"
-    )
-    assert price_pattern_config["high_column"] == "high_price_forward_adj"
-    assert price_pattern_config["low_column"] == "low_price_forward_adj"
-    assert price_pattern_config["close_column"] == "close_price"
-    assert price_pattern_config["prev_close_column"] == "prev_close_price"
-    assert price_pattern_config["insert_batch_size"] == 10_000
+    assert loaded_defs.resources is not None
+    furnace_cli = loaded_defs.resources["furnace_cli"]
+    assert isinstance(furnace_cli, FurnaceCliResource)
+    assert furnace_cli.binary_path == DEFAULT_FURNACE_BINARY_PATH
 
 
 def test_furnace_configs_reject_unknown_mode() -> None:

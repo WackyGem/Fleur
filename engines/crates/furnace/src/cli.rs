@@ -2,7 +2,7 @@ use std::error::Error;
 use std::fmt;
 
 use furnace_io::{
-    ClickHouseCliExecutor, ClickHouseExecutor, run_boll, run_kdj, run_ma, run_macd,
+    ClickHouseExecutor, ClickHouseHttpExecutor, run_boll, run_kdj, run_ma, run_macd,
     run_price_pattern, run_rsi,
 };
 
@@ -15,7 +15,8 @@ use crate::output::print_help;
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 
 pub(crate) fn run(args: impl IntoIterator<Item = String>) -> Result<String, CliError> {
-    let mut executor = ClickHouseCliExecutor::from_env();
+    let mut executor =
+        ClickHouseHttpExecutor::from_env().map_err(|error| CliError::Runtime(error.to_string()))?;
     run_with_executor(args, &mut executor)
 }
 

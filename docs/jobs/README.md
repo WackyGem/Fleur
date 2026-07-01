@@ -20,6 +20,14 @@ Snapshot 文档必须写明生成日期和生成命令。
 
 实际运行、回填、重跑和数据核验记录放在 [reports/](reports/)。
 
+最近的运行验证：
+
+| 报告 | 范围 |
+|---|---|
+| [2026-07-01-furnace-clickhouse-rust-client-migration.md](reports/2026-07-01-furnace-clickhouse-rust-client-migration.md) | Furnace 全部股票技术指标迁移到官方 `clickhouse` Rust HTTP client，并移除外部 `clickhouse-client` / Docker exec 运行时依赖 |
+| [2026-07-01-daily-fetch-history-sources-to-marts-schedule-job-dry-run.md](reports/2026-07-01-daily-fetch-history-sources-to-marts-schedule-job-dry-run.md) | `daily__fetch_history_sources_to_marts_schedule_job` 的 `all_source_to_marts` 单日 dry-run plan expansion |
+| [2026-07-01-backfill-source-to-marts-controller-dry-run.md](reports/2026-07-01-backfill-source-to-marts-controller-dry-run.md) | `backfill__fetch_history_sources_to_marts_job` 的 `all_source_to_marts` dry-run plan expansion |
+
 运行报告至少包含：
 
 - 日期或时间。

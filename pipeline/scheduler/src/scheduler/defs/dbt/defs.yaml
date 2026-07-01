@@ -6,6 +6,8 @@ attributes:
     profiles_dir: "{{ context.project_root }}/../elt"
   cli_args:
     - build
+    - --indirect-selection
+    - buildable
   translation_settings:
     enable_asset_checks: true
     enable_source_tests_as_checks: false

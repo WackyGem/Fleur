@@ -1,7 +1,6 @@
 use super::*;
 #[test]
 fn run_boll_dry_run_reads_close_inputs_and_computes_summary() {
-    let responses = ["sh.600000\n", "2026-01-01\n"];
     let rows = (1..=20)
         .map(|day| {
             (
@@ -15,8 +14,11 @@ fn run_boll_dry_run_reads_close_inputs_and_computes_summary() {
         .iter()
         .map(|(security_code, trade_date, close)| (*security_code, trade_date.as_str(), *close))
         .collect::<Vec<_>>();
-    let input_rows = boll_rowbinary_input_rows(&row_refs);
-    let mut executor = FakeExecutor::with_responses_and_bytes(&responses, vec![input_rows]);
+    let mut executor = FakeExecutor::with_responses(vec![
+        response(security_codes(&["sh.600000"])),
+        response(optional_date(Some("2026-01-01"))),
+        response(close_input_rows(&row_refs)),
+    ]);
     let request = BollRunRequest {
         request_from: "2026-01-01".to_string(),
         request_to: "2026-01-20".to_string(),
@@ -37,7 +39,6 @@ fn run_boll_dry_run_reads_close_inputs_and_computes_summary() {
     assert!(executor.queries.iter().any(|query| {
         query.contains("close_price_forward_adj")
             && query.contains("ORDER BY security_code, trade_date")
-            && query.contains("FORMAT RowBinary")
     }));
 }
 
@@ -94,7 +95,6 @@ fn parallel_boll_outputs_match_serial_outputs() {
 }
 #[test]
 fn run_boll_append_latest_inserts_result_rows() {
-    let responses = ["2026-01-01\n", "0\n"];
     let rows = (1..=20)
         .map(|day| ("sh.600000", format!("2026-01-{day:02}"), Some(day as f64)))
         .collect::<Vec<_>>();
@@ -102,8 +102,11 @@ fn run_boll_append_latest_inserts_result_rows() {
         .iter()
         .map(|(security_code, trade_date, close)| (*security_code, trade_date.as_str(), *close))
         .collect::<Vec<_>>();
-    let input_rows = boll_rowbinary_input_rows(&row_refs);
-    let mut executor = FakeExecutor::with_responses_and_bytes(&responses, vec![input_rows]);
+    let mut executor = FakeExecutor::with_responses(vec![
+        response(optional_date(Some("2026-01-01"))),
+        response(close_input_rows(&row_refs)),
+        response(count(0)),
+    ]);
     let request = BollRunRequest {
         request_from: "2026-01-01".to_string(),
         request_to: "2026-01-20".to_string(),
@@ -116,14 +119,58 @@ fn run_boll_append_latest_inserts_result_rows() {
     let summary = run_boll(&mut executor, &request).unwrap();
 
     assert!(summary.writes_applied);
-    assert_eq!(executor.byte_inserts.len(), 1);
-    assert!(executor.byte_inserts[0].0.contains("calc_stock_boll_daily"));
-    assert!(executor.byte_inserts[0].0.contains("boll_dn_50_2p5"));
-    assert!(executor.byte_inserts[0].1.starts_with(b"\tsh.600000"));
+    assert_eq!(executor.inserts.len(), 1);
+    assert_eq!(executor.inserts[0].table, DEFAULT_BOLL_OUTPUT_TABLE);
+    assert_eq!(executor.inserts[0].rows, 20);
+    assert!(executor.inserts[0].row_type.ends_with("BollInsertRow"));
 }
 
 #[test]
-fn boll_result_row_writes_clickhouse_rowbinary_encoding() {
+fn run_boll_replace_cascade_uses_staging_and_replaces_partitions() {
+    let rows = (1..=20)
+        .map(|day| ("sh.600000", format!("2026-01-{day:02}"), Some(day as f64)))
+        .collect::<Vec<_>>();
+    let row_refs = rows
+        .iter()
+        .map(|(security_code, trade_date, close)| (*security_code, trade_date.as_str(), *close))
+        .collect::<Vec<_>>();
+    let mut executor = FakeExecutor::with_responses(vec![
+        response(optional_date(Some("2026-01-20"))),
+        response(optional_date(Some("2026-01-01"))),
+        response(close_input_rows(&row_refs)),
+        response(count(0)),
+        response(count(0)),
+    ]);
+    let request = BollRunRequest {
+        request_from: "2026-01-01".to_string(),
+        request_to: "2026-01-20".to_string(),
+        symbols: vec!["sh.600000".to_string()],
+        run_id: Some("replace-boll-test".to_string()),
+        mode: BollWriteMode::ReplaceCascade,
+        insert_batch_size: MIN_INSERT_BATCH_SIZE,
+        ..BollRunRequest::default()
+    };
+
+    let summary = run_boll(&mut executor, &request).unwrap();
+
+    assert!(summary.writes_applied);
+    assert_eq!(summary.partition_replace.years, vec![2026]);
+    assert_eq!(summary.staging_validation, ValidationSummary::passed());
+    let staging_table = summary.staging_table.as_deref().unwrap();
+    assert!(staging_table.contains("replace_boll_test"));
+    assert_eq!(executor.inserts.len(), 1);
+    assert_eq!(executor.inserts[0].table, staging_table);
+    assert_eq!(executor.inserts[0].rows, 20);
+    assert_eq!(executor.multi_queries.len(), 2);
+    assert!(
+        executor.multi_queries[1]
+            .iter()
+            .any(|sql| sql.contains("REPLACE PARTITION 2026"))
+    );
+}
+
+#[test]
+fn boll_result_row_converts_to_clickhouse_insert_row() {
     let row = BollResultRow {
         security_code: "sh.600000".to_string(),
         trade_date: "2026-01-03".to_string(),
@@ -137,30 +184,16 @@ fn boll_result_row_writes_clickhouse_rowbinary_encoding() {
         boll_up_50_2p5: Some(4.0),
         boll_dn_50_2p5: Some(5.0),
     };
-    let mut bytes = Vec::new();
+    let insert = BollInsertRow::try_from(&row).unwrap();
 
-    row.write_row_binary(&mut bytes).unwrap();
-
-    let mut cursor = 0;
+    assert_eq!(insert.security_code, "sh.600000");
     assert_eq!(
-        read_rowbinary_string(&bytes, &mut cursor).unwrap(),
-        "sh.600000"
+        insert.trade_date,
+        parse_clickhouse_date("2026-01-03").unwrap()
     );
-    cursor += 2;
-    assert_eq!(
-        read_rowbinary_nullable_f64(&bytes, &mut cursor).unwrap(),
-        Some(1.0)
-    );
-    assert_eq!(
-        read_rowbinary_nullable_f64(&bytes, &mut cursor).unwrap(),
-        Some(2.0)
-    );
-    assert_eq!(
-        read_rowbinary_nullable_f64(&bytes, &mut cursor).unwrap(),
-        Some(0.0)
-    );
-    assert_eq!(
-        read_rowbinary_nullable_f64(&bytes, &mut cursor).unwrap(),
-        None
-    );
+    assert_eq!(insert.boll_mid_10_1p5, Some(1.0));
+    assert_eq!(insert.boll_up_10_1p5, Some(2.0));
+    assert_eq!(insert.boll_dn_10_1p5, Some(0.0));
+    assert_eq!(insert.boll_mid_20_2, None);
+    assert_eq!(insert.boll_dn_50_2p5, Some(5.0));
 }

@@ -6,16 +6,14 @@ import dagster as dg
 
 from scheduler.defs.automation.slack_alerts import slack_asset_failure_sensor
 from scheduler.defs.automation.source_raw_backfill import (
-    backfill__fetch_snapshot_sources_to_raw_job,
-    backfill__fetch_sources_to_raw_job,
+    backfill__fetch_history_sources_to_raw_job,
+)
+from scheduler.defs.automation.source_to_marts_backfill import (
+    backfill__fetch_history_sources_to_marts_job,
 )
 from scheduler.defs.baostock.definitions import baostock_bundle
-from scheduler.defs.clickhouse.definitions import CLICKHOUSE_RAW_ASSETS, CLICKHOUSE_RAW_JOBS
-from scheduler.defs.dbt_jobs import (
-    TRANSFORMATION_JOBS,
-    TRANSFORMATION_SCHEDULES,
-    TRANSFORMATION_SENSORS,
-)
+from scheduler.defs.clickhouse.definitions import CLICKHOUSE_RAW_ASSETS
+from scheduler.defs.daily.definitions import DAILY_DEFS
 from scheduler.defs.io_managers.s3_io_manager import S3IOManager
 from scheduler.defs.rearview.definitions import REARVIEW_DEFS
 from scheduler.defs.resources.baostock import BaostockClientFactoryResource
@@ -25,12 +23,7 @@ from scheduler.defs.resources.http import HttpClientFactoryResource
 from scheduler.defs.resources.ocr import JiuyanOcrSettingsResource
 from scheduler.defs.resources.s3 import ImageObjectStoreResource, S3SettingsResource
 from scheduler.defs.resources.slack import SlackAlertResource
-from scheduler.defs.source_bundle import (
-    SourceBundle,
-    bundle_assets,
-    bundle_jobs,
-    bundle_schedules,
-)
+from scheduler.defs.source_bundle import SourceBundle, bundle_assets
 from scheduler.defs.sources.chinabond.definitions import chinabond_bundle
 from scheduler.defs.sources.eastmoney.definitions import eastmoney_bundle
 from scheduler.defs.sources.jiuyan.definitions import jiuyan_bundle
@@ -52,14 +45,10 @@ def defs() -> dg.Definitions:
     base_defs = dg.Definitions(
         assets=[*bundle_assets(SOURCE_BUNDLES), *CLICKHOUSE_RAW_ASSETS],
         jobs=[
-            *bundle_jobs(SOURCE_BUNDLES),
-            *CLICKHOUSE_RAW_JOBS,
-            *TRANSFORMATION_JOBS,
-            backfill__fetch_sources_to_raw_job,
-            backfill__fetch_snapshot_sources_to_raw_job,
+            backfill__fetch_history_sources_to_raw_job,
+            backfill__fetch_history_sources_to_marts_job,
         ],
-        schedules=[*bundle_schedules(SOURCE_BUNDLES), *TRANSFORMATION_SCHEDULES],
-        sensors=[slack_asset_failure_sensor, *TRANSFORMATION_SENSORS],
+        sensors=[slack_asset_failure_sensor],
         resources={
             "s3_io_manager": S3IOManager(),
             "s3_settings": S3SettingsResource(),
@@ -76,4 +65,4 @@ def defs() -> dg.Definitions:
     dbt_defs = component_tree.build_defs("dbt")
     furnace_defs = component_tree.build_defs("furnace")
 
-    return dg.Definitions.merge(base_defs, dbt_defs, furnace_defs, REARVIEW_DEFS)
+    return dg.Definitions.merge(base_defs, dbt_defs, furnace_defs, REARVIEW_DEFS, DAILY_DEFS)

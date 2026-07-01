@@ -5,6 +5,7 @@ from typing import Any
 
 import pytest
 from scheduler.defs.resources.furnace import (
+    DEFAULT_FURNACE_INSERT_BATCH_SIZE,
     FurnaceBollCliRequest,
     FurnaceCliResource,
     FurnaceKdjCliRequest,
@@ -12,6 +13,18 @@ from scheduler.defs.resources.furnace import (
     FurnacePricePatternCliRequest,
     FurnaceRsiCliRequest,
 )
+
+DEFAULT_INSERT_BATCH_SIZE_ARG = str(DEFAULT_FURNACE_INSERT_BATCH_SIZE)
+
+
+def clear_legacy_clickhouse_client_env(monkeypatch: pytest.MonkeyPatch) -> None:
+    for name in (
+        "FURNACE_CLICKHOUSE_CLIENT",
+        "CLICKHOUSE_CLIENT",
+        "FURNACE_CLICKHOUSE_CLIENT_ARGS",
+        "CLICKHOUSE_NATIVE_PORT",
+    ):
+        monkeypatch.delenv(name, raising=False)
 
 
 def test_furnace_cli_resource_builds_stable_kdj_command() -> None:
@@ -42,7 +55,7 @@ def test_furnace_cli_resource_builds_stable_kdj_command() -> None:
         "--d-smoothing",
         "3",
         "--insert-batch-size",
-        "10000",
+        DEFAULT_INSERT_BATCH_SIZE_ARG,
         "--output-format",
         "json",
         "--symbols",
@@ -84,7 +97,7 @@ def test_furnace_cli_resource_builds_stable_ma_command() -> None:
         "--volume-column",
         "volume",
         "--insert-batch-size",
-        "10000",
+        DEFAULT_INSERT_BATCH_SIZE_ARG,
         "--output-format",
         "json",
         "--symbols",
@@ -122,7 +135,7 @@ def test_furnace_cli_resource_builds_stable_rsi_command() -> None:
         "--price-column",
         "close_price_forward_adj",
         "--insert-batch-size",
-        "10000",
+        DEFAULT_INSERT_BATCH_SIZE_ARG,
         "--output-format",
         "json",
         "--symbols",
@@ -160,7 +173,7 @@ def test_furnace_cli_resource_builds_stable_boll_command() -> None:
         "--price-column",
         "close_price_forward_adj",
         "--insert-batch-size",
-        "10000",
+        DEFAULT_INSERT_BATCH_SIZE_ARG,
         "--output-format",
         "json",
         "--symbols",
@@ -206,7 +219,7 @@ def test_furnace_cli_resource_builds_stable_price_pattern_command() -> None:
         "--prev-close-column",
         "prev_close_price",
         "--insert-batch-size",
-        "10000",
+        DEFAULT_INSERT_BATCH_SIZE_ARG,
         "--output-format",
         "json",
         "--symbols",
@@ -369,6 +382,33 @@ def test_furnace_cli_resource_respects_existing_rayon_threads(
     resource.run_kdj(FurnaceKdjCliRequest(request_from="2026-01-01", request_to="2026-01-02"))
 
     assert captured_env["RAYON_NUM_THREADS"] == "4"
+
+
+def test_furnace_cli_resource_does_not_inject_legacy_clickhouse_client_env(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    captured_env: dict[str, str] = {}
+
+    def fake_run(*args: Any, **kwargs: Any) -> subprocess.CompletedProcess[str]:
+        captured_env.update(kwargs["env"])
+        return subprocess.CompletedProcess(
+            args=args[0],
+            returncode=0,
+            stdout='{"request_from":"2026-01-01","output_rows":10}',
+            stderr="",
+        )
+
+    clear_legacy_clickhouse_client_env(monkeypatch)
+    monkeypatch.setenv("FURNACE_CLICKHOUSE_URL", "http://127.0.0.1:34052")
+    monkeypatch.setattr("scheduler.defs.resources.furnace.subprocess.run", fake_run)
+    resource = FurnaceCliResource(binary_path="/bin/furnace", working_dir="/tmp")
+
+    resource.run_kdj(FurnaceKdjCliRequest(request_from="2026-01-01", request_to="2026-01-02"))
+
+    assert "FURNACE_CLICKHOUSE_CLIENT_ARGS" not in captured_env
+    assert "FURNACE_CLICKHOUSE_CLIENT" not in captured_env
+    assert "CLICKHOUSE_NATIVE_PORT" not in captured_env
+    assert captured_env["FURNACE_CLICKHOUSE_URL"] == "http://127.0.0.1:34052"
 
 
 def test_furnace_cli_resource_rejects_invalid_json_stdout(

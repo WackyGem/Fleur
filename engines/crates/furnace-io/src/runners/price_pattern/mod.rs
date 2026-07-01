@@ -22,7 +22,7 @@ use crate::validation::affected_years;
 
 use self::materialize::calculate_price_pattern_outputs;
 use self::planning::{
-    read_price_pattern_input_row_binary, resolve_price_pattern_effective_output_to,
+    read_price_pattern_input_rows, resolve_price_pattern_effective_output_to,
     resolve_price_pattern_full_history_input_from, resolve_price_pattern_symbols,
 };
 use self::writing::{ensure_price_pattern_append_latest_is_safe, insert_price_pattern_result_rows};
@@ -63,7 +63,7 @@ pub fn run_price_pattern<E: ClickHouseExecutor>(
         all_symbols_requested,
     )?;
     let timed_input = time_result(|| {
-        read_price_pattern_input_row_binary(
+        read_price_pattern_input_rows(
             executor,
             request,
             &symbols,
@@ -73,10 +73,9 @@ pub fn run_price_pattern<E: ClickHouseExecutor>(
         )
     })?;
     timings.read_input = timed_input.elapsed;
-    let input_bytes = timed_input.value;
-    let timed_groups = time_result(|| group_price_pattern_input_rows(&input_bytes))?;
+    let input_rows = timed_input.value;
+    let timed_groups = time_result(|| Ok(group_price_pattern_input_rows(input_rows)))?;
     timings.group = timed_groups.elapsed;
-    drop(input_bytes);
     let input_groups = timed_groups.value;
     let input_rows_count = input_groups.input_rows;
     let input_valid_streak_rows = input_groups.input_valid_streak_rows;

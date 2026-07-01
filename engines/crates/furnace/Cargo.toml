@@ -9,5 +9,9 @@ publish.workspace = true
 furnace-core = { path = "../furnace-core" }
 furnace-io = { path = "../furnace-io" }
 
+[dev-dependencies]
+clickhouse = { version = "0.15.1", features = ["time"] }
+furnace-io = { path = "../furnace-io", features = ["testing"] }
+
 [lints]
 workspace = true

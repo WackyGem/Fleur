@@ -5,11 +5,12 @@ use furnace_core::{DEFAULT_PRICE_MA_WINDOWS, DEFAULT_VOLUME_MA_WINDOWS, MaPrevio
 use crate::FurnaceIoError;
 use crate::clickhouse::ClickHouseExecutor;
 use crate::request::{MaRunRequest, MaWriteMode};
-use crate::runners::shared::normalize_symbols;
-use crate::sql::{
-    first_tsv_value, parse_f64, parse_single_column_strings, parse_u64, sql_string,
-    symbol_where_clause, symbol_where_clause_for_column,
+use crate::rows::{
+    CountRow, MaInputRow, MaPreviousStateRow, OptionalDateValueRow, SecurityCodeRow,
 };
+use crate::runners::shared::normalize_symbols;
+use crate::sql::{sql_string, symbol_where_clause, symbol_where_clause_for_column};
+use crate::validation::format_clickhouse_date;
 pub(super) fn read_previous_ma_states<E: ClickHouseExecutor>(
     executor: &mut E,
     request: &MaRunRequest,
@@ -21,7 +22,11 @@ pub(super) fn read_previous_ma_states<E: ClickHouseExecutor>(
     }
     let sql = format!(
         "\
-SELECT security_code, toString(trade_date), price_ema1_10_state, price_ema2_10_state
+SELECT
+    security_code,
+    trade_date,
+    assumeNotNull(price_ema1_10_state) AS price_ema1_10_state,
+    assumeNotNull(price_ema2_10_state) AS price_ema2_10_state
 FROM (
     SELECT
         security_code,
@@ -35,37 +40,19 @@ FROM (
       AND price_ema2_10_state IS NOT NULL
       AND {}
 )
-WHERE rn = 1
-FORMAT TSV",
+WHERE rn = 1",
         request.output_table,
         sql_string(&request.request_from),
         symbol_where_clause(symbols, all_symbols_requested)
     );
 
     let mut states = HashMap::new();
-    for line in executor
-        .query(&sql)?
-        .lines()
-        .filter(|line| !line.is_empty())
-    {
-        let fields = line.split('\t').collect::<Vec<_>>();
-        if fields.len() != 4 {
-            return Err(FurnaceIoError::Parse(format!(
-                "expected 4 previous MA state fields, got {}",
-                fields.len()
-            )));
-        }
-        let ema1 = parse_f64(fields[2])?.ok_or_else(|| {
-            FurnaceIoError::Parse("previous price_ema1_10_state must not be null".to_string())
-        })?;
-        let ema2 = parse_f64(fields[3])?.ok_or_else(|| {
-            FurnaceIoError::Parse("previous price_ema2_10_state must not be null".to_string())
-        })?;
+    for row in executor.fetch_all::<MaPreviousStateRow>(&sql)? {
         states.insert(
-            fields[0].to_string(),
+            row.security_code,
             MaPreviousState::new(
-                fields[1].to_string(),
-                MaState::new(ema1, ema2)
+                format_clickhouse_date(row.trade_date),
+                MaState::new(row.price_ema1_10_state, row.price_ema2_10_state)
                     .map_err(|source| FurnaceIoError::Parse(source.to_string()))?,
             ),
         );
@@ -88,12 +75,16 @@ WHERE trade_date >= toDate('{}')
   AND trade_date <= toDate('{}')
 GROUP BY security_code
 ORDER BY security_code
-FORMAT TSV",
+",
         request.input_table,
         sql_string(&request.request_from),
         sql_string(&request.request_to)
     );
-    parse_single_column_strings(&executor.query(&sql)?)
+    Ok(executor
+        .fetch_all::<SecurityCodeRow>(&sql)?
+        .into_iter()
+        .map(|row| row.security_code)
+        .collect())
 }
 
 pub(super) fn resolve_ma_effective_output_to<E: ClickHouseExecutor>(
@@ -107,18 +98,17 @@ pub(super) fn resolve_ma_effective_output_to<E: ClickHouseExecutor>(
     }
     let sql = format!(
         "\
-SELECT toString(max(trade_date))
+SELECT if(count() = 0, NULL, max(trade_date)) AS value
 FROM {}
-WHERE {}
-FORMAT TSV",
+WHERE {}",
         request.input_table,
         symbol_where_clause(symbols, all_symbols_requested)
     );
-    let value =
-        first_tsv_value(&executor.query(&sql)?).unwrap_or_else(|| request.request_to.clone());
-    if value.is_empty() || value == "\\N" {
-        return Ok(request.request_to.clone());
-    }
+    let value = executor
+        .fetch_one::<OptionalDateValueRow>(&sql)?
+        .value
+        .map(format_clickhouse_date)
+        .unwrap_or_else(|| request.request_to.clone());
     Ok(value.max(request.request_to.clone()))
 }
 
@@ -130,20 +120,17 @@ pub(super) fn resolve_ma_input_from<E: ClickHouseExecutor>(
 ) -> Result<String, FurnaceIoError> {
     let sql = format!(
         "\
-SELECT toString(min(trade_date))
+SELECT if(count() = 0, NULL, min(trade_date)) AS value
 FROM {}
-WHERE {}
-FORMAT TSV",
+WHERE {}",
         request.input_table,
         symbol_where_clause(symbols, all_symbols_requested)
     );
-    let value =
-        first_tsv_value(&executor.query(&sql)?).unwrap_or_else(|| request.request_from.clone());
-    if value.is_empty() || value == "\\N" {
-        Ok(request.request_from.clone())
-    } else {
-        Ok(value)
-    }
+    Ok(executor
+        .fetch_one::<OptionalDateValueRow>(&sql)?
+        .value
+        .map(format_clickhouse_date)
+        .unwrap_or_else(|| request.request_from.clone()))
 }
 pub(super) fn resolve_ma_lookback_input_from<E: ClickHouseExecutor>(
     executor: &mut E,
@@ -166,7 +153,7 @@ pub(super) fn resolve_ma_lookback_input_from<E: ClickHouseExecutor>(
         .unwrap_or(60);
     let sql = format!(
         "\
-SELECT toString(min(trade_date))
+SELECT if(count() = 0, NULL, min(trade_date)) AS value
 FROM (
     SELECT trade_date
     FROM (
@@ -197,7 +184,7 @@ FROM (
     )
     WHERE rn <= {volume_lookback_window}
 )
-FORMAT TSV",
+",
         request.input_table,
         sql_string(&request.request_from),
         request.price_column,
@@ -206,13 +193,11 @@ FORMAT TSV",
         sql_string(&request.request_from),
         request.volume_column
     );
-    let value =
-        first_tsv_value(&executor.query(&sql)?).unwrap_or_else(|| request.request_from.clone());
-    if value.is_empty() || value == "\\N" {
-        Ok(request.request_from.clone())
-    } else {
-        Ok(value)
-    }
+    Ok(executor
+        .fetch_one::<OptionalDateValueRow>(&sql)?
+        .value
+        .map(format_clickhouse_date)
+        .unwrap_or_else(|| request.request_from.clone()))
 }
 
 pub(super) fn ma_symbols_started_before<E: ClickHouseExecutor>(
@@ -226,26 +211,25 @@ pub(super) fn ma_symbols_started_before<E: ClickHouseExecutor>(
     }
     let sql = format!(
         "\
-SELECT count()
+SELECT count() AS value
 FROM {}
 WHERE trade_date < toDate('{}')
-  AND {}
-FORMAT TSV",
+  AND {}",
         request.input_table,
         sql_string(input_from),
         symbol_where_clause(symbols, false)
     );
-    let count = parse_u64(&first_tsv_value(&executor.query(&sql)?).unwrap_or_default())?;
+    let count = executor.fetch_one::<CountRow>(&sql)?.value;
     Ok(count > 0)
 }
-pub(super) fn read_ma_input_row_binary<E: ClickHouseExecutor>(
+pub(super) fn read_ma_input_rows<E: ClickHouseExecutor>(
     executor: &mut E,
     request: &MaRunRequest,
     symbols: &[String],
     all_symbols_requested: bool,
     input_from: &str,
     input_to: &str,
-) -> Result<Vec<u8>, FurnaceIoError> {
+) -> Result<Vec<MaInputRow>, FurnaceIoError> {
     if symbols.is_empty() && !all_symbols_requested {
         return Ok(Vec::new());
     }
@@ -253,9 +237,9 @@ pub(super) fn read_ma_input_row_binary<E: ClickHouseExecutor>(
         "\
 SELECT
     adj.security_code,
-    toString(adj.trade_date),
-    adj.{},
-    CAST(unadj.{}, 'Nullable(Float64)')
+    adj.trade_date,
+    adj.{} AS close_price,
+    CAST(unadj.{}, 'Nullable(Float64)') AS volume
 FROM {} AS adj
 LEFT JOIN {} AS unadj
   ON adj.security_code = unadj.security_code
@@ -263,8 +247,7 @@ LEFT JOIN {} AS unadj
 WHERE adj.trade_date >= toDate('{}')
   AND adj.trade_date <= toDate('{}')
   AND {}
-ORDER BY adj.security_code, adj.trade_date
-FORMAT RowBinary",
+ORDER BY adj.security_code, adj.trade_date",
         request.price_column,
         request.volume_column,
         request.input_table,
@@ -274,5 +257,5 @@ FORMAT RowBinary",
         symbol_where_clause_for_column("adj.security_code", symbols, all_symbols_requested)
     );
 
-    executor.query_bytes(&sql)
+    executor.fetch_all::<MaInputRow>(&sql)
 }

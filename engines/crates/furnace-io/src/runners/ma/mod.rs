@@ -23,7 +23,7 @@ use crate::validation::affected_years;
 
 use self::materialize::calculate_ma_outputs;
 use self::planning::{
-    ma_symbols_started_before, read_ma_input_row_binary, read_previous_ma_states,
+    ma_symbols_started_before, read_ma_input_rows, read_previous_ma_states,
     resolve_ma_effective_output_to, resolve_ma_input_from, resolve_ma_lookback_input_from,
     resolve_ma_symbols,
 };
@@ -91,7 +91,7 @@ pub fn run_ma<E: ClickHouseExecutor>(
         resolve_ma_input_from(executor, request, &symbols, all_symbols_requested)?
     };
     let timed_input = time_result(|| {
-        read_ma_input_row_binary(
+        read_ma_input_rows(
             executor,
             request,
             &symbols,
@@ -101,10 +101,9 @@ pub fn run_ma<E: ClickHouseExecutor>(
         )
     })?;
     timings.read_input = timed_input.elapsed;
-    let input_bytes = timed_input.value;
-    let timed_groups = time_result(|| group_ma_input_rows(&input_bytes))?;
+    let input_rows = timed_input.value;
+    let timed_groups = time_result(|| Ok(group_ma_input_rows(input_rows)))?;
     timings.group = timed_groups.elapsed;
-    drop(input_bytes);
     let input_groups = timed_groups.value;
     let input_rows_count = input_groups.input_rows;
     let input_valid_close_rows = input_groups.valid_close_rows;

@@ -59,7 +59,7 @@ pub const DEFAULT_PRICE_PATTERN_CLOSE_COLUMN: &str = "close_price";
 pub const DEFAULT_PRICE_PATTERN_PREV_CLOSE_COLUMN: &str = "prev_close_price";
 
 /// ClickHouse 单批插入的默认目标行数。
-pub const DEFAULT_INSERT_BATCH_SIZE: usize = 10_000;
+pub const DEFAULT_INSERT_BATCH_SIZE: usize = 100_000;
 
 /// 生产写入模式允许的最小插入批次行数。
 pub const MIN_INSERT_BATCH_SIZE: usize = 1_000;

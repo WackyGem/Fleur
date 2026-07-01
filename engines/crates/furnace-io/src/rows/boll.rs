@@ -2,9 +2,6 @@ use std::time::Duration;
 
 use furnace_core::BollInput;
 
-use crate::FurnaceIoError;
-use crate::rowbinary::{push_rowbinary_date, push_rowbinary_nullable_f64, push_rowbinary_string};
-
 #[derive(Debug, Clone, PartialEq)]
 pub(crate) struct BollResultRow {
     pub(crate) security_code: String,
@@ -50,21 +47,4 @@ pub(crate) struct BollSecurityCalculation {
     pub(crate) output_rows: u64,
     pub(crate) output_valid_close_rows: u64,
     pub(crate) null_indicator_rows: u64,
-}
-
-impl BollResultRow {
-    pub(crate) fn write_row_binary(&self, bytes: &mut Vec<u8>) -> Result<(), FurnaceIoError> {
-        push_rowbinary_string(bytes, &self.security_code);
-        push_rowbinary_date(bytes, &self.trade_date)?;
-        push_rowbinary_nullable_f64(bytes, self.boll_mid_10_1p5);
-        push_rowbinary_nullable_f64(bytes, self.boll_up_10_1p5);
-        push_rowbinary_nullable_f64(bytes, self.boll_dn_10_1p5);
-        push_rowbinary_nullable_f64(bytes, self.boll_mid_20_2);
-        push_rowbinary_nullable_f64(bytes, self.boll_up_20_2);
-        push_rowbinary_nullable_f64(bytes, self.boll_dn_20_2);
-        push_rowbinary_nullable_f64(bytes, self.boll_mid_50_2p5);
-        push_rowbinary_nullable_f64(bytes, self.boll_up_50_2p5);
-        push_rowbinary_nullable_f64(bytes, self.boll_dn_50_2p5);
-        Ok(())
-    }
 }

@@ -6,8 +6,16 @@ license.workspace = true
 publish.workspace = true
 
 [dependencies]
+clickhouse = { version = "0.15.1", features = ["time"] }
 furnace-core = { path = "../furnace-core" }
 rayon = "1.12"
+serde = { version = "1", features = ["derive"] }
+thiserror = "2"
+time = { version = "0.3", features = ["serde"] }
+tokio = { version = "1", features = ["rt-multi-thread"] }
+
+[features]
+testing = []
 
 [lints]
 workspace = true

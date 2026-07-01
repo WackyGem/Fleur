@@ -1,13 +1,17 @@
 use super::*;
 #[test]
 fn run_kdj_dry_run_reads_inputs_and_computes_summary() {
-    let responses = ["sh.600000\n", "2026-01-01\n", "1\n", ""];
-    let input_rows = rowbinary_input_rows(&[
-        ("sh.600000", "2026-01-01", Some(10.0), Some(8.0), Some(9.0)),
-        ("sh.600000", "2026-01-02", Some(11.0), Some(8.0), Some(10.0)),
-        ("sh.600000", "2026-01-03", Some(12.0), Some(8.0), Some(11.0)),
+    let mut executor = FakeExecutor::with_responses(vec![
+        response(security_codes(&["sh.600000"])),
+        response(optional_date(Some("2026-01-01"))),
+        response(count(1)),
+        response(Vec::<KdjPreviousStateRow>::new()),
+        response(kdj_input_rows(&[
+            ("sh.600000", "2026-01-01", Some(10.0), Some(8.0), Some(9.0)),
+            ("sh.600000", "2026-01-02", Some(11.0), Some(8.0), Some(10.0)),
+            ("sh.600000", "2026-01-03", Some(12.0), Some(8.0), Some(11.0)),
+        ])),
     ]);
-    let mut executor = FakeExecutor::with_responses_and_bytes(&responses, vec![input_rows]);
     let request = KdjRunRequest {
         request_from: "2026-01-01".to_string(),
         request_to: "2026-01-03".to_string(),
@@ -26,8 +30,16 @@ fn run_kdj_dry_run_reads_inputs_and_computes_summary() {
     assert!(summary.performance_metrics.input_rows_per_sec.is_finite());
     assert!(summary.to_json().contains("\"performance_metrics\""));
     assert!(executor.queries.iter().any(|query| {
-        query.contains("AND 1 = 1\nORDER BY security_code, trade_date\nFORMAT RowBinary")
+        query.contains("high_price_forward_adj AS high_price")
+            && query.contains("AND 1 = 1\nORDER BY security_code, trade_date")
     }));
+    let state_query = executor
+        .queries
+        .iter()
+        .find(|query| query.contains("k_value IS NOT NULL"))
+        .expect("KDJ previous-state query should be issued");
+    assert!(state_query.contains("assumeNotNull(k_value)"));
+    assert!(state_query.contains("assumeNotNull(d_value)"));
     assert!(!summary.writes_applied);
 }
 #[test]
@@ -83,13 +95,17 @@ fn parallel_kdj_outputs_match_serial_outputs() {
 
 #[test]
 fn run_kdj_append_latest_inserts_result_rows() {
-    let responses = ["2026-01-01\n", "1\n", "", "0\n"];
-    let input_rows = rowbinary_input_rows(&[
-        ("sh.600000", "2026-01-01", Some(10.0), Some(8.0), Some(9.0)),
-        ("sh.600000", "2026-01-02", Some(11.0), Some(8.0), Some(10.0)),
-        ("sh.600000", "2026-01-03", Some(12.0), Some(8.0), Some(11.0)),
+    let mut executor = FakeExecutor::with_responses(vec![
+        response(optional_date(Some("2026-01-01"))),
+        response(count(1)),
+        response(Vec::<KdjPreviousStateRow>::new()),
+        response(kdj_input_rows(&[
+            ("sh.600000", "2026-01-01", Some(10.0), Some(8.0), Some(9.0)),
+            ("sh.600000", "2026-01-02", Some(11.0), Some(8.0), Some(10.0)),
+            ("sh.600000", "2026-01-03", Some(12.0), Some(8.0), Some(11.0)),
+        ])),
+        response(count(0)),
     ]);
-    let mut executor = FakeExecutor::with_responses_and_bytes(&responses, vec![input_rows]);
     let request = KdjRunRequest {
         request_from: "2026-01-01".to_string(),
         request_to: "2026-01-03".to_string(),
@@ -102,13 +118,14 @@ fn run_kdj_append_latest_inserts_result_rows() {
     let summary = run_kdj(&mut executor, &request).unwrap();
 
     assert!(summary.writes_applied);
-    assert_eq!(executor.byte_inserts.len(), 1);
-    assert!(executor.byte_inserts[0].0.contains("FORMAT RowBinary"));
-    assert!(executor.byte_inserts[0].1.starts_with(b"\tsh.600000"));
+    assert_eq!(executor.inserts.len(), 1);
+    assert_eq!(executor.inserts[0].table, DEFAULT_KDJ_OUTPUT_TABLE);
+    assert_eq!(executor.inserts[0].rows, 3);
+    assert!(executor.inserts[0].row_type.ends_with("KdjInsertRow"));
 }
 
 #[test]
-fn kdj_result_row_writes_clickhouse_rowbinary_encoding() {
+fn kdj_result_row_converts_to_clickhouse_insert_row() {
     let row = KdjResultRow {
         security_code: "sh.600000".to_string(),
         trade_date: "2026-01-03".to_string(),
@@ -120,24 +137,17 @@ fn kdj_result_row_writes_clickhouse_rowbinary_encoding() {
         d_value: None,
         j_value: Some(1.25),
     };
-    let mut bytes = Vec::new();
+    let insert = KdjInsertRow::try_from(&row).unwrap();
 
-    row.write_row_binary(&mut bytes).unwrap();
-
-    let mut expected = Vec::new();
-    expected.push(9);
-    expected.extend_from_slice(b"sh.600000");
-    expected.extend_from_slice(&20_456_u16.to_le_bytes());
-    expected.extend_from_slice(&9_u16.to_le_bytes());
-    expected.extend_from_slice(&3_u16.to_le_bytes());
-    expected.extend_from_slice(&3_u16.to_le_bytes());
-    expected.push(1);
-    expected.push(0);
-    expected.extend_from_slice(&12.5_f64.to_le_bytes());
-    expected.push(1);
-    expected.push(0);
-    expected.extend_from_slice(&1.25_f64.to_le_bytes());
-    assert_eq!(bytes, expected);
+    assert_eq!(insert.security_code, "sh.600000");
+    assert_eq!(
+        insert.trade_date,
+        parse_clickhouse_date("2026-01-03").unwrap()
+    );
+    assert_eq!(insert.rsv_window, 9);
+    assert_eq!(insert.k_value, Some(12.5));
+    assert_eq!(insert.d_value, None);
+    assert_eq!(insert.j_value, Some(1.25));
 }
 
 #[test]
@@ -170,7 +180,7 @@ fn retain_old_rows_skips_fully_covered_all_market_year_partitions() {
 
 #[test]
 fn validate_staging_checks_all_years_with_one_query() {
-    let mut executor = FakeExecutor::with_responses_and_bytes(&["0\n"], Vec::new());
+    let mut executor = FakeExecutor::with_responses(vec![response(count(0))]);
 
     let summary = validate_staging(
         &mut executor,
@@ -181,27 +191,27 @@ fn validate_staging_checks_all_years_with_one_query() {
 
     assert_eq!(summary, ValidationSummary::passed());
     assert_eq!(executor.queries.len(), 1);
+    assert!(executor.queries[0].contains("toUInt64(coalesce(sum(duplicates), 0)) AS value"));
     assert!(executor.queries[0].contains("toYear(trade_date) IN (2020,2021,2022)"));
 }
 
 #[test]
 fn run_kdj_replace_cascade_batches_partition_replace_statements() {
-    let responses = [
-        "2027-01-02\n",
-        "2026-12-30\n",
-        "1\n",
-        "",
-        "0\n",
-        "0\n",
-        "0\n",
-    ];
-    let input_rows = rowbinary_input_rows(&[
-        ("sh.600000", "2026-12-30", Some(10.0), Some(8.0), Some(9.0)),
-        ("sh.600000", "2026-12-31", Some(11.0), Some(8.0), Some(10.0)),
-        ("sh.600000", "2027-01-01", Some(12.0), Some(8.0), Some(11.0)),
-        ("sh.600000", "2027-01-02", Some(13.0), Some(8.0), Some(12.0)),
+    let mut executor = FakeExecutor::with_responses(vec![
+        response(optional_date(Some("2027-01-02"))),
+        response(optional_date(Some("2026-12-30"))),
+        response(count(1)),
+        response(Vec::<KdjPreviousStateRow>::new()),
+        response(kdj_input_rows(&[
+            ("sh.600000", "2026-12-30", Some(10.0), Some(8.0), Some(9.0)),
+            ("sh.600000", "2026-12-31", Some(11.0), Some(8.0), Some(10.0)),
+            ("sh.600000", "2027-01-01", Some(12.0), Some(8.0), Some(11.0)),
+            ("sh.600000", "2027-01-02", Some(13.0), Some(8.0), Some(12.0)),
+        ])),
+        response(count(0)),
+        response(count(0)),
+        response(count(0)),
     ]);
-    let mut executor = FakeExecutor::with_responses_and_bytes(&responses, vec![input_rows]);
     let request = KdjRunRequest {
         request_from: "2026-12-30".to_string(),
         request_to: "2026-12-31".to_string(),

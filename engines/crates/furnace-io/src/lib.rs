@@ -1,20 +1,21 @@
 //! Furnace 的 ClickHouse I/O 边界。
 //!
-//! 本 crate 负责面向数据库的表名、DDL、SQL 生成、`clickhouse-client` 执行以及运行摘要。
+//! 本 crate 负责面向数据库的表名、DDL、SQL 生成、ClickHouse HTTP client 执行以及运行摘要。
 //! 纯指标公式保留在 `furnace-core` 中。
 
 mod clickhouse;
 mod error;
 mod request;
-mod rowbinary;
 mod rows;
 mod runners;
 mod schema;
 mod sql;
 mod summary;
+#[cfg(feature = "testing")]
+pub mod testing;
 mod validation;
 
-pub use clickhouse::{ClickHouseCliExecutor, ClickHouseExecutor};
+pub use clickhouse::{ClickHouseExecutor, ClickHouseHttpConfig, ClickHouseHttpExecutor};
 pub use error::FurnaceIoError;
 pub use request::{
     BollRunRequest, BollWriteMode, KdjRunRequest, KdjWriteMode, MaRunRequest, MaWriteMode,

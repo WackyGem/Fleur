@@ -2,9 +2,6 @@ use std::time::Duration;
 
 use furnace_core::KdjInput;
 
-use crate::FurnaceIoError;
-use crate::rowbinary::{push_rowbinary_date, push_rowbinary_nullable_f64, push_rowbinary_string};
-
 #[derive(Debug, Clone, PartialEq)]
 pub(crate) struct KdjResultRow {
     pub(crate) security_code: String,
@@ -45,19 +42,4 @@ pub(crate) struct KdjSecurityCalculation {
     pub(crate) rows: Vec<KdjResultRow>,
     pub(crate) output_rows: u64,
     pub(crate) null_indicator_rows: u64,
-}
-
-impl KdjResultRow {
-    pub(crate) fn write_row_binary(&self, bytes: &mut Vec<u8>) -> Result<(), FurnaceIoError> {
-        push_rowbinary_string(bytes, &self.security_code);
-        push_rowbinary_date(bytes, &self.trade_date)?;
-        bytes.extend_from_slice(&self.rsv_window.to_le_bytes());
-        bytes.extend_from_slice(&self.k_smoothing.to_le_bytes());
-        bytes.extend_from_slice(&self.d_smoothing.to_le_bytes());
-        push_rowbinary_nullable_f64(bytes, self.rsv);
-        push_rowbinary_nullable_f64(bytes, self.k_value);
-        push_rowbinary_nullable_f64(bytes, self.d_value);
-        push_rowbinary_nullable_f64(bytes, self.j_value);
-        Ok(())
-    }
 }

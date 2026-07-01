@@ -2,7 +2,6 @@ use super::*;
 
 #[test]
 fn run_price_pattern_dry_run_reads_join_inputs_and_computes_summary() {
-    let responses = ["sh.600000\n", "2026-01-01\n"];
     let rows = vec![
         (
             "sh.600000",
@@ -29,8 +28,11 @@ fn run_price_pattern_dry_run_reads_join_inputs_and_computes_summary() {
             Some(12.0),
         ),
     ];
-    let input_rows = price_pattern_rowbinary_input_rows(&rows);
-    let mut executor = FakeExecutor::with_responses_and_bytes(&responses, vec![input_rows]);
+    let mut executor = FakeExecutor::with_responses(vec![
+        response(security_codes(&["sh.600000"])),
+        response(optional_date(Some("2026-01-01"))),
+        response(price_pattern_input_rows(&rows)),
+    ]);
     let request = PricePatternRunRequest {
         request_from: "2026-01-01".to_string(),
         request_to: "2026-01-03".to_string(),
@@ -59,7 +61,6 @@ fn run_price_pattern_dry_run_reads_join_inputs_and_computes_summary() {
             && query.contains("adj.high_price_forward_adj")
             && query.contains("unadj.prev_close_price")
             && query.contains("ORDER BY adj.security_code, adj.trade_date")
-            && query.contains("FORMAT RowBinary")
     }));
 }
 
@@ -121,8 +122,7 @@ fn parallel_price_pattern_outputs_match_serial_outputs() {
 
 #[test]
 fn run_price_pattern_append_latest_inserts_result_rows() {
-    let responses = ["2026-01-01\n", "0\n"];
-    let input_rows = price_pattern_rowbinary_input_rows(&[
+    let input_rows = [
         (
             "sh.600000",
             "2026-01-01",
@@ -139,8 +139,12 @@ fn run_price_pattern_append_latest_inserts_result_rows() {
             Some(12.0),
             Some(11.0),
         ),
+    ];
+    let mut executor = FakeExecutor::with_responses(vec![
+        response(optional_date(Some("2026-01-01"))),
+        response(price_pattern_input_rows(&input_rows)),
+        response(count(0)),
     ]);
-    let mut executor = FakeExecutor::with_responses_and_bytes(&responses, vec![input_rows]);
     let request = PricePatternRunRequest {
         request_from: "2026-01-01".to_string(),
         request_to: "2026-01-02".to_string(),
@@ -153,22 +157,76 @@ fn run_price_pattern_append_latest_inserts_result_rows() {
     let summary = run_price_pattern(&mut executor, &request).unwrap();
 
     assert!(summary.writes_applied);
-    assert_eq!(executor.byte_inserts.len(), 1);
-    assert!(
-        executor.byte_inserts[0]
-            .0
-            .contains(DEFAULT_PRICE_PATTERN_OUTPUT_TABLE)
+    assert_eq!(executor.inserts.len(), 1);
+    assert_eq!(
+        executor.inserts[0].table,
+        DEFAULT_PRICE_PATTERN_OUTPUT_TABLE
     );
+    assert_eq!(executor.inserts[0].rows, 2);
     assert!(
-        executor.byte_inserts[0]
-            .0
-            .contains("n_structure_20_is_valid")
+        executor.inserts[0]
+            .row_type
+            .ends_with("PricePatternInsertRow")
     );
-    assert!(executor.byte_inserts[0].1.starts_with(b"\tsh.600000"));
 }
 
 #[test]
-fn price_pattern_result_row_writes_clickhouse_rowbinary_encoding() {
+fn run_price_pattern_replace_cascade_uses_staging_and_replaces_partitions() {
+    let input_rows = [
+        (
+            "sh.600000",
+            "2026-01-01",
+            Some(10.0),
+            Some(5.0),
+            Some(11.0),
+            Some(10.0),
+        ),
+        (
+            "sh.600000",
+            "2026-01-02",
+            Some(15.0),
+            Some(7.0),
+            Some(12.0),
+            Some(11.0),
+        ),
+    ];
+    let mut executor = FakeExecutor::with_responses(vec![
+        response(optional_date(Some("2026-01-02"))),
+        response(optional_date(Some("2026-01-01"))),
+        response(price_pattern_input_rows(&input_rows)),
+        response(count(0)),
+        response(count(0)),
+    ]);
+    let request = PricePatternRunRequest {
+        request_from: "2026-01-01".to_string(),
+        request_to: "2026-01-02".to_string(),
+        symbols: vec!["sh.600000".to_string()],
+        run_id: Some("replace-price-pattern-test".to_string()),
+        mode: PricePatternWriteMode::ReplaceCascade,
+        insert_batch_size: MIN_INSERT_BATCH_SIZE,
+        ..PricePatternRunRequest::default()
+    };
+
+    let summary = run_price_pattern(&mut executor, &request).unwrap();
+
+    assert!(summary.writes_applied);
+    assert_eq!(summary.partition_replace.years, vec![2026]);
+    assert_eq!(summary.staging_validation, ValidationSummary::passed());
+    let staging_table = summary.staging_table.as_deref().unwrap();
+    assert!(staging_table.contains("replace_price_pattern_test"));
+    assert_eq!(executor.inserts.len(), 1);
+    assert_eq!(executor.inserts[0].table, staging_table);
+    assert_eq!(executor.inserts[0].rows, 2);
+    assert_eq!(executor.multi_queries.len(), 2);
+    assert!(
+        executor.multi_queries[1]
+            .iter()
+            .any(|sql| sql.contains("REPLACE PARTITION 2026"))
+    );
+}
+
+#[test]
+fn price_pattern_result_row_converts_to_clickhouse_insert_row() {
     let row = PricePatternResultRow {
         security_code: "sh.600000".to_string(),
         trade_date: "2026-01-03".to_string(),
@@ -185,45 +243,22 @@ fn price_pattern_result_row_writes_clickhouse_rowbinary_encoding() {
         n_structure_20_second_low_ratio: Some(1.6),
         n_structure_20_is_valid: true,
     };
-    let mut bytes = Vec::new();
+    let insert = PricePatternInsertRow::try_from(&row).unwrap();
 
-    row.write_row_binary(&mut bytes).unwrap();
-
-    let mut cursor = 0;
+    assert_eq!(insert.security_code, "sh.600000");
     assert_eq!(
-        read_rowbinary_string(&bytes, &mut cursor).unwrap(),
-        "sh.600000"
+        insert.trade_date,
+        parse_clickhouse_date("2026-01-03").unwrap()
     );
-    cursor += 2;
-    assert_eq!(bytes[cursor], 0);
-    cursor += 1;
-    assert_eq!(i8::from_le_bytes([bytes[cursor]]), 1);
-    cursor += 1;
-    assert_eq!(bytes[cursor], 0);
-    cursor += 1;
+    assert_eq!(insert.close_direction, Some(1));
+    assert_eq!(insert.close_up_streak_days, Some(2));
+    assert_eq!(insert.n_structure_20_valid_bars, 3);
     assert_eq!(
-        u16::from_le_bytes(bytes[cursor..cursor + 2].try_into().unwrap()),
-        2
+        insert.n_structure_20_high_date,
+        Some(parse_clickhouse_date("2026-01-02").unwrap())
     );
-    cursor += 2;
-    assert_eq!(bytes[cursor], 0);
-    cursor += 1;
-    assert_eq!(
-        u16::from_le_bytes(bytes[cursor..cursor + 2].try_into().unwrap()),
-        0
-    );
-    cursor += 2;
-    assert_eq!(
-        u16::from_le_bytes(bytes[cursor..cursor + 2].try_into().unwrap()),
-        3
-    );
-    cursor += 2;
-    assert_eq!(bytes[cursor], 0);
-    cursor += 3;
-    assert_eq!(
-        read_rowbinary_nullable_f64(&bytes, &mut cursor).unwrap(),
-        Some(15.0)
-    );
+    assert_eq!(insert.n_structure_20_high_price, Some(15.0));
+    assert!(insert.n_structure_20_is_valid);
 }
 
 #[test]

@@ -5,11 +5,12 @@ use furnace_core::{RsiPreviousState, RsiState, RsiWindowState};
 use crate::FurnaceIoError;
 use crate::clickhouse::ClickHouseExecutor;
 use crate::request::{RsiRunRequest, RsiWriteMode};
-use crate::runners::shared::normalize_symbols;
-use crate::sql::{
-    first_tsv_value, parse_f64, parse_single_column_strings, parse_u64, sql_string,
-    symbol_where_clause, symbol_where_clause_for,
+use crate::rows::{
+    CloseInputRow, GapCountRow, OptionalDateValueRow, RsiPreviousStateRow, SecurityCodeRow,
 };
+use crate::runners::shared::normalize_symbols;
+use crate::sql::{sql_string, symbol_where_clause, symbol_where_clause_for};
+use crate::validation::format_clickhouse_date;
 pub(super) fn read_previous_rsi_states<E: ClickHouseExecutor>(
     executor: &mut E,
     request: &RsiRunRequest,
@@ -23,20 +24,20 @@ pub(super) fn read_previous_rsi_states<E: ClickHouseExecutor>(
         "\
 SELECT
     state.security_code,
-    toString(state.state_date),
-    input.close_price_forward_adj,
-    state.state_avg_gain_6,
-    state.state_avg_loss_6,
-    state.state_avg_gain_12,
-    state.state_avg_loss_12,
-    state.state_avg_gain_14,
-    state.state_avg_loss_14,
-    state.state_avg_gain_24,
-    state.state_avg_loss_24,
-    state.state_avg_gain_25,
-    state.state_avg_loss_25,
-    state.state_avg_gain_50,
-    state.state_avg_loss_50
+    state.state_date,
+    assumeNotNull(input.close_price_forward_adj) AS previous_close,
+    assumeNotNull(state.state_avg_gain_6) AS state_avg_gain_6,
+    assumeNotNull(state.state_avg_loss_6) AS state_avg_loss_6,
+    assumeNotNull(state.state_avg_gain_12) AS state_avg_gain_12,
+    assumeNotNull(state.state_avg_loss_12) AS state_avg_loss_12,
+    assumeNotNull(state.state_avg_gain_14) AS state_avg_gain_14,
+    assumeNotNull(state.state_avg_loss_14) AS state_avg_loss_14,
+    assumeNotNull(state.state_avg_gain_24) AS state_avg_gain_24,
+    assumeNotNull(state.state_avg_loss_24) AS state_avg_loss_24,
+    assumeNotNull(state.state_avg_gain_25) AS state_avg_gain_25,
+    assumeNotNull(state.state_avg_loss_25) AS state_avg_loss_25,
+    assumeNotNull(state.state_avg_gain_50) AS state_avg_gain_50,
+    assumeNotNull(state.state_avg_loss_50) AS state_avg_loss_50
 FROM (
     SELECT
         security_code,
@@ -73,8 +74,7 @@ FROM (
 INNER JOIN {} AS input
     ON input.security_code = state.security_code
    AND input.trade_date = state.state_date
-WHERE input.close_price_forward_adj IS NOT NULL
-FORMAT TSV",
+WHERE input.close_price_forward_adj IS NOT NULL",
         request.output_table,
         sql_string(&request.request_from),
         symbol_where_clause(symbols, all_symbols_requested),
@@ -82,44 +82,26 @@ FORMAT TSV",
     );
 
     let mut states = HashMap::new();
-    for line in executor
-        .query(&sql)?
-        .lines()
-        .filter(|line| !line.is_empty())
-    {
-        let fields = line.split('\t').collect::<Vec<_>>();
-        if fields.len() != 15 {
-            return Err(FurnaceIoError::Parse(format!(
-                "expected 15 previous RSI state fields, got {}",
-                fields.len()
-            )));
-        }
-        let previous_close = parse_f64(fields[2])?.ok_or_else(|| {
-            FurnaceIoError::Parse("previous RSI close must not be null".to_string())
-        })?;
+    for row in executor.fetch_all::<RsiPreviousStateRow>(&sql)? {
         let state = RsiState::new(
-            previous_close,
-            rsi_window_state(fields[3], fields[4])?,
-            rsi_window_state(fields[5], fields[6])?,
-            rsi_window_state(fields[7], fields[8])?,
-            rsi_window_state(fields[9], fields[10])?,
-            rsi_window_state(fields[11], fields[12])?,
-            rsi_window_state(fields[13], fields[14])?,
+            row.previous_close,
+            rsi_window_state(row.state_avg_gain_6, row.state_avg_loss_6)?,
+            rsi_window_state(row.state_avg_gain_12, row.state_avg_loss_12)?,
+            rsi_window_state(row.state_avg_gain_14, row.state_avg_loss_14)?,
+            rsi_window_state(row.state_avg_gain_24, row.state_avg_loss_24)?,
+            rsi_window_state(row.state_avg_gain_25, row.state_avg_loss_25)?,
+            rsi_window_state(row.state_avg_gain_50, row.state_avg_loss_50)?,
         )
         .map_err(|source| FurnaceIoError::Parse(source.to_string()))?;
         states.insert(
-            fields[0].to_string(),
-            RsiPreviousState::new(fields[1].to_string(), state),
+            row.security_code,
+            RsiPreviousState::new(format_clickhouse_date(row.state_date), state),
         );
     }
     Ok(states)
 }
 
-pub(super) fn rsi_window_state(gain: &str, loss: &str) -> Result<RsiWindowState, FurnaceIoError> {
-    let gain = parse_f64(gain)?
-        .ok_or_else(|| FurnaceIoError::Parse("previous RSI gain must not be null".to_string()))?;
-    let loss = parse_f64(loss)?
-        .ok_or_else(|| FurnaceIoError::Parse("previous RSI loss must not be null".to_string()))?;
+pub(super) fn rsi_window_state(gain: f64, loss: f64) -> Result<RsiWindowState, FurnaceIoError> {
     RsiWindowState::new(gain, loss).map_err(|source| FurnaceIoError::Parse(source.to_string()))
 }
 
@@ -154,41 +136,25 @@ WITH states AS (
     GROUP BY security_code
 )
 SELECT
-    countDistinct(input.security_code),
-    toString(min(input.trade_date))
+    countDistinct(input.security_code) AS gap_symbols,
+    if(gap_symbols = 0, NULL, min(input.trade_date)) AS gap_fill_from
 FROM {} AS input
 INNER JOIN states
     ON input.security_code = states.security_code
 WHERE input.trade_date > states.state_date
   AND input.trade_date < toDate('{}')
-  AND input.close_price_forward_adj IS NOT NULL
-FORMAT TSV",
+  AND input.close_price_forward_adj IS NOT NULL",
         request.output_table,
         sql_string(&request.request_from),
         symbol_where_clause(symbols, all_symbols_requested),
         request.input_table,
         sql_string(&request.request_from)
     );
-    let output = executor.query(&sql)?;
-    let fields = output
-        .lines()
-        .next()
-        .unwrap_or_default()
-        .split('\t')
-        .collect::<Vec<_>>();
-    let gap_symbols = fields
-        .first()
-        .map(|value| parse_u64(value))
-        .transpose()?
-        .unwrap_or(0);
-    let gap_fill_from = fields.get(1).and_then(|value| {
-        if gap_symbols == 0 || value.is_empty() || *value == "\\N" {
-            None
-        } else {
-            Some((*value).to_string())
-        }
-    });
-    Ok((gap_symbols, gap_fill_from))
+    let row = executor.fetch_one::<GapCountRow>(&sql)?;
+    Ok((
+        row.gap_symbols,
+        row.gap_fill_from.map(format_clickhouse_date),
+    ))
 }
 pub(super) fn resolve_rsi_symbols<E: ClickHouseExecutor>(
     executor: &mut E,
@@ -206,12 +172,16 @@ WHERE trade_date >= toDate('{}')
   AND trade_date <= toDate('{}')
 GROUP BY security_code
 ORDER BY security_code
-FORMAT TSV",
+",
         request.input_table,
         sql_string(&request.request_from),
         sql_string(&request.request_to)
     );
-    parse_single_column_strings(&executor.query(&sql)?)
+    Ok(executor
+        .fetch_all::<SecurityCodeRow>(&sql)?
+        .into_iter()
+        .map(|row| row.security_code)
+        .collect())
 }
 
 pub(super) fn resolve_rsi_effective_output_to<E: ClickHouseExecutor>(
@@ -225,18 +195,17 @@ pub(super) fn resolve_rsi_effective_output_to<E: ClickHouseExecutor>(
     }
     let sql = format!(
         "\
-SELECT toString(max(trade_date))
+SELECT if(count() = 0, NULL, max(trade_date)) AS value
 FROM {}
-WHERE {}
-FORMAT TSV",
+WHERE {}",
         request.input_table,
         symbol_where_clause(symbols, all_symbols_requested)
     );
-    let value =
-        first_tsv_value(&executor.query(&sql)?).unwrap_or_else(|| request.request_to.clone());
-    if value.is_empty() || value == "\\N" {
-        return Ok(request.request_to.clone());
-    }
+    let value = executor
+        .fetch_one::<OptionalDateValueRow>(&sql)?
+        .value
+        .map(format_clickhouse_date)
+        .unwrap_or_else(|| request.request_to.clone());
     Ok(value.max(request.request_to.clone()))
 }
 
@@ -248,29 +217,26 @@ pub(super) fn resolve_rsi_input_from<E: ClickHouseExecutor>(
 ) -> Result<String, FurnaceIoError> {
     let sql = format!(
         "\
-SELECT toString(min(trade_date))
+SELECT if(count() = 0, NULL, min(trade_date)) AS value
 FROM {}
-WHERE {}
-FORMAT TSV",
+WHERE {}",
         request.input_table,
         symbol_where_clause(symbols, all_symbols_requested)
     );
-    let value =
-        first_tsv_value(&executor.query(&sql)?).unwrap_or_else(|| request.request_from.clone());
-    if value.is_empty() || value == "\\N" {
-        Ok(request.request_from.clone())
-    } else {
-        Ok(value)
-    }
+    Ok(executor
+        .fetch_one::<OptionalDateValueRow>(&sql)?
+        .value
+        .map(format_clickhouse_date)
+        .unwrap_or_else(|| request.request_from.clone()))
 }
-pub(super) fn read_rsi_input_row_binary<E: ClickHouseExecutor>(
+pub(super) fn read_rsi_input_rows<E: ClickHouseExecutor>(
     executor: &mut E,
     request: &RsiRunRequest,
     symbols: &[String],
     all_symbols_requested: bool,
     input_from: &str,
     input_to: &str,
-) -> Result<Vec<u8>, FurnaceIoError> {
+) -> Result<Vec<CloseInputRow>, FurnaceIoError> {
     if symbols.is_empty() && !all_symbols_requested {
         return Ok(Vec::new());
     }
@@ -278,14 +244,13 @@ pub(super) fn read_rsi_input_row_binary<E: ClickHouseExecutor>(
         "\
 SELECT
     security_code,
-    toString(trade_date),
-    {}
+    trade_date,
+    {} AS close_price
 FROM {}
 WHERE trade_date >= toDate('{}')
   AND trade_date <= toDate('{}')
   AND {}
-ORDER BY security_code, trade_date
-FORMAT RowBinary",
+ORDER BY security_code, trade_date",
         request.price_column,
         request.input_table,
         sql_string(input_from),
@@ -293,16 +258,16 @@ FORMAT RowBinary",
         symbol_where_clause(symbols, all_symbols_requested)
     );
 
-    executor.query_bytes(&sql)
+    executor.fetch_all::<CloseInputRow>(&sql)
 }
 
-pub(super) fn read_rsi_mixed_input_row_binary<E: ClickHouseExecutor>(
+pub(super) fn read_rsi_mixed_input_rows<E: ClickHouseExecutor>(
     executor: &mut E,
     request: &RsiRunRequest,
     symbols: &[String],
     all_symbols_requested: bool,
     input_to: &str,
-) -> Result<Vec<u8>, FurnaceIoError> {
+) -> Result<Vec<CloseInputRow>, FurnaceIoError> {
     if symbols.is_empty() && !all_symbols_requested {
         return Ok(Vec::new());
     }
@@ -329,16 +294,15 @@ WITH states AS (
 )
 SELECT
     input.security_code,
-    toString(input.trade_date),
-    input.{}
+    input.trade_date,
+    input.{} AS close_price
 FROM {} AS input
 LEFT JOIN states
     ON input.security_code = states.security_code
 WHERE input.trade_date <= toDate('{}')
   AND {}
   AND (states.state_date IS NULL OR input.trade_date >= states.state_date)
-ORDER BY input.security_code, input.trade_date
-FORMAT RowBinary",
+ORDER BY input.security_code, input.trade_date",
         request.output_table,
         sql_string(&request.request_from),
         symbol_where_clause(symbols, all_symbols_requested),
@@ -348,5 +312,5 @@ FORMAT RowBinary",
         symbol_where_clause_for("input.security_code", symbols, all_symbols_requested)
     );
 
-    executor.query_bytes(&sql)
+    executor.fetch_all::<CloseInputRow>(&sql)
 }

@@ -1,7 +1,9 @@
+use clickhouse::{RowOwned, RowWrite};
+
 use crate::FurnaceIoError;
 use crate::clickhouse::ClickHouseExecutor;
+use crate::rows::CountRow;
 use crate::schema::replace_partition_sql;
-use crate::sql::{first_tsv_value, parse_u64};
 use crate::sql::{sql_string, symbol_where_clause};
 use crate::summary::ValidationSummary;
 
@@ -57,15 +59,14 @@ pub(in crate::runners) fn ensure_append_latest_is_safe<E: ClickHouseExecutor>(
     }
     let sql = format!(
         "\
-SELECT count()
+SELECT count() AS value
 FROM {output_table}
 WHERE trade_date >= toDate('{}')
-  AND {}
-FORMAT TSV",
+  AND {}",
         sql_string(request_from),
         symbol_where_clause(symbols, all_symbols_requested)
     );
-    let existing_rows = parse_u64(&first_tsv_value(&executor.query(&sql)?).unwrap_or_default())?;
+    let existing_rows = executor.fetch_one::<CountRow>(&sql)?.value;
     if existing_rows > 0 {
         return Err(FurnaceIoError::InvalidRequest(format!(
             "append-latest found {existing_rows} existing same-or-later result rows; use replace-cascade"
@@ -161,36 +162,17 @@ pub(in crate::runners) fn cleanup_staging<E: ClickHouseExecutor>(
     executor.execute(drop_sql)
 }
 
-pub(in crate::runners) fn insert_rowbinary_rows<E, R>(
+pub(in crate::runners) fn insert_typed_rows<E, R>(
     executor: &mut E,
-    insert_sql: &str,
+    table: &str,
     rows: &[R],
     batch_size: usize,
-    estimated_row_bytes: usize,
-    mut write_row: impl FnMut(&R, &mut Vec<u8>) -> Result<(), FurnaceIoError>,
 ) -> Result<(), FurnaceIoError>
 where
     E: ClickHouseExecutor,
+    R: RowOwned + RowWrite + Clone + Send + Sync,
 {
-    if rows.is_empty() {
-        return Ok(());
-    }
-    executor.insert_bytes_stream(insert_sql, |writer| {
-        for batch in rows.chunks(batch_size) {
-            let mut row_binary =
-                Vec::with_capacity(batch.len().saturating_mul(estimated_row_bytes));
-            for row in batch {
-                write_row(row, &mut row_binary)?;
-            }
-            writer
-                .write_all(&row_binary)
-                .map_err(|source| FurnaceIoError::ClickHouseCommand {
-                    message: "failed to write RowBinary batch to clickhouse-client".to_string(),
-                    source: Some(source.to_string()),
-                })?;
-        }
-        Ok(())
-    })
+    executor.insert_rows(table, rows, batch_size)
 }
 
 pub(in crate::runners) fn validate_staging<E: ClickHouseExecutor>(
@@ -208,16 +190,15 @@ pub(in crate::runners) fn validate_staging<E: ClickHouseExecutor>(
         .join(",");
     let sql = format!(
         "\
-SELECT sum(duplicates)
+SELECT toUInt64(coalesce(sum(duplicates), 0)) AS value
 FROM (
     SELECT count() - uniqExact(security_code, trade_date) AS duplicates
     FROM {staging_table}
     WHERE toYear(trade_date) IN ({years})
     GROUP BY toYear(trade_date)
-)
-FORMAT TSV"
+)"
     );
-    let duplicates = parse_u64(&first_tsv_value(&executor.query(&sql)?).unwrap_or_default())?;
+    let duplicates = executor.fetch_one::<CountRow>(&sql)?.value;
     if duplicates > 0 {
         return Ok(ValidationSummary {
             status: "failed".to_string(),
@@ -234,10 +215,9 @@ pub(in crate::runners) fn count_year_rows<E: ClickHouseExecutor>(
 ) -> Result<u64, FurnaceIoError> {
     let sql = format!(
         "\
-SELECT count()
+SELECT count() AS value
 FROM {table}
-WHERE toYear(trade_date) = {year}
-FORMAT TSV"
+WHERE toYear(trade_date) = {year}"
     );
-    parse_u64(&first_tsv_value(&executor.query(&sql)?).unwrap_or_default())
+    Ok(executor.fetch_one::<CountRow>(&sql)?.value)
 }

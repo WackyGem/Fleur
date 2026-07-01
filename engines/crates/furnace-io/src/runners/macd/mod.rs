@@ -21,10 +21,10 @@ use crate::summary::{
 };
 use crate::validation::affected_years;
 
-use self::materialize::{calculate_macd_dry_run_from_rowbinary, calculate_macd_outputs};
+use self::materialize::{calculate_macd_dry_run_from_input_rows, calculate_macd_outputs};
 use self::planning::{
-    count_macd_gap_symbols, count_macd_incomplete_state_symbols, read_macd_input_row_binary,
-    read_macd_mixed_input_row_binary, read_previous_macd_states, resolve_macd_effective_output_to,
+    count_macd_gap_symbols, count_macd_incomplete_state_symbols, read_macd_input_rows,
+    read_macd_mixed_input_rows, read_previous_macd_states, resolve_macd_effective_output_to,
     resolve_macd_input_from, resolve_macd_symbols,
 };
 use self::writing::{ensure_macd_append_latest_is_safe, insert_macd_result_rows};
@@ -109,7 +109,7 @@ pub fn run_macd<E: ClickHouseExecutor>(
 
     let timed_input = if can_use_previous_state {
         time_result(|| {
-            read_macd_mixed_input_row_binary(
+            read_macd_mixed_input_rows(
                 executor,
                 request,
                 &symbols,
@@ -119,7 +119,7 @@ pub fn run_macd<E: ClickHouseExecutor>(
         })?
     } else {
         time_result(|| {
-            read_macd_input_row_binary(
+            read_macd_input_rows(
                 executor,
                 request,
                 &symbols,
@@ -130,13 +130,13 @@ pub fn run_macd<E: ClickHouseExecutor>(
         })?
     };
     timings.read_input = timed_input.elapsed;
-    let input_bytes = timed_input.value;
+    let input_rows = timed_input.value;
     let (calculated, input_rows_count, valid_close_rows, input_from) =
         if request.mode == MacdWriteMode::DryRun {
-            let dry_run = calculate_macd_dry_run_from_rowbinary(
+            let dry_run = calculate_macd_dry_run_from_input_rows(
                 request,
                 &effective_output_to,
-                &input_bytes,
+                input_rows,
                 &states_for_compute,
             )?;
             let input_from = dry_run
@@ -150,7 +150,7 @@ pub fn run_macd<E: ClickHouseExecutor>(
                 input_from,
             )
         } else {
-            let timed_groups = time_result(|| group_macd_input_rows(&input_bytes))?;
+            let timed_groups = time_result(|| Ok(group_macd_input_rows(input_rows)))?;
             timings.group = timed_groups.elapsed;
             let input_groups = timed_groups.value;
             let input_rows_count = input_groups.input_rows;
@@ -169,7 +169,6 @@ pub fn run_macd<E: ClickHouseExecutor>(
             )?;
             (calculated, input_rows_count, valid_close_rows, input_from)
         };
-    drop(input_bytes);
     timings.compute = calculated.compute_elapsed;
     timings.parallelism = calculated.parallelism;
     timings.worker_threads = calculated.worker_threads;

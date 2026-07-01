@@ -10,6 +10,9 @@ from typing import Any
 
 import dagster as dg
 
+DEFAULT_FURNACE_BINARY_PATH = "engines/target/release/furnace"
+DEFAULT_FURNACE_INSERT_BATCH_SIZE = 100_000
+
 
 @dataclass(frozen=True)
 class FurnaceKdjCliRequest:
@@ -20,7 +23,7 @@ class FurnaceKdjCliRequest:
     rsv_window: int = 9
     k_smoothing: int = 3
     d_smoothing: int = 3
-    insert_batch_size: int = 10_000
+    insert_batch_size: int = DEFAULT_FURNACE_INSERT_BATCH_SIZE
     run_id: str | None = None
 
 
@@ -43,7 +46,7 @@ class FurnaceMaCliRequest:
     output_table: str = "fleur_calculation.calc_stock_ma_daily"
     price_column: str = "close_price_forward_adj"
     volume_column: str = "volume"
-    insert_batch_size: int = 10_000
+    insert_batch_size: int = DEFAULT_FURNACE_INSERT_BATCH_SIZE
     run_id: str | None = None
 
 
@@ -64,7 +67,7 @@ class FurnaceRsiCliRequest:
     input_table: str = "fleur_intermediate.int_stock_quotes_daily_adj"
     output_table: str = "fleur_calculation.calc_stock_rsi_daily"
     price_column: str = "close_price_forward_adj"
-    insert_batch_size: int = 10_000
+    insert_batch_size: int = DEFAULT_FURNACE_INSERT_BATCH_SIZE
     run_id: str | None = None
 
 
@@ -85,7 +88,7 @@ class FurnaceBollCliRequest:
     input_table: str = "fleur_intermediate.int_stock_quotes_daily_adj"
     output_table: str = "fleur_calculation.calc_stock_boll_daily"
     price_column: str = "close_price_forward_adj"
-    insert_batch_size: int = 10_000
+    insert_batch_size: int = DEFAULT_FURNACE_INSERT_BATCH_SIZE
     run_id: str | None = None
 
 
@@ -106,7 +109,7 @@ class FurnaceMacdCliRequest:
     input_table: str = "fleur_intermediate.int_stock_quotes_daily_adj"
     output_table: str = "fleur_calculation.calc_stock_macd_daily"
     price_column: str = "close_price_forward_adj"
-    insert_batch_size: int = 10_000
+    insert_batch_size: int = DEFAULT_FURNACE_INSERT_BATCH_SIZE
     run_id: str | None = None
 
 
@@ -131,7 +134,7 @@ class FurnacePricePatternCliRequest:
     low_column: str = "low_price_forward_adj"
     close_column: str = "close_price"
     prev_close_column: str = "prev_close_price"
-    insert_batch_size: int = 10_000
+    insert_batch_size: int = DEFAULT_FURNACE_INSERT_BATCH_SIZE
     run_id: str | None = None
 
 
@@ -144,7 +147,7 @@ class FurnacePricePatternCliResult:
 
 
 class FurnaceCliResource(dg.ConfigurableResource):
-    binary_path: str = "engines/target/debug/furnace"
+    binary_path: str = DEFAULT_FURNACE_BINARY_PATH
     working_dir: str = "."
     timeout_seconds: int = 300
     rayon_num_threads: int | None = 8

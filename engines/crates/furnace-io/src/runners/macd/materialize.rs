@@ -9,11 +9,11 @@ use rayon::prelude::*;
 
 use crate::FurnaceIoError;
 use crate::request::MacdRunRequest;
-use crate::rowbinary::{read_rowbinary_nullable_f64, read_rowbinary_string};
 use crate::rows::{
-    MacdCalculationResult, MacdGroupedInput, MacdResultRow, MacdSecurityCalculation,
+    CloseInputRow, MacdCalculationResult, MacdGroupedInput, MacdResultRow, MacdSecurityCalculation,
 };
 use crate::runners::shared::should_parallelize;
+use crate::validation::format_clickhouse_date;
 
 #[derive(Debug, Clone, PartialEq)]
 pub(super) struct MacdDryRunCalculation {
@@ -23,15 +23,14 @@ pub(super) struct MacdDryRunCalculation {
     pub(super) input_from: Option<String>,
 }
 
-pub(super) fn calculate_macd_dry_run_from_rowbinary(
+pub(super) fn calculate_macd_dry_run_from_input_rows(
     request: &MacdRunRequest,
     effective_output_to: &str,
-    input_bytes: &[u8],
+    input_rows: Vec<CloseInputRow>,
     states: &HashMap<String, MacdPreviousState>,
 ) -> Result<MacdDryRunCalculation, FurnaceIoError> {
     let compute_started = Instant::now();
-    let mut cursor = 0;
-    let mut input_rows = 0;
+    let input_row_count = input_rows.len() as u64;
     let mut valid_close_rows = 0;
     let mut input_from = None::<String>;
     let mut current_security_code = None::<String>;
@@ -39,20 +38,20 @@ pub(super) fn calculate_macd_dry_run_from_rowbinary(
     let mut output_rows = 0;
     let mut null_indicator_rows = 0;
 
-    while cursor < input_bytes.len() {
-        let security_code = read_rowbinary_string(input_bytes, &mut cursor)?;
-        let trade_date = read_rowbinary_string(input_bytes, &mut cursor)?;
-        let close_price = read_rowbinary_nullable_f64(input_bytes, &mut cursor)?;
+    for row in input_rows {
+        let security_code = row.security_code;
+        let trade_date = format_clickhouse_date(row.trade_date);
+        let close_price = row.close_price;
         input_from = match input_from {
-            Some(current) if current.as_str() <= trade_date => Some(current),
-            _ => Some(trade_date.to_string()),
+            Some(current) if current.as_str() <= trade_date.as_str() => Some(current),
+            _ => Some(trade_date.clone()),
         };
         if close_price.is_some() {
             valid_close_rows += 1;
         }
 
-        if current_security_code.as_deref() != Some(security_code)
-            && let Some(security_code) = current_security_code.replace(security_code.to_string())
+        if current_security_code.as_deref() != Some(security_code.as_str())
+            && let Some(security_code) = current_security_code.replace(security_code)
         {
             let calculated = calculate_macd_security_counts(
                 request,
@@ -67,8 +66,7 @@ pub(super) fn calculate_macd_dry_run_from_rowbinary(
             null_indicator_rows += calculated.null_indicator_rows;
         }
 
-        current_inputs.push(MacdInput::new(trade_date.to_string(), close_price));
-        input_rows += 1;
+        current_inputs.push(MacdInput::new(trade_date, close_price));
     }
 
     if let Some(security_code) = current_security_code {
@@ -95,7 +93,7 @@ pub(super) fn calculate_macd_dry_run_from_rowbinary(
             parallelism: "serial-streaming",
             worker_threads: rayon::current_num_threads(),
         },
-        input_rows,
+        input_rows: input_row_count,
         valid_close_rows,
         input_from,
     })

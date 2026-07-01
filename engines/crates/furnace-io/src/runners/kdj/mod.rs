@@ -23,7 +23,7 @@ use crate::summary::{
 use crate::validation::affected_years;
 
 use self::materialize::calculate_outputs;
-use self::planning::{read_input_row_binary, read_previous_states, resolve_effective_output_to};
+use self::planning::{read_input_rows, read_previous_states, resolve_effective_output_to};
 use self::planning::{resolve_input_from, resolve_symbols};
 use self::writing::{ensure_append_latest_is_safe, insert_result_rows};
 
@@ -57,7 +57,7 @@ pub fn run_kdj<E: ClickHouseExecutor>(
         HashMap::new()
     };
     let timed_input = time_result(|| {
-        read_input_row_binary(
+        read_input_rows(
             executor,
             &symbols,
             all_symbols_requested,
@@ -66,10 +66,9 @@ pub fn run_kdj<E: ClickHouseExecutor>(
         )
     })?;
     timings.read_input = timed_input.elapsed;
-    let input_bytes = timed_input.value;
-    let timed_groups = time_result(|| group_input_rows(&input_bytes))?;
+    let input_rows = timed_input.value;
+    let timed_groups = time_result(|| Ok(group_input_rows(input_rows)))?;
     timings.group = timed_groups.elapsed;
-    drop(input_bytes);
     let input_groups = timed_groups.value;
     let input_rows_count = input_groups.input_rows;
 

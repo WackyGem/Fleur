@@ -8,20 +8,21 @@ import pytest
 from scheduler.defs.automation.source_raw_backfill import (
     ALL_FETCH_SOURCES_TO_RAW_SCOPE,
     ALL_RAW_YEARLY_SCOPE,
+    BACKFILL_CONTROLLER_OP_NAME,
+    BACKFILL_JOB_NAME,
     BAOSTOCK_DAILY_KLINE_SCOPE,
-    DATE_OPTIONAL_TARGET_SCOPES,
     DATE_REQUIRED_TARGET_SCOPES,
     DEFAULT_JIUYAN_OCR_LIMIT,
     EXECUTION_MODE_FULL,
     EXECUTION_MODE_RAW_ONLY,
     JIUYAN_OCR_PIPELINE_SCOPE,
+    SNAPSHOT_REFERENCE_DATA_SCOPE,
     STEP_RAW,
     BackfillControllerConfig,
     BackfillControllerRequest,
     BackfillRunSubmitter,
     BackfillStep,
     BackfillStepResult,
-    SnapshotBackfillControllerConfig,
     add_controller_run_tags,
     all_registered_raw_asset_keys,
     all_registered_source_asset_keys,
@@ -31,6 +32,11 @@ from scheduler.defs.automation.source_raw_backfill import (
     source_asset_keys_covered_by_all_fetch_scope,
     source_raw_op_config_mappings,
 )
+
+
+def test_history_backfill_entrypoint_names_are_explicit() -> None:
+    assert BACKFILL_JOB_NAME == "backfill__fetch_history_sources_to_raw_job"
+    assert BACKFILL_CONTROLLER_OP_NAME == "backfill__fetch_history_sources_to_raw_controller"
 
 
 def test_all_fetch_scope_covers_all_current_source_and_raw_assets() -> None:
@@ -124,6 +130,31 @@ def test_raw_only_plan_contains_only_raw_steps() -> None:
     assert all(
         step.asset_keys == ("clickhouse/raw/baostock__query_history_k_data_plus_daily_compacted",)
         for step in plan.steps
+    )
+
+
+def test_snapshot_reference_scope_requires_config_dates_but_ignores_them() -> None:
+    plan = build_backfill_plan(
+        controller_request(
+            target_scope=SNAPSHOT_REFERENCE_DATA_SCOPE,
+            start_date="2026-12-30",
+            end_date="2026-12-31",
+        ),
+        today=date(2026, 6, 30),
+        controller_run_id="controller-run-003b",
+    )
+
+    assert plan.start_date is None
+    assert plan.end_date is None
+    assert plan.year_partitions == ()
+    assert [step.partition.label() for step in plan.steps] == [
+        "unpartitioned",
+        "unpartitioned",
+    ]
+    assert plan.steps[0].asset_keys == (
+        "source/sina__trade_calendar",
+        "source/baostock__query_stock_basic",
+        "source/jiuyan__industry_list",
     )
 
 
@@ -253,7 +284,7 @@ def test_add_controller_run_tags_writes_common_backfill_tags() -> None:
 
     assert tag_writer.run_id == "controller-run-006c"
     assert tag_writer.tags == {
-        "backfill.kind": "fetch_sources_to_raw",
+        "backfill.kind": "fetch_history_sources_to_raw",
         "backfill.id": "baostock_daily_kline-2024-01-01-2024-12-31-controllerru",
         "backfill.target_scope": BAOSTOCK_DAILY_KLINE_SCOPE,
         "backfill.start_date": "2024-01-01",
@@ -317,19 +348,8 @@ def test_web_ui_config_schema_exposes_scope_choices_and_required_dates() -> None
     }
 
 
-def test_snapshot_web_ui_config_schema_omits_dates_and_limits_scope_choices() -> None:
-    fields = config_schema_fields(SnapshotBackfillControllerConfig)
-
-    assert "start_date" not in fields
-    assert "end_date" not in fields
-    assert fields["target_scope"].is_required
-    assert set(
-        get_args(SnapshotBackfillControllerConfig.model_fields["target_scope"].annotation)
-    ) == set(DATE_OPTIONAL_TARGET_SCOPES)
-
-
 def config_schema_fields(
-    config_cls: type[BackfillControllerConfig] | type[SnapshotBackfillControllerConfig],
+    config_cls: type[BackfillControllerConfig],
 ) -> Mapping[str, Any]:
     config_type = config_cls.to_config_schema().as_field().config_type
     assert hasattr(config_type, "fields"), f"Expected shape config type, got {type(config_type)}"

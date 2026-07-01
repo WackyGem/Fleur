@@ -1,6 +1,6 @@
 # Architecture: Furnace
 
-状态：当前事实入口（2026-06-13）
+状态：当前事实入口（2026-07-01）
 
 ## 代码根
 
@@ -8,7 +8,7 @@
 |---|---|
 | [engines/crates/furnace/](../../engines/crates/furnace/) | CLI 入口、参数解析、请求校验和 JSON summary 输出 |
 | [engines/crates/furnace-core/](../../engines/crates/furnace-core/) | 技术指标参数、输入输出模型和单证券纯计算 |
-| [engines/crates/furnace-io/](../../engines/crates/furnace-io/) | ClickHouse DDL/SQL、RowBinary、并行调度、staging 和分区替换 |
+| [engines/crates/furnace-io/](../../engines/crates/furnace-io/) | ClickHouse DDL/SQL、官方 HTTP client typed I/O、并行调度、staging 和分区替换 |
 | [pipeline/scheduler/src/scheduler/defs/furnace/](../../pipeline/scheduler/src/scheduler/defs/furnace/) | Dagster Furnace assets、jobs 和 schedules |
 
 ## 职责
@@ -22,9 +22,15 @@
 
 1. 不负责外部数据采集、raw sync 或 dbt 建模。
 2. 不承担 Rearview 规则选股、运行状态和结果解释。
-3. 不把 ClickHouse、RowBinary、Rayon 或环境变量依赖放入 `furnace-core`。
+3. 不把 ClickHouse I/O、Rayon 或环境变量依赖放入 `furnace-core`。
 
 ## 运行入口
+
+当前生产实现通过 `furnace-io` 内的官方 `clickhouse` Rust client 访问 ClickHouse HTTP 端口。Furnace 不依赖宿主机 `clickhouse-client`、Docker exec wrapper 或 native port；`.env` / `.env.example` 中的 `FURNACE_CLICKHOUSE_URL` 是权威连接入口，`FURNACE_CLICKHOUSE_VALIDATE_SCHEMA` 控制官方 client schema validation。本项目模板默认保持 `false`，使用 ClickHouse `RowBinary` 以降低 full-market 读取开销；2026-07-01 smoke 已覆盖 6 个指标的 `validation=false` `replace-cascade` 写入路径。Nullable 状态列读取必须在 SQL 输出边界显式转成 non-null typed row，避免 `RowBinary` 类型错位。
+
+Dagster Furnace asset 默认通过 `FURNACE_BINARY_PATH` 调用 `engines/target/release/furnace`。性能基准和回填必须使用 release binary；`engines/target/debug/furnace` 只用于本地调试。
+
+默认写入批量为 100,000 行/批。Furnace 通过官方 HTTP client 对每个 batch 发起一次 insert，该默认值用于减少 full-market `replace-cascade` 的 HTTP insert 请求数，同时仍保持在 ClickHouse 推荐的 10K-100K 行/批范围内。
 
 所有 Cargo 命令在 `engines/` 目录下执行：
 
@@ -66,6 +72,8 @@ uv run pytest scheduler/tests/unit/furnace/test_furnace_definitions.py scheduler
 | 文档 | 用途 |
 |---|---|
 | [../../engines/README.md](../../engines/README.md) | Rust engines 工作区地图和 Furnace CLI 入口 |
+| [../jobs/reports/2026-07-01-furnace-clickhouse-rust-client-migration.md](../jobs/reports/2026-07-01-furnace-clickhouse-rust-client-migration.md) | Furnace 迁移到官方 `clickhouse` Rust HTTP client 的验证报告 |
+| [../plans/archive/0068-furnace-clickhouse-rust-client-migration-plan.md](../plans/archive/0068-furnace-clickhouse-rust-client-migration-plan.md) | Furnace 迁移到官方 `clickhouse` Rust client 的完成记录 |
 | [../RFC/archive/0016-rust-furnace-compute-engine.md](../RFC/archive/0016-rust-furnace-compute-engine.md) | Furnace 原始设计和长期边界 |
 | [../RFC/archive/0017-furnace-moving-average-technical-indicators.md](../RFC/archive/0017-furnace-moving-average-technical-indicators.md) | MA 指标设计 |
 | [../ADR/0010-technical-indicator-field-naming.md](../ADR/0010-technical-indicator-field-naming.md) | 技术指标字段命名决策 |

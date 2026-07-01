@@ -1,29 +1,5 @@
 use crate::FurnaceIoError;
-
-pub(crate) fn date_days_since_unix_epoch(value: &str) -> Result<u16, FurnaceIoError> {
-    validate_date("date", value)?;
-    let year = value[0..4]
-        .parse::<i32>()
-        .map_err(|_| FurnaceIoError::Parse(format!("invalid date year: {value}")))?;
-    let month = value[5..7]
-        .parse::<u32>()
-        .map_err(|_| FurnaceIoError::Parse(format!("invalid date month: {value}")))?;
-    let day = value[8..10]
-        .parse::<u32>()
-        .map_err(|_| FurnaceIoError::Parse(format!("invalid date day: {value}")))?;
-    let days = days_from_civil(year, month, day);
-    u16::try_from(days).map_err(|_| FurnaceIoError::Parse(format!("Date out of range: {value}")))
-}
-
-fn days_from_civil(year: i32, month: u32, day: u32) -> i32 {
-    let year = year - i32::from(month <= 2);
-    let era = if year >= 0 { year } else { year - 399 } / 400;
-    let year_of_era = year - era * 400;
-    let month = month as i32;
-    let day_of_year = (153 * (month + if month > 2 { -3 } else { 9 }) + 2) / 5 + day as i32 - 1;
-    let day_of_era = year_of_era * 365 + year_of_era / 4 - year_of_era / 100 + day_of_year;
-    era * 146_097 + day_of_era - 719_468
-}
+use time::{Date, Month};
 
 pub(crate) fn affected_years(from: &str, to: &str) -> Result<Vec<u16>, FurnaceIoError> {
     let from_year = parse_year(from)?;
@@ -52,6 +28,35 @@ pub(crate) fn validate_date(name: &str, value: &str) -> Result<(), FurnaceIoErro
         )));
     }
     Ok(())
+}
+
+pub(crate) fn parse_clickhouse_date(value: &str) -> Result<Date, FurnaceIoError> {
+    validate_date("date", value)?;
+    let year = value[0..4]
+        .parse::<i32>()
+        .map_err(|_| FurnaceIoError::DateConversion(format!("invalid date year: {value}")))?;
+    let month = value[5..7]
+        .parse::<u8>()
+        .map_err(|_| FurnaceIoError::DateConversion(format!("invalid date month: {value}")))?;
+    let day = value[8..10]
+        .parse::<u8>()
+        .map_err(|_| FurnaceIoError::DateConversion(format!("invalid date day: {value}")))?;
+    Date::from_calendar_date(
+        year,
+        Month::try_from(month)
+            .map_err(|_| FurnaceIoError::DateConversion(format!("invalid date month: {value}")))?,
+        day,
+    )
+    .map_err(|source| FurnaceIoError::DateConversion(format!("invalid date {value}: {source}")))
+}
+
+pub(crate) fn format_clickhouse_date(value: Date) -> String {
+    format!(
+        "{:04}-{:02}-{:02}",
+        value.year(),
+        u8::from(value.month()),
+        value.day()
+    )
 }
 
 pub(crate) fn validate_table_name(name: &str, value: &str) -> Result<(), FurnaceIoError> {

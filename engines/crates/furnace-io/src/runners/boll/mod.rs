@@ -21,7 +21,7 @@ use crate::validation::affected_years;
 
 use self::materialize::calculate_boll_outputs;
 use self::planning::{
-    read_boll_input_row_binary, resolve_boll_effective_output_to, resolve_boll_lookback_input_from,
+    read_boll_input_rows, resolve_boll_effective_output_to, resolve_boll_lookback_input_from,
     resolve_boll_symbols,
 };
 use self::writing::{ensure_boll_append_latest_is_safe, insert_boll_result_rows};
@@ -54,7 +54,7 @@ pub fn run_boll<E: ClickHouseExecutor>(
     let input_from =
         resolve_boll_lookback_input_from(executor, request, &symbols, all_symbols_requested)?;
     let timed_input = time_result(|| {
-        read_boll_input_row_binary(
+        read_boll_input_rows(
             executor,
             request,
             &symbols,
@@ -64,10 +64,9 @@ pub fn run_boll<E: ClickHouseExecutor>(
         )
     })?;
     timings.read_input = timed_input.elapsed;
-    let input_bytes = timed_input.value;
-    let timed_groups = time_result(|| group_boll_input_rows(&input_bytes))?;
+    let input_rows = timed_input.value;
+    let timed_groups = time_result(|| Ok(group_boll_input_rows(input_rows)))?;
     timings.group = timed_groups.elapsed;
-    drop(input_bytes);
     let input_groups = timed_groups.value;
     let input_rows_count = input_groups.input_rows;
     let input_valid_close_rows = input_groups.input_valid_close_rows;

@@ -2,16 +2,38 @@
 
 状态：部分被统一入口替代
 
-说明：Source 到 ClickHouse raw 的新手动入口已实现为 `backfill__fetch_sources_to_raw_job`。本文保留 2026 年早期逐资产命令和执行顺序作为历史/诊断参考；后续 source/raw 回填优先使用统一入口，并在真实运行后补充新的运行报告。
+说明：Source 到 ClickHouse raw 的手动入口已实现为 `backfill__fetch_history_sources_to_raw_job`；历史 source/raw 修复后继续推进到 dbt/Furnace/marts 的入口已实现为 `backfill__fetch_history_sources_to_marts_job`；日常 source -> raw -> stg -> int -> calculation -> mart 主入口已实现为 `daily__fetch_history_sources_to_marts_schedule_job`。本文保留 2026 年早期逐资产命令和执行顺序作为历史/诊断参考；后续 source/raw 与 source-to-marts 回填优先使用统一入口，日常运行优先使用 daily controller，并在真实运行后补充新的运行报告。
+
+Jiuyan 异动、行业列表、图片/OCR/OCR snapshot 在本文下方只代表 2026 年早期已执行的历史回填事实。它们不纳入 `backfill__fetch_history_sources_to_marts_job`，后续需要单独设计独立 job 和 runbook。
 
 统一入口 dry-run 示例：
 
 ```bash
 cd pipeline
 uv run dg launch --target-path scheduler \
-  --job backfill__fetch_sources_to_raw_job \
-  --config-json '{"ops":{"backfill__fetch_sources_to_raw_controller":{"config":{"target_scope":"baostock_daily_kline","start_date":"2026-01-01","end_date":"2026-06-30","dry_run":true}}}}'
+  --job backfill__fetch_history_sources_to_raw_job \
+  --config-json '{"ops":{"backfill__fetch_history_sources_to_raw_controller":{"config":{"target_scope":"baostock_daily_kline","start_date":"2026-01-01","end_date":"2026-06-30","dry_run":true}}}}'
 ```
+
+Source-to-marts dry-run 示例：
+
+```bash
+cd pipeline
+uv run dg launch --target-path scheduler \
+  --job backfill__fetch_history_sources_to_marts_job \
+  --config-json '{"ops":{"backfill__fetch_history_sources_to_marts_controller":{"config":{"target_scope":"all_source_to_marts","start_date":"2024-01-01","end_date":"2024-12-31","execution_mode":"full","dry_run":true}}}}'
+```
+
+Daily source-to-marts dry-run 示例：
+
+```bash
+cd pipeline
+uv run dg launch --target-path scheduler \
+  --job daily__fetch_history_sources_to_marts_schedule_job \
+  --config-json '{"ops":{"daily__fetch_history_sources_to_marts_schedule_controller":{"config":{"target_scope":"all_source_to_marts","target_date":"2026-06-30","execution_mode":"full","refresh_prerequisite_snapshots":false,"overwrite_source_partitions":false,"dry_run":true}}}}'
+```
+
+验收记录见 `docs/jobs/reports/2026-07-01-daily-fetch-history-sources-to-marts-schedule-job-dry-run.md`。
 
 ## 目标
 
@@ -60,10 +82,8 @@ make dagster-home
 uv run dg list defs --target-path scheduler --json
 ```
 
-确认以下对象存在：
+确认以下资产存在。旧 source-specific jobs/schedules 当前不再 registered；临时补单使用统一 controller 或精确 asset selection。
 
-- `sina__trade_calendar_job`
-- `eastmoney__daily_job`
 - `source/jiuyan__industry_list`
 - `source/jiuyan__industry_images`
 - `source/jiuyan__industry_ocr`
@@ -119,7 +139,7 @@ uv run dg list defs --target-path scheduler --json
 
 ```bash
 cd pipeline
-uv run dg launch --target-path scheduler --job sina__trade_calendar_job
+uv run dg launch --target-path scheduler --assets "key:source/sina__trade_calendar"
 ```
 
 ### 2. `baostock__query_stock_basic`
@@ -131,7 +151,7 @@ uv run dg launch --target-path scheduler --assets "key:source/baostock__query_st
 
 说明：
 
-- 不使用 `baostock__daily_job`，因为该 job 同时包含 `baostock__query_stock_basic` 和 `baostock__query_history_k_data_plus_daily`
+- 不使用旧 `baostock__daily_job`；source-specific jobs 当前不再 registered，单资产补数使用精确 asset selection
 - 这里需要先单独刷新股票基础信息，避免提前启动年分区日线回填
 
 ### 3. `jiuyan__industry_list`

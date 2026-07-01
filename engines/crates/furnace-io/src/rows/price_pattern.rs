@@ -2,13 +2,6 @@ use std::time::Duration;
 
 use furnace_core::PricePatternInput;
 
-use crate::FurnaceIoError;
-use crate::rowbinary::{
-    push_rowbinary_bool, push_rowbinary_date, push_rowbinary_nullable_date,
-    push_rowbinary_nullable_f64, push_rowbinary_nullable_i8, push_rowbinary_nullable_u16,
-    push_rowbinary_string, push_rowbinary_u16,
-};
-
 #[derive(Debug, Clone, PartialEq)]
 pub(crate) struct PricePatternResultRow {
     pub(crate) security_code: String,
@@ -62,24 +55,4 @@ pub(crate) struct PricePatternSecurityCalculation {
     pub(crate) valid_structure_bar_rows: u64,
     pub(crate) null_streak_rows: u64,
     pub(crate) null_second_low_rows: u64,
-}
-
-impl PricePatternResultRow {
-    pub(crate) fn write_row_binary(&self, bytes: &mut Vec<u8>) -> Result<(), FurnaceIoError> {
-        push_rowbinary_string(bytes, &self.security_code);
-        push_rowbinary_date(bytes, &self.trade_date)?;
-        push_rowbinary_nullable_i8(bytes, self.close_direction);
-        push_rowbinary_nullable_u16(bytes, self.close_up_streak_days);
-        push_rowbinary_nullable_u16(bytes, self.close_down_streak_days);
-        push_rowbinary_u16(bytes, self.n_structure_20_valid_bars);
-        push_rowbinary_nullable_date(bytes, self.n_structure_20_high_date.as_deref())?;
-        push_rowbinary_nullable_f64(bytes, self.n_structure_20_high_price);
-        push_rowbinary_nullable_date(bytes, self.n_structure_20_low_date.as_deref())?;
-        push_rowbinary_nullable_f64(bytes, self.n_structure_20_low_price);
-        push_rowbinary_nullable_date(bytes, self.n_structure_20_second_low_date.as_deref())?;
-        push_rowbinary_nullable_f64(bytes, self.n_structure_20_second_low_price);
-        push_rowbinary_nullable_f64(bytes, self.n_structure_20_second_low_ratio);
-        push_rowbinary_bool(bytes, self.n_structure_20_is_valid);
-        Ok(())
-    }
 }

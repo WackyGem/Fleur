@@ -5,11 +5,13 @@ use furnace_core::{MacdPreviousState, MacdState};
 use crate::FurnaceIoError;
 use crate::clickhouse::ClickHouseExecutor;
 use crate::request::{MacdRunRequest, MacdWriteMode};
-use crate::runners::shared::normalize_symbols;
-use crate::sql::{
-    first_tsv_value, parse_f64, parse_single_column_strings, parse_u64, sql_string,
-    symbol_where_clause, symbol_where_clause_for,
+use crate::rows::{
+    CloseInputRow, CountRow, GapCountRow, MacdPreviousStateRow, OptionalDateValueRow,
+    SecurityCodeRow,
 };
+use crate::runners::shared::normalize_symbols;
+use crate::sql::{sql_string, symbol_where_clause, symbol_where_clause_for};
+use crate::validation::format_clickhouse_date;
 
 pub(super) fn read_previous_macd_states<E: ClickHouseExecutor>(
     executor: &mut E,
@@ -22,7 +24,12 @@ pub(super) fn read_previous_macd_states<E: ClickHouseExecutor>(
     }
     let sql = format!(
         "\
-SELECT security_code, toString(trade_date), ema_fast_state_12, ema_slow_state_26, macd_dea_state
+SELECT
+    security_code,
+    trade_date,
+    assumeNotNull(ema_fast_state_12) AS ema_fast_state_12,
+    assumeNotNull(ema_slow_state_26) AS ema_slow_state_26,
+    assumeNotNull(macd_dea_state) AS macd_dea_state
 FROM (
     SELECT
         security_code,
@@ -38,41 +45,24 @@ FROM (
       AND macd_dea_state IS NOT NULL
       AND {}
 )
-WHERE rn = 1
-FORMAT TSV",
+WHERE rn = 1",
         request.output_table,
         sql_string(&request.request_from),
         symbol_where_clause(symbols, all_symbols_requested)
     );
 
     let mut states = HashMap::new();
-    for line in executor
-        .query(&sql)?
-        .lines()
-        .filter(|line| !line.is_empty())
-    {
-        let fields = line.split('\t').collect::<Vec<_>>();
-        if fields.len() != 5 {
-            return Err(FurnaceIoError::Parse(format!(
-                "expected 5 previous MACD state fields, got {}",
-                fields.len()
-            )));
-        }
-        let fast = parse_f64(fields[2])?.ok_or_else(|| {
-            FurnaceIoError::Parse("previous ema_fast_state_12 must not be null".to_string())
-        })?;
-        let slow = parse_f64(fields[3])?.ok_or_else(|| {
-            FurnaceIoError::Parse("previous ema_slow_state_26 must not be null".to_string())
-        })?;
-        let dea = parse_f64(fields[4])?.ok_or_else(|| {
-            FurnaceIoError::Parse("previous macd_dea_state must not be null".to_string())
-        })?;
+    for row in executor.fetch_all::<MacdPreviousStateRow>(&sql)? {
         states.insert(
-            fields[0].to_string(),
+            row.security_code,
             MacdPreviousState::new(
-                fields[1].to_string(),
-                MacdState::new(fast, slow, dea)
-                    .map_err(|source| FurnaceIoError::Parse(source.to_string()))?,
+                format_clickhouse_date(row.trade_date),
+                MacdState::new(
+                    row.ema_fast_state_12,
+                    row.ema_slow_state_26,
+                    row.macd_dea_state,
+                )
+                .map_err(|source| FurnaceIoError::Parse(source.to_string()))?,
             ),
         );
     }
@@ -90,18 +80,17 @@ pub(super) fn count_macd_incomplete_state_symbols<E: ClickHouseExecutor>(
     }
     let sql = format!(
         "\
-SELECT countDistinct(security_code)
+SELECT countDistinct(security_code) AS value
 FROM {}
 WHERE trade_date < toDate('{}')
   AND (ema_fast_state_12 IS NOT NULL OR ema_slow_state_26 IS NOT NULL OR macd_dea_state IS NOT NULL)
   AND (ema_fast_state_12 IS NULL OR ema_slow_state_26 IS NULL OR macd_dea_state IS NULL)
-  AND {}
-FORMAT TSV",
+  AND {}",
         request.output_table,
         sql_string(&request.request_from),
         symbol_where_clause(symbols, all_symbols_requested)
     );
-    parse_u64(&first_tsv_value(&executor.query(&sql)?).unwrap_or_default())
+    Ok(executor.fetch_one::<CountRow>(&sql)?.value)
 }
 
 pub(super) fn count_macd_gap_symbols<E: ClickHouseExecutor>(
@@ -126,15 +115,14 @@ WITH states AS (
     GROUP BY security_code
 )
 SELECT
-    countDistinct(input.security_code),
-    toString(min(input.trade_date))
+    countDistinct(input.security_code) AS gap_symbols,
+    if(gap_symbols = 0, NULL, min(input.trade_date)) AS gap_fill_from
 FROM {} AS input
 INNER JOIN states
     ON input.security_code = states.security_code
 WHERE input.trade_date > states.state_date
   AND input.trade_date < toDate('{}')
-  AND input.{} IS NOT NULL
-FORMAT TSV",
+  AND input.{} IS NOT NULL",
         request.output_table,
         sql_string(&request.request_from),
         symbol_where_clause(symbols, all_symbols_requested),
@@ -142,26 +130,11 @@ FORMAT TSV",
         sql_string(&request.request_from),
         request.price_column
     );
-    let output = executor.query(&sql)?;
-    let fields = output
-        .lines()
-        .next()
-        .unwrap_or_default()
-        .split('\t')
-        .collect::<Vec<_>>();
-    let gap_symbols = fields
-        .first()
-        .map(|value| parse_u64(value))
-        .transpose()?
-        .unwrap_or(0);
-    let gap_fill_from = fields.get(1).and_then(|value| {
-        if gap_symbols == 0 || value.is_empty() || *value == "\\N" {
-            None
-        } else {
-            Some((*value).to_string())
-        }
-    });
-    Ok((gap_symbols, gap_fill_from))
+    let row = executor.fetch_one::<GapCountRow>(&sql)?;
+    Ok((
+        row.gap_symbols,
+        row.gap_fill_from.map(format_clickhouse_date),
+    ))
 }
 
 pub(super) fn resolve_macd_symbols<E: ClickHouseExecutor>(
@@ -180,12 +153,16 @@ WHERE trade_date >= toDate('{}')
   AND trade_date <= toDate('{}')
 GROUP BY security_code
 ORDER BY security_code
-FORMAT TSV",
+",
         request.input_table,
         sql_string(&request.request_from),
         sql_string(&request.request_to)
     );
-    parse_single_column_strings(&executor.query(&sql)?)
+    Ok(executor
+        .fetch_all::<SecurityCodeRow>(&sql)?
+        .into_iter()
+        .map(|row| row.security_code)
+        .collect())
 }
 
 pub(super) fn resolve_macd_effective_output_to<E: ClickHouseExecutor>(
@@ -199,18 +176,17 @@ pub(super) fn resolve_macd_effective_output_to<E: ClickHouseExecutor>(
     }
     let sql = format!(
         "\
-SELECT toString(max(trade_date))
+SELECT if(count() = 0, NULL, max(trade_date)) AS value
 FROM {}
-WHERE {}
-FORMAT TSV",
+WHERE {}",
         request.input_table,
         symbol_where_clause(symbols, all_symbols_requested)
     );
-    let value =
-        first_tsv_value(&executor.query(&sql)?).unwrap_or_else(|| request.request_to.clone());
-    if value.is_empty() || value == "\\N" {
-        return Ok(request.request_to.clone());
-    }
+    let value = executor
+        .fetch_one::<OptionalDateValueRow>(&sql)?
+        .value
+        .map(format_clickhouse_date)
+        .unwrap_or_else(|| request.request_to.clone());
     Ok(value.max(request.request_to.clone()))
 }
 
@@ -222,30 +198,27 @@ pub(super) fn resolve_macd_input_from<E: ClickHouseExecutor>(
 ) -> Result<String, FurnaceIoError> {
     let sql = format!(
         "\
-SELECT toString(min(trade_date))
+SELECT if(count() = 0, NULL, min(trade_date)) AS value
 FROM {}
-WHERE {}
-FORMAT TSV",
+WHERE {}",
         request.input_table,
         symbol_where_clause(symbols, all_symbols_requested)
     );
-    let value =
-        first_tsv_value(&executor.query(&sql)?).unwrap_or_else(|| request.request_from.clone());
-    if value.is_empty() || value == "\\N" {
-        Ok(request.request_from.clone())
-    } else {
-        Ok(value)
-    }
+    Ok(executor
+        .fetch_one::<OptionalDateValueRow>(&sql)?
+        .value
+        .map(format_clickhouse_date)
+        .unwrap_or_else(|| request.request_from.clone()))
 }
 
-pub(super) fn read_macd_input_row_binary<E: ClickHouseExecutor>(
+pub(super) fn read_macd_input_rows<E: ClickHouseExecutor>(
     executor: &mut E,
     request: &MacdRunRequest,
     symbols: &[String],
     all_symbols_requested: bool,
     input_from: &str,
     input_to: &str,
-) -> Result<Vec<u8>, FurnaceIoError> {
+) -> Result<Vec<CloseInputRow>, FurnaceIoError> {
     if symbols.is_empty() && !all_symbols_requested {
         return Ok(Vec::new());
     }
@@ -253,14 +226,13 @@ pub(super) fn read_macd_input_row_binary<E: ClickHouseExecutor>(
         "\
 SELECT
     security_code,
-    toString(trade_date),
-    {}
+    trade_date,
+    {} AS close_price
 FROM {}
 WHERE trade_date >= toDate('{}')
   AND trade_date <= toDate('{}')
   AND {}
-ORDER BY security_code, trade_date
-FORMAT RowBinary",
+ORDER BY security_code, trade_date",
         request.price_column,
         request.input_table,
         sql_string(input_from),
@@ -268,16 +240,16 @@ FORMAT RowBinary",
         symbol_where_clause(symbols, all_symbols_requested)
     );
 
-    executor.query_bytes(&sql)
+    executor.fetch_all::<CloseInputRow>(&sql)
 }
 
-pub(super) fn read_macd_mixed_input_row_binary<E: ClickHouseExecutor>(
+pub(super) fn read_macd_mixed_input_rows<E: ClickHouseExecutor>(
     executor: &mut E,
     request: &MacdRunRequest,
     symbols: &[String],
     all_symbols_requested: bool,
     input_to: &str,
-) -> Result<Vec<u8>, FurnaceIoError> {
+) -> Result<Vec<CloseInputRow>, FurnaceIoError> {
     if symbols.is_empty() && !all_symbols_requested {
         return Ok(Vec::new());
     }
@@ -295,16 +267,15 @@ WITH states AS (
 )
 SELECT
     input.security_code,
-    toString(input.trade_date),
-    input.{}
+    input.trade_date,
+    input.{} AS close_price
 FROM {} AS input
 LEFT JOIN states
     ON input.security_code = states.security_code
 WHERE input.trade_date <= toDate('{}')
   AND {}
   AND (states.state_date IS NULL OR input.trade_date >= states.state_date)
-ORDER BY input.security_code, input.trade_date
-FORMAT RowBinary",
+ORDER BY input.security_code, input.trade_date",
         request.output_table,
         sql_string(&request.request_from),
         symbol_where_clause(symbols, all_symbols_requested),
@@ -314,5 +285,5 @@ FORMAT RowBinary",
         symbol_where_clause_for("input.security_code", symbols, all_symbols_requested)
     );
 
-    executor.query_bytes(&sql)
+    executor.fetch_all::<CloseInputRow>(&sql)
 }

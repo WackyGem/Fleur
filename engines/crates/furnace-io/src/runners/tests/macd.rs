@@ -2,19 +2,22 @@ use super::*;
 
 #[test]
 fn run_macd_dry_run_reads_close_inputs_and_computes_summary() {
-    let responses = ["sh.600000\n", "2026-01-01\n", "0\n", "0\t\\N\n"];
     let rows = (1..=40)
-        .map(|day| ("sh.600000", format!("2026-01-{day:02}"), Some(day as f64)))
+        .map(|day| ("sh.600000", fixture_trade_date(day), Some(day as f64)))
         .collect::<Vec<_>>();
     let row_refs = rows
         .iter()
         .map(|(security_code, trade_date, close)| (*security_code, trade_date.as_str(), *close))
         .collect::<Vec<_>>();
-    let input_rows = macd_rowbinary_input_rows(&row_refs);
-    let mut executor = FakeExecutor::with_responses_and_bytes(&responses, vec![input_rows]);
+    let mut executor = FakeExecutor::with_responses(vec![
+        response(security_codes(&["sh.600000"])),
+        response(optional_date(Some("2026-01-01"))),
+        response(count(0)),
+        response(close_input_rows(&row_refs)),
+    ]);
     let request = MacdRunRequest {
         request_from: "2026-01-01".to_string(),
-        request_to: "2026-01-40".to_string(),
+        request_to: "2026-02-09".to_string(),
         ..MacdRunRequest::default()
     };
 
@@ -36,7 +39,6 @@ fn run_macd_dry_run_reads_close_inputs_and_computes_summary() {
     assert!(executor.queries.iter().any(|query| {
         query.contains("close_price_forward_adj")
             && query.contains("ORDER BY security_code, trade_date")
-            && query.contains("FORMAT RowBinary")
     }));
 }
 
@@ -96,19 +98,22 @@ fn parallel_macd_outputs_match_serial_outputs() {
 
 #[test]
 fn run_macd_append_latest_inserts_result_rows() {
-    let responses = ["2026-01-01\n", "0\n"];
     let rows = (1..=40)
-        .map(|day| ("sh.600000", format!("2026-01-{day:02}"), Some(day as f64)))
+        .map(|day| ("sh.600000", fixture_trade_date(day), Some(day as f64)))
         .collect::<Vec<_>>();
     let row_refs = rows
         .iter()
         .map(|(security_code, trade_date, close)| (*security_code, trade_date.as_str(), *close))
         .collect::<Vec<_>>();
-    let input_rows = macd_rowbinary_input_rows(&row_refs);
-    let mut executor = FakeExecutor::with_responses_and_bytes(&responses, vec![input_rows]);
+    let mut executor = FakeExecutor::with_responses(vec![
+        response(optional_date(Some("2026-01-01"))),
+        response(count(0)),
+        response(close_input_rows(&row_refs)),
+        response(count(0)),
+    ]);
     let request = MacdRunRequest {
         request_from: "2026-01-01".to_string(),
-        request_to: "2026-01-40".to_string(),
+        request_to: "2026-02-09".to_string(),
         symbols: vec!["sh.600000".to_string()],
         mode: MacdWriteMode::AppendLatest,
         insert_batch_size: MIN_INSERT_BATCH_SIZE,
@@ -118,22 +123,72 @@ fn run_macd_append_latest_inserts_result_rows() {
     let summary = run_macd(&mut executor, &request).unwrap();
 
     assert!(summary.writes_applied);
-    assert_eq!(executor.byte_inserts.len(), 1);
-    assert!(executor.byte_inserts[0].0.contains("calc_stock_macd_daily"));
-    assert!(executor.byte_inserts[0].0.contains("macd_histogram"));
-    assert!(executor.byte_inserts[0].1.starts_with(b"\tsh.600000"));
+    assert_eq!(executor.inserts.len(), 1);
+    assert_eq!(executor.inserts[0].table, DEFAULT_MACD_OUTPUT_TABLE);
+    assert_eq!(executor.inserts[0].rows, 40);
+    assert!(executor.inserts[0].row_type.ends_with("MacdInsertRow"));
+}
+
+#[test]
+fn run_macd_replace_cascade_uses_staging_and_replaces_partitions() {
+    let rows = (1..=40)
+        .map(|day| ("sh.600000", fixture_trade_date(day), Some(day as f64)))
+        .collect::<Vec<_>>();
+    let row_refs = rows
+        .iter()
+        .map(|(security_code, trade_date, close)| (*security_code, trade_date.as_str(), *close))
+        .collect::<Vec<_>>();
+    let mut executor = FakeExecutor::with_responses(vec![
+        response(optional_date(Some("2026-02-09"))),
+        response(optional_date(Some("2026-01-01"))),
+        response(count(0)),
+        response(close_input_rows(&row_refs)),
+        response(count(0)),
+        response(count(0)),
+    ]);
+    let request = MacdRunRequest {
+        request_from: "2026-01-01".to_string(),
+        request_to: "2026-02-09".to_string(),
+        symbols: vec!["sh.600000".to_string()],
+        run_id: Some("replace-macd-test".to_string()),
+        mode: MacdWriteMode::ReplaceCascade,
+        insert_batch_size: MIN_INSERT_BATCH_SIZE,
+        ..MacdRunRequest::default()
+    };
+
+    let summary = run_macd(&mut executor, &request).unwrap();
+
+    assert!(summary.writes_applied);
+    assert_eq!(summary.partition_replace.years, vec![2026]);
+    assert_eq!(summary.staging_validation, ValidationSummary::passed());
+    let staging_table = summary.staging_table.as_deref().unwrap();
+    assert!(staging_table.contains("replace_macd_test"));
+    assert_eq!(executor.inserts.len(), 1);
+    assert_eq!(executor.inserts[0].table, staging_table);
+    assert_eq!(executor.inserts[0].rows, 40);
+    assert_eq!(executor.multi_queries.len(), 2);
+    assert!(
+        executor.multi_queries[1]
+            .iter()
+            .any(|sql| sql.contains("REPLACE PARTITION 2026"))
+    );
 }
 
 #[test]
 fn run_macd_append_latest_rejects_previous_state_gaps() {
-    let responses = [
-        "2026-01-01\n",
-        "1\n",
-        "sh.600000\t2026-01-10\t1\t2\t0.5\n",
-        "0\n",
-        "1\t2026-01-11\n",
-    ];
-    let mut executor = FakeExecutor::with_responses_and_bytes(&responses, Vec::new());
+    let mut executor = FakeExecutor::with_responses(vec![
+        response(optional_date(Some("2026-01-01"))),
+        response(count(1)),
+        response(macd_previous_states(&[(
+            "sh.600000",
+            "2026-01-10",
+            1.0,
+            2.0,
+            0.5,
+        )])),
+        response(count(0)),
+        response(gap_count(1, Some("2026-01-11"))),
+    ]);
     let request = MacdRunRequest {
         request_from: "2026-01-20".to_string(),
         request_to: "2026-01-21".to_string(),
@@ -147,7 +202,15 @@ fn run_macd_append_latest_rejects_previous_state_gaps() {
 
     assert!(error.to_string().contains("MACD result gaps"));
     assert!(error.to_string().contains("2026-01-11"));
-    assert!(executor.byte_inserts.is_empty());
+    assert!(executor.inserts.is_empty());
+    let state_query = executor
+        .queries
+        .iter()
+        .find(|query| query.contains("ema_fast_state_12 IS NOT NULL"))
+        .expect("MACD previous-state query should be issued");
+    assert!(state_query.contains("assumeNotNull(ema_fast_state_12)"));
+    assert!(state_query.contains("assumeNotNull(ema_slow_state_26)"));
+    assert!(state_query.contains("assumeNotNull(macd_dea_state)"));
 }
 
 #[test]
@@ -171,7 +234,7 @@ fn macd_request_rejects_non_default_production_output_table() {
 }
 
 #[test]
-fn macd_result_row_writes_clickhouse_rowbinary_encoding() {
+fn macd_result_row_converts_to_clickhouse_insert_row() {
     let row = MacdResultRow {
         security_code: "sh.600000".to_string(),
         trade_date: "2026-01-03".to_string(),
@@ -182,30 +245,16 @@ fn macd_result_row_writes_clickhouse_rowbinary_encoding() {
         macd_dea_state: None,
         macd_histogram: None,
     };
-    let mut bytes = Vec::new();
+    let insert = MacdInsertRow::try_from(&row).unwrap();
 
-    row.write_row_binary(&mut bytes).unwrap();
-
-    let mut cursor = 0;
+    assert_eq!(insert.security_code, "sh.600000");
     assert_eq!(
-        read_rowbinary_string(&bytes, &mut cursor).unwrap(),
-        "sh.600000"
+        insert.trade_date,
+        parse_clickhouse_date("2026-01-03").unwrap()
     );
-    cursor += 2;
-    assert_eq!(
-        read_rowbinary_nullable_f64(&bytes, &mut cursor).unwrap(),
-        Some(1.0)
-    );
-    assert_eq!(
-        read_rowbinary_nullable_f64(&bytes, &mut cursor).unwrap(),
-        Some(2.0)
-    );
-    assert_eq!(
-        read_rowbinary_nullable_f64(&bytes, &mut cursor).unwrap(),
-        Some(-1.0)
-    );
-    assert_eq!(
-        read_rowbinary_nullable_f64(&bytes, &mut cursor).unwrap(),
-        None
-    );
+    assert_eq!(insert.ema_fast_state_12, Some(1.0));
+    assert_eq!(insert.ema_slow_state_26, Some(2.0));
+    assert_eq!(insert.macd_dif, Some(-1.0));
+    assert_eq!(insert.macd_dea, None);
+    assert_eq!(insert.macd_histogram, None);
 }

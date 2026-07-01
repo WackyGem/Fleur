@@ -6,12 +6,15 @@
 
 | Plan | 状态 | 说明 |
 |---|---|---|
-| _None_ |  |  |
+| 暂无 | - | 顶层 `docs/plans/` 当前没有待执行计划 |
 
 ## Recently Completed
 
 | Plan | 状态 | 说明 |
 |---|---|---|
+| [0068](archive/0068-furnace-clickhouse-rust-client-migration-plan.md) | Completed | Furnace 一刀切迁移到官方 `clickhouse` Rust client，移除外部 `clickhouse-client` / Docker exec 运行时依赖，覆盖 KDJ、MA、RSI、BOLL、MACD 和 Price Pattern；验收见 [2026-07-01 migration report](../jobs/reports/2026-07-01-furnace-clickhouse-rust-client-migration.md) |
+| [0067](archive/0067-daily-source-to-marts-clean-slate-orchestration-plan.md) | Completed | Daily Source to Marts clean-slate 编排：新增 `daily__fetch_history_sources_to_marts_schedule_job` 和唯一 `daily__fetch_history_sources_to_marts_schedule`，清理旧 daily/transformation/source-specific production jobs；验收见 [2026-07-01 daily dry-run report](../jobs/reports/2026-07-01-daily-fetch-history-sources-to-marts-schedule-job-dry-run.md) |
+| [0066](archive/0066-backfill-source-to-marts-controller-plan.md) | Completed | Backfill Sources to Marts controller：新增 `backfill__fetch_history_sources_to_marts_job`，保留 `backfill__fetch_history_sources_to_raw_job` raw-only 语义，移除旧 snapshot 公开入口，排除 Jiuyan 和 portfolio analytics；验收见 [2026-07-01 report](../jobs/reports/2026-07-01-backfill-source-to-marts-controller-dry-run.md) |
 | [0065](archive/0065-source-raw-unified-backfill-controller-implementation-plan.md) | Completed | Source/Raw 统一手动回填 controller：按 `target_scope` 生成 source、compacted source 与 ClickHouse raw sync 子 runs，替换 BaoStock 专用 shell-out controller；验收见 [2026-06-30 report](../jobs/reports/2026-06-30-source-raw-unified-backfill-controller.md) |
 | [0064](archive/0064-dbt-baostock-downstream-performance-optimization-plan.md) | Completed | BaoStock dbt 下游存量作业性能优化：删除低价值 mart 字段匹配测试、收敛日常 stock build selection、raw latest year 后触发固定 int/mart/calc 链路，并用 query log 基准完成 KDJ join 优化；验收见 [2026-06-29 report](../jobs/reports/2026-06-29-dbt-baostock-downstream-performance-optimization.md) |
 | [0063](archive/0063-baostock-daily-kline-unified-range-timeout-plan.md) | Completed | BaoStock 日 K 取消 daily/range_backfill mode 分支，统一由 Dagster partition selection 推导区间请求，并补强 TCP timeout 与网络 fail-fast |

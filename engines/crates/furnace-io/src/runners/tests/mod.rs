@@ -12,11 +12,13 @@ use crate::request::{
     MacdRunRequest, MacdWriteMode, PricePatternRunRequest, PricePatternWriteMode, RsiRunRequest,
     RsiWriteMode,
 };
-use crate::rowbinary::{read_rowbinary_nullable_f64, read_rowbinary_string};
 use crate::rows::{
-    BollGroupedInput, BollResultRow, KdjGroupedInput, KdjResultRow, MaGroupedInput, MaResultRow,
-    MacdGroupedInput, MacdResultRow, PricePatternGroupedInput, PricePatternResultRow,
-    RsiGroupedInput, RsiResultRow,
+    BollGroupedInput, BollInsertRow, BollResultRow, CloseInputRow, CountRow, GapCountRow,
+    KdjGroupedInput, KdjInputRow, KdjInsertRow, KdjPreviousStateRow, KdjResultRow, MaGroupedInput,
+    MaInputRow, MaInsertRow, MaPreviousStateRow, MaResultRow, MacdGroupedInput, MacdInsertRow,
+    MacdPreviousStateRow, MacdResultRow, OptionalDateValueRow, PricePatternGroupedInput,
+    PricePatternInputRow, PricePatternInsertRow, PricePatternResultRow, RsiGroupedInput,
+    RsiInsertRow, RsiPreviousStateRow, RsiResultRow, SecurityCodeRow,
 };
 use crate::runners::boll::materialize::{
     calculate_boll_grouped_outputs_parallel_with_collection,
@@ -54,6 +56,7 @@ use crate::schema::{
     replace_ma_partition_sql, replace_macd_partition_sql,
 };
 use crate::summary::ValidationSummary;
+use crate::validation::parse_clickhouse_date;
 
 mod boll;
 mod fixtures;

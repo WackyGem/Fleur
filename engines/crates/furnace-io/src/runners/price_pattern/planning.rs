@@ -1,8 +1,10 @@
 use crate::FurnaceIoError;
 use crate::clickhouse::ClickHouseExecutor;
 use crate::request::{PricePatternRunRequest, PricePatternWriteMode};
+use crate::rows::{OptionalDateValueRow, PricePatternInputRow, SecurityCodeRow};
 use crate::runners::shared::normalize_symbols;
-use crate::sql::{first_tsv_value, parse_single_column_strings, sql_string, symbol_where_clause};
+use crate::sql::{sql_string, symbol_where_clause};
+use crate::validation::format_clickhouse_date;
 
 pub(super) fn resolve_price_pattern_symbols<E: ClickHouseExecutor>(
     executor: &mut E,
@@ -20,12 +22,16 @@ WHERE trade_date >= toDate('{}')
   AND trade_date <= toDate('{}')
 GROUP BY security_code
 ORDER BY security_code
-FORMAT TSV",
+",
         request.structure_input_table,
         sql_string(&request.request_from),
         sql_string(&request.request_to)
     );
-    parse_single_column_strings(&executor.query(&sql)?)
+    Ok(executor
+        .fetch_all::<SecurityCodeRow>(&sql)?
+        .into_iter()
+        .map(|row| row.security_code)
+        .collect())
 }
 
 pub(super) fn resolve_price_pattern_effective_output_to<E: ClickHouseExecutor>(
@@ -39,18 +45,17 @@ pub(super) fn resolve_price_pattern_effective_output_to<E: ClickHouseExecutor>(
     }
     let sql = format!(
         "\
-SELECT toString(max(trade_date))
+SELECT if(count() = 0, NULL, max(trade_date)) AS value
 FROM {}
-WHERE {}
-FORMAT TSV",
+WHERE {}",
         request.structure_input_table,
         symbol_where_clause(symbols, all_symbols_requested)
     );
-    let value =
-        first_tsv_value(&executor.query(&sql)?).unwrap_or_else(|| request.request_to.clone());
-    if value.is_empty() || value == "\\N" {
-        return Ok(request.request_to.clone());
-    }
+    let value = executor
+        .fetch_one::<OptionalDateValueRow>(&sql)?
+        .value
+        .map(format_clickhouse_date)
+        .unwrap_or_else(|| request.request_to.clone());
     Ok(value.max(request.request_to.clone()))
 }
 
@@ -62,30 +67,27 @@ pub(super) fn resolve_price_pattern_full_history_input_from<E: ClickHouseExecuto
 ) -> Result<String, FurnaceIoError> {
     let sql = format!(
         "\
-SELECT toString(min(trade_date))
+SELECT if(count() = 0, NULL, min(trade_date)) AS value
 FROM {}
-WHERE {}
-FORMAT TSV",
+WHERE {}",
         request.structure_input_table,
         symbol_where_clause(symbols, all_symbols_requested)
     );
-    let value =
-        first_tsv_value(&executor.query(&sql)?).unwrap_or_else(|| request.request_from.clone());
-    if value.is_empty() || value == "\\N" {
-        Ok(request.request_from.clone())
-    } else {
-        Ok(value)
-    }
+    Ok(executor
+        .fetch_one::<OptionalDateValueRow>(&sql)?
+        .value
+        .map(format_clickhouse_date)
+        .unwrap_or_else(|| request.request_from.clone()))
 }
 
-pub(super) fn read_price_pattern_input_row_binary<E: ClickHouseExecutor>(
+pub(super) fn read_price_pattern_input_rows<E: ClickHouseExecutor>(
     executor: &mut E,
     request: &PricePatternRunRequest,
     symbols: &[String],
     all_symbols_requested: bool,
     input_from: &str,
     input_to: &str,
-) -> Result<Vec<u8>, FurnaceIoError> {
+) -> Result<Vec<PricePatternInputRow>, FurnaceIoError> {
     if symbols.is_empty() && !all_symbols_requested {
         return Ok(Vec::new());
     }
@@ -93,11 +95,11 @@ pub(super) fn read_price_pattern_input_row_binary<E: ClickHouseExecutor>(
         "\
 SELECT
     adj.security_code,
-    toString(adj.trade_date),
-    adj.{high_column},
-    adj.{low_column},
-    unadj.{close_column},
-    unadj.{prev_close_column}
+    adj.trade_date,
+    adj.{high_column} AS high_price,
+    adj.{low_column} AS low_price,
+    unadj.{close_column} AS close_price,
+    unadj.{prev_close_column} AS prev_close_price
 FROM {structure_input_table} AS adj
 LEFT JOIN {streak_input_table} AS unadj
   ON adj.security_code = unadj.security_code
@@ -105,8 +107,7 @@ LEFT JOIN {streak_input_table} AS unadj
 WHERE adj.trade_date >= toDate('{input_from}')
   AND adj.trade_date <= toDate('{input_to}')
   AND {symbol_filter}
-ORDER BY adj.security_code, adj.trade_date
-FORMAT RowBinary",
+ORDER BY adj.security_code, adj.trade_date",
         high_column = request.high_column,
         low_column = request.low_column,
         close_column = request.close_column,
@@ -119,5 +120,5 @@ FORMAT RowBinary",
             .replace("security_code", "adj.security_code"),
     );
 
-    executor.query_bytes(&sql)
+    executor.fetch_all::<PricePatternInputRow>(&sql)
 }

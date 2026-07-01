@@ -5,12 +5,16 @@ from typing import Any, cast
 import dagster as dg
 from scheduler.defs.automation.source_raw_backfill import (
     BACKFILL_JOB_NAME,
-    BACKFILL_SNAPSHOT_JOB_NAME,
+)
+from scheduler.defs.automation.source_to_marts_backfill import (
+    BACKFILL_JOB_NAME as SOURCE_TO_MARTS_BACKFILL_JOB_NAME,
 )
 from scheduler.defs.baostock.assets import baostock__query_history_k_data_plus_daily_compacted
 from scheduler.defs.baostock.schedules import baostock__daily_job
 from scheduler.defs.clickhouse.definitions import CLICKHOUSE_RAW_ASSETS, CLICKHOUSE_RAW_JOBS
 from scheduler.defs.clickhouse.specs import ENABLED_CLICKHOUSE_RAW_TABLE_SPECS
+from scheduler.defs.daily.definitions import DAILY_SCHEDULE_NAME
+from scheduler.defs.daily.source_to_marts import DAILY_JOB_NAME
 from scheduler.defs.dbt_jobs import (
     DBT_JOBS,
     STOCK_JOBS,
@@ -54,13 +58,11 @@ def test_registered_definitions_match_source_bundles() -> None:
     loaded_defs = scheduler_defs.load_fn()
 
     expected_assets = {asset_key(asset) for bundle in SOURCE_BUNDLES for asset in bundle.assets}
-    expected_jobs = {job.name for bundle in SOURCE_BUNDLES for job in bundle.jobs}
+    legacy_source_jobs = {job.name for bundle in SOURCE_BUNDLES for job in bundle.jobs}
     expected_clickhouse_assets = {asset_key(asset) for asset in CLICKHOUSE_RAW_ASSETS}
-    expected_clickhouse_jobs = {job.name for job in CLICKHOUSE_RAW_JOBS}
+    legacy_clickhouse_jobs = {job.name for job in CLICKHOUSE_RAW_JOBS}
     expected_rearview_assets = {asset_key(asset) for asset in REARVIEW_ASSETS}
-    expected_transformation_jobs = {job.name for job in TRANSFORMATION_JOBS}
-    expected_transformation_schedules = {schedule.name for schedule in TRANSFORMATION_SCHEDULES}
-    expected_schedules = {
+    legacy_source_schedules = {
         schedule.name for bundle in SOURCE_BUNDLES for schedule in bundle.schedules
     }
 
@@ -81,26 +83,30 @@ def test_registered_definitions_match_source_bundles() -> None:
         len(registered_asset_keys)
         == len(expected_assets | expected_clickhouse_assets | expected_rearview_assets) + 58
     )
-    assert {job.name for job in loaded_defs.jobs or []} == (
-        expected_jobs
-        | expected_clickhouse_jobs
-        | expected_transformation_jobs
-        | {
-            STRATEGY_PORTFOLIO_DAILY_RUN_JOB.name,
-            BACKFILL_JOB_NAME,
-            BACKFILL_SNAPSHOT_JOB_NAME,
-        }
-    )
+    registered_job_names = {job.name for job in loaded_defs.jobs or []}
+    assert registered_job_names == {
+        STRATEGY_PORTFOLIO_DAILY_RUN_JOB.name,
+        BACKFILL_JOB_NAME,
+        SOURCE_TO_MARTS_BACKFILL_JOB_NAME,
+        DAILY_JOB_NAME,
+    }
+    assert not registered_job_names & legacy_source_jobs
+    assert not registered_job_names & legacy_clickhouse_jobs
+    assert not registered_job_names & {job.name for job in TRANSFORMATION_JOBS}
+    assert "backfill__fetch_snapshot_sources_to_raw_job" not in {
+        job.name for job in loaded_defs.jobs or []
+    }
     assert "baostock__history_k_data_year_range_backfill_job" not in {
         job.name for job in loaded_defs.jobs or []
     }
-    assert {schedule.name for schedule in loaded_defs.schedules or []} == (
-        expected_schedules | expected_transformation_schedules | {PORTFOLIO_DAILY_RUN_SCHEDULE.name}
-    )
-    assert {sensor.name for sensor in loaded_defs.sensors or []} == {
-        "baostock_raw_sync_success_triggers_stock_daily_build",
-        "slack_asset_failure_sensor",
+    registered_schedule_names = {schedule.name for schedule in loaded_defs.schedules or []}
+    assert registered_schedule_names == {
+        DAILY_SCHEDULE_NAME,
+        PORTFOLIO_DAILY_RUN_SCHEDULE.name,
     }
+    assert not registered_schedule_names & legacy_source_schedules
+    assert not registered_schedule_names & {schedule.name for schedule in TRANSFORMATION_SCHEDULES}
+    assert {sensor.name for sensor in loaded_defs.sensors or []} == {"slack_asset_failure_sensor"}
     assert set(loaded_defs.resources) >= {
         "s3_io_manager",
         "s3_settings",
@@ -116,7 +122,7 @@ def test_registered_definitions_match_source_bundles() -> None:
     }
 
 
-def test_clickhouse_raw_sync_all_job_is_registered_and_covers_enabled_assets() -> None:
+def test_clickhouse_raw_assets_cover_enabled_specs_without_registering_raw_sync_jobs() -> None:
     loaded_defs = scheduler_defs.load_fn()
     job_names = {job.name for job in loaded_defs.jobs or []}
     enabled_asset_keys = {
@@ -124,7 +130,8 @@ def test_clickhouse_raw_sync_all_job_is_registered_and_covers_enabled_assets() -
     }
     registered_asset_keys = {asset_key(asset) for asset in CLICKHOUSE_RAW_ASSETS}
 
-    assert "clickhouse__raw_sync_all_job" in job_names
+    assert "clickhouse__raw_sync_all_job" not in job_names
+    assert not job_names & {job.name for job in CLICKHOUSE_RAW_JOBS}
     assert len(enabled_asset_keys) == 17
     assert enabled_asset_keys == registered_asset_keys
 
@@ -226,103 +233,10 @@ def test_dbt_assets_are_registered_with_raw_lineage_and_checks() -> None:
     assert {key.to_user_string() for key in dbt_asset_def.asset_deps[int_price_pattern_key]} == {
         "fleur_calculation/calc_stock_price_pattern_daily"
     }
-    assert {job.name for job in DBT_JOBS} == {
-        "dbt__marts_build_job",
-        "dbt__staging_build_job",
-    }
-    assert {job.name for job in STOCK_JOBS} == {"stock__daily_build_job"}
-    assert {schedule.name for schedule in TRANSFORMATION_SCHEDULES} == {
-        "stock__daily_build_schedule"
-    }
-
-
-def test_stock_daily_job_splits_dbt_around_furnace_assets() -> None:
-    loaded_defs = scheduler_defs.load_fn()
-    job = loaded_defs.resolve_job_def("stock__daily_build_job")
-    calc_node_names = {
-        "fleur_calculation__calc_stock_kdj_daily",
-        "fleur_calculation__calc_stock_ma_daily",
-        "fleur_calculation__calc_stock_rsi_daily",
-        "fleur_calculation__calc_stock_boll_daily",
-        "fleur_calculation__calc_stock_macd_daily",
-        "fleur_calculation__calc_stock_price_pattern_daily",
-    }
-
-    selected_asset_keys = {
-        key.to_user_string()
-        for layer_data in job.asset_layer.data
-        for key in layer_data.assets_def.keys
-    }
-    assert selected_asset_keys == {
-        "fleur_calculation/calc_stock_boll_daily",
-        "fleur_calculation/calc_stock_kdj_daily",
-        "fleur_calculation/calc_stock_ma_daily",
-        "fleur_calculation/calc_stock_macd_daily",
-        "fleur_calculation/calc_stock_price_pattern_daily",
-        "fleur_calculation/calc_stock_rsi_daily",
-        "int_stock_adjustment_factor",
-        "int_stock_kdj_daily",
-        "int_stock_quotes_daily_adj",
-        "int_stock_quotes_daily_unadj",
-        "mart_stock_quotes_daily",
-    }
-    dbt_assets_by_node = {
-        layer_data.node_handle.name: {key.to_user_string() for key in layer_data.assets_def.keys}
-        for layer_data in job.asset_layer.data
-        if layer_data.node_handle.name.startswith("elt") and layer_data.assets_def.keys
-    }
-    assert {frozenset(asset_keys) for asset_keys in dbt_assets_by_node.values()} == {
-        frozenset(
-            {
-                "int_stock_adjustment_factor",
-                "int_stock_quotes_daily_adj",
-                "int_stock_quotes_daily_unadj",
-            }
-        ),
-        frozenset({"int_stock_kdj_daily", "mart_stock_quotes_daily"}),
-    }
-
-    dependency_structure = job.graph.dependency_structure
-    deps_by_node = {
-        node.name: dependency_structure.input_to_upstream_outputs_for_node(node.name)
-        for node in job.graph.nodes
-    }
-    quote_dbt_nodes = [
-        node_name
-        for node_name, asset_keys_for_node in dbt_assets_by_node.items()
-        if "int_stock_quotes_daily_adj" in asset_keys_for_node
-    ]
-    assert len(quote_dbt_nodes) == 1
-
-    for calc_node_name in calc_node_names:
-        upstream_node_names = {
-            output.node_name
-            for upstream_outputs in deps_by_node[calc_node_name].values()
-            for output in upstream_outputs
-        }
-        assert quote_dbt_nodes[0] in upstream_node_names
-
-    mart_dbt_nodes = [
-        node_name
-        for node_name, asset_keys_for_node in dbt_assets_by_node.items()
-        if "mart_stock_quotes_daily" in asset_keys_for_node
-    ]
-    assert len(mart_dbt_nodes) == 1
-    mart_upstream_node_names = {
-        output.node_name
-        for upstream_outputs in deps_by_node[mart_dbt_nodes[0]].values()
-        for output in upstream_outputs
-    }
-    assert "fleur_calculation__calc_stock_kdj_daily" in mart_upstream_node_names
-    assert (
-        not (
-            calc_node_names
-            - {
-                "fleur_calculation__calc_stock_kdj_daily",
-            }
-        )
-        & mart_upstream_node_names
-    )
+    assert DBT_JOBS == ()
+    assert STOCK_JOBS == ()
+    assert TRANSFORMATION_JOBS == ()
+    assert TRANSFORMATION_SCHEDULES == ()
 
 
 def test_source_bundle_contracts_are_stable() -> None:

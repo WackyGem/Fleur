@@ -23,8 +23,8 @@ use crate::validation::affected_years;
 
 use self::materialize::calculate_rsi_outputs;
 use self::planning::{
-    count_rsi_gap_symbols, read_previous_rsi_states, read_rsi_input_row_binary,
-    read_rsi_mixed_input_row_binary, resolve_rsi_effective_output_to, resolve_rsi_input_from,
+    count_rsi_gap_symbols, read_previous_rsi_states, read_rsi_input_rows,
+    read_rsi_mixed_input_rows, resolve_rsi_effective_output_to, resolve_rsi_input_from,
     resolve_rsi_symbols,
 };
 use self::writing::{ensure_rsi_append_latest_is_safe, insert_rsi_result_rows};
@@ -71,8 +71,13 @@ pub fn run_rsi<E: ClickHouseExecutor>(
     } else {
         HashMap::new()
     };
-    let timed_gap =
-        time_result(|| count_rsi_gap_symbols(executor, request, &symbols, all_symbols_requested))?;
+    let timed_gap = time_result(|| {
+        if rsi_target_exists {
+            count_rsi_gap_symbols(executor, request, &symbols, all_symbols_requested)
+        } else {
+            Ok((0, None))
+        }
+    })?;
     timings.read_state += timed_gap.elapsed;
     let (gap_symbols_count, gap_fill_from) = timed_gap.value;
     if request.mode == RsiWriteMode::AppendLatest && gap_symbols_count > 0 {
@@ -93,7 +98,7 @@ pub fn run_rsi<E: ClickHouseExecutor>(
 
     let timed_input = if can_use_previous_state {
         time_result(|| {
-            read_rsi_mixed_input_row_binary(
+            read_rsi_mixed_input_rows(
                 executor,
                 request,
                 &symbols,
@@ -103,7 +108,7 @@ pub fn run_rsi<E: ClickHouseExecutor>(
         })?
     } else {
         time_result(|| {
-            read_rsi_input_row_binary(
+            read_rsi_input_rows(
                 executor,
                 request,
                 &symbols,
@@ -114,10 +119,9 @@ pub fn run_rsi<E: ClickHouseExecutor>(
         })?
     };
     timings.read_input = timed_input.elapsed;
-    let input_bytes = timed_input.value;
-    let timed_groups = time_result(|| group_rsi_input_rows(&input_bytes))?;
+    let input_rows = timed_input.value;
+    let timed_groups = time_result(|| Ok(group_rsi_input_rows(input_rows)))?;
     timings.group = timed_groups.elapsed;
-    drop(input_bytes);
     let input_groups = timed_groups.value;
     let input_rows_count = input_groups.input_rows;
     let input_valid_close_rows = input_groups.valid_close_rows;

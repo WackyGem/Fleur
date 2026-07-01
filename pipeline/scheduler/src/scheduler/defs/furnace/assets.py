@@ -6,6 +6,7 @@ from pydantic import Field
 
 from scheduler.defs.asset_contracts import DEFAULT_OWNER
 from scheduler.defs.resources.furnace import (
+    DEFAULT_FURNACE_INSERT_BATCH_SIZE,
     FurnaceBollCliRequest,
     FurnaceCliResource,
     FurnaceKdjCliRequest,
@@ -48,7 +49,7 @@ class FurnaceKdjRunConfig(dg.Config):
     rsv_window: int = 9
     k_smoothing: int = 3
     d_smoothing: int = 3
-    insert_batch_size: int = 10_000
+    insert_batch_size: int = DEFAULT_FURNACE_INSERT_BATCH_SIZE
 
     def to_cli_request(self, *, run_id: str) -> FurnaceKdjCliRequest:
         if self.mode not in {"dry-run", "append-latest", "replace-cascade"}:
@@ -77,7 +78,7 @@ class FurnaceMaRunConfig(dg.Config):
     output_table: str = "fleur_calculation.calc_stock_ma_daily"
     price_column: str = "close_price_forward_adj"
     volume_column: str = "volume"
-    insert_batch_size: int = 10_000
+    insert_batch_size: int = DEFAULT_FURNACE_INSERT_BATCH_SIZE
 
     def to_cli_request(self, *, run_id: str) -> FurnaceMaCliRequest:
         if self.mode not in {"dry-run", "append-latest", "replace-cascade"}:
@@ -106,7 +107,7 @@ class FurnaceRsiRunConfig(dg.Config):
     input_table: str = "fleur_intermediate.int_stock_quotes_daily_adj"
     output_table: str = "fleur_calculation.calc_stock_rsi_daily"
     price_column: str = "close_price_forward_adj"
-    insert_batch_size: int = 10_000
+    insert_batch_size: int = DEFAULT_FURNACE_INSERT_BATCH_SIZE
 
     def to_cli_request(self, *, run_id: str) -> FurnaceRsiCliRequest:
         if self.mode not in {"dry-run", "append-latest", "replace-cascade"}:
@@ -133,7 +134,7 @@ class FurnaceBollRunConfig(dg.Config):
     input_table: str = "fleur_intermediate.int_stock_quotes_daily_adj"
     output_table: str = "fleur_calculation.calc_stock_boll_daily"
     price_column: str = "close_price_forward_adj"
-    insert_batch_size: int = 10_000
+    insert_batch_size: int = DEFAULT_FURNACE_INSERT_BATCH_SIZE
 
     def to_cli_request(self, *, run_id: str) -> FurnaceBollCliRequest:
         if self.mode not in {"dry-run", "append-latest", "replace-cascade"}:
@@ -160,7 +161,7 @@ class FurnaceMacdRunConfig(dg.Config):
     input_table: str = "fleur_intermediate.int_stock_quotes_daily_adj"
     output_table: str = "fleur_calculation.calc_stock_macd_daily"
     price_column: str = "close_price_forward_adj"
-    insert_batch_size: int = 10_000
+    insert_batch_size: int = DEFAULT_FURNACE_INSERT_BATCH_SIZE
 
     def to_cli_request(self, *, run_id: str) -> FurnaceMacdCliRequest:
         if self.mode not in {"dry-run", "append-latest", "replace-cascade"}:
@@ -191,7 +192,7 @@ class FurnacePricePatternRunConfig(dg.Config):
     low_column: str = "low_price_forward_adj"
     close_column: str = "close_price"
     prev_close_column: str = "prev_close_price"
-    insert_batch_size: int = 10_000
+    insert_batch_size: int = DEFAULT_FURNACE_INSERT_BATCH_SIZE
 
     def to_cli_request(self, *, run_id: str) -> FurnacePricePatternCliRequest:
         if self.mode not in {"dry-run", "append-latest", "replace-cascade"}:

@@ -2,9 +2,6 @@ use std::time::Duration;
 
 use furnace_core::MacdInput;
 
-use crate::FurnaceIoError;
-use crate::rowbinary::{push_rowbinary_date, push_rowbinary_nullable_f64, push_rowbinary_string};
-
 #[derive(Debug, Clone, PartialEq)]
 pub(crate) struct MacdResultRow {
     pub(crate) security_code: String,
@@ -48,18 +45,4 @@ pub(crate) struct MacdSecurityCalculation {
     pub(crate) output_rows: u64,
     pub(crate) valid_close_rows: u64,
     pub(crate) null_indicator_rows: u64,
-}
-
-impl MacdResultRow {
-    pub(crate) fn write_row_binary(&self, bytes: &mut Vec<u8>) -> Result<(), FurnaceIoError> {
-        push_rowbinary_string(bytes, &self.security_code);
-        push_rowbinary_date(bytes, &self.trade_date)?;
-        push_rowbinary_nullable_f64(bytes, self.ema_fast_state_12);
-        push_rowbinary_nullable_f64(bytes, self.ema_slow_state_26);
-        push_rowbinary_nullable_f64(bytes, self.macd_dif);
-        push_rowbinary_nullable_f64(bytes, self.macd_dea);
-        push_rowbinary_nullable_f64(bytes, self.macd_dea_state);
-        push_rowbinary_nullable_f64(bytes, self.macd_histogram);
-        Ok(())
-    }
 }
