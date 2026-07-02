@@ -1,6 +1,7 @@
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { StockPoolPreviewWorkbench } from "@/features/strategy/components/stock-pool-preview-workbench"
 import type {
+  IndicatorCatalog,
   StrategyConditionGroup,
   WeightIndicator,
 } from "@/features/strategy/types"
@@ -8,6 +9,7 @@ import type { PreviewSnapshot } from "@/features/strategy/preview"
 
 type PoolPreviewPanelProps = {
   appliedWeightIndicators: WeightIndicator[]
+  catalogOptions: IndicatorCatalog[]
   conditionGroups: StrategyConditionGroup[]
   error?: string | null
   isPending?: boolean
@@ -22,6 +24,7 @@ type PoolPreviewPanelProps = {
 
 function PoolPreviewPanel({
   appliedWeightIndicators,
+  catalogOptions,
   conditionGroups,
   error,
   isPending,
@@ -65,6 +68,7 @@ function PoolPreviewPanel({
       <div className="min-h-0 flex-1">
         <StockPoolPreviewWorkbench
           appliedWeightIndicators={appliedWeightIndicators}
+          catalogOptions={catalogOptions}
           conditionGroups={conditionGroups}
           hasStrategyInput={hasStrategyInput}
           onUpdateWeightIndicator={onUpdateWeightIndicator}

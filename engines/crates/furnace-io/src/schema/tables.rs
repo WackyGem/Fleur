@@ -72,6 +72,11 @@ pub fn create_calculation_database_sql() -> &'static str {
     "CREATE DATABASE IF NOT EXISTS fleur_calculation"
 }
 
+/// 返回删除 Furnace 输出表的 ClickHouse DDL。
+pub fn drop_output_table_sql(output_table: &str) -> String {
+    format!("DROP TABLE IF EXISTS {output_table}")
+}
+
 /// 返回 `calc_stock_kdj_daily` 生产表的 ClickHouse DDL。
 ///
 /// # 示例
@@ -229,15 +234,11 @@ CREATE TABLE IF NOT EXISTS {output_table}
     close_direction Nullable(Int8),
     close_up_streak_days Nullable(UInt16),
     close_down_streak_days Nullable(UInt16),
-    n_structure_20_valid_bars UInt16,
-    n_structure_20_high_date Nullable(Date),
-    n_structure_20_high_price Nullable(Float64),
-    n_structure_20_low_date Nullable(Date),
-    n_structure_20_low_price Nullable(Float64),
-    n_structure_20_second_low_date Nullable(Date),
-    n_structure_20_second_low_price Nullable(Float64),
-    n_structure_20_second_low_ratio Nullable(Float64),
-    n_structure_20_is_valid Bool
+    n_structure_20_is_valid Bool,
+    n_structure_20_stage String,
+    n_structure_20_higher_low_ratio Nullable(Float64),
+    n_structure_20_pullback_depth Nullable(Float64),
+    n_structure_20_rebound_ratio Nullable(Float64)
 )
 ENGINE = MergeTree()
 PARTITION BY toYear(trade_date)

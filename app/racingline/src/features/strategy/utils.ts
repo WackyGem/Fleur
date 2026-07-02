@@ -16,6 +16,11 @@ type CompatibleMetric = {
   metricId: string
 }
 
+type FormatIndicatorOptions = {
+  catalogOptions?: IndicatorCatalog[]
+  metricLabels?: Record<string, string>
+}
+
 const defaultOperatorPreference: ConditionOperator[] = [
   "gte",
   "eq",
@@ -104,38 +109,71 @@ export function clampWeightTotal(score: number) {
   return Math.min(100, Math.max(0, score))
 }
 
-export function formatComparableIndicator(indicator: ComparableIndicator) {
+export function formatComparableIndicator(
+  indicator: ComparableIndicator,
+  options: FormatIndicatorOptions = {}
+) {
   const operatorLabel = getOperatorLabel(indicator.operator)
+  const metricLabel = getMetricDisplayLabel(
+    indicator.metric,
+    options
+  )
 
   if (indicator.operator === "is_null") {
-    return `${indicator.metric} ${operatorLabel}`
+    return `${metricLabel} ${operatorLabel}`
   }
 
   if (indicator.target === "metric") {
     const multiplier = normalizeCompareMultiplier(indicator.compareMultiplier)
+    const compareMetricLabel = getMetricDisplayLabel(
+      indicator.compareMetric,
+      options
+    )
     const compareLabel =
       multiplier === "1"
-        ? indicator.compareMetric
-        : `${indicator.compareMetric} * ${multiplier}`
-    return `${indicator.metric} ${operatorLabel} ${compareLabel}`
+        ? compareMetricLabel
+        : `${compareMetricLabel} * ${multiplier}`
+    return `${metricLabel} ${operatorLabel} ${compareLabel}`
   }
 
   if (indicator.operator === "between") {
-    return `${indicator.metric} ${operatorLabel} ${indicator.value} - ${indicator.valueEnd}`
+    return `${metricLabel} ${operatorLabel} ${indicator.value} - ${indicator.valueEnd}`
   }
 
-  return `${indicator.metric} ${operatorLabel} ${indicator.value}`
+  return `${metricLabel} ${operatorLabel} ${indicator.value}`
 }
 
-export function formatWeightIndicator(indicator: WeightIndicator) {
+export function formatWeightIndicator(
+  indicator: WeightIndicator,
+  options: FormatIndicatorOptions = {}
+) {
   const conditions = [
-    formatComparableIndicator(indicator),
+    formatComparableIndicator(indicator, options),
     ...(indicator.extraConditions ?? []).map((condition) =>
-      formatComparableIndicator(condition)
+      formatComparableIndicator(condition, options)
     ),
   ]
 
   return conditions.join(" 且 ")
+}
+
+function getMetricDisplayLabel(
+  metricId: string,
+  options: FormatIndicatorOptions = {}
+) {
+  const metricLabel = options.metricLabels?.[metricId]
+  if (metricLabel) {
+    return metricLabel
+  }
+
+  for (const catalog of getCatalogOptions(options.catalogOptions)) {
+    const metric = catalog.metrics.find((item) => item.id === metricId)
+    if (metric) {
+      return metric.label
+    }
+  }
+
+  return metricId
 }
 
 export function getCatalog(

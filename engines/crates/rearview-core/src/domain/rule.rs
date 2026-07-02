@@ -525,11 +525,11 @@ pub fn representative_rule() -> RuleVersionSpec {
                     15.0,
                 ),
                 points(
-                    "n_structure_20_second_low_ratio_above_1",
+                    "n_structure_20_rebound_valid",
                     compare(
-                        Operand::metric("n_structure_20_second_low_ratio"),
-                        Operator::Gt,
-                        Operand::number(1.0),
+                        Operand::metric("n_structure_20_is_valid"),
+                        Operator::Eq,
+                        Operand::bool(true),
                     ),
                     15.0,
                 ),
@@ -576,7 +576,7 @@ pub fn representative_rule() -> RuleVersionSpec {
             "price_ma_250".to_string(),
             "boll_lower_20_2".to_string(),
             "close_down_streak_days".to_string(),
-            "n_structure_20_second_low_ratio".to_string(),
+            "n_structure_20_is_valid".to_string(),
         ],
     }
 }
@@ -784,7 +784,7 @@ mod tests {
         );
         assert!(
             rule.output_metrics
-                .contains(&"n_structure_20_second_low_ratio".to_string())
+                .contains(&"n_structure_20_is_valid".to_string())
         );
         assert!(rule.output_metrics.contains(&"price_ma_114".to_string()));
         assert!(rule.output_metrics.contains(&"price_ma_250".to_string()));
@@ -857,10 +857,10 @@ mod tests {
             "boll_lower_20_2",
             "volume_ma_5",
             "close_down_streak_days",
-            "n_structure_20_second_low_ratio",
         ] {
             metrics.push(metric(name, ValueKind::Numeric));
         }
+        metrics.push(metric("n_structure_20_is_valid", ValueKind::Boolean));
         MetricCatalog::new(metrics).unwrap()
     }
 

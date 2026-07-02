@@ -363,7 +363,7 @@ sources:
             data_type: Nullable(Float64)
 
       - name: calc_stock_price_pattern_daily
-        description: Furnace/Dagster materialized daily price action and previous-low/second-low structure indicator table.
+        description: Furnace/Dagster materialized daily price action and 20-bar N-structure indicator table.
         config:
           meta:
             dagster:
@@ -395,41 +395,25 @@ sources:
             description: Consecutive valid down days through the current row based on unadjusted close_price and prev_close_price; NULL when direction is unavailable.
             data_type: Nullable(UInt16)
 
-          - name: n_structure_20_valid_bars
-            description: Count of recent valid forward-adjusted high/low bars used by the 20-bar structure window.
-            data_type: UInt16
-
-          - name: n_structure_20_high_date
-            description: Trade date of the first highest high_price_forward_adj in the recent 20 valid high/low bars.
-            data_type: Nullable(Date)
-
-          - name: n_structure_20_high_price
-            description: Highest high_price_forward_adj in the recent 20 valid high/low bars.
-            data_type: Nullable(Float64)
-
-          - name: n_structure_20_low_date
-            description: Trade date of the first lowest low_price_forward_adj on the left side of the structure window, including the high bar.
-            data_type: Nullable(Date)
-
-          - name: n_structure_20_low_price
-            description: Lowest low_price_forward_adj on the left side of the structure window, including the high bar.
-            data_type: Nullable(Float64)
-
-          - name: n_structure_20_second_low_date
-            description: Trade date of the first lowest low_price_forward_adj on the right side after the high bar.
-            data_type: Nullable(Date)
-
-          - name: n_structure_20_second_low_price
-            description: Lowest low_price_forward_adj on the right side after the high bar.
-            data_type: Nullable(Float64)
-
-          - name: n_structure_20_second_low_ratio
-            description: n_structure_20_second_low_price divided by n_structure_20_low_price; NULL when the second low is unavailable.
-            data_type: Nullable(Float64)
-
           - name: n_structure_20_is_valid
-            description: True when n_structure_20_second_low_ratio is strictly greater than 1.0; false when ratio is NULL or not greater than 1.0.
+            description: True when a 20-bar L1 -> H1 -> L2 structure exists and the current valid bar has rebounded from L2; false for none or higher_low-only stages.
             data_type: Bool
+
+          - name: n_structure_20_stage
+            description: "N-structure stage: none, higher_low, rebound, or breakout."
+            data_type: String
+
+          - name: n_structure_20_higher_low_ratio
+            description: L2 low divided by L1 low; NULL when no complete L1/H1/L2 candidate exists.
+            data_type: Nullable(Float64)
+
+          - name: n_structure_20_pullback_depth
+            description: Pullback depth computed as (H1 - L2) / (H1 - L1); NULL when no complete L1/H1/L2 candidate exists.
+            data_type: Nullable(Float64)
+
+          - name: n_structure_20_rebound_ratio
+            description: Current valid high divided by L2 low; NULL when no complete L1/H1/L2 candidate exists.
+            data_type: Nullable(Float64)
 
       - name: calc_portfolio_performance_metric
         description: Portfolio performance metric wide rows authored by the Rust portfolio worker.

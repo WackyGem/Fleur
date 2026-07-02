@@ -16,6 +16,8 @@ pub enum BollWriteMode {
     AppendLatest,
     /// 重算历史区间，并级联到受影响的最新输入日期。
     ReplaceCascade,
+    /// 删除并重建输出表，再写入本次全量计算结果。
+    RebuildTable,
 }
 
 impl BollWriteMode {
@@ -25,6 +27,7 @@ impl BollWriteMode {
             "dry-run" => Ok(Self::DryRun),
             "append-latest" => Ok(Self::AppendLatest),
             "replace-cascade" => Ok(Self::ReplaceCascade),
+            "rebuild-table" => Ok(Self::RebuildTable),
             other => Err(FurnaceIoError::InvalidRequest(format!(
                 "invalid Bollinger Bands write mode: {other}"
             ))),
@@ -37,6 +40,7 @@ impl BollWriteMode {
             Self::DryRun => "dry-run",
             Self::AppendLatest => "append-latest",
             Self::ReplaceCascade => "replace-cascade",
+            Self::RebuildTable => "rebuild-table",
         }
     }
 

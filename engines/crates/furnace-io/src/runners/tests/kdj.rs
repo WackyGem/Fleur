@@ -125,6 +125,52 @@ fn run_kdj_append_latest_inserts_result_rows() {
 }
 
 #[test]
+fn run_kdj_rebuild_table_drops_recreates_and_inserts_without_previous_state() {
+    let mut executor = FakeExecutor::with_responses(vec![
+        response(optional_date(Some("2026-01-01"))),
+        response(kdj_input_rows(&[
+            ("sh.600000", "2026-01-01", Some(10.0), Some(8.0), Some(9.0)),
+            ("sh.600000", "2026-01-02", Some(11.0), Some(8.0), Some(10.0)),
+        ])),
+    ]);
+    let request = KdjRunRequest {
+        request_from: "2026-01-01".to_string(),
+        request_to: "2026-01-02".to_string(),
+        symbols: vec!["sh.600000".to_string()],
+        mode: KdjWriteMode::RebuildTable,
+        insert_batch_size: MIN_INSERT_BATCH_SIZE,
+        ..KdjRunRequest::default()
+    };
+
+    let summary = run_kdj(&mut executor, &request).unwrap();
+
+    assert_eq!(summary.mode, KdjWriteMode::RebuildTable);
+    assert_eq!(summary.state_source, "initial_50");
+    assert!(summary.writes_applied);
+    assert!(
+        executor
+            .queries
+            .iter()
+            .any(|query| query == "CREATE DATABASE IF NOT EXISTS fleur_calculation")
+    );
+    assert_eq!(executor.multi_queries.len(), 1);
+    assert_eq!(executor.multi_queries[0].len(), 2);
+    assert_eq!(
+        executor.multi_queries[0][0],
+        "DROP TABLE IF EXISTS fleur_calculation.calc_stock_kdj_daily"
+    );
+    assert!(executor.multi_queries[0][1].contains("CREATE TABLE IF NOT EXISTS"));
+    assert_eq!(executor.inserts.len(), 1);
+    assert_eq!(executor.inserts[0].table, DEFAULT_KDJ_OUTPUT_TABLE);
+    assert!(
+        !executor
+            .queries
+            .iter()
+            .any(|query| query.contains("k_value IS NOT NULL"))
+    );
+}
+
+#[test]
 fn kdj_result_row_converts_to_clickhouse_insert_row() {
     let row = KdjResultRow {
         security_code: "sh.600000".to_string(),

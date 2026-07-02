@@ -9,7 +9,7 @@ use crate::clickhouse::ClickHouseExecutor;
 use crate::request::{KdjRunRequest, KdjWriteMode};
 use crate::runners::shared::{
     RetainStagingRows, cleanup_staging, ensure_output_schema, ensure_production_output_rows,
-    ensure_production_symbols, group_input_rows, replace_partitions,
+    ensure_production_symbols, group_input_rows, rebuild_output_schema, replace_partitions,
     retain_existing_rows_for_staging, setup_staging, target_table_exists,
     validate_staging_or_error,
 };
@@ -36,7 +36,7 @@ pub fn run_kdj<E: ClickHouseExecutor>(
 
     request.validate()?;
 
-    if request.mode.writes_applied() {
+    if request.mode.writes_applied() && request.mode != KdjWriteMode::RebuildTable {
         ensure_output_schema(executor, &create_kdj_output_table_sql())?;
     }
 
@@ -46,7 +46,8 @@ pub fn run_kdj<E: ClickHouseExecutor>(
     let effective_output_to =
         resolve_effective_output_to(executor, request, &symbols, all_symbols_requested)?;
     let input_from = resolve_input_from(executor, request, &symbols, all_symbols_requested)?;
-    let target_exists = target_table_exists(executor)?;
+    let target_exists =
+        request.mode != KdjWriteMode::RebuildTable && target_table_exists(executor)?;
     let states = if target_exists {
         let timed = time_result(|| {
             read_previous_states(executor, request, &symbols, all_symbols_requested)
@@ -160,6 +161,25 @@ pub fn run_kdj<E: ClickHouseExecutor>(
             timings.staging += timed.elapsed;
             partition_replace = PartitionReplaceSummary::replaced(affected_years.clone());
             staging_table = Some(staging);
+        }
+        KdjWriteMode::RebuildTable => {
+            let timed = time_result(|| {
+                rebuild_output_schema(
+                    executor,
+                    DEFAULT_KDJ_OUTPUT_TABLE,
+                    create_kdj_output_table_sql(),
+                )
+            })?;
+            timings.staging += timed.elapsed;
+            let timed = time_result(|| {
+                insert_result_rows(
+                    executor,
+                    DEFAULT_KDJ_OUTPUT_TABLE,
+                    &output_rows,
+                    request.insert_batch_size,
+                )
+            })?;
+            timings.write += timed.elapsed;
         }
     }
 

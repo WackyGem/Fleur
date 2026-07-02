@@ -328,6 +328,55 @@ fn run_price_pattern_returns_json_summary_for_dry_run() {
 }
 
 #[test]
+fn run_price_pattern_accepts_rebuild_table_mode() {
+    let input_rows = [
+        (
+            "sh.600000",
+            "2026-01-01",
+            Some(10.0),
+            Some(5.0),
+            Some(11.0),
+            Some(10.0),
+        ),
+        (
+            "sh.600000",
+            "2026-01-02",
+            Some(15.0),
+            Some(7.0),
+            Some(12.0),
+            Some(11.0),
+        ),
+    ];
+    let mut executor = FakeExecutor::with_responses(vec![
+        testing::optional_date(Some("2026-01-01")),
+        testing::price_pattern_input_rows(&input_rows),
+    ]);
+
+    let output = run_with_executor(
+        args(&[
+            "price-pattern",
+            "--from",
+            "2026-01-01",
+            "--to",
+            "2026-01-02",
+            "--symbols",
+            "sh.600000",
+            "--mode",
+            "rebuild-table",
+            "--run-id",
+            "price-pattern-rebuild-1",
+        ]),
+        &mut executor,
+    )
+    .unwrap();
+
+    assert!(output.contains("\"indicator\":\"price_pattern\""));
+    assert!(output.contains("\"mode\":\"rebuild-table\""));
+    assert!(output.contains("\"writes_applied\":true"));
+    assert!(output.contains("\"run_id\":\"price-pattern-rebuild-1\""));
+}
+
+#[test]
 fn run_kdj_rejects_non_canonical_write_parameters() {
     let mut executor = FakeExecutor::default();
 

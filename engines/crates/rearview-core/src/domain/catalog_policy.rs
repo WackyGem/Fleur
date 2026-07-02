@@ -551,6 +551,51 @@ metrics:
         );
     }
 
+    #[test]
+    fn metric_policy_should_keep_momentum_display_order_in_field_order() {
+        let policy_path = Path::new(env!("CARGO_MANIFEST_DIR")).join("config/metric_policy.yml");
+        let policy = MetricPolicyFile::load(policy_path).unwrap();
+        let mut metrics = policy
+            .metrics
+            .iter()
+            .filter(|metric| {
+                metric
+                    .display
+                    .as_ref()
+                    .and_then(|display| display.group.as_deref())
+                    == Some("momentum")
+            })
+            .collect::<Vec<_>>();
+        metrics.sort_by_key(|metric| {
+            metric
+                .display
+                .as_ref()
+                .and_then(|display| display.sort_order)
+                .unwrap_or(i32::MAX)
+        });
+
+        let metric_order = metrics
+            .iter()
+            .map(|metric| metric.logical_metric.as_str())
+            .collect::<Vec<_>>();
+
+        assert_eq!(
+            metric_order,
+            [
+                "rsi_6",
+                "rsi_12",
+                "rsi_14",
+                "rsi_24",
+                "rsi_25",
+                "rsi_50",
+                "kdj_rsv",
+                "kdj_k_value",
+                "kdj_d_value",
+                "kdj_j_value",
+            ]
+        );
+    }
+
     fn policy_from_yaml(content: &str) -> MetricPolicyFile {
         serde_yaml::from_str(content).unwrap()
     }

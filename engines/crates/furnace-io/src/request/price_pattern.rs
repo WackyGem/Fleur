@@ -19,6 +19,8 @@ pub enum PricePatternWriteMode {
     AppendLatest,
     /// Recompute history and cascade to latest affected input date.
     ReplaceCascade,
+    /// Drop and recreate the output table before writing this run's full results.
+    RebuildTable,
 }
 
 impl PricePatternWriteMode {
@@ -28,6 +30,7 @@ impl PricePatternWriteMode {
             "dry-run" => Ok(Self::DryRun),
             "append-latest" => Ok(Self::AppendLatest),
             "replace-cascade" => Ok(Self::ReplaceCascade),
+            "rebuild-table" => Ok(Self::RebuildTable),
             other => Err(FurnaceIoError::InvalidRequest(format!(
                 "invalid Price Pattern write mode: {other}"
             ))),
@@ -40,6 +43,7 @@ impl PricePatternWriteMode {
             Self::DryRun => "dry-run",
             Self::AppendLatest => "append-latest",
             Self::ReplaceCascade => "replace-cascade",
+            Self::RebuildTable => "rebuild-table",
         }
     }
 

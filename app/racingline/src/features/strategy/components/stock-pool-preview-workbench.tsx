@@ -50,6 +50,7 @@ import {
   type PreviewValueRow,
 } from "@/features/strategy/preview"
 import type {
+  IndicatorCatalog,
   StrategyConditionGroup,
   WeightIndicator,
 } from "@/features/strategy/types"
@@ -66,6 +67,7 @@ import type {
 
 type StockPoolPreviewWorkbenchProps = {
   appliedWeightIndicators: WeightIndicator[]
+  catalogOptions: IndicatorCatalog[]
   conditionGroups: StrategyConditionGroup[]
   hasStrategyInput: boolean
   onUpdateWeightIndicator: (
@@ -103,6 +105,7 @@ const percentFormatter = new Intl.NumberFormat("zh-CN", {
 })
 
 function StockPoolPreviewWorkbench({
+  catalogOptions,
   hasStrategyInput,
   onUpdateWeightIndicator,
   previewSnapshot,
@@ -278,6 +281,7 @@ function StockPoolPreviewWorkbench({
         <KeyDataPanel
           analysis={analysisQuery.data ?? null}
           analysisError={analysisQuery.isError ? analysisQuery.error : null}
+          catalogOptions={catalogOptions}
           isAnalysisPending={analysisQuery.isPending}
           onUpdateWeightIndicator={onUpdateWeightIndicator}
           stock={selectedStock}
@@ -880,12 +884,14 @@ function DailyStockPoolPanel({
 function KeyDataPanel({
   analysis,
   analysisError,
+  catalogOptions,
   isAnalysisPending,
   onUpdateWeightIndicator,
   weightIndicators,
 }: {
   analysis: PreviewChartContextResponse | null
   analysisError: unknown
+  catalogOptions: IndicatorCatalog[]
   isAnalysisPending: boolean
   onUpdateWeightIndicator: (
     indicatorId: string,
@@ -959,6 +965,7 @@ function KeyDataPanel({
           </MetricSection>
 
           <CompactWeightTuningSection
+            catalogOptions={catalogOptions}
             weightIndicators={weightIndicators}
             onUpdateWeightIndicator={onUpdateWeightIndicator}
           />
@@ -969,9 +976,11 @@ function KeyDataPanel({
 }
 
 function CompactWeightTuningSection({
+  catalogOptions,
   onUpdateWeightIndicator,
   weightIndicators,
 }: {
+  catalogOptions: IndicatorCatalog[]
   onUpdateWeightIndicator: (
     indicatorId: string,
     patch: Partial<WeightIndicator>
@@ -994,9 +1003,9 @@ function CompactWeightTuningSection({
               >
                 <div
                   className="truncate text-xs text-muted-foreground"
-                  title={formatWeightIndicator(indicator)}
+                  title={formatWeightIndicator(indicator, { catalogOptions })}
                 >
-                  {formatWeightIndicator(indicator)}
+                  {formatWeightIndicator(indicator, { catalogOptions })}
                 </div>
                 <WeightScoreSlider
                   className="[&_[data-slot=slider-range]]:bg-muted-foreground/35 [&_[data-slot=slider-thumb]]:size-2 [&_[data-slot=slider-thumb]]:border-muted-foreground/35 [&_[data-slot=slider-thumb]]:bg-background [&_[data-slot=slider-track]]:h-0.5 [&_[data-slot=slider-track]]:bg-muted/70"

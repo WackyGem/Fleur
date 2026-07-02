@@ -16,6 +16,8 @@ pub enum MacdWriteMode {
     AppendLatest,
     /// Recalculate a historical range and cascade to latest affected input date.
     ReplaceCascade,
+    /// Drop and recreate the output table before writing this run's full results.
+    RebuildTable,
 }
 
 impl MacdWriteMode {
@@ -25,6 +27,7 @@ impl MacdWriteMode {
             "dry-run" => Ok(Self::DryRun),
             "append-latest" => Ok(Self::AppendLatest),
             "replace-cascade" => Ok(Self::ReplaceCascade),
+            "rebuild-table" => Ok(Self::RebuildTable),
             other => Err(FurnaceIoError::InvalidRequest(format!(
                 "invalid MACD write mode: {other}"
             ))),
@@ -37,6 +40,7 @@ impl MacdWriteMode {
             Self::DryRun => "dry-run",
             Self::AppendLatest => "append-latest",
             Self::ReplaceCascade => "replace-cascade",
+            Self::RebuildTable => "rebuild-table",
         }
     }
 

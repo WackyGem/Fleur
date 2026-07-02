@@ -14,7 +14,7 @@
 ## 职责
 
 1. 计算 KDJ、MA、RSI、BOLL、MACD 和价格行为结构等技术指标。
-2. 通过 Rust CLI 暴露 dry-run、append-latest 和 replace-cascade 写入模式。
+2. 通过 Rust CLI 暴露 dry-run、append-latest、replace-cascade 和 rebuild-table 写入模式。
 3. 将指标结果写入 ClickHouse `fleur_calculation`，再由 dbt wrapper 暴露到 intermediate/marts。
 4. 保持指标公式集中在 `furnace-core`，让 Python 和 dbt 只负责编排与消费。
 
@@ -31,6 +31,8 @@
 Dagster Furnace asset 默认通过 `FURNACE_BINARY_PATH` 调用 `engines/target/release/furnace`。性能基准和回填必须使用 release binary；`engines/target/debug/furnace` 只用于本地调试。
 
 默认写入批量为 100,000 行/批。Furnace 通过官方 HTTP client 对每个 batch 发起一次 insert，该默认值用于减少 full-market `replace-cascade` 的 HTTP insert 请求数，同时仍保持在 ClickHouse 推荐的 10K-100K 行/批范围内。
+
+`rebuild-table` 用于 schema 或算法变化后的全量刷新。runner 会先完成本次计算并确认生产写入有产出行，再对目标输出表执行 `DROP TABLE IF EXISTS`、创建 canonical 表结构并批量插入结果；该模式不使用影子表、staging 或年度分区替换。调用方必须把请求日期范围视为新表的完整内容，局部范围会重建成局部结果表。
 
 所有 Cargo 命令在 `engines/` 目录下执行：
 
@@ -72,6 +74,7 @@ uv run pytest scheduler/tests/unit/furnace/test_furnace_definitions.py scheduler
 | 文档 | 用途 |
 |---|---|
 | [../../engines/README.md](../../engines/README.md) | Rust engines 工作区地图和 Furnace CLI 入口 |
+| [../jobs/reports/2026-07-02-furnace-price-pattern-rebuild-table-rerun.md](../jobs/reports/2026-07-02-furnace-price-pattern-rebuild-table-rerun.md) | Price Pattern 新 N 字结构字段 rebuild-table 全量重建和 dbt 重跑记录 |
 | [../jobs/reports/2026-07-01-furnace-clickhouse-rust-client-migration.md](../jobs/reports/2026-07-01-furnace-clickhouse-rust-client-migration.md) | Furnace 迁移到官方 `clickhouse` Rust HTTP client 的验证报告 |
 | [../plans/archive/0068-furnace-clickhouse-rust-client-migration-plan.md](../plans/archive/0068-furnace-clickhouse-rust-client-migration-plan.md) | Furnace 迁移到官方 `clickhouse` Rust client 的完成记录 |
 | [../RFC/archive/0016-rust-furnace-compute-engine.md](../RFC/archive/0016-rust-furnace-compute-engine.md) | Furnace 原始设计和长期边界 |

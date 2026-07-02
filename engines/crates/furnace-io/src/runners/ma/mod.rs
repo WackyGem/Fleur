@@ -9,7 +9,7 @@ use crate::clickhouse::ClickHouseExecutor;
 use crate::request::{MaRunRequest, MaWriteMode};
 use crate::runners::shared::{
     RetainStagingRows, cleanup_staging, ensure_output_schema, ensure_production_output_rows,
-    ensure_production_symbols, group_ma_input_rows, replace_partitions,
+    ensure_production_symbols, group_ma_input_rows, rebuild_output_schema, replace_partitions,
     retain_existing_rows_for_staging, setup_staging, table_exists, validate_staging_or_error,
 };
 use crate::schema::{
@@ -42,7 +42,7 @@ pub fn run_ma<E: ClickHouseExecutor>(
 
     request.validate()?;
 
-    if request.mode.writes_applied() {
+    if request.mode.writes_applied() && request.mode != MaWriteMode::RebuildTable {
         ensure_ma_output_schema(executor, &request.output_table)?;
     }
 
@@ -51,7 +51,8 @@ pub fn run_ma<E: ClickHouseExecutor>(
     ensure_production_symbols("MA", request.mode.writes_applied(), &symbols)?;
     let effective_output_to =
         resolve_ma_effective_output_to(executor, request, &symbols, all_symbols_requested)?;
-    let ma_target_exists = table_exists(executor, &request.output_table)?;
+    let ma_target_exists =
+        request.mode != MaWriteMode::RebuildTable && table_exists(executor, &request.output_table)?;
     let ma_states = if ma_target_exists {
         let timed = time_result(|| {
             read_previous_ma_states(executor, request, &symbols, all_symbols_requested)
@@ -66,8 +67,11 @@ pub fn run_ma<E: ClickHouseExecutor>(
         .filter(|symbol| !ma_states.contains_key(symbol.as_str()))
         .cloned()
         .collect::<Vec<_>>();
-    let can_consider_previous_state =
-        request.mode != MaWriteMode::ReplaceCascade && !symbols.is_empty() && !ma_states.is_empty();
+    let can_consider_previous_state = !matches!(
+        request.mode,
+        MaWriteMode::ReplaceCascade | MaWriteMode::RebuildTable
+    ) && !symbols.is_empty()
+        && !ma_states.is_empty();
     let lookback_input_from = if can_consider_previous_state {
         Some(resolve_ma_lookback_input_from(
             executor,
@@ -192,6 +196,25 @@ pub fn run_ma<E: ClickHouseExecutor>(
             timings.staging += timed.elapsed;
             partition_replace = PartitionReplaceSummary::replaced(affected_years.clone());
             staging_table = Some(staging);
+        }
+        MaWriteMode::RebuildTable => {
+            let timed = time_result(|| {
+                rebuild_output_schema(
+                    executor,
+                    &request.output_table,
+                    create_ma_output_table_sql(&request.output_table),
+                )
+            })?;
+            timings.staging += timed.elapsed;
+            let timed = time_result(|| {
+                insert_ma_result_rows(
+                    executor,
+                    &request.output_table,
+                    &output_rows,
+                    request.insert_batch_size,
+                )
+            })?;
+            timings.write += timed.elapsed;
         }
     }
 

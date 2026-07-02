@@ -2,7 +2,11 @@ import { describe, expect, it } from "vitest"
 
 import { indicatorCatalog } from "@/features/strategy/catalog"
 import type { IndicatorCatalog, MetricOption } from "@/features/strategy/types"
-import { getTrendMovingAverageCatalogs } from "@/features/strategy/utils"
+import {
+  formatComparableIndicator,
+  formatWeightIndicator,
+  getTrendMovingAverageCatalogs,
+} from "@/features/strategy/utils"
 
 describe("getTrendMovingAverageCatalogs", () => {
   it("keeps only trend main-chart moving average metrics from the fallback catalog", () => {
@@ -45,6 +49,59 @@ describe("getTrendMovingAverageCatalogs", () => {
   })
 })
 
+describe("indicator formatting", () => {
+  it("uses catalog labels for metric display text", () => {
+    const catalogs: IndicatorCatalog[] = [
+      catalog("trend", [
+        metric("price_ma_5", "MA5"),
+        metric("price_ma_20", "MA20"),
+      ]),
+    ]
+
+    expect(
+      formatComparableIndicator(
+        {
+          catalogId: "trend",
+          compareCatalogId: "trend",
+          compareMetric: "price_ma_20",
+          compareMultiplier: "1.5",
+          metric: "price_ma_5",
+          operator: "gt",
+          target: "metric",
+          value: "",
+          valueEnd: "",
+        },
+        { catalogOptions: catalogs }
+      )
+    ).toBe("MA5 > MA20 * 1.5")
+  })
+
+  it("uses catalog labels for weight indicator summaries", () => {
+    const catalogs: IndicatorCatalog[] = [
+      catalog("momentum", [metric("kdj_j_value", "KDJ J")]),
+    ]
+
+    expect(
+      formatWeightIndicator(
+        {
+          catalogId: "momentum",
+          compareCatalogId: "momentum",
+          compareMetric: "kdj_j_value",
+          extraConditions: [],
+          id: "weight-1",
+          metric: "kdj_j_value",
+          operator: "gte",
+          score: 50,
+          target: "value",
+          value: "80",
+          valueEnd: "",
+        },
+        { catalogOptions: catalogs }
+      )
+    ).toBe("KDJ J >= 80")
+  })
+})
+
 function catalog(id: string, metrics: MetricOption[]): IndicatorCatalog {
   return {
     id,
@@ -54,10 +111,10 @@ function catalog(id: string, metrics: MetricOption[]): IndicatorCatalog {
   }
 }
 
-function metric(id: string): MetricOption {
+function metric(id: string, label = id): MetricOption {
   return {
     id,
-    label: id,
+    label,
     valueType: "number",
     allowedOps: ["gt"],
   }

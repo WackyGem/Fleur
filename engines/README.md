@@ -61,7 +61,7 @@ ClickHouse calculation
   fleur_intermediate.int_stock_<indicator>_daily
 ```
 
-生产写入只允许各指标的 canonical 参数。历史修正使用 `replace-cascade`，会从请求起点按指标 lookback 或 previous state 规则级联到受影响证券的最新输入交易日，并通过年度分区替换实现幂等。
+生产写入只允许各指标的 canonical 参数。历史修正使用 `replace-cascade`，会从请求起点按指标 lookback 或 previous state 规则级联到受影响证券的最新输入交易日，并通过年度分区替换实现幂等。需要按新 schema 或新算法全量刷新时使用 `rebuild-table`，Furnace 会先完成本次计算，确认有产出行后删除并重建输出表，再写入本次请求范围内的全量结果。
 
 ## CLI
 
@@ -84,13 +84,14 @@ cargo run -p furnace -- kdj \
 - `rsi`：多窗口 RSI 和递推状态。
 - `boll`：多窗口 Bollinger Bands。
 - `macd`：DIF、DEA、MACD histogram 和递推 EMA 状态。
-- `price-pattern`：连阳/连阴和最近 20 根有效 high/low 内的前低-次低结构字段。
+- `price-pattern`：连阳/连阴和最近 20 个交易日内的 L1 -> H1 -> L2 -> 当前重新上攻 N 字结构字段。
 
 生产模式：
 
 - `dry-run`：只计算和输出摘要，不写 ClickHouse。
 - `append-latest`：用于最新区间追加，目标表存在同日或更晚结果时拒绝写入。
 - `replace-cascade`：用于历史回填和修正，写入 staging 后替换受影响年度分区。
+- `rebuild-table`：用于 schema 或算法变化后的全量重建。该模式不使用影子表、staging 或分区替换；先计算并校验本次产出非空，再执行 `DROP TABLE IF EXISTS`、创建 canonical 输出表并批量写入。请求范围就是新表内容，局部范围会得到局部新表。
 
 ClickHouse 配置口径：
 
@@ -227,6 +228,7 @@ uv run pytest scheduler/tests/unit/furnace/test_furnace_definitions.py scheduler
 |------|------|
 | `docs/RFC/archive/0016-rust-furnace-compute-engine.md` | Furnace Rust 计算引擎原始需求和长期边界 |
 | `docs/plans/archive/0068-furnace-clickhouse-rust-client-migration-plan.md` | Furnace 官方 `clickhouse` Rust client 迁移计划和完成记录 |
+| `docs/jobs/reports/2026-07-02-furnace-price-pattern-rebuild-table-rerun.md` | Price Pattern 新 N 字结构字段 rebuild-table 全量重建和 dbt 重跑记录 |
 | `docs/jobs/reports/2026-07-01-furnace-clickhouse-rust-client-migration.md` | Furnace 全指标 HTTP client 迁移、dry-run、replace-cascade 写入和性能验证记录 |
 | `docs/plans/archive/0027-furnace-rsv-kdj-technical-indicators-implementation-plan.md` | RSV/KDJ 第一版实施方案和 Dagster/dbt/ClickHouse 边界 |
 | `docs/plans/archive/0028-furnace-kdj-parallel-performance-implementation-plan.md` | 迁移前全市场 KDJ 并行计算、RowBinary 和性能观测方案 |

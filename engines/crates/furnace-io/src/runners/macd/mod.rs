@@ -9,7 +9,7 @@ use crate::clickhouse::ClickHouseExecutor;
 use crate::request::{MacdRunRequest, MacdWriteMode};
 use crate::runners::shared::{
     RetainStagingRows, cleanup_staging, ensure_output_schema, ensure_production_output_rows,
-    ensure_production_symbols, group_macd_input_rows, replace_partitions,
+    ensure_production_symbols, group_macd_input_rows, rebuild_output_schema, replace_partitions,
     retain_existing_rows_for_staging, setup_staging, table_exists, validate_staging_or_error,
 };
 use crate::schema::{
@@ -43,7 +43,7 @@ pub fn run_macd<E: ClickHouseExecutor>(
 
     request.validate()?;
 
-    if request.mode.writes_applied() {
+    if request.mode.writes_applied() && request.mode != MacdWriteMode::RebuildTable {
         ensure_output_schema(
             executor,
             &create_macd_output_table_sql(&request.output_table),
@@ -59,10 +59,14 @@ pub fn run_macd<E: ClickHouseExecutor>(
         resolve_macd_input_from(executor, request, &symbols, all_symbols_requested)?;
     let request_covers_full_history =
         request.request_from.as_str() <= full_history_input_from.as_str();
-    let macd_target_exists = table_exists(executor, &request.output_table)?;
+    let macd_target_exists = request.mode != MacdWriteMode::RebuildTable
+        && table_exists(executor, &request.output_table)?;
 
     let previous_states = if macd_target_exists
-        && request.mode != MacdWriteMode::ReplaceCascade
+        && !matches!(
+            request.mode,
+            MacdWriteMode::ReplaceCascade | MacdWriteMode::RebuildTable
+        )
         && !request_covers_full_history
     {
         let timed = time_result(|| {
@@ -98,8 +102,10 @@ pub fn run_macd<E: ClickHouseExecutor>(
         )));
     }
 
-    let can_use_previous_state = request.mode != MacdWriteMode::ReplaceCascade
-        && gap_symbols_count == 0
+    let can_use_previous_state = !matches!(
+        request.mode,
+        MacdWriteMode::ReplaceCascade | MacdWriteMode::RebuildTable
+    ) && gap_symbols_count == 0
         && !previous_states.is_empty();
     let states_for_compute = if can_use_previous_state {
         previous_states
@@ -248,6 +254,25 @@ pub fn run_macd<E: ClickHouseExecutor>(
             timings.staging += timed.elapsed;
             partition_replace = PartitionReplaceSummary::replaced(affected_years.clone());
             staging_table = Some(staging);
+        }
+        MacdWriteMode::RebuildTable => {
+            let timed = time_result(|| {
+                rebuild_output_schema(
+                    executor,
+                    &request.output_table,
+                    create_macd_output_table_sql(&request.output_table),
+                )
+            })?;
+            timings.staging += timed.elapsed;
+            let timed = time_result(|| {
+                insert_macd_result_rows(
+                    executor,
+                    &request.output_table,
+                    &output_rows,
+                    request.insert_batch_size,
+                )
+            })?;
+            timings.write += timed.elapsed;
         }
     }
 

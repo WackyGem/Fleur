@@ -224,18 +224,11 @@ pub(crate) struct PricePatternInsertRow {
     pub(crate) close_direction: Option<i8>,
     pub(crate) close_up_streak_days: Option<u16>,
     pub(crate) close_down_streak_days: Option<u16>,
-    pub(crate) n_structure_20_valid_bars: u16,
-    #[serde(with = "clickhouse::serde::time::date::option")]
-    pub(crate) n_structure_20_high_date: Option<Date>,
-    pub(crate) n_structure_20_high_price: Option<f64>,
-    #[serde(with = "clickhouse::serde::time::date::option")]
-    pub(crate) n_structure_20_low_date: Option<Date>,
-    pub(crate) n_structure_20_low_price: Option<f64>,
-    #[serde(with = "clickhouse::serde::time::date::option")]
-    pub(crate) n_structure_20_second_low_date: Option<Date>,
-    pub(crate) n_structure_20_second_low_price: Option<f64>,
-    pub(crate) n_structure_20_second_low_ratio: Option<f64>,
     pub(crate) n_structure_20_is_valid: bool,
+    pub(crate) n_structure_20_stage: String,
+    pub(crate) n_structure_20_higher_low_ratio: Option<f64>,
+    pub(crate) n_structure_20_pullback_depth: Option<f64>,
+    pub(crate) n_structure_20_rebound_ratio: Option<f64>,
 }
 
 pub(crate) use boll::{
@@ -388,27 +381,11 @@ impl TryFrom<&PricePatternResultRow> for PricePatternInsertRow {
             close_direction: row.close_direction,
             close_up_streak_days: row.close_up_streak_days,
             close_down_streak_days: row.close_down_streak_days,
-            n_structure_20_valid_bars: row.n_structure_20_valid_bars,
-            n_structure_20_high_date: row
-                .n_structure_20_high_date
-                .as_deref()
-                .map(parse_clickhouse_date)
-                .transpose()?,
-            n_structure_20_high_price: row.n_structure_20_high_price,
-            n_structure_20_low_date: row
-                .n_structure_20_low_date
-                .as_deref()
-                .map(parse_clickhouse_date)
-                .transpose()?,
-            n_structure_20_low_price: row.n_structure_20_low_price,
-            n_structure_20_second_low_date: row
-                .n_structure_20_second_low_date
-                .as_deref()
-                .map(parse_clickhouse_date)
-                .transpose()?,
-            n_structure_20_second_low_price: row.n_structure_20_second_low_price,
-            n_structure_20_second_low_ratio: row.n_structure_20_second_low_ratio,
             n_structure_20_is_valid: row.n_structure_20_is_valid,
+            n_structure_20_stage: row.n_structure_20_stage.clone(),
+            n_structure_20_higher_low_ratio: row.n_structure_20_higher_low_ratio,
+            n_structure_20_pullback_depth: row.n_structure_20_pullback_depth,
+            n_structure_20_rebound_ratio: row.n_structure_20_rebound_ratio,
         })
     }
 }

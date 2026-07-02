@@ -33,8 +33,8 @@ pub struct PricePatternRunSummary {
     pub valid_structure_bar_rows: u64,
     /// Output rows where streak fields are null.
     pub null_streak_rows: u64,
-    /// Output rows where second-low fields or ratio are null.
-    pub null_second_low_rows: u64,
+    /// Output rows where N-structure fields are null.
+    pub null_n_structure_rows: u64,
     /// Affected ClickHouse year partitions.
     pub affected_years: Vec<u16>,
     /// Existing rows retained in staging partitions.
@@ -67,7 +67,7 @@ impl PricePatternRunSummary {
             .collect::<Vec<_>>()
             .join(",");
         format!(
-            "{{\"indicator\":\"price_pattern\",\"request_from\":\"{}\",\"request_to\":\"{}\",\"effective_output_from\":\"{}\",\"effective_output_to\":\"{}\",\"input_from\":\"{}\",\"input_to\":\"{}\",\"mode\":\"{}\",\"symbols_count\":{},\"input_rows\":{},\"output_rows\":{},\"input_valid_streak_rows\":{},\"input_valid_structure_bar_rows\":{},\"valid_streak_rows\":{},\"valid_structure_bar_rows\":{},\"null_streak_rows\":{},\"null_second_low_rows\":{},\"affected_years\":[{}],\"retained_rows\":{},\"staging_table\":{},\"staging_validation\":{},\"partition_replace\":{},\"state_source\":\"{}\",\"n_structure_window\":{},\"run_id\":{},\"writes_applied\":{},\"performance_metrics\":{}}}",
+            "{{\"indicator\":\"price_pattern\",\"request_from\":\"{}\",\"request_to\":\"{}\",\"effective_output_from\":\"{}\",\"effective_output_to\":\"{}\",\"input_from\":\"{}\",\"input_to\":\"{}\",\"mode\":\"{}\",\"symbols_count\":{},\"input_rows\":{},\"output_rows\":{},\"input_valid_streak_rows\":{},\"input_valid_structure_bar_rows\":{},\"valid_streak_rows\":{},\"valid_structure_bar_rows\":{},\"null_streak_rows\":{},\"null_n_structure_rows\":{},\"affected_years\":[{}],\"retained_rows\":{},\"staging_table\":{},\"staging_validation\":{},\"partition_replace\":{},\"state_source\":\"{}\",\"n_structure_window\":{},\"run_id\":{},\"writes_applied\":{},\"performance_metrics\":{}}}",
             escape_json_string(&self.request_from),
             escape_json_string(&self.request_to),
             escape_json_string(&self.effective_output_from),
@@ -83,7 +83,7 @@ impl PricePatternRunSummary {
             self.valid_streak_rows,
             self.valid_structure_bar_rows,
             self.null_streak_rows,
-            self.null_second_low_rows,
+            self.null_n_structure_rows,
             affected_years,
             self.retained_rows,
             json_optional_string(self.staging_table.as_deref()),

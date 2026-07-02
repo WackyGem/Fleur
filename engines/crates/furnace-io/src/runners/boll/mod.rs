@@ -7,7 +7,7 @@ use crate::clickhouse::ClickHouseExecutor;
 use crate::request::{BollRunRequest, BollWriteMode};
 use crate::runners::shared::{
     RetainStagingRows, cleanup_staging, ensure_output_schema, ensure_production_output_rows,
-    ensure_production_symbols, group_boll_input_rows, replace_partitions,
+    ensure_production_symbols, group_boll_input_rows, rebuild_output_schema, replace_partitions,
     retain_existing_rows_for_staging, setup_staging, validate_staging_or_error,
 };
 use crate::schema::{
@@ -39,7 +39,7 @@ pub fn run_boll<E: ClickHouseExecutor>(
 
     request.validate()?;
 
-    if request.mode.writes_applied() {
+    if request.mode.writes_applied() && request.mode != BollWriteMode::RebuildTable {
         ensure_output_schema(
             executor,
             &create_boll_output_table_sql(&request.output_table),
@@ -158,6 +158,25 @@ pub fn run_boll<E: ClickHouseExecutor>(
             timings.staging += timed.elapsed;
             partition_replace = PartitionReplaceSummary::replaced(affected_years.clone());
             staging_table = Some(staging);
+        }
+        BollWriteMode::RebuildTable => {
+            let timed = time_result(|| {
+                rebuild_output_schema(
+                    executor,
+                    &request.output_table,
+                    create_boll_output_table_sql(&request.output_table),
+                )
+            })?;
+            timings.staging += timed.elapsed;
+            let timed = time_result(|| {
+                insert_boll_result_rows(
+                    executor,
+                    &request.output_table,
+                    &output_rows,
+                    request.insert_batch_size,
+                )
+            })?;
+            timings.write += timed.elapsed;
         }
     }
 

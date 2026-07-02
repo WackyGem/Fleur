@@ -117,7 +117,10 @@ function WeightIndicatorsPanel({
 
         <Separator />
         <div className="shrink-0 bg-background">
-          <WeightScaleSummary weightIndicators={weightIndicators} />
+          <WeightScaleSummary
+            catalogOptions={catalogOptions}
+            weightIndicators={weightIndicators}
+          />
         </div>
       </div>
     </FieldSet>
@@ -125,8 +128,10 @@ function WeightIndicatorsPanel({
 }
 
 function WeightScaleSummary({
+  catalogOptions,
   weightIndicators,
 }: {
+  catalogOptions: IndicatorCatalog[]
   weightIndicators: WeightIndicator[]
 }) {
   const { indicators } = getScaledWeightIndicators(weightIndicators)
@@ -155,7 +160,7 @@ function WeightScaleSummary({
             indicators.map((indicator) => (
               <TableRow key={indicator.id} className="hover:bg-transparent">
                 <TableCell className="max-w-[36rem] truncate font-medium">
-                  {formatWeightIndicator(indicator)}
+                  {formatWeightIndicator(indicator, { catalogOptions })}
                 </TableCell>
                 <TableCell className="w-36 text-left tabular-nums">
                   {indicator.scaledScore.toFixed(1)}

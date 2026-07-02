@@ -149,6 +149,32 @@ def test_furnace_configs_reject_unknown_mode() -> None:
             config.to_cli_request(run_id="run-1")
 
 
+def test_furnace_configs_accept_rebuild_table_mode() -> None:
+    cases = [
+        FurnaceKdjRunConfig(
+            request_from="2026-01-01", request_to="2026-01-02", mode="rebuild-table"
+        ),
+        FurnaceMaRunConfig(
+            request_from="2026-01-01", request_to="2026-01-02", mode="rebuild-table"
+        ),
+        FurnaceRsiRunConfig(
+            request_from="2026-01-01", request_to="2026-01-02", mode="rebuild-table"
+        ),
+        FurnaceBollRunConfig(
+            request_from="2026-01-01", request_to="2026-01-02", mode="rebuild-table"
+        ),
+        FurnaceMacdRunConfig(
+            request_from="2026-01-01", request_to="2026-01-02", mode="rebuild-table"
+        ),
+        FurnacePricePatternRunConfig(
+            request_from="2026-01-01", request_to="2026-01-02", mode="rebuild-table"
+        ),
+    ]
+
+    for config in cases:
+        assert config.to_cli_request(run_id="run-1").mode == "rebuild-table"
+
+
 def test_furnace_metadata_maps_cli_summary_to_materialization_metadata() -> None:
     metadata = _metadata_from_summary(
         {
@@ -350,7 +376,7 @@ def test_furnace_metadata_maps_price_pattern_summary_to_materialization_metadata
             "valid_streak_rows": 18,
             "valid_structure_bar_rows": 19,
             "null_streak_rows": 2,
-            "null_second_low_rows": 4,
+            "null_n_structure_rows": 4,
             "affected_years": [2026],
             "retained_rows": 80,
             "state_source": "full-history",
@@ -366,6 +392,6 @@ def test_furnace_metadata_maps_price_pattern_summary_to_materialization_metadata
     assert metadata["valid_streak_rows"] == 18
     assert metadata["valid_structure_bar_rows"] == 19
     assert metadata["null_streak_rows"] == 2
-    assert metadata["null_second_low_rows"] == 4
+    assert metadata["null_n_structure_rows"] == 4
     assert metadata["state_source"] == "full-history"
     assert metadata["n_structure_window"] == 20

@@ -102,6 +102,7 @@ import {
   type PreviewSnapshot,
 } from "@/features/strategy/preview"
 import type {
+  IndicatorCatalog,
   SimulationSettings,
   Step,
   StrategyCondition,
@@ -129,6 +130,8 @@ import type {
   StrategyBacktestValidateRequest,
 } from "@/types/rearview"
 import { LineChart, Play, SlidersHorizontal } from "lucide-react"
+
+const emptyIndicatorCatalog: IndicatorCatalog[] = []
 
 const stepContent: Record<Step, { description: string; title: string }> = {
   indicators: {
@@ -1737,7 +1740,9 @@ export function StrategyPage() {
     metricsQuery.isSuccess && strategyCatalog.length > 0
   const hasRealScoringCatalog =
     metricsQuery.isSuccess && strategyScoringCatalog.length > 0
-  const strategyCatalogOptions = hasRealMetricsCatalog ? strategyCatalog : []
+  const strategyCatalogOptions = hasRealMetricsCatalog
+    ? strategyCatalog
+    : emptyIndicatorCatalog
   const strategyStopLossCatalogOptions =
     strategyCatalogOptions.length > 0
       ? strategyCatalogOptions
@@ -1942,23 +1947,27 @@ export function StrategyPage() {
       conditionGroups.flatMap((group, groupIndex) =>
         group.conditions.map((condition, conditionIndex) => ({
           id: condition.id,
-          expression: formatComparableIndicator(condition),
+          expression: formatComparableIndicator(condition, {
+            catalogOptions: strategyCatalogOptions,
+          }),
           groupLabel: group.name || `指标组 ${groupIndex + 1}`,
           logicLabel:
             conditionIndex === 0 ? "组内起始" : condition.logic.toUpperCase(),
         }))
       ),
-    [conditionGroups]
+    [conditionGroups, strategyCatalogOptions]
   )
   const publishScoringRows = useMemo(
     () =>
       weightIndicators.map((indicator, index) => ({
         id: indicator.id,
-        expression: formatWeightIndicator(indicator),
+        expression: formatWeightIndicator(indicator, {
+          catalogOptions: strategyScoringCatalog,
+        }),
         index: index + 1,
         score: indicator.score,
       })),
-    [weightIndicators]
+    [strategyScoringCatalog, weightIndicators]
   )
   const publishRiskRules = useMemo(() => {
     const rules: string[] = []
@@ -2478,6 +2487,7 @@ export function StrategyPage() {
               ) : activeStep === "preview" ? (
                 <PoolPreviewPanel
                   appliedWeightIndicators={previewAppliedWeightIndicators}
+                  catalogOptions={strategyScoringCatalog}
                   conditionGroups={conditionGroups}
                   error={
                     previewAdapterError ??

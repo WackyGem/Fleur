@@ -1,6 +1,7 @@
 op_profiles:
   numeric_filter: [lt, lte, gt, gte, between, eq, ne, is_null]
   boolean_filter: [eq, ne, is_null]
+  string_filter: [eq, ne, is_null]
 
 defaults:
   numeric_metric:
@@ -20,6 +21,12 @@ defaults:
     allow_filter: true
     allow_scoring: false
     allowed_ops_profile: boolean_filter
+    null_policy: no_match
+  string_metric:
+    value_kind: string
+    allow_filter: true
+    allow_scoring: false
+    allowed_ops_profile: string_filter
     null_policy: no_match
 
 metrics:
@@ -56,57 +63,57 @@ metrics:
     extends: numeric_metric
     display: {group: quotes, label_zh: 涨跌幅, unit: pct, sort_order: 60}
 
-  - logical_metric: kdj_j_value
-    source: {mart_table: mart_stock_momentum_indicator_daily, column_name: kdj_j_value}
-    extends: numeric_metric
-    default_output: true
-    display: {group: momentum, label_zh: KDJ J, sort_order: 10}
-
   - logical_metric: rsi_6
     source: {mart_table: mart_stock_momentum_indicator_daily, column_name: rsi_6}
     extends: numeric_metric
     default_output: true
-    display: {group: momentum, label_zh: RSI 6, sort_order: 20}
+    display: {group: momentum, label_zh: RSI 6, sort_order: 10}
 
   - logical_metric: rsi_12
     source: {mart_table: mart_stock_momentum_indicator_daily, column_name: rsi_12}
     extends: numeric_metric
-    display: {group: momentum, label_zh: RSI 12, sort_order: 30}
+    display: {group: momentum, label_zh: RSI 12, sort_order: 20}
 
   - logical_metric: rsi_14
     source: {mart_table: mart_stock_momentum_indicator_daily, column_name: rsi_14}
     extends: numeric_metric
-    display: {group: momentum, label_zh: RSI 14, sort_order: 40}
+    display: {group: momentum, label_zh: RSI 14, sort_order: 30}
 
   - logical_metric: rsi_24
     source: {mart_table: mart_stock_momentum_indicator_daily, column_name: rsi_24}
     extends: numeric_metric
-    display: {group: momentum, label_zh: RSI 24, sort_order: 50}
+    display: {group: momentum, label_zh: RSI 24, sort_order: 40}
 
   - logical_metric: rsi_25
     source: {mart_table: mart_stock_momentum_indicator_daily, column_name: rsi_25}
     extends: numeric_metric
-    display: {group: momentum, label_zh: RSI 25, sort_order: 60}
+    display: {group: momentum, label_zh: RSI 25, sort_order: 50}
 
   - logical_metric: rsi_50
     source: {mart_table: mart_stock_momentum_indicator_daily, column_name: rsi_50}
     extends: numeric_metric
-    display: {group: momentum, label_zh: RSI 50, sort_order: 70}
+    display: {group: momentum, label_zh: RSI 50, sort_order: 60}
 
   - logical_metric: kdj_rsv
     source: {mart_table: mart_stock_momentum_indicator_daily, column_name: kdj_rsv}
     extends: numeric_metric
-    display: {group: momentum, label_zh: KDJ RSV, sort_order: 80}
+    display: {group: momentum, label_zh: KDJ RSV, sort_order: 70}
 
   - logical_metric: kdj_k_value
     source: {mart_table: mart_stock_momentum_indicator_daily, column_name: kdj_k_value}
     extends: numeric_metric
-    display: {group: momentum, label_zh: KDJ K, sort_order: 90}
+    display: {group: momentum, label_zh: KDJ K, sort_order: 80}
 
   - logical_metric: kdj_d_value
     source: {mart_table: mart_stock_momentum_indicator_daily, column_name: kdj_d_value}
     extends: numeric_metric
-    display: {group: momentum, label_zh: KDJ D, sort_order: 100}
+    display: {group: momentum, label_zh: KDJ D, sort_order: 90}
+
+  - logical_metric: kdj_j_value
+    source: {mart_table: mart_stock_momentum_indicator_daily, column_name: kdj_j_value}
+    extends: numeric_metric
+    default_output: true
+    display: {group: momentum, label_zh: KDJ J, sort_order: 100}
 
   - logical_metric: price_ma_3
     source: {mart_table: mart_stock_trend_indicator_daily, column_name: price_ma_3}
@@ -459,11 +466,29 @@ metrics:
     default_output: true
     display: {group: pattern, label_zh: N 字结构有效, sort_order: 20}
 
-  - logical_metric: n_structure_20_second_low_ratio
-    source: {mart_table: mart_stock_price_pattern_daily, column_name: n_structure_20_second_low_ratio}
+  - logical_metric: n_structure_20_stage
+    source: {mart_table: mart_stock_price_pattern_daily, column_name: n_structure_20_stage}
+    extends: string_metric
+    default_output: true
+    display: {group: pattern, label_zh: N 字结构阶段, sort_order: 30}
+
+  - logical_metric: n_structure_20_higher_low_ratio
+    source: {mart_table: mart_stock_price_pattern_daily, column_name: n_structure_20_higher_low_ratio}
     extends: numeric_metric
     default_output: true
-    display: {group: pattern, label_zh: N 字结构次低点比例, sort_order: 30}
+    display: {group: pattern, label_zh: N 字结构抬高比例, sort_order: 40}
+
+  - logical_metric: n_structure_20_pullback_depth
+    source: {mart_table: mart_stock_price_pattern_daily, column_name: n_structure_20_pullback_depth}
+    extends: numeric_metric
+    default_output: true
+    display: {group: pattern, label_zh: N 字结构回撤深度, sort_order: 50}
+
+  - logical_metric: n_structure_20_rebound_ratio
+    source: {mart_table: mart_stock_price_pattern_daily, column_name: n_structure_20_rebound_ratio}
+    extends: numeric_metric
+    default_output: true
+    display: {group: pattern, label_zh: N 字结构反弹比例, sort_order: 60}
 
 ignored_fields:
   mart_stock_quotes_daily:
@@ -516,10 +541,3 @@ ignored_fields:
   mart_stock_price_pattern_daily:
     close_direction: 方向枚举暂不开放策略筛选。
     close_up_streak_days: 第一阶段先开放连续下跌天数。
-    n_structure_20_valid_bars: N 字结构解释字段，不作为筛选指标。
-    n_structure_20_high_date: N 字结构解释字段，不作为筛选指标。
-    n_structure_20_high_price: N 字结构解释字段，不作为筛选指标。
-    n_structure_20_low_date: N 字结构解释字段，不作为筛选指标。
-    n_structure_20_low_price: N 字结构解释字段，不作为筛选指标。
-    n_structure_20_second_low_date: N 字结构解释字段，不作为筛选指标。
-    n_structure_20_second_low_price: N 字结构解释字段，不作为筛选指标。

@@ -49,7 +49,7 @@ pub(super) fn calculate_price_pattern_outputs(
         valid_streak_rows: calculated.valid_streak_rows,
         valid_structure_bar_rows: calculated.valid_structure_bar_rows,
         null_streak_rows: calculated.null_streak_rows,
-        null_second_low_rows: calculated.null_second_low_rows,
+        null_n_structure_rows: calculated.null_n_structure_rows,
         compute_elapsed: compute_started.elapsed(),
         parallelism: if parallel { "rayon" } else { "serial" },
         worker_threads,
@@ -67,7 +67,7 @@ pub(in crate::runners) fn calculate_price_pattern_grouped_outputs_serial_with_co
     let mut valid_streak_rows = 0;
     let mut valid_structure_bar_rows = 0;
     let mut null_streak_rows = 0;
-    let mut null_second_low_rows = 0;
+    let mut null_n_structure_rows = 0;
     for group in groups {
         let calculated = calculate_price_pattern_security_outputs(
             request,
@@ -79,7 +79,7 @@ pub(in crate::runners) fn calculate_price_pattern_grouped_outputs_serial_with_co
         valid_streak_rows += calculated.valid_streak_rows;
         valid_structure_bar_rows += calculated.valid_structure_bar_rows;
         null_streak_rows += calculated.null_streak_rows;
-        null_second_low_rows += calculated.null_second_low_rows;
+        null_n_structure_rows += calculated.null_n_structure_rows;
         output_rows.extend(calculated.rows);
     }
     Ok(PricePatternSecurityCalculation {
@@ -88,7 +88,7 @@ pub(in crate::runners) fn calculate_price_pattern_grouped_outputs_serial_with_co
         valid_streak_rows,
         valid_structure_bar_rows,
         null_streak_rows,
-        null_second_low_rows,
+        null_n_structure_rows,
     })
 }
 
@@ -114,13 +114,13 @@ pub(in crate::runners) fn calculate_price_pattern_grouped_outputs_parallel_with_
     let mut valid_streak_rows = 0;
     let mut valid_structure_bar_rows = 0;
     let mut null_streak_rows = 0;
-    let mut null_second_low_rows = 0;
+    let mut null_n_structure_rows = 0;
     for calculated in nested {
         output_row_count += calculated.output_rows;
         valid_streak_rows += calculated.valid_streak_rows;
         valid_structure_bar_rows += calculated.valid_structure_bar_rows;
         null_streak_rows += calculated.null_streak_rows;
-        null_second_low_rows += calculated.null_second_low_rows;
+        null_n_structure_rows += calculated.null_n_structure_rows;
         rows.extend(calculated.rows);
     }
     Ok(PricePatternSecurityCalculation {
@@ -129,7 +129,7 @@ pub(in crate::runners) fn calculate_price_pattern_grouped_outputs_parallel_with_
         valid_streak_rows,
         valid_structure_bar_rows,
         null_streak_rows,
-        null_second_low_rows,
+        null_n_structure_rows,
     })
 }
 
@@ -146,7 +146,7 @@ pub(super) fn calculate_price_pattern_security_outputs(
     let mut valid_streak_rows = 0;
     let mut valid_structure_bar_rows = 0;
     let mut null_streak_rows = 0;
-    let mut null_second_low_rows = 0;
+    let mut null_n_structure_rows = 0;
     for (input, output) in group.inputs.iter().zip(outputs) {
         if output.trade_date.as_str() < request.request_from.as_str()
             || output.trade_date.as_str() > effective_output_to
@@ -163,10 +163,8 @@ pub(super) fn calculate_price_pattern_security_outputs(
         if output.close_direction.is_none() {
             null_streak_rows += 1;
         }
-        if output.n_structure_20_second_low_price.is_none()
-            || output.n_structure_20_second_low_ratio.is_none()
-        {
-            null_second_low_rows += 1;
+        if output.n_structure_20_higher_low_ratio.is_none() {
+            null_n_structure_rows += 1;
         }
         if collect_rows {
             output_rows.push(PricePatternResultRow {
@@ -175,15 +173,11 @@ pub(super) fn calculate_price_pattern_security_outputs(
                 close_direction: output.close_direction,
                 close_up_streak_days: output.close_up_streak_days,
                 close_down_streak_days: output.close_down_streak_days,
-                n_structure_20_valid_bars: output.n_structure_20_valid_bars,
-                n_structure_20_high_date: output.n_structure_20_high_date,
-                n_structure_20_high_price: output.n_structure_20_high_price,
-                n_structure_20_low_date: output.n_structure_20_low_date,
-                n_structure_20_low_price: output.n_structure_20_low_price,
-                n_structure_20_second_low_date: output.n_structure_20_second_low_date,
-                n_structure_20_second_low_price: output.n_structure_20_second_low_price,
-                n_structure_20_second_low_ratio: output.n_structure_20_second_low_ratio,
                 n_structure_20_is_valid: output.n_structure_20_is_valid,
+                n_structure_20_stage: output.n_structure_20_stage,
+                n_structure_20_higher_low_ratio: output.n_structure_20_higher_low_ratio,
+                n_structure_20_pullback_depth: output.n_structure_20_pullback_depth,
+                n_structure_20_rebound_ratio: output.n_structure_20_rebound_ratio,
             });
         }
     }
@@ -193,6 +187,6 @@ pub(super) fn calculate_price_pattern_security_outputs(
         valid_streak_rows,
         valid_structure_bar_rows,
         null_streak_rows,
-        null_second_low_rows,
+        null_n_structure_rows,
     })
 }

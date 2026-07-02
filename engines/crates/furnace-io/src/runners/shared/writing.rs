@@ -21,6 +21,18 @@ pub(in crate::runners) fn ensure_output_schema<E: ClickHouseExecutor>(
     executor.execute(output_table_sql)
 }
 
+pub(in crate::runners) fn rebuild_output_schema<E: ClickHouseExecutor>(
+    executor: &mut E,
+    output_table: &str,
+    output_table_sql: String,
+) -> Result<(), FurnaceIoError> {
+    executor.execute(crate::schema::create_calculation_database_sql())?;
+    executor.execute_many(&[
+        crate::schema::drop_output_table_sql(output_table),
+        output_table_sql,
+    ])
+}
+
 pub(in crate::runners) fn ensure_production_symbols(
     indicator: &str,
     writes_applied: bool,

@@ -2,14 +2,14 @@ version: 2
 
 models:
   - name: mart_stock_price_pattern_daily
-    description: A 股股票日频价格行为与前低-次低结构 mart；基于 int_stock_price_pattern_daily 提供消费层稳定接口，不在 mart 层重写价格形态公式。
+    description: A 股股票日频价格行为与 20 根窗口 N 字结构 mart；基于 int_stock_price_pattern_daily 提供消费层稳定接口，不在 mart 层重写价格形态公式。
     config:
       meta:
         grain_zh: 每证券、交易日一行。
         business_logic_zh:
-          - 以 int_stock_price_pattern_daily 为唯一上游，保留价格方向、连阳连阴和 20 根窗口前低-次低结构字段。
+          - 以 int_stock_price_pattern_daily 为唯一上游，保留价格方向、连阳连阴和 20 根窗口 N 字结构字段。
           - 连阳和连阴使用未复权 close_price 与 BaoStock prev_close_price 的 Furnace 计算结果。
-          - 前低-次低结构使用前复权 high_price_forward_adj 与 low_price_forward_adj 的 Furnace 计算结果。
+          - N 字结构使用前复权 high_price_forward_adj 与 low_price_forward_adj 的 Furnace 计算结果。
           - mart 层只负责消费层物化、字段文档和质量测试，不读取 fleur_calculation 物理表，也不重写指标公式。
     data_tests:
       - unique_combination_of_columns:
@@ -49,38 +49,26 @@ models:
         description: 截至当前行的连续有效下跌天数；close_direction 为 NULL 时为 NULL，当前方向为持平或上涨时为 0。
         data_type: Nullable(UInt16)
 
-      - name: n_structure_20_valid_bars
-        description: 20 根结构窗口使用的近期有效前复权最高/最低价 K 线数量。
-        data_type: UInt16
-
-      - name: n_structure_20_high_date
-        description: 近期 20 根有效最高/最低价 K 线中第一个最高 high_price_forward_adj 的交易日。
-        data_type: Nullable(Date)
-
-      - name: n_structure_20_high_price
-        description: 近期 20 根有效最高/最低价 K 线中的最高 high_price_forward_adj。
-        data_type: Nullable(Float64)
-
-      - name: n_structure_20_low_date
-        description: 结构窗口左侧（含最高点 K 线）第一个最低 low_price_forward_adj 的交易日。
-        data_type: Nullable(Date)
-
-      - name: n_structure_20_low_price
-        description: 结构窗口左侧（含最高点 K 线）的最低 low_price_forward_adj。
-        data_type: Nullable(Float64)
-
-      - name: n_structure_20_second_low_date
-        description: 最高点 K 线右侧之后第一个最低 low_price_forward_adj 的交易日。
-        data_type: Nullable(Date)
-
-      - name: n_structure_20_second_low_price
-        description: 最高点 K 线右侧之后的最低 low_price_forward_adj。
-        data_type: Nullable(Float64)
-
-      - name: n_structure_20_second_low_ratio
-        description: n_structure_20_second_low_price 除以 n_structure_20_low_price；次低点不可用时为 NULL。
-        data_type: Nullable(Float64)
-
       - name: n_structure_20_is_valid
-        description: 当 n_structure_20_second_low_ratio 严格大于 1.0 时为 true；比率为 NULL 或不大于 1.0 时为 false。
+        description: 当 20 根窗口内存在 L1 -> H1 -> L2 结构且当前有效 K 线已从 L2 重新上攻时为 true；仅形成 higher_low 阶段时为 false。
         data_type: Bool
+
+      - name: n_structure_20_stage
+        description: N 字结构阶段；none 表示未形成候选结构，higher_low 表示 L2 高于 L1 但尚未重新上攻，rebound 表示已从 L2 反弹，breakout 表示当前有效 K 线最高价突破 H1。
+        data_type: String
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: ['none', 'higher_low', 'rebound', 'breakout']
+
+      - name: n_structure_20_higher_low_ratio
+        description: L2 低点除以 L1 低点；不存在完整 L1/H1/L2 候选结构时为 NULL。
+        data_type: Nullable(Float64)
+
+      - name: n_structure_20_pullback_depth
+        description: 回撤深度，计算为 (H1 - L2) / (H1 - L1)；不存在完整 L1/H1/L2 候选结构时为 NULL。
+        data_type: Nullable(Float64)
+
+      - name: n_structure_20_rebound_ratio
+        description: 当前有效 K 线最高价除以 L2 低点；不存在完整 L1/H1/L2 候选结构时为 NULL。
+        data_type: Nullable(Float64)

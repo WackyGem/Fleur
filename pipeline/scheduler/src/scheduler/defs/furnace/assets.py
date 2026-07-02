@@ -39,6 +39,7 @@ FURNACE_RSI_GROUP = "calculation"
 FURNACE_BOLL_GROUP = "calculation"
 FURNACE_MACD_GROUP = "calculation"
 FURNACE_PRICE_PATTERN_GROUP = "calculation"
+FURNACE_WRITE_MODES = {"dry-run", "append-latest", "replace-cascade", "rebuild-table"}
 
 
 class FurnaceKdjRunConfig(dg.Config):
@@ -52,7 +53,7 @@ class FurnaceKdjRunConfig(dg.Config):
     insert_batch_size: int = DEFAULT_FURNACE_INSERT_BATCH_SIZE
 
     def to_cli_request(self, *, run_id: str) -> FurnaceKdjCliRequest:
-        if self.mode not in {"dry-run", "append-latest", "replace-cascade"}:
+        if self.mode not in FURNACE_WRITE_MODES:
             msg = f"Unsupported Furnace KDJ mode: {self.mode}"
             raise ValueError(msg)
         return FurnaceKdjCliRequest(
@@ -81,7 +82,7 @@ class FurnaceMaRunConfig(dg.Config):
     insert_batch_size: int = DEFAULT_FURNACE_INSERT_BATCH_SIZE
 
     def to_cli_request(self, *, run_id: str) -> FurnaceMaCliRequest:
-        if self.mode not in {"dry-run", "append-latest", "replace-cascade"}:
+        if self.mode not in FURNACE_WRITE_MODES:
             msg = f"Unsupported Furnace MA mode: {self.mode}"
             raise ValueError(msg)
         return FurnaceMaCliRequest(
@@ -110,7 +111,7 @@ class FurnaceRsiRunConfig(dg.Config):
     insert_batch_size: int = DEFAULT_FURNACE_INSERT_BATCH_SIZE
 
     def to_cli_request(self, *, run_id: str) -> FurnaceRsiCliRequest:
-        if self.mode not in {"dry-run", "append-latest", "replace-cascade"}:
+        if self.mode not in FURNACE_WRITE_MODES:
             msg = f"Unsupported Furnace RSI mode: {self.mode}"
             raise ValueError(msg)
         return FurnaceRsiCliRequest(
@@ -137,7 +138,7 @@ class FurnaceBollRunConfig(dg.Config):
     insert_batch_size: int = DEFAULT_FURNACE_INSERT_BATCH_SIZE
 
     def to_cli_request(self, *, run_id: str) -> FurnaceBollCliRequest:
-        if self.mode not in {"dry-run", "append-latest", "replace-cascade"}:
+        if self.mode not in FURNACE_WRITE_MODES:
             msg = f"Unsupported Furnace BOLL mode: {self.mode}"
             raise ValueError(msg)
         return FurnaceBollCliRequest(
@@ -164,7 +165,7 @@ class FurnaceMacdRunConfig(dg.Config):
     insert_batch_size: int = DEFAULT_FURNACE_INSERT_BATCH_SIZE
 
     def to_cli_request(self, *, run_id: str) -> FurnaceMacdCliRequest:
-        if self.mode not in {"dry-run", "append-latest", "replace-cascade"}:
+        if self.mode not in FURNACE_WRITE_MODES:
             msg = f"Unsupported Furnace MACD mode: {self.mode}"
             raise ValueError(msg)
         return FurnaceMacdCliRequest(
@@ -195,7 +196,7 @@ class FurnacePricePatternRunConfig(dg.Config):
     insert_batch_size: int = DEFAULT_FURNACE_INSERT_BATCH_SIZE
 
     def to_cli_request(self, *, run_id: str) -> FurnacePricePatternCliRequest:
-        if self.mode not in {"dry-run", "append-latest", "replace-cascade"}:
+        if self.mode not in FURNACE_WRITE_MODES:
             msg = f"Unsupported Furnace Price Pattern mode: {self.mode}"
             raise ValueError(msg)
         return FurnacePricePatternCliRequest(
@@ -458,7 +459,7 @@ def _metadata_from_summary(summary: Mapping[str, Any]) -> Mapping[str, Any]:
         "valid_streak_rows": summary.get("valid_streak_rows", 0),
         "valid_structure_bar_rows": summary.get("valid_structure_bar_rows", 0),
         "null_streak_rows": summary.get("null_streak_rows", 0),
-        "null_second_low_rows": summary.get("null_second_low_rows", 0),
+        "null_n_structure_rows": summary.get("null_n_structure_rows", 0),
         "n_structure_window": summary.get("n_structure_window"),
         "staging_validation": summary.get("staging_validation", {}),
         "partition_replace": summary.get("partition_replace", {}),

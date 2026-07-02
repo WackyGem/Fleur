@@ -27,5 +27,5 @@ pub use tables::{
     DEFAULT_RSI_OUTPUT_TABLE, DEFAULT_RSI_PRICE_COLUMN, DEFAULT_WARMUP_MULTIPLE,
     MIN_INSERT_BATCH_SIZE, create_boll_output_table_sql, create_calculation_database_sql,
     create_kdj_output_table_sql, create_ma_output_table_sql, create_macd_output_table_sql,
-    create_price_pattern_output_table_sql, create_rsi_output_table_sql,
+    create_price_pattern_output_table_sql, create_rsi_output_table_sql, drop_output_table_sql,
 };

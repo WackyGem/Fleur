@@ -166,7 +166,7 @@ function ComparisonFields({
             className="min-w-72 bg-background text-foreground"
           >
             <SelectGroup>
-              <SelectLabel>{catalog.source}</SelectLabel>
+              <SelectLabel>{catalog.label}</SelectLabel>
               {catalog.metrics.map((item) => (
                 <SelectItem key={item.id} value={item.id}>
                   <span className="truncate text-xs">{item.label}</span>
@@ -443,7 +443,7 @@ function ComparisonFields({
                 className="min-w-72 bg-background text-foreground"
               >
                 <SelectGroup>
-                  <SelectLabel>{compareCatalog.source}</SelectLabel>
+                  <SelectLabel>{compareCatalog.label}</SelectLabel>
                   {compareMetrics.map((compareMetric) => (
                     <SelectItem key={compareMetric.id} value={compareMetric.id}>
                       <span className="truncate text-xs">

@@ -100,13 +100,15 @@ export function buildPreviewSnapshot({
   timeline?: StrategyPreviewTimelineResponse | null
   weightIndicators: WeightIndicator[]
 }): PreviewSnapshot {
+  const metricLabels = buildMetricLabels(metrics)
+
   return {
     appliedRuleSpec,
     createdAt,
     labels: {
       filterMetrics: buildFilterMetricRows(conditionGroups, conditionPaths, metrics),
-      metrics: buildMetricLabels(metrics),
-      scoringRules: buildScoringRuleLabels(weightIndicators),
+      metrics: metricLabels,
+      scoringRules: buildScoringRuleLabels(weightIndicators, metricLabels),
     },
     previewId: result.preview_id,
     range,
@@ -241,11 +243,14 @@ function buildMetricLabels(metrics: MetricDefinition[]) {
   )
 }
 
-function buildScoringRuleLabels(weightIndicators: WeightIndicator[]) {
+function buildScoringRuleLabels(
+  weightIndicators: WeightIndicator[],
+  metricLabels: Record<string, string>
+) {
   return Object.fromEntries(
     weightIndicators.map((indicator, index) => [
       `weight:${indicator.id}:${index + 1}`,
-      formatWeightIndicator(indicator),
+      formatWeightIndicator(indicator, { metricLabels }),
     ])
   )
 }

@@ -134,7 +134,7 @@ describe("buildStrategyMetricCatalog", () => {
       .flatMap((group) => group.metrics)
       .find((item) => item.id === "kdj_j_value")
 
-    expect(ma5?.label).toBe("price_ma_5")
+    expect(ma5?.label).toBe("MA5")
     expect(ma5?.allowedOps).toContain("crosses_above")
     expect(kdj?.allowedOps).not.toContain("crosses_above")
   })

@@ -13,6 +13,8 @@ pub enum KdjWriteMode {
     AppendLatest,
     /// 重算历史区间，并级联到受影响的最新输入日期。
     ReplaceCascade,
+    /// 删除并重建输出表，再写入本次全量计算结果。
+    RebuildTable,
 }
 
 impl KdjWriteMode {
@@ -20,13 +22,14 @@ impl KdjWriteMode {
     ///
     /// # 错误
     ///
-    /// 当 `value` 不是 `dry-run`、`append-latest` 或 `replace-cascade` 时，
+    /// 当 `value` 不是 `dry-run`、`append-latest`、`replace-cascade` 或 `rebuild-table` 时，
     /// 返回 [`FurnaceIoError::InvalidRequest`]。
     pub fn parse(value: &str) -> Result<Self, FurnaceIoError> {
         match value {
             "dry-run" => Ok(Self::DryRun),
             "append-latest" => Ok(Self::AppendLatest),
             "replace-cascade" => Ok(Self::ReplaceCascade),
+            "rebuild-table" => Ok(Self::RebuildTable),
             other => Err(FurnaceIoError::InvalidRequest(format!(
                 "invalid KDJ write mode: {other}"
             ))),
@@ -39,6 +42,7 @@ impl KdjWriteMode {
             Self::DryRun => "dry-run",
             Self::AppendLatest => "append-latest",
             Self::ReplaceCascade => "replace-cascade",
+            Self::RebuildTable => "rebuild-table",
         }
     }
 

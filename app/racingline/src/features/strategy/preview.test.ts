@@ -162,7 +162,7 @@ describe("buildPreviewPresentation", () => {
         { id: "unknown_metric", label: "unknown_metric", value: "7" },
       ],
       filterMetricRows: [{ id: "c1", label: "收盘价", value: "10.25" }],
-      scoreItems: [{ id: "weight:w1:1", score: 88 }],
+      scoreItems: [{ id: "weight:w1:1", label: "收盘价 >= 10", score: 88 }],
     })
   })
 

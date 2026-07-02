@@ -946,7 +946,7 @@ function IndicatorStopLossFields({
           </SelectTrigger>
           <SelectContent align="start" className="min-w-72 bg-background">
             <SelectGroup>
-              <SelectLabel>{selectedCatalog.source}</SelectLabel>
+              <SelectLabel>{selectedCatalog.label}</SelectLabel>
               {selectedMetrics.map((metric) => (
                 <SelectItem key={metric.id} value={metric.id}>
                   <span className="truncate text-xs">{metric.label}</span>

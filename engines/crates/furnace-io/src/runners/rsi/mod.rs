@@ -9,7 +9,7 @@ use crate::clickhouse::ClickHouseExecutor;
 use crate::request::{RsiRunRequest, RsiWriteMode};
 use crate::runners::shared::{
     RetainStagingRows, cleanup_staging, ensure_output_schema, ensure_production_output_rows,
-    ensure_production_symbols, group_rsi_input_rows, replace_partitions,
+    ensure_production_symbols, group_rsi_input_rows, rebuild_output_schema, replace_partitions,
     retain_existing_rows_for_staging, setup_staging, table_exists, validate_staging_or_error,
 };
 use crate::schema::{
@@ -42,7 +42,7 @@ pub fn run_rsi<E: ClickHouseExecutor>(
 
     request.validate()?;
 
-    if request.mode.writes_applied() {
+    if request.mode.writes_applied() && request.mode != RsiWriteMode::RebuildTable {
         ensure_output_schema(
             executor,
             &create_rsi_output_table_sql(&request.output_table),
@@ -58,9 +58,13 @@ pub fn run_rsi<E: ClickHouseExecutor>(
         resolve_rsi_input_from(executor, request, &symbols, all_symbols_requested)?;
     let request_covers_full_history =
         request.request_from.as_str() <= full_history_input_from.as_str();
-    let rsi_target_exists = table_exists(executor, &request.output_table)?;
+    let rsi_target_exists = request.mode != RsiWriteMode::RebuildTable
+        && table_exists(executor, &request.output_table)?;
     let previous_states = if rsi_target_exists
-        && request.mode != RsiWriteMode::ReplaceCascade
+        && !matches!(
+            request.mode,
+            RsiWriteMode::ReplaceCascade | RsiWriteMode::RebuildTable
+        )
         && !request_covers_full_history
     {
         let timed = time_result(|| {
@@ -87,8 +91,10 @@ pub fn run_rsi<E: ClickHouseExecutor>(
         )));
     }
 
-    let can_use_previous_state = request.mode != RsiWriteMode::ReplaceCascade
-        && gap_symbols_count == 0
+    let can_use_previous_state = !matches!(
+        request.mode,
+        RsiWriteMode::ReplaceCascade | RsiWriteMode::RebuildTable
+    ) && gap_symbols_count == 0
         && !previous_states.is_empty();
     let states_for_compute = if can_use_previous_state {
         previous_states
@@ -213,6 +219,25 @@ pub fn run_rsi<E: ClickHouseExecutor>(
             timings.staging += timed.elapsed;
             partition_replace = PartitionReplaceSummary::replaced(affected_years.clone());
             staging_table = Some(staging);
+        }
+        RsiWriteMode::RebuildTable => {
+            let timed = time_result(|| {
+                rebuild_output_schema(
+                    executor,
+                    &request.output_table,
+                    create_rsi_output_table_sql(&request.output_table),
+                )
+            })?;
+            timings.staging += timed.elapsed;
+            let timed = time_result(|| {
+                insert_rsi_result_rows(
+                    executor,
+                    &request.output_table,
+                    &output_rows,
+                    request.insert_batch_size,
+                )
+            })?;
+            timings.write += timed.elapsed;
         }
     }
 

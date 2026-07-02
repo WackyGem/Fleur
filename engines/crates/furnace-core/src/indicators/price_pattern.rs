@@ -1,11 +1,16 @@
-//! Price action and previous-low/second-low daily structure indicators.
+//! Price action and L1/H1/L2 rebound daily structure indicators.
 
 use std::collections::VecDeque;
 use std::error::Error;
 use std::fmt;
 
-/// Canonical previous-low/second-low structure window.
+/// Canonical L1/H1/L2 rebound structure window.
 pub const DEFAULT_N_STRUCTURE_WINDOW: usize = 20;
+const MIN_N_STRUCTURE_FIRST_LEG_PCT: f64 = 0.08;
+const MIN_N_STRUCTURE_HIGHER_LOW_RATIO: f64 = 1.01;
+const MIN_N_STRUCTURE_PULLBACK_DEPTH: f64 = 0.25;
+const MAX_N_STRUCTURE_PULLBACK_DEPTH: f64 = 0.75;
+const MIN_N_STRUCTURE_REBOUND_RATIO: f64 = 1.03;
 
 /// Single security price-pattern input row.
 #[derive(Debug, Clone, PartialEq)]
@@ -144,24 +149,16 @@ pub struct PricePatternOutput {
     pub close_up_streak_days: Option<u16>,
     /// Consecutive down days.
     pub close_down_streak_days: Option<u16>,
-    /// Recent valid high/low bars in the structure window.
-    pub n_structure_20_valid_bars: u16,
-    /// First highest high date in the window.
-    pub n_structure_20_high_date: Option<String>,
-    /// Highest high price in the window.
-    pub n_structure_20_high_price: Option<f64>,
-    /// First lowest low date on the left side including the high bar.
-    pub n_structure_20_low_date: Option<String>,
-    /// Lowest low price on the left side including the high bar.
-    pub n_structure_20_low_price: Option<f64>,
-    /// First lowest low date on the right side after the high bar.
-    pub n_structure_20_second_low_date: Option<String>,
-    /// Lowest low price on the right side after the high bar.
-    pub n_structure_20_second_low_price: Option<f64>,
-    /// second_low / low.
-    pub n_structure_20_second_low_ratio: Option<f64>,
-    /// Whether second_low is strictly greater than low.
+    /// Whether a complete L1 -> H1 -> L2 -> current rebound N structure is present.
     pub n_structure_20_is_valid: bool,
+    /// N structure stage: none, higher_low, rebound, or breakout.
+    pub n_structure_20_stage: String,
+    /// L2 / L1.
+    pub n_structure_20_higher_low_ratio: Option<f64>,
+    /// (H1 - L2) / (H1 - L1).
+    pub n_structure_20_pullback_depth: Option<f64>,
+    /// Current valid high / L2.
+    pub n_structure_20_rebound_ratio: Option<f64>,
 }
 
 impl PricePatternOutput {
@@ -171,15 +168,11 @@ impl PricePatternOutput {
             close_direction: None,
             close_up_streak_days: None,
             close_down_streak_days: None,
-            n_structure_20_valid_bars: structure.valid_bars,
-            n_structure_20_high_date: structure.high_date,
-            n_structure_20_high_price: structure.high_price,
-            n_structure_20_low_date: structure.low_date,
-            n_structure_20_low_price: structure.low_price,
-            n_structure_20_second_low_date: structure.second_low_date,
-            n_structure_20_second_low_price: structure.second_low_price,
-            n_structure_20_second_low_ratio: structure.second_low_ratio,
             n_structure_20_is_valid: structure.is_valid,
+            n_structure_20_stage: structure.stage.to_string(),
+            n_structure_20_higher_low_ratio: structure.higher_low_ratio,
+            n_structure_20_pullback_depth: structure.pullback_depth,
+            n_structure_20_rebound_ratio: structure.rebound_ratio,
         }
     }
 }
@@ -408,79 +401,144 @@ fn truncate_structure_window(window: &mut VecDeque<StructurePriceBar>, max_len: 
 
 #[derive(Debug, Clone, PartialEq)]
 struct StructureOutput {
-    valid_bars: u16,
-    high_date: Option<String>,
-    high_price: Option<f64>,
-    low_date: Option<String>,
-    low_price: Option<f64>,
-    second_low_date: Option<String>,
-    second_low_price: Option<f64>,
-    second_low_ratio: Option<f64>,
     is_valid: bool,
+    stage: &'static str,
+    higher_low_ratio: Option<f64>,
+    pullback_depth: Option<f64>,
+    rebound_ratio: Option<f64>,
 }
 
 fn structure_output(window: &VecDeque<StructurePriceBar>) -> StructureOutput {
-    let valid_bars = u16::try_from(window.len()).unwrap_or(u16::MAX);
-    let Some(high_index) = first_high_index(window) else {
-        return StructureOutput {
-            valid_bars,
-            high_date: None,
-            high_price: None,
-            low_date: None,
-            low_price: None,
-            second_low_date: None,
-            second_low_price: None,
-            second_low_ratio: None,
-            is_valid: false,
-        };
-    };
-    let high = &window[high_index];
-    let low = first_low(&window.range(..=high_index).collect::<Vec<_>>());
-    let second_low = if high_index + 1 < window.len() {
-        first_low(&window.range(high_index + 1..).collect::<Vec<_>>())
-    } else {
-        None
-    };
-    let second_low_ratio = match (low, second_low) {
-        (Some(low), Some(second_low)) if low.low_price > 0.0 => {
-            Some(second_low.low_price / low.low_price)
-        }
-        _ => None,
+    let Some(candidate) = best_n_structure_candidate(window) else {
+        return StructureOutput::default();
     };
 
     StructureOutput {
-        valid_bars,
-        high_date: Some(high.trade_date.clone()),
-        high_price: Some(high.high_price),
-        low_date: low.map(|bar| bar.trade_date.clone()),
-        low_price: low.map(|bar| bar.low_price),
-        second_low_date: second_low.map(|bar| bar.trade_date.clone()),
-        second_low_price: second_low.map(|bar| bar.low_price),
-        second_low_ratio,
-        is_valid: second_low_ratio.is_some_and(|ratio| ratio > 1.0),
+        is_valid: matches!(
+            candidate.stage,
+            NStructureStage::Rebound | NStructureStage::Breakout
+        ),
+        stage: candidate.stage.as_str(),
+        higher_low_ratio: Some(candidate.higher_low_ratio),
+        pullback_depth: Some(candidate.pullback_depth),
+        rebound_ratio: Some(candidate.rebound_ratio),
     }
 }
 
-fn first_high_index(window: &VecDeque<StructurePriceBar>) -> Option<usize> {
-    let mut best = None::<(usize, f64)>;
-    for (index, bar) in window.iter().enumerate() {
-        match best {
-            Some((_, price)) if price >= bar.high_price => {}
-            _ => best = Some((index, bar.high_price)),
+impl Default for StructureOutput {
+    fn default() -> Self {
+        Self {
+            is_valid: false,
+            stage: NStructureStage::None.as_str(),
+            higher_low_ratio: None,
+            pullback_depth: None,
+            rebound_ratio: None,
         }
     }
-    best.map(|(index, _)| index)
 }
 
-fn first_low<'a>(bars: &[&'a StructurePriceBar]) -> Option<&'a StructurePriceBar> {
-    let mut best = None::<&StructurePriceBar>;
-    for bar in bars {
-        match best {
-            Some(current) if current.low_price <= bar.low_price => {}
-            _ => best = Some(*bar),
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+enum NStructureStage {
+    None,
+    HigherLow,
+    Rebound,
+    Breakout,
+}
+
+impl NStructureStage {
+    fn as_str(self) -> &'static str {
+        match self {
+            Self::None => "none",
+            Self::HigherLow => "higher_low",
+            Self::Rebound => "rebound",
+            Self::Breakout => "breakout",
         }
     }
+}
+
+#[derive(Debug, Clone, Copy)]
+struct NStructureCandidate {
+    stage: NStructureStage,
+    higher_low_ratio: f64,
+    pullback_depth: f64,
+    rebound_ratio: f64,
+    h1_index: usize,
+    l2_index: usize,
+}
+
+fn best_n_structure_candidate(window: &VecDeque<StructurePriceBar>) -> Option<NStructureCandidate> {
+    if window.len() < 4 {
+        return None;
+    }
+
+    let current_index = window.len() - 1;
+    let current = &window[current_index];
+    let mut best = None::<NStructureCandidate>;
+
+    for l1_index in 0..current_index {
+        let l1 = &window[l1_index];
+        for h1_index in l1_index + 1..current_index {
+            let h1 = &window[h1_index];
+            let first_leg = h1.high_price / l1.low_price - 1.0;
+            if first_leg < MIN_N_STRUCTURE_FIRST_LEG_PCT {
+                continue;
+            }
+
+            let leg_height = h1.high_price - l1.low_price;
+            if leg_height <= 0.0 {
+                continue;
+            }
+
+            for (l2_index, l2) in window
+                .iter()
+                .enumerate()
+                .take(current_index)
+                .skip(h1_index + 1)
+            {
+                let higher_low_ratio = l2.low_price / l1.low_price;
+                if higher_low_ratio < MIN_N_STRUCTURE_HIGHER_LOW_RATIO {
+                    continue;
+                }
+
+                let pullback_depth = (h1.high_price - l2.low_price) / leg_height;
+                if !(MIN_N_STRUCTURE_PULLBACK_DEPTH..=MAX_N_STRUCTURE_PULLBACK_DEPTH)
+                    .contains(&pullback_depth)
+                {
+                    continue;
+                }
+
+                let rebound_ratio = current.high_price / l2.low_price;
+                let stage = if current.high_price >= h1.high_price {
+                    NStructureStage::Breakout
+                } else if rebound_ratio >= MIN_N_STRUCTURE_REBOUND_RATIO {
+                    NStructureStage::Rebound
+                } else {
+                    NStructureStage::HigherLow
+                };
+                let candidate = NStructureCandidate {
+                    stage,
+                    higher_low_ratio,
+                    pullback_depth,
+                    rebound_ratio,
+                    h1_index,
+                    l2_index,
+                };
+                if best.is_none_or(|current_best| is_better_candidate(candidate, current_best)) {
+                    best = Some(candidate);
+                }
+            }
+        }
+    }
+
     best
+}
+
+fn is_better_candidate(candidate: NStructureCandidate, best: NStructureCandidate) -> bool {
+    candidate.stage > best.stage
+        || (candidate.stage == best.stage && candidate.l2_index > best.l2_index)
+        || (candidate.stage == best.stage
+            && candidate.l2_index == best.l2_index
+            && candidate.h1_index > best.h1_index)
 }
 
 #[cfg(test)]
@@ -557,68 +615,84 @@ mod tests {
         let outputs =
             calculate_price_pattern_series(&rows, &PricePatternParams::default(), None).unwrap();
 
-        assert_eq!(outputs[0].n_structure_20_valid_bars, 0);
-        assert!(outputs[0].n_structure_20_high_price.is_none());
-        assert_eq!(outputs[2].n_structure_20_valid_bars, 1);
-        assert_eq!(outputs[2].n_structure_20_high_price, Some(10.0));
+        assert_eq!(outputs[0].n_structure_20_stage, "none");
+        assert_eq!(outputs[2].n_structure_20_stage, "none");
+        assert!(outputs[2].n_structure_20_higher_low_ratio.is_none());
     }
 
     #[test]
-    fn structure_uses_first_high_left_low_and_right_second_low() {
+    fn n_structure_marks_higher_low_before_rebound_as_not_valid() {
         let rows = vec![
-            row(1, Some(10.0), Some(7.0), None, None),
-            row(2, Some(15.0), Some(8.0), None, None),
-            row(3, Some(15.0), Some(6.0), None, None),
-            row(4, Some(12.0), Some(9.0), None, None),
-            row(5, Some(11.0), Some(9.5), None, None),
+            row(1, Some(11.0), Some(10.0), None, None),
+            row(2, Some(20.0), Some(18.0), None, None),
+            row(3, Some(16.0), Some(13.0), None, None),
+            row(4, Some(13.2), Some(12.8), None, None),
         ];
 
         let outputs =
             calculate_price_pattern_series(&rows, &PricePatternParams::default(), None).unwrap();
         let last = outputs.last().unwrap();
 
-        assert_eq!(last.n_structure_20_high_date.as_deref(), Some("2026-01-02"));
-        assert_eq!(last.n_structure_20_low_date.as_deref(), Some("2026-01-01"));
-        assert_eq!(
-            last.n_structure_20_second_low_date.as_deref(),
-            Some("2026-01-03")
-        );
-        assert_close(last.n_structure_20_second_low_ratio.unwrap(), 6.0 / 7.0);
+        assert_eq!(last.n_structure_20_stage, "higher_low");
         assert!(!last.n_structure_20_is_valid);
+        assert_close(last.n_structure_20_higher_low_ratio.unwrap(), 13.0 / 10.0);
+        assert_close(last.n_structure_20_pullback_depth.unwrap(), 0.7);
     }
 
     #[test]
-    fn structure_is_valid_when_second_low_ratio_is_above_one() {
+    fn n_structure_is_valid_when_current_bar_rebounds_from_l2() {
         let rows = vec![
-            row(1, Some(10.0), Some(5.0), None, None),
-            row(2, Some(15.0), Some(7.0), None, None),
-            row(3, Some(12.0), Some(8.0), None, None),
+            row(1, Some(11.0), Some(10.0), None, None),
+            row(2, Some(20.0), Some(18.0), None, None),
+            row(3, Some(16.0), Some(13.0), None, None),
+            row(4, Some(14.0), Some(13.2), None, None),
         ];
 
         let outputs =
             calculate_price_pattern_series(&rows, &PricePatternParams::default(), None).unwrap();
         let last = outputs.last().unwrap();
 
-        assert_close(last.n_structure_20_second_low_ratio.unwrap(), 8.0 / 5.0);
+        assert_eq!(last.n_structure_20_stage, "rebound");
+        assert!(last.n_structure_20_is_valid);
+        assert_close(last.n_structure_20_rebound_ratio.unwrap(), 14.0 / 13.0);
+    }
+
+    #[test]
+    fn n_structure_marks_breakout_when_current_bar_clears_h1() {
+        let rows = vec![
+            row(1, Some(11.0), Some(10.0), None, None),
+            row(2, Some(20.0), Some(18.0), None, None),
+            row(3, Some(16.0), Some(13.0), None, None),
+            row(4, Some(20.1), Some(14.0), None, None),
+        ];
+
+        let outputs =
+            calculate_price_pattern_series(&rows, &PricePatternParams::default(), None).unwrap();
+        let last = outputs.last().unwrap();
+
+        assert_eq!(last.n_structure_20_stage, "breakout");
         assert!(last.n_structure_20_is_valid);
     }
 
     #[test]
-    fn structure_keeps_only_recent_twenty_valid_bars() {
-        let rows = (1..=21)
-            .map(|day| row(day, Some(day as f64), Some(day as f64), None, None))
-            .collect::<Vec<_>>();
+    fn n_structure_ignores_l1_outside_recent_twenty_valid_bars() {
+        let mut rows = vec![
+            row(1, Some(11.0), Some(10.0), None, None),
+            row(2, Some(20.0), Some(18.0), None, None),
+            row(3, Some(16.0), Some(13.0), None, None),
+        ];
+        rows.extend((4..=21).map(|day| row(day, Some(12.0), Some(11.0), None, None)));
 
         let outputs =
             calculate_price_pattern_series(&rows, &PricePatternParams::default(), None).unwrap();
         let last = outputs.last().unwrap();
 
-        assert_eq!(last.n_structure_20_valid_bars, 20);
-        assert_eq!(last.n_structure_20_low_date.as_deref(), Some("2026-01-02"));
+        assert_eq!(last.n_structure_20_stage, "none");
+        assert!(!last.n_structure_20_is_valid);
     }
 
     #[test]
-    fn high_at_last_bar_has_no_second_low_or_ratio() {
+    fn n_structure_requires_l2_before_current_bar() {
         let rows = vec![
             row(1, Some(10.0), Some(6.0), None, None),
             row(2, Some(20.0), Some(7.0), None, None),
@@ -628,8 +702,8 @@ mod tests {
             calculate_price_pattern_series(&rows, &PricePatternParams::default(), None).unwrap();
         let last = outputs.last().unwrap();
 
-        assert!(last.n_structure_20_second_low_price.is_none());
-        assert!(last.n_structure_20_second_low_ratio.is_none());
+        assert_eq!(last.n_structure_20_stage, "none");
+        assert!(last.n_structure_20_rebound_ratio.is_none());
         assert!(!last.n_structure_20_is_valid);
     }
 
@@ -700,12 +774,8 @@ mod tests {
         let outputs =
             calculate_price_pattern_series(&rows, &PricePatternParams::default(), None).unwrap();
 
-        assert_eq!(outputs[0].n_structure_20_valid_bars, 1);
-        assert_eq!(outputs[1].n_structure_20_valid_bars, 1);
-        assert_eq!(outputs[2].n_structure_20_valid_bars, 1);
-        assert_eq!(
-            outputs[2].n_structure_20_high_date.as_deref(),
-            Some("2026-01-01")
-        );
+        assert_eq!(outputs[0].n_structure_20_stage, "none");
+        assert_eq!(outputs[1].n_structure_20_stage, "none");
+        assert_eq!(outputs[2].n_structure_20_stage, "none");
     }
 }

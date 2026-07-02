@@ -395,7 +395,7 @@ function toMetricOption(metric: MetricDefinition): MetricOption {
     defaultOutput: metric.default_output,
     description: metric.description,
     id: metric.logical_metric,
-    label: metric.logical_metric,
+    label: metric.display?.label_zh?.trim() || metric.logical_metric,
     previousMetric: metric.cross?.previous_metric,
     sourceMetric: metric,
     supportsCrossing: Boolean(metric.cross?.previous_metric),

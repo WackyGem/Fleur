@@ -2,7 +2,7 @@ version: 2
 
 models:
   - name: int_stock_price_pattern_daily
-    description: A 股股票日频价格行为与前低-次低结构 intermediate wrapper；包装 Furnace/Dagster 物化的 calculation 层结果，不在 dbt 中重算指标公式。
+    description: A 股股票日频价格行为与 20 根窗口 N 字结构 intermediate wrapper；包装 Furnace/Dagster 物化的 calculation 层结果，不在 dbt 中重算指标公式。
     config:
       meta:
         grain_zh: 每证券、交易日一行。
@@ -10,8 +10,8 @@ models:
           - 上游物理表为 fleur_calculation.calc_stock_price_pattern_daily，由 Furnace 计算、Dagster 调度和观测。
           - 连阳和连阴使用 int_stock_quotes_daily_unadj.close_price 与 prev_close_price 逐行比较，不使用前复权 close。
           - close_price 或 prev_close_price 为空时方向不可判定，streak 字段为空并打断连续性。
-          - 前低-次低结构检测使用 int_stock_quotes_daily_adj.high_price_forward_adj 与 low_price_forward_adj，窗口最多保留最近 20 根有效 high/low 价格柱。
-          - n_structure_20_is_valid 仅表示 second_low_ratio > 1.0；ratio 为空时为 false。
+          - N 字结构检测使用 int_stock_quotes_daily_adj.high_price_forward_adj 与 low_price_forward_adj，窗口最多保留最近 20 根有效 high/low 价格柱。
+          - n_structure_20_is_valid 表示 L1 -> H1 -> L2 后当前有效 K 线已从 L2 重新上攻；higher_low 阶段不视为有效信号。
           - dbt 只提供 intermediate wrapper、字段文档和下游消费契约，不重写价格行为或结构检测公式。
     data_tests:
       - unique_combination_of_columns:
@@ -51,38 +51,26 @@ models:
         description: 截至当前行的连续有效下跌天数；close_direction 为 NULL 时为 NULL，当前方向为持平或上涨时为 0。
         data_type: Nullable(UInt16)
 
-      - name: n_structure_20_valid_bars
-        description: 20 根结构窗口使用的近期有效前复权最高/最低价 K 线数量。
-        data_type: UInt16
-
-      - name: n_structure_20_high_date
-        description: 近期 20 根有效最高/最低价 K 线中第一个最高 high_price_forward_adj 的交易日。
-        data_type: Nullable(Date)
-
-      - name: n_structure_20_high_price
-        description: 近期 20 根有效最高/最低价 K 线中的最高 high_price_forward_adj。
-        data_type: Nullable(Float64)
-
-      - name: n_structure_20_low_date
-        description: 结构窗口左侧（含最高点 K 线）第一个最低 low_price_forward_adj 的交易日。
-        data_type: Nullable(Date)
-
-      - name: n_structure_20_low_price
-        description: 结构窗口左侧（含最高点 K 线）的最低 low_price_forward_adj。
-        data_type: Nullable(Float64)
-
-      - name: n_structure_20_second_low_date
-        description: 最高点 K 线右侧之后第一个最低 low_price_forward_adj 的交易日。
-        data_type: Nullable(Date)
-
-      - name: n_structure_20_second_low_price
-        description: 最高点 K 线右侧之后的最低 low_price_forward_adj。
-        data_type: Nullable(Float64)
-
-      - name: n_structure_20_second_low_ratio
-        description: n_structure_20_second_low_price 除以 n_structure_20_low_price；次低点不可用时为 NULL。
-        data_type: Nullable(Float64)
-
       - name: n_structure_20_is_valid
-        description: 当 n_structure_20_second_low_ratio 严格大于 1.0 时为 true；比率为 NULL 或不大于 1.0 时为 false。
+        description: 当 20 根窗口内存在 L1 -> H1 -> L2 结构且当前有效 K 线已从 L2 重新上攻时为 true；仅形成 higher_low 阶段时为 false。
         data_type: Bool
+
+      - name: n_structure_20_stage
+        description: N 字结构阶段；none 表示未形成候选结构，higher_low 表示 L2 高于 L1 但尚未重新上攻，rebound 表示已从 L2 反弹，breakout 表示当前有效 K 线最高价突破 H1。
+        data_type: String
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: ['none', 'higher_low', 'rebound', 'breakout']
+
+      - name: n_structure_20_higher_low_ratio
+        description: L2 低点除以 L1 低点；不存在完整 L1/H1/L2 候选结构时为 NULL。
+        data_type: Nullable(Float64)
+
+      - name: n_structure_20_pullback_depth
+        description: 回撤深度，计算为 (H1 - L2) / (H1 - L1)；不存在完整 L1/H1/L2 候选结构时为 NULL。
+        data_type: Nullable(Float64)
+
+      - name: n_structure_20_rebound_ratio
+        description: 当前有效 K 线最高价除以 L2 低点；不存在完整 L1/H1/L2 候选结构时为 NULL。
+        data_type: Nullable(Float64)

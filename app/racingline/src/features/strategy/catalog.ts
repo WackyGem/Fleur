@@ -18,6 +18,7 @@ const numericOps: ConditionOperator[] = [
 ]
 
 const booleanOps: ConditionOperator[] = ["eq", "ne", "is_null"]
+const stringOps: ConditionOperator[] = ["eq", "ne", "is_null"]
 const crossingOps: ConditionOperator[] = [
   ...numericOps,
   "crosses_above",
@@ -29,7 +30,7 @@ const priceMaWindows = [3, 5, 6, 10, 12, 14, 20, 24, 28, 30, 57, 60, 114, 250]
 function priceMaMetric(window: number): MetricOption {
   return {
     id: `price_ma_${window}`,
-    label: `price_ma_${window}`,
+    label: `价格 MA${window}`,
     valueType: "number",
     allowedOps: crossingOps,
     previousMetric: `prev_price_ma_${window}`,
@@ -45,25 +46,25 @@ export const indicatorCatalog: IndicatorCatalog[] = [
     metrics: [
       {
         id: "close_price",
-        label: "close_price",
+        label: "收盘价",
         valueType: "number",
         allowedOps: numericOps,
       },
       {
         id: "volume",
-        label: "volume",
+        label: "成交量",
         valueType: "number",
         allowedOps: numericOps,
       },
       {
         id: "pct_change",
-        label: "pct_change",
+        label: "涨跌幅",
         valueType: "number",
         allowedOps: numericOps,
       },
       {
         id: "pct_amplitude",
-        label: "pct_amplitude",
+        label: "振幅",
         valueType: "number",
         allowedOps: numericOps,
       },
@@ -77,7 +78,7 @@ export const indicatorCatalog: IndicatorCatalog[] = [
       ...priceMaWindows.map(priceMaMetric),
       {
         id: "price_avg_ma_3_6_12_24",
-        label: "price_avg_ma_3_6_12_24",
+        label: "均线组 3/6/12/24",
         valueType: "number",
         allowedOps: crossingOps,
         previousMetric: "prev_price_avg_ma_3_6_12_24",
@@ -85,7 +86,7 @@ export const indicatorCatalog: IndicatorCatalog[] = [
       },
       {
         id: "price_avg_ma_14_28_57_114",
-        label: "price_avg_ma_14_28_57_114",
+        label: "均线组 14/28/57/114",
         valueType: "number",
         allowedOps: crossingOps,
         previousMetric: "prev_price_avg_ma_14_28_57_114",
@@ -93,7 +94,7 @@ export const indicatorCatalog: IndicatorCatalog[] = [
       },
       {
         id: "price_ema2_10",
-        label: "price_ema2_10",
+        label: "二阶 EMA10",
         valueType: "number",
         allowedOps: crossingOps,
         previousMetric: "prev_price_ema2_10",
@@ -101,7 +102,7 @@ export const indicatorCatalog: IndicatorCatalog[] = [
       },
       {
         id: "boll_lower_20_2",
-        label: "boll_lower_20_2",
+        label: "布林下轨 20/2",
         valueType: "number",
         allowedOps: crossingOps,
         previousMetric: "prev_boll_lower_20_2",
@@ -116,13 +117,13 @@ export const indicatorCatalog: IndicatorCatalog[] = [
     metrics: [
       {
         id: "kdj_j_value",
-        label: "kdj_j_value",
+        label: "KDJ J",
         valueType: "number",
         allowedOps: numericOps,
       },
       {
         id: "rsi_6",
-        label: "rsi_6",
+        label: "RSI 6",
         valueType: "number",
         allowedOps: numericOps,
       },
@@ -135,7 +136,7 @@ export const indicatorCatalog: IndicatorCatalog[] = [
     metrics: [
       {
         id: "volume_ma_5",
-        label: "volume_ma_5",
+        label: "成交量 MA5",
         valueType: "number",
         allowedOps: numericOps,
       },
@@ -148,19 +149,37 @@ export const indicatorCatalog: IndicatorCatalog[] = [
     metrics: [
       {
         id: "close_down_streak_days",
-        label: "close_down_streak_days",
+        label: "连续下跌天数",
         valueType: "number",
         allowedOps: numericOps,
       },
       {
         id: "n_structure_20_is_valid",
-        label: "n_structure_20_is_valid",
+        label: "N 字结构有效",
         valueType: "boolean",
         allowedOps: booleanOps,
       },
       {
-        id: "n_structure_20_second_low_ratio",
-        label: "n_structure_20_second_low_ratio",
+        id: "n_structure_20_stage",
+        label: "N 字结构阶段",
+        valueType: "string",
+        allowedOps: stringOps,
+      },
+      {
+        id: "n_structure_20_higher_low_ratio",
+        label: "N 字抬高比例",
+        valueType: "number",
+        allowedOps: numericOps,
+      },
+      {
+        id: "n_structure_20_pullback_depth",
+        label: "N 字回撤深度",
+        valueType: "number",
+        allowedOps: numericOps,
+      },
+      {
+        id: "n_structure_20_rebound_ratio",
+        label: "N 字反弹比例",
         valueType: "number",
         allowedOps: numericOps,
       },

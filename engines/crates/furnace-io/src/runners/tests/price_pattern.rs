@@ -171,6 +171,65 @@ fn run_price_pattern_append_latest_inserts_result_rows() {
 }
 
 #[test]
+fn run_price_pattern_rebuild_table_drops_recreates_and_inserts_result_rows() {
+    let input_rows = [
+        (
+            "sh.600000",
+            "2026-01-01",
+            Some(10.0),
+            Some(5.0),
+            Some(11.0),
+            Some(10.0),
+        ),
+        (
+            "sh.600000",
+            "2026-01-02",
+            Some(15.0),
+            Some(7.0),
+            Some(12.0),
+            Some(11.0),
+        ),
+    ];
+    let mut executor = FakeExecutor::with_responses(vec![
+        response(optional_date(Some("2026-01-01"))),
+        response(price_pattern_input_rows(&input_rows)),
+    ]);
+    let request = PricePatternRunRequest {
+        request_from: "2026-01-01".to_string(),
+        request_to: "2026-01-02".to_string(),
+        symbols: vec!["sh.600000".to_string()],
+        mode: PricePatternWriteMode::RebuildTable,
+        insert_batch_size: MIN_INSERT_BATCH_SIZE,
+        ..PricePatternRunRequest::default()
+    };
+
+    let summary = run_price_pattern(&mut executor, &request).unwrap();
+
+    assert_eq!(summary.mode, PricePatternWriteMode::RebuildTable);
+    assert!(summary.writes_applied);
+    assert_eq!(
+        summary.staging_validation,
+        ValidationSummary::not_applicable()
+    );
+    assert_eq!(
+        summary.partition_replace,
+        crate::PartitionReplaceSummary::not_applicable()
+    );
+    assert_eq!(executor.multi_queries.len(), 1);
+    assert_eq!(
+        executor.multi_queries[0][0],
+        "DROP TABLE IF EXISTS fleur_calculation.calc_stock_price_pattern_daily"
+    );
+    assert!(executor.multi_queries[0][1].contains("n_structure_20_stage String"));
+    assert_eq!(executor.inserts.len(), 1);
+    assert_eq!(
+        executor.inserts[0].table,
+        DEFAULT_PRICE_PATTERN_OUTPUT_TABLE
+    );
+    assert_eq!(executor.inserts[0].rows, 2);
+}
+
+#[test]
 fn run_price_pattern_replace_cascade_uses_staging_and_replaces_partitions() {
     let input_rows = [
         (
@@ -233,15 +292,11 @@ fn price_pattern_result_row_converts_to_clickhouse_insert_row() {
         close_direction: Some(1),
         close_up_streak_days: Some(2),
         close_down_streak_days: Some(0),
-        n_structure_20_valid_bars: 3,
-        n_structure_20_high_date: Some("2026-01-02".to_string()),
-        n_structure_20_high_price: Some(15.0),
-        n_structure_20_low_date: Some("2026-01-01".to_string()),
-        n_structure_20_low_price: Some(5.0),
-        n_structure_20_second_low_date: Some("2026-01-03".to_string()),
-        n_structure_20_second_low_price: Some(8.0),
-        n_structure_20_second_low_ratio: Some(1.6),
         n_structure_20_is_valid: true,
+        n_structure_20_stage: "rebound".to_string(),
+        n_structure_20_higher_low_ratio: Some(1.3),
+        n_structure_20_pullback_depth: Some(0.7),
+        n_structure_20_rebound_ratio: Some(1.08),
     };
     let insert = PricePatternInsertRow::try_from(&row).unwrap();
 
@@ -252,13 +307,9 @@ fn price_pattern_result_row_converts_to_clickhouse_insert_row() {
     );
     assert_eq!(insert.close_direction, Some(1));
     assert_eq!(insert.close_up_streak_days, Some(2));
-    assert_eq!(insert.n_structure_20_valid_bars, 3);
-    assert_eq!(
-        insert.n_structure_20_high_date,
-        Some(parse_clickhouse_date("2026-01-02").unwrap())
-    );
-    assert_eq!(insert.n_structure_20_high_price, Some(15.0));
     assert!(insert.n_structure_20_is_valid);
+    assert_eq!(insert.n_structure_20_stage, "rebound");
+    assert_eq!(insert.n_structure_20_higher_low_ratio, Some(1.3));
 }
 
 #[test]
@@ -267,8 +318,11 @@ fn create_price_pattern_output_table_contains_canonical_fields() {
 
     assert!(ddl.contains("calc_stock_price_pattern_daily"));
     assert!(ddl.contains("close_direction Nullable(Int8)"));
-    assert!(ddl.contains("n_structure_20_second_low_ratio Nullable(Float64)"));
     assert!(ddl.contains("n_structure_20_is_valid Bool"));
+    assert!(ddl.contains("n_structure_20_stage String"));
+    assert!(ddl.contains("n_structure_20_higher_low_ratio Nullable(Float64)"));
+    assert!(ddl.contains("n_structure_20_pullback_depth Nullable(Float64)"));
+    assert!(ddl.contains("n_structure_20_rebound_ratio Nullable(Float64)"));
     assert!(ddl.contains("PARTITION BY toYear(trade_date)"));
     assert!(ddl.contains("ORDER BY (trade_date, security_code)"));
 }

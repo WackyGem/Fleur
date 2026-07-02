@@ -9,15 +9,11 @@ pub(crate) struct PricePatternResultRow {
     pub(crate) close_direction: Option<i8>,
     pub(crate) close_up_streak_days: Option<u16>,
     pub(crate) close_down_streak_days: Option<u16>,
-    pub(crate) n_structure_20_valid_bars: u16,
-    pub(crate) n_structure_20_high_date: Option<String>,
-    pub(crate) n_structure_20_high_price: Option<f64>,
-    pub(crate) n_structure_20_low_date: Option<String>,
-    pub(crate) n_structure_20_low_price: Option<f64>,
-    pub(crate) n_structure_20_second_low_date: Option<String>,
-    pub(crate) n_structure_20_second_low_price: Option<f64>,
-    pub(crate) n_structure_20_second_low_ratio: Option<f64>,
     pub(crate) n_structure_20_is_valid: bool,
+    pub(crate) n_structure_20_stage: String,
+    pub(crate) n_structure_20_higher_low_ratio: Option<f64>,
+    pub(crate) n_structure_20_pullback_depth: Option<f64>,
+    pub(crate) n_structure_20_rebound_ratio: Option<f64>,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -27,7 +23,7 @@ pub(crate) struct PricePatternCalculationResult {
     pub(crate) valid_streak_rows: u64,
     pub(crate) valid_structure_bar_rows: u64,
     pub(crate) null_streak_rows: u64,
-    pub(crate) null_second_low_rows: u64,
+    pub(crate) null_n_structure_rows: u64,
     pub(crate) compute_elapsed: Duration,
     pub(crate) parallelism: &'static str,
     pub(crate) worker_threads: usize,
@@ -54,5 +50,5 @@ pub(crate) struct PricePatternSecurityCalculation {
     pub(crate) valid_streak_rows: u64,
     pub(crate) valid_structure_bar_rows: u64,
     pub(crate) null_streak_rows: u64,
-    pub(crate) null_second_low_rows: u64,
+    pub(crate) null_n_structure_rows: u64,
 }

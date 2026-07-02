@@ -7,8 +7,8 @@ use crate::clickhouse::ClickHouseExecutor;
 use crate::request::{PricePatternRunRequest, PricePatternWriteMode};
 use crate::runners::shared::{
     RetainStagingRows, cleanup_staging, ensure_output_schema, ensure_production_output_rows,
-    ensure_production_symbols, group_price_pattern_input_rows, replace_partitions,
-    retain_existing_rows_for_staging, setup_staging, validate_staging_or_error,
+    ensure_production_symbols, group_price_pattern_input_rows, rebuild_output_schema,
+    replace_partitions, retain_existing_rows_for_staging, setup_staging, validate_staging_or_error,
 };
 use crate::schema::{
     create_price_pattern_output_table_sql, create_price_pattern_staging_table_sql,
@@ -40,7 +40,7 @@ pub fn run_price_pattern<E: ClickHouseExecutor>(
 
     request.validate()?;
 
-    if request.mode.writes_applied() {
+    if request.mode.writes_applied() && request.mode != PricePatternWriteMode::RebuildTable {
         ensure_output_schema(
             executor,
             &create_price_pattern_output_table_sql(&request.output_table),
@@ -177,6 +177,25 @@ pub fn run_price_pattern<E: ClickHouseExecutor>(
             partition_replace = PartitionReplaceSummary::replaced(affected_years.clone());
             staging_table = Some(staging);
         }
+        PricePatternWriteMode::RebuildTable => {
+            let timed = time_result(|| {
+                rebuild_output_schema(
+                    executor,
+                    &request.output_table,
+                    create_price_pattern_output_table_sql(&request.output_table),
+                )
+            })?;
+            timings.staging += timed.elapsed;
+            let timed = time_result(|| {
+                insert_price_pattern_result_rows(
+                    executor,
+                    &request.output_table,
+                    &output_rows,
+                    request.insert_batch_size,
+                )
+            })?;
+            timings.write += timed.elapsed;
+        }
     }
 
     let symbols_count = symbols.len() as u64;
@@ -198,7 +217,7 @@ pub fn run_price_pattern<E: ClickHouseExecutor>(
         valid_streak_rows: calculated.valid_streak_rows,
         valid_structure_bar_rows: calculated.valid_structure_bar_rows,
         null_streak_rows: calculated.null_streak_rows,
-        null_second_low_rows: calculated.null_second_low_rows,
+        null_n_structure_rows: calculated.null_n_structure_rows,
         affected_years,
         retained_rows,
         staging_table,
