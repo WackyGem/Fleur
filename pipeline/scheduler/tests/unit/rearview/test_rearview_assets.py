@@ -4,16 +4,19 @@ from typing import Any, cast
 
 import dagster as dg
 import pytest
+import scheduler.defs.rearview.assets as rearview_assets_module
 from scheduler.defs.rearview.assets import (
+    DAILY_PORTFOLIO_NAV_LIQUIDATION_ASSET_KEY,
+    DailyPortfolioNavLiquidationConfig,
     ExamplePortfolioLiveRunConfig,
-    _combine_daily_run_range_responses,
-    _daily_run_metadata,
-    _date_chunks,
+    _daily_nav_liquidation_metadata,
     _example_0051_live_run_metadata,
     _query_fact_counts_for_succeeded_runs,
+    _run_daily_portfolio_nav_liquidation,
     _run_example_0051_portfolio_live_run,
     _validate_example_0051_ensure_response,
     _wait_for_daily_runs,
+    daily__portfolio_nav_liquidation,
 )
 from scheduler.defs.rearview.resources import RearviewApiResource
 
@@ -32,6 +35,60 @@ class FakeRearviewApi:
         return self.statuses[daily_run_id]
 
     def get_strategy_portfolio_daily_run_fact_counts(self, daily_run_id: str) -> dict[str, Any]:
+        return self.fact_counts[daily_run_id]
+
+
+class FakeDailyNavRearviewApi:
+    def __init__(
+        self,
+        *,
+        settlement_target: dict[str, Any],
+        daily_run_response: dict[str, Any] | None = None,
+        statuses: dict[str, dict[str, Any]] | None = None,
+        fact_counts: dict[str, dict[str, Any]] | None = None,
+    ) -> None:
+        self.settlement_target = settlement_target
+        self.daily_run_response = daily_run_response or {}
+        self.statuses = statuses or {}
+        self.fact_counts = fact_counts or {}
+        self.calls: list[tuple[str, dict[str, Any]]] = []
+
+    def get_strategy_portfolio_settlement_target(
+        self,
+        *,
+        strategy_portfolio_id: str = "",
+    ) -> dict[str, Any]:
+        self.calls.append(
+            (
+                "settlement_target",
+                {"strategy_portfolio_id": strategy_portfolio_id},
+            )
+        )
+        return self.settlement_target
+
+    def create_strategy_portfolio_daily_runs(
+        self,
+        *,
+        trade_date: str,
+        client_request_id: str,
+    ) -> dict[str, Any]:
+        self.calls.append(
+            (
+                "daily_runs",
+                {
+                    "trade_date": trade_date,
+                    "client_request_id": client_request_id,
+                },
+            )
+        )
+        return self.daily_run_response
+
+    def get_strategy_portfolio_daily_run_status(self, daily_run_id: str) -> dict[str, Any]:
+        self.calls.append(("status", {"daily_run_id": daily_run_id}))
+        return self.statuses[daily_run_id]
+
+    def get_strategy_portfolio_daily_run_fact_counts(self, daily_run_id: str) -> dict[str, Any]:
+        self.calls.append(("fact_counts", {"daily_run_id": daily_run_id}))
         return self.fact_counts[daily_run_id]
 
 
@@ -143,6 +200,40 @@ def test_rearview_api_resource_posts_0051_ensure_path(monkeypatch: pytest.Monkey
     ]
 
 
+def test_rearview_api_resource_posts_single_day_daily_runs_path(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    calls: list[tuple[str, dict[str, Any]]] = []
+
+    def fake_post_json(
+        self: RearviewApiResource,
+        path: str,
+        payload: dict[str, Any],
+    ) -> dict[str, Any]:
+        calls.append((path, payload))
+        return {"daily_run_ids": ["daily-1"]}
+
+    monkeypatch.setattr(RearviewApiResource, "_post_json", fake_post_json)
+
+    response = RearviewApiResource(
+        base_url="http://rearview.test"
+    ).create_strategy_portfolio_daily_runs(
+        trade_date="2026-07-01",
+        client_request_id="dagster-run-2026-07-01",
+    )
+
+    assert response == {"daily_run_ids": ["daily-1"]}
+    assert calls == [
+        (
+            "/rearview/strategy-portfolios/daily-runs",
+            {
+                "trade_date": "2026-07-01",
+                "client_request_id": "dagster-run-2026-07-01",
+            },
+        )
+    ]
+
+
 def test_rearview_api_resource_gets_portfolio_specific_settlement_target(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -167,12 +258,30 @@ def test_rearview_api_resource_gets_portfolio_specific_settlement_target(
     ]
 
 
-def test_daily_run_metadata_includes_worker_and_fact_evidence() -> None:
-    metadata = _daily_run_metadata(
-        partition_key="2026-06-26",
-        requested_start_date="2026-06-25",
-        requested_end_date="2026-06-26",
-        strategy_portfolio_id="portfolio-1",
+def test_daily_nav_liquidation_asset_is_unpartitioned_and_config_is_execution_only() -> None:
+    config_type = DailyPortfolioNavLiquidationConfig.to_config_schema().as_field().config_type
+    assert hasattr(config_type, "fields"), f"Expected shape config type, got {type(config_type)}"
+    fields = cast(Any, config_type).fields
+
+    assert daily__portfolio_nav_liquidation.key == DAILY_PORTFOLIO_NAV_LIQUIDATION_ASSET_KEY
+    assert daily__portfolio_nav_liquidation.partitions_def is None
+    assert set(fields) == {
+        "wait_for_completion",
+        "poll_interval_seconds",
+        "timeout_seconds",
+    }
+    assert not {
+        "trade_date",
+        "start_date",
+        "end_date",
+        "strategy_portfolio_id",
+        "chunk_size",
+    } & set(fields)
+
+
+def test_daily_nav_liquidation_metadata_includes_worker_and_fact_evidence() -> None:
+    metadata = _daily_nav_liquidation_metadata(
+        target_trade_date="2026-06-26",
         settlement_target={"settlement_target_date": "2026-06-26"},
         response={
             "active_portfolio_count": 2,
@@ -181,7 +290,7 @@ def test_daily_run_metadata_includes_worker_and_fact_evidence() -> None:
             "daily_run_ids": ["daily-1", "daily-2"],
             "created_daily_run_ids": ["daily-2"],
             "skipped_daily_run_ids": ["daily-1"],
-            "resolved_trade_dates": ["2026-06-25", "2026-06-26"],
+            "daily_run_results": [{"strategy_portfolio_daily_run_id": "daily-2"}],
         },
         statuses={
             "daily-1": {
@@ -208,9 +317,11 @@ def test_daily_run_metadata_includes_worker_and_fact_evidence() -> None:
     )
 
     assert metadata["scheduler_version"] == "0.1.0"
-    assert metadata["partition_key"] == "2026-06-26"
-    assert metadata["requested_start_date"] == "2026-06-25"
-    assert metadata["strategy_portfolio_id"] == "portfolio-1"
+    assert metadata["target_trade_date"] == "2026-06-26"
+    assert metadata["settlement_target_date"] == "2026-06-26"
+    assert metadata["active_portfolio_count"] == 2
+    assert metadata["created_run_count"] == 1
+    assert metadata["skipped_run_count"] == 1
     assert metadata["succeeded_run_count"] == 2
     assert metadata["failed_run_count"] == 0
     assert metadata["latest_daily_run_id"] == "daily-2"
@@ -220,47 +331,90 @@ def test_daily_run_metadata_includes_worker_and_fact_evidence() -> None:
     assert metadata["closed_trade_row_count"] == 18
 
 
-def test_combine_daily_run_range_responses_aggregates_chunks() -> None:
-    response = _combine_daily_run_range_responses(
-        start_date="2026-06-01",
-        end_date="2026-06-30",
-        responses=[
-            {
-                "resolved_trade_dates": ["2026-06-01"],
-                "active_portfolio_count": 1,
-                "created_run_count": 1,
-                "skipped_run_count": 0,
-                "daily_run_ids": ["daily-1"],
-                "created_daily_run_ids": ["daily-1"],
-                "skipped_daily_run_ids": [],
-                "trade_date_results": [{"trade_date": "2026-06-01"}],
-            },
-            {
-                "resolved_trade_dates": ["2026-06-02"],
-                "active_portfolio_count": 2,
-                "created_run_count": 0,
-                "skipped_run_count": 2,
-                "daily_run_ids": ["daily-2", "daily-3"],
-                "created_daily_run_ids": [],
-                "skipped_daily_run_ids": ["daily-2", "daily-3"],
-                "trade_date_results": [{"trade_date": "2026-06-02"}],
-            },
-        ],
+def test_daily_nav_liquidation_skips_when_settlement_target_is_empty() -> None:
+    fake = FakeDailyNavRearviewApi(
+        settlement_target={
+            "settlement_target_date": None,
+            "active_portfolio_count": 0,
+        }
     )
 
-    assert response["active_portfolio_count"] == 2
-    assert response["created_run_count"] == 1
-    assert response["skipped_run_count"] == 2
-    assert response["daily_run_ids"] == ["daily-1", "daily-2", "daily-3"]
-    assert response["resolved_trade_dates"] == ["2026-06-01", "2026-06-02"]
+    result = _run_daily_portfolio_nav_liquidation(
+        context=dg.build_asset_context(),
+        config=DailyPortfolioNavLiquidationConfig(
+            wait_for_completion=True,
+            poll_interval_seconds=1,
+            timeout_seconds=1,
+        ),
+        rearview_api=cast(RearviewApiResource, fake),
+    )
+
+    assert fake.calls == [("settlement_target", {"strategy_portfolio_id": ""})]
+    assert result.metadata is not None
+    assert result.metadata["skip_reason"] == "settlement_target_unavailable"
+    assert result.metadata["target_trade_date"] is None
+    assert "daily_run_ids" in result.metadata
 
 
-def test_date_chunks_split_natural_date_range() -> None:
-    assert _date_chunks("2026-06-01", "2026-06-05", 2) == [
-        ("2026-06-01", "2026-06-02"),
-        ("2026-06-03", "2026-06-04"),
-        ("2026-06-05", "2026-06-05"),
+def test_daily_nav_liquidation_calls_single_day_daily_runs_api() -> None:
+    fake = FakeDailyNavRearviewApi(
+        settlement_target={
+            "settlement_target_date": "2026-07-01",
+            "active_portfolio_count": 1,
+        },
+        daily_run_response={
+            "active_portfolio_count": 1,
+            "created_run_count": 1,
+            "skipped_run_count": 0,
+            "daily_run_ids": ["daily-1"],
+            "created_daily_run_ids": ["daily-1"],
+            "skipped_daily_run_ids": [],
+        },
+        statuses={
+            "daily-1": {
+                "strategy_portfolio_daily_run_id": "daily-1",
+                "trade_date": "2026-07-01",
+                "status": "succeeded",
+                "current_result_attempt_id": "attempt-1",
+            }
+        },
+        fact_counts={
+            "daily-1": {
+                "nav_row_count": 602,
+                "trade_row_count": 1268,
+                "closed_trade_row_count": 633,
+            }
+        },
+    )
+    context = dg.build_asset_context()
+
+    result = _run_daily_portfolio_nav_liquidation(
+        context=context,
+        config=DailyPortfolioNavLiquidationConfig(
+            wait_for_completion=True,
+            poll_interval_seconds=1,
+            timeout_seconds=1,
+        ),
+        rearview_api=cast(RearviewApiResource, fake),
+    )
+
+    assert fake.calls == [
+        ("settlement_target", {"strategy_portfolio_id": ""}),
+        (
+            "daily_runs",
+            {
+                "trade_date": "2026-07-01",
+                "client_request_id": (f"dagster-{context.op_execution_context.run_id}-2026-07-01"),
+            },
+        ),
+        ("status", {"daily_run_id": "daily-1"}),
+        ("fact_counts", {"daily_run_id": "daily-1"}),
     ]
+    assert result.metadata is not None
+    assert result.metadata["target_trade_date"] == "2026-07-01"
+    assert result.metadata["latest_daily_run_id"] == "daily-1"
+    assert result.metadata["latest_result_attempt_id"] == "attempt-1"
+    assert result.metadata["nav_row_count"] == 602
 
 
 def test_wait_for_daily_runs_returns_succeeded_statuses() -> None:
@@ -291,7 +445,7 @@ def test_wait_for_daily_runs_raises_on_failed_status() -> None:
             "daily-1": {
                 "strategy_portfolio_daily_run_id": "daily-1",
                 "trade_date": "2026-06-26",
-                "status": "failed_write",
+                "status": "failed",
                 "error_type": "clickhouse",
                 "error_message": "insert failed",
             }
@@ -299,6 +453,29 @@ def test_wait_for_daily_runs_raises_on_failed_status() -> None:
     )
 
     with pytest.raises(RuntimeError, match="strategy portfolio daily run failed"):
+        _wait_for_daily_runs(
+            rearview_api=cast(RearviewApiResource, fake),
+            daily_run_ids=["daily-1"],
+            poll_interval_seconds=1,
+            timeout_seconds=1,
+        )
+
+
+def test_wait_for_daily_runs_raises_on_timeout(monkeypatch: pytest.MonkeyPatch) -> None:
+    fake = FakeRearviewApi(
+        statuses={
+            "daily-1": {
+                "strategy_portfolio_daily_run_id": "daily-1",
+                "trade_date": "2026-06-26",
+                "status": "running",
+            }
+        }
+    )
+    monotonic_values = iter([0.0, 2.0])
+    monkeypatch.setattr(rearview_assets_module.time, "monotonic", lambda: next(monotonic_values))
+    monkeypatch.setattr(rearview_assets_module.time, "sleep", lambda _seconds: None)
+
+    with pytest.raises(TimeoutError, match="timed out before terminal status"):
         _wait_for_daily_runs(
             rearview_api=cast(RearviewApiResource, fake),
             daily_run_ids=["daily-1"],

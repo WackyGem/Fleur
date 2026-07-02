@@ -29,11 +29,15 @@ from scheduler.defs.automation.source_to_marts_backfill import (
     SourceToMartsTargetScope,
     build_source_to_marts_plan,
 )
+from scheduler.defs.rearview.assets import DAILY_PORTFOLIO_NAV_LIQUIDATION_ASSET_KEY
 
 DAILY_KIND = "fetch_history_sources_to_marts_schedule"
 DAILY_JOB_NAME = "daily__fetch_history_sources_to_marts_schedule_job"
 DAILY_CONTROLLER_OP_NAME = "daily__fetch_history_sources_to_marts_schedule_controller"
 FURNACE_MODE_APPEND_LATEST = "append-latest"
+STAGE_PORTFOLIO_LIVE_LIQUIDATION = "portfolio_live_liquidation"
+STEP_PORTFOLIO_LIVE_LIQUIDATION = "asset_materialization"
+PORTFOLIO_LIVE_LIQUIDATION_ASSET_KEY = DAILY_PORTFOLIO_NAV_LIQUIDATION_ASSET_KEY.to_user_string()
 TERMINAL_SUCCESS_STATUSES = {"SUCCESS"}
 TERMINAL_FAILURE_STATUSES = {"FAILURE", "CANCELED"}
 
@@ -205,20 +209,30 @@ def build_daily_fetch_history_sources_to_marts_plan(
         execution_mode=source_plan.execution_mode,
         parent_run_id=controller_run_id,
     )
+    steps = tuple(
+        _daily_step_from_source_to_marts_step(
+            step,
+            common_tags=common_tags,
+            dry_run=config.dry_run,
+        )
+        for step in source_plan.steps
+    )
+    if _should_append_portfolio_live_liquidation_step(
+        target_scope=config.target_scope,
+        execution_mode=source_plan.execution_mode,
+    ):
+        steps = (
+            *steps,
+            _portfolio_live_liquidation_step(common_tags=common_tags),
+        )
+
     return DailyPlan(
         daily_id=daily_id,
         target_scope=config.target_scope,
         execution_mode=source_plan.execution_mode,
         target_date=target_date.isoformat(),
         year_partitions=source_plan.year_partitions,
-        steps=tuple(
-            _daily_step_from_source_to_marts_step(
-                step,
-                common_tags=common_tags,
-                dry_run=config.dry_run,
-            )
-            for step in source_plan.steps
-        ),
+        steps=steps,
     )
 
 
@@ -325,7 +339,8 @@ def daily__fetch_history_sources_to_marts_schedule_controller(
     name=DAILY_JOB_NAME,
     description=(
         "Daily incremental source-to-marts controller that expands a target_date into "
-        "source/raw/dbt/Furnace/mart asset materialization steps."
+        "source/raw/dbt/Furnace/mart asset materialization steps, then runs portfolio "
+        "live NAV liquidation as the terminal step for the full daily scope."
     ),
 )
 def daily__fetch_history_sources_to_marts_schedule_job() -> None:
@@ -352,6 +367,34 @@ def _daily_step_from_source_to_marts_step(
             stage=stage,
             step_kind=step.step_kind,
         ),
+    )
+
+
+def _portfolio_live_liquidation_step(*, common_tags: Mapping[str, str]) -> DailyStep:
+    return DailyStep(
+        label="portfolio live nav liquidation",
+        step_kind=STEP_PORTFOLIO_LIVE_LIQUIDATION,
+        stage=STAGE_PORTFOLIO_LIVE_LIQUIDATION,
+        asset_keys=(PORTFOLIO_LIVE_LIQUIDATION_ASSET_KEY,),
+        partition=BackfillPartitionSelection(),
+        run_config={},
+        tags=_step_tags(
+            source_tags={},
+            common_tags=common_tags,
+            stage=STAGE_PORTFOLIO_LIVE_LIQUIDATION,
+            step_kind=STEP_PORTFOLIO_LIVE_LIQUIDATION,
+        ),
+    )
+
+
+def _should_append_portfolio_live_liquidation_step(
+    *,
+    target_scope: str,
+    execution_mode: str,
+) -> bool:
+    return (
+        target_scope == ALL_SOURCE_TO_MARTS_SCOPE
+        and execution_mode == SOURCE_RAW_EXECUTION_MODE_FULL
     )
 
 

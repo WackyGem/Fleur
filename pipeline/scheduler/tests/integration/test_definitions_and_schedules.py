@@ -23,11 +23,12 @@ from scheduler.defs.dbt_jobs import (
 )
 from scheduler.defs.definitions import SOURCE_BUNDLES
 from scheduler.defs.definitions import defs as scheduler_defs
-from scheduler.defs.rearview.assets import REARVIEW_ASSETS
+from scheduler.defs.rearview.assets import (
+    DAILY_PORTFOLIO_NAV_LIQUIDATION_ASSET_KEY,
+    REARVIEW_ASSETS,
+)
 from scheduler.defs.rearview.definitions import (
     EXAMPLE_PORTFOLIO_LIVE_JOB,
-    PORTFOLIO_DAILY_RUN_SCHEDULE,
-    STRATEGY_PORTFOLIO_DAILY_RUN_JOB,
 )
 
 from scheduler import definitions as top_level_definitions
@@ -78,7 +79,8 @@ def test_registered_definitions_match_source_bundles() -> None:
     assert "fleur_calculation/calc_stock_boll_daily" in registered_asset_keys
     assert "fleur_calculation/calc_stock_macd_daily" in registered_asset_keys
     assert "fleur_calculation/calc_stock_price_pattern_daily" in registered_asset_keys
-    assert "rearview/strategy_portfolio_daily_runs" in registered_asset_keys
+    assert DAILY_PORTFOLIO_NAV_LIQUIDATION_ASSET_KEY.to_user_string() in registered_asset_keys
+    assert "rearview/strategy_portfolio_daily_runs" not in registered_asset_keys
     assert "rearview/example_0051_portfolio_live_run" in registered_asset_keys
     assert registered_asset_keys >= expected_rearview_assets
     assert (
@@ -87,12 +89,12 @@ def test_registered_definitions_match_source_bundles() -> None:
     )
     registered_job_names = {job.name for job in loaded_defs.jobs or []}
     assert registered_job_names == {
-        STRATEGY_PORTFOLIO_DAILY_RUN_JOB.name,
         EXAMPLE_PORTFOLIO_LIVE_JOB.name,
         BACKFILL_JOB_NAME,
         SOURCE_TO_MARTS_BACKFILL_JOB_NAME,
         DAILY_JOB_NAME,
     }
+    assert "strategy_portfolio__daily_run_job" not in registered_job_names
     assert not registered_job_names & legacy_source_jobs
     assert not registered_job_names & legacy_clickhouse_jobs
     assert not registered_job_names & {job.name for job in TRANSFORMATION_JOBS}
@@ -103,10 +105,8 @@ def test_registered_definitions_match_source_bundles() -> None:
         job.name for job in loaded_defs.jobs or []
     }
     registered_schedule_names = {schedule.name for schedule in loaded_defs.schedules or []}
-    assert registered_schedule_names == {
-        DAILY_SCHEDULE_NAME,
-        PORTFOLIO_DAILY_RUN_SCHEDULE.name,
-    }
+    assert registered_schedule_names == {DAILY_SCHEDULE_NAME}
+    assert "portfolio__daily_run_schedule" not in registered_schedule_names
     assert EXAMPLE_PORTFOLIO_LIVE_JOB.name not in registered_schedule_names
     assert not registered_schedule_names & legacy_source_schedules
     assert not registered_schedule_names & {schedule.name for schedule in TRANSFORMATION_SCHEDULES}

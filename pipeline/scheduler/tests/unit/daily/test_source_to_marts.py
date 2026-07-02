@@ -38,6 +38,9 @@ from scheduler.defs.daily.definitions import (
 from scheduler.defs.daily.source_to_marts import (
     DAILY_CONTROLLER_OP_NAME,
     DAILY_JOB_NAME,
+    PORTFOLIO_LIVE_LIQUIDATION_ASSET_KEY,
+    STAGE_PORTFOLIO_LIVE_LIQUIDATION,
+    STEP_PORTFOLIO_LIVE_LIQUIDATION,
     DailyFetchHistorySourcesToMartsConfig,
     DailyFetchHistorySourcesToMartsRequest,
     DailyPlan,
@@ -89,6 +92,7 @@ def test_daily_plan_maps_target_date_to_single_day_and_uses_append_latest() -> N
         STAGE_FURNACE_CALCULATION,
         STAGE_DBT_CALCULATION_WRAPPERS,
         STAGE_DBT_MARTS,
+        STAGE_PORTFOLIO_LIVE_LIQUIDATION,
     }
     assert furnace_modes_for_daily_steps(plan.steps) == {"append-latest"}
 
@@ -120,6 +124,7 @@ def test_daily_dry_run_keeps_furnace_dry_run_mode_and_does_not_submit() -> None:
     )
 
     assert furnace_modes_for_daily_steps(plan.steps) == {"dry-run"}
+    assert plan.steps[-1].stage == STAGE_PORTFOLIO_LIVE_LIQUIDATION
     assert submitter.submitted_steps == []
     assert tag_writer.tags["daily.kind"] == "fetch_history_sources_to_marts_schedule"
     assert tag_writer.tags["daily.target_date"] == "2026-06-30"
@@ -162,7 +167,32 @@ def test_daily_plan_reuses_source_to_marts_registry_and_excludes_independent_dom
     assert not {
         asset_key for asset_key in planned_assets if asset_key.startswith("mart_portfolio_")
     }
+    assert PORTFOLIO_LIVE_LIQUIDATION_ASSET_KEY in planned_assets
     assert "rearview/strategy_portfolio_daily_runs" not in planned_assets
+
+    terminal_step = plan.steps[-1]
+    assert terminal_step.label == "portfolio live nav liquidation"
+    assert terminal_step.stage == STAGE_PORTFOLIO_LIVE_LIQUIDATION
+    assert terminal_step.step_kind == STEP_PORTFOLIO_LIVE_LIQUIDATION
+    assert terminal_step.asset_keys == (PORTFOLIO_LIVE_LIQUIDATION_ASSET_KEY,)
+    assert terminal_step.partition.label() == "unpartitioned"
+    assert terminal_step.run_config == {}
+
+
+def test_daily_partial_scope_does_not_append_portfolio_live_terminal_step() -> None:
+    plan = build_daily_fetch_history_sources_to_marts_plan(
+        daily_request(
+            target_scope=BAOSTOCK_DAILY_KLINE_SCOPE,
+            target_date="2026-06-30",
+        ),
+        today=date(2026, 6, 30),
+        controller_run_id="daily-controller-run-003-partial",
+    )
+
+    assert STAGE_PORTFOLIO_LIVE_LIQUIDATION not in {step.stage for step in plan.steps}
+    assert PORTFOLIO_LIVE_LIQUIDATION_ASSET_KEY not in {
+        asset_key for step in plan.steps for asset_key in step.asset_keys
+    }
 
 
 def test_daily_snapshot_scope_requires_target_date_but_source_plan_ignores_date_window() -> None:
@@ -236,6 +266,42 @@ def test_daily_execution_stops_before_downstream_after_source_raw_failure() -> N
         "baostock compacted source 2026",
         "baostock raw 2026",
     ]
+
+
+def test_daily_execution_stops_before_portfolio_live_after_upstream_failure() -> None:
+    plan = build_daily_fetch_history_sources_to_marts_plan(
+        daily_request(
+            target_date="2026-06-30",
+            dry_run=False,
+        ),
+        today=date(2026, 6, 30),
+        controller_run_id="daily-controller-run-006-all",
+    )
+    terminal_label = plan.steps[-1].label
+    assert terminal_label == "portfolio live nav liquidation"
+    submitter = FakeSubmitter(fail_on_label=plan.steps[0].label)
+
+    with pytest.raises(RuntimeError, match="Daily source-to-marts step failed"):
+        execute_daily_fetch_history_sources_to_marts_plan(plan, submitter=submitter, log=FakeLog())
+
+    assert terminal_label not in [step.label for step in submitter.submitted_steps]
+
+
+def test_daily_terminal_step_failure_fails_parent_execution() -> None:
+    plan = build_daily_fetch_history_sources_to_marts_plan(
+        daily_request(
+            target_date="2026-06-30",
+            dry_run=False,
+        ),
+        today=date(2026, 6, 30),
+        controller_run_id="daily-controller-run-006-terminal",
+    )
+    submitter = FakeSubmitter(fail_on_label="portfolio live nav liquidation")
+
+    with pytest.raises(RuntimeError, match="Daily source-to-marts step failed"):
+        execute_daily_fetch_history_sources_to_marts_plan(plan, submitter=submitter, log=FakeLog())
+
+    assert submitter.submitted_steps[-1].label == "portfolio live nav liquidation"
 
 
 def test_daily_schedule_is_stopped_and_emits_target_date_config() -> None:

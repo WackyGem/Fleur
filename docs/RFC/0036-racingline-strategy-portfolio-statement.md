@@ -478,14 +478,16 @@ Step 4 继续使用默认执行配置：
 
 现有 strategy portfolio daily run 能支撑“最新 attempt 包含完整 live 历史”的对账单读取模型，但要稳定产生 2025 年初 first-signal T+1 建仓、超过一年期的验收数据，还需要补齐以下能力。
 
+2026-07-02 更新：本节是对账单设计阶段的历史基线。后续 Plan 0062 已补齐清算终态和 fact-count 核验，Plan 0073 已将 production Dagster 入口收敛为 `rearview/daily__portfolio_nav_liquidation`，并把它作为 `daily__fetch_history_sources_to_marts_schedule_job` 的 terminal step；旧 `strategy_portfolio__daily_run_job` 和 `portfolio__daily_run_schedule` 不再 registered。
+
 ### 已有能力
 
 1. Rearview 已有 `POST /rearview/strategy-portfolios/daily-runs`，请求体只有 `trade_date` 和可选 `client_request_id`，每次为一个交易日创建 daily run。
 2. `create_strategy_portfolio_daily_runs_for_trade_date()` 会读取 active portfolios，按 `portfolio.live_start_date <= trade_date` 筛选，并用唯一约束跳过已存在的 `(strategy_portfolio_id, trade_date)`。
 3. daily run 的 `run_start_date` 当前写入 `portfolio.initial_signal_date`，不是 `live_start_date`。这使 worker 可以看到建仓日前一交易日的 seed signal，并在 `live_start_date` 执行 T+1 买入。
 4. worker 在 daily run 中会从 `run.run_start_date` 到 `run.trade_date` 重新编译信号、加载价格、模拟组合、计算绩效和 closed trades，再用 `normalize_live_output()` 裁剪到 `portfolio.live_start_date` 并重设 live nav 基准。
-5. Dagster 已有 `strategy_portfolio__daily_run_job` 和 `portfolio__daily_run_schedule`，每天 20:00 触发 `strategy_portfolio_daily_runs` asset。
-6. 当前 Dagster asset 只调用 Rearview 创建 daily runs，并把 `created_run_count`、`skipped_run_count` 和 `daily_run_ids` 写入 materialization metadata；worker 完成状态仍在 Rearview/PostgreSQL control plane 中异步推进。
+5. 实施前 Dagster 有 `strategy_portfolio__daily_run_job` 和 `portfolio__daily_run_schedule`，每天 20:00 触发 `strategy_portfolio_daily_runs` asset；当前已由 `daily__fetch_history_sources_to_marts_schedule_job` 的 `rearview/daily__portfolio_nav_liquidation` terminal step 替代。
+6. 当前 `daily__portfolio_nav_liquidation` 会等待 Rearview worker 终态并查询 fact-counts，把 target、daily run ids、status、attempt 和 live facts row counts 写入 materialization metadata。
 
 ### 实现缺口
 
@@ -496,7 +498,7 @@ Step 4 继续使用默认执行配置：
 5. 发布路径当前通过 source backtest 的 `end_date` 推导 `initial_signal_date`。验收最终采用从 `2025-01-02` 起查找首个真实买入信号日并取 T+1 的方式；如果现有 backtest options 不能直接生成该 source run，就需要受控测试种子或测试专用后门；不能手工改生产记录字段来伪造日期。
 6. worker 对每个 daily run 都做全窗口重算。长周期 backfill 在功能验收上可接受，但生产回补需要控制并发、队列压力、ClickHouse 查询成本和失败重试观测。
 7. 对账单 read model 需要明确读取“最新成功 daily run 的当前 attempt”，而不是跨多个 daily run 拼接历史。现有 `resolve_strategy_portfolio_result()` 已经返回 latest daily run 和 `current_live_result_attempt_id`，可以复用。
-8. Dagster 清算作业当前的成功语义不等于清算完成。`strategy_portfolio_daily_runs` asset 在 Rearview 返回 `202 Accepted` 后即 materialize；如果 worker 后续失败、NATS/outbox 未消费、ClickHouse 写入失败或 `strategy_portfolio_daily_run.status` 停留在 queued/running，Dagster 仍可能显示本次 asset 成功。该行为会让本验收用例出现调度成功但对账单无数据的假阳性。
+8. 实施前 Dagster 清算作业的成功语义不等于清算完成。`strategy_portfolio_daily_runs` asset 在 Rearview 返回 `202 Accepted` 后即 materialize；如果 worker 后续失败、NATS/outbox 未消费、ClickHouse 写入失败或 `strategy_portfolio_daily_run.status` 停留在 queued/running，Dagster 仍可能显示本次 asset 成功。该行为会让本验收用例出现调度成功但对账单无数据的假阳性；Plan 0062/0073 已通过 worker 终态轮询和 fact-count metadata 收敛该问题。
 9. 当前 Rearview HTTP route 没有暴露按 `strategy_portfolio_daily_run_id` 查询 daily run 状态的接口；Dagster 若要等待终态，需要新增状态查询 API，或增加一个受控的 scheduler 侧 Postgres 查询资源。
 
 ### 改造范围
@@ -538,7 +540,7 @@ Dagster metadata 建议至少包含：
 | `latest_result_attempt_id` | 最新成功 attempt |
 | `nav_row_count` / `trade_row_count` / `closed_trade_row_count` | ClickHouse 写入核验结果 |
 
-本验收用例的完成标准应包括 Dagster 证据：`strategy_portfolio__daily_run_job` 或其 range/backfill 变体成功完成，metadata 显示目标日期范围内 daily runs 已进入 `succeeded`，且最新 attempt 的 ClickHouse facts 覆盖 `2025-01-02` 到最终清算日。
+本验收用例的完成标准应包括 Dagster 证据：`rearview/daily__portfolio_nav_liquidation` 或受控 example/manual repair 入口成功完成，metadata 显示目标 daily run 已进入 `succeeded`，且最新 attempt 的 ClickHouse facts 覆盖建仓日到最终清算日。
 
 ### 改造后的验收 SQL 方向
 

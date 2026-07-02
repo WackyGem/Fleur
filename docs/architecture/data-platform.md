@@ -1,6 +1,6 @@
 # Architecture: Data Platform
 
-状态：当前事实入口（2026-06-29）
+状态：当前事实入口（2026-07-02）
 
 ## 代码根
 
@@ -16,7 +16,7 @@
 2. 通过 dbt 维护 canonical 字段、staging 清洗、intermediate wrapper 和 mart 消费层。
 3. 将 pipeline 运行事实、回填记录和数据核验沉淀到 jobs 文档。
 4. 保持 Dagster、dbt、contracts 和 ClickHouse 层之间的边界清晰。
-5. 通过 Dagster 编排 Rearview strategy portfolio daily run 清算；该资产调用 Rearview range/status/fact-count APIs，等待 worker 终态并把 ClickHouse `live_nav_daily`、`live_trade`、`live_closed_trade` 行数写入 materialization metadata。
+5. 通过 Dagster daily controller 编排 Rearview strategy portfolio live NAV 清算；`daily__fetch_history_sources_to_marts_schedule_job` 在 source/raw/dbt/Furnace/marts 成功后提交 `rearview/daily__portfolio_nav_liquidation` terminal step，该 asset 调用 Rearview settlement-target、single-day daily-runs、status 和 fact-count APIs，等待 worker 终态并把 ClickHouse `live_nav_daily`、`live_trade`、`live_closed_trade` 行数写入 materialization metadata。
 
 ## 非职责
 
@@ -34,7 +34,7 @@
 | ClickHouse | raw、staging、intermediate、calculation、marts 分层存储 |
 | External APIs | BaoStock、EastMoney、Sina、THS、JiuYan 等数据源 |
 | Furnace CLI | 技术指标计算资产通过 Python resource 调用 Rust CLI |
-| Rearview HTTP API | Strategy portfolio daily run 创建、range 回补、状态查询、settlement target 和 fact-count 核验 |
+| Rearview HTTP API | Strategy portfolio settlement target 解析、single-day daily run 创建、range 回补/example 清算、状态查询和 fact-count 核验 |
 
 ## 运行入口
 
@@ -74,6 +74,9 @@ uv run dg check defs
 | [../ADR/0009-clickhouse-layered-databases.md](../ADR/0009-clickhouse-layered-databases.md) | ClickHouse 分层 database 决策 |
 | [../plans/archive/0062-racingline-strategy-portfolio-statement-plan.md](../plans/archive/0062-racingline-strategy-portfolio-statement-plan.md) | Strategy portfolio 对账单、Dagster 清算终态核验和 2025 T+1 建仓验收完成计划 |
 | [../jobs/reports/2026-06-29-racingline-strategy-portfolio-statement.md](../jobs/reports/2026-06-29-racingline-strategy-portfolio-statement.md) | Dagster materialization metadata、ClickHouse live facts 和对账单 UI 验收报告 |
+| [../RFC/0045-strategy-portfolio-daily-nav-liquidation.md](../RFC/0045-strategy-portfolio-daily-nav-liquidation.md) | Strategy Portfolio 日度 NAV 清算入口收敛设计 |
+| [../plans/archive/0073-strategy-portfolio-daily-nav-liquidation-plan.md](../plans/archive/0073-strategy-portfolio-daily-nav-liquidation-plan.md) | Strategy Portfolio 日度 NAV 清算入口收敛实施计划 |
+| [../jobs/reports/2026-07-02-strategy-portfolio-daily-nav-liquidation.md](../jobs/reports/2026-07-02-strategy-portfolio-daily-nav-liquidation.md) | `daily__portfolio_nav_liquidation` dry-run、direct smoke 和质量门禁报告 |
 
 ## 待决问题
 

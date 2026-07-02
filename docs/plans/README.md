@@ -6,11 +6,13 @@
 
 | Plan | 状态 | 说明 |
 |---|---|---|
+| _none_ |  |  |
 
 ## Recently Completed
 
 | Plan | 状态 | 说明 |
 |---|---|---|
+| [0073](archive/0073-strategy-portfolio-daily-nav-liquidation-plan.md) | Completed | 基于 RFC 0045 将 `strategy_portfolio_daily_runs` 收敛为无分区 `daily__portfolio_nav_liquidation`，并作为 `daily__fetch_history_sources_to_marts_schedule_job` 的 portfolio live terminal step；验收见 [2026-07-02 report](../jobs/reports/2026-07-02-strategy-portfolio-daily-nav-liquidation.md) |
 | [0072](archive/0072-racingline-0051-low-reversal-example-live-job-plan.md) | Completed | Racingline 0051 低位反转固化为 data config + Rearview 共享 canonical snapshot/persistence service + `example__portfolio_live_job` 手动清算回归用例；验收见 [2026-07-02 report](../jobs/reports/2026-07-02-racingline-0051-low-reversal-example-live-job.md) |
 | [0071](archive/0071-racingline-strategy-detail-delete-action-plan.md) | Completed | Racingline 策略详情页删除按钮接入 Rearview archive API，补齐 archived detail `410 Gone`、Dashboard 跳转和手动 archived daily run 拒绝；验收见 [2026-07-02 report](../jobs/reports/2026-07-02-racingline-strategy-detail-delete-action.md) |
 | [0070](archive/0070-racingline-strategy-publish-market-phase-entry-rule-plan.md) | Completed | Racingline Step 5 建立组合发布预检改为交易阶段感知：15:00 前允许上一交易日信号，15:00 后要求当天信号，数据多日落后继续阻断；验收见 [2026-07-02 report](../jobs/reports/2026-07-02-racingline-strategy-publish-market-phase-entry-rule.md) |
