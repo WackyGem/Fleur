@@ -564,6 +564,10 @@ async fn seed_statement_portfolio() -> RearviewResult<()> {
                         }),
                         client_request_id: Some(PORTFOLIO_CLIENT_REQUEST_ID.to_string()),
                         request_hash: portfolio_request_hash.clone(),
+                        source_kind: "backtest_publish".to_string(),
+                        example_case_id: None,
+                        example_version: None,
+                        fixture_hash: None,
                     })
                     .await
                 {

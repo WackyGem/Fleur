@@ -8,6 +8,7 @@ pub mod clickhouse;
 pub mod config;
 pub mod domain;
 pub mod error;
+pub mod examples;
 pub mod nats;
 pub mod planner;
 pub mod portfolio;

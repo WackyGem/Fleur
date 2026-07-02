@@ -8,7 +8,12 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { ApiError } from "@/api/client"
 import { queryKeys } from "@/api/queryKeys"
 import { StrategyDetailPage } from "@/routes/strategy-detail-page"
-import type { StrategyPortfolioRecord } from "@/types/rearview"
+import type {
+  StrategyPortfolioNavResponse,
+  StrategyPortfolioPerformanceView,
+  StrategyPortfolioRecord,
+  StrategyPortfolioVirtualAccount,
+} from "@/types/rearview"
 
 const mocks = vi.hoisted(() => ({
   navigate: vi.fn(),
@@ -19,6 +24,24 @@ const mocks = vi.hoisted(() => ({
   },
   portfolioQuery: {
     data: null as StrategyPortfolioRecord | null,
+    error: null as unknown,
+    isError: false,
+    isLoading: false,
+  },
+  navQuery: {
+    data: null as StrategyPortfolioNavResponse | null,
+    error: null as unknown,
+    isError: false,
+    isLoading: false,
+  },
+  performanceQuery: {
+    data: null as StrategyPortfolioPerformanceView | null,
+    error: null as unknown,
+    isError: false,
+    isLoading: false,
+  },
+  virtualAccountQuery: {
+    data: null as StrategyPortfolioVirtualAccount | null,
     error: null as unknown,
     isError: false,
     isLoading: false,
@@ -46,8 +69,8 @@ vi.mock("react-router-dom", () => ({
 
 vi.mock("@/api/hooks", () => ({
   useStrategyPortfolioArchiveMutation: () => mocks.archiveMutation,
-  useStrategyPortfolioNavQuery: () => mocks.emptyQuery,
-  useStrategyPortfolioPerformanceQuery: () => mocks.emptyQuery,
+  useStrategyPortfolioNavQuery: () => mocks.navQuery,
+  useStrategyPortfolioPerformanceQuery: () => mocks.performanceQuery,
   useStrategyPortfolioPositionsQuery: () => mocks.emptyQuery,
   useStrategyPortfolioQuery: () => mocks.portfolioQuery,
   useStrategyPortfolioRebalanceRecordsQuery: () => mocks.emptyQuery,
@@ -60,7 +83,7 @@ vi.mock("@/api/hooks", () => ({
     data: { trade_dates: [] },
   }),
   useStrategyPortfolioStatementQuery: () => mocks.emptyQuery,
-  useStrategyPortfolioVirtualAccountQuery: () => mocks.emptyQuery,
+  useStrategyPortfolioVirtualAccountQuery: () => mocks.virtualAccountQuery,
 }))
 
 vi.mock("lightweight-charts", () => ({
@@ -68,6 +91,7 @@ vi.mock("lightweight-charts", () => ({
     addSeries: () => ({ setData: vi.fn() }),
     applyOptions: vi.fn(),
     remove: vi.fn(),
+    setCrosshairPosition: vi.fn(),
     subscribeClick: vi.fn(),
     timeScale: () => ({ fitContent: vi.fn() }),
     unsubscribeClick: vi.fn(),
@@ -112,6 +136,10 @@ describe("StrategyDetailPage delete action", () => {
     mocks.portfolioQuery.error = null
     mocks.portfolioQuery.isError = false
     mocks.portfolioQuery.isLoading = false
+    resetQuery(mocks.navQuery)
+    resetQuery(mocks.performanceQuery)
+    resetQuery(mocks.virtualAccountQuery)
+    resetQuery(mocks.emptyQuery)
   })
 
   afterEach(() => {
@@ -190,6 +218,70 @@ describe("StrategyDetailPage delete action", () => {
     expect(document.body.textContent).toContain("策略不存在或链接无效。")
   })
 
+  it("renders account inception pnl separately from daily pnl", async () => {
+    mocks.portfolioQuery.data = livePortfolioRecord()
+    mocks.navQuery.data = liveNavResponse()
+    mocks.virtualAccountQuery.data = {
+      account_date: "2026-06-28",
+      cash_balance: 210_000,
+      currency: "CNY",
+      daily_pnl: -1_200,
+      daily_return: -0.0012,
+      holding_unrealized_pnl: 5_000,
+      position_count: 5,
+      position_market_value: 824_500,
+      result_attempt_id: "live-attempt-1",
+      source: "live_daily_run",
+      strategy_portfolio_daily_run_id: "daily-run-1",
+      strategy_portfolio_id: "portfolio-1",
+      total_equity: 1_034_500,
+    }
+
+    await renderPage()
+
+    expect(metricValueElement("总盈亏").textContent).toBe("+34500.00")
+    expect(metricValueElement("当日盈亏").textContent).toBe("-1200.00")
+  })
+
+  it("renders volatility and alpha metrics with neutral text color", async () => {
+    mocks.portfolioQuery.data = livePortfolioRecord()
+    mocks.navQuery.data = liveNavResponse()
+    mocks.performanceQuery.data = {
+      daily_win_rate: {
+        observation_count: 2,
+        value: 0.5,
+        winning_day_count: 1,
+      },
+      metric: {
+        alpha: -0.03,
+        annualized_return: 0.08,
+        annualized_volatility: 0.22,
+        beta: 1.05,
+        calmar_ratio: 0.9,
+        downside_deviation: 0.12,
+        holding_period_return: 0.04,
+        information_ratio: 0.2,
+        max_drawdown: -0.08,
+        sharpe_ratio: 0.7,
+        sortino_ratio: 1.1,
+        treynor_ratio: 0.5,
+      },
+      source: "live_daily_run",
+      statuses: [],
+    }
+
+    await renderPage()
+
+    expect(metricValueElement("年化波动率").className).toContain(
+      "text-foreground"
+    )
+    expect(metricValueElement("下行波动率").className).toContain(
+      "text-foreground"
+    )
+    expect(metricValueElement("Alpha").className).toContain("text-foreground")
+    expect(metricValueElement("日胜率").textContent).toBe("50.00%")
+  })
+
   async function renderPage() {
     await act(async () => {
       root.render(
@@ -198,6 +290,19 @@ describe("StrategyDetailPage delete action", () => {
         </QueryClientProvider>
       )
     })
+  }
+
+  function metricValueElement(label: string) {
+    const labelElement = Array.from(document.body.querySelectorAll("div")).find(
+      (candidate) => candidate.textContent?.trim() === label
+    )
+    const valueElement = labelElement?.nextElementSibling
+
+    if (!(valueElement instanceof HTMLElement)) {
+      throw new Error(`metric value not found: ${label}`)
+    }
+
+    return valueElement
   }
 
   async function clickButton(label: string) {
@@ -214,6 +319,55 @@ describe("StrategyDetailPage delete action", () => {
     })
   }
 })
+
+function resetQuery<T>(query: {
+  data: T | null
+  error: unknown
+  isError: boolean
+  isLoading: boolean
+}) {
+  query.data = null
+  query.error = null
+  query.isError = false
+  query.isLoading = false
+}
+
+function livePortfolioRecord(): StrategyPortfolioRecord {
+  const record = portfolioRecord()
+
+  return {
+    ...record,
+    current_live_result_attempt_id: "live-attempt-1",
+    latest_daily_run_id: "daily-run-1",
+    live_segment: {
+      ...record.live_segment,
+      current_live_result_attempt_id: "live-attempt-1",
+      latest_daily_run_id: "daily-run-1",
+      live_status: "succeeded",
+      performance_source: "live_daily_run",
+      signal_source: "live_daily_run",
+    },
+    live_status: "succeeded",
+  }
+}
+
+function liveNavResponse(): StrategyPortfolioNavResponse {
+  return {
+    points: [
+      {
+        benchmark_nav: 1,
+        strategy_nav: 1,
+        trade_date: "2026-06-27",
+      },
+      {
+        benchmark_nav: 1.01,
+        strategy_nav: 1.02,
+        trade_date: "2026-06-28",
+      },
+    ],
+    source: "live_daily_run",
+  }
+}
 
 function portfolioRecord(): StrategyPortfolioRecord {
   return {

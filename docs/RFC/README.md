@@ -21,5 +21,6 @@
 归档 RFC 只用于追溯方案背景。引用归档 RFC 时，应同时以对应 `docs/architecture/`、`docs/ADR/`、运行报告或当前代码作为当前事实依据。
 
 - [0043-racingline-strategy-detail-delete-action.md](archive/0043-racingline-strategy-detail-delete-action.md) | Implemented | Racingline 策略详情页删除按钮接入 Rearview archive API；实现见 Plan 0071，验收见 2026-07-02 运行报告
+- [0044-racingline-0051-low-reversal-regression-case.md](archive/0044-racingline-0051-low-reversal-regression-case.md) | Implemented | Racingline 0051 低位反转 example portfolio data config、Rearview example ensure API 与 `example__portfolio_live_job`；实现见 Plan 0072，验收见 2026-07-02 运行报告
 - [0037-baostock-daily-kline-unified-range-request.md](archive/0037-baostock-daily-kline-unified-range-request.md) | Completed | BaoStock 日 K 取消 daily/range_backfill mode 分支，统一由 Dagster partition selection 推导区间请求
 - [0039-source-raw-backfill-complexity-baseline.md](archive/0039-source-raw-backfill-complexity-baseline.md) | Implemented | Source/Raw 回填复杂度现状基线与统一手动回填 controller job；实现见 Plan 0065，验收见 2026-06-30 运行报告

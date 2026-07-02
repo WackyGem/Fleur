@@ -35,7 +35,7 @@ impl RearviewPg {
             sqlx::query_scalar("select version_num from alembic_version limit 1")
                 .fetch_optional(&self.pool)
                 .await?;
-        if version.as_deref() != Some("0009_strategy_portfolio_ctx") {
+        if version.as_deref() != Some("0010_strategy_portfolio_example") {
             return Err(RearviewError::Config(format!(
                 "rearview schema version is not compatible: {:?}",
                 version
@@ -1376,12 +1376,17 @@ impl RearviewPg {
                 pending_buy_signal_snapshot,
                 ui_display_snapshot,
                 client_request_id,
-                request_hash
+                request_hash,
+                source_kind,
+                example_case_id,
+                example_version,
+                fixture_hash
             )
             values (
                 $1, $2, $3, 'active', $4::jsonb, $5, $6::jsonb, $7, $8,
                 'backward_adjusted', $9, $10::jsonb, $11::jsonb, $12, $13,
-                $14, $15, $16, $17, $18, $19::jsonb, $20::jsonb, $21, $22
+                $14, $15, $16, $17, $18, $19::jsonb, $20::jsonb, $21, $22,
+                $23, $24, $25, $26
             )
             "#,
         )
@@ -1407,6 +1412,10 @@ impl RearviewPg {
         .bind(&input.ui_display_snapshot)
         .bind(&input.client_request_id)
         .bind(&input.request_hash)
+        .bind(&input.source_kind)
+        .bind(&input.example_case_id)
+        .bind(&input.example_version)
+        .bind(&input.fixture_hash)
         .execute(&self.pool)
         .await?;
 
@@ -1426,7 +1435,8 @@ impl RearviewPg {
                    source_period_key, source_start_date, source_end_date, initial_signal_date,
                    live_start_date, pending_buy_signal_snapshot, latest_daily_run_id,
                    current_result_attempt_id, current_live_result_attempt_id, ui_display_snapshot,
-                   client_request_id, request_hash, created_at, updated_at, archived_at
+                   client_request_id, request_hash, source_kind, example_case_id,
+                   example_version, fixture_hash, created_at, updated_at, archived_at
             from strategy_portfolio
             where strategy_portfolio_id = $1
             "#,
@@ -1455,7 +1465,8 @@ impl RearviewPg {
                    source_period_key, source_start_date, source_end_date, initial_signal_date,
                    live_start_date, pending_buy_signal_snapshot, latest_daily_run_id,
                    current_result_attempt_id, current_live_result_attempt_id, ui_display_snapshot,
-                   client_request_id, request_hash, created_at, updated_at, archived_at
+                   client_request_id, request_hash, source_kind, example_case_id,
+                   example_version, fixture_hash, created_at, updated_at, archived_at
             from strategy_portfolio
             where client_request_id = $1
             order by created_at
@@ -1463,6 +1474,37 @@ impl RearviewPg {
             "#,
         )
         .bind(client_request_id)
+        .fetch_optional(&self.pool)
+        .await?;
+        Ok(row.map(|row| strategy_portfolio_from_row(&row)))
+    }
+
+    pub async fn get_strategy_portfolio_by_example_case(
+        &self,
+        case_id: &str,
+        version: &str,
+    ) -> RearviewResult<Option<StrategyPortfolioRecord>> {
+        let row = sqlx::query(
+            r#"
+            select strategy_portfolio_id, portfolio_code, name, status, rule_snapshot,
+                   rule_hash, execution_config, execution_config_hash,
+                   benchmark_security_code, price_basis, catalog_hash, required_metrics,
+                   required_marts, source_strategy_backtest_run_id, source_result_attempt_id,
+                   source_period_key, source_start_date, source_end_date, initial_signal_date,
+                   live_start_date, pending_buy_signal_snapshot, latest_daily_run_id,
+                   current_result_attempt_id, current_live_result_attempt_id, ui_display_snapshot,
+                   client_request_id, request_hash, source_kind, example_case_id,
+                   example_version, fixture_hash, created_at, updated_at, archived_at
+            from strategy_portfolio
+            where source_kind = 'example'
+              and example_case_id = $1
+              and example_version = $2
+            order by created_at
+            limit 1
+            "#,
+        )
+        .bind(case_id)
+        .bind(version)
         .fetch_optional(&self.pool)
         .await?;
         Ok(row.map(|row| strategy_portfolio_from_row(&row)))
@@ -1480,7 +1522,8 @@ impl RearviewPg {
                    source_period_key, source_start_date, source_end_date, initial_signal_date,
                    live_start_date, pending_buy_signal_snapshot, latest_daily_run_id,
                    current_result_attempt_id, current_live_result_attempt_id, ui_display_snapshot,
-                   client_request_id, request_hash, created_at, updated_at, archived_at
+                   client_request_id, request_hash, source_kind, example_case_id,
+                   example_version, fixture_hash, created_at, updated_at, archived_at
             from strategy_portfolio
             where status = 'active'
             order by created_at desc, strategy_portfolio_id
@@ -1512,7 +1555,8 @@ impl RearviewPg {
                       source_period_key, source_start_date, source_end_date, initial_signal_date,
                       live_start_date, pending_buy_signal_snapshot, latest_daily_run_id,
                       current_result_attempt_id, current_live_result_attempt_id, ui_display_snapshot,
-                      client_request_id, request_hash, created_at, updated_at, archived_at
+                      client_request_id, request_hash, source_kind, example_case_id,
+                      example_version, fixture_hash, created_at, updated_at, archived_at
             "#,
         )
         .bind(strategy_portfolio_id)
@@ -3280,6 +3324,10 @@ pub struct NewStrategyPortfolio {
     pub ui_display_snapshot: Value,
     pub client_request_id: Option<String>,
     pub request_hash: String,
+    pub source_kind: String,
+    pub example_case_id: Option<String>,
+    pub example_version: Option<String>,
+    pub fixture_hash: Option<String>,
 }
 
 #[derive(Debug, Clone)]
@@ -3429,6 +3477,10 @@ pub struct StrategyPortfolioRecord {
     pub ui_display_snapshot: Value,
     pub client_request_id: Option<String>,
     pub request_hash: String,
+    pub source_kind: String,
+    pub example_case_id: Option<String>,
+    pub example_version: Option<String>,
+    pub fixture_hash: Option<String>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
     pub archived_at: Option<DateTime<Utc>>,
@@ -3968,6 +4020,10 @@ fn strategy_portfolio_from_row(row: &sqlx::postgres::PgRow) -> StrategyPortfolio
         ui_display_snapshot: row.get("ui_display_snapshot"),
         client_request_id: row.get("client_request_id"),
         request_hash: row.get("request_hash"),
+        source_kind: row.get("source_kind"),
+        example_case_id: row.get("example_case_id"),
+        example_version: row.get("example_version"),
+        fixture_hash: row.get("fixture_hash"),
         created_at: row.get("created_at"),
         updated_at: row.get("updated_at"),
         archived_at: row.get("archived_at"),

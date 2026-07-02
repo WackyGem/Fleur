@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import os
 import urllib.error
+import urllib.parse
 import urllib.request
 from typing import Any
 
@@ -14,6 +15,12 @@ class RearviewApiResource(dg.ConfigurableResource):
 
     base_url: str = ""
     timeout_seconds: int = 30
+
+    def ensure_racingline_0051_low_reversal_portfolio(self) -> dict[str, Any]:
+        return self._post_json(
+            "/rearview/examples/strategy-portfolios/racingline-0051-low-reversal/ensure",
+            {},
+        )
 
     def create_strategy_portfolio_daily_runs(
         self,
@@ -59,8 +66,16 @@ class RearviewApiResource(dg.ConfigurableResource):
             f"/rearview/strategy-portfolios/daily-runs/{daily_run_id}/fact-counts"
         )
 
-    def get_strategy_portfolio_settlement_target(self) -> dict[str, Any]:
-        return self._get_json("/rearview/strategy-portfolios/daily-runs/settlement-target")
+    def get_strategy_portfolio_settlement_target(
+        self,
+        *,
+        strategy_portfolio_id: str = "",
+    ) -> dict[str, Any]:
+        path = "/rearview/strategy-portfolios/daily-runs/settlement-target"
+        if strategy_portfolio_id.strip():
+            query = urllib.parse.urlencode({"strategy_portfolio_id": strategy_portfolio_id.strip()})
+            path = f"{path}?{query}"
+        return self._get_json(path)
 
     def _post_json(self, path: str, payload: dict[str, Any]) -> dict[str, Any]:
         url = f"{self._resolved_base_url()}{path}"

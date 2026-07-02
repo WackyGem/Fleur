@@ -140,18 +140,20 @@ function StrategyDetailPage() {
   const rebalanceDateScrollerRef = useRef<HTMLDivElement | null>(null)
   const strategyPortfolioId = portfolioId ?? null
   const portfolioQuery = useStrategyPortfolioQuery(strategyPortfolioId)
+  const portfolioRecord = portfolioQuery.data
   const archiveMutation = useStrategyPortfolioArchiveMutation()
   const archivedPortfolioError = isArchivedPortfolioError(portfolioQuery.error)
   const isKnownPendingFirstRun =
-    portfolioQuery.data?.live_status === "pending_first_run"
+    portfolioRecord?.live_status === "pending_first_run"
   const liveResultPortfolioId =
-    !portfolioQuery.data || isKnownPendingFirstRun ? null : strategyPortfolioId
+    !portfolioRecord || isKnownPendingFirstRun ? null : strategyPortfolioId
   const navQuery = useStrategyPortfolioNavQuery(liveResultPortfolioId)
   const performanceQuery = useStrategyPortfolioPerformanceQuery(
     liveResultPortfolioId
   )
-  const virtualAccountQuery =
-    useStrategyPortfolioVirtualAccountQuery(liveResultPortfolioId)
+  const virtualAccountQuery = useStrategyPortfolioVirtualAccountQuery(
+    liveResultPortfolioId
+  )
   const statementQuery = useStrategyPortfolioStatementQuery(
     liveResultPortfolioId,
     {
@@ -188,9 +190,9 @@ function StrategyDetailPage() {
     isPortfolioPendingFirstRunError(statementQuery.error) ||
     isPortfolioPendingFirstRunError(positionsQuery.error) ||
     isPortfolioPendingFirstRunError(rebalanceRecordsQuery.error)
-  const portfolio = portfolioQuery.data
+  const portfolio = portfolioRecord
     ? buildDetailPortfolioView(
-        portfolioQuery.data,
+        portfolioRecord,
         isPendingFirstRun ? [] : (navQuery.data?.points ?? []),
         isPendingFirstRun ? null : (performanceQuery.data ?? null)
       )
@@ -269,7 +271,7 @@ function StrategyDetailPage() {
     )
   }
 
-  if (portfolioQuery.isError || !portfolio) {
+  if (portfolioQuery.isError || !portfolio || !portfolioRecord) {
     return (
       <Empty className="min-h-[calc(100svh-8rem)] border border-dashed border-border/70">
         <EmptyHeader>
@@ -313,7 +315,8 @@ function StrategyDetailPage() {
     : null
   const returnMetrics = buildReturnMetrics(
     portfolio.returns,
-    latestExcessReturn
+    latestExcessReturn,
+    portfolio.dailyWinRate
   )
   const metricGroups = [
     { title: "收益指标", metrics: returnMetrics },
@@ -792,6 +795,9 @@ function StrategyDetailPage() {
 
             <VirtualAccountSection
               account={virtualAccountQuery.data ?? null}
+              initialCash={
+                portfolioRecord.execution_config.account.initial_cash
+              }
               isError={
                 !isPendingFirstRun &&
                 virtualAccountQuery.isError &&
@@ -901,15 +907,18 @@ function MetricGroup({ metrics, title }: { metrics: Metric[]; title: string }) {
 
 function VirtualAccountSection({
   account,
+  initialCash,
   isError,
   isLoading,
   isPendingFirstRun,
 }: {
   account: StrategyPortfolioVirtualAccount | null
+  initialCash: number
   isError: boolean
   isLoading: boolean
   isPendingFirstRun: boolean
 }) {
+  const inceptionPnl = account ? account.total_equity - initialCash : null
   const metrics = account
     ? [
         {
@@ -928,9 +937,9 @@ function VirtualAccountSection({
           value: formatAccountCurrency(account.cash_balance),
         },
         {
-          label: "持仓盈亏",
-          tone: signedTone(account.holding_unrealized_pnl),
-          value: formatAccountSignedCurrency(account.holding_unrealized_pnl),
+          label: "总盈亏",
+          tone: signedTone(inceptionPnl),
+          value: formatAccountOptionalSignedCurrency(inceptionPnl),
         },
         {
           label: "当日盈亏",
@@ -986,16 +995,13 @@ function VirtualAccountSection({
       ) : (
         <div className="grid gap-x-6 gap-y-4 py-3 sm:grid-cols-2 lg:grid-cols-3">
           {metrics.map((metric) => (
-            <div
-              key={metric.label}
-              className="min-w-0 py-1"
-            >
+            <div key={metric.label} className="min-w-0 py-1">
               <div className="truncate text-xs text-muted-foreground">
                 {metric.label}
               </div>
               <div
                 className={cn(
-                  "mt-1 min-w-0 break-words text-sm leading-tight font-medium tabular-nums",
+                  "mt-1 min-w-0 text-sm leading-tight font-medium break-words tabular-nums",
                   metric.tone === "up"
                     ? "text-[color:var(--portfolio-up)]"
                     : metric.tone === "down"
@@ -1147,7 +1153,7 @@ function StatementSection({
                 </div>
                 <div
                   className={cn(
-                    "mt-1 min-w-0 break-words text-sm leading-tight font-medium tabular-nums",
+                    "mt-1 min-w-0 text-sm leading-tight font-medium break-words tabular-nums",
                     metric.tone === "up"
                       ? "text-[color:var(--portfolio-up)]"
                       : metric.tone === "down"
@@ -1169,7 +1175,7 @@ function StatementSection({
           </div>
 
           {operations.length > 0 ? (
-            <div className="overflow-x-auto [scrollbar-width:thin]">
+            <div className="[scrollbar-width:thin] overflow-x-auto">
               <Table className="min-w-[980px] table-fixed text-xs leading-snug [&_td]:overflow-hidden [&_th]:overflow-hidden">
                 <TableHeader>
                   <TableRow className="hover:bg-transparent">
@@ -1241,7 +1247,9 @@ function StatementSection({
                         {formatAccountCurrency(operation.total_fee)}
                       </TableCell>
                       <TableCell className="px-1 py-0.5 text-right tabular-nums">
-                        {formatShareQuantity(operation.position_balance_quantity)}
+                        {formatShareQuantity(
+                          operation.position_balance_quantity
+                        )}
                       </TableCell>
                       <TableCell
                         className={cn(
@@ -1429,14 +1437,25 @@ function buildDetailPortfolioView(
       ? daysBetween(record.live_start_date, latestPoint.time)
       : 0,
     latestNav: latestPoint?.nav ?? null,
+    dailyWinRate: readDailyWinRate(performance),
     returns: [
       metricFromPerformance("持仓收益", performance, "holding_period_return"),
       metricFromPerformance("年化收益", performance, "annualized_return"),
     ],
     risk: [
       metricFromPerformance("最大回撤", performance, "max_drawdown", "down"),
-      metricFromPerformance("年化波动率", performance, "annualized_volatility"),
-      metricFromPerformance("下行波动率", performance, "downside_deviation"),
+      metricFromPerformance(
+        "年化波动率",
+        performance,
+        "annualized_volatility",
+        "neutral"
+      ),
+      metricFromPerformance(
+        "下行波动率",
+        performance,
+        "downside_deviation",
+        "neutral"
+      ),
     ],
     efficiency: [
       ratioMetricFromPerformance("Sharpe Ratio", performance, "sharpe_ratio"),
@@ -1445,7 +1464,7 @@ function buildDetailPortfolioView(
       ratioMetricFromPerformance("Treynor Ratio", performance, "treynor_ratio"),
     ],
     relative: [
-      metricFromPerformance("Alpha", performance, "alpha"),
+      metricFromPerformance("Alpha", performance, "alpha", "neutral"),
       ratioMetricFromPerformance("Beta", performance, "beta"),
       ratioMetricFromPerformance(
         "Information Ratio",
@@ -1494,6 +1513,14 @@ function readPerformanceMetric(
   key: string
 ) {
   const value = performance?.metric[key]
+
+  return typeof value === "number" && Number.isFinite(value) ? value : null
+}
+
+function readDailyWinRate(
+  performance: StrategyPortfolioPerformanceView | null
+) {
+  const value = performance?.daily_win_rate.value
 
   return typeof value === "number" && Number.isFinite(value) ? value : null
 }
@@ -1596,7 +1623,8 @@ function daysBetween(startDate: string, endDate: string) {
 
 function buildReturnMetrics(
   metrics: Metric[],
-  excessReturn: number | null
+  excessReturn: number | null,
+  dailyWinRate: number | null
 ): Metric[] {
   const excessMetric: Metric = {
     label: "超额收益",
@@ -1611,7 +1639,7 @@ function buildReturnMetrics(
   }
   const winRateMetric: Metric = {
     label: "日胜率",
-    value: null,
+    value: dailyWinRate,
     kind: "percent",
     tone: "neutral",
   }

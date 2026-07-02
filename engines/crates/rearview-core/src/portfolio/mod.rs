@@ -10,6 +10,8 @@ use crate::{RearviewError, RearviewResult};
 pub struct PortfolioSimulationInput {
     pub start_date: NaiveDate,
     pub end_date: NaiveDate,
+    #[serde(default)]
+    pub trade_dates: Vec<NaiveDate>,
     pub initial_cash: f64,
     pub max_positions: usize,
     pub single_position_limit_pct: Option<f64>,
@@ -362,7 +364,8 @@ pub fn simulate_portfolio_with_diagnostics(
         .insert("price_index_key_count".to_string(), prices.len());
 
     let stage_started = Instant::now();
-    let calendar = TradeCalendarPlan::new(prices.trade_dates());
+    let calendar_dates = simulation_trade_dates(input, prices.trade_dates());
+    let calendar = TradeCalendarPlan::new(&calendar_dates);
     diagnostics.simulation_ms.insert(
         "calendar_build".to_string(),
         stage_started.elapsed().as_millis(),
@@ -879,6 +882,16 @@ fn validate_input(input: &PortfolioSimulationInput) -> RearviewResult<()> {
         }
     }
     Ok(())
+}
+
+fn simulation_trade_dates(
+    input: &PortfolioSimulationInput,
+    price_trade_dates: &[NaiveDate],
+) -> Vec<NaiveDate> {
+    let mut trade_dates = BTreeSet::new();
+    trade_dates.extend(input.trade_dates.iter().copied());
+    trade_dates.extend(price_trade_dates.iter().copied());
+    trade_dates.into_iter().collect()
 }
 
 fn target_weight_per_position(input: &PortfolioSimulationInput) -> f64 {
@@ -1443,6 +1456,39 @@ mod tests {
     }
 
     #[test]
+    fn simulation_should_process_due_sells_before_same_day_buy_signals() {
+        let d1 = date(2024, 1, 2);
+        let d2 = date(2024, 1, 3);
+        let mut input = fixture_input();
+        input.end_date = d2;
+        input.max_positions = 1;
+        input.exit_rules = vec![ExitRule::TakeProfit { profit_pct: 0.05 }];
+        input.signals = vec![
+            next_open_signal(d1, "AAA", 1),
+            next_open_signal(d2, "BBB", 1),
+        ];
+        input.prices = vec![
+            price(d1, "AAA", 10.0, 12.0),
+            price(d1, "BBB", 20.0, 20.0),
+            price(d2, "AAA", 12.0, 12.0),
+            price(d2, "BBB", 20.0, 20.0),
+        ];
+
+        let output = simulate_portfolio(&input).expect("simulation should succeed");
+        let day_two_trades = output
+            .trades
+            .iter()
+            .filter(|trade| trade.trade_date == d2)
+            .collect::<Vec<_>>();
+
+        assert_eq!(day_two_trades.len(), 2);
+        assert_eq!(day_two_trades[0].security_code, "AAA");
+        assert_eq!(day_two_trades[0].side, OrderSide::Sell);
+        assert_eq!(day_two_trades[1].security_code, "BBB");
+        assert_eq!(day_two_trades[1].side, OrderSide::Buy);
+    }
+
+    #[test]
     fn skips_buy_when_cash_cannot_cover_one_lot() {
         let mut input = fixture_input();
         input.initial_cash = 500.0;
@@ -1656,6 +1702,27 @@ mod tests {
     }
 
     #[test]
+    fn simulation_should_emit_cash_nav_when_trade_calendar_has_no_signals_or_prices() {
+        let d1 = date(2024, 1, 2);
+        let d2 = date(2024, 1, 3);
+        let mut input = fixture_input();
+        input.start_date = d1;
+        input.end_date = d2;
+        input.trade_dates = vec![d1, d2];
+        input.signals = Vec::new();
+        input.prices = Vec::new();
+        input.exit_rules = Vec::new();
+
+        let output = simulate_portfolio(&input).expect("cash-only simulation should succeed");
+
+        assert_eq!(output.nav.len(), 2);
+        assert_eq!(output.nav[1].trade_date, d2);
+        assert_eq!(output.nav[1].total_equity, input.initial_cash);
+        assert_eq!(output.nav[1].position_count, 0);
+        assert!(output.trades.is_empty());
+    }
+
+    #[test]
     fn simulation_should_reject_same_day_execution_signal() {
         let d1 = date(2024, 1, 2);
         let mut input = fixture_input();
@@ -1717,6 +1784,7 @@ mod tests {
         PortfolioSimulationInput {
             start_date: date(2024, 1, 1),
             end_date: d3,
+            trade_dates: Vec::new(),
             initial_cash: 20_000.0,
             max_positions: 2,
             single_position_limit_pct: None,

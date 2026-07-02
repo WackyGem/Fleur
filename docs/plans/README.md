@@ -6,12 +6,12 @@
 
 | Plan | 状态 | 说明 |
 |---|---|---|
-| 暂无 | - | 顶层 `docs/plans/` 当前没有待执行计划 |
 
 ## Recently Completed
 
 | Plan | 状态 | 说明 |
 |---|---|---|
+| [0072](archive/0072-racingline-0051-low-reversal-example-live-job-plan.md) | Completed | Racingline 0051 低位反转固化为 data config + Rearview 共享 canonical snapshot/persistence service + `example__portfolio_live_job` 手动清算回归用例；验收见 [2026-07-02 report](../jobs/reports/2026-07-02-racingline-0051-low-reversal-example-live-job.md) |
 | [0071](archive/0071-racingline-strategy-detail-delete-action-plan.md) | Completed | Racingline 策略详情页删除按钮接入 Rearview archive API，补齐 archived detail `410 Gone`、Dashboard 跳转和手动 archived daily run 拒绝；验收见 [2026-07-02 report](../jobs/reports/2026-07-02-racingline-strategy-detail-delete-action.md) |
 | [0070](archive/0070-racingline-strategy-publish-market-phase-entry-rule-plan.md) | Completed | Racingline Step 5 建立组合发布预检改为交易阶段感知：15:00 前允许上一交易日信号，15:00 后要求当天信号，数据多日落后继续阻断；验收见 [2026-07-02 report](../jobs/reports/2026-07-02-racingline-strategy-publish-market-phase-entry-rule.md) |
 | [0069](archive/0069-racingline-strategy-entry-rule-implementation-plan.md) | Completed | Racingline 最近信号建仓日期 gate 与空位补仓规则实施：Rearview publish preview/create stale 校验、Racingline 发布弹层和 Step 4/Step 5 命名解释；验收见 [2026-07-02 report](../jobs/reports/2026-07-02-racingline-strategy-entry-rule-implementation.md) |

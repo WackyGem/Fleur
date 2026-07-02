@@ -25,6 +25,7 @@ from scheduler.defs.definitions import SOURCE_BUNDLES
 from scheduler.defs.definitions import defs as scheduler_defs
 from scheduler.defs.rearview.assets import REARVIEW_ASSETS
 from scheduler.defs.rearview.definitions import (
+    EXAMPLE_PORTFOLIO_LIVE_JOB,
     PORTFOLIO_DAILY_RUN_SCHEDULE,
     STRATEGY_PORTFOLIO_DAILY_RUN_JOB,
 )
@@ -78,6 +79,7 @@ def test_registered_definitions_match_source_bundles() -> None:
     assert "fleur_calculation/calc_stock_macd_daily" in registered_asset_keys
     assert "fleur_calculation/calc_stock_price_pattern_daily" in registered_asset_keys
     assert "rearview/strategy_portfolio_daily_runs" in registered_asset_keys
+    assert "rearview/example_0051_portfolio_live_run" in registered_asset_keys
     assert registered_asset_keys >= expected_rearview_assets
     assert (
         len(registered_asset_keys)
@@ -86,6 +88,7 @@ def test_registered_definitions_match_source_bundles() -> None:
     registered_job_names = {job.name for job in loaded_defs.jobs or []}
     assert registered_job_names == {
         STRATEGY_PORTFOLIO_DAILY_RUN_JOB.name,
+        EXAMPLE_PORTFOLIO_LIVE_JOB.name,
         BACKFILL_JOB_NAME,
         SOURCE_TO_MARTS_BACKFILL_JOB_NAME,
         DAILY_JOB_NAME,
@@ -104,6 +107,7 @@ def test_registered_definitions_match_source_bundles() -> None:
         DAILY_SCHEDULE_NAME,
         PORTFOLIO_DAILY_RUN_SCHEDULE.name,
     }
+    assert EXAMPLE_PORTFOLIO_LIVE_JOB.name not in registered_schedule_names
     assert not registered_schedule_names & legacy_source_schedules
     assert not registered_schedule_names & {schedule.name for schedule in TRANSFORMATION_SCHEDULES}
     assert {sensor.name for sensor in loaded_defs.sensors or []} == {"slack_asset_failure_sensor"}
@@ -153,7 +157,7 @@ def test_dbt_assets_are_registered_with_raw_lineage_and_checks() -> None:
     dbt_asset_def = next(asset for asset in loaded_defs.assets or [] if stg_ths_key in asset.keys)
 
     assert len(dbt_asset_def.keys) == 52
-    assert len(dbt_asset_def.check_keys) == 386
+    assert len(dbt_asset_def.check_keys) == 388
     assert "stg_ths__limit_up_pool_compacted" in loaded_asset_keys
     assert "int_stock_kdj_daily" in loaded_asset_keys
     assert "int_stock_ma_daily" in loaded_asset_keys

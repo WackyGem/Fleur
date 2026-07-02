@@ -347,6 +347,7 @@ async fn process_strategy_backtest_run(
     let input = PortfolioSimulationInput {
         start_date: run.start_date,
         end_date: run.end_date,
+        trade_dates: materialized.trade_dates,
         initial_cash: execution_config.account.initial_cash,
         max_positions: execution_config.rebalance_policy.max_positions,
         single_position_limit_pct: execution_config.rebalance_policy.single_position_limit_pct,
@@ -556,6 +557,7 @@ async fn process_strategy_portfolio_daily_run(
     let input = PortfolioSimulationInput {
         start_date: run.run_start_date,
         end_date: run.trade_date,
+        trade_dates: materialized.trade_dates,
         initial_cash: execution_config.account.initial_cash,
         max_positions: execution_config.rebalance_policy.max_positions,
         single_position_limit_pct: execution_config.rebalance_policy.single_position_limit_pct,
@@ -828,6 +830,7 @@ async fn materialize_strategy_backtest_signals(
         signals,
         security_codes: security_codes.into_iter().collect(),
         signal_query_ids: query_ids,
+        trade_dates,
     })
 }
 
@@ -981,6 +984,7 @@ async fn materialize_strategy_portfolio_daily_run_signals(
         signals,
         security_codes: security_codes.into_iter().collect(),
         signal_query_ids: query_ids,
+        trade_dates,
     })
 }
 
@@ -1372,6 +1376,7 @@ async fn build_simulation_input(
     Ok(PortfolioSimulationInput {
         start_date: run.start_date,
         end_date: run.end_date,
+        trade_dates: Vec::new(),
         initial_cash: account_snapshot.initial_cash,
         max_positions: execution_snapshot.rebalance_policy.max_positions,
         single_position_limit_pct: execution_snapshot
@@ -1458,6 +1463,7 @@ struct MaterializedSignals {
     signals: Vec<BuySignalInput>,
     security_codes: Vec<String>,
     signal_query_ids: Vec<String>,
+    trade_dates: Vec<NaiveDate>,
 }
 
 #[derive(Debug)]

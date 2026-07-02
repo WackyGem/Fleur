@@ -99,6 +99,8 @@ npm run build
 | [../RFC/archive/0027-racingline-strategy-simulation-position-step4.md](../RFC/archive/0027-racingline-strategy-simulation-position-step4.md) | Step 4 模拟建仓 |
 | [../RFC/archive/0028-racingline-strategy-backtest-step5.md](../RFC/archive/0028-racingline-strategy-backtest-step5.md) | Step 5 异步回测 |
 | [../RFC/archive/0029-racingline-strategy-portfolio-publish-and-daily-run.md](../RFC/archive/0029-racingline-strategy-portfolio-publish-and-daily-run.md) | 策略组合发布和日运行 |
+| [../jobs/reports/2026-06-24-racingline-strategy-portfolio-publish-dashboard-dagster.md](../jobs/reports/2026-06-24-racingline-strategy-portfolio-publish-dashboard-dagster.md) | Step 5 建立组合、Dashboard 接入、Dagster daily run 注册和 0051 低位反转组合创建验收报告 |
+| [../RFC/archive/0044-racingline-0051-low-reversal-regression-case.md](../RFC/archive/0044-racingline-0051-low-reversal-regression-case.md) | 0051 低位反转端到端回归用例固化讨论 |
 | [../RFC/0031-racingline-step4-step5-backtest-latency-slimming.md](../RFC/0031-racingline-step4-step5-backtest-latency-slimming.md) | Step 4 到 Step 5 回测延时瘦身依据、字段审计和性能基线 |
 | [../plans/archive/0056-racingline-step4-step5-backtest-latency-optimization-plan.md](../plans/archive/0056-racingline-step4-step5-backtest-latency-optimization-plan.md) | Step 4/5 handoff、status/compact API、worker timing、动态 price bars 和 outbox 唤醒实施计划 |
 | [../jobs/reports/2026-06-25-racingline-step4-step5-backtest-latency-optimization.md](../jobs/reports/2026-06-25-racingline-step4-step5-backtest-latency-optimization.md) | Step 4/5 回测延时优化验收报告 |

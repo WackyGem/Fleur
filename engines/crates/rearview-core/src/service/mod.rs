@@ -1,5 +1,6 @@
 pub mod catalog;
 pub mod runner;
+pub mod strategy_portfolio;
 
 use std::sync::Arc;
 

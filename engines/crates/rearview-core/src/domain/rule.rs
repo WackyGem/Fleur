@@ -531,7 +531,7 @@ pub fn representative_rule() -> RuleVersionSpec {
                         Operator::Eq,
                         Operand::bool(true),
                     ),
-                    15.0,
+                    20.0,
                 ),
                 points(
                     "below_boll_lower_20_2",

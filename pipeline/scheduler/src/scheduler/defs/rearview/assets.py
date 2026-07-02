@@ -11,6 +11,10 @@ from scheduler.version import scheduler_version
 
 STRATEGY_PORTFOLIO_DAILY_PARTITIONS = dg.DailyPartitionsDefinition(start_date="2026-06-24")
 STRATEGY_PORTFOLIO_DAILY_ASSET_KEY = dg.AssetKey(["rearview", "strategy_portfolio_daily_runs"])
+EXAMPLE_0051_PORTFOLIO_LIVE_ASSET_KEY = dg.AssetKey(["rearview", "example_0051_portfolio_live_run"])
+EXAMPLE_0051_CASE_ID = "racingline_0051_low_reversal"
+EXAMPLE_0051_VERSION = "v1"
+EXAMPLE_0051_LIVE_START_DATE = "2024-01-02"
 
 
 class StrategyPortfolioDailyRunConfig(dg.Config):
@@ -22,6 +26,14 @@ class StrategyPortfolioDailyRunConfig(dg.Config):
     poll_interval_seconds: int = 10
     timeout_seconds: int = 1800
     chunk_size: int = 20
+
+
+class ExamplePortfolioLiveRunConfig(dg.Config):
+    end_date: str = ""
+    max_trade_dates: int = 250
+    wait_for_completion: bool = True
+    poll_interval_seconds: int = 10
+    timeout_seconds: int = 1800
 
 
 @dataclass(frozen=True)
@@ -73,7 +85,9 @@ def strategy_portfolio_daily_runs(
             rearview_api.create_strategy_portfolio_daily_runs_range(
                 start_date=chunk_start,
                 end_date=chunk_end,
-                client_request_id=f"dagster-{context.run_id}-{chunk_start}-{chunk_end}",
+                client_request_id=(
+                    f"dagster-{context.op_execution_context.run_id}-{chunk_start}-{chunk_end}"
+                ),
                 max_trade_dates=chunk_size,
                 strategy_portfolio_id=config.strategy_portfolio_id,
             )
@@ -108,6 +122,100 @@ def strategy_portfolio_daily_runs(
             strategy_portfolio_id=config.strategy_portfolio_id.strip(),
             settlement_target=request.settlement_target,
             response=response,
+            statuses=statuses,
+            fact_counts=fact_counts,
+            wait_for_completion=config.wait_for_completion,
+        )
+    )
+
+
+@dg.asset(
+    key=EXAMPLE_0051_PORTFOLIO_LIVE_ASSET_KEY,
+    group_name="rearview",
+    owners=[DEFAULT_OWNER],
+    tags={
+        "source": "rearview",
+        "layer": "control_plane",
+        "storage": "postgres_clickhouse",
+        "state": "async_worker",
+        "modality": "strategy_portfolio_example",
+    },
+)
+def example_0051_portfolio_live_run(
+    context: dg.AssetExecutionContext,
+    config: ExamplePortfolioLiveRunConfig,
+    rearview_api: RearviewApiResource,
+) -> dg.MaterializeResult:
+    """Ensure the 0051 example portfolio and settle it from live start to latest target."""
+
+    return _run_example_0051_portfolio_live_run(
+        context=context,
+        config=config,
+        rearview_api=rearview_api,
+    )
+
+
+def _run_example_0051_portfolio_live_run(
+    *,
+    context: dg.AssetExecutionContext,
+    config: ExamplePortfolioLiveRunConfig,
+    rearview_api: RearviewApiResource,
+) -> dg.MaterializeResult:
+    ensure_response = rearview_api.ensure_racingline_0051_low_reversal_portfolio()
+    _validate_example_0051_ensure_response(ensure_response)
+    strategy_portfolio_id = str(ensure_response["strategy_portfolio_id"]).strip()
+    live_start_date = str(ensure_response["live_start_date"]).strip()
+    settlement_target = None
+    end_date = config.end_date.strip()
+    if end_date == "":
+        settlement_target = rearview_api.get_strategy_portfolio_settlement_target(
+            strategy_portfolio_id=strategy_portfolio_id,
+        )
+        end_date = str(settlement_target.get("settlement_target_date") or "").strip()
+        if end_date == "":
+            msg = "0051 example could not resolve settlement_target_date"
+            raise RuntimeError(msg)
+    _validate_date_order(live_start_date, end_date)
+
+    daily_run_response = rearview_api.create_strategy_portfolio_daily_runs_range(
+        start_date=end_date,
+        end_date=end_date,
+        client_request_id=f"dagster-example-0051-{context.op_execution_context.run_id}-{end_date}",
+        max_trade_dates=_positive_int(config.max_trade_dates, "max_trade_dates"),
+        strategy_portfolio_id=strategy_portfolio_id,
+    )
+    daily_run_response = {
+        **daily_run_response,
+        "settlement_start_date": live_start_date,
+        "settlement_end_date": end_date,
+        "settlement_mode": "single_full_window_run",
+    }
+    daily_run_ids = daily_run_response.get("daily_run_ids", [])
+    if not daily_run_ids:
+        msg = "0051 example daily-run range returned no daily_run_ids"
+        raise RuntimeError(msg)
+
+    statuses: dict[str, dict[str, Any]] = {}
+    fact_counts: dict[str, dict[str, Any]] = {}
+    if config.wait_for_completion:
+        statuses = _wait_for_daily_runs(
+            rearview_api=rearview_api,
+            daily_run_ids=daily_run_ids,
+            poll_interval_seconds=_positive_int(
+                config.poll_interval_seconds, "poll_interval_seconds"
+            ),
+            timeout_seconds=_positive_int(config.timeout_seconds, "timeout_seconds"),
+        )
+        fact_counts = _query_fact_counts_for_succeeded_runs(
+            rearview_api=rearview_api,
+            statuses=statuses,
+        )
+
+    return dg.MaterializeResult(
+        metadata=_example_0051_live_run_metadata(
+            ensure_response=ensure_response,
+            daily_run_response=daily_run_response,
+            settlement_target=settlement_target,
             statuses=statuses,
             fact_counts=fact_counts,
             wait_for_completion=config.wait_for_completion,
@@ -238,6 +346,86 @@ def _query_fact_counts_for_succeeded_runs(
     return fact_counts
 
 
+def _validate_example_0051_ensure_response(response: dict[str, Any]) -> None:
+    expected = {
+        "case_id": EXAMPLE_0051_CASE_ID,
+        "version": EXAMPLE_0051_VERSION,
+        "live_start_date": EXAMPLE_0051_LIVE_START_DATE,
+    }
+    for key, expected_value in expected.items():
+        actual_value = str(response.get(key) or "").strip()
+        if actual_value != expected_value:
+            msg = f"0051 example ensure returned unexpected {key}: {actual_value}"
+            raise RuntimeError(msg)
+    required_non_empty = [
+        "fixture_hash",
+        "rule_hash",
+        "execution_config_hash",
+        "strategy_portfolio_id",
+        "portfolio_code",
+        "initial_signal_date",
+    ]
+    for key in required_non_empty:
+        if str(response.get(key) or "").strip() == "":
+            msg = f"0051 example ensure returned empty {key}"
+            raise RuntimeError(msg)
+
+
+def _example_0051_live_run_metadata(
+    *,
+    ensure_response: dict[str, Any],
+    daily_run_response: dict[str, Any],
+    settlement_target: dict[str, Any] | None,
+    statuses: dict[str, dict[str, Any]],
+    fact_counts: dict[str, dict[str, Any]],
+    wait_for_completion: bool,
+) -> dict[str, Any]:
+    latest_status = _latest_status_by_trade_date(statuses)
+    latest_daily_run_id = str(latest_status.get("strategy_portfolio_daily_run_id", "")).strip()
+    latest_counts = fact_counts.get(latest_daily_run_id, {})
+    return {
+        "scheduler_version": scheduler_version(),
+        "case_id": ensure_response.get("case_id"),
+        "version": ensure_response.get("version"),
+        "fixture_hash": ensure_response.get("fixture_hash"),
+        "rule_hash": ensure_response.get("rule_hash"),
+        "execution_config_hash": ensure_response.get("execution_config_hash"),
+        "strategy_portfolio_id": ensure_response.get("strategy_portfolio_id"),
+        "portfolio_code": ensure_response.get("portfolio_code"),
+        "initial_signal_date": ensure_response.get("initial_signal_date"),
+        "live_start_date": ensure_response.get("live_start_date"),
+        "settlement_target_date": (
+            settlement_target.get("settlement_target_date") if settlement_target else None
+        ),
+        "created": bool(ensure_response.get("created", False)),
+        "wait_for_completion": wait_for_completion,
+        "daily_run_ids": dg.MetadataValue.json(daily_run_response.get("daily_run_ids", [])),
+        "settlement_mode": daily_run_response.get("settlement_mode"),
+        "settlement_start_date": daily_run_response.get("settlement_start_date"),
+        "settlement_end_date": daily_run_response.get("settlement_end_date"),
+        "created_daily_run_ids": dg.MetadataValue.json(
+            daily_run_response.get("created_daily_run_ids", [])
+        ),
+        "skipped_daily_run_ids": dg.MetadataValue.json(
+            daily_run_response.get("skipped_daily_run_ids", [])
+        ),
+        "resolved_trade_dates": dg.MetadataValue.json(
+            daily_run_response.get("resolved_trade_dates", [])
+        ),
+        "latest_daily_run_id": latest_daily_run_id,
+        "latest_result_attempt_id": str(latest_status.get("current_result_attempt_id", "")).strip(),
+        "latest_signal_summary": dg.MetadataValue.json(latest_status.get("signal_summary", {})),
+        "nav_row_count": int(latest_counts.get("nav_row_count", 0)),
+        "trade_row_count": int(latest_counts.get("trade_row_count", 0)),
+        "closed_trade_row_count": int(latest_counts.get("closed_trade_row_count", 0)),
+        "daily_run_statuses": dg.MetadataValue.json(statuses),
+        "daily_run_fact_counts": dg.MetadataValue.json(fact_counts),
+        "settlement_target": dg.MetadataValue.json(settlement_target or {}),
+        "ensure_response": dg.MetadataValue.json(ensure_response),
+        "rearview_response": dg.MetadataValue.json(daily_run_response),
+    }
+
+
 def _daily_run_metadata(
     *,
     partition_key: str,
@@ -347,4 +535,7 @@ def _positive_int(value: int, name: str) -> int:
     return value
 
 
-REARVIEW_ASSETS: tuple[dg.AssetsDefinition, ...] = (strategy_portfolio_daily_runs,)
+REARVIEW_ASSETS: tuple[dg.AssetsDefinition, ...] = (
+    strategy_portfolio_daily_runs,
+    example_0051_portfolio_live_run,
+)
