@@ -11,6 +11,8 @@ pub enum RearviewError {
     Config(String),
     #[error("not found: {0}")]
     NotFound(String),
+    #[error("gone: {0}")]
+    Gone(String),
     #[error("conflict: {0}")]
     Conflict(String),
     #[error("portfolio pending first run: {0}")]
@@ -47,6 +49,7 @@ impl RearviewError {
     pub fn status_code(&self) -> StatusCode {
         match self {
             Self::NotFound(_) => StatusCode::NOT_FOUND,
+            Self::Gone(_) => StatusCode::GONE,
             Self::Conflict(_) | Self::PortfolioPendingFirstRun(_) => StatusCode::CONFLICT,
             Self::Config(_)
             | Self::Postgres(_)
@@ -65,6 +68,7 @@ impl RearviewError {
         match self {
             Self::Config(_) => "config",
             Self::NotFound(_) => "not_found",
+            Self::Gone(_) => "gone",
             Self::Conflict(_) => "conflict",
             Self::PortfolioPendingFirstRun(_) => "portfolio_pending_first_run",
             Self::Validation(_) => "validation",
@@ -89,5 +93,18 @@ impl IntoResponse for RearviewError {
             message: self.to_string(),
         };
         (status, Json(body)).into_response()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn gone_should_map_to_http_410_and_gone_error_type() {
+        let error = RearviewError::Gone("strategy portfolio archived".to_string());
+
+        assert_eq!(error.status_code(), StatusCode::GONE);
+        assert_eq!(error.error_type(), "gone");
     }
 }

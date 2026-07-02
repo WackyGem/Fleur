@@ -12,6 +12,7 @@
 
 | Plan | 状态 | 说明 |
 |---|---|---|
+| [0071](archive/0071-racingline-strategy-detail-delete-action-plan.md) | Completed | Racingline 策略详情页删除按钮接入 Rearview archive API，补齐 archived detail `410 Gone`、Dashboard 跳转和手动 archived daily run 拒绝；验收见 [2026-07-02 report](../jobs/reports/2026-07-02-racingline-strategy-detail-delete-action.md) |
 | [0070](archive/0070-racingline-strategy-publish-market-phase-entry-rule-plan.md) | Completed | Racingline Step 5 建立组合发布预检改为交易阶段感知：15:00 前允许上一交易日信号，15:00 后要求当天信号，数据多日落后继续阻断；验收见 [2026-07-02 report](../jobs/reports/2026-07-02-racingline-strategy-publish-market-phase-entry-rule.md) |
 | [0069](archive/0069-racingline-strategy-entry-rule-implementation-plan.md) | Completed | Racingline 最近信号建仓日期 gate 与空位补仓规则实施：Rearview publish preview/create stale 校验、Racingline 发布弹层和 Step 4/Step 5 命名解释；验收见 [2026-07-02 report](../jobs/reports/2026-07-02-racingline-strategy-entry-rule-implementation.md) |
 | [0068](archive/0068-furnace-clickhouse-rust-client-migration-plan.md) | Completed | Furnace 一刀切迁移到官方 `clickhouse` Rust client，移除外部 `clickhouse-client` / Docker exec 运行时依赖，覆盖 KDJ、MA、RSI、BOLL、MACD 和 Price Pattern；验收见 [2026-07-01 migration report](../jobs/reports/2026-07-01-furnace-clickhouse-rust-client-migration.md) |

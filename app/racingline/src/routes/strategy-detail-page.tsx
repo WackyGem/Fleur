@@ -1,8 +1,10 @@
 import { Fragment, useEffect, useRef, useState } from "react"
-import { Link, useParams } from "react-router-dom"
+import { useQueryClient } from "@tanstack/react-query"
+import { Link, useNavigate, useParams } from "react-router-dom"
 import { createChart, LineSeries, TickMarkType } from "lightweight-charts"
 import { ArrowLeft, Trash2 } from "lucide-react"
 
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import {
@@ -39,6 +41,7 @@ import {
   type Metric,
 } from "@/components/racingline/dashboard/portfolio-data"
 import {
+  useStrategyPortfolioArchiveMutation,
   useStrategyPortfolioNavQuery,
   useStrategyPortfolioPerformanceQuery,
   useStrategyPortfolioPositionsQuery,
@@ -49,8 +52,14 @@ import {
   useStrategyPortfolioSignalTimelineQuery,
   useStrategyPortfolioVirtualAccountQuery,
 } from "@/api/hooks"
+import { queryKeys } from "@/api/queryKeys"
 import { ApiError } from "@/api/client"
 import { cn } from "@/lib/utils"
+import { Spinner } from "@/components/ui/spinner"
+import {
+  isArchivedPortfolioError,
+  strategyPortfolioArchiveErrorMessage,
+} from "@/routes/strategy-detail-utils"
 import type {
   StrategyPortfolioDashboardCard,
   StrategyBacktestNavPoint,
@@ -119,14 +128,20 @@ const STATEMENT_PERIOD_OPTIONS: {
 
 function StrategyDetailPage() {
   const { portfolioId } = useParams()
+  const navigate = useNavigate()
+  const queryClient = useQueryClient()
   const [selectedSignalDate, setSelectedSignalDate] = useState("")
   const [selectedRebalanceDate, setSelectedRebalanceDate] = useState("")
   const [statementPeriod, setStatementPeriod] =
     useState<StrategyPortfolioStatementPeriodKey>("month")
   const [statementOffset, setStatementOffset] = useState(0)
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+  const [deleteError, setDeleteError] = useState<string | null>(null)
   const rebalanceDateScrollerRef = useRef<HTMLDivElement | null>(null)
   const strategyPortfolioId = portfolioId ?? null
   const portfolioQuery = useStrategyPortfolioQuery(strategyPortfolioId)
+  const archiveMutation = useStrategyPortfolioArchiveMutation()
+  const archivedPortfolioError = isArchivedPortfolioError(portfolioQuery.error)
   const isKnownPendingFirstRun =
     portfolioQuery.data?.live_status === "pending_first_run"
   const liveResultPortfolioId =
@@ -204,6 +219,34 @@ function StrategyDetailPage() {
     scroller.scrollLeft = scroller.scrollWidth
   }, [records.length])
 
+  useEffect(() => {
+    if (archivedPortfolioError) {
+      navigate("/dashboard", { replace: true, viewTransition: true })
+    }
+  }, [archivedPortfolioError, navigate])
+
+  async function handleDeleteConfirm() {
+    if (!strategyPortfolioId) {
+      return
+    }
+
+    setDeleteError(null)
+
+    try {
+      await archiveMutation.mutateAsync(strategyPortfolioId)
+      await queryClient.invalidateQueries({
+        queryKey: queryKeys.strategyPortfolioDashboard(),
+      })
+      queryClient.removeQueries({
+        queryKey: queryKeys.strategyPortfolio(strategyPortfolioId),
+      })
+      setDeleteDialogOpen(false)
+      navigate("/dashboard", { viewTransition: true })
+    } catch (error) {
+      setDeleteError(strategyPortfolioArchiveErrorMessage(error))
+    }
+  }
+
   if (portfolioQuery.isLoading) {
     return (
       <Empty className="min-h-[calc(100svh-8rem)] border border-dashed border-border/70">
@@ -215,14 +258,23 @@ function StrategyDetailPage() {
     )
   }
 
+  if (archivedPortfolioError) {
+    return (
+      <Empty className="min-h-[calc(100svh-8rem)] border border-dashed border-border/70">
+        <EmptyHeader>
+          <EmptyTitle>策略已删除</EmptyTitle>
+          <EmptyDescription>正在返回策略看板。</EmptyDescription>
+        </EmptyHeader>
+      </Empty>
+    )
+  }
+
   if (portfolioQuery.isError || !portfolio) {
     return (
       <Empty className="min-h-[calc(100svh-8rem)] border border-dashed border-border/70">
         <EmptyHeader>
           <EmptyTitle>未找到策略</EmptyTitle>
-          <EmptyDescription>
-            该策略可能已删除、链接已经失效或 Rearview API 不可用。
-          </EmptyDescription>
+          <EmptyDescription>策略不存在或链接无效。</EmptyDescription>
         </EmptyHeader>
         <EmptyContent>
           <Button
@@ -292,10 +344,22 @@ function StrategyDetailPage() {
             <span className="shrink-0">持仓: {livePositionCount} 只</span>
           ) : null}
         </div>
-        <Dialog>
+        <Dialog
+          open={deleteDialogOpen}
+          onOpenChange={(open) => {
+            if (archiveMutation.isPending) {
+              return
+            }
+            setDeleteDialogOpen(open)
+            if (open) {
+              setDeleteError(null)
+            }
+          }}
+        >
           <DialogTrigger
             render={
               <Button
+                disabled={archiveMutation.isPending}
                 variant="ghost"
                 size="sm"
                 type="button"
@@ -309,17 +373,39 @@ function StrategyDetailPage() {
           <DialogContent>
             <DialogHeader>
               <DialogTitle>删除策略</DialogTitle>
-              <DialogDescription>删除后该策略将从看板移除。</DialogDescription>
+              <DialogDescription>
+                删除后该策略将从看板移除，历史回测和运行记录会保留。
+              </DialogDescription>
             </DialogHeader>
+            {deleteError ? (
+              <Alert variant="destructive">
+                <AlertTitle>删除失败</AlertTitle>
+                <AlertDescription>{deleteError}</AlertDescription>
+              </Alert>
+            ) : null}
             <DialogFooter>
-              <DialogClose render={<Button variant="outline" type="button" />}>
+              <DialogClose
+                render={
+                  <Button
+                    disabled={archiveMutation.isPending}
+                    variant="outline"
+                    type="button"
+                  />
+                }
+              >
                 取消
               </DialogClose>
-              <DialogClose
-                render={<Button variant="destructive" type="button" />}
+              <Button
+                disabled={archiveMutation.isPending}
+                onClick={handleDeleteConfirm}
+                type="button"
+                variant="destructive"
               >
-                确认删除
-              </DialogClose>
+                {archiveMutation.isPending ? (
+                  <Spinner data-icon="inline-start" />
+                ) : null}
+                {archiveMutation.isPending ? "删除中" : "确认删除"}
+              </Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>

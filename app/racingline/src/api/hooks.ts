@@ -2,6 +2,7 @@ import { keepPreviousData, useMutation, useQuery } from "@tanstack/react-query"
 
 import { queryKeys } from "@/api/queryKeys"
 import {
+  archiveStrategyPortfolio,
   createStrategyPortfolio,
   createStrategyBacktest,
   explainRule,
@@ -151,6 +152,13 @@ export function useStrategyPortfolioCreateMutation() {
   return useMutation({
     mutationFn: (request: StrategyPortfolioCreateRequest) =>
       createStrategyPortfolio(request),
+  })
+}
+
+export function useStrategyPortfolioArchiveMutation() {
+  return useMutation({
+    mutationFn: (strategyPortfolioId: string) =>
+      archiveStrategyPortfolio(strategyPortfolioId),
   })
 }
 

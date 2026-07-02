@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest"
 
 import {
+  archiveStrategyPortfolio,
   createStrategyPortfolio,
   getStrategyPortfolioPublishPreview,
   getStrategyPortfolioStatement,
@@ -64,6 +65,23 @@ describe("strategy portfolio API", () => {
       expect.objectContaining({
         body: JSON.stringify(request),
         method: "POST",
+      })
+    )
+  })
+
+  it("archives strategy portfolio with PATCH status body", async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValue(jsonResponse({ strategy_portfolio_id: "portfolio-1" }))
+    vi.stubGlobal("fetch", fetchMock)
+
+    await archiveStrategyPortfolio("portfolio-1")
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      "http://127.0.0.1:34057/rearview/strategy-portfolios/portfolio-1",
+      expect.objectContaining({
+        body: JSON.stringify({ status: "archived" }),
+        method: "PATCH",
       })
     )
   })

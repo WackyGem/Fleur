@@ -1634,6 +1634,7 @@ async fn get_strategy_portfolio(
         .postgres
         .get_strategy_portfolio(&strategy_portfolio_id)
         .await?;
+    ensure_strategy_portfolio_active(&record)?;
     Ok(Json(strategy_portfolio_response(record)))
 }
 
@@ -1642,11 +1643,7 @@ async fn patch_strategy_portfolio(
     Path(strategy_portfolio_id): Path<String>,
     Json(request): Json<PatchStrategyPortfolioRequest>,
 ) -> RearviewResult<Json<StrategyPortfolioResponse>> {
-    if request.status != "archived" {
-        return Err(RearviewError::Validation(
-            "only status=archived is supported".to_string(),
-        ));
-    }
+    validate_strategy_portfolio_patch_status(&request.status)?;
     let record = state
         .postgres
         .archive_strategy_portfolio(&strategy_portfolio_id)
@@ -2082,6 +2079,7 @@ async fn list_strategy_portfolio_signals(
         .postgres
         .get_strategy_portfolio(&strategy_portfolio_id)
         .await?;
+    ensure_strategy_portfolio_active(&portfolio)?;
     if portfolio.latest_daily_run_id.is_none() || portfolio.current_live_result_attempt_id.is_none()
     {
         let page = page(query.limit, query.offset)?;
@@ -2132,6 +2130,7 @@ async fn list_strategy_portfolio_signal_timeline(
         .postgres
         .get_strategy_portfolio(&strategy_portfolio_id)
         .await?;
+    ensure_strategy_portfolio_active(&portfolio)?;
     if portfolio.latest_daily_run_id.is_none() || portfolio.current_live_result_attempt_id.is_none()
     {
         let mut counts = BTreeMap::<NaiveDate, usize>::new();
@@ -6368,6 +6367,7 @@ async fn resolve_strategy_portfolio_result(
         .postgres
         .get_strategy_portfolio(strategy_portfolio_id)
         .await?;
+    ensure_strategy_portfolio_active(&portfolio)?;
     if let (Some(latest_daily_run_id), Some(result_attempt_id)) = (
         portfolio.latest_daily_run_id.as_deref(),
         portfolio.current_live_result_attempt_id.as_deref(),
@@ -6389,6 +6389,27 @@ async fn resolve_strategy_portfolio_result(
     Err(RearviewError::PortfolioPendingFirstRun(format!(
         "strategy portfolio {strategy_portfolio_id} has no live daily run result yet"
     )))
+}
+
+fn ensure_strategy_portfolio_active(record: &StrategyPortfolioRecord) -> RearviewResult<()> {
+    if record.status == "archived" {
+        return Err(RearviewError::Gone(format!(
+            "strategy_portfolio is archived: {}",
+            record.strategy_portfolio_id
+        )));
+    }
+
+    Ok(())
+}
+
+fn validate_strategy_portfolio_patch_status(status: &str) -> RearviewResult<()> {
+    if status != "archived" {
+        return Err(RearviewError::Validation(
+            "only status=archived is supported".to_string(),
+        ));
+    }
+
+    Ok(())
 }
 
 async fn strategy_portfolio_dashboard_read_model(
@@ -7701,6 +7722,38 @@ mod tests {
     }
 
     #[test]
+    fn ensure_strategy_portfolio_active_should_accept_active_record() {
+        let portfolio = strategy_portfolio_record(json!([]));
+
+        ensure_strategy_portfolio_active(&portfolio)
+            .expect("active strategy portfolio should be accepted");
+    }
+
+    #[test]
+    fn ensure_strategy_portfolio_active_should_return_gone_for_archived_record() {
+        let mut portfolio = strategy_portfolio_record(json!([]));
+        portfolio.status = "archived".to_string();
+        portfolio.archived_at = Some(Utc::now());
+
+        let error = ensure_strategy_portfolio_active(&portfolio).unwrap_err();
+
+        assert!(matches!(error, RearviewError::Gone(_)));
+    }
+
+    #[test]
+    fn validate_strategy_portfolio_patch_status_should_accept_archived() {
+        validate_strategy_portfolio_patch_status("archived")
+            .expect("archived status should be accepted");
+    }
+
+    #[test]
+    fn validate_strategy_portfolio_patch_status_should_reject_other_status() {
+        let error = validate_strategy_portfolio_patch_status("active").unwrap_err();
+
+        assert!(matches!(error, RearviewError::Validation(_)));
+    }
+
+    #[test]
     fn next_trade_date_after_should_resolve_weekend_publish_sample() {
         let trade_dates = vec![date("2026-06-30"), date("2026-06-26"), date("2026-06-29")];
 
@@ -7831,9 +7884,7 @@ mod tests {
     fn strategy_portfolio_publish_preview_should_serialize_server_current_date() {
         let value = serde_json::to_value(StrategyPortfolioPublishPreviewResponse {
             can_publish: false,
-            blockers: vec![
-                "最后信号日与最新行情日存在缺口，请先回填行情数据到最新。".to_string(),
-            ],
+            blockers: vec!["最后信号日与最新行情日存在缺口，请先回填行情数据到最新。".to_string()],
             source_strategy_backtest_run_id: "run-1".to_string(),
             source_result_attempt_id: "attempt-1".to_string(),
             source_signal_date: date("2026-06-29"),

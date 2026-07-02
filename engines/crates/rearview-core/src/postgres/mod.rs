@@ -1535,11 +1535,12 @@ impl RearviewPg {
         let portfolios = match strategy_portfolio_id {
             Some(strategy_portfolio_id) => {
                 let portfolio = self.get_strategy_portfolio(strategy_portfolio_id).await?;
-                if portfolio.status == "active" {
-                    vec![portfolio]
-                } else {
-                    Vec::new()
+                if portfolio.status == "archived" {
+                    return Err(RearviewError::Gone(format!(
+                        "strategy_portfolio is archived: {strategy_portfolio_id}"
+                    )));
                 }
+                vec![portfolio]
             }
             None => self.list_active_strategy_portfolios().await?,
         };

@@ -345,6 +345,16 @@ export function getStrategyPortfolio(strategyPortfolioId: string) {
   )
 }
 
+export function archiveStrategyPortfolio(strategyPortfolioId: string) {
+  return requestJson<StrategyPortfolioRecord>(
+    `/rearview/strategy-portfolios/${strategyPortfolioId}`,
+    {
+      body: JSON.stringify({ status: "archived" }),
+      method: "PATCH",
+    }
+  )
+}
+
 export function listStrategyPortfolioNav(strategyPortfolioId: string) {
   return requestJson<StrategyPortfolioNavResponse>(
     `/rearview/strategy-portfolios/${strategyPortfolioId}/nav`

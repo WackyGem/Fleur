@@ -1168,6 +1168,7 @@ fn normalize_live_output(
 fn strategy_backtest_failure_status(error: &RearviewError) -> &'static str {
     match error {
         RearviewError::Validation(_)
+        | RearviewError::Gone(_)
         | RearviewError::Conflict(_)
         | RearviewError::PortfolioPendingFirstRun(_)
         | RearviewError::MetricCatalog(_) => "failed_validation",
@@ -1394,6 +1395,7 @@ fn next_trade_date(trade_dates: &[NaiveDate], signal_date: NaiveDate) -> Option<
 fn portfolio_failure_status(error: &RearviewError) -> &'static str {
     match error {
         RearviewError::Validation(_)
+        | RearviewError::Gone(_)
         | RearviewError::Conflict(_)
         | RearviewError::PortfolioPendingFirstRun(_) => "failed_validation",
         RearviewError::ClickHouse(_) => "failed_market_data",
