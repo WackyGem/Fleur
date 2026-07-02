@@ -90,10 +90,12 @@ import {
   strategyToastLeaveDelayMs,
   strategyToastVisibleMs,
 } from "@/features/strategy/components/strategy-toast"
+import { StrategyConfigDisplaySection } from "@/features/strategy/components/strategy-config-display-section"
+import { buildStrategyConfigDisplayFromDraft } from "@/features/strategy/config-display"
 import { WeightIndicatorsPanel } from "@/features/strategy/components/weight-indicators-panel"
 import {
   areTransactionFeesEqual,
-  buildBacktestExecutionRequestDraft,
+  buildStrategyBacktestCreateRequest,
   buildStrategyBacktestValidateRequest,
   marketTemplateToTransactionFees,
   toBacktestExecutionDraft,
@@ -119,15 +121,12 @@ import {
   createCondition,
   createId,
   createWeightIndicator,
-  formatComparableIndicator,
-  formatWeightIndicator,
 } from "@/features/strategy/utils"
 import { cn } from "@/lib/utils"
 import type {
   StrategyBacktestNavPoint,
   StrategyBacktestPerformanceUiView,
   StrategyBacktestPerformanceView,
-  StrategyBacktestCreateRequest,
   StrategyBacktestRebalanceRecordSummary as ApiBacktestRebalanceRecordSummary,
   StrategyBacktestRebalanceUiRow as ApiBacktestRebalanceUiRow,
   StrategyBacktestRunRecord,
@@ -345,67 +344,6 @@ function buildPreviewRequestRange(previewRange: PreviewRange) {
   }
 }
 
-function buildStrategyBacktestCreateRequest({
-  backtestExecutionDraft,
-  benchmark,
-  period,
-  previewSnapshot,
-  rangeHint,
-  selectedBenchmarkLabel,
-  selectedPeriodDescription,
-  selectedPeriodLabel,
-  settings,
-}: {
-  backtestExecutionDraft: BacktestExecutionDraft
-  benchmark: BacktestBenchmark
-  period: BacktestPeriod
-  previewSnapshot: PreviewSnapshot
-  rangeHint?: { end_date: string; start_date: string } | null
-  selectedBenchmarkLabel: string
-  selectedPeriodDescription: string | null
-  selectedPeriodLabel: string
-  settings: SimulationSettings
-}): StrategyBacktestCreateRequest {
-  return {
-    ...buildBacktestExecutionRequestDraft({
-      benchmark,
-      draft: backtestExecutionDraft,
-      period,
-      rangeHint,
-    }),
-    client_request_id: createId("strategy-backtest"),
-    preview_id: previewSnapshot.previewId,
-    preview_range: {
-      end_date: previewSnapshot.range.endDate,
-      start_date: previewSnapshot.range.startDate,
-    },
-    ui_display_snapshot: {
-      benchmark: {
-        label: selectedBenchmarkLabel,
-        security_code: benchmark,
-      },
-      period: {
-        key: period,
-        label: selectedPeriodLabel,
-        resolved_range: selectedPeriodDescription,
-      },
-      preview: {
-        created_at: previewSnapshot.createdAt,
-        preview_id: previewSnapshot.previewId,
-        selected_trade_date: previewSnapshot.range.selectedTradeDate ?? null,
-      },
-      simulation: {
-        buy_signal_top_n: settings.buyTopN,
-        initial_capital: settings.initialCapital,
-        max_positions: settings.maxPositions,
-        single_position_limit_pct: settings.singlePositionLimitPercent,
-        stop_loss_rule_count:
-          backtestExecutionDraft.summary.enabled_exit_rule_count,
-      },
-    },
-  }
-}
-
 function BacktestPanel({
   activeRun,
   backtestExecutionDraft,
@@ -419,7 +357,6 @@ function BacktestPanel({
   onRunChange,
   period,
   previewSnapshot,
-  settings,
 }: {
   activeRun: StrategyBacktestRunRecord | null
   backtestExecutionDraft: BacktestExecutionDraft | null
@@ -433,7 +370,6 @@ function BacktestPanel({
   onRunChange: (run: StrategyBacktestRunRecord) => void
   period: BacktestPeriod
   previewSnapshot: PreviewSnapshot | null
-  settings: SimulationSettings
 }) {
   const queryClient = useQueryClient()
   const activeRunId = activeRun?.strategy_backtest_run_id ?? null
@@ -677,10 +613,6 @@ function BacktestPanel({
             start_date: selectedPeriodApiOption.resolved_start_date,
           }
         : null,
-      selectedBenchmarkLabel,
-      selectedPeriodDescription: selectedPeriodOption?.description ?? null,
-      selectedPeriodLabel,
-      settings,
     })
     const run = await createBacktestMutation.mutateAsync(request)
     queryClient.setQueryData(
@@ -696,11 +628,7 @@ function BacktestPanel({
     period,
     previewSnapshot,
     queryClient,
-    selectedBenchmarkLabel,
-    selectedPeriodLabel,
-    selectedPeriodOption?.description,
     selectedPeriodApiOption,
-    settings,
   ])
 
   return (
@@ -1920,102 +1848,21 @@ export function StrategyPage() {
     (publishPreviewQuery.data && !publishPreviewQuery.data.can_publish
       ? "待更新行情"
       : "—")
-  const publishConditionRows = useMemo(
+  const strategyConfigDisplay = useMemo(
     () =>
-      conditionGroups.flatMap((group, groupIndex) =>
-        group.conditions.map((condition, conditionIndex) => ({
-          id: condition.id,
-          expression: formatComparableIndicator(condition, {
-            catalogOptions: strategyCatalogOptions,
-          }),
-          groupLabel: group.name || `指标组 ${groupIndex + 1}`,
-          logicLabel:
-            conditionIndex === 0 ? "组内起始" : condition.logic.toUpperCase(),
-        }))
-      ),
-    [conditionGroups, strategyCatalogOptions]
-  )
-  const publishScoringRows = useMemo(
-    () =>
-      weightIndicators.map((indicator, index) => ({
-        id: indicator.id,
-        expression: formatWeightIndicator(indicator, {
-          catalogOptions: strategyScoringCatalog,
-        }),
-        index: index + 1,
-        score: indicator.score,
-      })),
-    [strategyScoringCatalog, weightIndicators]
-  )
-  const publishRiskRules = useMemo(() => {
-    const rules: string[] = []
-    if (effectiveSimulationSettings.fixedStopLoss.enabled) {
-      rules.push(
-        `固定止损 ${formatUiPercent(
-          effectiveSimulationSettings.fixedStopLoss.lossPercent
-        )}`
-      )
-    }
-    if (effectiveSimulationSettings.takeProfit.enabled) {
-      rules.push(
-        `止盈 ${formatUiPercent(
-          effectiveSimulationSettings.takeProfit.profitPercent
-        )}`
-      )
-    }
-    if (effectiveSimulationSettings.timeStopLoss.enabled) {
-      rules.push(
-        `时间止损 ${effectiveSimulationSettings.timeStopLoss.holdingDays} 天`
-      )
-    }
-    if (effectiveSimulationSettings.indicatorStopLoss.enabled) {
-      rules.push(
-        `指标止损 ${effectiveSimulationSettings.indicatorStopLoss.metric}`
-      )
-    }
-    return rules
-  }, [
-    effectiveSimulationSettings.fixedStopLoss.enabled,
-    effectiveSimulationSettings.fixedStopLoss.lossPercent,
-    effectiveSimulationSettings.indicatorStopLoss.enabled,
-    effectiveSimulationSettings.indicatorStopLoss.metric,
-    effectiveSimulationSettings.takeProfit.enabled,
-    effectiveSimulationSettings.takeProfit.profitPercent,
-    effectiveSimulationSettings.timeStopLoss.enabled,
-    effectiveSimulationSettings.timeStopLoss.holdingDays,
-  ])
-  const publishBuildSummaryRows = useMemo(
-    () => [
-      ["初始资金", formatCurrency(effectiveSimulationSettings.initialCapital)],
-      ["每日候选", `Top ${effectiveSimulationSettings.buyTopN}`],
-      ["候选口径", "Top N 是每日候选信号，不是目标持仓集合"],
-      ["调仓规则", "仅空位调入；旧持仓由风控退出"],
-      ["最大持仓", `${effectiveSimulationSettings.maxPositions} 只`],
-      [
-        "单票上限",
-        formatUiPercent(effectiveSimulationSettings.singlePositionLimitPercent),
-      ],
-      [
-        "交易成本",
-        `佣金 ${formatUiPercent(
-          effectiveSimulationSettings.transactionFees.commissionRatePercent
-        )} / 滑点 ${formatUiPercent(
-          effectiveSimulationSettings.transactionFees.slippageRatePercent
-        )}`,
-      ],
-      [
-        "风控",
-        publishRiskRules.length > 0 ? publishRiskRules.join("，") : "未启用",
-      ],
-    ],
+      buildStrategyConfigDisplayFromDraft({
+        conditionCatalogOptions: strategyCatalogOptions,
+        conditionGroups,
+        scoringCatalogOptions: strategyScoringCatalog,
+        settings: effectiveSimulationSettings,
+        weightIndicators,
+      }),
     [
-      effectiveSimulationSettings.buyTopN,
-      effectiveSimulationSettings.initialCapital,
-      effectiveSimulationSettings.maxPositions,
-      effectiveSimulationSettings.singlePositionLimitPercent,
-      effectiveSimulationSettings.transactionFees.commissionRatePercent,
-      effectiveSimulationSettings.transactionFees.slippageRatePercent,
-      publishRiskRules,
+      conditionGroups,
+      effectiveSimulationSettings,
+      strategyCatalogOptions,
+      strategyScoringCatalog,
+      weightIndicators,
     ]
   )
 
@@ -2306,24 +2153,12 @@ export function StrategyPage() {
     setActiveBacktestRun(null)
 
     try {
-      const selectedPeriodOption =
-        backtestPeriodOptions.find(
-          (option) => option.value === backtestPeriod
-        ) ?? backtestPeriodOptions[0]
-      const selectedBenchmarkOption =
-        backtestBenchmarkOptions.find(
-          (option) => option.securityCode === backtestBenchmark
-        ) ?? backtestBenchmarkOptions[0]
       const request = buildStrategyBacktestCreateRequest({
         backtestExecutionDraft,
         benchmark: backtestBenchmark,
         period: backtestPeriod,
         previewSnapshot,
         rangeHint: null,
-        selectedBenchmarkLabel: selectedBenchmarkOption.label,
-        selectedPeriodDescription: null,
-        selectedPeriodLabel: selectedPeriodOption.label,
-        settings: effectiveSimulationSettings,
       })
       const run = await initialBacktestMutation.mutateAsync(request)
       const handoff = acceptStrategyBacktestRunForStep5(run)
@@ -2512,7 +2347,6 @@ export function StrategyPage() {
                   isMarketTemplateLoading={defaultMarketTemplateQuery.isLoading}
                   period={backtestPeriod}
                   previewSnapshot={previewSnapshot}
-                  settings={effectiveSimulationSettings}
                   onBenchmarkChange={setBacktestBenchmark}
                   onPeriodChange={setBacktestPeriod}
                   onRunChange={setActiveBacktestRun}
@@ -2614,76 +2448,9 @@ export function StrategyPage() {
                         value="config"
                         className="flex h-full min-h-0 flex-1 flex-col gap-4 overflow-x-hidden overflow-y-auto pt-1 pr-1"
                       >
-                        <section className="flex flex-col gap-2">
-                          <h3 className="text-sm font-medium">指标过滤</h3>
-                          <div className="flex flex-col divide-y divide-border/70 border-y border-border/70">
-                            {publishConditionRows.length > 0 ? (
-                              publishConditionRows.map((row) => (
-                                <div
-                                  className="grid gap-1 py-2 md:grid-cols-[9rem_5rem_1fr]"
-                                  key={row.id}
-                                >
-                                  <div className="text-muted-foreground">
-                                    {row.groupLabel}
-                                  </div>
-                                  <div>{row.logicLabel}</div>
-                                  <div className="font-mono text-[11px] break-words">
-                                    {row.expression}
-                                  </div>
-                                </div>
-                              ))
-                            ) : (
-                              <div className="py-3 text-muted-foreground">
-                                暂无条件指标
-                              </div>
-                            )}
-                          </div>
-                        </section>
-
-                        <section className="flex flex-col gap-2">
-                          <h3 className="text-sm font-medium">权重得分</h3>
-                          <div className="flex flex-col divide-y divide-border/70 border-y border-border/70">
-                            {publishScoringRows.length > 0 ? (
-                              publishScoringRows.map((row) => (
-                                <div
-                                  className="grid gap-1 py-2 md:grid-cols-[4rem_5rem_1fr]"
-                                  key={row.id}
-                                >
-                                  <div className="text-muted-foreground">
-                                    #{row.index}
-                                  </div>
-                                  <div className="font-medium">
-                                    +{row.score}
-                                  </div>
-                                  <div className="font-mono text-[11px] break-words">
-                                    {row.expression}
-                                  </div>
-                                </div>
-                              ))
-                            ) : (
-                              <div className="py-3 text-muted-foreground">
-                                暂无评分项
-                              </div>
-                            )}
-                          </div>
-                        </section>
-
-                        <section className="flex flex-col gap-2">
-                          <h3 className="text-sm font-medium">建仓摘要</h3>
-                          <div className="flex flex-col divide-y divide-border/70 border-y border-border/70">
-                            {publishBuildSummaryRows.map(([label, value]) => (
-                              <div
-                                className="grid gap-1 py-2 md:grid-cols-[9rem_1fr]"
-                                key={label}
-                              >
-                                <div className="text-muted-foreground">
-                                  {label}
-                                </div>
-                                <div>{value}</div>
-                              </div>
-                            ))}
-                          </div>
-                        </section>
+                        <StrategyConfigDisplaySection
+                          display={strategyConfigDisplay}
+                        />
                       </TabsContent>
 
                       <TabsContent

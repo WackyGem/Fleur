@@ -6,6 +6,7 @@
 
 | RFC | 状态 | 用途 |
 |---|---|---|
+| [0046-racingline-strategy-detail-config-display.md](0046-racingline-strategy-detail-config-display.md) | Implemented | Racingline 策略详情页页头策略配置方案按钮、点击详情层、Step 5 配置复用和 canonical 配置派生展示；0075 已完成 `rule_snapshot` + `execution_config` 纠偏和 0051 browser smoke |
 | [0045-strategy-portfolio-daily-nav-liquidation.md](0045-strategy-portfolio-daily-nav-liquidation.md) | Implemented | `strategy_portfolio_daily_runs` 已更名为 `daily__portfolio_nav_liquidation`，并作为 `daily__fetch_history_sources_to_marts_schedule_job` 的终端阶段执行 strategy portfolio 日度 NAV 清算；实现见 Plan 0073 和 2026-07-02 运行报告 |
 | [0042-racingline-trade-win-rate-semantics.md](0042-racingline-trade-win-rate-semantics.md) | Proposed | Racingline 交易胜率、卖出胜率、已平仓交易胜率和日胜率的当前口径盘点与命名收敛讨论 |
 | [0040-dagster-stg-to-mart-asset-inventory.md](0040-dagster-stg-to-mart-asset-inventory.md) | Proposed | Dagster stg 到 mart 资产盘点，包含 dbt staging/intermediate/marts、Furnace calculation 和 portfolio 相关资产基线 |

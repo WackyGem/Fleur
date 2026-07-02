@@ -1,8 +1,8 @@
-import { Fragment, useEffect, useRef, useState } from "react"
+import { Fragment, useEffect, useMemo, useRef, useState } from "react"
 import { useQueryClient } from "@tanstack/react-query"
 import { Link, useNavigate, useParams } from "react-router-dom"
 import { createChart, LineSeries, TickMarkType } from "lightweight-charts"
-import { ArrowLeft, Trash2 } from "lucide-react"
+import { ArrowLeft, SlidersHorizontal, Trash2 } from "lucide-react"
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Badge } from "@/components/ui/badge"
@@ -42,6 +42,7 @@ import {
 } from "@/components/racingline/dashboard/portfolio-data"
 import {
   useStrategyPortfolioArchiveMutation,
+  useMetricsQuery,
   useStrategyPortfolioNavQuery,
   useStrategyPortfolioPerformanceQuery,
   useStrategyPortfolioPositionsQuery,
@@ -56,6 +57,16 @@ import { queryKeys } from "@/api/queryKeys"
 import { ApiError } from "@/api/client"
 import { cn } from "@/lib/utils"
 import { Spinner } from "@/components/ui/spinner"
+import { StrategyConfigDisplaySection } from "@/features/strategy/components/strategy-config-display-section"
+import {
+  buildStrategyMetricCatalog,
+  buildStrategyScoringCatalog,
+} from "@/features/strategy/adapters"
+import {
+  buildStrategyConfigDisplayFromCanonical,
+  buildStrategyConfigSourceContext,
+  readRuleVersionSpec,
+} from "@/features/strategy/config-display"
 import {
   isArchivedPortfolioError,
   strategyPortfolioArchiveErrorMessage,
@@ -135,10 +146,12 @@ function StrategyDetailPage() {
   const [statementPeriod, setStatementPeriod] =
     useState<StrategyPortfolioStatementPeriodKey>("month")
   const [statementOffset, setStatementOffset] = useState(0)
+  const [configDialogOpen, setConfigDialogOpen] = useState(false)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [deleteError, setDeleteError] = useState<string | null>(null)
   const rebalanceDateScrollerRef = useRef<HTMLDivElement | null>(null)
   const strategyPortfolioId = portfolioId ?? null
+  const metricsQuery = useMetricsQuery()
   const portfolioQuery = useStrategyPortfolioQuery(strategyPortfolioId)
   const portfolioRecord = portfolioQuery.data
   const archiveMutation = useStrategyPortfolioArchiveMutation()
@@ -210,6 +223,13 @@ function StrategyDetailPage() {
     isPendingFirstRun || positionsQuery.isError
       ? null
       : (positionsQuery.data?.items.length ?? null)
+  const strategyConfigMetricCatalogs = useMemo(
+    () => [
+      ...buildStrategyMetricCatalog(metricsQuery.data ?? []),
+      ...buildStrategyScoringCatalog(metricsQuery.data ?? []),
+    ],
+    [metricsQuery.data]
+  )
 
   useEffect(() => {
     const scroller = rebalanceDateScrollerRef.current
@@ -297,6 +317,7 @@ function StrategyDetailPage() {
   const selectedSignalPool =
     signalPools.find((pool) => pool.date === selectedSignalDate) ??
     signalPools.at(-1)
+  const selectedSignalStocks = selectedSignalPool?.stocks ?? []
   const selectedRebalanceTradeSections = selectedRebalanceRecord
     ? buildRebalanceTradeSections(selectedRebalanceRecord.trades)
     : []
@@ -318,6 +339,16 @@ function StrategyDetailPage() {
     latestExcessReturn,
     portfolio.dailyWinRate
   )
+  const strategyRuleSpec = readRuleVersionSpec(portfolioRecord.rule_snapshot)
+  const strategyConfigDisplay = strategyRuleSpec
+    ? buildStrategyConfigDisplayFromCanonical({
+        executionConfig: portfolioRecord.execution_config,
+        metricCatalogs: strategyConfigMetricCatalogs,
+        rule: strategyRuleSpec,
+      })
+    : null
+  const strategyConfigSourceContext =
+    buildStrategyConfigSourceContext(portfolioRecord)
   const metricGroups = [
     { title: "收益指标", metrics: returnMetrics },
     { title: "风险指标", metrics: portfolio.risk },
@@ -347,6 +378,41 @@ function StrategyDetailPage() {
             <span className="shrink-0">持仓: {livePositionCount} 只</span>
           ) : null}
         </div>
+        <Dialog open={configDialogOpen} onOpenChange={setConfigDialogOpen}>
+          <DialogTrigger
+            render={
+              <Button
+                variant="ghost"
+                size="sm"
+                type="button"
+                className="shrink-0 font-normal"
+              />
+            }
+          >
+            <SlidersHorizontal data-icon="inline-start" />
+            策略配置方案
+          </DialogTrigger>
+          <DialogContent className="max-h-[min(42rem,calc(100svh-4rem))] grid-rows-[auto_auto_minmax(0,1fr)] overflow-hidden sm:max-w-3xl">
+            <DialogHeader>
+              <DialogTitle>策略配置</DialogTitle>
+            </DialogHeader>
+            <Separator className="bg-border/70" />
+            <div className="min-h-0 overflow-y-auto pr-1">
+              {strategyConfigDisplay ? (
+                <StrategyConfigDisplaySection display={strategyConfigDisplay} />
+              ) : (
+                <Empty className="min-h-48 border border-dashed border-border/70">
+                  <EmptyHeader>
+                    <EmptyTitle>策略配置暂不可展示</EmptyTitle>
+                    <EmptyDescription>
+                      该组合的规则快照或执行配置结构不可解析。
+                    </EmptyDescription>
+                  </EmptyHeader>
+                </Empty>
+              )}
+            </div>
+          </DialogContent>
+        </Dialog>
         <Dialog
           open={deleteDialogOpen}
           onOpenChange={(open) => {
@@ -418,16 +484,10 @@ function StrategyDetailPage() {
         <div className="flex min-h-0 flex-col gap-4">
           <div className="flex w-full flex-col gap-4">
             <section className="flex flex-col gap-3">
-              <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center gap-3">
                 <div className="text-sm font-medium">
                   {isPendingFirstRun ? "待调入信号" : "策略信号"}
                 </div>
-                {selectedSignalPool ? (
-                  <div className="text-xs text-muted-foreground tabular-nums">
-                    {selectedSignalPool.date} / {selectedSignalPool.signalCount}{" "}
-                    只
-                  </div>
-                ) : null}
               </div>
 
               <div className="grid gap-4 xl:grid-cols-[minmax(0,3fr)_minmax(0,7fr)]">
@@ -454,11 +514,19 @@ function StrategyDetailPage() {
                         </div>
                       </div>
                       <div className="text-xs text-muted-foreground tabular-nums">
-                        {selectedSignalPool.stocks.length} 只
+                        {selectedSignalPool.signalCount}股
                       </div>
                     </div>
 
-                    <div className="h-[14rem] min-h-0 overflow-y-auto">
+                    <div
+                      data-slot="signal-table-frame"
+                      className={cn(
+                        "h-[14rem] min-h-0",
+                        selectedSignalStocks.length > 0
+                          ? "overflow-y-auto"
+                          : "overflow-hidden"
+                      )}
+                    >
                       <Table className="w-full table-fixed">
                         <TableHeader>
                           <TableRow className="hover:bg-transparent">
@@ -474,40 +542,58 @@ function StrategyDetailPage() {
                           </TableRow>
                         </TableHeader>
                         <TableBody>
-                          {selectedSignalPool.stocks.map((stock) => (
-                            <TableRow key={stock.code}>
-                              <TableCell className="px-1 py-1">
-                                <div className="grid min-w-0 grid-cols-[4.5em_minmax(0,1fr)] items-center gap-1">
-                                  <span className="truncate font-medium">
-                                    {stock.name}
-                                  </span>
-                                  <span className="truncate text-muted-foreground tabular-nums">
-                                    {stock.code}
-                                  </span>
-                                </div>
-                              </TableCell>
-                              <TableCell className="px-1 py-1">
-                                <div
-                                  className="w-full truncate text-muted-foreground tabular-nums"
-                                  title={formatSignalDetail(stock)}
-                                >
-                                  {formatSignalDetail(stock)}
-                                </div>
-                              </TableCell>
-                              <TableCell className="px-1 py-1 text-right">
-                                <Badge
-                                  variant={getScoreBadgeVariant(stock.score)}
-                                >
-                                  {stock.score.toFixed(1)}
-                                </Badge>
+                          {selectedSignalStocks.length > 0 ? (
+                            selectedSignalStocks.map((stock) => (
+                              <TableRow key={stock.code}>
+                                <TableCell className="px-1 py-1">
+                                  <div className="grid min-w-0 grid-cols-[4.5em_minmax(0,1fr)] items-center gap-1">
+                                    <span className="truncate font-medium">
+                                      {stock.name}
+                                    </span>
+                                    <span className="truncate text-muted-foreground tabular-nums">
+                                      {stock.code}
+                                    </span>
+                                  </div>
+                                </TableCell>
+                                <TableCell className="px-1 py-1">
+                                  <div
+                                    className="w-full truncate text-muted-foreground tabular-nums"
+                                    title={formatSignalDetail(stock)}
+                                  >
+                                    {formatSignalDetail(stock)}
+                                  </div>
+                                </TableCell>
+                                <TableCell className="px-1 py-1 text-right">
+                                  <Badge
+                                    variant={getScoreBadgeVariant(stock.score)}
+                                  >
+                                    {stock.score.toFixed(1)}
+                                  </Badge>
+                                </TableCell>
+                              </TableRow>
+                            ))
+                          ) : (
+                            <TableRow className="hover:bg-transparent">
+                              <TableCell colSpan={3} className="px-1 py-2">
+                                <Empty className="h-[10.5rem] border border-dashed border-border/70 p-4">
+                                  <EmptyDescription>
+                                    没有产生买入信号
+                                  </EmptyDescription>
+                                </Empty>
                               </TableCell>
                             </TableRow>
-                          ))}
+                          )}
                         </TableBody>
                       </Table>
                     </div>
                   </div>
-                ) : null}
+                ) : (
+                  <Empty className="h-[14rem] min-h-0 border border-dashed border-border/70">
+                    <EmptyHeader>
+                      <EmptyDescription>没有产生买入信号</EmptyDescription>
+                    </EmptyHeader>
+                  </Empty>
+                )}
               </div>
             </section>
 
@@ -530,8 +616,8 @@ function StrategyDetailPage() {
                   />
                   <DetailSummaryMetric
                     label="业绩基准"
-                    value="沪深300"
-                    detail="000300.SH"
+                    value={strategyConfigSourceContext.benchmarkLabel}
+                    detail={strategyConfigSourceContext.benchmarkSecurityCode}
                   />
                   {latestPoint ? (
                     <>

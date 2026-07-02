@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest"
 import {
   buildBacktestDateRange,
   buildBacktestExecutionRequestDraft,
+  buildStrategyBacktestCreateRequest,
   buildStrategyBacktestValidateRequest,
   marketTemplateToTransactionFees,
   simulationSettingsToBacktestExecutionConfig,
@@ -267,6 +268,51 @@ describe("buildBacktestExecutionRequestDraft", () => {
         period: "1y",
       })
     ).not.toHaveProperty("range_hint")
+  })
+})
+
+describe("buildStrategyBacktestCreateRequest", () => {
+  it("does not persist frontend display snapshots in the create request", () => {
+    const validateRequest = buildStrategyBacktestValidateRequest({
+      marketTemplate,
+      previewSnapshot: previewSnapshot(false),
+      settings,
+    })
+    const draft = toBacktestExecutionDraft({
+      createdAt: "2026-06-22T00:00:00.000Z",
+      request: validateRequest,
+      response: {
+        execution_config: validateRequest.execution_config,
+        execution_config_hash: "execution-hash",
+        preview_id: "preview-1",
+        preview_range: validateRequest.preview_range,
+        rule_hash: "rule-hash",
+        summary: {
+          buy_signal_top_n: 5,
+          enabled_exit_rule_count: 3,
+          implicit_cash_reserve_pct: 0.5,
+          max_positions: 8,
+          target_weight_per_position_pct: 0.1,
+        },
+        warnings: [],
+      },
+    })
+
+    const createRequest = buildStrategyBacktestCreateRequest({
+      backtestExecutionDraft: draft,
+      benchmark: "000300.SH",
+      period: "1y",
+      previewSnapshot: previewSnapshot(false),
+    })
+
+    expect(createRequest).not.toHaveProperty("ui_display_snapshot")
+    expect(createRequest.rule).toBe(rule)
+    expect(createRequest.execution_config).toBe(validateRequest.execution_config)
+    expect(createRequest.preview_id).toBe("preview-1")
+    expect(createRequest.preview_range).toEqual({
+      end_date: "2026-06-22",
+      start_date: "2025-06-22",
+    })
   })
 })
 

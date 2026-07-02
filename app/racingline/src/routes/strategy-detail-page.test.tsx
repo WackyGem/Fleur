@@ -12,7 +12,10 @@ import type {
   StrategyPortfolioNavResponse,
   StrategyPortfolioPerformanceView,
   StrategyPortfolioRecord,
+  StrategyPortfolioSignalsResponse,
+  StrategyPortfolioSignalTimelineResponse,
   StrategyPortfolioVirtualAccount,
+  RuleVersionSpec,
 } from "@/types/rearview"
 
 const mocks = vi.hoisted(() => ({
@@ -46,6 +49,18 @@ const mocks = vi.hoisted(() => ({
     isError: false,
     isLoading: false,
   },
+  signalsQuery: {
+    data: null as StrategyPortfolioSignalsResponse | null,
+    error: null as unknown,
+    isError: false,
+    isLoading: false,
+  },
+  signalTimelineQuery: {
+    data: null as StrategyPortfolioSignalTimelineResponse | null,
+    error: null as unknown,
+    isError: false,
+    isLoading: false,
+  },
   emptyQuery: {
     data: null,
     error: null,
@@ -68,20 +83,15 @@ vi.mock("react-router-dom", () => ({
 }))
 
 vi.mock("@/api/hooks", () => ({
+  useMetricsQuery: () => ({ ...mocks.emptyQuery, data: [] }),
   useStrategyPortfolioArchiveMutation: () => mocks.archiveMutation,
   useStrategyPortfolioNavQuery: () => mocks.navQuery,
   useStrategyPortfolioPerformanceQuery: () => mocks.performanceQuery,
   useStrategyPortfolioPositionsQuery: () => mocks.emptyQuery,
   useStrategyPortfolioQuery: () => mocks.portfolioQuery,
   useStrategyPortfolioRebalanceRecordsQuery: () => mocks.emptyQuery,
-  useStrategyPortfolioSignalsQuery: () => ({
-    ...mocks.emptyQuery,
-    data: { has_more: false, items: [], pending_buy_signals: [] },
-  }),
-  useStrategyPortfolioSignalTimelineQuery: () => ({
-    ...mocks.emptyQuery,
-    data: { trade_dates: [] },
-  }),
+  useStrategyPortfolioSignalsQuery: () => mocks.signalsQuery,
+  useStrategyPortfolioSignalTimelineQuery: () => mocks.signalTimelineQuery,
   useStrategyPortfolioStatementQuery: () => mocks.emptyQuery,
   useStrategyPortfolioVirtualAccountQuery: () => mocks.virtualAccountQuery,
 }))
@@ -139,7 +149,11 @@ describe("StrategyDetailPage delete action", () => {
     resetQuery(mocks.navQuery)
     resetQuery(mocks.performanceQuery)
     resetQuery(mocks.virtualAccountQuery)
+    resetQuery(mocks.signalsQuery)
+    resetQuery(mocks.signalTimelineQuery)
     resetQuery(mocks.emptyQuery)
+    mocks.signalsQuery.data = emptySignalsResponse()
+    mocks.signalTimelineQuery.data = emptySignalTimelineResponse()
   })
 
   afterEach(() => {
@@ -216,6 +230,137 @@ describe("StrategyDetailPage delete action", () => {
 
     expect(mocks.navigate).not.toHaveBeenCalled()
     expect(document.body.textContent).toContain("策略不存在或链接无效。")
+  })
+
+  it("opens the strategy config dialog from canonical portfolio config", async () => {
+    const record = portfolioRecord()
+    mocks.portfolioQuery.data = {
+      ...record,
+      backtest_segment: {
+        ...record.backtest_segment,
+        benchmark_security_code: "000905.SH",
+      },
+      benchmark_security_code: "000905.SH",
+      rule_snapshot: strategyConfigRuleSnapshot(),
+      ui_display_snapshot: {
+        strategy_config_display: {
+          version: 1,
+          condition_rows: [{ expression: "wrong" }],
+          scoring_rows: [],
+          build_summary_rows: [],
+        },
+      },
+    }
+
+    await renderPage()
+
+    const configButton = buttonElement("策略配置方案")
+    expect(configButton.textContent?.trim()).toBe("策略配置方案")
+    expect(configButton.querySelector("svg")).not.toBeNull()
+    expect(configButton.className).toContain("font-normal")
+    expect(configButton.className).not.toContain("border-border")
+    expect(configButton.className).not.toContain("bg-background")
+    expect(configButton.getAttribute("title")).toBeNull()
+    expect(configButton.hasAttribute("aria-describedby")).toBe(false)
+
+    await clickButton("策略配置方案")
+
+    expect(document.body.textContent).toContain("策略配置")
+    expect(
+      configDialogElement()?.querySelector("[data-slot='separator']")
+    ).not.toBeNull()
+    expect(document.body.textContent).not.toContain(
+      "近一年 · 2025-06-26 - 2026-06-26 · 中证500（000905.SH） · 建仓日 2026-06-29"
+    )
+    expect(document.body.textContent).toContain("指标过滤")
+    expect(document.body.textContent).toContain("条件组 1")
+    expect(document.body.textContent).toContain("close_price > price_ma_20")
+    expect(document.body.textContent).not.toContain("wrong")
+    expect(document.body.textContent).toContain("权重得分")
+    expect(document.body.textContent).toContain("turnover_rate 区间内 2 - 8")
+    expect(document.body.textContent).toContain("建仓摘要")
+    expect(document.body.textContent).toContain("候选口径")
+    expect(document.body.textContent).toContain(
+      "Top N 是每日候选信号，不是目标持仓集合"
+    )
+  })
+
+  it("shows an explicit empty state when canonical config is not parseable", async () => {
+    const record = portfolioRecord()
+    mocks.portfolioQuery.data = {
+      ...record,
+      rule_snapshot: {},
+      ui_display_snapshot: {
+        strategy_config_display: {
+          version: 1,
+          condition_rows: [],
+          scoring_rows: [],
+          build_summary_rows: [],
+        },
+      },
+    }
+
+    await renderPage()
+    await clickButton("策略配置方案")
+
+    expect(document.body.textContent).toContain("策略配置暂不可展示")
+  })
+
+  it("derives the performance benchmark from the source context", async () => {
+    const record = portfolioRecord()
+    mocks.portfolioQuery.data = {
+      ...record,
+      backtest_segment: {
+        ...record.backtest_segment,
+        benchmark_security_code: "000905.SH",
+      },
+      benchmark_security_code: "000905.SH",
+    }
+
+    await renderPage()
+
+    expect(metricValueElement("业绩基准").textContent).toContain("中证500")
+    expect(metricValueElement("业绩基准").textContent).toContain("000905.SH")
+    expect(metricValueElement("业绩基准").textContent).not.toContain("沪深300")
+  })
+
+  it("shows a dashed placeholder when the latest signal date has no buy signals", async () => {
+    mocks.signalTimelineQuery.data = {
+      ...emptySignalTimelineResponse(),
+      trade_dates: [
+        {
+          signal_count: 0,
+          target_count: 0,
+          trade_date: "2026-07-02",
+        },
+      ],
+    }
+
+    await renderPage()
+
+    expect(document.body.textContent).toContain("没有产生买入信号")
+    expect(document.body.textContent).toContain("2026-07-02")
+    expect(document.body.textContent).toContain("0股")
+    expect(document.body.textContent).toContain("股票")
+    expect(document.body.textContent).toContain("信号 / 建仓")
+    expect(document.body.textContent).toContain("得分")
+    expect(document.body.textContent).not.toContain("2026-07-02 / 0 只")
+
+    const emptyState = Array.from(
+      document.body.querySelectorAll("[data-slot='empty']")
+    ).find((candidate) =>
+      candidate.textContent?.includes("没有产生买入信号")
+    )
+
+    expect(emptyState?.className).toContain("border-dashed")
+    const tableFrame = emptyState?.closest("[data-slot='signal-table-frame']")
+
+    expect(tableFrame?.className).toContain("overflow-hidden")
+    expect(tableFrame?.className).not.toContain("overflow-y-auto")
+    expect(emptyState?.querySelector("[data-slot='empty-title']")).toBeNull()
+    expect(
+      emptyState?.querySelector("[data-slot='empty-description']")
+    ).not.toBeNull()
   })
 
   it("renders account inception pnl separately from daily pnl", async () => {
@@ -305,7 +450,7 @@ describe("StrategyDetailPage delete action", () => {
     return valueElement
   }
 
-  async function clickButton(label: string) {
+  function buttonElement(label: string) {
     const button = Array.from(document.body.querySelectorAll("button")).find(
       (candidate) => candidate.textContent?.includes(label)
     )
@@ -314,11 +459,68 @@ describe("StrategyDetailPage delete action", () => {
       throw new Error(`button not found: ${label}`)
     }
 
+    return button
+  }
+
+  function configDialogElement() {
+    return Array.from(
+      document.body.querySelectorAll("[data-slot='dialog-content']")
+    ).find((candidate) => candidate.textContent?.includes("策略配置"))
+  }
+
+  async function clickButton(label: string) {
+    const button = buttonElement(label)
+
     await act(async () => {
       button.dispatchEvent(new MouseEvent("click", { bubbles: true }))
     })
   }
 })
+
+function strategyConfigRuleSnapshot(): RuleVersionSpec {
+  return {
+    universe: {
+      base: "all_a_shares",
+      exclude_st: true,
+      exclude_suspend: true,
+      include_security_codes: [],
+      exclude_security_codes: [],
+    },
+    pool_filters: {
+      type: "all",
+      conditions: [
+        {
+          type: "compare",
+          left: { type: "metric", name: "close_price" },
+          op: "gt",
+          right: { type: "metric", name: "price_ma_20" },
+        },
+      ],
+    },
+    scoring: {
+      rules: [
+        {
+          type: "conditional_points",
+          name: "turnover-band",
+          condition: {
+            type: "compare",
+            left: { type: "metric", name: "turnover_rate" },
+            op: "between",
+            right: {
+              type: "range",
+              min: { type: "number", value: 2 },
+              max: { type: "number", value: 8 },
+            },
+          },
+          points: 30,
+        },
+      ],
+      clamp: { min: 0, max: 100 },
+    },
+    top_n_default: 5,
+    output_metrics: ["close_price", "price_ma_20", "turnover_rate"],
+  }
+}
 
 function resetQuery<T>(query: {
   data: T | null
@@ -330,6 +532,26 @@ function resetQuery<T>(query: {
   query.error = null
   query.isError = false
   query.isLoading = false
+}
+
+function emptySignalsResponse(): StrategyPortfolioSignalsResponse {
+  return {
+    has_more: false,
+    items: [],
+    limit: 50,
+    offset: 0,
+    pending_buy_signals: [],
+    signal_source: "live_daily_run",
+    source: "live_daily_run",
+  }
+}
+
+function emptySignalTimelineResponse(): StrategyPortfolioSignalTimelineResponse {
+  return {
+    signal_source: "live_daily_run",
+    source: "live_daily_run",
+    trade_dates: [],
+  }
 }
 
 function livePortfolioRecord(): StrategyPortfolioRecord {
@@ -438,7 +660,7 @@ function portfolioRecord(): StrategyPortfolioRecord {
     required_marts: [],
     required_metrics: [],
     rule_hash: "rule-hash",
-    rule_snapshot: {},
+    rule_snapshot: strategyConfigRuleSnapshot(),
     source_end_date: "2026-06-26",
     source_period_key: "1y",
     source_result_attempt_id: "attempt-1",

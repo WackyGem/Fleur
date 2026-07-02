@@ -13,6 +13,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
+import { Empty, EmptyDescription } from "@/components/ui/empty"
 import { Separator } from "@/components/ui/separator"
 import {
   formatChangeValue,
@@ -35,6 +36,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
+import { cn } from "@/lib/utils"
 
 const VISIBLE_SIGNAL_ROW_COUNT = 5
 const EMPTY_RETURN_METRICS: Metric[] = [
@@ -198,7 +200,13 @@ function TodaySignalSection({
           </div>
         ) : null}
       </div>
-      <div className="max-h-[11rem] min-h-0 overflow-y-auto">
+      <div
+        data-slot="buy-signal-table-frame"
+        className={cn(
+          "max-h-[11rem] min-h-0",
+          stocks.length > 0 ? "overflow-y-auto" : "overflow-hidden"
+        )}
+      >
         <Table className="w-full table-fixed text-xs">
           <TableHeader>
             <TableRow className="hover:bg-transparent">
@@ -207,33 +215,47 @@ function TodaySignalSection({
             </TableRow>
           </TableHeader>
           <TableBody>
-            {stocks.map((stock) => (
-              <TableRow key={stock.code}>
-                <TableCell className="px-1 py-1">
-                  <div className="grid min-w-0 grid-cols-[4.5em_minmax(0,1fr)] items-center gap-1">
-                    <span className="truncate font-medium">{stock.name}</span>
-                    <span className="truncate text-muted-foreground tabular-nums">
-                      {stock.code}
-                    </span>
-                  </div>
-                </TableCell>
-                <TableCell className="px-1 py-1 text-right">
-                  <Badge variant={getScoreBadgeVariant(stock.score)}>
-                    {stock.score.toFixed(1)}
-                  </Badge>
+            {stocks.length > 0 ? (
+              <>
+                {stocks.map((stock) => (
+                  <TableRow key={stock.code}>
+                    <TableCell className="px-1 py-1">
+                      <div className="grid min-w-0 grid-cols-[4.5em_minmax(0,1fr)] items-center gap-1">
+                        <span className="truncate font-medium">
+                          {stock.name}
+                        </span>
+                        <span className="truncate text-muted-foreground tabular-nums">
+                          {stock.code}
+                        </span>
+                      </div>
+                    </TableCell>
+                    <TableCell className="px-1 py-1 text-right">
+                      <Badge variant={getScoreBadgeVariant(stock.score)}>
+                        {stock.score.toFixed(1)}
+                      </Badge>
+                    </TableCell>
+                  </TableRow>
+                ))}
+                {Array.from({ length: placeholderCount }, (_, index) => (
+                  <TableRow key={`placeholder-${index}`}>
+                    <TableCell className="px-1 py-1 text-muted-foreground">
+                      --
+                    </TableCell>
+                    <TableCell className="px-1 py-1 text-right text-muted-foreground">
+                      --
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </>
+            ) : (
+              <TableRow className="hover:bg-transparent">
+                <TableCell colSpan={2} className="px-1 py-2">
+                  <Empty className="h-[8.5rem] border border-dashed border-border/70 p-4">
+                    <EmptyDescription>没有产生买入信号</EmptyDescription>
+                  </Empty>
                 </TableCell>
               </TableRow>
-            ))}
-            {Array.from({ length: placeholderCount }, (_, index) => (
-              <TableRow key={`placeholder-${index}`}>
-                <TableCell className="px-1 py-1 text-muted-foreground">
-                  --
-                </TableCell>
-                <TableCell className="px-1 py-1 text-right text-muted-foreground">
-                  --
-                </TableCell>
-              </TableRow>
-            ))}
+            )}
           </TableBody>
         </Table>
       </div>

@@ -1,5 +1,6 @@
 import type { PreviewSnapshot } from "@/features/strategy/preview"
 import type { SimulationSettings } from "@/features/strategy/types"
+import { createId } from "@/features/strategy/utils"
 import type {
   BacktestDateRange,
   BacktestExecutionConfig,
@@ -202,6 +203,35 @@ export function buildBacktestExecutionRequestDraft({
     rule_hash: draft.rule_hash,
     execution_config_hash: draft.execution_config_hash,
     ...(rangeHint ? { range_hint: rangeHint } : {}),
+  }
+}
+
+export function buildStrategyBacktestCreateRequest({
+  backtestExecutionDraft,
+  benchmark,
+  period,
+  previewSnapshot,
+  rangeHint,
+}: {
+  backtestExecutionDraft: BacktestExecutionDraft
+  benchmark: string
+  period: BacktestPeriodValue
+  previewSnapshot: PreviewSnapshot
+  rangeHint?: BacktestDateRange | null
+}): StrategyBacktestCreateRequest {
+  return {
+    ...buildBacktestExecutionRequestDraft({
+      benchmark,
+      draft: backtestExecutionDraft,
+      period,
+      rangeHint,
+    }),
+    client_request_id: createId("strategy-backtest"),
+    preview_id: previewSnapshot.previewId,
+    preview_range: {
+      end_date: previewSnapshot.range.endDate,
+      start_date: previewSnapshot.range.startDate,
+    },
   }
 }
 
