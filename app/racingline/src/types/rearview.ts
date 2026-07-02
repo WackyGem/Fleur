@@ -549,6 +549,7 @@ export type StrategyPortfolioCreateRequest = {
   source_strategy_backtest_run_id: string
   source_result_attempt_id: string
   name: string
+  expected_required_source_signal_date: string
   expected_source_signal_date: string
   expected_live_start_date: string
   client_request_id?: string
@@ -569,6 +570,11 @@ export type StrategyPortfolioPublishPreviewResponse = {
   source_strategy_backtest_run_id: string
   source_result_attempt_id: string
   source_signal_date: string
+  server_current_date: string
+  server_current_time: string
+  market_phase: "before_close" | "after_close" | "non_trading_day"
+  publish_cutoff_time: string
+  required_source_signal_date: string
   planned_live_start_date?: string | null
   source_period_key: StrategyBacktestPeriodKey
   source_start_date: string

@@ -24,6 +24,8 @@ Snapshot 文档必须写明生成日期和生成命令。
 
 | 报告 | 范围 |
 |---|---|
+| [2026-07-02-racingline-strategy-publish-market-phase-entry-rule.md](reports/2026-07-02-racingline-strategy-publish-market-phase-entry-rule.md) | Racingline 建立组合发布预检改为交易阶段感知，覆盖 15:00 前上一交易日信号、15:00 后当天信号、create 二次校验和发布弹层展示 |
+| [2026-07-02-racingline-strategy-entry-rule-implementation.md](reports/2026-07-02-racingline-strategy-entry-rule-implementation.md) | Racingline 最近信号建仓日期 gate 与空位补仓规则实施验收，覆盖 Rearview stale/future signal 阻断、Racingline 发布弹层和 Step 4/Step 5 命名解释 |
 | [2026-07-01-furnace-clickhouse-rust-client-migration.md](reports/2026-07-01-furnace-clickhouse-rust-client-migration.md) | Furnace 全部股票技术指标迁移到官方 `clickhouse` Rust HTTP client，并移除外部 `clickhouse-client` / Docker exec 运行时依赖 |
 | [2026-07-01-daily-fetch-history-sources-to-marts-schedule-job-dry-run.md](reports/2026-07-01-daily-fetch-history-sources-to-marts-schedule-job-dry-run.md) | `daily__fetch_history_sources_to_marts_schedule_job` 的 `all_source_to_marts` 单日 dry-run plan expansion |
 | [2026-07-01-backfill-source-to-marts-controller-dry-run.md](reports/2026-07-01-backfill-source-to-marts-controller-dry-run.md) | `backfill__fetch_history_sources_to_marts_job` 的 `all_source_to_marts` dry-run plan expansion |

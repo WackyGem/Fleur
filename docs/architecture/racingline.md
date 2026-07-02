@@ -1,6 +1,6 @@
 # Architecture: Racingline
 
-状态：单一正式前端工作台已落到 `app/racingline/`；Step 4 到 Step 5 回测 handoff 已改为 create accepted 后进入状态页（2026-06-25）；Step 5 succeeded 首屏已切到 Rearview overview compact endpoint，HTTP live 计时和前端质量门禁已通过（2026-06-26）；Step 5「建立组合」已接入 T+1 publish preview、pending 首次运行展示和 live/backtest 语义分离（2026-06-27）；组合详情页已展示 live 虚拟资金账户和对账单 read model（2026-06-29）
+状态：单一正式前端工作台已落到 `app/racingline/`；Step 4 到 Step 5 回测 handoff 已改为 create accepted 后进入状态页（2026-06-25）；Step 5 succeeded 首屏已切到 Rearview overview compact endpoint，HTTP live 计时和前端质量门禁已通过（2026-06-26）；Step 5「建立组合」已接入 T+1 publish preview、pending 首次运行展示和 live/backtest 语义分离（2026-06-27）；组合详情页已展示 live 虚拟资金账户和对账单 read model（2026-06-29）；建立组合发布预检已改为 15:00 前/后交易阶段感知规则（2026-07-02）
 
 ## 代码根
 
@@ -17,7 +17,7 @@
 3. 在 `/strategies` 中支持 Step 1 筛选条件、Step 2 评分规则、Step 3 preview、Step 4 模拟建仓和 Step 5 异步回测。
 4. 通过 Rearview preview-only API 展示 applied preview snapshot、动态近一年交易日股池、分页候选股、rank、score、Step 2 得分项、Step 1 指标列、证券交易板块、K 线复权、MA5/MA10/MA30 和成交量柱。
 5. 通过 Rearview strategy backtest API 展示 validate、options、create、status、overview、nav、rebalance records、targets、orders、trades、positions、events、performance、closed trades 和 trade metrics；`/strategies` Step 4 创建 backtest run 成功后立即进入 Step 5，Step 5 内部按 status view 轮询并在 succeeded 后优先读取 `overview?view=ui` 作为首屏 compact result wrapper，detail/publish 场景继续使用原明细接口。
-6. Step 5「建立组合」弹层使用「策略配置」和「回测业绩」两段视图，打开时调用 Rearview publish preview，以后端返回的 `source_signal_date` 和 `planned_live_start_date` 作为确认条件；preview blocked 或 expected date 过期时禁止确认。
+6. Step 5「建立组合」弹层使用「策略配置」和「回测业绩」两段视图，打开时调用 Rearview publish preview；UI 只展示最后信号日和计划建仓日，内部以后端返回的 `required_source_signal_date`、`source_signal_date`、`market_phase` 和 `planned_live_start_date` 作为确认条件；交易日 15:00 前允许上一交易日信号，15:00 后要求当天信号，preview blocked 或 expected date 过期时禁止确认。
 7. 通过 Rearview strategy portfolio API 展示看板、详情、净值、信号、signal timeline、虚拟资金账户、对账单、持仓和调仓记录。`pending_first_run` 组合展示待建仓和待调入信号，不展示 live nav、绩效、账户资金、对账单或曲线跳转；详情页在 portfolio record 可用后再查询 live endpoints，并把 `portfolio_pending_first_run` 映射为空 live 状态。对账单区块位于虚拟资金账户之后，period 只传 `month`、`three_months`、`six_months`、`ytd`、`all` key，summary、持仓余额和实现盈亏均展示 Rearview 返回值，第一版不提供证券筛选。
 8. 继续使用 Rearview default market fee template 初始化 Step 4 草稿，并在 UI 中区分 draft、applied snapshot、backtest result、publish preview、pending portfolio 和 live portfolio result。
 

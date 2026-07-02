@@ -3,6 +3,8 @@ pub mod runner;
 
 use std::sync::Arc;
 
+use chrono::{DateTime, FixedOffset, NaiveDate, Utc};
+
 use crate::clickhouse::ClickHouseClient;
 use crate::config::AppConfig;
 use crate::domain::MetricCatalog;
@@ -12,6 +14,8 @@ use tokio::sync::Semaphore;
 
 const DEFAULT_SERVICE_COMPONENT: &str = "rearview-core";
 const DEFAULT_SERVICE_VERSION: &str = env!("CARGO_PKG_VERSION");
+pub type MarketDateProvider = Arc<dyn Fn() -> NaiveDate + Send + Sync>;
+pub type MarketNowProvider = Arc<dyn Fn() -> DateTime<Utc> + Send + Sync>;
 
 #[derive(Clone)]
 pub struct AppState {
@@ -23,6 +27,7 @@ pub struct AppState {
     pub outbox_notifier: Arc<Notify>,
     pub service_component: &'static str,
     pub service_version: &'static str,
+    market_now_provider: MarketNowProvider,
 }
 
 impl AppState {
@@ -78,6 +83,38 @@ impl AppState {
             outbox_notifier,
             service_component,
             service_version,
+            market_now_provider: Arc::new(Utc::now),
         }
     }
+
+    pub fn with_market_date_provider(mut self, market_date_provider: MarketDateProvider) -> Self {
+        self.market_now_provider = Arc::new(move || {
+            let market_date = market_date_provider();
+            let Some(market_midnight) = market_date.and_hms_opt(0, 0, 0) else {
+                return Utc::now();
+            };
+            DateTime::from_naive_utc_and_offset(market_midnight, Utc)
+        });
+        self
+    }
+
+    pub fn with_market_now_provider(mut self, market_now_provider: MarketNowProvider) -> Self {
+        self.market_now_provider = market_now_provider;
+        self
+    }
+
+    pub fn current_market_datetime(&self) -> DateTime<FixedOffset> {
+        current_cn_a_share_market_datetime((self.market_now_provider)())
+    }
+
+    pub fn current_market_date(&self) -> NaiveDate {
+        self.current_market_datetime().date_naive()
+    }
+}
+
+fn current_cn_a_share_market_datetime(now: DateTime<Utc>) -> DateTime<FixedOffset> {
+    let Some(offset) = FixedOffset::east_opt(8 * 60 * 60) else {
+        return now.fixed_offset();
+    };
+    now.with_timezone(&offset)
 }

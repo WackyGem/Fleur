@@ -408,8 +408,10 @@ export function getScaledWeightIndicators(weightIndicators: WeightIndicator[]) {
   }
 }
 
-function getCatalogOptions(catalogOptions: IndicatorCatalog[]) {
-  return catalogOptions.length > 0 ? catalogOptions : indicatorCatalog
+function getCatalogOptions(catalogOptions?: IndicatorCatalog[]) {
+  return catalogOptions && catalogOptions.length > 0
+    ? catalogOptions
+    : indicatorCatalog
 }
 
 function isTrendCatalog(catalog: IndicatorCatalog) {

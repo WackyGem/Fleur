@@ -8,7 +8,7 @@ use axum::middleware::{self, Next};
 use axum::response::Response;
 use axum::routing::{get, patch, post};
 use axum::{Json, Router};
-use chrono::{DateTime, Datelike, Days, Months, NaiveDate, Utc};
+use chrono::{DateTime, Datelike, Days, Months, NaiveDate, NaiveTime, Utc};
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
 use tower_http::cors::CorsLayer;
@@ -1449,13 +1449,16 @@ async fn create_strategy_portfolio(
                 .to_string(),
         ));
     };
-    if preview.source_signal_date != request.expected_source_signal_date
+    if preview.required_source_signal_date != request.expected_required_source_signal_date
+        || preview.source_signal_date != request.expected_source_signal_date
         || planned_live_start_date != request.expected_live_start_date
     {
         return Err(RearviewError::Conflict(format!(
-            "strategy portfolio publish dates are stale: expected {} -> {}, resolved {} -> {}",
+            "strategy portfolio publish dates are stale: expected required {} and {} -> {}, resolved required {} and {} -> {}",
+            request.expected_required_source_signal_date,
             request.expected_source_signal_date,
             request.expected_live_start_date,
+            preview.required_source_signal_date,
             preview.source_signal_date,
             planned_live_start_date
         )));
@@ -1467,6 +1470,7 @@ async fn create_strategy_portfolio(
     let request_hash = hash_json(&json!({
         "source_strategy_backtest_run_id": &source_run.strategy_backtest_run_id,
         "source_result_attempt_id": &request.source_result_attempt_id,
+        "expected_required_source_signal_date": request.expected_required_source_signal_date,
         "expected_source_signal_date": request.expected_source_signal_date,
         "expected_live_start_date": request.expected_live_start_date,
         "name": &name,
@@ -3833,6 +3837,7 @@ struct StrategyPortfolioCreateRequest {
     source_strategy_backtest_run_id: String,
     source_result_attempt_id: String,
     name: String,
+    expected_required_source_signal_date: NaiveDate,
     expected_source_signal_date: NaiveDate,
     expected_live_start_date: NaiveDate,
     #[serde(default)]
@@ -3860,6 +3865,11 @@ struct StrategyPortfolioPublishPreviewResponse {
     source_strategy_backtest_run_id: String,
     source_result_attempt_id: String,
     source_signal_date: NaiveDate,
+    server_current_date: NaiveDate,
+    server_current_time: String,
+    market_phase: StrategyPortfolioPublishMarketPhase,
+    publish_cutoff_time: String,
+    required_source_signal_date: NaiveDate,
     #[serde(skip_serializing_if = "Option::is_none")]
     planned_live_start_date: Option<NaiveDate>,
     source_period_key: String,
@@ -3867,6 +3877,14 @@ struct StrategyPortfolioPublishPreviewResponse {
     source_end_date: NaiveDate,
     benchmark_security_code: String,
     pending_buy_signals: Vec<StrategyPortfolioPendingBuySignal>,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "snake_case")]
+enum StrategyPortfolioPublishMarketPhase {
+    BeforeClose,
+    AfterClose,
+    NonTradingDay,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -6072,14 +6090,25 @@ async fn resolve_strategy_portfolio_publish_preview(
     }
 
     let source_signal_date = source_run.end_date;
-    let planned_live_start_date =
+    let publish_date_context = resolve_strategy_portfolio_publish_date_context(state).await?;
+    let date_blocker = strategy_portfolio_publish_date_blocker(
+        source_signal_date,
+        publish_date_context.required_source_signal_date,
+    );
+    if let Some(blocker) = &date_blocker {
+        blockers.push(blocker.clone());
+    }
+    let planned_live_start_date = if date_blocker.is_some() {
+        None
+    } else {
         match resolve_strategy_portfolio_live_start_date(state, source_signal_date).await {
             Ok(date) => Some(date),
             Err(error) => {
                 blockers.push(error.to_string());
                 None
             }
-        };
+        }
+    };
 
     let mut pending_buy_signals = Vec::new();
     if blockers.is_empty()
@@ -6101,6 +6130,11 @@ async fn resolve_strategy_portfolio_publish_preview(
         source_strategy_backtest_run_id: source_run.strategy_backtest_run_id,
         source_result_attempt_id: source_result_attempt_id.to_string(),
         source_signal_date,
+        server_current_date: publish_date_context.server_current_date,
+        server_current_time: publish_date_context.server_current_time,
+        market_phase: publish_date_context.market_phase,
+        publish_cutoff_time: publish_date_context.publish_cutoff_time,
+        required_source_signal_date: publish_date_context.required_source_signal_date,
         planned_live_start_date,
         source_period_key: source_run.period_key,
         source_start_date: source_run.start_date,
@@ -6108,6 +6142,126 @@ async fn resolve_strategy_portfolio_publish_preview(
         benchmark_security_code: source_run.benchmark_security_code,
         pending_buy_signals,
     })
+}
+
+struct StrategyPortfolioPublishDateContext {
+    server_current_date: NaiveDate,
+    server_current_time: String,
+    market_phase: StrategyPortfolioPublishMarketPhase,
+    publish_cutoff_time: String,
+    required_source_signal_date: NaiveDate,
+}
+
+async fn resolve_strategy_portfolio_publish_date_context(
+    state: &AppState,
+) -> RearviewResult<StrategyPortfolioPublishDateContext> {
+    let market_now = state.current_market_datetime();
+    let server_current_date = market_now.date_naive();
+    let start_date = server_current_date
+        .checked_sub_days(Days::new(45))
+        .ok_or_else(|| {
+            RearviewError::Validation(format!(
+                "could not resolve trading-date search window before {server_current_date}"
+            ))
+        })?;
+    let trade_dates = state
+        .clickhouse
+        .query_trade_calendar_dates(
+            start_date,
+            server_current_date,
+            &format!("strategy-portfolio-publish-required-signal-{server_current_date}"),
+        )
+        .await?;
+    let (market_phase, required_source_signal_date) =
+        resolve_required_source_signal_date(trade_dates, server_current_date, market_now.time())?;
+    Ok(StrategyPortfolioPublishDateContext {
+        server_current_date,
+        server_current_time: market_now.format("%H:%M:%S%:z").to_string(),
+        market_phase,
+        publish_cutoff_time: publish_cutoff_time_label().to_string(),
+        required_source_signal_date,
+    })
+}
+
+fn resolve_required_source_signal_date(
+    mut trade_dates: Vec<NaiveDate>,
+    server_current_date: NaiveDate,
+    server_current_time: NaiveTime,
+) -> RearviewResult<(StrategyPortfolioPublishMarketPhase, NaiveDate)> {
+    trade_dates.sort_unstable();
+    trade_dates.dedup();
+    let is_current_trading_day = trade_dates.binary_search(&server_current_date).is_ok();
+    if is_current_trading_day && server_current_time < publish_cutoff_time() {
+        let Some(required_date) = previous_trade_date_before(&trade_dates, server_current_date)
+        else {
+            return Err(RearviewError::Conflict(format!(
+                "could not resolve previous trading date before {server_current_date}"
+            )));
+        };
+        return Ok((
+            StrategyPortfolioPublishMarketPhase::BeforeClose,
+            required_date,
+        ));
+    }
+    if is_current_trading_day {
+        return Ok((
+            StrategyPortfolioPublishMarketPhase::AfterClose,
+            server_current_date,
+        ));
+    }
+    let Some(required_date) = latest_trade_date_on_or_before(&trade_dates, server_current_date)
+    else {
+        return Err(RearviewError::Conflict(format!(
+            "could not resolve latest completed trading date before or on {server_current_date}"
+        )));
+    };
+    Ok((
+        StrategyPortfolioPublishMarketPhase::NonTradingDay,
+        required_date,
+    ))
+}
+
+fn previous_trade_date_before(
+    trade_dates: &[NaiveDate],
+    server_current_date: NaiveDate,
+) -> Option<NaiveDate> {
+    trade_dates
+        .iter()
+        .rev()
+        .copied()
+        .find(|date| *date < server_current_date)
+}
+
+fn latest_trade_date_on_or_before(
+    trade_dates: &[NaiveDate],
+    server_current_date: NaiveDate,
+) -> Option<NaiveDate> {
+    trade_dates
+        .iter()
+        .rev()
+        .copied()
+        .find(|date| *date <= server_current_date)
+}
+
+fn publish_cutoff_time() -> NaiveTime {
+    NaiveTime::from_hms_opt(15, 0, 0).unwrap_or(NaiveTime::MIN)
+}
+
+fn publish_cutoff_time_label() -> &'static str {
+    "15:00:00+08:00"
+}
+
+fn strategy_portfolio_publish_date_blocker(
+    source_signal_date: NaiveDate,
+    required_source_signal_date: NaiveDate,
+) -> Option<String> {
+    if source_signal_date < required_source_signal_date {
+        return Some("最后信号日与最新行情日存在缺口，请先回填行情数据到最新。".to_string());
+    }
+    if source_signal_date > required_source_signal_date {
+        return Some("最后信号日晚于允许信号日，请检查行情日期或系统时间".to_string());
+    }
+    None
 }
 
 async fn compile_strategy_portfolio_pending_buy_signals(
@@ -7564,6 +7718,148 @@ mod tests {
     }
 
     #[test]
+    fn strategy_portfolio_publish_date_blocker_should_block_stale_signal_date() {
+        let blocker =
+            strategy_portfolio_publish_date_blocker(date("2026-06-29"), date("2026-07-01"));
+
+        assert_eq!(
+            blocker,
+            Some("最后信号日与最新行情日存在缺口，请先回填行情数据到最新。".to_string())
+        );
+    }
+
+    #[test]
+    fn strategy_portfolio_publish_date_blocker_should_allow_required_signal_date() {
+        let blocker =
+            strategy_portfolio_publish_date_blocker(date("2026-07-01"), date("2026-07-01"));
+
+        assert_eq!(blocker, None);
+    }
+
+    #[test]
+    fn strategy_portfolio_publish_date_blocker_should_block_future_signal_date() {
+        let blocker =
+            strategy_portfolio_publish_date_blocker(date("2026-07-03"), date("2026-07-02"));
+
+        assert_eq!(
+            blocker,
+            Some("最后信号日晚于允许信号日，请检查行情日期或系统时间".to_string())
+        );
+    }
+
+    #[test]
+    fn resolve_required_source_signal_date_should_use_previous_trade_date_before_close() {
+        let trade_dates = vec![date("2026-07-01"), date("2026-07-02")];
+
+        let (market_phase, required_date) =
+            resolve_required_source_signal_date(trade_dates, date("2026-07-02"), time("14:30:00"))
+                .unwrap();
+
+        assert_eq!(
+            (market_phase, required_date),
+            (
+                StrategyPortfolioPublishMarketPhase::BeforeClose,
+                date("2026-07-01")
+            )
+        );
+    }
+
+    #[test]
+    fn resolve_required_source_signal_date_should_use_current_trade_date_after_close() {
+        let trade_dates = vec![date("2026-07-01"), date("2026-07-02")];
+
+        let (market_phase, required_date) =
+            resolve_required_source_signal_date(trade_dates, date("2026-07-02"), time("15:30:00"))
+                .unwrap();
+
+        assert_eq!(
+            (market_phase, required_date),
+            (
+                StrategyPortfolioPublishMarketPhase::AfterClose,
+                date("2026-07-02")
+            )
+        );
+    }
+
+    #[test]
+    fn resolve_required_source_signal_date_should_treat_cutoff_as_after_close() {
+        let trade_dates = vec![date("2026-07-01"), date("2026-07-02")];
+
+        let (market_phase, required_date) =
+            resolve_required_source_signal_date(trade_dates, date("2026-07-02"), time("15:00:00"))
+                .unwrap();
+
+        assert_eq!(
+            (market_phase, required_date),
+            (
+                StrategyPortfolioPublishMarketPhase::AfterClose,
+                date("2026-07-02")
+            )
+        );
+    }
+
+    #[test]
+    fn resolve_required_source_signal_date_should_use_latest_completed_trade_date_on_non_trading_day()
+     {
+        let trade_dates = vec![date("2026-06-30"), date("2026-07-01"), date("2026-07-03")];
+
+        let (market_phase, required_date) =
+            resolve_required_source_signal_date(trade_dates, date("2026-07-02"), time("10:00:00"))
+                .unwrap();
+
+        assert_eq!(
+            (market_phase, required_date),
+            (
+                StrategyPortfolioPublishMarketPhase::NonTradingDay,
+                date("2026-07-01")
+            )
+        );
+    }
+
+    #[test]
+    fn resolve_required_source_signal_date_should_error_without_previous_trade_date_before_close() {
+        let trade_dates = vec![date("2026-07-02")];
+
+        let error =
+            resolve_required_source_signal_date(trade_dates, date("2026-07-02"), time("14:30:00"))
+                .unwrap_err();
+
+        assert!(matches!(error, RearviewError::Conflict(_)));
+    }
+
+    #[test]
+    fn strategy_portfolio_publish_preview_should_serialize_server_current_date() {
+        let value = serde_json::to_value(StrategyPortfolioPublishPreviewResponse {
+            can_publish: false,
+            blockers: vec![
+                "最后信号日与最新行情日存在缺口，请先回填行情数据到最新。".to_string(),
+            ],
+            source_strategy_backtest_run_id: "run-1".to_string(),
+            source_result_attempt_id: "attempt-1".to_string(),
+            source_signal_date: date("2026-06-29"),
+            server_current_date: date("2026-07-02"),
+            server_current_time: "15:30:00+08:00".to_string(),
+            market_phase: StrategyPortfolioPublishMarketPhase::AfterClose,
+            publish_cutoff_time: publish_cutoff_time_label().to_string(),
+            required_source_signal_date: date("2026-07-02"),
+            planned_live_start_date: None,
+            source_period_key: "1y".to_string(),
+            source_start_date: date("2025-06-29"),
+            source_end_date: date("2026-06-29"),
+            benchmark_security_code: "000300.SH".to_string(),
+            pending_buy_signals: Vec::new(),
+        })
+        .unwrap();
+
+        assert_eq!(value["server_current_date"], "2026-07-02");
+        assert_eq!(value["server_current_time"], "15:30:00+08:00");
+        assert_eq!(value["market_phase"], "after_close");
+        assert_eq!(value["publish_cutoff_time"], "15:00:00+08:00");
+        assert_eq!(value["required_source_signal_date"], "2026-07-02");
+        assert_eq!(value.get("planned_live_start_date"), None);
+    }
+
+    #[test]
     fn strategy_backtest_overview_ui_response_should_stay_compact() {
         let value = serde_json::to_value(StrategyBacktestOverviewUiResponse {
             status: StrategyBacktestRunStatusView {
@@ -8148,5 +8444,9 @@ mod tests {
 
     fn date(value: &str) -> NaiveDate {
         NaiveDate::parse_from_str(value, "%Y-%m-%d").unwrap()
+    }
+
+    fn time(value: &str) -> NaiveTime {
+        NaiveTime::parse_from_str(value, "%H:%M:%S").unwrap()
     }
 }

@@ -12,6 +12,8 @@
 
 | Plan | 状态 | 说明 |
 |---|---|---|
+| [0070](archive/0070-racingline-strategy-publish-market-phase-entry-rule-plan.md) | Completed | Racingline Step 5 建立组合发布预检改为交易阶段感知：15:00 前允许上一交易日信号，15:00 后要求当天信号，数据多日落后继续阻断；验收见 [2026-07-02 report](../jobs/reports/2026-07-02-racingline-strategy-publish-market-phase-entry-rule.md) |
+| [0069](archive/0069-racingline-strategy-entry-rule-implementation-plan.md) | Completed | Racingline 最近信号建仓日期 gate 与空位补仓规则实施：Rearview publish preview/create stale 校验、Racingline 发布弹层和 Step 4/Step 5 命名解释；验收见 [2026-07-02 report](../jobs/reports/2026-07-02-racingline-strategy-entry-rule-implementation.md) |
 | [0068](archive/0068-furnace-clickhouse-rust-client-migration-plan.md) | Completed | Furnace 一刀切迁移到官方 `clickhouse` Rust client，移除外部 `clickhouse-client` / Docker exec 运行时依赖，覆盖 KDJ、MA、RSI、BOLL、MACD 和 Price Pattern；验收见 [2026-07-01 migration report](../jobs/reports/2026-07-01-furnace-clickhouse-rust-client-migration.md) |
 | [0067](archive/0067-daily-source-to-marts-clean-slate-orchestration-plan.md) | Completed | Daily Source to Marts clean-slate 编排：新增 `daily__fetch_history_sources_to_marts_schedule_job` 和唯一 `daily__fetch_history_sources_to_marts_schedule`，清理旧 daily/transformation/source-specific production jobs；验收见 [2026-07-01 daily dry-run report](../jobs/reports/2026-07-01-daily-fetch-history-sources-to-marts-schedule-job-dry-run.md) |
 | [0066](archive/0066-backfill-source-to-marts-controller-plan.md) | Completed | Backfill Sources to Marts controller：新增 `backfill__fetch_history_sources_to_marts_job`，保留 `backfill__fetch_history_sources_to_raw_job` raw-only 语义，移除旧 snapshot 公开入口，排除 Jiuyan 和 portfolio analytics；验收见 [2026-07-01 report](../jobs/reports/2026-07-01-backfill-source-to-marts-controller-dry-run.md) |

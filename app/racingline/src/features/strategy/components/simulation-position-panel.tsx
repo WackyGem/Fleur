@@ -147,7 +147,7 @@ const settingControlGridClassName =
 const transactionFeeRowClassName =
   "grid gap-2 py-2 md:grid-cols-[11rem_6.5rem_10rem_minmax(0,1fr)] md:items-center"
 const buyRuleLabel = "T+1日开盘价买入"
-const rebalanceRuleLabel = "仓位空余按信号调入"
+const rebalanceRuleLabel = "仅空位调入；旧持仓由风控退出"
 
 const transactionFeeRows: TransactionFeeRow[] = [
   {
@@ -310,7 +310,7 @@ function SimulationPositionPanel({
                   </Field>
 
                   <NumberInputField
-                    label="买入信号 Top N"
+                    label="每日候选信号 Top N"
                     min={1}
                     onValueChange={(buyTopN) =>
                       updateSettings({
@@ -498,7 +498,7 @@ function SimulationPositionPanel({
                 value={formatCurrency(settings.initialCapital)}
               />
               <SummaryMetric
-                label="买入信号"
+                label="每日候选信号"
                 value={`Top ${settings.buyTopN}`}
               />
               <SummaryMetric label="最大持仓" value={`${maxPositions} 只`} />

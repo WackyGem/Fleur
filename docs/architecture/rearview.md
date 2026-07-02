@@ -1,6 +1,6 @@
 # Architecture: Rearview
 
-状态：当前事实入口；Strategy Backtest Step 5 已通过 dev live smoke、worker 重投递验收和 Step 4/5 延时优化验收（2026-06-25）；Step 5 worker latency 已完成 1y/2y/3y live smoke、query_log、结果事实 hash、overview HTTP 计时和 bounded queue smoke（2026-06-26）；Strategy Portfolio publish 已完成 T+1 预检、pending 首次运行语义、backtest/live ClickHouse 事实族拆分和端到端 smoke（2026-06-27）；Strategy Portfolio detail 已提供 live 虚拟资金账户和对账单 read model（2026-06-29）
+状态：当前事实入口；Strategy Backtest Step 5 已通过 dev live smoke、worker 重投递验收和 Step 4/5 延时优化验收（2026-06-25）；Step 5 worker latency 已完成 1y/2y/3y live smoke、query_log、结果事实 hash、overview HTTP 计时和 bounded queue smoke（2026-06-26）；Strategy Portfolio publish 已完成 T+1 预检、pending 首次运行语义、backtest/live ClickHouse 事实族拆分和端到端 smoke（2026-06-27）；Strategy Portfolio detail 已提供 live 虚拟资金账户和对账单 read model（2026-06-29）；Strategy Portfolio publish preview 已按 15:00 前/后交易阶段解析允许信号日（2026-07-02）
 
 ## 代码根
 
@@ -25,7 +25,7 @@
 9. 提供 draft-only 策略回测校验 API：`POST /rearview/strategy-backtests/validate`，接收 transient `RuleVersionSpec + BacktestExecutionConfig`，返回 canonical config、`rule_hash`、`execution_config_hash` 和仓位/退出规则摘要；该接口不创建 rule set、rule version、run、portfolio run，不写结果事实，也不发 NATS。第一版支持受控 trend indicator stop loss，只接受 `source = "trend"`、allowlisted trend metric 和 `operator = "close_below_metric"`，主图指标集合为 MA、MA 组合和 EMA。
 10. 提供 Step 5 strategy backtest control plane：`GET /rearview/strategy-backtests/options`、`POST /rearview/strategy-backtests`、`GET /rearview/strategy-backtests/{id}` 和 `GET /rearview/strategy-backtests/{id}/status`。Create API 只落 PostgreSQL `strategy_backtest_run` 与 outbox 并返回 `202 Accepted`，服务端动态解析 `1y/2y/3y` 区间，固化 benchmark、range、rule/config hash、preflight snapshot 和 `client_request_id` 幂等语义；status view 只返回 Step 5 gate/status 必需字段。
 11. 提供 Step 5 result wrapper API：`/overview`、`/nav`、`/rebalance-records`、`/targets`、`/orders`、`/trades`、`/positions`、`/events`、`/performance`、`/closed-trades` 和 `/trade-metrics`，先解析 backtest `current_result_attempt_id`，再按 `strategy_backtest_run_id` 和 `result_attempt_id` 读取 `fleur_backtest.backtest_*` 与 backtest calculation facts；`/overview?view=ui` 返回 Step 5 首屏 compact status、nav points、performance 和 rebalance read model，`/nav`、`/rebalance-records` 和 `/performance` 支持 `view=ui` compact response，full response 保留诊断字段。
-12. 提供 Strategy Portfolio publish API：`GET /rearview/strategy-backtests/{id}/portfolio-publish-preview` 解析 source result attempt、T 日信号，并通过 `fleur_marts.mart_trade_calendar` 解析下一交易日；`POST /rearview/strategy-portfolios` 要求提交 `expected_source_signal_date` 和 `expected_live_start_date`，创建时固化 `initial_signal_date`、`live_start_date` 和 `pending_buy_signal_snapshot`，并阻止 stale date 发布。
+12. 提供 Strategy Portfolio publish API：`GET /rearview/strategy-backtests/{id}/portfolio-publish-preview` 解析 source result attempt、T 日信号，并通过 `fleur_marts.mart_trade_calendar` 按 `Asia/Shanghai` 和 15:00 cutoff 解析 `required_source_signal_date` 与下一交易日；交易日 15:00 前允许上一交易日信号，15:00 后要求当天信号，非交易日使用最近完成交易日，数据多日落后继续阻断。`POST /rearview/strategy-portfolios` 要求提交 `expected_required_source_signal_date`、`expected_source_signal_date` 和 `expected_live_start_date`，创建时重新预检并固化 `initial_signal_date`、`live_start_date` 和 `pending_buy_signal_snapshot`。
 13. 提供 Strategy Portfolio dashboard/detail live API。`pending_first_run` 组合的 dashboard 不回退 source backtest 曲线或绩效，nav/performance/positions/rebalance/virtual-account/statement 返回 `409 portfolio_pending_first_run`，signals 和 signal timeline 返回 publish snapshot；daily run 成功后读取 `fleur_portfolio.live_*` 事实族并通过 `current_live_result_attempt_id` 指向最新 live attempt。
 14. 提供 `GET /rearview/strategy-portfolios/{id}/virtual-account`，按最新 live daily result 读取 `live_nav_daily` 的 `total_equity`、`position_market_value`、`cash_balance` 和 `daily_return`，并按同一 `account_date` 聚合 `live_position_day.unrealized_pnl` 为当前持仓未实现盈亏；当日盈亏使用最新与上一 nav 行 `total_equity` 差值，前端不反推。
 15. 提供 `GET /rearview/strategy-portfolios/{id}/statement`，按最新 live daily result 解析 period key，返回区间 summary 和 operation rows。summary 中交易成功率按区间内卖出 trade row 的 realized PnL 胜率计算，盈利/亏损股票数只统计已卖出实现盈亏，持股天数按区间内 `live_nav_daily.position_count > 0` 的交易日计数；operation rows 的成交后持仓余额由后端基于同一 attempt 的全历史 trade window 派生。
@@ -51,7 +51,7 @@
 |---|---|
 | PostgreSQL `rearview` database | 规则、版本、运行、chunk、day、pool、signal、strategy backtest control plane 和 metric catalog 状态 |
 | ClickHouse `fleur_marts` | 日频行情、趋势、动量、成交量和价格行为结构指标 |
-| `fleur_marts.mart_trade_calendar` | 发布预检和 worker 日期边界使用的 A 股交易日历入口，支持从 T 日解析下一交易日 |
+| `fleur_marts.mart_trade_calendar` | 发布预检和 worker 日期边界使用的 A 股交易日历入口，支持解析上一交易日、最近完成交易日和 T 日下一交易日 |
 | `fleur_marts.mart_stock_basic_snapshot` | preview rows、pool page 和 preview security analysis 的证券名称、交易所代码、交易板块显示信息 |
 | `fleur_backtest.backtest_*` | strategy backtest result facts，按 `strategy_backtest_run_id` 和 `result_attempt_id` 读取 |
 | `fleur_portfolio.live_*` | strategy portfolio live daily result facts，按 `strategy_portfolio_daily_run_id` 和 `result_attempt_id` 读取 |

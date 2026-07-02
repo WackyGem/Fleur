@@ -84,6 +84,12 @@ import { SimulationPositionPanel } from "@/features/strategy/components/simulati
 import { strategySplitPanelColumnsClassName } from "@/features/strategy/components/strategy-split-layout"
 import { StrategySplitPanel } from "@/features/strategy/components/strategy-split-panel"
 import { StrategyStepSidebar } from "@/features/strategy/components/strategy-step-sidebar"
+import {
+  StrategyAutoDismissToast,
+  StrategyToastViewport,
+  strategyToastLeaveDelayMs,
+  strategyToastVisibleMs,
+} from "@/features/strategy/components/strategy-toast"
 import { WeightIndicatorsPanel } from "@/features/strategy/components/weight-indicators-panel"
 import {
   areTransactionFeesEqual,
@@ -242,9 +248,6 @@ const backtestBenchmarkOptions = [
 ] as const
 
 const splitStepLayoutClassName = strategySplitPanelColumnsClassName
-const toastAnimationMs = 180
-const toastVisibleMs = 2_000
-const toastLeaveDelayMs = toastVisibleMs - toastAnimationMs
 
 function createPreviewTimingLogger() {
   const enabled =
@@ -1238,52 +1241,22 @@ function BacktestToastViewport({
   }
 
   return (
-    <div className="pointer-events-none fixed top-[4.5rem] right-4 left-4 z-50 flex w-auto flex-col gap-2 sm:left-auto sm:w-96">
+    <StrategyToastViewport>
       {hasPendingConfigChange ? <PendingConfigChangeToast /> : null}
       <BacktestRunStatusToast
         key={run?.strategy_backtest_run_id ?? "empty"}
         run={run}
       />
-    </div>
+    </StrategyToastViewport>
   )
 }
 
 function PendingConfigChangeToast() {
-  const [visible, setVisible] = useState(true)
-  const [isLeaving, setIsLeaving] = useState(false)
-
-  useEffect(() => {
-    const leaveTimeoutId = window.setTimeout(
-      () => setIsLeaving(true),
-      toastLeaveDelayMs
-    )
-    const removeTimeoutId = window.setTimeout(
-      () => setVisible(false),
-      toastVisibleMs
-    )
-
-    return () => {
-      window.clearTimeout(leaveTimeoutId)
-      window.clearTimeout(removeTimeoutId)
-    }
-  }, [])
-
-  if (!visible) {
-    return null
-  }
-
   return (
-    <Alert
-      className={cn(
-        "pointer-events-auto shadow-lg",
-        isLeaving ? "racingline-toast-leave" : "racingline-toast-enter"
-      )}
-    >
-      <AlertTitle>配置已变更</AlertTitle>
-      <AlertDescription>
-        当前展示结果不再匹配所选周期、基准或策略配置，需要重新回测。
-      </AlertDescription>
-    </Alert>
+    <StrategyAutoDismissToast
+      title="配置已变更"
+      description="当前展示结果不再匹配所选周期、基准或策略配置，需要重新回测。"
+    />
   )
 }
 
@@ -1306,11 +1279,11 @@ function BacktestRunStatusToast({
 
     const leaveTimeoutId = window.setTimeout(
       () => setIsLeaving(true),
-      toastLeaveDelayMs
+      strategyToastLeaveDelayMs
     )
     const removeTimeoutId = window.setTimeout(
       () => setVisible(false),
-      toastVisibleMs
+      strategyToastVisibleMs
     )
 
     return () => {
@@ -1942,6 +1915,11 @@ export function StrategyPage() {
       ),
     [publishLatestExcessReturn, publishPerformanceQuery.data]
   )
+  const publishPlannedLiveStartDateLabel =
+    publishPreviewQuery.data?.planned_live_start_date ??
+    (publishPreviewQuery.data && !publishPreviewQuery.data.can_publish
+      ? "待更新行情"
+      : "—")
   const publishConditionRows = useMemo(
     () =>
       conditionGroups.flatMap((group, groupIndex) =>
@@ -2010,6 +1988,8 @@ export function StrategyPage() {
     () => [
       ["初始资金", formatCurrency(effectiveSimulationSettings.initialCapital)],
       ["每日候选", `Top ${effectiveSimulationSettings.buyTopN}`],
+      ["候选口径", "Top N 是每日候选信号，不是目标持仓集合"],
+      ["调仓规则", "仅空位调入；旧持仓由风控退出"],
       ["最大持仓", `${effectiveSimulationSettings.maxPositions} 只`],
       [
         "单票上限",
@@ -2068,6 +2048,7 @@ export function StrategyPage() {
     if (
       !activeBacktestRun?.current_result_attempt_id ||
       !publishPreviewQuery.data?.can_publish ||
+      !publishPreviewQuery.data.required_source_signal_date ||
       !publishPreviewQuery.data.planned_live_start_date ||
       !portfolioName.trim()
     ) {
@@ -2078,6 +2059,8 @@ export function StrategyPage() {
       client_request_id: `strategy-portfolio-${activeBacktestRun.strategy_backtest_run_id}-${activeBacktestRun.current_result_attempt_id}`,
       expected_live_start_date:
         publishPreviewQuery.data.planned_live_start_date,
+      expected_required_source_signal_date:
+        publishPreviewQuery.data.required_source_signal_date,
       expected_source_signal_date: publishPreviewQuery.data.source_signal_date,
       name: portfolioName.trim(),
       source_result_attempt_id: activeBacktestRun.current_result_attempt_id,
@@ -2547,7 +2530,7 @@ export function StrategyPage() {
                   <DialogDescription>
                     确认配置并填写策略名称，发布后返回看板。
                   </DialogDescription>
-                  <div className="mt-1 grid gap-2 md:grid-cols-[minmax(12rem,1fr)_minmax(13rem,16rem)] md:items-end">
+                  <div className="mt-1 grid gap-2 md:grid-cols-[minmax(12rem,1fr)_repeat(2,minmax(8rem,11rem))] md:items-end">
                     <Field className="gap-1">
                       <FieldLabel>策略名称</FieldLabel>
                       <Input
@@ -2560,11 +2543,18 @@ export function StrategyPage() {
                       />
                     </Field>
                     <Field className="gap-1">
-                      <FieldLabel>建仓日期</FieldLabel>
+                      <FieldLabel>最后信号日</FieldLabel>
+                      <div className="flex h-8 items-center border border-input bg-transparent px-2.5">
+                        <span className="font-medium tabular-nums">
+                          {publishPreviewQuery.data?.source_signal_date ?? "—"}
+                        </span>
+                      </div>
+                    </Field>
+                    <Field className="gap-1">
+                      <FieldLabel>计划建仓日</FieldLabel>
                       <div className="flex h-8 items-center justify-between gap-3 border border-input bg-transparent px-2.5">
                         <span className="font-medium tabular-nums">
-                          {publishPreviewQuery.data?.planned_live_start_date ??
-                            "—"}
+                          {publishPlannedLiveStartDateLabel}
                         </span>
                         <span className="shrink-0 text-muted-foreground">
                           T+1
@@ -2853,6 +2843,8 @@ export function StrategyPage() {
                         !portfolioName.trim() ||
                         !canPublishPortfolio ||
                         !publishPreviewQuery.data?.can_publish ||
+                        !publishPreviewQuery.data
+                          .required_source_signal_date ||
                         !publishPreviewQuery.data.planned_live_start_date ||
                         createPortfolioMutation.isPending
                       }

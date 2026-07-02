@@ -1,4 +1,8 @@
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import {
+  StrategyAutoDismissToast,
+  StrategyToastViewport,
+} from "@/features/strategy/components/strategy-toast"
 import { StockPoolPreviewWorkbench } from "@/features/strategy/components/stock-pool-preview-workbench"
 import type {
   IndicatorCatalog,
@@ -39,15 +43,19 @@ function PoolPreviewPanel({
 
   return (
     <div className="flex h-full min-h-0 flex-col gap-3">
+      {isStale ? (
+        <StrategyToastViewport>
+          <StrategyAutoDismissToast
+            title="股池预览已过期"
+            description="请更新股池后继续使用当前结果。"
+          />
+        </StrategyToastViewport>
+      ) : null}
+
       {error ? (
         <Alert variant="destructive" className="shrink-0">
           <AlertTitle>股池预览失败</AlertTitle>
           <AlertDescription>{error}</AlertDescription>
-        </Alert>
-      ) : isStale ? (
-        <Alert className="shrink-0">
-          <AlertTitle>股池预览已过期</AlertTitle>
-          <AlertDescription>请更新股池后继续使用当前结果。</AlertDescription>
         </Alert>
       ) : isPending ? (
         <Alert className="shrink-0">

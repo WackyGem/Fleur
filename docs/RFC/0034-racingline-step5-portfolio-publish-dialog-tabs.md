@@ -1,6 +1,6 @@
 # RFC 0034: Racingline Step 5 建立策略组合弹层分 Tab 信息架构
 
-状态：Proposed（讨论稿，2026-06-27）
+状态：Proposed（讨论稿，2026-06-27；2026-07-02 更新盘中/收盘后建仓日期规则）
 领域：racingline
 关联系统：racingline, rearview, data-platform
 代码根：
@@ -24,7 +24,7 @@
 
 1. 弹层拆成多个 tab。
 2. tab 公共顶部固定展示策略名称和建仓日期。
-3. 建仓日期采用 T+1 交易日口径。
+3. 建仓日期采用 T+1 交易日口径，并按交易阶段区分盘中和收盘后可用信号日。
 4. Tab 1 展示 Step 1 指标过滤、Step 2 权重得分和 Step 4 建仓摘要。
 5. Tab 2 展示 Step 5 回测业绩。
 6. 发布后的组合把回测依据和建仓后跟踪拆成两段数据，Dashboard 默认只展示 live 段。
@@ -60,7 +60,7 @@ T = 成功回测的最新有效交易日，优先取 latest nav trade_date，等
 建仓日期 = Rearview 交易日历中 T 的下一个交易日
 ```
 
-如果当前 publish API 或 backtest overview 没有返回该字段，实现阶段应由 Rearview 发布预检接口提供 `planned_live_start_date` display field；前端只展示后端返回结果。
+2026-07-02 讨论补充：T 不能只按服务器日期判断，还要结合 A 股收盘时间。15:00 前当天行情尚未完成，允许使用上一已完成交易日作为 T；15:00 后按当前建仓规则，要求当天收盘数据已经更新，否则不允许发布。实现阶段应由 Rearview 发布预检接口提供 `source_signal_date`、`required_source_signal_date`、`server_current_date`、`market_phase` 和 `planned_live_start_date`；前端只展示 `source_signal_date` 和 `planned_live_start_date`，其余字段只用于校验、禁用确认和 create expected payload。
 
 ## 目标
 
@@ -251,10 +251,45 @@ Step 5 succeeded backtest
 
 | 概念 | 定义 |
 |---|---|
-| `source_signal_date` | 发布时用于生成首批买入信号的 T 日，通常是 source backtest 的 `end_date`。 |
+| `source_signal_date` | 发布时用于生成首批买入信号的 T 日，必须等于发布预检解析出的 `required_source_signal_date`。 |
+| `required_source_signal_date` | 后端根据交易日历和 `Asia/Shanghai` 当前时间解析出的本次发布允许信号日。 |
 | `planned_live_start_date` / `live_start_date` | `source_signal_date` 的下一个交易日，不允许用自然日 `+1`。 |
 | `pending_buy_signals` | T 日规则生成的 TopN 买入信号，`execution_date = live_start_date`。 |
 | `live performance` | 只来自 succeeded strategy portfolio daily run；pending 首次运行时为空。 |
+
+### 盘中/收盘后信号日期规则
+
+发布预检必须使用交易阶段感知的信号日期规则，而不是简单要求 `source_signal_date == server_current_date`。核心目标是：盘中允许用户使用上一已完成交易日的收盘信号建立组合，收盘后继续要求当天行情更新后才能发布。
+
+建议规则：
+
+| 场景 | `required_source_signal_date` | 允许发布条件 | `planned_live_start_date` | 用户文案 |
+|---|---|---|---|---|
+| 交易日 15:00 前 | `previous_trade_date(server_current_date)` | `source_signal_date == required_source_signal_date` | `next_trade_date(source_signal_date)`，通常为当天交易日 | 展示最后信号日和计划建仓日。 |
+| 交易日 15:00 后 | `server_current_date` | `source_signal_date == required_source_signal_date` | `next_trade_date(source_signal_date)` | 当天数据未更新时提示“最后信号日与最新行情日存在缺口，请先回填行情数据到最新。”，禁止确定。 |
+| 非交易日 | 最近一个已完成交易日 | `source_signal_date == required_source_signal_date` | `next_trade_date(source_signal_date)` | 按周末/节假日正常 T+1 发布。 |
+| 数据落后超过一个允许信号日 | 不变 | 禁止发布 | 不返回 | 提示“最后信号日与最新行情日存在缺口，请先回填行情数据到最新。”，避免把多日旧信号误认为可建仓。 |
+
+我的建议是只做“一个交易阶段”的前推/回退，不做无限向前寻找可用信号。也就是说，15:00 前最多允许用上一交易日信号；如果数据仍停在更早日期，说明数据链路已经落后，不应让用户继续创建新组合。
+
+示例：
+
+```text
+2026-07-02 14:30，server_current_date = 2026-07-02
+required_source_signal_date = previous_trade_date(2026-07-02) = 2026-07-01
+source_signal_date = 2026-07-01 时允许发布
+planned_live_start_date = 2026-07-02
+
+2026-07-02 15:30，server_current_date = 2026-07-02
+required_source_signal_date = 2026-07-02
+source_signal_date = 2026-07-01 时禁止发布，提示最后信号日与最新行情日存在缺口
+source_signal_date = 2026-07-02 时允许发布
+planned_live_start_date = 2026-07-03
+```
+
+这样会带来一个必须在 UI 上解释清楚的差异：15:00 前建立组合时，计划建仓日可能是当天；15:00 后建立组合时，计划建仓日通常是下一交易日。这个差异不是前端特例，而是交易信号生成时点不同导致的结果。
+
+实现状态：盘中/收盘后信号日期规则已由 [Plan 0070](../plans/archive/0070-racingline-strategy-publish-market-phase-entry-rule-plan.md) 落地，验收见 [2026-07-02 实施报告](../jobs/reports/2026-07-02-racingline-strategy-publish-market-phase-entry-rule.md)。RFC 0034 其他 backtest/live 数据隔离讨论仍按本文后续章节跟踪。
 
 ### 策略组合两段数据模型
 
@@ -450,6 +485,11 @@ GET /rearview/strategy-backtests/{strategy_backtest_run_id}/portfolio-publish-pr
   "blockers": [],
   "source_strategy_backtest_run_id": "01J...",
   "source_result_attempt_id": "01J...",
+  "server_current_date": "2026-06-27",
+  "server_current_time": "14:30:00+08:00",
+  "market_phase": "before_close",
+  "publish_cutoff_time": "15:00:00+08:00",
+  "required_source_signal_date": "2026-06-26",
   "source_signal_date": "2026-06-26",
   "planned_live_start_date": "2026-06-29",
   "source_period_key": "1y",
@@ -473,9 +513,14 @@ GET /rearview/strategy-backtests/{strategy_backtest_run_id}/portfolio-publish-pr
 
 1. 校验 source backtest 已 succeeded 且 `source_result_attempt_id` 匹配当前 attempt。
 2. 取 `source_signal_date = source_run.end_date`。
-3. 用 Rearview/ClickHouse 交易日历解析 `planned_live_start_date = next_trade_date(source_signal_date)`；查不到时返回 `can_publish=false` 和 blocker，不回退到 T。
-4. 针对 `source_signal_date` 单日编译 Step 1/2 规则，生成 TopN `pending_buy_signals`，并为每条信号填入 `execution_date = planned_live_start_date`。
-5. 不读取 source backtest 的 latest `portfolio_target` 作为发布信号来源，因为 backtest 会丢弃尾日 T+1 信号。
+3. 基于 `Asia/Shanghai` 当前时间、交易日历和 `publish_cutoff_time = 15:00` 解析 `required_source_signal_date`：
+   - 交易日 15:00 前：上一交易日。
+   - 交易日 15:00 后：当前交易日。
+   - 非交易日：最近一个已完成交易日。
+4. 校验 `source_signal_date == required_source_signal_date`；不相等时返回 `can_publish=false` 和 blocker。15:00 后当天数据未更新、或盘中数据落后超过上一交易日，都应提示“最后信号日与最新行情日存在缺口，请先回填行情数据到最新。”。
+5. 用 Rearview/ClickHouse 交易日历解析 `planned_live_start_date = next_trade_date(source_signal_date)`；查不到时返回 `can_publish=false` 和 blocker，不回退到 T。
+6. 针对 `source_signal_date` 单日编译 Step 1/2 规则，生成 TopN `pending_buy_signals`，并为每条信号填入 `execution_date = planned_live_start_date`。
+7. 不读取 source backtest 的 latest `portfolio_target` 作为发布信号来源，因为 backtest 会丢弃尾日 T+1 信号。
 
 #### 创建组合接口
 
@@ -492,6 +537,7 @@ POST /rearview/strategy-portfolios
   "source_strategy_backtest_run_id": "01J...",
   "source_result_attempt_id": "01J...",
   "name": "策略组合",
+  "expected_required_source_signal_date": "2026-06-26",
   "expected_source_signal_date": "2026-06-26",
   "expected_live_start_date": "2026-06-29",
   "client_request_id": "..."
@@ -501,7 +547,7 @@ POST /rearview/strategy-portfolios
 创建接口职责：
 
 1. 重新执行发布预检，不能信任前端传入日期。
-2. 如果后端解析出的 `source_signal_date` 或 `live_start_date` 与 expected 字段不一致，返回 `409 Conflict`，要求前端刷新弹层。
+2. 如果后端解析出的 `required_source_signal_date`、`source_signal_date` 或 `live_start_date` 与 expected 字段不一致，返回 `409 Conflict`，要求前端刷新弹层。这样可以处理用户在 15:00 前打开弹层、15:00 后才点击确定的边界。
 3. 创建 `strategy_portfolio` 时保存：
    - `live_start_date = planned_live_start_date`
    - `initial_signal_date = source_signal_date`
@@ -627,7 +673,11 @@ daily run for 2026-06-29:
 |---|---|
 | 打开弹层 | 默认进入 Tab 1「策略配置」。 |
 | 策略名称为空 | 底部「确定」禁用。 |
+| 15:00 前，上一交易日信号可用 | 显示最后信号日和计划建仓日。 |
+| 15:00 后，当天信号可用 | 显示计划建仓日，并按当前 T+1 建仓规则允许确定。 |
+| 行情数据未达到允许信号日 | 显示“最后信号日与最新行情日存在缺口，请先回填行情数据到最新。”，禁用「确定」。 |
 | T+1 建仓日期未返回 | 显示 `待交易日历确认`，并禁用「确定」或在创建 API 中由后端最终校验。建议优先禁用，避免发布时口径不透明。 |
+| 弹层打开后跨过 15:00 | 创建接口重新预检；如 required date 已变化，返回 `409 Conflict`，前端提示刷新发布预检。 |
 | 回测业绩读取中 | Tab 2 展示 skeleton；Tab 1 仍可浏览配置。 |
 | 回测业绩读取失败 | Tab 2 展示错误，并禁用「确定」；发布确认必须能看到回测业绩简报。 |
 | 创建失败 | 底部上方展示当前错误 alert，保留在当前 tab。 |
@@ -638,6 +688,7 @@ daily run for 2026-06-29:
 1. 发布预检生成的 `pending_buy_signals` 创建成功后必须持久化为发布时快照；Dashboard 不重新计算 pending 信号。
 2. 回测业绩读取失败时不允许用户创建组合；弹层必须能展示 Tab 2 简报后才能确认发布。
 3. 第一版不加第三个 tab「运行设置」；当前需求只保留 `策略配置` 和 `回测业绩`，避免把发布弹层扩成完整详情页。
+4. 盘中只允许回退到上一交易日信号，收盘后要求当天信号；不支持在数据落后多日时继续向前顺延。
 
 ## 实施提示
 
@@ -647,7 +698,7 @@ daily run for 2026-06-29:
 2. 前端复用当前 `publishConditionRows`、`publishScoringRows`、`publishPerformanceGroups` 和 `effectiveSimulationSettings`。
 3. 将弹层内重复 card 拆成局部 render helper 或小组件，避免继续扩大 `strategy-page.tsx` 的单文件体积。
 4. T+1 建仓日期不要在前端按自然日推导；从发布预检接口读取 `planned_live_start_date`，缺字段时禁用确定。
-5. 后端新增发布预检接口，创建组合时重新校验 `source_signal_date` 和 `live_start_date`。
+5. 后端新增发布预检接口，按 `Asia/Shanghai` 和 15:00 cutoff 解析 `required_source_signal_date`；创建组合时重新校验 `required_source_signal_date`、`source_signal_date` 和 `live_start_date`。前端 UI 只展示最后信号日和计划建仓日。
 6. Dashboard pending 首次运行时不要消费 source backtest nav/performance/curve；只展示 `pending_buy_signals` 和建仓日。
 7. Daily run 创建时把信号窗口起点设为 `initial_signal_date`，确保首批 T 日信号能在 T+1 执行。
 8. Live daily run 写入前必须以 `live_start_date` 将策略净值、基准净值和业绩指标重新归 1 并重新计算入库；`initial_signal_date` 的种子 nav 不进入 live 展示事实。
