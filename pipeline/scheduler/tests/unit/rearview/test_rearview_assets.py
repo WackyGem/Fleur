@@ -100,7 +100,7 @@ class FakeExampleRearviewApi:
         self.calls.append(("ensure", {}))
         return {
             "case_id": "racingline_0051_low_reversal",
-            "version": "v1",
+            "version": "v2",
             "fixture_hash": "fixture-hash",
             "rule_hash": "rule-hash",
             "execution_config_hash": "execution-hash",
@@ -506,7 +506,7 @@ def test_validate_example_0051_ensure_response_accepts_expected_contract() -> No
     _validate_example_0051_ensure_response(
         {
             "case_id": "racingline_0051_low_reversal",
-            "version": "v1",
+            "version": "v2",
             "fixture_hash": "fixture-hash",
             "rule_hash": "rule-hash",
             "execution_config_hash": "execution-hash",
@@ -523,7 +523,7 @@ def test_validate_example_0051_ensure_response_rejects_date_drift() -> None:
         _validate_example_0051_ensure_response(
             {
                 "case_id": "racingline_0051_low_reversal",
-                "version": "v1",
+                "version": "v2",
                 "fixture_hash": "fixture-hash",
                 "rule_hash": "rule-hash",
                 "execution_config_hash": "execution-hash",
@@ -617,7 +617,7 @@ def test_example_0051_live_run_metadata_includes_hashes_and_fact_counts() -> Non
     metadata = _example_0051_live_run_metadata(
         ensure_response={
             "case_id": "racingline_0051_low_reversal",
-            "version": "v1",
+            "version": "v2",
             "fixture_hash": "fixture-hash",
             "rule_hash": "rule-hash",
             "execution_config_hash": "execution-hash",

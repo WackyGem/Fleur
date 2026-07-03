@@ -24,6 +24,9 @@ Snapshot 文档必须写明生成日期和生成命令。
 
 | 报告 | 范围 |
 |---|---|
+| [2026-07-03-prod-docker-example-fixture-v2-deploy.md](reports/2026-07-03-prod-docker-example-fixture-v2-deploy.md) | 将 `example__portfolio_live_job` 使用的 `v2` example fixture 发布到 production-like Docker 栈，重建 `fleur/rearview:local` 和 `fleur/dagster:local` 并重建应用容器 |
+| [2026-07-03-example-portfolio-live-job-strategy-search-replacement.md](reports/2026-07-03-example-portfolio-live-job-strategy-search-replacement.md) | 将 2026-07-03 策略搜索报告中的“宽松低位反转 + 20 日时间止损”置换为 `example__portfolio_live_job` 使用的 `v2` example portfolio fixture |
+| [2026-07-03-strategy-backtest-search.md](reports/2026-07-03-strategy-backtest-search.md) | 基于当前策略选股、权重配置指标和模拟建仓风控方案，探索近一年 strategy backtest 候选并记录最佳样本内策略 |
 | [2026-07-03-production-compose-nginx-smoke.md](reports/2026-07-03-production-compose-nginx-smoke.md) | RFC 0047 production-like Compose、nginx 统一入口、one-shot migration/catalog sync、Racingline 和 Dagster browser smoke |
 | [2026-07-02-strategy-portfolio-daily-nav-liquidation.md](reports/2026-07-02-strategy-portfolio-daily-nav-liquidation.md) | `daily__portfolio_nav_liquidation` 无分区入口收敛、daily controller terminal step、direct smoke 和质量门禁 |
 | [2026-07-02-racingline-strategy-detail-delete-action.md](reports/2026-07-02-racingline-strategy-detail-delete-action.md) | Racingline 策略详情页删除按钮接入 Rearview archive API，覆盖 archived detail `410 Gone`、Dashboard 跳转和手动 archived daily run 拒绝 |

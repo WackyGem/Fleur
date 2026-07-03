@@ -1610,7 +1610,7 @@ async fn ensure_racingline_0051_low_reversal_portfolio(
     let record = create_strategy_portfolio_from_snapshot(
         &state.postgres,
         StrategyPortfolioSnapshotInput {
-            name: "Racingline 0051 Low Reversal Example".to_string(),
+            name: "Racingline Strategy Search Low Reversal Example".to_string(),
             rule_snapshot: serde_json::to_value(&example.rule)?,
             rule_hash: draft.rule_hash.clone(),
             execution_config: serde_json::to_value(&draft.execution_config)?,
@@ -1631,7 +1631,7 @@ async fn ensure_racingline_0051_low_reversal_portfolio(
             live_start_date: example.planned_live_start_date,
             pending_buy_signal_snapshot: json!(pending_signal_result.pending_buy_signals),
             ui_display_snapshot: json!({
-                "kind": "racingline_0051_low_reversal_example",
+                "kind": "racingline_strategy_search_low_reversal_example",
                 "case_id": example.case_id,
                 "version": example.version,
                 "fixture_hash": example.fixture_hash,

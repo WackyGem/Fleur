@@ -13,7 +13,7 @@ DAILY_PORTFOLIO_NAV_LIQUIDATION_ASSET_KEY = dg.AssetKey(
 )
 EXAMPLE_0051_PORTFOLIO_LIVE_ASSET_KEY = dg.AssetKey(["rearview", "example_0051_portfolio_live_run"])
 EXAMPLE_0051_CASE_ID = "racingline_0051_low_reversal"
-EXAMPLE_0051_VERSION = "v1"
+EXAMPLE_0051_VERSION = "v2"
 EXAMPLE_0051_LIVE_START_DATE = "2024-01-02"
 
 
@@ -74,7 +74,7 @@ def example_0051_portfolio_live_run(
     config: ExamplePortfolioLiveRunConfig,
     rearview_api: RearviewApiResource,
 ) -> dg.MaterializeResult:
-    """Ensure the 0051 example portfolio and settle it from live start to latest target."""
+    """Ensure the strategy-search example portfolio and settle it from live start to latest target."""
 
     return _run_example_0051_portfolio_live_run(
         context=context,
