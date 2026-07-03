@@ -74,6 +74,25 @@ describe("PortfolioOverviewBoard", () => {
     })
     document.body.innerHTML = ""
     vi.restoreAllMocks()
+    vi.useRealTimers()
+  })
+
+  it("keeps the initial dashboard load free of flashing loading copy", async () => {
+    vi.useFakeTimers()
+    mocks.dashboardQuery.data = null
+    mocks.dashboardQuery.isLoading = true
+
+    await renderBoard()
+
+    expect(document.body.textContent).not.toContain("策略组合加载中")
+    expect(document.body.querySelector("[data-slot='skeleton']")).toBeNull()
+
+    await act(async () => {
+      vi.advanceTimersByTime(180)
+    })
+
+    expect(document.body.textContent).not.toContain("策略组合加载中")
+    expect(document.body.querySelector("[data-slot='skeleton']")).not.toBeNull()
   })
 
   it("shows a dashed placeholder inside the buy signal table when there are no buy signals", async () => {

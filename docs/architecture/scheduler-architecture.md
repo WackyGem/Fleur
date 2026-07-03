@@ -40,7 +40,7 @@ Jiuyan 异动、行业列表、图片/OCR/OCR snapshot 后续独立设计 job；
 | 对象 | 角色 |
 |------|------|
 | `daily__fetch_history_sources_to_marts_schedule_job` | 唯一日常 source -> raw -> stg -> int -> calculation -> mart -> portfolio live controller job；把 `target_date` 映射成 `start_date=end_date=target_date` 复用 history source-to-marts registry，并在 full/all scope 末尾提交 `rearview/daily__portfolio_nav_liquidation` |
-| `daily__fetch_history_sources_to_marts_schedule` | 唯一日常 source-to-marts ScheduleDefinition，`30 18 * * *` Asia/Shanghai，默认 stopped；启用生产前先完成 dry-run 和小范围验证 |
+| `daily__fetch_history_sources_to_marts_schedule` | 唯一日常 source-to-marts ScheduleDefinition，`45 17 * * *` Asia/Shanghai，默认 stopped；启用生产前先完成 dry-run 和小范围验证 |
 | `rearview/daily__portfolio_nav_liquidation` | portfolio live 日度 NAV 清算 asset；无分区、无用户日期范围 config，由 daily controller 作为 terminal step 提交，内部调用 Rearview settlement-target、single-day daily-runs、status 和 fact-count APIs |
 | `example__portfolio_live_job` | 0051 低位反转 example 手动回归入口；只选择 `rearview/example_0051_portfolio_live_run`，默认解析该 example portfolio 的最新 settlement target，并只创建一个 latest date 的 full-window daily run，由 worker 一次性从建仓上下文清算到该日；可用 run config 指定较短 `end_date`；不挂 schedule，不进入 production daily schedule |
 

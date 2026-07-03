@@ -14,7 +14,7 @@ from scheduler.defs.daily.source_to_marts import (
 )
 
 DAILY_SCHEDULE_NAME = "daily__fetch_history_sources_to_marts_schedule"
-DAILY_SCHEDULE_CRON = "30 18 * * *"
+DAILY_SCHEDULE_CRON = "45 17 * * *"
 DAILY_SCHEDULE_TIMEZONE = "Asia/Shanghai"
 DAILY_SCHEDULE_DRY_RUN = True
 DAILY_SCHEDULE_EXECUTION_MODE = "full"

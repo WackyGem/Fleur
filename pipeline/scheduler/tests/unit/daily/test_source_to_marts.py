@@ -32,6 +32,7 @@ from scheduler.defs.automation.source_to_marts_backfill import (
     dbt_asset_keys_covered_by_all_source_to_marts_scope,
 )
 from scheduler.defs.daily.definitions import (
+    DAILY_SCHEDULE_CRON,
     DAILY_SCHEDULE_NAME,
     daily__fetch_history_sources_to_marts_schedule,
 )
@@ -310,8 +311,8 @@ def test_daily_schedule_is_stopped_and_emits_target_date_config() -> None:
             2026,
             7,
             1,
-            18,
-            30,
+            17,
+            45,
             tzinfo=ZoneInfo("Asia/Shanghai"),
         )
     )
@@ -321,6 +322,8 @@ def test_daily_schedule_is_stopped_and_emits_target_date_config() -> None:
     assert daily__fetch_history_sources_to_marts_schedule.default_status == (
         dg.DefaultScheduleStatus.STOPPED
     )
+    assert daily__fetch_history_sources_to_marts_schedule.cron_schedule == DAILY_SCHEDULE_CRON
+    assert DAILY_SCHEDULE_CRON == "45 17 * * *"
     assert tick.run_requests is not None
     assert len(tick.run_requests) == 1
     request = tick.run_requests[0]

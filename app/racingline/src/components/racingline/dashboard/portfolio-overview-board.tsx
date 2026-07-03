@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react"
+import { useEffect, useRef, useState } from "react"
 import { Link } from "react-router-dom"
 import { createChart, LineSeries } from "lightweight-charts"
 import { ChartLineData01Icon } from "@hugeicons/core-free-icons"
@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/card"
 import { Empty, EmptyDescription } from "@/components/ui/empty"
 import { Separator } from "@/components/ui/separator"
+import { Skeleton } from "@/components/ui/skeleton"
 import {
   formatChangeValue,
   formatMetricValue,
@@ -39,6 +40,7 @@ import {
 import { cn } from "@/lib/utils"
 
 const VISIBLE_SIGNAL_ROW_COUNT = 5
+const DASHBOARD_LOADING_PLACEHOLDER_DELAY_MS = 180
 const EMPTY_RETURN_METRICS: Metric[] = [
   { label: "持仓收益", value: null, kind: "percent", tone: "neutral" },
   { label: "超额收益", value: null, kind: "percent", tone: "neutral" },
@@ -362,6 +364,75 @@ function PortfolioOverviewCard({
   )
 }
 
+function PortfolioOverviewCardSkeleton() {
+  return (
+    <Card
+      aria-hidden="true"
+      size="sm"
+      className="h-full min-h-[34rem] py-0"
+    >
+      <CardHeader className="grid-cols-[minmax(0,1fr)_auto] gap-3 border-b border-border/70 py-4">
+        <div className="flex min-w-0 flex-col gap-2">
+          <Skeleton className="h-6 w-2/3" />
+          <div className="flex flex-wrap items-center gap-2">
+            <Skeleton className="h-3 w-24" />
+            <Skeleton className="h-3 w-20" />
+          </div>
+        </div>
+
+        <CardAction className="flex shrink-0 flex-col items-end gap-2">
+          <Skeleton className="h-3 w-14" />
+          <Skeleton className="h-6 w-20" />
+        </CardAction>
+      </CardHeader>
+
+      <CardContent className="flex flex-col gap-4 py-4">
+        <div className="grid gap-4">
+          <SkeletonMetricSection />
+          <SkeletonMetricSection />
+          <div className="flex flex-col gap-2">
+            <Skeleton className="h-3 w-16" />
+            <div className="flex flex-col gap-2">
+              {Array.from({ length: VISIBLE_SIGNAL_ROW_COUNT }, (_, index) => (
+                <div key={index} className="flex items-center gap-3">
+                  <Skeleton className="h-4 flex-1" />
+                  <Skeleton className="h-4 w-12" />
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        <Separator />
+
+        <div className="flex flex-col gap-2">
+          <div className="flex items-center justify-between gap-3">
+            <Skeleton className="h-3 w-20" />
+            <Skeleton className="h-3 w-24" />
+          </div>
+          <Skeleton className="h-38 w-full border border-border/70 bg-muted/20" />
+        </div>
+      </CardContent>
+    </Card>
+  )
+}
+
+function SkeletonMetricSection() {
+  return (
+    <div className="flex flex-col gap-2">
+      <Skeleton className="h-3 w-16" />
+      <div className="flex flex-col gap-2">
+        {Array.from({ length: 3 }, (_, index) => (
+          <div key={index} className="flex items-center gap-3">
+            <Skeleton className="h-4 flex-1" />
+            <Skeleton className="h-4 w-16" />
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
 function CreatePortfolioCard() {
   return (
     <Link
@@ -452,10 +523,32 @@ function mapDashboardMetric(
   }
 }
 
+function useDelayedBoolean(value: boolean, delayMs: number) {
+  const [delayedValue, setDelayedValue] = useState(false)
+
+  useEffect(() => {
+    const timeout = window.setTimeout(() => {
+      setDelayedValue(value)
+    }, value ? delayMs : 0)
+
+    return () => {
+      window.clearTimeout(timeout)
+    }
+  }, [delayMs, value])
+
+  return delayedValue
+}
+
 export function PortfolioOverviewBoard() {
   const dashboardQuery = useStrategyPortfolioDashboardQuery()
   const portfolios =
     dashboardQuery.data?.portfolios.map(mapStrategyPortfolioCard) ?? []
+  const isInitialPortfolioLoading =
+    dashboardQuery.isLoading && !dashboardQuery.data
+  const showLoadingPlaceholder = useDelayedBoolean(
+    isInitialPortfolioLoading,
+    DASHBOARD_LOADING_PLACEHOLDER_DELAY_MS
+  )
 
   return (
     <section className="mx-auto flex min-h-[calc(100svh-8rem)] w-full max-w-[88rem] flex-col gap-4">
@@ -475,10 +568,8 @@ export function PortfolioOverviewBoard() {
       </div>
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2 2xl:grid-cols-4">
-        {dashboardQuery.isLoading ? (
-          <div className="flex min-h-[34rem] items-center justify-center border border-border/70 bg-muted/10 px-6 py-8 text-center text-sm text-muted-foreground">
-            策略组合加载中
-          </div>
+        {showLoadingPlaceholder ? (
+          <PortfolioOverviewCardSkeleton />
         ) : null}
         {dashboardQuery.isError ? (
           <div className="flex min-h-[34rem] items-center justify-center border border-border/70 bg-muted/10 px-6 py-8 text-center text-sm text-muted-foreground">
