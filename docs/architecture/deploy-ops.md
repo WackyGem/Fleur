@@ -85,8 +85,3 @@ git diff --check
 | [../issues/archive/optimize/docs-governance-inventory-2026-06-10.md](../issues/archive/optimize/docs-governance-inventory-2026-06-10.md) | docs governance 盘点和治理记录 |
 | [../RFC/archive/0018-rust-stock-screening-service.md](../RFC/archive/0018-rust-stock-screening-service.md) | Rearview database target 和部署顺序背景 |
 | [rearview.md](rearview.md) | Rearview 架构事实文档 |
-
-## 待决问题
-
-1. 是否需要把 production-like compose smoke 固化为单独 runbook 或 CI job。
-2. production hardening 阶段是否收敛 PostgreSQL、ClickHouse、NATS 和 RustFS console 的宿主机端口暴露。
