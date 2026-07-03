@@ -39,7 +39,7 @@
 本地开发入口：
 
 ```bash
-make racingline-dev
+make dev
 ```
 
 该命令会按端口清理既有 Frontend / Rearview 进程，准备 Docker 依赖，执行 PostgreSQL migrations，同步 Rearview metric catalog，并启动 Rearview server、Rearview portfolio worker 和前端 `http://127.0.0.1:5173/`。
@@ -47,13 +47,13 @@ make racingline-dev
 只启动前端：
 
 ```bash
-make racingline-frontend-dev
+make ui-dev
 ```
 
 只清理前端和 Rearview dev server 端口：
 
 ```bash
-make racingline-dev-stop
+make stop
 ```
 
 ## 后端依赖

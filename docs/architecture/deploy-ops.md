@@ -33,7 +33,7 @@
 启动 dev 依赖：
 
 ```bash
-docker compose --env-file .env -f deploy/docker-compose.dev.yaml up -d postgres clickhouse
+make infra-up
 ```
 
 启动 production-like 栈：

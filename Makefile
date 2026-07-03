@@ -1,4 +1,5 @@
 SHELL := bash
+.DEFAULT_GOAL := help
 
 COMPOSE_DEV_FILE := deploy/docker-compose.dev.yaml
 COMPOSE_PROD_FILE := deploy/docker-compose.yml
@@ -90,39 +91,79 @@ define stop-listening-port
 	fi
 endef
 
-.PHONY: help dev-up dev-down dev-logs prod-config prod-build prod-init prod-up prod-down prod-logs wait-rustfs wait-postgres wait-clickhouse dagster-home docs-check versions-check check-defs materialize-trade-calendar dev-materialize-trade-calendar webui dbt-docs dbt-docs-serve rust-doc rust-doc-open rust-doc-serve rearview-migrate rearview-catalog-sync rearview-prepare rearview-dev racingline-frontend-dev racingline-app-dev racingline-dev racingline-dev-stop
+.PHONY: \
+	help check \
+	dev stop down infra-up infra-down infra-logs api-dev ui-dev \
+	dev-up dev-down dev-logs \
+	prod-config prod-build prod-init prod-up prod-down prod-logs \
+	wait-rustfs wait-postgres wait-clickhouse dagster-home \
+	docs-check versions-check check-defs materialize-trade-calendar dev-materialize-trade-calendar \
+	webui dbt-docs dbt-docs-serve rust-doc rust-doc-open rust-doc-serve \
+	rearview-migrate rearview-catalog-sync rearview-prepare rearview-dev \
+	racingline-frontend-dev racingline-app-dev racingline-dev racingline-dev-stop
 
 help:
-	@printf '%s\n' 'Available targets:'
-	@printf '  %-34s %s\n' 'docs-check' 'Validate docs governance rules'
-	@printf '  %-34s %s\n' 'versions-check' 'Validate component versions and release manifest consistency'
-	@printf '  %-34s %s\n' 'dev-up' 'Start deploy/docker-compose.dev.yaml dev services'
-	@printf '  %-34s %s\n' 'dev-down' 'Stop dev services'
-	@printf '  %-34s %s\n' 'dev-logs' 'Tail dev service logs'
-	@printf '  %-34s %s\n' 'prod-config' 'Render production-like Docker Compose config'
-	@printf '  %-34s %s\n' 'prod-build' 'Build production-like app images'
-	@printf '  %-34s %s\n' 'prod-init' 'Run production-like migration and catalog sync one-shot jobs'
-	@printf '  %-34s %s\n' 'prod-up' 'Start production-like stack behind nginx'
-	@printf '  %-34s %s\n' 'prod-down' 'Stop production-like stack'
-	@printf '  %-34s %s\n' 'prod-logs' 'Tail production-like stack logs'
+	@printf '%s\n' 'Common targets:'
+	@printf '  %-34s %s\n' 'dev' 'Start Docker deps, Rearview server/worker, and Racingline'
+	@printf '  %-34s %s\n' 'stop' 'Stop Rearview/Racingline local dev processes'
+	@printf '  %-34s %s\n' 'down' 'Stop Docker dev dependencies'
+	@printf '  %-34s %s\n' 'check' 'Run root governance checks'
+	@printf '\n%s\n' 'Infrastructure:'
+	@printf '  %-34s %s\n' 'infra-up' 'Start deploy/docker-compose.dev.yaml services'
+	@printf '  %-34s %s\n' 'infra-down' 'Stop Docker dev services'
+	@printf '  %-34s %s\n' 'infra-logs' 'Tail Docker dev service logs'
 	@printf '  %-34s %s\n' 'wait-postgres' 'Wait for the local PostgreSQL container'
 	@printf '  %-34s %s\n' 'wait-clickhouse' 'Wait for the local ClickHouse container'
+	@printf '  %-34s %s\n' 'wait-rustfs' 'Wait for the local RustFS container'
+	@printf '\n%s\n' 'Apps:'
+	@printf '  %-34s %s\n' 'api-dev' 'Start Rearview HTTP dev server'
+	@printf '  %-34s %s\n' 'ui-dev' 'Start Racingline Vite dev server'
+	@printf '  %-34s %s\n' 'rearview-prepare' 'Prepare Docker deps, migrations, catalog, and ClickHouse'
+	@printf '  %-34s %s\n' 'rearview-migrate' 'Run pipeline + rearview PostgreSQL migrations'
+	@printf '  %-34s %s\n' 'rearview-catalog-sync' 'Sync Rearview metric catalog into PostgreSQL'
+	@printf '\n%s\n' 'Data and docs:'
+	@printf '  %-34s %s\n' 'webui' 'Start Dagster Web UI for the local dev instance'
 	@printf '  %-34s %s\n' 'check-defs' 'Validate Dagster definitions'
 	@printf '  %-34s %s\n' 'materialize-trade-calendar' 'Materialize sina__trade_calendar'
 	@printf '  %-34s %s\n' 'dev-materialize-trade-calendar' 'Start dev services, wait for RustFS, then materialize the calendar'
-	@printf '  %-34s %s\n' 'webui' 'Start Dagster Web UI for the local dev instance'
+	@printf '  %-34s %s\n' 'docs-check' 'Validate docs governance rules'
+	@printf '  %-34s %s\n' 'versions-check' 'Validate component versions and release manifest consistency'
 	@printf '  %-34s %s\n' 'dbt-docs' 'Generate dbt docs under pipeline/elt/target'
-	@printf '  %-34s %s\n' 'dbt-docs-serve' 'Generate and serve dbt docs over http://127.0.0.1:8580'
+	@printf '  %-34s %s\n' 'dbt-docs-serve' 'Generate and serve dbt docs'
 	@printf '  %-34s %s\n' 'rust-doc' 'Generate Rust API docs under engines/target/doc'
-	@printf '  %-34s %s\n' 'rust-doc-open' 'Generate and open Furnace core Rust API docs'
-	@printf '  %-34s %s\n' 'rust-doc-serve' 'Serve Rust API docs over http://127.0.0.1:8000'
-	@printf '  %-34s %s\n' 'rearview-migrate' 'Run pipeline + rearview PostgreSQL migrations'
-	@printf '  %-34s %s\n' 'rearview-catalog-sync' 'Sync Rearview metric catalog into PostgreSQL'
-	@printf '  %-34s %s\n' 'rearview-dev' 'Start Docker dev services + Rearview after clearing its port'
-	@printf '  %-34s %s\n' 'racingline-frontend-dev' 'Start Racingline Vite dev server after clearing its port'
-	@printf '  %-34s %s\n' 'racingline-app-dev' 'Prepare dev services, then start Rearview server/worker + Racingline'
-	@printf '  %-34s %s\n' 'racingline-dev' 'Start Docker dev services + Rearview server/worker + Racingline after clearing ports'
-	@printf '  %-34s %s\n' 'racingline-dev-stop' 'Stop Rearview/Racingline dev servers by listening port'
+	@printf '  %-34s %s\n' 'rust-doc-open' 'Generate and open Rust API docs'
+	@printf '  %-34s %s\n' 'rust-doc-serve' 'Serve Rust API docs'
+	@printf '\n%s\n' 'Production-like:'
+	@printf '  %-34s %s\n' 'prod-config' 'Render Docker Compose config'
+	@printf '  %-34s %s\n' 'prod-build' 'Build app images'
+	@printf '  %-34s %s\n' 'prod-init' 'Run migration and catalog sync one-shot jobs'
+	@printf '  %-34s %s\n' 'prod-up' 'Start stack behind nginx'
+	@printf '  %-34s %s\n' 'prod-down' 'Stop stack'
+	@printf '  %-34s %s\n' 'prod-logs' 'Tail stack logs'
+	@printf '\n%s\n' 'Compatibility aliases:'
+	@printf '  %-34s %s\n' 'dev-up/down/logs' 'Use infra-up/down/logs'
+	@printf '  %-34s %s\n' 'rearview-dev' 'Use api-dev'
+	@printf '  %-34s %s\n' 'racingline-frontend-dev' 'Use ui-dev'
+	@printf '  %-34s %s\n' 'racingline-dev' 'Use dev'
+	@printf '  %-34s %s\n' 'racingline-dev-stop' 'Use stop'
+
+check: docs-check versions-check
+
+dev: racingline-dev
+
+stop: racingline-dev-stop
+
+down: dev-down
+
+infra-up: dev-up
+
+infra-down: dev-down
+
+infra-logs: dev-logs
+
+api-dev: rearview-dev
+
+ui-dev: racingline-frontend-dev
 
 dev-up:
 	$(require-env-file)
@@ -316,9 +357,7 @@ racingline-app-dev:
 		set -e; \
 		exit "$$status"
 
-racingline-dev:
-	$(require-env-file)
-	$(MAKE) --no-print-directory racingline-app-dev
+racingline-dev: racingline-app-dev
 
 webui: dagster-home
 	@printf 'Starting Dagster Web UI at http://%s:%s\n' '$(DAGSTER_WEBUI_HOST)' '$(DAGSTER_WEBUI_PORT)'
