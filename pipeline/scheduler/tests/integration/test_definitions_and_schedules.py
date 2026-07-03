@@ -111,6 +111,14 @@ def test_registered_definitions_match_source_bundles() -> None:
     assert not registered_schedule_names & legacy_source_schedules
     assert not registered_schedule_names & {schedule.name for schedule in TRANSFORMATION_SCHEDULES}
     assert {sensor.name for sensor in loaded_defs.sensors or []} == {"slack_asset_failure_sensor"}
+    assert all(
+        schedule.default_status == dg.DefaultScheduleStatus.STOPPED
+        for schedule in loaded_defs.schedules or []
+    )
+    assert all(
+        sensor.default_status == dg.DefaultSensorStatus.STOPPED
+        for sensor in loaded_defs.sensors or []
+    )
     assert set(loaded_defs.resources) >= {
         "s3_io_manager",
         "s3_settings",

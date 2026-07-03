@@ -11,6 +11,10 @@ from scheduler.defs.automation.slack_alerts import (
     slack_asset_failure_sensor,
     truncate_error,
 )
+from scheduler.defs.daily.source_to_marts import (
+    DAILY_JOB_NAME,
+    daily__fetch_history_sources_to_marts_schedule_job,
+)
 
 
 class FakeSlackClient:
@@ -116,7 +120,7 @@ def test_slack_asset_failure_sensor_posts_message() -> None:
     assert client.messages == [
         {
             "channel": "C123",
-            "text": "Dagster asset run failed: test_job (run-1)",
+            "text": f"Dagster asset run failed: {DAILY_JOB_NAME} (run-1)",
             "blocks": [
                 {
                     "type": "header",
@@ -127,17 +131,24 @@ def test_slack_asset_failure_sensor_posts_message() -> None:
                     "text": {
                         "type": "mrkdwn",
                         "text": "*Code location:* scheduler\n"
-                        "*Job:* test_job\n"
+                        f"*Job:* {DAILY_JOB_NAME}\n"
                         "*Run:* run-1\n"
                         "*Partition:* 2026-01-01\n"
                         "*Failed steps:* -\n"
                         "*Assets:* source/test_asset\n"
-                        '*Error:* Execution of run for "test_job" failed. run failed\n'
+                        f'*Error:* Execution of run for "{DAILY_JOB_NAME}" failed. run failed\n'
                         "*Open run:* http://localhost:3000/runs/run-1",
                     },
                 },
             ],
         }
+    ]
+
+
+def test_slack_asset_failure_sensor_only_monitors_daily_job() -> None:
+    assert slack_asset_failure_sensor.default_status == dg.DefaultSensorStatus.STOPPED
+    assert slack_asset_failure_sensor._monitored_jobs == [
+        daily__fetch_history_sources_to_marts_schedule_job
     ]
 
 
@@ -149,12 +160,12 @@ def test_slack_asset_failure_sensor_swallows_send_errors() -> None:
 
 def _failure_context(slack: object | None = None) -> dg.RunFailureSensorContext:
     run = dg.DagsterRun(
-        job_name="test_job",
+        job_name=DAILY_JOB_NAME,
         run_id="run-1",
         asset_selection={dg.AssetKey(["source", "test_asset"])},
     )
     event = DagsterEvent.job_failure(
-        "test_job",
+        DAILY_JOB_NAME,
         "run failed",
         RunFailureReason.RUN_EXCEPTION,
     )

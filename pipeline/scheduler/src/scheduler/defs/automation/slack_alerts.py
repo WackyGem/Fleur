@@ -6,6 +6,7 @@ from typing import Any
 
 import dagster as dg
 
+from scheduler.defs.daily.source_to_marts import daily__fetch_history_sources_to_marts_schedule_job
 from scheduler.defs.resources.slack import SlackAlertResource
 
 MAX_ERROR_LENGTH = 1500
@@ -76,8 +77,9 @@ def build_slack_failure_message(message_input: FailureMessageInput) -> SlackFail
 
 @dg.run_failure_sensor(
     name="slack_asset_failure_sensor",
-    default_status=dg.DefaultSensorStatus.RUNNING,
+    default_status=dg.DefaultSensorStatus.STOPPED,
     minimum_interval_seconds=30,
+    monitored_jobs=[daily__fetch_history_sources_to_marts_schedule_job],
 )
 def slack_asset_failure_sensor(
     context: dg.RunFailureSensorContext,
