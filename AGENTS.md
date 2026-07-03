@@ -71,8 +71,6 @@ uv sync --all-packages --all-groups
 - 所有 Rust / Cargo 命令在 `engines/` 目录下执行。
 - engines 文档地图：`engines/README.md`
 - Furnace 设计入口：`docs/RFC/archive/0016-rust-furnace-compute-engine.md`
-- Furnace KDJ 历史实施与性能计划：`docs/plans/archive/0027-furnace-rsv-kdj-technical-indicators-implementation-plan.md`、`docs/plans/archive/0028-furnace-kdj-parallel-performance-implementation-plan.md`
-- Furnace 运行报告：`docs/jobs/reports/2026-06-07-furnace-kdj-smoke-run.md`、`docs/jobs/reports/2026-06-07-furnace-kdj-performance-baseline.md`、`docs/jobs/reports/2026-06-07-furnace-kdj-parallel-optimization.md`
 - 当前 crates：
 
 | Crate | 路径 | 类型 | 说明 |
@@ -93,8 +91,6 @@ make rust-doc-serve
 - 指标公式只放在 `furnace-core`，不要在 Python asset、dbt SQL 或 ClickHouse SQL 中重写 RSV/KDJ 递推公式。
 - ClickHouse、RowBinary、Rayon 并行、staging 和分区替换逻辑放在 `furnace-io`。
 - Dagster 通过 `pipeline/scheduler/src/scheduler/defs/resources/furnace.py` 调用 Rust CLI，传入运行参数并读取 JSON summary。
-- 当前 Furnace 输出表：`fleur_calculation.calc_stock_kdj_daily`；dbt wrapper：`fleur_intermediate.int_stock_kdj_daily`。
-- 生产 KDJ 写入只允许 canonical 参数 `KDJ(9,3,3)`；历史修正使用 `replace-cascade` 并级联到受影响证券的最新输入交易日。
 
 ## Dagster（scheduler）
 
@@ -117,7 +113,6 @@ make rust-doc-serve
 - 初始 `models/example` 内容已移除，保留空目录结构
 - dbt canonical 字段治理入口：`pipeline/elt/metadata/field_glossary.yml`
 - dbt staging 清洗边界：`docs/ADR/0007-dbt-staging-cleaning-boundary.md`
-- dbt staging 前置 raw profiling：`docs/ADR/0008-raw-source-profiling-before-dbt-staging.md`、`docs/RFC/archive/0013-raw-source-profiling-before-dbt-staging.md`、`docs/plans/archive/0025-raw-source-profiling-before-dbt-staging-implementation-plan.md`
 - 新增或重写 staging model 前先使用 `docs/skills/fleur-dbt-model-readiness/SKILL.md`，并维护 `docs/references/raw_profile/<dataset>.md`
 - 修改 staging model 后运行：`uv run dbt parse --project-dir elt --profiles-dir elt`、`uv run python elt/scripts/validate_staging_readiness.py` 和 `uv run python elt/scripts/validate_field_glossary.py`
 
