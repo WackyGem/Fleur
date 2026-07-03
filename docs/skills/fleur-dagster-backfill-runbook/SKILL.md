@@ -175,9 +175,9 @@ Daily 规则：
 - `snapshot_reference_data` 仍要求传 `target_date`，但底层 snapshot source/raw plan 忽略日期窗口。
 - `dry_run: true` 只输出 expanded daily plan，不提交 child materialization runs。
 - 非 dry-run daily Furnace step 使用 `append-latest`；历史修复仍走 `backfill__fetch_history_sources_to_marts_job` 的 `replace-cascade`。
-- `daily__fetch_history_sources_to_marts_schedule` 是唯一 daily source-to-marts ScheduleDefinition，默认 stopped；启用生产前必须先验收 dry-run 报告，并将 schedule config 的 `dry_run` 改为 `false`。
+- `daily__fetch_history_sources_to_marts_schedule` 是唯一 daily source-to-marts ScheduleDefinition，默认 stopped；当前 schedule config 为 `dry_run: false`，启用后提交真实 daily runs。
 - 当前 dry-run 验证记录：`docs/jobs/reports/2026-07-01-daily-fetch-history-sources-to-marts-schedule-job-dry-run.md`。
-- Jiuyan 全系列、portfolio backtest analytics 和 portfolio live 不进入 daily source-to-marts plan。
+- Jiuyan 全系列和 portfolio backtest analytics 不进入 daily source-to-marts plan；portfolio live 仅作为 `all_source_to_marts + full` 的 terminal step 提交。
 
 ## 选择规则
 

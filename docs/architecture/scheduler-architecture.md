@@ -9,7 +9,7 @@
 - `SOURCE_BUNDLES` 顺序固定为 `sina`、`jiuyan`、`ths`、`baostock`、`eastmoney`、`chinabond`。
 - 每个数据源在自己的 `definitions.py` 中导出一个 `SourceBundle`，集中声明该源的 assets、jobs、schedules；生产 definitions 只消费其中的 assets，source-specific jobs/schedules 不再注册为 production daily 入口。
 - 当前所有源资产使用 Dagster group `s3_sources`，通过 asset tags 区分 `source`、`layer`、`storage`、`state`、`modality`。
-- 日常 source-to-marts 入口为 `daily__fetch_history_sources_to_marts_schedule_job`；唯一日常 ScheduleDefinition 为 `daily__fetch_history_sources_to_marts_schedule`，默认 stopped，当前 schedule run config 仍为 `dry_run=true`。
+- 日常 source-to-marts 入口为 `daily__fetch_history_sources_to_marts_schedule_job`；唯一日常 ScheduleDefinition 为 `daily__fetch_history_sources_to_marts_schedule`，默认 stopped，当前 schedule run config 为 `dry_run=false`。
 - `daily__fetch_history_sources_to_marts_schedule_job` 在 `all_source_to_marts + full` plan 末尾追加 `rearview/daily__portfolio_nav_liquidation` terminal step；该 step 是 unpartitioned asset materialization，等待 Rearview worker 终态并记录 fact-count metadata。
 - 手动 history raw-only 回填入口为 `backfill__fetch_history_sources_to_raw_job`；历史 source-to-marts 入口为 `backfill__fetch_history_sources_to_marts_job`。
 - `backfill__fetch_snapshot_sources_to_raw_job` 不再作为公开 definitions 注册；snapshot reference data 由 history raw-only 入口处理。
@@ -40,9 +40,9 @@ Jiuyan 异动、行业列表、图片/OCR/OCR snapshot 后续独立设计 job；
 | 对象 | 角色 |
 |------|------|
 | `daily__fetch_history_sources_to_marts_schedule_job` | 唯一日常 source -> raw -> stg -> int -> calculation -> mart -> portfolio live controller job；把 `target_date` 映射成 `start_date=end_date=target_date` 复用 history source-to-marts registry，并在 full/all scope 末尾提交 `rearview/daily__portfolio_nav_liquidation` |
-| `daily__fetch_history_sources_to_marts_schedule` | 唯一日常 source-to-marts ScheduleDefinition，`45 17 * * *` Asia/Shanghai，默认 stopped；启用生产前先完成 dry-run 和小范围验证 |
+| `daily__fetch_history_sources_to_marts_schedule` | 唯一日常 source-to-marts ScheduleDefinition，`45 17 * * *` Asia/Shanghai，默认 stopped；启用后提交真实 daily runs |
 | `rearview/daily__portfolio_nav_liquidation` | portfolio live 日度 NAV 清算 asset；无分区、无用户日期范围 config，由 daily controller 作为 terminal step 提交，内部调用 Rearview settlement-target、single-day daily-runs、status 和 fact-count APIs |
-| `example__portfolio_live_job` | 0051 低位反转 example 手动回归入口；只选择 `rearview/example_0051_portfolio_live_run`，默认解析该 example portfolio 的最新 settlement target，并只创建一个 latest date 的 full-window daily run，由 worker 一次性从建仓上下文清算到该日；可用 run config 指定较短 `end_date`；不挂 schedule，不进入 production daily schedule |
+| `example__portfolio_live_job` | 策略搜索低位反转 example 手动回归入口；沿用 `rearview/example_0051_portfolio_live_run` asset 和 legacy 0051 ensure path，当前 fixture 为 `racingline_0051_low_reversal` / `v2`；默认解析该 example portfolio 的最新 settlement target，并只创建一个 latest date 的 full-window daily run，由 worker 一次性从建仓上下文清算到该日；可用 run config 指定较短 `end_date`；不挂 schedule，不进入 production daily schedule |
 
 Daily controller 只提交 Dagster asset materialization child runs，不直接调用 source service、dbt CLI、Furnace CLI、Rearview HTTP API 或 ClickHouse 写入逻辑。`dry_run=true` 时只输出 plan，但 plan 仍展示 portfolio live terminal step。非 dry-run 的 daily Furnace step 使用 `append-latest`；历史修复仍使用 `backfill__fetch_history_sources_to_marts_job` 的 `replace-cascade`。
 

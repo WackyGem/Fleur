@@ -329,7 +329,7 @@ def test_daily_schedule_is_stopped_and_emits_target_date_config() -> None:
     request = tick.run_requests[0]
     assert request.run_key == "daily__fetch_history_sources_to_marts_schedule:2026-07-01"
     assert request.tags["daily.kind"] == "fetch_history_sources_to_marts_schedule"
-    assert request.tags["daily.dry_run"] == "true"
+    assert request.tags["daily.dry_run"] == "false"
     assert request.run_config == {
         "ops": {
             DAILY_CONTROLLER_OP_NAME: {
@@ -337,7 +337,7 @@ def test_daily_schedule_is_stopped_and_emits_target_date_config() -> None:
                     "target_scope": ALL_SOURCE_TO_MARTS_SCOPE,
                     "target_date": "2026-07-01",
                     "execution_mode": SOURCE_RAW_EXECUTION_MODE_FULL,
-                    "dry_run": True,
+                    "dry_run": False,
                     "refresh_prerequisite_snapshots": False,
                     "overwrite_source_partitions": False,
                 }
