@@ -20,7 +20,7 @@
 
 关联文档：
 
-- [RFC 0040: Dagster stg 到 mart 资产盘点](../../RFC/0040-dagster-stg-to-mart-asset-inventory.md)
+- [RFC 0040: Dagster stg 到 mart 资产盘点](../../RFC/archive/0040-dagster-stg-to-mart-asset-inventory.md)
 - [Plan 0065: Source/Raw 统一回填 Controller 实施计划](0065-source-raw-unified-backfill-controller-implementation-plan.md)
 - [Plan 0067: Daily Source to Marts Clean-Slate 编排实施计划](0067-daily-source-to-marts-clean-slate-orchestration-plan.md)
 - [Source/Raw 回填运行手册](../../skills/fleur-dagster-backfill-runbook/SKILL.md)

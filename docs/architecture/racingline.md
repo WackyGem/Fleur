@@ -101,7 +101,7 @@ npm run build
 | [../RFC/archive/0029-racingline-strategy-portfolio-publish-and-daily-run.md](../RFC/archive/0029-racingline-strategy-portfolio-publish-and-daily-run.md) | 策略组合发布和日运行 |
 | [../jobs/reports/2026-06-24-racingline-strategy-portfolio-publish-dashboard-dagster.md](../jobs/reports/2026-06-24-racingline-strategy-portfolio-publish-dashboard-dagster.md) | Step 5 建立组合、Dashboard 接入、Dagster daily run 注册和 0051 低位反转组合创建验收报告 |
 | [../RFC/archive/0044-racingline-0051-low-reversal-regression-case.md](../RFC/archive/0044-racingline-0051-low-reversal-regression-case.md) | 0051 低位反转端到端回归用例固化讨论 |
-| [../RFC/0031-racingline-step4-step5-backtest-latency-slimming.md](../RFC/0031-racingline-step4-step5-backtest-latency-slimming.md) | Step 4 到 Step 5 回测延时瘦身依据、字段审计和性能基线 |
+| [../RFC/archive/0031-racingline-step4-step5-backtest-latency-slimming.md](../RFC/archive/0031-racingline-step4-step5-backtest-latency-slimming.md) | Step 4 到 Step 5 回测延时瘦身依据、字段审计和性能基线 |
 | [../plans/archive/0056-racingline-step4-step5-backtest-latency-optimization-plan.md](../plans/archive/0056-racingline-step4-step5-backtest-latency-optimization-plan.md) | Step 4/5 handoff、status/compact API、worker timing、动态 price bars 和 outbox 唤醒实施计划 |
 | [../jobs/reports/2026-06-25-racingline-step4-step5-backtest-latency-optimization.md](../jobs/reports/2026-06-25-racingline-step4-step5-backtest-latency-optimization.md) | Step 4/5 回测延时优化验收报告 |
 | [../plans/archive/0058-racingline-step5-backtest-worker-latency-optimization-plan.md](../plans/archive/0058-racingline-step5-backtest-worker-latency-optimization-plan.md) | Step 5 worker 热路径、overview 首屏读取和 pickup wait 治理完成计划 |
@@ -115,7 +115,7 @@ npm run build
 | [../RFC/archive/0043-racingline-strategy-detail-delete-action.md](../RFC/archive/0043-racingline-strategy-detail-delete-action.md) | 策略详情页删除按钮归档语义、410 跳转和前后端 contract 设计 |
 | [../plans/archive/0071-racingline-strategy-detail-delete-action-plan.md](../plans/archive/0071-racingline-strategy-detail-delete-action-plan.md) | 策略详情页删除按钮、Rearview archived 410 和 manual daily run 拒绝完成计划 |
 | [../jobs/reports/2026-07-02-racingline-strategy-detail-delete-action.md](../jobs/reports/2026-07-02-racingline-strategy-detail-delete-action.md) | 策略详情页删除按钮归档 API、前端跳转和质量门禁验收报告 |
-| [../RFC/0046-racingline-strategy-detail-config-display.md](../RFC/0046-racingline-strategy-detail-config-display.md) | 策略详情页 `策略配置方案` 入口、Step 5 配置展示复用和 canonical 配置派生展示设计 |
+| [../RFC/archive/0046-racingline-strategy-detail-config-display.md](../RFC/archive/0046-racingline-strategy-detail-config-display.md) | 策略详情页 `策略配置方案` 入口、Step 5 配置展示复用和 canonical 配置派生展示设计 |
 | [../plans/archive/0074-racingline-strategy-detail-config-display-plan.md](../plans/archive/0074-racingline-strategy-detail-config-display-plan.md) | 策略详情页配置展示实施完成计划 |
 | [../jobs/reports/2026-07-02-racingline-strategy-detail-config-display.md](../jobs/reports/2026-07-02-racingline-strategy-detail-config-display.md) | 策略详情页配置展示、质量门禁和 CDP smoke 验收报告 |
 | [../plans/archive/0075-racingline-strategy-real-config-snapshot-correction-plan.md](../plans/archive/0075-racingline-strategy-real-config-snapshot-correction-plan.md) | 0074 纠偏完成：从 `rule_snapshot` + `execution_config` 派生配置展示、拒绝 display-only JSON、0051 example 和真实 browser smoke |

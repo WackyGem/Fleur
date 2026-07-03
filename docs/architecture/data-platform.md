@@ -74,7 +74,7 @@ uv run dg check defs
 | [../ADR/0009-clickhouse-layered-databases.md](../ADR/0009-clickhouse-layered-databases.md) | ClickHouse 分层 database 决策 |
 | [../plans/archive/0062-racingline-strategy-portfolio-statement-plan.md](../plans/archive/0062-racingline-strategy-portfolio-statement-plan.md) | Strategy portfolio 对账单、Dagster 清算终态核验和 2025 T+1 建仓验收完成计划 |
 | [../jobs/reports/2026-06-29-racingline-strategy-portfolio-statement.md](../jobs/reports/2026-06-29-racingline-strategy-portfolio-statement.md) | Dagster materialization metadata、ClickHouse live facts 和对账单 UI 验收报告 |
-| [../RFC/0045-strategy-portfolio-daily-nav-liquidation.md](../RFC/0045-strategy-portfolio-daily-nav-liquidation.md) | Strategy Portfolio 日度 NAV 清算入口收敛设计 |
+| [../RFC/archive/0045-strategy-portfolio-daily-nav-liquidation.md](../RFC/archive/0045-strategy-portfolio-daily-nav-liquidation.md) | Strategy Portfolio 日度 NAV 清算入口收敛设计 |
 | [../plans/archive/0073-strategy-portfolio-daily-nav-liquidation-plan.md](../plans/archive/0073-strategy-portfolio-daily-nav-liquidation-plan.md) | Strategy Portfolio 日度 NAV 清算入口收敛实施计划 |
 | [../jobs/reports/2026-07-02-strategy-portfolio-daily-nav-liquidation.md](../jobs/reports/2026-07-02-strategy-portfolio-daily-nav-liquidation.md) | `daily__portfolio_nav_liquidation` dry-run、direct smoke 和质量门禁报告 |
 

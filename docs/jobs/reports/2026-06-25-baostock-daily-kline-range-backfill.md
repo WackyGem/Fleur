@@ -5,7 +5,7 @@ UTC time: 2026-06-25T23:10:00Z
 ## Scope
 
 - Plan: `docs/plans/archive/0057-baostock-daily-kline-range-backfill-implementation-plan.md`
-- RFC: `docs/RFC/0030-baostock-daily-kline-compacted-yearly-range-rebuild.md`
+- RFC: `docs/RFC/archive/0030-baostock-daily-kline-compacted-yearly-range-rebuild.md`
 - Daily source asset: `source/baostock__query_history_k_data_plus_daily`
 - Compacted source asset: `source/baostock__query_history_k_data_plus_daily_compacted`
 - Raw asset: `clickhouse/raw/baostock__query_history_k_data_plus_daily_compacted`

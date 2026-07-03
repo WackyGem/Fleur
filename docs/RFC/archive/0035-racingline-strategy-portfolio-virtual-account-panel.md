@@ -13,7 +13,7 @@
 - docs/architecture/rearview.md
 关联文档：
 - docs/RFC/archive/0029-racingline-strategy-portfolio-publish-and-daily-run.md
-- docs/RFC/0034-racingline-step5-portfolio-publish-dialog-tabs.md
+- docs/RFC/archive/0034-racingline-step5-portfolio-publish-dialog-tabs.md
 - docs/plans/archive/0060-racingline-step5-portfolio-publish-dialog-tplus1-plan.md
 
 ## 摘要

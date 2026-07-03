@@ -8,8 +8,8 @@
 - docs/architecture/scheduler-architecture.md
 - docs/architecture/dbt_layer/
 相关文档：
-- docs/RFC/0038-dbt-baostock-downstream-performance-optimization.md
-- docs/RFC/0036-racingline-strategy-portfolio-statement.md
+- docs/RFC/archive/0038-dbt-baostock-downstream-performance-optimization.md
+- docs/RFC/archive/0036-racingline-strategy-portfolio-statement.md
 - docs/jobs/dagster-definitions-lineage-2026-06-10.md
 
 ## 摘要
@@ -394,7 +394,7 @@ daily network 不应叠加在旧 jobs/schedules/sensors 上渐进扩散。此前
 | portfolio backtest analytics | 不纳入 source-to-marts；另开 portfolio analytics job/backfill |
 | portfolio live | 不纳入 history source-to-marts backfill；production daily 由 `daily__portfolio_nav_liquidation` terminal step 处理 |
 
-对应执行计划见 [Plan 0066](../plans/archive/0066-backfill-source-to-marts-controller-plan.md)。
+对应执行计划见 [Plan 0066](../../plans/archive/0066-backfill-source-to-marts-controller-plan.md)。
 
 ## Asset Checks 基线
 

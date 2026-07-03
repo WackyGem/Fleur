@@ -6,7 +6,7 @@
 
 ## 背景
 
-[RFC 0038](../../RFC/0038-dbt-baostock-downstream-performance-optimization.md) 已经明确 BaoStock 下游优化的首期方向：不把 int 层改为复杂的分区感知增量，不引入 `_sync_at` 水位线状态机，而是先删除低价值 mart 字段匹配测试，并把 raw ClickHouse 最新 `year` 分区刷新后的下游动作收敛为相关 int/mart 全量重建。
+[RFC 0038](../../RFC/archive/0038-dbt-baostock-downstream-performance-optimization.md) 已经明确 BaoStock 下游优化的首期方向：不把 int 层改为复杂的分区感知增量，不引入 `_sync_at` 水位线状态机，而是先删除低价值 mart 字段匹配测试，并把 raw ClickHouse 最新 `year` 分区刷新后的下游动作收敛为相关 int/mart 全量重建。
 
 当前性能基线来自 [2026-06-26 dbt BaoStock 下游性能报告](../../jobs/reports/2026-06-26-dbt-baostock-downstream-performance.md)：
 
@@ -488,7 +488,7 @@ uv run dbt build --project-dir elt --profiles-dir elt \
 
 - `docs/jobs/reports/`
 - `docs/issues/baostock-2026-06-26-downstream-performance.md`
-- `docs/RFC/0038-dbt-baostock-downstream-performance-optimization.md`
+- `docs/RFC/archive/0038-dbt-baostock-downstream-performance-optimization.md`
 - `docs/plans/README.md`
 
 实施项：

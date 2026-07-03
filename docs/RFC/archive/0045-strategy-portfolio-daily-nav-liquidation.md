@@ -6,7 +6,7 @@
 关联系统：pipeline/scheduler, engines/crates/rearview-core, engines/crates/rearview-portfolio-worker, fleur_portfolio
 相关文档：
 - docs/RFC/archive/0029-racingline-strategy-portfolio-publish-and-daily-run.md
-- docs/RFC/0036-racingline-strategy-portfolio-statement.md
+- docs/RFC/archive/0036-racingline-strategy-portfolio-statement.md
 - docs/RFC/archive/0044-racingline-0051-low-reversal-regression-case.md
 - docs/plans/archive/0062-racingline-strategy-portfolio-statement-plan.md
 - docs/plans/archive/0072-racingline-0051-low-reversal-example-live-job-plan.md
@@ -104,14 +104,14 @@ Plan 0073 已完成以下落地：
 
 | 区域 | 当前事实 |
 |---|---|
-| Asset key | [assets.py](../../pipeline/scheduler/src/scheduler/defs/rearview/assets.py) 定义 `STRATEGY_PORTFOLIO_DAILY_ASSET_KEY = AssetKey(["rearview", "strategy_portfolio_daily_runs"])`。 |
+| Asset key | [assets.py](../../../pipeline/scheduler/src/scheduler/defs/rearview/assets.py) 定义 `STRATEGY_PORTFOLIO_DAILY_ASSET_KEY = AssetKey(["rearview", "strategy_portfolio_daily_runs"])`。 |
 | Partitions | 同文件定义 `DailyPartitionsDefinition(start_date="2026-06-24")`。 |
 | Config | `StrategyPortfolioDailyRunConfig` 暴露 `trade_date`、`start_date`、`end_date`、`strategy_portfolio_id`、等待和 chunk 配置。 |
 | 默认请求 | 未传日期时，asset 调用 `get_strategy_portfolio_settlement_target()`，再把 target date 作为 `start_date=end_date` 调用 range API。 |
 | Range 请求 | 传 `start_date/end_date` 时，scheduler 会按 `chunk_size` 拆分自然日期区间，逐段调用 Rearview range API。 |
 | 成功语义 | asset 已等待 daily run status 到终态，并查询 fact-counts；`nav_row_count <= 0` 会使 Dagster run fail。 |
-| Job/Schedule | [definitions.py](../../pipeline/scheduler/src/scheduler/defs/rearview/definitions.py) 注册 `strategy_portfolio__daily_run_job` 和每日 20:00 的 `portfolio__daily_run_schedule`。 |
-| Daily source-to-marts | [source_to_marts.py](../../pipeline/scheduler/src/scheduler/defs/daily/source_to_marts.py) 当前的 `daily__fetch_history_sources_to_marts_schedule_job` 只展开 source/raw/dbt/Furnace/mart asset materialization steps，尚未包含 portfolio live 终端步骤。 |
+| Job/Schedule | [definitions.py](../../../pipeline/scheduler/src/scheduler/defs/rearview/definitions.py) 注册 `strategy_portfolio__daily_run_job` 和每日 20:00 的 `portfolio__daily_run_schedule`。 |
+| Daily source-to-marts | [source_to_marts.py](../../../pipeline/scheduler/src/scheduler/defs/daily/source_to_marts.py) 当前的 `daily__fetch_history_sources_to_marts_schedule_job` 只展开 source/raw/dbt/Furnace/mart asset materialization steps，尚未包含 portfolio live 终端步骤。 |
 | 0051 example | 同一模块另有 `rearview/example_0051_portfolio_live_run`，手动 job 默认只创建一个 latest target 的 full-window daily run，不挂 schedule。 |
 
 ### Rearview API
@@ -126,7 +126,7 @@ Plan 0073 已完成以下落地：
 | `GET /rearview/strategy-portfolios/daily-runs/{id}` | 返回 daily run status。 |
 | `GET /rearview/strategy-portfolios/daily-runs/{id}/fact-counts` | 查询最新 attempt 的 `live_nav_daily`、`live_trade` 和 `live_closed_trade` 行数。 |
 
-[postgres/mod.rs](../../engines/crates/rearview-core/src/postgres/mod.rs) 的 `create_strategy_portfolio_daily_runs_for_trade_date()` 当前行为：
+[postgres/mod.rs](../../../engines/crates/rearview-core/src/postgres/mod.rs) 的 `create_strategy_portfolio_daily_runs_for_trade_date()` 当前行为：
 
 1. 未指定 `strategy_portfolio_id` 时读取所有 active portfolios。
 2. 指定 archived portfolio 时返回 `410 Gone`。
@@ -139,7 +139,7 @@ Plan 0073 已完成以下落地：
 
 ### Worker
 
-[rearview-portfolio-worker](../../engines/crates/rearview-portfolio-worker/src/main.rs) 的 strategy portfolio daily run 处理路径当前已经是 full-window 计算：
+[rearview-portfolio-worker](../../../engines/crates/rearview-portfolio-worker/src/main.rs) 的 strategy portfolio daily run 处理路径当前已经是 full-window 计算：
 
 1. 读取 `strategy_portfolio` 的 `rule_snapshot` 和 `execution_config`。
 2. 查询 `run.run_start_date..run.trade_date` 的交易日和 TopN 信号。
@@ -152,9 +152,9 @@ Plan 0073 已完成以下落地：
 
 ### 已有验收事实
 
-[2026-06-29 对账单验收报告](../jobs/reports/2026-06-29-racingline-strategy-portfolio-statement.md) 已证明：一个 latest daily run 可以产出从 `2025-01-08` 到 `2026-06-26` 的 `live_nav_daily`，并由 Dagster metadata 记录 `latest_daily_run_id`、`latest_result_attempt_id`、`nav_row_count`、`trade_row_count` 和 `closed_trade_row_count`。
+[2026-06-29 对账单验收报告](../../jobs/reports/2026-06-29-racingline-strategy-portfolio-statement.md) 已证明：一个 latest daily run 可以产出从 `2025-01-08` 到 `2026-06-26` 的 `live_nav_daily`，并由 Dagster metadata 记录 `latest_daily_run_id`、`latest_result_attempt_id`、`nav_row_count`、`trade_row_count` 和 `closed_trade_row_count`。
 
-[2026-07-02 0051 example 报告](../jobs/reports/2026-07-02-racingline-0051-low-reversal-example-live-job.md) 进一步确认：`example__portfolio_live_job` 默认解析 portfolio-specific settlement target，然后只创建一个 `trade_date = latest settlement target` 的 daily run，由 worker 一次性执行 full-window simulation。
+[2026-07-02 0051 example 报告](../../jobs/reports/2026-07-02-racingline-0051-low-reversal-example-live-job.md) 进一步确认：`example__portfolio_live_job` 默认解析 portfolio-specific settlement target，然后只创建一个 `trade_date = latest settlement target` 的 daily run，由 worker 一次性执行 full-window simulation。
 
 ## 设计预期
 
@@ -328,7 +328,7 @@ Materialization metadata 至少应包含：
 2. 移除生产 config 中的 `trade_date/start_date/end_date/strategy_portfolio_id`。
 3. 移除 `DailyPartitionsDefinition` 和 `build_schedule_from_partitioned_job` 依赖。
 4. 将旧 key 的测试断言迁移到 `rearview/daily__portfolio_nav_liquidation`。
-5. 更新 `docs/architecture/scheduler-architecture.md`、`docs/architecture/data-platform.md` 和 `docs/RFC/0040-dagster-stg-to-mart-asset-inventory.md` 的命名。
+5. 更新 `docs/architecture/scheduler-architecture.md`、`docs/architecture/data-platform.md` 和 `docs/RFC/archive/0040-dagster-stg-to-mart-asset-inventory.md` 的命名。
 6. 移除或停用独立 production `portfolio__daily_run_schedule`；保留手动 repair/example 入口需另行命名。
 
 完成标准：

@@ -9,7 +9,7 @@
 - `app/racingline/src/features/strategy/execution.ts`
 - `app/racingline/src/routes/strategy-page.tsx`
 - `app/racingline/src/routes/strategy-detail-page.tsx`
-- `docs/RFC/0046-racingline-strategy-detail-config-display.md`
+- `docs/RFC/archive/0046-racingline-strategy-detail-config-display.md`
 - `docs/plans/archive/0074-racingline-strategy-detail-config-display-plan.md`
 
 ## 变更摘要

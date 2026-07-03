@@ -15,8 +15,8 @@
 
 关联文档：
 
-- [RFC 0045: Strategy Portfolio 日度 NAV 清算入口收敛](../../RFC/0045-strategy-portfolio-daily-nav-liquidation.md)
-- [RFC 0040: Dagster stg 到 mart 资产盘点](../../RFC/0040-dagster-stg-to-mart-asset-inventory.md)
+- [RFC 0045: Strategy Portfolio 日度 NAV 清算入口收敛](../../RFC/archive/0045-strategy-portfolio-daily-nav-liquidation.md)
+- [RFC 0040: Dagster stg 到 mart 资产盘点](../../RFC/archive/0040-dagster-stg-to-mart-asset-inventory.md)
 - [Plan 0067: Daily Source to Marts Clean-Slate 编排实施计划](0067-daily-source-to-marts-clean-slate-orchestration-plan.md)
 - [Plan 0062: Racingline 策略组合对账单实施计划](0062-racingline-strategy-portfolio-statement-plan.md)
 - [Plan 0072: Racingline 0051 低位反转 example live job 实施计划](0072-racingline-0051-low-reversal-example-live-job-plan.md)
@@ -277,8 +277,8 @@ RFC 0045 已确认 `rearview/strategy_portfolio_daily_runs` 的现有 Dagster su
    - `daily__portfolio_nav_liquidation` 通过 Rearview APIs 等待 worker 和 fact counts。
 3. 更新 [rearview.md](../../architecture/rearview.md)：
    - 说明 Dagster daily controller 调用现有 daily-runs API，不新增 Rearview batch API。
-4. 更新 [RFC 0040](../../RFC/0040-dagster-stg-to-mart-asset-inventory.md) 中 portfolio live 不纳入 daily network 的旧结论，改为被 RFC 0045/Plan 0073 替代。
-5. 更新 [RFC 0045](../../RFC/0045-strategy-portfolio-daily-nav-liquidation.md) 的状态或实施链接。
+4. 更新 [RFC 0040](../../RFC/archive/0040-dagster-stg-to-mart-asset-inventory.md) 中 portfolio live 不纳入 daily network 的旧结论，改为被 RFC 0045/Plan 0073 替代。
+5. 更新 [RFC 0045](../../RFC/archive/0045-strategy-portfolio-daily-nav-liquidation.md) 的状态或实施链接。
 6. 新增 job report，记录一次 dry-run plan 和至少一次 dev smoke：
    - dry-run plan 包含 terminal step。
    - 非 dry-run terminal step 成功或明确记录阻塞原因。

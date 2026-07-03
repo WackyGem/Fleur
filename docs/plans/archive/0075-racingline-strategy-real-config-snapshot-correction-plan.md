@@ -13,7 +13,7 @@
 
 关联文档：
 
-- [RFC 0046: Racingline 策略详情页策略配置展示](../../RFC/0046-racingline-strategy-detail-config-display.md)
+- [RFC 0046: Racingline 策略详情页策略配置展示](../../RFC/archive/0046-racingline-strategy-detail-config-display.md)
 - [Plan 0074: Racingline 策略详情页策略配置方案实施计划](0074-racingline-strategy-detail-config-display-plan.md)
 - [2026-07-02 Racingline Strategy Detail Config Display Run Report](../../jobs/reports/2026-07-02-racingline-strategy-detail-config-display.md)
 - [Racingline Architecture](../../architecture/racingline.md)

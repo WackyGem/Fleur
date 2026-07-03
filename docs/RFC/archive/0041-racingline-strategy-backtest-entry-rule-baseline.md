@@ -13,8 +13,8 @@
 关联文档：
 - `docs/RFC/archive/0027-racingline-strategy-simulation-position-step4.md`
 - `docs/RFC/archive/0028-racingline-strategy-backtest-step5.md`
-- `docs/RFC/0031-racingline-step4-step5-backtest-latency-slimming.md`
-- `docs/RFC/0034-racingline-step5-portfolio-publish-dialog-tabs.md`
+- `docs/RFC/archive/0031-racingline-step4-step5-backtest-latency-slimming.md`
+- `docs/RFC/archive/0034-racingline-step5-portfolio-publish-dialog-tabs.md`
 - `docs/plans/archive/0069-racingline-strategy-entry-rule-implementation-plan.md`
 - `docs/jobs/reports/2026-07-02-racingline-strategy-entry-rule-implementation.md`
 

@@ -32,7 +32,7 @@
 
 ## 当前事实
 
-当前「建立策略组合」弹层位于 [strategy-page.tsx](../../app/racingline/src/routes/strategy-page.tsx) 第 2458 行附近。按钮只在 `activeBacktestRun.status === "succeeded"`、存在 `current_result_attempt_id` 且配置未 stale 时启用。
+当前「建立策略组合」弹层位于 [strategy-page.tsx](../../../app/racingline/src/routes/strategy-page.tsx) 第 2458 行附近。按钮只在 `activeBacktestRun.status === "succeeded"`、存在 `current_result_attempt_id` 且配置未 stale 时启用。
 
 弹层现有数据来源：
 
@@ -289,7 +289,7 @@ planned_live_start_date = 2026-07-03
 
 这样会带来一个必须在 UI 上解释清楚的差异：15:00 前建立组合时，计划建仓日可能是当天；15:00 后建立组合时，计划建仓日通常是下一交易日。这个差异不是前端特例，而是交易信号生成时点不同导致的结果。
 
-实现状态：盘中/收盘后信号日期规则已由 [Plan 0070](../plans/archive/0070-racingline-strategy-publish-market-phase-entry-rule-plan.md) 落地，验收见 [2026-07-02 实施报告](../jobs/reports/2026-07-02-racingline-strategy-publish-market-phase-entry-rule.md)。RFC 0034 其他 backtest/live 数据隔离讨论仍按本文后续章节跟踪。
+实现状态：盘中/收盘后信号日期规则已由 [Plan 0070](../../plans/archive/0070-racingline-strategy-publish-market-phase-entry-rule-plan.md) 落地，验收见 [2026-07-02 实施报告](../../jobs/reports/2026-07-02-racingline-strategy-publish-market-phase-entry-rule.md)。RFC 0034 其他 backtest/live 数据隔离讨论仍按本文后续章节跟踪。
 
 ### 策略组合两段数据模型
 
@@ -445,8 +445,8 @@ ClickHouse live result attempt:
 
 | 链路 | 当前实现 |
 |---|---|
-| 前端发布 | [strategy-page.tsx](../../app/racingline/src/routes/strategy-page.tsx) 的 `publishPortfolio()` 只提交 `source_strategy_backtest_run_id`、`source_result_attempt_id`、`name`，成功后立即跳转 `/dashboard`。 |
-| 创建组合 | [api/mod.rs](../../engines/crates/rearview-core/src/api/mod.rs) 的 `create_strategy_portfolio()` 要求 source backtest `succeeded` 且 attempt 匹配，然后写入 `strategy_portfolio`。 |
+| 前端发布 | [strategy-page.tsx](../../../app/racingline/src/routes/strategy-page.tsx) 的 `publishPortfolio()` 只提交 `source_strategy_backtest_run_id`、`source_result_attempt_id`、`name`，成功后立即跳转 `/dashboard`。 |
+| 创建组合 | [api/mod.rs](../../../engines/crates/rearview-core/src/api/mod.rs) 的 `create_strategy_portfolio()` 要求 source backtest `succeeded` 且 attempt 匹配，然后写入 `strategy_portfolio`。 |
 | 建仓日期 | `resolve_strategy_portfolio_live_start_date()` 从 `source_run.end_date + 1` 到 `+45` 天查询交易日，取第一个大于 source end date 的交易日。 |
 | 建仓日期失败兜底 | 如果查询不到未来交易日，当前实现 `unwrap_or(source_end_date)`，会把建仓日退回 T 日。 |
 | Dashboard pending 状态 | `get_strategy_portfolio_dashboard()` 在没有 `latest_daily_run_id` 时设置 `live_status = pending_first_run`、`curve_source = source_backtest`。 |

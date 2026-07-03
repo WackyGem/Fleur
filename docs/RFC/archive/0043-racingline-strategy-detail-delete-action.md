@@ -8,8 +8,8 @@
 - docs/architecture/racingline.md
 - docs/architecture/rearview.md
 - docs/RFC/archive/0029-racingline-strategy-portfolio-publish-and-daily-run.md
-- docs/RFC/0034-racingline-step5-portfolio-publish-dialog-tabs.md
-- docs/RFC/0036-racingline-strategy-portfolio-statement.md
+- docs/RFC/archive/0034-racingline-step5-portfolio-publish-dialog-tabs.md
+- docs/RFC/archive/0036-racingline-strategy-portfolio-statement.md
 
 ## 摘要
 

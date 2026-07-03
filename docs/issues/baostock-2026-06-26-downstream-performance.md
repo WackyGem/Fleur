@@ -8,7 +8,7 @@
 ## 扫描基线
 
 - 报告来源：`docs/jobs/reports/2026-06-26-dbt-baostock-downstream-performance.md`
-- 优化方案：`docs/RFC/0038-dbt-baostock-downstream-performance-optimization.md`
+- 优化方案：`docs/RFC/archive/0038-dbt-baostock-downstream-performance-optimization.md`
 - 首期优化报告：`docs/jobs/reports/2026-06-29-dbt-baostock-downstream-performance-optimization.md`
 - 执行时间：`2026-06-26T00:05:00Z`
 - 命令：`uv run dbt build --project-dir elt --profiles-dir elt --select stg_baostock__query_history_k_data_plus_daily+`

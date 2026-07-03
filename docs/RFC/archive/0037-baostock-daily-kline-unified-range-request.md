@@ -275,7 +275,7 @@ overwritten_partition_keys
 
 本 RFC 基于以下当前代码和文档核对：
 
-- `docs/RFC/0030-baostock-daily-kline-compacted-yearly-range-rebuild.md`
+- `docs/RFC/archive/0030-baostock-daily-kline-compacted-yearly-range-rebuild.md`
 - `pipeline/scheduler/src/scheduler/defs/baostock/assets.py`
 - `pipeline/scheduler/src/scheduler/defs/baostock/client.py`
 - `pipeline/scheduler/src/scheduler/defs/baostock/services.py`

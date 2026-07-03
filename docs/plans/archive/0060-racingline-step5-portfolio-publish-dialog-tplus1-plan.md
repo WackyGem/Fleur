@@ -19,7 +19,7 @@
 
 关联文档：
 
-- [RFC 0034: Racingline Step 5 建立策略组合弹层分 Tab 信息架构](../../RFC/0034-racingline-step5-portfolio-publish-dialog-tabs.md)
+- [RFC 0034: Racingline Step 5 建立策略组合弹层分 Tab 信息架构](../../RFC/archive/0034-racingline-step5-portfolio-publish-dialog-tabs.md)
 - [RFC 0029: Racingline 回测结果发布为策略组合与 Dagster 日运行资产](../../RFC/archive/0029-racingline-strategy-portfolio-publish-and-daily-run.md)
 - [Plan 0052: Racingline 策略组合发布、看板真实数据与 Dagster 日运行实施计划](0052-racingline-strategy-portfolio-publish-dashboard-dagster-plan.md)
 - [Racingline 系统地图](../../architecture/racingline.md)

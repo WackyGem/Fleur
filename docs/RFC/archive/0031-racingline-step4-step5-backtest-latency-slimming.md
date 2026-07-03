@@ -519,7 +519,7 @@ Step 5 succeeded 后，当前首屏会读取 nav、rebalance-records 和 perform
 1. 本 RFC 不要求删除 NATS、outbox 或 worker；它们是长耗时回测的可靠异步边界。
 2. 本 RFC 不要求把回测改成同步 HTTP。
 3. 本 RFC 不改变 Step 1/2/3/4 的业务语义、hash、TopN、max positions、费用、滑点或止损规则。
-4. RFC 撰写阶段不调整生产代码，只记录问题定位和后续减法方向；后续实施见 [Plan 0056](../plans/archive/0056-racingline-step4-step5-backtest-latency-optimization-plan.md) 和 [验收报告](../jobs/reports/2026-06-25-racingline-step4-step5-backtest-latency-optimization.md)。
+4. RFC 撰写阶段不调整生产代码，只记录问题定位和后续减法方向；后续实施见 [Plan 0056](../../plans/archive/0056-racingline-step4-step5-backtest-latency-optimization-plan.md) 和 [验收报告](../../jobs/reports/2026-06-25-racingline-step4-step5-backtest-latency-optimization.md)。
 
 ## 实施状态（2026-06-25）
 
@@ -533,7 +533,7 @@ Plan 0056 已完成实施并通过 1y/2y dev smoke：
 - Worker summary 已写入 `worker_timing` 阶段耗时。
 - Outbox dispatcher 已支持 create 后进程内 notify 唤醒，并记录 publish elapsed；stale active run 有只读诊断 endpoint。
 
-验收样本中 create HTTP 为 0.105-0.113s，outbox publish 为 0.031-0.039s，status payload 为 578B，2y price bars read_bytes 为 151.86 MiB。完整数据见 [2026-06-25 优化验收报告](../jobs/reports/2026-06-25-racingline-step4-step5-backtest-latency-optimization.md)。
+验收样本中 create HTTP 为 0.105-0.113s，outbox publish 为 0.031-0.039s，status payload 为 578B，2y price bars read_bytes 为 151.86 MiB。完整数据见 [2026-06-25 优化验收报告](../../jobs/reports/2026-06-25-racingline-step4-step5-backtest-latency-optimization.md)。
 
 ## 结论
 

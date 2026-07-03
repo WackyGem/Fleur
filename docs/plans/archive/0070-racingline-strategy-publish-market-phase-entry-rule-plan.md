@@ -17,7 +17,7 @@
 
 关联文档：
 
-- [RFC 0034: Racingline Step 5 建立策略组合弹层分 Tab 信息架构](../../RFC/0034-racingline-step5-portfolio-publish-dialog-tabs.md)
+- [RFC 0034: Racingline Step 5 建立策略组合弹层分 Tab 信息架构](../../RFC/archive/0034-racingline-step5-portfolio-publish-dialog-tabs.md)
 - [Plan 0069: Racingline 最近信号建仓日期与空位补仓规则实施计划](0069-racingline-strategy-entry-rule-implementation-plan.md)
 - [验收报告：2026-07-02 Racingline 最近信号建仓日期与空位补仓规则实施](../../jobs/reports/2026-07-02-racingline-strategy-entry-rule-implementation.md)
 - [验收报告：2026-07-02 Racingline 盘中/收盘后建仓信号日期规则实施](../../jobs/reports/2026-07-02-racingline-strategy-publish-market-phase-entry-rule.md)

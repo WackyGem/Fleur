@@ -131,7 +131,7 @@ uv run alembic upgrade head
 | [../RFC/archive/0026-racingline-strategy-pool-preview-step3.md](../RFC/archive/0026-racingline-strategy-pool-preview-step3.md) | 从 `/strategies` Step 3 股池预览切入，定义 preview snapshot、全池分页、证券显示和 preview-only 个股上下文的 Implemented RFC |
 | [../RFC/archive/0027-racingline-strategy-simulation-position-step4.md](../RFC/archive/0027-racingline-strategy-simulation-position-step4.md) | `/strategies` Step 4 模拟建仓、BacktestExecutionDraft 和 Step 5 handoff 边界 |
 | [../RFC/archive/0028-racingline-strategy-backtest-step5.md](../RFC/archive/0028-racingline-strategy-backtest-step5.md) | `/strategies` Step 5 策略回测异步执行、backtest run control plane、NATS worker 和组合绩效指标已实现 RFC |
-| [../RFC/0031-racingline-step4-step5-backtest-latency-slimming.md](../RFC/0031-racingline-step4-step5-backtest-latency-slimming.md) | Step 4 到 Step 5 回测延时瘦身、字段审计、outbox 和 worker 性能治理依据 |
+| [../RFC/archive/0031-racingline-step4-step5-backtest-latency-slimming.md](../RFC/archive/0031-racingline-step4-step5-backtest-latency-slimming.md) | Step 4 到 Step 5 回测延时瘦身、字段审计、outbox 和 worker 性能治理依据 |
 | [../plans/archive/0051-racingline-strategy-backtest-step5-implementation-plan.md](../plans/archive/0051-racingline-strategy-backtest-step5-implementation-plan.md) | Step 5 strategy backtest control plane、typed outbox、worker transient signal materialization、result wrapper 和 live smoke 已完成计划 |
 | [../jobs/reports/2026-06-23-racingline-strategy-step5-backtest.md](../jobs/reports/2026-06-23-racingline-strategy-step5-backtest.md) | Step 5 默认动态近一年、period/benchmark rerun、wrapper API、ClickHouse/PG 和 worker 重投递验收报告 |
 | [../plans/archive/0056-racingline-step4-step5-backtest-latency-optimization-plan.md](../plans/archive/0056-racingline-step4-step5-backtest-latency-optimization-plan.md) | Step 4/5 handoff、status/compact API、worker timing、动态 price bars 和 outbox 唤醒实施计划 |
@@ -151,7 +151,7 @@ uv run alembic upgrade head
 | [../RFC/archive/0044-racingline-0051-low-reversal-regression-case.md](../RFC/archive/0044-racingline-0051-low-reversal-regression-case.md) | 0051 低位反转 data config、example ensure API 和 `example__portfolio_live_job` 设计 |
 | [../plans/archive/0072-racingline-0051-low-reversal-example-live-job-plan.md](../plans/archive/0072-racingline-0051-low-reversal-example-live-job-plan.md) | 0051 example live job、共享 snapshot/persistence service 和清算验收实施计划 |
 | [../jobs/reports/2026-07-02-racingline-0051-low-reversal-example-live-job.md](../jobs/reports/2026-07-02-racingline-0051-low-reversal-example-live-job.md) | 0051 example live job 建仓日、扩展窗口 T+1 买入 smoke 和默认 latest settlement target 修正记录 |
-| [../RFC/0045-strategy-portfolio-daily-nav-liquidation.md](../RFC/0045-strategy-portfolio-daily-nav-liquidation.md) | Strategy Portfolio 日度 NAV 清算入口收敛设计 |
+| [../RFC/archive/0045-strategy-portfolio-daily-nav-liquidation.md](../RFC/archive/0045-strategy-portfolio-daily-nav-liquidation.md) | Strategy Portfolio 日度 NAV 清算入口收敛设计 |
 | [../plans/archive/0073-strategy-portfolio-daily-nav-liquidation-plan.md](../plans/archive/0073-strategy-portfolio-daily-nav-liquidation-plan.md) | Strategy Portfolio 日度 NAV 清算入口收敛实施计划 |
 | [../jobs/reports/2026-07-02-strategy-portfolio-daily-nav-liquidation.md](../jobs/reports/2026-07-02-strategy-portfolio-daily-nav-liquidation.md) | `daily__portfolio_nav_liquidation` dry-run、direct smoke 和质量门禁报告 |
 | [../plans/archive/0041-racingline-virtual-account-portfolio-rebalancing-implementation-plan.md](../plans/archive/0041-racingline-virtual-account-portfolio-rebalancing-implementation-plan.md) | 虚拟账户、组合运行、worker 和旧 Racingline 组合页面 Superseded 计划 |

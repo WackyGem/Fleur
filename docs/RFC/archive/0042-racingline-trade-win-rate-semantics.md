@@ -5,8 +5,8 @@
 领域：Racingline, Rearview, Portfolio Metrics, ClickHouse
 关联系统：app/racingline, engines/crates/rearview-core, fleur_portfolio, fleur_backtest, fleur_calculation
 相关文档：
-- docs/RFC/0036-racingline-strategy-portfolio-statement.md
-- docs/RFC/0031-racingline-step4-step5-backtest-latency-slimming.md
+- docs/RFC/archive/0036-racingline-strategy-portfolio-statement.md
+- docs/RFC/archive/0031-racingline-step4-step5-backtest-latency-slimming.md
 - docs/Q&A/0002-portfolio-metrics.md
 - docs/architecture/rearview.md
 - docs/architecture/racingline.md

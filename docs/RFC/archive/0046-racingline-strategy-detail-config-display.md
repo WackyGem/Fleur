@@ -5,7 +5,7 @@
 领域：Racingline, Rearview, Strategy Portfolio, UX
 关联系统：app/racingline, engines/crates/rearview-core
 相关文档：
-- docs/RFC/0034-racingline-step5-portfolio-publish-dialog-tabs.md
+- docs/RFC/archive/0034-racingline-step5-portfolio-publish-dialog-tabs.md
 - docs/RFC/archive/0028-racingline-strategy-backtest-step5.md
 - docs/RFC/archive/0029-racingline-strategy-portfolio-publish-and-daily-run.md
 - docs/architecture/racingline.md
@@ -29,7 +29,7 @@
 
 ### Step 5 配置展示
 
-Step 5「建立组合」弹层位于 [strategy-page.tsx](../../app/racingline/src/routes/strategy-page.tsx)，当前 `Tabs` 包含 `策略配置` 和 `回测业绩`。
+Step 5「建立组合」弹层位于 [strategy-page.tsx](../../../app/racingline/src/routes/strategy-page.tsx)，当前 `Tabs` 包含 `策略配置` 和 `回测业绩`。
 
 `策略配置` tab 的三段内容来源如下：
 
@@ -47,7 +47,7 @@ Step 5「建立组合」弹层位于 [strategy-page.tsx](../../app/racingline/sr
 
 ### 策略详情页
 
-策略详情页位于 [strategy-detail-page.tsx](../../app/racingline/src/routes/strategy-detail-page.tsx)。当前页面已读取 `StrategyPortfolioRecord`，并展示：
+策略详情页位于 [strategy-detail-page.tsx](../../../app/racingline/src/routes/strategy-detail-page.tsx)。当前页面已读取 `StrategyPortfolioRecord`，并展示：
 
 1. 页头：策略名、建仓日、运行天数、持仓数、删除按钮。
 2. `策略信号` 或 `待调入信号`。
@@ -58,7 +58,7 @@ Step 5「建立组合」弹层位于 [strategy-page.tsx](../../app/racingline/sr
 
 ### 持久化数据
 
-前端类型 [rearview.ts](../../app/racingline/src/types/rearview.ts) 中 `StrategyPortfolioRecord` 已包含以下配置字段：
+前端类型 [rearview.ts](../../../app/racingline/src/types/rearview.ts) 中 `StrategyPortfolioRecord` 已包含以下配置字段：
 
 | 字段 | 含义 |
 |---|---|

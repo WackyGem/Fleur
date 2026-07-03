@@ -6,7 +6,7 @@
 
 ## 背景
 
-[RFC 0033](../../RFC/0033-project-version-management.md) 已经提出 fleur 的版本治理方案：采用“组件独立版本 + 仓库集成发布标记”，把 Component SemVer、dataset contract version、Alembic revision、deploy release manifest、集成 tag 和运行时版本暴露分开维护。
+[RFC 0033](../../RFC/archive/0033-project-version-management.md) 已经提出 fleur 的版本治理方案：采用“组件独立版本 + 仓库集成发布标记”，把 Component SemVer、dataset contract version、Alembic revision、deploy release manifest、集成 tag 和运行时版本暴露分开维护。
 
 当前仓库已经具备部分版本事实：
 
@@ -47,7 +47,7 @@
 
 | 文档 | 用途 |
 |---|---|
-| [RFC 0033](../../RFC/0033-project-version-management.md) | 多工程版本管理方案、版本主体矩阵和后续实施优先级 |
+| [RFC 0033](../../RFC/archive/0033-project-version-management.md) | 多工程版本管理方案、版本主体矩阵和后续实施优先级 |
 | [fleur-version-management skill](../../skills/fleur-version-management/SKILL.md) | 后续执行版本 bump、manifest、tag、release note 和运行时版本暴露时的操作手册 |
 | [docs/README.md](../../README.md) | docs 生命周期和最小文档校验 |
 | [architecture/project-status.md](../../architecture/README.md) | 系统地图入口 |

@@ -16,7 +16,7 @@
 
 关联文档：
 
-- [RFC 0040: Dagster stg 到 mart 资产盘点](../../RFC/0040-dagster-stg-to-mart-asset-inventory.md)
+- [RFC 0040: Dagster stg 到 mart 资产盘点](../../RFC/archive/0040-dagster-stg-to-mart-asset-inventory.md)
 - [数据平台地图](../../architecture/data-platform.md)
 - [Scheduler 架构](../../architecture/scheduler-architecture.md)
 - [Scheduler 模块边界](../../architecture/scheduler-module-boundaries.md)
@@ -178,7 +178,7 @@ controller job 负责把一个 `target_date` 展开为阶段化 materialization 
 修改范围：
 
 - `docs/plans/archive/0067-daily-source-to-marts-clean-slate-orchestration-plan.md`
-- `docs/RFC/0040-dagster-stg-to-mart-asset-inventory.md`
+- `docs/RFC/archive/0040-dagster-stg-to-mart-asset-inventory.md`
 - `docs/architecture/scheduler-architecture.md`
 
 任务：

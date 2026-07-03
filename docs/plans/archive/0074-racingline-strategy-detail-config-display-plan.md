@@ -13,8 +13,8 @@
 
 关联文档：
 
-- [RFC 0046: Racingline 策略详情页策略配置展示](../../RFC/0046-racingline-strategy-detail-config-display.md)
-- [RFC 0034: Racingline Step 5 建立策略组合弹层分 Tab 信息架构](../../RFC/0034-racingline-step5-portfolio-publish-dialog-tabs.md)
+- [RFC 0046: Racingline 策略详情页策略配置展示](../../RFC/archive/0046-racingline-strategy-detail-config-display.md)
+- [RFC 0034: Racingline Step 5 建立策略组合弹层分 Tab 信息架构](../../RFC/archive/0034-racingline-step5-portfolio-publish-dialog-tabs.md)
 - [Racingline Architecture](../../architecture/racingline.md)
 - [Rearview Architecture](../../architecture/rearview.md)
 

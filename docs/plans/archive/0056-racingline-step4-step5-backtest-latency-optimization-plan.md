@@ -6,7 +6,7 @@
 
 ## 背景
 
-[RFC 0031](../../RFC/0031-racingline-step4-step5-backtest-latency-slimming.md) 已确认 `/strategies` 从 Step 4「模拟建仓」点击「策略回测」到 Step 5「策略回测」的当前路径存在设计层面的等待错误：前端 `openBacktest()` 在 Step 4 中创建 backtest run 后，手动轮询 `GET /rearview/strategy-backtests/{id}` 等到 worker terminal，再额外等待 600ms，最后才 `setActiveStep("backtest")`。
+[RFC 0031](../../RFC/archive/0031-racingline-step4-step5-backtest-latency-slimming.md) 已确认 `/strategies` 从 Step 4「模拟建仓」点击「策略回测」到 Step 5「策略回测」的当前路径存在设计层面的等待错误：前端 `openBacktest()` 在 Step 4 中创建 backtest run 后，手动轮询 `GET /rearview/strategy-backtests/{id}` 等到 worker terminal，再额外等待 600ms，最后才 `setActiveStep("backtest")`。
 
 实测报告 [2026-06-25-racingline-step4-step5-backtest-latency-baseline](../../jobs/reports/2026-06-25-racingline-step4-step5-backtest-latency-baseline.md) 的受控样本显示：
 
@@ -53,7 +53,7 @@ RFC 0031 还确认了额外字段和数据面问题：
 
 | 文档 | 用途 |
 |---|---|
-| [RFC 0031](../../RFC/0031-racingline-step4-step5-backtest-latency-slimming.md) | 设计依据、执行流、字段审计和阶段建议 |
+| [RFC 0031](../../RFC/archive/0031-racingline-step4-step5-backtest-latency-slimming.md) | 设计依据、执行流、字段审计和阶段建议 |
 | [性能基线报告](../../jobs/reports/2026-06-25-racingline-step4-step5-backtest-latency-baseline.md) | 1y/2y 受控样本、ClickHouse query log、parts 和 wrapper 响应实测 |
 | [优化验收报告](../../jobs/reports/2026-06-25-racingline-step4-step5-backtest-latency-optimization.md) | 1y/2y live smoke、payload、worker timing、ClickHouse query log、outbox publish 和 stale active 诊断验收 |
 | [Racingline 系统地图](../../architecture/racingline.md) | 前端职责、运行入口和质量门禁 |
@@ -373,7 +373,7 @@ Worker
 2. 更新当前事实文档：
    - [Racingline 系统地图](../../architecture/racingline.md)：Step 5 handoff 行为改为 create accepted 后进入状态页。
    - [Rearview 系统地图](../../architecture/rearview.md)：如新增 status/compact endpoints 或 worker timing，需要更新职责和相关文档指针。
-   - [RFC 0031](../../RFC/0031-racingline-step4-step5-backtest-latency-slimming.md)：标注 implemented phases 和验收报告。
+   - [RFC 0031](../../RFC/archive/0031-racingline-step4-step5-backtest-latency-slimming.md)：标注 implemented phases 和验收报告。
 3. 归档计划：
    - 完成后将本计划移入 `docs/plans/archive/`，状态改为 `Completed`。
    - 更新 `docs/plans/README.md` 的 active/recently completed 索引。

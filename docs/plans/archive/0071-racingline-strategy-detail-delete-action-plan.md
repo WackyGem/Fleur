@@ -21,7 +21,7 @@
 - [Racingline 系统地图](../../architecture/racingline.md)
 - [Rearview 系统地图](../../architecture/rearview.md)
 - [RFC 0029: Racingline 策略组合发布和日运行](../../RFC/archive/0029-racingline-strategy-portfolio-publish-and-daily-run.md)
-- [RFC 0036: Racingline 策略组合详情页对账单](../../RFC/0036-racingline-strategy-portfolio-statement.md)
+- [RFC 0036: Racingline 策略组合详情页对账单](../../RFC/archive/0036-racingline-strategy-portfolio-statement.md)
 - [验收报告：2026-07-02 Racingline 策略详情页删除按钮](../../jobs/reports/2026-07-02-racingline-strategy-detail-delete-action.md)
 
 ## 背景
