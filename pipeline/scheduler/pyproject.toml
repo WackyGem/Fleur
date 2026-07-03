@@ -10,6 +10,7 @@ dependencies = [
     "dagster==1.13.6",
     "dagster-dbt==0.29.6",
     "dagster-slack==0.29.6",
+    "dagster-webserver",
     "psycopg[binary]>=3.2.10",
     "pyarrow>=22.0.0",
 ]
@@ -21,7 +22,6 @@ contract-tools = { workspace = true }
 dev = [
     "alembic>=1.16.0",
     "dagster-dg-cli",
-    "dagster-webserver",
     "pyright>=1.1.407",
     "pytest>=9.0.3",
     "pytest-cov>=7.0.0",

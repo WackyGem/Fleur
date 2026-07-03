@@ -28,7 +28,10 @@ export type QueryParams = Record<string, QueryValue>
 
 export function apiBaseUrl() {
   const configured = import.meta.env.VITE_REARVIEW_API_BASE_URL
-  return configured?.replace(/\/+$/, "") || "http://127.0.0.1:34057"
+  if (configured !== undefined) {
+    return configured.replace(/\/+$/, "")
+  }
+  return "http://127.0.0.1:34057"
 }
 
 export function buildPath(path: string, query?: QueryParams) {

@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest"
 
+import { apiBaseUrl } from "@/api/client"
 import {
   archiveStrategyPortfolio,
   createStrategyPortfolio,
@@ -10,7 +11,14 @@ import {
 
 describe("strategy portfolio API", () => {
   afterEach(() => {
+    vi.unstubAllEnvs()
     vi.unstubAllGlobals()
+  })
+
+  it("uses same-origin API paths when the base URL is explicitly empty", () => {
+    vi.stubEnv("VITE_REARVIEW_API_BASE_URL", "")
+
+    expect(apiBaseUrl()).toBe("")
   })
 
   it("requests publish preview with the selected result attempt", async () => {

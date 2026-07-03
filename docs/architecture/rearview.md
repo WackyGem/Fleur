@@ -62,7 +62,7 @@
 
 ## 运行入口
 
-本地开发复用根目录 `.env` 和 `deploy/docker-compose.yml`。快速启动 Rearview + Racingline：
+本地开发复用根目录 `.env` 和 `deploy/docker-compose.dev.yaml`。快速启动 Rearview + Racingline：
 
 ```bash
 make racingline-dev
@@ -79,7 +79,7 @@ make rearview-dev
 手动展开步骤：
 
 ```bash
-docker compose --env-file .env -f deploy/docker-compose.yml up -d postgres clickhouse nats
+docker compose --env-file .env -f deploy/docker-compose.dev.yaml up -d postgres clickhouse nats
 
 cd pipeline
 uv run alembic -c migrate/alembic.ini -x target=pipeline upgrade head

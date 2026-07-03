@@ -24,6 +24,7 @@ Snapshot 文档必须写明生成日期和生成命令。
 
 | 报告 | 范围 |
 |---|---|
+| [2026-07-03-production-compose-nginx-smoke.md](reports/2026-07-03-production-compose-nginx-smoke.md) | RFC 0047 production-like Compose、nginx 统一入口、one-shot migration/catalog sync、Racingline 和 Dagster browser smoke |
 | [2026-07-02-strategy-portfolio-daily-nav-liquidation.md](reports/2026-07-02-strategy-portfolio-daily-nav-liquidation.md) | `daily__portfolio_nav_liquidation` 无分区入口收敛、daily controller terminal step、direct smoke 和质量门禁 |
 | [2026-07-02-racingline-strategy-detail-delete-action.md](reports/2026-07-02-racingline-strategy-detail-delete-action.md) | Racingline 策略详情页删除按钮接入 Rearview archive API，覆盖 archived detail `410 Gone`、Dashboard 跳转和手动 archived daily run 拒绝 |
 | [2026-07-02-racingline-strategy-publish-market-phase-entry-rule.md](reports/2026-07-02-racingline-strategy-publish-market-phase-entry-rule.md) | Racingline 建立组合发布预检改为交易阶段感知，覆盖 15:00 前上一交易日信号、15:00 后当天信号、create 二次校验和发布弹层展示 |

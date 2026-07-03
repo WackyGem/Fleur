@@ -1,6 +1,7 @@
 SHELL := bash
 
-COMPOSE_FILE := deploy/docker-compose.yml
+COMPOSE_DEV_FILE := deploy/docker-compose.dev.yaml
+COMPOSE_PROD_FILE := deploy/docker-compose.yml
 PIPELINE_DIR := pipeline
 SCHEDULER_TARGET := scheduler
 ELT_TARGET := elt
@@ -89,15 +90,21 @@ define stop-listening-port
 	fi
 endef
 
-.PHONY: help dev-up dev-down dev-logs wait-rustfs wait-postgres wait-clickhouse dagster-home docs-check versions-check check-defs materialize-trade-calendar dev-materialize-trade-calendar webui dbt-docs dbt-docs-serve rust-doc rust-doc-open rust-doc-serve rearview-migrate rearview-catalog-sync rearview-prepare rearview-dev racingline-frontend-dev racingline-app-dev racingline-dev racingline-dev-stop
+.PHONY: help dev-up dev-down dev-logs prod-config prod-build prod-init prod-up prod-down prod-logs wait-rustfs wait-postgres wait-clickhouse dagster-home docs-check versions-check check-defs materialize-trade-calendar dev-materialize-trade-calendar webui dbt-docs dbt-docs-serve rust-doc rust-doc-open rust-doc-serve rearview-migrate rearview-catalog-sync rearview-prepare rearview-dev racingline-frontend-dev racingline-app-dev racingline-dev racingline-dev-stop
 
 help:
 	@printf '%s\n' 'Available targets:'
 	@printf '  %-34s %s\n' 'docs-check' 'Validate docs governance rules'
 	@printf '  %-34s %s\n' 'versions-check' 'Validate component versions and release manifest consistency'
-	@printf '  %-34s %s\n' 'dev-up' 'Start deploy/docker-compose.yml dev services'
+	@printf '  %-34s %s\n' 'dev-up' 'Start deploy/docker-compose.dev.yaml dev services'
 	@printf '  %-34s %s\n' 'dev-down' 'Stop dev services'
 	@printf '  %-34s %s\n' 'dev-logs' 'Tail dev service logs'
+	@printf '  %-34s %s\n' 'prod-config' 'Render production-like Docker Compose config'
+	@printf '  %-34s %s\n' 'prod-build' 'Build production-like app images'
+	@printf '  %-34s %s\n' 'prod-init' 'Run production-like migration and catalog sync one-shot jobs'
+	@printf '  %-34s %s\n' 'prod-up' 'Start production-like stack behind nginx'
+	@printf '  %-34s %s\n' 'prod-down' 'Stop production-like stack'
+	@printf '  %-34s %s\n' 'prod-logs' 'Tail production-like stack logs'
 	@printf '  %-34s %s\n' 'wait-postgres' 'Wait for the local PostgreSQL container'
 	@printf '  %-34s %s\n' 'wait-clickhouse' 'Wait for the local ClickHouse container'
 	@printf '  %-34s %s\n' 'check-defs' 'Validate Dagster definitions'
@@ -119,15 +126,40 @@ help:
 
 dev-up:
 	$(require-env-file)
-	docker compose --env-file .env -f $(COMPOSE_FILE) up -d
+	docker compose --env-file .env -f $(COMPOSE_DEV_FILE) up -d
 
 dev-down:
 	$(require-env-file)
-	docker compose --env-file .env -f $(COMPOSE_FILE) down
+	docker compose --env-file .env -f $(COMPOSE_DEV_FILE) down
 
 dev-logs:
 	$(require-env-file)
-	docker compose --env-file .env -f $(COMPOSE_FILE) logs -f
+	docker compose --env-file .env -f $(COMPOSE_DEV_FILE) logs -f
+
+prod-config:
+	$(require-env-file)
+	docker compose --env-file .env -f $(COMPOSE_PROD_FILE) config
+
+prod-build:
+	$(require-env-file)
+	docker compose --env-file .env -f $(COMPOSE_PROD_FILE) build nginx rearview-server rearview-portfolio-worker dagster-webserver dagster-daemon db-migrate rearview-catalog-sync
+
+prod-init:
+	$(require-env-file)
+	docker compose --env-file .env -f $(COMPOSE_PROD_FILE) run --rm db-migrate
+	docker compose --env-file .env -f $(COMPOSE_PROD_FILE) run --rm rearview-catalog-sync
+
+prod-up:
+	$(require-env-file)
+	docker compose --env-file .env -f $(COMPOSE_PROD_FILE) up -d --build --wait
+
+prod-down:
+	$(require-env-file)
+	docker compose --env-file .env -f $(COMPOSE_PROD_FILE) down
+
+prod-logs:
+	$(require-env-file)
+	docker compose --env-file .env -f $(COMPOSE_PROD_FILE) logs -f
 
 wait-rustfs:
 	$(require-env-file)

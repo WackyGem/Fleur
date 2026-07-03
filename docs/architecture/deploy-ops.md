@@ -1,22 +1,26 @@
 # Architecture: Deploy And Ops
 
-状态：当前事实入口（2026-06-13）
+状态：当前事实入口（2026-07-03）
 
 ## 代码根
 
 | 路径 | 角色 |
 |---|---|
 | [deploy/](../../deploy/) | Docker Compose、本地基础设施和服务配置 |
-| [deploy/docker-compose.yml](../../deploy/docker-compose.yml) | PostgreSQL、ClickHouse、S3-compatible storage 等本地服务入口 |
+| [deploy/docker-compose.dev.yaml](../../deploy/docker-compose.dev.yaml) | dev 基础设施入口，使用 `34xxx` 宿主机端口 |
+| [deploy/docker-compose.yml](../../deploy/docker-compose.yml) | production-like 入口，使用 `35xxx` 宿主机端口并通过 nginx 统一暴露 Racingline、Rearview 和 Dagster |
+| [deploy/docker/](../../deploy/docker/) | production-like 应用镜像 Dockerfile |
+| [deploy/nginx/default.conf](../../deploy/nginx/default.conf) | production-like nginx gateway 路由配置 |
 | [pipeline/migrate/](../../pipeline/migrate/) | Alembic migration 项目 |
 | [docs/jobs/](../jobs/) | runbook、snapshot 和运行报告入口 |
 
 ## 职责
 
-1. 维护本地开发和 smoke run 所需的基础设施配置。
+1. 维护 dev 和 production-like 两套 Compose 入口。
 2. 管理 PostgreSQL migration 执行入口，包括 `pipeline` 和 `rearview` database target。
-3. 记录回填、重跑、性能基线和 smoke run 的实际命令、范围与结果。
-4. 为数据平台、Furnace、Rearview 和后续 Racingline 提供可复现的运行前提。
+3. 管理 production-like 启动初始化链路，包括 Alembic migration 和 Rearview catalog sync。
+4. 记录回填、重跑、性能基线和 smoke run 的实际命令、范围与结果。
+5. 为数据平台、Furnace、Rearview、Dagster 和 Racingline 提供可复现的运行前提。
 
 ## 非职责
 
@@ -26,10 +30,24 @@
 
 ## 常用入口
 
-启动本地依赖：
+启动 dev 依赖：
 
 ```bash
-docker compose --env-file .env -f deploy/docker-compose.yml up -d postgres clickhouse
+docker compose --env-file .env -f deploy/docker-compose.dev.yaml up -d postgres clickhouse
+```
+
+启动 production-like 栈：
+
+```bash
+make prod-up
+```
+
+production-like 栈默认通过 nginx 暴露：
+
+```text
+http://127.0.0.1:${FLEUR_HTTP_PORT:-35080}/
+http://127.0.0.1:${FLEUR_HTTP_PORT:-35080}/rearview/health
+http://127.0.0.1:${FLEUR_HTTP_PORT:-35080}/dagster/
 ```
 
 执行 migration：
@@ -57,6 +75,9 @@ git diff --check
 
 | 文档 | 用途 |
 |---|---|
+| [../RFC/0047-production-compose-nginx-entrypoint.md](../RFC/0047-production-compose-nginx-entrypoint.md) | production-like Compose 与 nginx 统一入口设计 |
+| [../plans/archive/0076-production-compose-nginx-implementation-plan.md](../plans/archive/0076-production-compose-nginx-implementation-plan.md) | RFC 0047 实施计划、阶段验收和验证命令 |
+| [../jobs/reports/2026-07-03-production-compose-nginx-smoke.md](../jobs/reports/2026-07-03-production-compose-nginx-smoke.md) | production-like Compose 端到端 smoke、浏览器验证和修复记录 |
 | [../jobs/README.md](../jobs/README.md) | jobs runbook 和 reports 入口 |
 | [../releases/README.md](../releases/README.md) | 集成 release note、版本 manifest schema 和 tag 前检查 |
 | [../../deploy/release-manifest.yml](../../deploy/release-manifest.yml) | 当前集成发布快照的组件版本、migration head 和 contract 变更 |
@@ -67,5 +88,5 @@ git diff --check
 
 ## 待决问题
 
-1. 是否需要单独的环境矩阵文档，覆盖 dev、smoke、production-like 的服务端口、database target 和密钥注入方式。
-2. 是否需要把 migration readiness、service health check 和 smoke run 串成统一 runbook。
+1. 是否需要把 production-like compose smoke 固化为单独 runbook 或 CI job。
+2. production hardening 阶段是否收敛 PostgreSQL、ClickHouse、NATS 和 RustFS console 的宿主机端口暴露。

@@ -1,7 +1,65 @@
+name: fleur-prod
+
+x-prod-postgres-url: &prod-postgres-url
+  PIPELINE_DATABASE_URL: postgresql://${POSTGRES_USER:-fleur}:${POSTGRES_PASSWORD:-change-me-postgres-password}@postgres:5432/pipeline
+  REARVIEW_DATABASE_URL: postgresql://${POSTGRES_USER:-fleur}:${POSTGRES_PASSWORD:-change-me-postgres-password}@postgres:5432/rearview
+
+x-prod-clickhouse-env: &prod-clickhouse-env
+  CLICKHOUSE_HOST: clickhouse
+  CLICKHOUSE_PORT: 8123
+  CLICKHOUSE_USER: ${CLICKHOUSE_USER}
+  CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD}
+  CLICKHOUSE_SECURE: "false"
+  CLICKHOUSE_CONNECT_TIMEOUT_SECONDS: ${CLICKHOUSE_CONNECT_TIMEOUT_SECONDS:-10}
+  CLICKHOUSE_QUERY_TIMEOUT_SECONDS: ${CLICKHOUSE_QUERY_TIMEOUT_SECONDS:-300}
+
+x-prod-rearview-env: &prod-rearview-env
+  REARVIEW_HTTP_BIND: 0.0.0.0:34057
+  REARVIEW_MAX_CONCURRENT_RUNS: ${REARVIEW_MAX_CONCURRENT_RUNS:-1}
+  REARVIEW_CHUNK_SMALL_RANGE_TRADING_DAYS: ${REARVIEW_CHUNK_SMALL_RANGE_TRADING_DAYS:-90}
+  REARVIEW_CLICKHOUSE_MARTS_DATABASE: ${REARVIEW_CLICKHOUSE_MARTS_DATABASE:-fleur_marts}
+  REARVIEW_CLICKHOUSE_PORTFOLIO_DATABASE: ${REARVIEW_CLICKHOUSE_PORTFOLIO_DATABASE:-fleur_portfolio}
+  REARVIEW_CLICKHOUSE_CALCULATION_DATABASE: ${REARVIEW_CLICKHOUSE_CALCULATION_DATABASE:-fleur_calculation}
+  REARVIEW_CLICKHOUSE_MAX_EXECUTION_TIME_SECONDS: ${REARVIEW_CLICKHOUSE_MAX_EXECUTION_TIME_SECONDS:-300}
+  REARVIEW_CLICKHOUSE_MAX_ROWS_TO_READ: ${REARVIEW_CLICKHOUSE_MAX_ROWS_TO_READ:-1000000000}
+  REARVIEW_CLICKHOUSE_MAX_BYTES_TO_READ: ${REARVIEW_CLICKHOUSE_MAX_BYTES_TO_READ:-100000000000}
+  REARVIEW_NATS_URL: nats://nats:4222
+  REARVIEW_PORTFOLIO_STREAM: ${REARVIEW_PORTFOLIO_STREAM:-REARVIEW_PORTFOLIO}
+  REARVIEW_PORTFOLIO_REQUEST_SUBJECT: ${REARVIEW_PORTFOLIO_REQUEST_SUBJECT:-rearview.portfolio_run.requested}
+  REARVIEW_PORTFOLIO_WORKER_DURABLE: ${REARVIEW_PORTFOLIO_WORKER_DURABLE:-rearview-portfolio-worker}
+  REARVIEW_PORTFOLIO_WORKER_QUEUE: ${REARVIEW_PORTFOLIO_WORKER_QUEUE:-rearview-portfolio-workers}
+
+x-prod-dagster-env: &prod-dagster-env
+  DAGSTER_HOME: /opt/dagster/dagster_home
+  DAGSTER_WEBSERVER_BASE_URL: http://localhost:${FLEUR_HTTP_PORT:-35080}/dagster
+  DAGSTER_CODE_LOCATION_NAME: ${DAGSTER_CODE_LOCATION_NAME:-scheduler}
+  RUSTFS_ENDPOINT: http://rustfs:9000
+  RUSTFS_BUCKET: ${RUSTFS_BUCKET:-fleur}
+  RUSTFS_ACCESS_KEY: ${RUSTFS_ACCESS_KEY}
+  RUSTFS_SECRET_KEY: ${RUSTFS_SECRET_KEY}
+  CLICKHOUSE_S3_ENDPOINT: http://rustfs:9000
+  FURNACE_BINARY_PATH: /usr/local/bin/furnace
+  FURNACE_CLICKHOUSE_URL: http://clickhouse:8123
+  FURNACE_CLICKHOUSE_VALIDATE_SCHEMA: ${FURNACE_CLICKHOUSE_VALIDATE_SCHEMA:-false}
+  BAOSTOCK_HOST: ${BAOSTOCK_HOST:-public-api.baostock.com}
+  BAOSTOCK_PORT: ${BAOSTOCK_PORT:-10030}
+  BAOSTOCK_USERNAME: ${BAOSTOCK_USERNAME:-anonymous}
+  BAOSTOCK_PASSWORD: ${BAOSTOCK_PASSWORD:-123456}
+  JIUYAN_COOKIE: ${JIUYAN_COOKIE:-}
+  JIUYAN_OCR_BASE_URL: ${JIUYAN_OCR_BASE_URL:-}
+  JIUYAN_OCR_MODEL_NAME: ${JIUYAN_OCR_MODEL_NAME:-Qwen3.5-4B}
+  JIUYAN_OCR_TIMEOUT_SECONDS: ${JIUYAN_OCR_TIMEOUT_SECONDS:-180}
+  JIUYAN_OCR_MAX_RETRIES: ${JIUYAN_OCR_MAX_RETRIES:-2}
+  JIUYAN_OCR_MAX_CONCURRENT_REQUESTS: ${JIUYAN_OCR_MAX_CONCURRENT_REQUESTS:-6}
+  JIUYAN_OCR_STALE_RUNNING_SECONDS: ${JIUYAN_OCR_STALE_RUNNING_SECONDS:-3600}
+  SLACK_BOT_TOKEN: ${SLACK_BOT_TOKEN:-}
+  SLACK_CHANNEL_ID: ${SLACK_CHANNEL_ID:-}
+  SLACK_HTTP_PROXY: ${SLACK_HTTP_PROXY:-}
+
 services:
   rustfs:
     image: rustfs/rustfs:latest
-    container_name: fleur-rustfs
+    container_name: fleur-prod-rustfs
     restart: unless-stopped
     deploy:
       resources:
@@ -12,8 +70,8 @@ services:
       RUSTFS_ACCESS_KEY: ${RUSTFS_ACCESS_KEY}
       RUSTFS_SECRET_KEY: ${RUSTFS_SECRET_KEY}
     ports:
-      - "${RUSTFS_API_PORT:-34050}:9000"
-      - "${RUSTFS_CONSOLE_PORT:-34051}:9001"
+      - "${FLEUR_PROD_RUSTFS_API_PORT:-35050}:9000"
+      - "${FLEUR_PROD_RUSTFS_CONSOLE_PORT:-35051}:9001"
     volumes:
       - rustfs-data:/data
       - rustfs-logs:/logs
@@ -26,11 +84,11 @@ services:
       retries: 3
       start_period: 30s
     networks:
-      - fleur
+      - fleur-prod
 
   rustfs-init:
     image: minio/mc:latest
-    container_name: fleur-rustfs-init
+    container_name: fleur-prod-rustfs-init
     depends_on:
       rustfs:
         condition: service_healthy
@@ -43,13 +101,13 @@ services:
     environment:
       RUSTFS_ACCESS_KEY: ${RUSTFS_ACCESS_KEY}
       RUSTFS_SECRET_KEY: ${RUSTFS_SECRET_KEY}
-      RUSTFS_BUCKET: ${RUSTFS_BUCKET}
+      RUSTFS_BUCKET: ${RUSTFS_BUCKET:-fleur}
     networks:
-      - fleur
+      - fleur-prod
 
   clickhouse:
     image: clickhouse/clickhouse-server:latest-alpine
-    container_name: fleur-clickhouse
+    container_name: fleur-prod-clickhouse
     restart: unless-stopped
     deploy:
       resources:
@@ -61,13 +119,17 @@ services:
       CLICKHOUSE_USER: ${CLICKHOUSE_USER}
       CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD}
       CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT: ${CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT}
+      REARVIEW_CLICKHOUSE_MARTS_DATABASE: ${REARVIEW_CLICKHOUSE_MARTS_DATABASE:-fleur_marts}
+      REARVIEW_CLICKHOUSE_PORTFOLIO_DATABASE: ${REARVIEW_CLICKHOUSE_PORTFOLIO_DATABASE:-fleur_portfolio}
+      REARVIEW_CLICKHOUSE_CALCULATION_DATABASE: ${REARVIEW_CLICKHOUSE_CALCULATION_DATABASE:-fleur_calculation}
     ports:
-      - "${CLICKHOUSE_HTTP_PORT:-34052}:8123"
-      - "${CLICKHOUSE_NATIVE_PORT:-34053}:9000"
+      - "${FLEUR_PROD_CLICKHOUSE_HTTP_PORT:-35052}:8123"
+      - "${FLEUR_PROD_CLICKHOUSE_NATIVE_PORT:-35053}:9000"
     volumes:
       - clickhouse-data:/var/lib/clickhouse
       - clickhouse-logs:/var/log/clickhouse-server
       - ./clickhouse/config.d/system-log-retention.xml:/etc/clickhouse-server/config.d/system-log-retention.xml:ro
+      - ./clickhouse/initdb.d/create-fleur-databases.sh:/docker-entrypoint-initdb.d/create-fleur-databases.sh:ro
     healthcheck:
       test:
         - CMD-SHELL
@@ -77,11 +139,11 @@ services:
       retries: 3
       start_period: 30s
     networks:
-      - fleur
+      - fleur-prod
 
   postgres:
     image: postgres:18-alpine
-    container_name: fleur-postgres
+    container_name: fleur-prod-postgres
     restart: unless-stopped
     deploy:
       resources:
@@ -93,14 +155,15 @@ services:
       - "-c"
       - "config_file=/etc/postgresql/postgresql.conf"
     environment:
-      POSTGRES_DB: ${POSTGRES_DB:-postgres}
-      POSTGRES_USER: ${POSTGRES_USER:-postgres}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres-change-me}
+      POSTGRES_DB: ${POSTGRES_DB:-pipeline}
+      POSTGRES_USER: ${POSTGRES_USER:-fleur}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-change-me-postgres-password}
     ports:
-      - "${POSTGRES_PORT:-34054}:5432"
+      - "${FLEUR_PROD_POSTGRES_PORT:-35054}:5432"
     volumes:
       - postgres-data:/var/lib/postgresql
       - ./postgres/postgresql.conf:/etc/postgresql/postgresql.conf:ro
+      - ./postgres/initdb.d/create-fleur-databases.sh:/docker-entrypoint-initdb.d/create-fleur-databases.sh:ro
     healthcheck:
       test:
         - CMD-SHELL
@@ -110,11 +173,11 @@ services:
       retries: 10
       start_period: 20s
     networks:
-      - fleur
+      - fleur-prod
 
   nats:
     image: nats:2-alpine
-    container_name: fleur-nats
+    container_name: fleur-prod-nats
     restart: unless-stopped
     deploy:
       resources:
@@ -128,8 +191,8 @@ services:
       - "-m"
       - "8222"
     ports:
-      - "${NATS_CLIENT_PORT:-34055}:4222"
-      - "${NATS_MONITOR_PORT:-34056}:8222"
+      - "${FLEUR_PROD_NATS_CLIENT_PORT:-35055}:4222"
+      - "${FLEUR_PROD_NATS_MONITOR_PORT:-35056}:8222"
     volumes:
       - nats-data:/data
     healthcheck:
@@ -141,11 +204,210 @@ services:
       retries: 3
       start_period: 10s
     networks:
-      - fleur
+      - fleur-prod
+
+  db-migrate:
+    build:
+      context: ..
+      dockerfile: deploy/docker/dagster/Dockerfile
+    image: fleur/dagster:${FLEUR_IMAGE_TAG:-local}
+    container_name: fleur-prod-db-migrate
+    restart: "no"
+    command:
+      - uv
+      - run
+      - alembic
+      - -c
+      - migrate/alembic.ini
+      - -x
+      - target=all
+      - upgrade
+      - head
+    working_dir: /app/pipeline
+    environment:
+      <<: [*prod-postgres-url, *prod-clickhouse-env, *prod-dagster-env]
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - fleur-prod
+
+  rearview-catalog-sync:
+    build:
+      context: ..
+      dockerfile: deploy/docker/rearview/Dockerfile
+    image: fleur/rearview:${FLEUR_IMAGE_TAG:-local}
+    container_name: fleur-prod-rearview-catalog-sync
+    restart: "no"
+    command: ["rearview-server", "catalog", "sync"]
+    working_dir: /app
+    environment:
+      <<: [*prod-postgres-url, *prod-clickhouse-env, *prod-rearview-env]
+    depends_on:
+      db-migrate:
+        condition: service_completed_successfully
+      clickhouse:
+        condition: service_healthy
+    networks:
+      - fleur-prod
+
+  rearview-server:
+    build:
+      context: ..
+      dockerfile: deploy/docker/rearview/Dockerfile
+    image: fleur/rearview:${FLEUR_IMAGE_TAG:-local}
+    container_name: fleur-prod-rearview-server
+    restart: unless-stopped
+    command: ["rearview-server", "serve"]
+    working_dir: /app
+    environment:
+      <<: [*prod-postgres-url, *prod-clickhouse-env, *prod-rearview-env]
+    expose:
+      - "34057"
+    depends_on:
+      rearview-catalog-sync:
+        condition: service_completed_successfully
+      nats:
+        condition: service_healthy
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - curl -fsS http://127.0.0.1:34057/healthz >/dev/null || exit 1
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    networks:
+      - fleur-prod
+
+  rearview-portfolio-worker:
+    build:
+      context: ..
+      dockerfile: deploy/docker/rearview/Dockerfile
+    image: fleur/rearview:${FLEUR_IMAGE_TAG:-local}
+    container_name: fleur-prod-rearview-portfolio-worker
+    restart: unless-stopped
+    command: ["rearview-portfolio-worker", "run"]
+    working_dir: /app
+    environment:
+      <<: [*prod-postgres-url, *prod-clickhouse-env, *prod-rearview-env]
+    depends_on:
+      rearview-catalog-sync:
+        condition: service_completed_successfully
+      rearview-server:
+        condition: service_healthy
+    networks:
+      - fleur-prod
+
+  dagster-webserver:
+    build:
+      context: ..
+      dockerfile: deploy/docker/dagster/Dockerfile
+    image: fleur/dagster:${FLEUR_IMAGE_TAG:-local}
+    container_name: fleur-prod-dagster-webserver
+    restart: unless-stopped
+    command:
+      - /bin/sh
+      - -c
+      - |
+        mkdir -p "$$DAGSTER_HOME"
+        if [ ! -s "$$DAGSTER_HOME/dagster.yaml" ]; then
+          printf '%s\n' 'concurrency:' '  pools:' '    granularity: run' > "$$DAGSTER_HOME/dagster.yaml"
+        fi
+        exec uv run dagster-webserver -h 0.0.0.0 -p 3000 --path-prefix /dagster -m scheduler.definitions -d /app/pipeline/scheduler
+    working_dir: /app/pipeline
+    environment:
+      <<: [*prod-postgres-url, *prod-clickhouse-env, *prod-rearview-env, *prod-dagster-env]
+    volumes:
+      - dagster-home:/opt/dagster/dagster_home
+    expose:
+      - "3000"
+    depends_on:
+      db-migrate:
+        condition: service_completed_successfully
+      clickhouse:
+        condition: service_healthy
+      rustfs:
+        condition: service_healthy
+      rustfs-init:
+        condition: service_completed_successfully
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - python -c "import urllib.request; urllib.request.urlopen('http://127.0.0.1:3000/dagster/', timeout=5).read(1)" >/dev/null 2>&1 || exit 1
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 45s
+    networks:
+      - fleur-prod
+
+  dagster-daemon:
+    build:
+      context: ..
+      dockerfile: deploy/docker/dagster/Dockerfile
+    image: fleur/dagster:${FLEUR_IMAGE_TAG:-local}
+    container_name: fleur-prod-dagster-daemon
+    restart: unless-stopped
+    command:
+      - /bin/sh
+      - -c
+      - |
+        mkdir -p "$$DAGSTER_HOME"
+        if [ ! -s "$$DAGSTER_HOME/dagster.yaml" ]; then
+          printf '%s\n' 'concurrency:' '  pools:' '    granularity: run' > "$$DAGSTER_HOME/dagster.yaml"
+        fi
+        exec uv run dagster-daemon run -m scheduler.definitions -d /app/pipeline/scheduler
+    working_dir: /app/pipeline
+    environment:
+      <<: [*prod-postgres-url, *prod-clickhouse-env, *prod-rearview-env, *prod-dagster-env]
+    volumes:
+      - dagster-home:/opt/dagster/dagster_home
+    depends_on:
+      db-migrate:
+        condition: service_completed_successfully
+      clickhouse:
+        condition: service_healthy
+      rustfs:
+        condition: service_healthy
+      rustfs-init:
+        condition: service_completed_successfully
+      dagster-webserver:
+        condition: service_healthy
+    networks:
+      - fleur-prod
+
+  nginx:
+    build:
+      context: ..
+      dockerfile: deploy/docker/nginx/Dockerfile
+      args:
+        VITE_REARVIEW_API_BASE_URL: ""
+        RACINGLINE_GIT_SHA: ${RACINGLINE_GIT_SHA:-container}
+    image: fleur/nginx:${FLEUR_IMAGE_TAG:-local}
+    container_name: fleur-prod-nginx
+    restart: unless-stopped
+    ports:
+      - "${FLEUR_HTTP_PORT:-35080}:80"
+    depends_on:
+      rearview-server:
+        condition: service_healthy
+      dagster-webserver:
+        condition: service_healthy
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - wget -qO- http://127.0.0.1/ >/dev/null || exit 1
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 10s
+    networks:
+      - fleur-prod
 
 networks:
-  fleur:
-    name: fleur
+  fleur-prod:
+    name: fleur-prod
 
 volumes:
   rustfs-data:
@@ -154,3 +416,4 @@ volumes:
   clickhouse-logs:
   postgres-data:
   nats-data:
+  dagster-home:

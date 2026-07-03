@@ -2745,6 +2745,7 @@ dependencies = [
     { name = "dagster" },
     { name = "dagster-dbt" },
     { name = "dagster-slack" },
+    { name = "dagster-webserver" },
     { name = "psycopg", extra = ["binary"] },
     { name = "pyarrow" },
 ]
@@ -2753,7 +2754,6 @@ dependencies = [
 dev = [
     { name = "alembic" },
     { name = "dagster-dg-cli" },
-    { name = "dagster-webserver" },
     { name = "pyright" },
     { name = "pytest" },
     { name = "pytest-cov" },
@@ -2769,6 +2769,7 @@ requires-dist = [
     { name = "dagster", specifier = "==1.13.6" },
     { name = "dagster-dbt", specifier = "==0.29.6" },
     { name = "dagster-slack", specifier = "==0.29.6" },
+    { name = "dagster-webserver" },
     { name = "psycopg", extras = ["binary"], specifier = ">=3.2.10" },
     { name = "pyarrow", specifier = ">=22.0.0" },
 ]
@@ -2777,7 +2778,6 @@ requires-dist = [
 dev = [
     { name = "alembic", specifier = ">=1.16.0" },
     { name = "dagster-dg-cli" },
-    { name = "dagster-webserver" },
     { name = "pyright", specifier = ">=1.1.407" },
     { name = "pytest", specifier = ">=9.0.3" },
     { name = "pytest-cov", specifier = ">=7.0.0" },

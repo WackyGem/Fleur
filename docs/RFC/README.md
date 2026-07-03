@@ -4,7 +4,7 @@
 
 ## Active RFCs
 
-当前无活跃 RFC。0030-0046 已统一纳入 archive。
+- [0047-production-compose-nginx-entrypoint.md](0047-production-compose-nginx-entrypoint.md) | Implemented | 将现有开发 Docker Compose 改名为 `docker-compose.dev.yaml`，重新设计生产 `docker-compose.yml`，通过 build 构建应用镜像，并引入 nginx 作为 Racingline 默认入口和 Dagster 统一入口；验收见 [2026-07-03 smoke report](../jobs/reports/2026-07-03-production-compose-nginx-smoke.md)
 
 ## Archive
 
