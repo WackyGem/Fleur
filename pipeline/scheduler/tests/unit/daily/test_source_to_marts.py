@@ -161,6 +161,17 @@ def test_daily_plan_reuses_source_to_marts_registry_and_excludes_independent_dom
     assert (
         planned_calculation_assets == calculation_asset_keys_covered_by_all_source_to_marts_scope()
     )
+    assert {
+        "int_stock_limit_up_pool_daily",
+        "mart_stock_limit_up_pool_daily",
+        "mart_government_bond_yields_daily",
+        "int_stock_balance_sheet",
+        "mart_stock_balance_sheet",
+        "int_stock_dividend_plan",
+        "mart_stock_dividend_plan",
+        "int_stock_free_float_shareholder_top10",
+        "mart_stock_free_float_shareholder_top10",
+    } <= planned_dbt_assets
     assert not {asset_key for asset_key in planned_assets if "jiuyan" in asset_key}
     assert "fleur_portfolio/portfolio_run_snapshot" not in planned_assets
     assert not {asset_key for asset_key in planned_assets if "calc_portfolio_" in asset_key}

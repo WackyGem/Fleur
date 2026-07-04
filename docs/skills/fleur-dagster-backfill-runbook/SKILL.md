@@ -59,7 +59,7 @@ uv run dg launch --target-path scheduler \
 raw-only `target_scope`：
 
 - `baostock_daily_kline`
-- `market_events`（raw-only 历史能力；source-to-marts 会排除 Jiuyan 异动，只保留 THS 相关链路）
+- `market_events`（只纳入 THS limit up pool；Jiuyan 异动不进入统一 raw-only 或 source-to-marts 入口）
 - `eastmoney_f10`
 - `chinabond`
 - `snapshot_reference_data`（日期字段必填，但该 scope 忽略日期）

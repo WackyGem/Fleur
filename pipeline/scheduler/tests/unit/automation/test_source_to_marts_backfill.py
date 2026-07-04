@@ -150,7 +150,7 @@ def test_source_raw_only_and_downstream_only_modes_split_execution_surface() -> 
     assert downstream_plan.steps[0].tags["backfill.stage"] == STAGE_DBT_STAGING
 
 
-def test_market_events_scope_filters_jiuyan_and_keeps_ths_staging() -> None:
+def test_market_events_scope_filters_jiuyan_and_keeps_ths_downstream() -> None:
     plan = build_source_to_marts_plan(
         source_to_marts_request(target_scope=MARKET_EVENTS_SCOPE),
         today=date(2026, 6, 30),
@@ -162,7 +162,56 @@ def test_market_events_scope_filters_jiuyan_and_keeps_ths_staging() -> None:
     assert "source/ths__limit_up_pool_compacted" in planned_assets
     assert "clickhouse/raw/ths__limit_up_pool_compacted" in planned_assets
     assert "stg_ths__limit_up_pool_compacted" in planned_assets
+    assert "int_stock_limit_up_pool_daily" in planned_assets
+    assert "mart_stock_limit_up_pool_daily" in planned_assets
     assert not {asset_key for asset_key in planned_assets if "jiuyan" in asset_key}
+
+
+def test_eastmoney_f10_scope_includes_passthrough_models_without_source_named_downstream() -> None:
+    plan = build_source_to_marts_plan(
+        source_to_marts_request(target_scope=EASTMONEY_F10_SCOPE),
+        today=date(2026, 6, 30),
+        controller_run_id="controller-run-004-f10",
+    )
+    planned_assets = {asset_key for step in plan.steps for asset_key in step.asset_keys}
+
+    assert {
+        "int_stock_balance_sheet",
+        "int_stock_cashflow_statement_quarterly",
+        "int_stock_cashflow_statement_ytd",
+        "int_stock_allotment_event",
+        "int_stock_dividend_plan",
+        "int_stock_share_capital_history",
+        "int_stock_free_float_shareholder_top10",
+        "int_stock_income_statement_quarterly",
+        "int_stock_income_statement_ytd",
+        "mart_stock_balance_sheet",
+        "mart_stock_cashflow_statement_quarterly",
+        "mart_stock_cashflow_statement_ytd",
+        "mart_stock_allotment_event",
+        "mart_stock_dividend_plan",
+        "mart_stock_share_capital_history",
+        "mart_stock_free_float_shareholder_top10",
+        "mart_stock_income_statement_quarterly",
+        "mart_stock_income_statement_ytd",
+    } <= planned_assets
+    assert not {
+        asset_key
+        for asset_key in planned_assets
+        if asset_key.startswith(("int_", "mart_")) and "_eastmoney" in asset_key
+    }
+
+
+def test_chinabond_scope_keeps_risk_free_and_complete_curve_marts() -> None:
+    plan = build_source_to_marts_plan(
+        source_to_marts_request(target_scope=CHINABOND_SCOPE),
+        today=date(2026, 6, 30),
+        controller_run_id="controller-run-004-chinabond",
+    )
+    planned_assets = {asset_key for step in plan.steps for asset_key in step.asset_keys}
+
+    assert "mart_government_bond_yields_daily" in planned_assets
+    assert "mart_risk_free_rate_daily" in planned_assets
 
 
 def test_snapshot_reference_scope_ignores_required_dates_and_filters_jiuyan() -> None:
@@ -290,7 +339,14 @@ def test_execute_source_to_marts_plan_stops_before_downstream_after_source_raw_f
 
 def expected_dbt_coverage() -> set[str]:
     loaded_defs = scheduler_defs.load_fn()
-    dbt_asset_def = next(asset for asset in loaded_defs.assets or [] if len(asset.keys) == 52)
+    dbt_asset_def = next(
+        asset
+        for asset in loaded_defs.assets or []
+        if any(
+            spec.group_name in {"dbt_staging", "dbt_intermediate", "dbt_marts"}
+            for spec in asset.specs_by_key.values()
+        )
+    )
     expected: set[str] = set()
     for key in dbt_asset_def.keys:
         key_str = key.to_user_string()

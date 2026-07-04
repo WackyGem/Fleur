@@ -685,10 +685,7 @@ def _market_event_step_specs(
     start_date: date,
     end_date: date,
 ) -> tuple[AssetStepSpec, ...]:
-    raw_asset_keys = (
-        raw_key_for_source_key(JIUYAN_ACTION_FIELD_COMPACTED_KEY),
-        raw_key_for_source_key(THS_LIMIT_UP_POOL_COMPACTED_KEY),
-    )
+    raw_asset_key = raw_key_for_source_key(THS_LIMIT_UP_POOL_COMPACTED_KEY)
     specs: list[AssetStepSpec] = []
     for window in _year_windows(start_date, end_date):
         partition = BackfillPartitionSelection(partition_key=window.year)
@@ -698,7 +695,7 @@ def _market_event_step_specs(
                     AssetStepSpec(
                         label=f"market event daily source {window.year}",
                         step_kind=STEP_SOURCE_DAILY,
-                        asset_keys=(JIUYAN_ACTION_FIELD_KEY, THS_LIMIT_UP_POOL_KEY),
+                        asset_keys=(THS_LIMIT_UP_POOL_KEY,),
                         partition=BackfillPartitionSelection(
                             partition_range_start=window.start_date.isoformat(),
                             partition_range_end=window.end_date.isoformat(),
@@ -709,10 +706,7 @@ def _market_event_step_specs(
                     AssetStepSpec(
                         label=f"market event compacted source {window.year}",
                         step_kind=STEP_SOURCE_COMPACTED,
-                        asset_keys=(
-                            JIUYAN_ACTION_FIELD_COMPACTED_KEY,
-                            THS_LIMIT_UP_POOL_COMPACTED_KEY,
-                        ),
+                        asset_keys=(THS_LIMIT_UP_POOL_COMPACTED_KEY,),
                         partition=partition,
                         year=window.year,
                         dedupe_source_materialization=True,
@@ -723,7 +717,7 @@ def _market_event_step_specs(
             AssetStepSpec(
                 label=f"market event raw {window.year}",
                 step_kind=STEP_RAW,
-                asset_keys=raw_asset_keys,
+                asset_keys=(raw_asset_key,),
                 partition=partition,
                 year=window.year,
             )
@@ -1155,8 +1149,6 @@ SOURCE_COVERAGE_BY_SCOPE: dict[str, tuple[str, ...]] = {
         BAOSTOCK_DAILY_K_COMPACTED_KEY,
     ),
     MARKET_EVENTS_SCOPE: (
-        JIUYAN_ACTION_FIELD_KEY,
-        JIUYAN_ACTION_FIELD_COMPACTED_KEY,
         THS_LIMIT_UP_POOL_KEY,
         THS_LIMIT_UP_POOL_COMPACTED_KEY,
     ),
@@ -1175,10 +1167,7 @@ RAW_COVERAGE_BY_SCOPE: dict[str, tuple[str, ...]] = {
         for key in (SINA_TRADE_CALENDAR_KEY, BAOSTOCK_STOCK_BASIC_KEY, JIUYAN_INDUSTRY_LIST_KEY)
     ),
     BAOSTOCK_DAILY_KLINE_SCOPE: (raw_key_for_source_key(BAOSTOCK_DAILY_K_COMPACTED_KEY),),
-    MARKET_EVENTS_SCOPE: tuple(
-        raw_key_for_source_key(key)
-        for key in (JIUYAN_ACTION_FIELD_COMPACTED_KEY, THS_LIMIT_UP_POOL_COMPACTED_KEY)
-    ),
+    MARKET_EVENTS_SCOPE: (raw_key_for_source_key(THS_LIMIT_UP_POOL_COMPACTED_KEY),),
     EASTMONEY_F10_SCOPE: tuple(raw_key_for_source_key(key) for key in EASTMONEY_SOURCE_KEYS),
     CHINABOND_SCOPE: (raw_key_for_source_key(CHINABOND_SOURCE_KEY),),
     JIUYAN_OCR_PIPELINE_SCOPE: (raw_key_for_source_key(JIUYAN_INDUSTRY_OCR_SNAPSHOT_KEY),),

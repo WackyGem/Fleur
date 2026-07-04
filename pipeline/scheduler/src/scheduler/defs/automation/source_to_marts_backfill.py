@@ -708,6 +708,7 @@ BAOSTOCK_INTERMEDIATE_ASSET_KEYS = (
     "int_stock_adjustment_factor",
     "int_stock_quotes_daily_adj",
 )
+THS_INTERMEDIATE_ASSET_KEYS = ("int_stock_limit_up_pool_daily",)
 EASTMONEY_INTERMEDIATE_ASSET_KEYS = (
     "int_stock_shares_history",
     "int_stock_exrights_event",
@@ -715,6 +716,17 @@ EASTMONEY_INTERMEDIATE_ASSET_KEYS = (
     "int_stock_adjustment_factor",
     "int_stock_quotes_daily_adj",
     "int_stock_financial_valuation",
+)
+F10_PASSTHROUGH_INTERMEDIATE_ASSET_KEYS = (
+    "int_stock_balance_sheet",
+    "int_stock_cashflow_statement_quarterly",
+    "int_stock_cashflow_statement_ytd",
+    "int_stock_allotment_event",
+    "int_stock_dividend_plan",
+    "int_stock_share_capital_history",
+    "int_stock_free_float_shareholder_top10",
+    "int_stock_income_statement_quarterly",
+    "int_stock_income_statement_ytd",
 )
 CHINABOND_INTERMEDIATE_ASSET_KEYS = (
     "int_government_bond_yields_daily",
@@ -746,8 +758,23 @@ BAOSTOCK_MART_ASSET_KEYS = (
     "mart_stock_volume_indicator_daily",
     "mart_stock_price_pattern_daily",
 )
+THS_MART_ASSET_KEYS = ("mart_stock_limit_up_pool_daily",)
 EASTMONEY_MART_ASSET_KEYS = ("mart_stock_quotes_daily",)
-CHINABOND_MART_ASSET_KEYS = ("mart_risk_free_rate_daily",)
+F10_PASSTHROUGH_MART_ASSET_KEYS = (
+    "mart_stock_balance_sheet",
+    "mart_stock_cashflow_statement_quarterly",
+    "mart_stock_cashflow_statement_ytd",
+    "mart_stock_allotment_event",
+    "mart_stock_dividend_plan",
+    "mart_stock_share_capital_history",
+    "mart_stock_free_float_shareholder_top10",
+    "mart_stock_income_statement_quarterly",
+    "mart_stock_income_statement_ytd",
+)
+CHINABOND_MART_ASSET_KEYS = (
+    "mart_government_bond_yields_daily",
+    "mart_risk_free_rate_daily",
+)
 SNAPSHOT_REFERENCE_MART_ASSET_KEYS = (
     "mart_trade_calendar",
     "mart_stock_basic_snapshot",
@@ -768,17 +795,19 @@ DOWNSTREAM_STAGE_ASSET_KEYS_BY_SCOPE: dict[str, dict[str, tuple[str, ...]]] = {
     },
     MARKET_EVENTS_SCOPE: {
         STAGE_DBT_STAGING: THS_STAGING_ASSET_KEYS,
-        STAGE_DBT_INTERMEDIATE: (),
+        STAGE_DBT_INTERMEDIATE: THS_INTERMEDIATE_ASSET_KEYS,
         STAGE_FURNACE_CALCULATION: (),
         STAGE_DBT_CALCULATION_WRAPPERS: (),
-        STAGE_DBT_MARTS: (),
+        STAGE_DBT_MARTS: THS_MART_ASSET_KEYS,
     },
     EASTMONEY_F10_SCOPE: {
         STAGE_DBT_STAGING: EASTMONEY_STAGING_ASSET_KEYS,
-        STAGE_DBT_INTERMEDIATE: EASTMONEY_INTERMEDIATE_ASSET_KEYS,
+        STAGE_DBT_INTERMEDIATE: (
+            EASTMONEY_INTERMEDIATE_ASSET_KEYS + F10_PASSTHROUGH_INTERMEDIATE_ASSET_KEYS
+        ),
         STAGE_FURNACE_CALCULATION: (),
         STAGE_DBT_CALCULATION_WRAPPERS: (),
-        STAGE_DBT_MARTS: EASTMONEY_MART_ASSET_KEYS,
+        STAGE_DBT_MARTS: EASTMONEY_MART_ASSET_KEYS + F10_PASSTHROUGH_MART_ASSET_KEYS,
     },
     CHINABOND_SCOPE: {
         STAGE_DBT_STAGING: CHINABOND_STAGING_ASSET_KEYS,

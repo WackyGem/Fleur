@@ -16,6 +16,7 @@ from scheduler.defs.automation.source_raw_backfill import (
     EXECUTION_MODE_FULL,
     EXECUTION_MODE_RAW_ONLY,
     JIUYAN_OCR_PIPELINE_SCOPE,
+    MARKET_EVENTS_SCOPE,
     SNAPSHOT_REFERENCE_DATA_SCOPE,
     STEP_RAW,
     BackfillControllerConfig,
@@ -42,8 +43,20 @@ def test_history_backfill_entrypoint_names_are_explicit() -> None:
 def test_all_fetch_scope_covers_all_current_source_and_raw_assets() -> None:
     assert len(all_registered_source_asset_keys()) == 22
     assert len(all_registered_raw_asset_keys()) == 17
-    assert source_asset_keys_covered_by_all_fetch_scope() == all_registered_source_asset_keys()
-    assert raw_asset_keys_covered_by_all_fetch_scope() == all_registered_raw_asset_keys()
+
+    standalone_jiuyan_action_source_assets = {
+        "source/jiuyan__action_field",
+        "source/jiuyan__action_field_compacted",
+    }
+    standalone_jiuyan_action_raw_assets = {
+        "clickhouse/raw/jiuyan__action_field_compacted",
+    }
+    assert source_asset_keys_covered_by_all_fetch_scope() == (
+        all_registered_source_asset_keys() - standalone_jiuyan_action_source_assets
+    )
+    assert raw_asset_keys_covered_by_all_fetch_scope() == (
+        all_registered_raw_asset_keys() - standalone_jiuyan_action_raw_assets
+    )
 
 
 def test_all_raw_yearly_scope_excludes_snapshot_and_ocr_pipeline_assets() -> None:
@@ -130,6 +143,51 @@ def test_raw_only_plan_contains_only_raw_steps() -> None:
     assert all(
         step.asset_keys == ("clickhouse/raw/baostock__query_history_k_data_plus_daily_compacted",)
         for step in plan.steps
+    )
+
+
+def test_market_events_scope_is_ths_only_for_full_and_raw_only_plans() -> None:
+    full_plan = build_backfill_plan(
+        controller_request(
+            target_scope=MARKET_EVENTS_SCOPE,
+            start_date="2025-01-01",
+            end_date="2026-06-30",
+            execution_mode=EXECUTION_MODE_FULL,
+            refresh_prerequisite_snapshots=True,
+        ),
+        today=date(2026, 6, 30),
+        controller_run_id="controller-run-003a",
+    )
+    raw_only_plan = build_backfill_plan(
+        controller_request(
+            target_scope=MARKET_EVENTS_SCOPE,
+            start_date="2025-01-01",
+            end_date="2026-06-30",
+            execution_mode=EXECUTION_MODE_RAW_ONLY,
+            refresh_prerequisite_snapshots=True,
+        ),
+        today=date(2026, 6, 30),
+        controller_run_id="controller-run-003b",
+    )
+
+    assert [step.asset_keys for step in full_plan.steps] == [
+        ("source/sina__trade_calendar",),
+        ("source/ths__limit_up_pool",),
+        ("source/ths__limit_up_pool_compacted",),
+        ("clickhouse/raw/ths__limit_up_pool_compacted",),
+        ("source/ths__limit_up_pool",),
+        ("source/ths__limit_up_pool_compacted",),
+        ("clickhouse/raw/ths__limit_up_pool_compacted",),
+    ]
+    assert [step.asset_keys for step in raw_only_plan.steps] == [
+        ("clickhouse/raw/ths__limit_up_pool_compacted",),
+        ("clickhouse/raw/ths__limit_up_pool_compacted",),
+    ]
+    assert all(
+        "jiuyan__action_field" not in asset_key
+        for plan in (full_plan, raw_only_plan)
+        for step in plan.steps
+        for asset_key in step.asset_keys
     )
 
 
