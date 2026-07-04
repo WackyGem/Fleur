@@ -157,6 +157,33 @@ Fleur 是一个由 harness-engineering 驱动的 100% AI Coding 的面向沪深 
 
 ---
 
+### 🛒 marts 层支持数据清单
+
+| 类型 | mart 模型 | 数据内容 |
+|---|---|---|
+| 交易日历 | `mart_trade_calendar` | A 股交易日历 |
+| 股票基础 | `mart_stock_basic_snapshot` | 股票基础展示信息当前快照 |
+| 股票行情 | `mart_stock_quotes_daily` | A 股日频行情宽表，含未复权、前/后复权、估值、市值等 |
+| 技术指标 | `mart_stock_trend_indicator_daily` | MA、BOLL、MACD 趋势指标 |
+| 技术指标 | `mart_stock_momentum_indicator_daily` | RSI、KDJ 动量指标 |
+| 技术指标 | `mart_stock_volume_indicator_daily` | 成交量均量指标 |
+| 技术指标 | `mart_stock_price_pattern_daily` | 价格行为与 N 字结构 |
+| 市场事件 | `mart_stock_limit_up_pool_daily` | 涨停池日频明细 |
+| F10 财务 | `mart_stock_balance_sheet` | 资产负债表宽表 |
+| F10 财务 | `mart_stock_income_statement_ytd` | 利润表年初至今宽表 |
+| F10 财务 | `mart_stock_income_statement_quarterly` | 利润表单季度宽表 |
+| F10 财务 | `mart_stock_cashflow_statement_ytd` | 现金流量表年初至今宽表 |
+| F10 财务 | `mart_stock_cashflow_statement_quarterly` | 现金流量表单季度宽表 |
+| F10 股本 | `mart_stock_share_capital_history` | 股本变动历史 |
+| F10 股东 | `mart_stock_free_float_shareholder_top10` | 前十大流通股东 |
+| F10 分红 | `mart_stock_dividend_plan` | 分红方案历史版本 |
+| F10 配股 | `mart_stock_allotment_event` | 配股事件 |
+| 利率 | `mart_government_bond_yields_daily` | 中债国债收益率曲线日频宽表 |
+| 绩效基准 | `mart_benchmark_returns_daily` | benchmark 日收益 |
+| 无风险利率 | `mart_risk_free_rate_daily` | 组合绩效无风险利率日频 |
+| 组合分析 | `mart_portfolio_performance_metric_rank` | 组合绩效指标排名 |
+| 组合分析 | `mart_portfolio_trade_metric_rank` | 交易质量指标排名 |
+
 ### ⚙️ 技术指标与组合评价体系
 
 Furnace 负责技术指标计算；Rearview portfolio worker 负责组合绩效与交易质量评价。
