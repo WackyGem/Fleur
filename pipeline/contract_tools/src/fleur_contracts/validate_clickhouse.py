@@ -7,7 +7,11 @@ from typing import Any
 import clickhouse_connect
 
 from fleur_contracts.clickhouse_types import effective_clickhouse_type
-from fleur_contracts.env import load_repo_dotenv_if_present
+from fleur_contracts.env import (
+    load_repo_dotenv_if_present,
+    local_clickhouse_host,
+    local_clickhouse_port,
+)
 from fleur_contracts.loader import DEFAULT_CONTRACT_ROOT, load_registry
 
 
@@ -73,8 +77,8 @@ def _build_client_from_env() -> Any:
 
 
 def build_client_from_env(*, database: str | None = None) -> Any:
-    host = _required_env("CLICKHOUSE_HOST")
-    port = int(_required_env("CLICKHOUSE_PORT"))
+    host = local_clickhouse_host()
+    port = local_clickhouse_port()
     username = _required_env("CLICKHOUSE_USER")
     password = _required_env("CLICKHOUSE_PASSWORD")
     database_name = (

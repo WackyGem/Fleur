@@ -28,6 +28,10 @@
 2. 不把 `.env` 中的敏感信息提交到版本控制。
 3. 不替代系统各自的质量门禁；ops 文档只串联运行前提和执行记录。
 
+## 配置边界
+
+用户只需要在 `.env` 中维护凭据、业务库名和需要暴露到宿主机的端口。URL 形态的运行时变量由 Makefile、production-like Docker Compose 或本地工具入口派生，例如 `PIPELINE_DATABASE_URL`、`REARVIEW_DATABASE_URL`、`RUSTFS_ENDPOINT`、`CLICKHOUSE_PORT`、`REARVIEW_API_BASE_URL`、`VITE_REARVIEW_API_BASE_URL` 和 `REARVIEW_NATS_URL`。只有连接外部服务或覆盖默认拓扑时才需要显式设置这些派生变量。
+
 ## 常用入口
 
 启动 dev 依赖：

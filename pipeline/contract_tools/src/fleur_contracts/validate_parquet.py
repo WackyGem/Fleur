@@ -6,7 +6,7 @@ from typing import Any, cast
 
 import pyarrow.parquet as pq
 
-from fleur_contracts.env import load_repo_dotenv_if_present
+from fleur_contracts.env import load_repo_dotenv_if_present, local_rustfs_endpoint
 from fleur_contracts.loader import DEFAULT_CONTRACT_ROOT, load_registry
 from fleur_contracts.schema import DatasetContract
 
@@ -55,7 +55,7 @@ def _object_key_for_dataset(dataset: DatasetContract) -> str:
 def _build_s3_filesystem():
     import pyarrow.fs as pafs
 
-    endpoint = _required_env("RUSTFS_ENDPOINT")
+    endpoint = local_rustfs_endpoint()
     scheme = None
     if "://" in endpoint:
         from urllib.parse import urlparse

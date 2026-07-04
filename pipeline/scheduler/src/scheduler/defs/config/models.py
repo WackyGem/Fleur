@@ -3,6 +3,13 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 
 from scheduler.defs.config.env import (
+    CLICKHOUSE_CONNECT_TIMEOUT_SECONDS,
+    CLICKHOUSE_DATABASE,
+    CLICKHOUSE_HOST,
+    CLICKHOUSE_PORT,
+    CLICKHOUSE_QUERY_TIMEOUT_SECONDS,
+    CLICKHOUSE_SECURE,
+    RUSTFS_ENDPOINT,
     RUSTFS_REGION_NAME,
     optional_env_int,
     required_env_int,
@@ -26,7 +33,7 @@ class S3Config:
     @classmethod
     def from_env(cls) -> S3Config:
         return cls(
-            endpoint=required_env_str("RUSTFS_ENDPOINT"),
+            endpoint=RUSTFS_ENDPOINT,
             bucket=required_env_str("RUSTFS_BUCKET"),
             access_key=required_env_str("RUSTFS_ACCESS_KEY"),
             secret_key=required_env_str("RUSTFS_SECRET_KEY"),
@@ -96,17 +103,17 @@ class ClickHouseConfig:
     @classmethod
     def from_env(cls) -> ClickHouseConfig:
         return cls(
-            host=required_env_str("CLICKHOUSE_HOST"),
-            port=required_env_int("CLICKHOUSE_PORT"),
-            database=required_env_str("CLICKHOUSE_DATABASE"),
+            host=CLICKHOUSE_HOST,
+            port=CLICKHOUSE_PORT,
+            database=CLICKHOUSE_DATABASE,
             username=required_env_str("CLICKHOUSE_USER"),
             password=required_env_str("CLICKHOUSE_PASSWORD"),
             secure=parse_bool_env(
-                required_env_str("CLICKHOUSE_SECURE"),
+                CLICKHOUSE_SECURE,
                 field_name="CLICKHOUSE_SECURE",
             ),
-            connect_timeout_seconds=required_env_int("CLICKHOUSE_CONNECT_TIMEOUT_SECONDS"),
-            query_timeout_seconds=required_env_int("CLICKHOUSE_QUERY_TIMEOUT_SECONDS"),
+            connect_timeout_seconds=CLICKHOUSE_CONNECT_TIMEOUT_SECONDS,
+            query_timeout_seconds=CLICKHOUSE_QUERY_TIMEOUT_SECONDS,
         )
 
 

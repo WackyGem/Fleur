@@ -9,7 +9,7 @@ import psycopg
 from alembic import context
 from psycopg import sql
 from sqlalchemy import MetaData, engine_from_config, pool
-from sqlalchemy.engine import make_url
+from sqlalchemy.engine import URL, make_url
 
 config = context.config
 
@@ -21,21 +21,31 @@ target_metadata = MetaData()
 PIPELINE_TARGET: Final = "pipeline"
 REARVIEW_TARGET: Final = "rearview"
 ALL_TARGET: Final = "all"
+LOCAL_POSTGRES_HOST: Final = "127.0.0.1"
+POSTGRES_DB_ENV: Final = "POSTGRES_DB"
+POSTGRES_USER_ENV: Final = "POSTGRES_USER"
+POSTGRES_PASSWORD_ENV: Final = "POSTGRES_PASSWORD"
+POSTGRES_PORT_ENV: Final = "POSTGRES_PORT"
 
 
 class MigrationTarget(NamedTuple):
     name: str
     database_url_env: str
+    database_name: str
+    database_name_env: str | None = None
 
 
 TARGETS: Final = {
     PIPELINE_TARGET: MigrationTarget(
         name=PIPELINE_TARGET,
         database_url_env="PIPELINE_DATABASE_URL",
+        database_name=PIPELINE_TARGET,
+        database_name_env=POSTGRES_DB_ENV,
     ),
     REARVIEW_TARGET: MigrationTarget(
         name=REARVIEW_TARGET,
         database_url_env="REARVIEW_DATABASE_URL",
+        database_name=REARVIEW_TARGET,
     ),
 }
 
@@ -57,6 +67,13 @@ def _load_repo_dotenv() -> None:
             os.environ[key] = value
 
 
+def _env_value(name: str) -> str | None:
+    value = os.environ.get(name)
+    if value is None or not value.strip():
+        return None
+    return value.strip()
+
+
 def _selected_target_names() -> list[str]:
     raw_target = context.get_x_argument(as_dictionary=True).get("target", PIPELINE_TARGET)
     target = raw_target.strip().lower()
@@ -69,11 +86,51 @@ def _selected_target_names() -> list[str]:
     raise RuntimeError(msg)
 
 
+def _required_postgres_env(name: str, target: MigrationTarget) -> str:
+    value = _env_value(name)
+    if value is not None:
+        return value
+
+    msg = (
+        f"{target.database_url_env} is not set; {name} is required to derive "
+        f"{target.name} PostgreSQL URL"
+    )
+    raise RuntimeError(msg)
+
+
+def _postgres_port(target: MigrationTarget) -> int:
+    raw_port = _required_postgres_env(POSTGRES_PORT_ENV, target)
+    if raw_port.isdecimal():
+        return int(raw_port)
+
+    msg = (
+        f"{target.database_url_env} is not set; {POSTGRES_PORT_ENV} must be an integer "
+        f"to derive {target.name} PostgreSQL URL"
+    )
+    raise RuntimeError(msg)
+
+
+def _database_name(target: MigrationTarget) -> str:
+    if target.database_name_env is None:
+        return target.database_name
+    return _env_value(target.database_name_env) or target.database_name
+
+
+def _derived_database_url(target: MigrationTarget) -> str:
+    return URL.create(
+        "postgresql+psycopg",
+        username=_required_postgres_env(POSTGRES_USER_ENV, target),
+        password=_required_postgres_env(POSTGRES_PASSWORD_ENV, target),
+        host=LOCAL_POSTGRES_HOST,
+        port=_postgres_port(target),
+        database=_database_name(target),
+    ).render_as_string(hide_password=False)
+
+
 def _database_url(target: MigrationTarget) -> str:
-    value = os.environ.get(target.database_url_env)
-    if value is None or not value.strip():
-        msg = f"{target.database_url_env} is required for {target.name} Alembic migrations"
-        raise RuntimeError(msg)
+    value = _env_value(target.database_url_env)
+    if value is None:
+        return _derived_database_url(target)
     if value.startswith("postgresql://"):
         return value.replace("postgresql://", "postgresql+psycopg://", 1)
     return value

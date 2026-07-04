@@ -17,7 +17,7 @@ import pyarrow.fs as pafs
 import pyarrow.parquet as pq
 
 from fleur_contracts.clickhouse_types import effective_clickhouse_type
-from fleur_contracts.env import REPO_ROOT, load_repo_dotenv_if_present
+from fleur_contracts.env import REPO_ROOT, load_repo_dotenv_if_present, local_rustfs_endpoint
 from fleur_contracts.loader import DEFAULT_CONTRACT_ROOT, clickhouse_schema_hash, load_registry
 from fleur_contracts.schema import DatasetContract
 from fleur_contracts.validate_clickhouse import build_client_from_env
@@ -1277,7 +1277,7 @@ def _extract_run_ids(text: str) -> list[str]:
 
 
 def _s3_file_system_from_env() -> Any:
-    endpoint = _required_env("RUSTFS_ENDPOINT")
+    endpoint = local_rustfs_endpoint()
     scheme = None
     if "://" in endpoint:
         parsed_endpoint = urlparse(endpoint)

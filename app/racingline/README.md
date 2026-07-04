@@ -27,4 +27,4 @@ npm test
 npm run build
 ```
 
-The app reads `VITE_REARVIEW_API_BASE_URL` from the repository root `.env` / `.env.example` through Vite `envDir`.
+The app reads `VITE_REARVIEW_API_BASE_URL` when present; the repo Makefile derives it from `REARVIEW_HTTP_BIND` for local dev, and the app falls back to `http://127.0.0.1:34057`.

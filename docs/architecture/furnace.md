@@ -26,7 +26,7 @@
 
 ## 运行入口
 
-当前生产实现通过 `furnace-io` 内的官方 `clickhouse` Rust client 访问 ClickHouse HTTP 端口。Furnace 不依赖宿主机 `clickhouse-client`、Docker exec wrapper 或 native port；`.env` / `.env.example` 中的 `FURNACE_CLICKHOUSE_URL` 是权威连接入口，`FURNACE_CLICKHOUSE_VALIDATE_SCHEMA` 控制官方 client schema validation。本项目模板默认保持 `false`，使用 ClickHouse `RowBinary` 以降低 full-market 读取开销；2026-07-01 smoke 已覆盖 6 个指标的 `validation=false` `replace-cascade` 写入路径。Nullable 状态列读取必须在 SQL 输出边界显式转成 non-null typed row，避免 `RowBinary` 类型错位。
+当前生产实现通过 `furnace-io` 内的官方 `clickhouse` Rust client 访问 ClickHouse HTTP 端口。Furnace 不依赖宿主机 `clickhouse-client`、Docker exec wrapper 或 native port；默认从 `CLICKHOUSE_HOST` / `CLICKHOUSE_PORT` 推导 HTTP URL，`FURNACE_CLICKHOUSE_URL` 只作为显式覆盖入口。`FURNACE_CLICKHOUSE_VALIDATE_SCHEMA` 控制 official client schema validation。本项目模板默认保持 `false`，使用 ClickHouse `RowBinary` 以降低 full-market 读取开销；2026-07-01 smoke 已覆盖 6 个指标的 `validation=false` `replace-cascade` 写入路径。Nullable 状态列读取必须在 SQL 输出边界显式转成 non-null typed row，避免 `RowBinary` 类型错位。
 
 Dagster Furnace asset 默认通过 `FURNACE_BINARY_PATH` 调用 `engines/target/release/furnace`。性能基准和回填必须使用 release binary；`engines/target/debug/furnace` 只用于本地调试。
 

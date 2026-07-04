@@ -1,7 +1,7 @@
 name: fleur-prod
 
 x-prod-postgres-url: &prod-postgres-url
-  PIPELINE_DATABASE_URL: postgresql://${POSTGRES_USER:-fleur}:${POSTGRES_PASSWORD:-change-me-postgres-password}@postgres:5432/pipeline
+  PIPELINE_DATABASE_URL: postgresql://${POSTGRES_USER:-fleur}:${POSTGRES_PASSWORD:-change-me-postgres-password}@postgres:5432/${POSTGRES_DB:-pipeline}
   REARVIEW_DATABASE_URL: postgresql://${POSTGRES_USER:-fleur}:${POSTGRES_PASSWORD:-change-me-postgres-password}@postgres:5432/rearview
 
 x-prod-clickhouse-env: &prod-clickhouse-env
@@ -124,6 +124,8 @@ services:
       REARVIEW_CLICKHOUSE_MARTS_DATABASE: ${REARVIEW_CLICKHOUSE_MARTS_DATABASE:-fleur_marts}
       REARVIEW_CLICKHOUSE_PORTFOLIO_DATABASE: ${REARVIEW_CLICKHOUSE_PORTFOLIO_DATABASE:-fleur_portfolio}
       REARVIEW_CLICKHOUSE_CALCULATION_DATABASE: ${REARVIEW_CLICKHOUSE_CALCULATION_DATABASE:-fleur_calculation}
+      FLEUR_MARTS_READONLY_USER: ${FLEUR_MARTS_READONLY_USER:-}
+      FLEUR_MARTS_READONLY_PASSWORD: ${FLEUR_MARTS_READONLY_PASSWORD:-}
     ports:
       - "${FLEUR_PROD_CLICKHOUSE_HTTP_PORT:-35052}:8123"
       - "${FLEUR_PROD_CLICKHOUSE_NATIVE_PORT:-35053}:9000"
@@ -131,7 +133,7 @@ services:
       - clickhouse-data:/var/lib/clickhouse
       - clickhouse-logs:/var/log/clickhouse-server
       - ./clickhouse/config.d/system-log-retention.xml:/etc/clickhouse-server/config.d/system-log-retention.xml:ro
-      - ./clickhouse/initdb.d/create-fleur-databases.sh:/docker-entrypoint-initdb.d/create-fleur-databases.sh:ro
+      - ./clickhouse/initdb.d:/docker-entrypoint-initdb.d:ro
     healthcheck:
       test:
         - CMD-SHELL

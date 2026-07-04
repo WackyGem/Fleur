@@ -100,9 +100,9 @@ Furnace 当前通过官方 `clickhouse` Rust crate 的 HTTP client 访问 ClickH
 | 变量 | 用途 |
 |------|------|
 | `FURNACE_BINARY_PATH` | Dagster Furnace asset 调用的 CLI 路径；默认 `engines/target/release/furnace`，需要调试时才显式改为 debug binary |
-| `FURNACE_CLICKHOUSE_URL` | Furnace 专用 ClickHouse HTTP URL；本地默认 `http://127.0.0.1:34052` |
+| `FURNACE_CLICKHOUSE_URL` | 可选覆盖；未设置时从 `CLICKHOUSE_HOST` / `CLICKHOUSE_PORT` 推导 Furnace ClickHouse HTTP URL |
 | `FURNACE_CLICKHOUSE_VALIDATE_SCHEMA` | official client schema validation 开关，默认 `false`；使用 RowBinary 性能路径，关闭 validation 后的全部指标写入 smoke 见 2026-07-01 迁移报告 |
-| `CLICKHOUSE_HOST` / `CLICKHOUSE_PORT` | 未设置 `FURNACE_CLICKHOUSE_URL` 时用于推导 HTTP URL；crate 默认 `127.0.0.1:8123` |
+| `CLICKHOUSE_HOST` / `CLICKHOUSE_PORT` | 未设置 `FURNACE_CLICKHOUSE_URL` 时用于推导 HTTP URL；本地 Makefile 默认由 `CLICKHOUSE_HTTP_PORT` 派生 |
 | `CLICKHOUSE_USER` / `CLICKHOUSE_PASSWORD` | 可选认证信息 |
 | `CLICKHOUSE_DB` | optional default database；Furnace SQL 仍使用 fully-qualified table |
 | `CLICKHOUSE_SECURE` | 未设置 `FURNACE_CLICKHOUSE_URL` 时用于选择 `https` |
@@ -174,7 +174,7 @@ Rearview 环境变量：
 
 | 变量 | 用途 |
 |------|------|
-| `REARVIEW_DATABASE_URL` | PostgreSQL `rearview` database 连接 |
+| `REARVIEW_DATABASE_URL` | 运行时派生的 PostgreSQL `rearview` database 连接；本地和 compose 默认由 `POSTGRES_*` 生成 |
 | `REARVIEW_HTTP_BIND` | HTTP bind 地址，默认 `127.0.0.1:34057` |
 | `REARVIEW_MAX_CONCURRENT_RUNS` | 并发运行上限 |
 | `REARVIEW_CHUNK_SMALL_RANGE_TRADING_DAYS` | 小区间单次 range query 阈值，默认 90 |
@@ -182,7 +182,7 @@ Rearview 环境变量：
 | `REARVIEW_CLICKHOUSE_MAX_EXECUTION_TIME_SECONDS` | ClickHouse 单查询执行时间上限 |
 | `REARVIEW_CLICKHOUSE_MAX_ROWS_TO_READ` | ClickHouse 单查询扫描行数上限 |
 | `REARVIEW_CLICKHOUSE_MAX_BYTES_TO_READ` | ClickHouse 单查询扫描字节上限 |
-| `REARVIEW_NATS_URL` | NATS 连接地址 |
+| `REARVIEW_NATS_URL` | NATS 连接地址；本地默认由 `NATS_CLIENT_PORT` 派生 |
 | `REARVIEW_PORTFOLIO_STREAM` | portfolio JetStream stream 名称 |
 | `REARVIEW_PORTFOLIO_REQUEST_SUBJECT` | portfolio 任务 subject |
 | `REARVIEW_PORTFOLIO_WORKER_DURABLE` | portfolio worker durable consumer |
