@@ -39,7 +39,7 @@ select
     PAY_CASH_DATE as pay_cash_date,
     GMDECISION_NOTICE_DATE as gmdecision_notice_date,
     DAT_YAGGR as annual_general_meeting_date,
-    INFO_CODE as info_code,
+    INFO_CODE as announcement_identifier,
     TOTAL_DIVIDEND as total_dividend,
     TOTAL_DIVIDEND_A as total_dividend_a
 from source

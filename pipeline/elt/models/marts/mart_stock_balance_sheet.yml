@@ -1,0 +1,1004 @@
+version: 2
+models:
+  - name: mart_stock_balance_sheet
+    description: 股票资产负债表 mart 透传模型，作为消费层读取该 F10 宽表的稳定入口。
+    config:
+      meta:
+        grain_zh: 每证券、每报告期一行。
+        business_logic_zh:
+          - 仅从对应 intermediate 模型选择稳定字段。
+          - 不裁剪财务宽表字段，不做口径合并、历史版本选择或指标重算。
+    data_tests:
+      - unique_combination_of_columns:
+          arguments:
+            combination_of_columns:
+              - security_code
+              - report_date
+    columns:
+      - name: security_code
+        description: '{{ doc(''field_security_code'') }}'
+        data_type: String
+        data_tests:
+          - not_null
+          - cn_security_code_format
+      - name: security_local_code
+        description: '{{ doc(''field_security_local_code'') }}'
+        data_type: String
+        data_tests:
+          - not_null
+      - name: security_name_abbr
+        description: 证券简称
+        data_type: LowCardinality(String)
+      - name: org_code
+        description: 机构代码
+        data_type: LowCardinality(String)
+      - name: org_type
+        description: 机构类型
+        data_type: LowCardinality(String)
+        data_tests:
+          - accepted_values:
+              arguments:
+                values:
+                  - 通用
+      - name: report_date
+        description: '{{ doc(''field_report_date'') }}'
+        data_type: Date
+        data_tests:
+          - not_null
+      - name: report_type
+        description: 报告类型
+        data_type: LowCardinality(String)
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values:
+                  - 一季报
+                  - 中报
+                  - 三季报
+                  - 年报
+      - name: report_date_name
+        description: 报告期名称
+        data_type: LowCardinality(String)
+      - name: security_type_code
+        description: 证券类型代码
+        data_type: LowCardinality(String)
+      - name: notice_date
+        description: 公告日期
+        data_type: Date
+        data_tests:
+          - not_null
+      - name: update_date
+        description: 更新日期
+        data_type: Nullable(Date)
+      - name: currency
+        description: 资产负债表披露金额使用的币种。
+        data_type: LowCardinality(Nullable(String))
+        data_tests:
+          - accepted_values:
+              arguments:
+                values:
+                  - CNY
+      - name: accept_deposit_interbank
+        description: 同业存放
+        data_type: Nullable(Float64)
+      - name: accounts_payable
+        description: 应付账款
+        data_type: Nullable(Float64)
+      - name: accounts_rece
+        description: 应收账款
+        data_type: Nullable(Float64)
+      - name: accrued_expense
+        description: 预提费用
+        data_type: Nullable(Float64)
+      - name: advance_receivables
+        description: 预收款项
+        data_type: Nullable(Float64)
+      - name: agent_trade_security
+        description: 代理买卖证券款
+        data_type: Nullable(Float64)
+      - name: agent_underwrite_security
+        description: 代理承销证券款
+        data_type: Nullable(Float64)
+      - name: amortize_cost_finasset
+        description: 以摊余成本计量的金融资产
+        data_type: Nullable(Float64)
+      - name: amortize_cost_finliab
+        description: 以摊余成本计量的金融负债
+        data_type: Nullable(Float64)
+      - name: amortize_cost_ncfinasset
+        description: 非流动金融资产（摊余成本）
+        data_type: Nullable(Float64)
+      - name: amortize_cost_ncfinliab
+        description: 非流动金融负债（摊余成本）
+        data_type: Nullable(Float64)
+      - name: appoint_fvtpl_finasset
+        description: 指定为FVTPL的金融资产
+        data_type: Nullable(Float64)
+      - name: appoint_fvtpl_finliab
+        description: 指定为FVTPL的金融负债
+        data_type: Nullable(Float64)
+      - name: asset_balance
+        description: 资产平衡项
+        data_type: Nullable(Float64)
+      - name: asset_other
+        description: 资产其他项
+        data_type: Nullable(Float64)
+      - name: assign_cash_dividend
+        description: 应付现金股利
+        data_type: Nullable(Float64)
+      - name: available_sale_finasset
+        description: 可供出售金融资产
+        data_type: Nullable(Float64)
+      - name: bond_payable
+        description: 应付债券
+        data_type: Nullable(Float64)
+      - name: borrow_fund
+        description: 拆入资金
+        data_type: Nullable(Float64)
+      - name: buy_resale_finasset
+        description: 买入返售金融资产
+        data_type: Nullable(Float64)
+      - name: capital_reserve
+        description: 资本公积
+        data_type: Nullable(Float64)
+      - name: cip
+        description: 在建工程
+        data_type: Nullable(Float64)
+      - name: consumptive_biological_asset
+        description: 消耗性生物资产
+        data_type: Nullable(Float64)
+      - name: contract_asset
+        description: 合同资产
+        data_type: Nullable(Float64)
+      - name: contract_liab
+        description: 合同负债
+        data_type: Nullable(Float64)
+      - name: convert_diff
+        description: 外币报表折算差额
+        data_type: Nullable(Float64)
+      - name: creditor_invest
+        description: 债权投资
+        data_type: Nullable(Float64)
+      - name: current_asset_balance
+        description: 流动资产平衡项
+        data_type: Nullable(Float64)
+      - name: current_asset_other
+        description: 流动资产其他项
+        data_type: Nullable(Float64)
+      - name: current_liab_balance
+        description: 流动负债平衡项
+        data_type: Nullable(Float64)
+      - name: current_liab_other
+        description: 流动负债其他项
+        data_type: Nullable(Float64)
+      - name: defer_income
+        description: 递延收益
+        data_type: Nullable(Float64)
+      - name: defer_income_1year
+        description: 一年内到期递延收益
+        data_type: Nullable(Float64)
+      - name: defer_tax_asset
+        description: 递延所得税资产
+        data_type: Nullable(Float64)
+      - name: defer_tax_liab
+        description: 递延所得税负债
+        data_type: Nullable(Float64)
+      - name: derive_finasset
+        description: 衍生金融资产
+        data_type: Nullable(Float64)
+      - name: derive_finliab
+        description: 衍生金融负债
+        data_type: Nullable(Float64)
+      - name: develop_expense
+        description: 开发支出
+        data_type: Nullable(Float64)
+      - name: div_holdsale_asset
+        description: 持有待售资产（除）
+        data_type: Nullable(Float64)
+      - name: div_holdsale_liab
+        description: 持有待售负债（除）
+        data_type: Nullable(Float64)
+      - name: dividend_payable
+        description: 应付股利
+        data_type: Nullable(Float64)
+      - name: dividend_rece
+        description: 应收股利
+        data_type: Nullable(Float64)
+      - name: equity_balance
+        description: 所有者权益平衡项
+        data_type: Nullable(Float64)
+      - name: equity_other
+        description: 所有者权益其他项
+        data_type: Nullable(Float64)
+      - name: export_refund_rece
+        description: 应收出口退税
+        data_type: Nullable(Float64)
+      - name: fee_commission_payable
+        description: 应付手续费及佣金
+        data_type: Nullable(Float64)
+      - name: fin_fund
+        description: 金融往来资金
+        data_type: Nullable(Float64)
+      - name: finance_rece
+        description: 金融应收款
+        data_type: Nullable(Float64)
+      - name: fixed_asset
+        description: 固定资产
+        data_type: Nullable(Float64)
+      - name: fixed_asset_disposal
+        description: 固定资产清理
+        data_type: Nullable(Float64)
+      - name: fvtoci_finasset
+        description: 以公允价值计量且其变动计入其他综合收益的金融资产
+        data_type: Nullable(Float64)
+      - name: fvtoci_ncfinasset
+        description: 其他非流动金融资产（FVTOCI）
+        data_type: Nullable(Float64)
+      - name: fvtpl_finasset
+        description: 以公允价值计量且其变动计入当期损益的金融资产
+        data_type: Nullable(Float64)
+      - name: fvtpl_finliab
+        description: 以公允价值计量且其变动计入当期损益的金融负债
+        data_type: Nullable(Float64)
+      - name: general_risk_reserve
+        description: 一般风险准备
+        data_type: Nullable(Float64)
+      - name: goodwill
+        description: 资产负债表披露的商誉金额。
+        data_type: Nullable(Float64)
+      - name: hold_maturity_invest
+        description: 持有至到期投资
+        data_type: Nullable(Float64)
+      - name: holdsale_asset
+        description: 持有待售资产
+        data_type: Nullable(Float64)
+      - name: holdsale_liab
+        description: 持有待售负债
+        data_type: Nullable(Float64)
+      - name: insurance_contract_reserve
+        description: 保险合同准备金
+        data_type: Nullable(Float64)
+      - name: intangible_asset
+        description: 无形资产
+        data_type: Nullable(Float64)
+      - name: interest_payable
+        description: 应付利息
+        data_type: Nullable(Float64)
+      - name: interest_rece
+        description: 应收利息
+        data_type: Nullable(Float64)
+      - name: internal_payable
+        description: 内部应付款
+        data_type: Nullable(Float64)
+      - name: internal_rece
+        description: 内部应收款
+        data_type: Nullable(Float64)
+      - name: inventory
+        description: 资产负债表披露的存货金额。
+        data_type: Nullable(Float64)
+      - name: invest_realestate
+        description: 投资性房地产
+        data_type: Nullable(Float64)
+      - name: lease_liab
+        description: 租赁负债
+        data_type: Nullable(Float64)
+      - name: lend_fund
+        description: 拆出资金
+        data_type: Nullable(Float64)
+      - name: liab_balance
+        description: 负债平衡项
+        data_type: Nullable(Float64)
+      - name: liab_equity_balance
+        description: 负债和所有者权益平衡项
+        data_type: Nullable(Float64)
+      - name: liab_equity_other
+        description: 负债和所有者权益其他项
+        data_type: Nullable(Float64)
+      - name: liab_other
+        description: 负债其他项
+        data_type: Nullable(Float64)
+      - name: loan_advance
+        description: 发放贷款及垫款
+        data_type: Nullable(Float64)
+      - name: loan_pbc
+        description: 向央行借款
+        data_type: Nullable(Float64)
+      - name: long_equity_invest
+        description: 长期股权投资
+        data_type: Nullable(Float64)
+      - name: long_loan
+        description: 长期借款
+        data_type: Nullable(Float64)
+      - name: long_payable
+        description: 长期应付款
+        data_type: Nullable(Float64)
+      - name: long_prepaid_expense
+        description: 长期待摊费用
+        data_type: Nullable(Float64)
+      - name: long_rece
+        description: 长期应收款
+        data_type: Nullable(Float64)
+      - name: long_staffsalary_payable
+        description: 长期应付职工薪酬
+        data_type: Nullable(Float64)
+      - name: minority_equity
+        description: 少数股东权益
+        data_type: Nullable(Float64)
+      - name: monetary_funds
+        description: 货币资金
+        data_type: Nullable(Float64)
+      - name: noncurrent_asset_1year
+        description: 一年内到期的非流动资产
+        data_type: Nullable(Float64)
+      - name: noncurrent_asset_balance
+        description: 非流动资产平衡项
+        data_type: Nullable(Float64)
+      - name: noncurrent_asset_other
+        description: 非流动资产其他项
+        data_type: Nullable(Float64)
+      - name: noncurrent_liab_1year
+        description: 一年内到期的非流动负债
+        data_type: Nullable(Float64)
+      - name: noncurrent_liab_balance
+        description: 非流动负债平衡项
+        data_type: Nullable(Float64)
+      - name: noncurrent_liab_other
+        description: 非流动负债其他项
+        data_type: Nullable(Float64)
+      - name: note_accounts_payable
+        description: 应付票据及应付账款
+        data_type: Nullable(Float64)
+      - name: note_accounts_rece
+        description: 应收票据及应收账款
+        data_type: Nullable(Float64)
+      - name: note_payable
+        description: 应付票据
+        data_type: Nullable(Float64)
+      - name: note_rece
+        description: 应收票据
+        data_type: Nullable(Float64)
+      - name: oil_gas_asset
+        description: 油气资产
+        data_type: Nullable(Float64)
+      - name: other_compre_income
+        description: 其他综合收益
+        data_type: Nullable(Float64)
+      - name: other_creditor_invest
+        description: 其他债权投资
+        data_type: Nullable(Float64)
+      - name: other_current_asset
+        description: 其他流动资产
+        data_type: Nullable(Float64)
+      - name: other_current_liab
+        description: 其他流动负债
+        data_type: Nullable(Float64)
+      - name: other_equity_invest
+        description: 其他权益工具投资
+        data_type: Nullable(Float64)
+      - name: other_equity_other
+        description: 其他权益其他项
+        data_type: Nullable(Float64)
+      - name: other_equity_tool
+        description: 其他权益工具
+        data_type: Nullable(Float64)
+      - name: other_noncurrent_asset
+        description: 其他非流动资产
+        data_type: Nullable(Float64)
+      - name: other_noncurrent_finasset
+        description: 其他非流动金融资产
+        data_type: Nullable(Float64)
+      - name: other_noncurrent_liab
+        description: 其他非流动负债
+        data_type: Nullable(Float64)
+      - name: other_payable
+        description: 其他应付款
+        data_type: Nullable(Float64)
+      - name: other_rece
+        description: 其他应收款
+        data_type: Nullable(Float64)
+      - name: parent_equity_balance
+        description: 归母权益平衡项
+        data_type: Nullable(Float64)
+      - name: parent_equity_other
+        description: 归母权益其他项
+        data_type: Nullable(Float64)
+      - name: perpetual_bond
+        description: 永续债
+        data_type: Nullable(Float64)
+      - name: perpetual_bond_payable
+        description: 永续债（负债端）
+        data_type: Nullable(Float64)
+      - name: predict_current_liab
+        description: 预计流动负债
+        data_type: Nullable(Float64)
+      - name: predict_liab
+        description: 预计负债
+        data_type: Nullable(Float64)
+      - name: preferred_shares
+        description: 优先股
+        data_type: Nullable(Float64)
+      - name: preferred_shares_payable
+        description: 应付优先股
+        data_type: Nullable(Float64)
+      - name: premium_rece
+        description: 预收保费
+        data_type: Nullable(Float64)
+      - name: prepayment
+        description: 预付款项
+        data_type: Nullable(Float64)
+      - name: productive_biology_asset
+        description: 生产性生物资产
+        data_type: Nullable(Float64)
+      - name: project_material
+        description: 工程物资
+        data_type: Nullable(Float64)
+      - name: rc_reserve_rece
+        description: 再保合同应收准备金
+        data_type: Nullable(Float64)
+      - name: reinsure_payable
+        description: 应付再保款
+        data_type: Nullable(Float64)
+      - name: reinsure_rece
+        description: 应收再保款
+        data_type: Nullable(Float64)
+      - name: sell_repo_finasset
+        description: 卖出回购金融资产款
+        data_type: Nullable(Float64)
+      - name: settle_excess_reserve
+        description: 清算备付金
+        data_type: Nullable(Float64)
+      - name: share_capital
+        description: 实收资本（股本）
+        data_type: Nullable(Float64)
+      - name: short_bond_payable
+        description: 短期应付债券
+        data_type: Nullable(Float64)
+      - name: short_fin_payable
+        description: 短期金融负债
+        data_type: Nullable(Float64)
+      - name: short_loan
+        description: 短期借款
+        data_type: Nullable(Float64)
+      - name: special_payable
+        description: 专项应付款
+        data_type: Nullable(Float64)
+      - name: special_reserve
+        description: 专项储备
+        data_type: Nullable(Float64)
+      - name: staff_salary_payable
+        description: 应付职工薪酬
+        data_type: Nullable(Float64)
+      - name: subsidy_rece
+        description: 应收补贴
+        data_type: Nullable(Float64)
+      - name: surplus_reserve
+        description: 盈余公积
+        data_type: Nullable(Float64)
+      - name: tax_payable
+        description: 应交税费
+        data_type: Nullable(Float64)
+      - name: total_assets
+        description: 资产总计
+        data_type: Nullable(Float64)
+      - name: total_current_assets
+        description: 流动资产合计
+        data_type: Nullable(Float64)
+      - name: total_current_liab
+        description: 流动负债合计
+        data_type: Nullable(Float64)
+      - name: total_equity
+        description: 所有者权益合计
+        data_type: Nullable(Float64)
+      - name: total_liab_equity
+        description: 负债和所有者权益总计
+        data_type: Nullable(Float64)
+      - name: total_liabilities
+        description: 负债合计
+        data_type: Nullable(Float64)
+      - name: total_noncurrent_assets
+        description: 非流动资产合计
+        data_type: Nullable(Float64)
+      - name: total_noncurrent_liab
+        description: 非流动负债合计
+        data_type: Nullable(Float64)
+      - name: total_other_payable
+        description: 其他应付款合计
+        data_type: Nullable(Float64)
+      - name: total_other_rece
+        description: 其他应收款合计
+        data_type: Nullable(Float64)
+      - name: total_parent_equity
+        description: 归属于母公司股东权益合计
+        data_type: Nullable(Float64)
+      - name: trade_finasset
+        description: 交易性金融资产
+        data_type: Nullable(Float64)
+      - name: trade_finasset_notfvtpl
+        description: 非FVTPL交易性金融资产
+        data_type: Nullable(Float64)
+      - name: trade_finliab
+        description: 交易性金融负债
+        data_type: Nullable(Float64)
+      - name: trade_finliab_notfvtpl
+        description: 非FVTPL交易性金融负债
+        data_type: Nullable(Float64)
+      - name: treasury_shares
+        description: 库存股
+        data_type: Nullable(Float64)
+      - name: unassigned_profit
+        description: 未分配利润
+        data_type: Nullable(Float64)
+      - name: unconfirm_invest_loss
+        description: 未确认投资损失
+        data_type: Nullable(Float64)
+      - name: use_right_asset
+        description: 使用权资产
+        data_type: Nullable(Float64)
+      - name: accept_deposit_interbank_yoy
+        description: 同业存放同比增长率（%）
+        data_type: Nullable(Float64)
+      - name: accounts_payable_yoy
+        description: 应付账款同比增长率（%）
+        data_type: Nullable(Float64)
+      - name: accounts_rece_yoy
+        description: 应收账款同比增长率（%）
+        data_type: Nullable(Float64)
+      - name: accrued_expense_yoy
+        description: 预提费用同比增长率（%）
+        data_type: Nullable(Float64)
+      - name: advance_receivables_yoy
+        description: 预收款项同比增长率（%）
+        data_type: Nullable(Float64)
+      - name: agent_trade_security_yoy
+        description: 代理买卖证券款同比增长率（%）
+        data_type: Nullable(Float64)
+      - name: agent_underwrite_security_yoy
+        description: 代理承销证券款同比增长率（%）
+        data_type: Nullable(Float64)
+      - name: amortize_cost_finasset_yoy
+        description: 以摊余成本计量的金融资产同比增长率（%）
+        data_type: Nullable(Float64)
+      - name: amortize_cost_finliab_yoy
+        description: 以摊余成本计量的金融负债同比增长率（%）
+        data_type: Nullable(Float64)
+      - name: amortize_cost_ncfinasset_yoy
+        description: 非流动金融资产（摊余成本）同比增长率（%）
+        data_type: Nullable(Float64)
+      - name: amortize_cost_ncfinliab_yoy
+        description: 非流动金融负债（摊余成本）同比增长率（%）
+        data_type: Nullable(Float64)
+      - name: appoint_fvtpl_finasset_yoy
+        description: 指定为FVTPL的金融资产同比增长率（%）
+        data_type: Nullable(Float64)
+      - name: appoint_fvtpl_finliab_yoy
+        description: 指定为FVTPL的金融负债同比增长率（%）
+        data_type: Nullable(Float64)
+      - name: asset_balance_yoy
+        description: 资产平衡项同比增长率（%）
+        data_type: Nullable(Float64)
+      - name: asset_other_yoy
+        description: 资产其他项同比增长率（%）
+        data_type: Nullable(Float64)
+      - name: assign_cash_dividend_yoy
+        description: 应付现金股利同比增长率（%）
+        data_type: Nullable(Float64)
+      - name: available_sale_finasset_yoy
+        description: 可供出售金融资产同比增长率（%）
+        data_type: Nullable(Float64)
+      - name: bond_payable_yoy
+        description: 应付债券同比增长率（%）
+        data_type: Nullable(Float64)
+      - name: borrow_fund_yoy
+        description: 拆入资金同比增长率（%）
+        data_type: Nullable(Float64)
+      - name: buy_resale_finasset_yoy
+        description: 买入返售金融资产同比增长率（%）
+        data_type: Nullable(Float64)
+      - name: capital_reserve_yoy
+        description: 资本公积同比增长率（%）
+        data_type: Nullable(Float64)
+      - name: cip_yoy
+        description: 在建工程同比增长率（%）
+        data_type: Nullable(Float64)
+      - name: consumptive_biological_asset_yoy
+        description: 消耗性生物资产同比增长率（%）
+        data_type: Nullable(Float64)
+      - name: contract_asset_yoy
+        description: 合同资产同比增长率（%）
+        data_type: Nullable(Float64)
+      - name: contract_liab_yoy
+        description: 合同负债同比增长率（%）
+        data_type: Nullable(Float64)
+      - name: convert_diff_yoy
+        description: 外币报表折算差额同比增长率（%）
+        data_type: Nullable(Float64)
+      - name: creditor_invest_yoy
+        description: 债权投资同比增长率（%）
+        data_type: Nullable(Float64)
+      - name: current_asset_balance_yoy
+        description: 流动资产平衡项同比增长率（%）
+        data_type: Nullable(Float64)
+      - name: current_asset_other_yoy
+        description: 流动资产其他项同比增长率（%）
+        data_type: Nullable(Float64)
+      - name: current_liab_balance_yoy
+        description: 流动负债平衡项同比增长率（%）
+        data_type: Nullable(Float64)
+      - name: current_liab_other_yoy
+        description: 流动负债其他项同比增长率（%）
+        data_type: Nullable(Float64)
+      - name: defer_income_1year_yoy
+        description: 一年内到期递延收益同比增长率（%）
+        data_type: Nullable(Float64)
+      - name: defer_income_yoy
+        description: 递延收益同比增长率（%）
+        data_type: Nullable(Float64)
+      - name: defer_tax_asset_yoy
+        description: 递延所得税资产同比增长率（%）
+        data_type: Nullable(Float64)
+      - name: defer_tax_liab_yoy
+        description: 递延所得税负债同比增长率（%）
+        data_type: Nullable(Float64)
+      - name: derive_finasset_yoy
+        description: 衍生金融资产同比增长率（%）
+        data_type: Nullable(Float64)
+      - name: derive_finliab_yoy
+        description: 衍生金融负债同比增长率（%）
+        data_type: Nullable(Float64)
+      - name: develop_expense_yoy
+        description: 开发支出同比增长率（%）
+        data_type: Nullable(Float64)
+      - name: div_holdsale_asset_yoy
+        description: 持有待售资产（除）同比增长率（%）
+        data_type: Nullable(Float64)
+      - name: div_holdsale_liab_yoy
+        description: 持有待售负债（除）同比增长率（%）
+        data_type: Nullable(Float64)
+      - name: dividend_payable_yoy
+        description: 应付股利同比增长率（%）
+        data_type: Nullable(Float64)
+      - name: dividend_rece_yoy
+        description: 应收股利同比增长率（%）
+        data_type: Nullable(Float64)
+      - name: equity_balance_yoy
+        description: 所有者权益平衡项同比增长率（%）
+        data_type: Nullable(Float64)
+      - name: equity_other_yoy
+        description: 所有者权益其他项同比增长率（%）
+        data_type: Nullable(Float64)
+      - name: export_refund_rece_yoy
+        description: 应收出口退税同比增长率（%）
+        data_type: Nullable(Float64)
+      - name: fee_commission_payable_yoy
+        description: 应付手续费及佣金同比增长率（%）
+        data_type: Nullable(Float64)
+      - name: fin_fund_yoy
+        description: 金融往来资金同比增长率（%）
+        data_type: Nullable(Float64)
+      - name: finance_rece_yoy
+        description: 金融应收款同比增长率（%）
+        data_type: Nullable(Float64)
+      - name: fixed_asset_disposal_yoy
+        description: 固定资产清理同比增长率（%）
+        data_type: Nullable(Float64)
+      - name: fixed_asset_yoy
+        description: 固定资产同比增长率（%）
+        data_type: Nullable(Float64)
+      - name: fvtoci_finasset_yoy
+        description: 以公允价值计量且其变动计入其他综合收益的金融资产同比增长率（%）
+        data_type: Nullable(Float64)
+      - name: fvtoci_ncfinasset_yoy
+        description: 其他非流动金融资产（FVTOCI）同比增长率（%）
+        data_type: Nullable(Float64)
+      - name: fvtpl_finasset_yoy
+        description: 以公允价值计量且其变动计入当期损益的金融资产同比增长率（%）
+        data_type: Nullable(Float64)
+      - name: fvtpl_finliab_yoy
+        description: 以公允价值计量且其变动计入当期损益的金融负债同比增长率（%）
+        data_type: Nullable(Float64)
+      - name: general_risk_reserve_yoy
+        description: 一般风险准备同比增长率（%）
+        data_type: Nullable(Float64)
+      - name: goodwill_yoy
+        description: 商誉同比增长率（%）
+        data_type: Nullable(Float64)
+      - name: hold_maturity_invest_yoy
+        description: 持有至到期投资同比增长率（%）
+        data_type: Nullable(Float64)
+      - name: holdsale_asset_yoy
+        description: 持有待售资产同比增长率（%）
+        data_type: Nullable(Float64)
+      - name: holdsale_liab_yoy
+        description: 持有待售负债同比增长率（%）
+        data_type: Nullable(Float64)
+      - name: insurance_contract_reserve_yoy
+        description: 保险合同准备金同比增长率（%）
+        data_type: Nullable(Float64)
+      - name: intangible_asset_yoy
+        description: 无形资产同比增长率（%）
+        data_type: Nullable(Float64)
+      - name: interest_payable_yoy
+        description: 应付利息同比增长率（%）
+        data_type: Nullable(Float64)
+      - name: interest_rece_yoy
+        description: 应收利息同比增长率（%）
+        data_type: Nullable(Float64)
+      - name: internal_payable_yoy
+        description: 内部应付款同比增长率（%）
+        data_type: Nullable(Float64)
+      - name: internal_rece_yoy
+        description: 内部应收款同比增长率（%）
+        data_type: Nullable(Float64)
+      - name: inventory_yoy
+        description: 存货同比增长率（%）
+        data_type: Nullable(Float64)
+      - name: invest_realestate_yoy
+        description: 投资性房地产同比增长率（%）
+        data_type: Nullable(Float64)
+      - name: lease_liab_yoy
+        description: 租赁负债同比增长率（%）
+        data_type: Nullable(Float64)
+      - name: lend_fund_yoy
+        description: 拆出资金同比增长率（%）
+        data_type: Nullable(Float64)
+      - name: liab_balance_yoy
+        description: 负债平衡项同比增长率（%）
+        data_type: Nullable(Float64)
+      - name: liab_equity_balance_yoy
+        description: 负债和所有者权益平衡项同比增长率（%）
+        data_type: Nullable(Float64)
+      - name: liab_equity_other_yoy
+        description: 负债和所有者权益其他项同比增长率（%）
+        data_type: Nullable(Float64)
+      - name: liab_other_yoy
+        description: 负债其他项同比增长率（%）
+        data_type: Nullable(Float64)
+      - name: loan_advance_yoy
+        description: 发放贷款及垫款同比增长率（%）
+        data_type: Nullable(Float64)
+      - name: loan_pbc_yoy
+        description: 向央行借款同比增长率（%）
+        data_type: Nullable(Float64)
+      - name: long_equity_invest_yoy
+        description: 长期股权投资同比增长率（%）
+        data_type: Nullable(Float64)
+      - name: long_loan_yoy
+        description: 长期借款同比增长率（%）
+        data_type: Nullable(Float64)
+      - name: long_payable_yoy
+        description: 长期应付款同比增长率（%）
+        data_type: Nullable(Float64)
+      - name: long_prepaid_expense_yoy
+        description: 长期待摊费用同比增长率（%）
+        data_type: Nullable(Float64)
+      - name: long_rece_yoy
+        description: 长期应收款同比增长率（%）
+        data_type: Nullable(Float64)
+      - name: long_staffsalary_payable_yoy
+        description: 长期应付职工薪酬同比增长率（%）
+        data_type: Nullable(Float64)
+      - name: minority_equity_yoy
+        description: 少数股东权益同比增长率（%）
+        data_type: Nullable(Float64)
+      - name: monetary_funds_yoy
+        description: 货币资金同比增长率（%）
+        data_type: Nullable(Float64)
+      - name: noncurrent_asset_1year_yoy
+        description: 一年内到期的非流动资产同比增长率（%）
+        data_type: Nullable(Float64)
+      - name: noncurrent_asset_balance_yoy
+        description: 非流动资产平衡项同比增长率（%）
+        data_type: Nullable(Float64)
+      - name: noncurrent_asset_other_yoy
+        description: 非流动资产其他项同比增长率（%）
+        data_type: Nullable(Float64)
+      - name: noncurrent_liab_1year_yoy
+        description: 一年内到期的非流动负债同比增长率（%）
+        data_type: Nullable(Float64)
+      - name: noncurrent_liab_balance_yoy
+        description: 非流动负债平衡项同比增长率（%）
+        data_type: Nullable(Float64)
+      - name: noncurrent_liab_other_yoy
+        description: 非流动负债其他项同比增长率（%）
+        data_type: Nullable(Float64)
+      - name: note_accounts_payable_yoy
+        description: 应付票据及应付账款同比增长率（%）
+        data_type: Nullable(Float64)
+      - name: note_accounts_rece_yoy
+        description: 应收票据及应收账款同比增长率（%）
+        data_type: Nullable(Float64)
+      - name: note_payable_yoy
+        description: 应付票据同比增长率（%）
+        data_type: Nullable(Float64)
+      - name: note_rece_yoy
+        description: 应收票据同比增长率（%）
+        data_type: Nullable(Float64)
+      - name: oil_gas_asset_yoy
+        description: 油气资产同比增长率（%）
+        data_type: Nullable(Float64)
+      - name: other_compre_income_yoy
+        description: 其他综合收益总额同比增长率（%）
+        data_type: Nullable(Float64)
+      - name: other_creditor_invest_yoy
+        description: 其他债权投资同比增长率（%）
+        data_type: Nullable(Float64)
+      - name: other_current_asset_yoy
+        description: 其他流动资产同比增长率（%）
+        data_type: Nullable(Float64)
+      - name: other_current_liab_yoy
+        description: 其他流动负债同比增长率（%）
+        data_type: Nullable(Float64)
+      - name: other_equity_invest_yoy
+        description: 其他权益工具投资同比增长率（%）
+        data_type: Nullable(Float64)
+      - name: other_equity_other_yoy
+        description: 其他权益其他项同比增长率（%）
+        data_type: Nullable(Float64)
+      - name: other_equity_tool_yoy
+        description: 其他权益工具同比增长率（%）
+        data_type: Nullable(Float64)
+      - name: other_noncurrent_asset_yoy
+        description: 其他非流动资产同比增长率（%）
+        data_type: Nullable(Float64)
+      - name: other_noncurrent_finasset_yoy
+        description: 其他非流动金融资产同比增长率（%）
+        data_type: Nullable(Float64)
+      - name: other_noncurrent_liab_yoy
+        description: 其他非流动负债同比增长率（%）
+        data_type: Nullable(Float64)
+      - name: other_payable_yoy
+        description: 其他应付款同比增长率（%）
+        data_type: Nullable(Float64)
+      - name: other_rece_yoy
+        description: 其他应收款同比增长率（%）
+        data_type: Nullable(Float64)
+      - name: parent_equity_balance_yoy
+        description: 归母权益平衡项同比增长率（%）
+        data_type: Nullable(Float64)
+      - name: parent_equity_other_yoy
+        description: 归母权益其他项同比增长率（%）
+        data_type: Nullable(Float64)
+      - name: perpetual_bond_payable_yoy
+        description: 永续债（负债端）同比增长率（%）
+        data_type: Nullable(Float64)
+      - name: perpetual_bond_yoy
+        description: 永续债同比增长率（%）
+        data_type: Nullable(Float64)
+      - name: predict_current_liab_yoy
+        description: 预计流动负债同比增长率（%）
+        data_type: Nullable(Float64)
+      - name: predict_liab_yoy
+        description: 预计负债同比增长率（%）
+        data_type: Nullable(Float64)
+      - name: preferred_shares_payable_yoy
+        description: 应付优先股同比增长率（%）
+        data_type: Nullable(Float64)
+      - name: preferred_shares_yoy
+        description: 优先股同比增长率（%）
+        data_type: Nullable(Float64)
+      - name: premium_rece_yoy
+        description: 预收保费同比增长率（%）
+        data_type: Nullable(Float64)
+      - name: prepayment_yoy
+        description: 预付款项同比增长率（%）
+        data_type: Nullable(Float64)
+      - name: productive_biology_asset_yoy
+        description: 生产性生物资产同比增长率（%）
+        data_type: Nullable(Float64)
+      - name: project_material_yoy
+        description: 工程物资同比增长率（%）
+        data_type: Nullable(Float64)
+      - name: rc_reserve_rece_yoy
+        description: 再保合同应收准备金同比增长率（%）
+        data_type: Nullable(Float64)
+      - name: reinsure_payable_yoy
+        description: 应付再保款同比增长率（%）
+        data_type: Nullable(Float64)
+      - name: reinsure_rece_yoy
+        description: 应收再保款同比增长率（%）
+        data_type: Nullable(Float64)
+      - name: sell_repo_finasset_yoy
+        description: 卖出回购金融资产款同比增长率（%）
+        data_type: Nullable(Float64)
+      - name: settle_excess_reserve_yoy
+        description: 清算备付金同比增长率（%）
+        data_type: Nullable(Float64)
+      - name: share_capital_yoy
+        description: 实收资本（股本）同比增长率（%）
+        data_type: Nullable(Float64)
+      - name: short_bond_payable_yoy
+        description: 短期应付债券同比增长率（%）
+        data_type: Nullable(Float64)
+      - name: short_fin_payable_yoy
+        description: 短期金融负债同比增长率（%）
+        data_type: Nullable(Float64)
+      - name: short_loan_yoy
+        description: 短期借款同比增长率（%）
+        data_type: Nullable(Float64)
+      - name: special_payable_yoy
+        description: 专项应付款同比增长率（%）
+        data_type: Nullable(Float64)
+      - name: special_reserve_yoy
+        description: 专项储备同比增长率（%）
+        data_type: Nullable(Float64)
+      - name: staff_salary_payable_yoy
+        description: 应付职工薪酬同比增长率（%）
+        data_type: Nullable(Float64)
+      - name: subsidy_rece_yoy
+        description: 应收补贴同比增长率（%）
+        data_type: Nullable(Float64)
+      - name: surplus_reserve_yoy
+        description: 盈余公积同比增长率（%）
+        data_type: Nullable(Float64)
+      - name: tax_payable_yoy
+        description: 应交税费同比增长率（%）
+        data_type: Nullable(Float64)
+      - name: total_assets_yoy
+        description: 资产总计同比增长率（%）
+        data_type: Nullable(Float64)
+      - name: total_current_assets_yoy
+        description: 流动资产合计同比增长率（%）
+        data_type: Nullable(Float64)
+      - name: total_current_liab_yoy
+        description: 流动负债合计同比增长率（%）
+        data_type: Nullable(Float64)
+      - name: total_equity_yoy
+        description: 所有者权益合计同比增长率（%）
+        data_type: Nullable(Float64)
+      - name: total_liab_equity_yoy
+        description: 负债和所有者权益总计同比增长率（%）
+        data_type: Nullable(Float64)
+      - name: total_liabilities_yoy
+        description: 负债合计同比增长率（%）
+        data_type: Nullable(Float64)
+      - name: total_noncurrent_assets_yoy
+        description: 非流动资产合计同比增长率（%）
+        data_type: Nullable(Float64)
+      - name: total_noncurrent_liab_yoy
+        description: 非流动负债合计同比增长率（%）
+        data_type: Nullable(Float64)
+      - name: total_other_payable_yoy
+        description: 其他应付款合计同比增长率（%）
+        data_type: Nullable(Float64)
+      - name: total_other_rece_yoy
+        description: 其他应收款合计同比增长率（%）
+        data_type: Nullable(Float64)
+      - name: total_parent_equity_yoy
+        description: 归属于母公司股东权益合计同比增长率（%）
+        data_type: Nullable(Float64)
+      - name: trade_finasset_notfvtpl_yoy
+        description: 非FVTPL交易性金融资产同比增长率（%）
+        data_type: Nullable(Float64)
+      - name: trade_finasset_yoy
+        description: 交易性金融资产同比增长率（%）
+        data_type: Nullable(Float64)
+      - name: trade_finliab_notfvtpl_yoy
+        description: 非FVTPL交易性金融负债同比增长率（%）
+        data_type: Nullable(Float64)
+      - name: trade_finliab_yoy
+        description: 交易性金融负债同比增长率（%）
+        data_type: Nullable(Float64)
+      - name: treasury_shares_yoy
+        description: 库存股同比增长率（%）
+        data_type: Nullable(Float64)
+      - name: unassigned_profit_yoy
+        description: 未分配利润同比增长率（%）
+        data_type: Nullable(Float64)
+      - name: unconfirm_invest_loss_yoy
+        description: 未确认投资损失同比增长率（%）
+        data_type: Nullable(Float64)
+      - name: use_right_asset_yoy
+        description: 使用权资产同比增长率（%）
+        data_type: Nullable(Float64)
+      - name: opinion_type
+        description: 审计意见类型
+        data_type: LowCardinality(Nullable(String))
+      - name: osopinion_type
+        description: 内控审计意见类型
+        data_type: LowCardinality(Nullable(String))
+      - name: listing_state
+        description: 上市状态
+        data_type: LowCardinality(String)
+        data_tests:
+          - not_null

@@ -18,7 +18,7 @@ select
     {{ normalize_cn_security_code('SECUCODE', input_format='eastmoney_suffix') }} as security_code,
     END_DATE as report_date,
     HOLDER_RANK as holder_rank,
-    HOLDER_NEW as holder_eastmoney_code,
+    HOLDER_NEW as holder_identifier,
     HOLDER_NAME as holder_name,
     HOLDER_TYPE as holder_type,
     SHARES_TYPE as shares_type,

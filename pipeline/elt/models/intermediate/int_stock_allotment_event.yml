@@ -1,0 +1,60 @@
+version: 2
+models:
+  - name: int_stock_allotment_event
+    description: 股票配股事件 intermediate 透传模型，使用业务语义命名承接 stg_eastmoney__dividend_allotment 全字段。
+    config:
+      meta:
+        grain_zh: 每证券、每公告日期、每事件说明一行。
+        business_logic_zh:
+          - 直接透传对应 EastMoney F10 staging 模型，不做口径合并、历史版本选择或指标重算。
+          - 模型名和字段名使用业务语义；受控重命名字段在 meta.source_columns 记录 staging 来源。
+    data_tests:
+      - unique_combination_of_columns:
+          arguments:
+            combination_of_columns:
+              - security_code
+              - notice_date
+              - event_explain
+    columns:
+      - name: security_code
+        description: '{{ doc(''field_security_code'') }}'
+        data_type: String
+        data_tests:
+          - not_null
+          - cn_security_code_format
+      - name: security_name_abbr
+        description: 证券简称。
+        data_type: String
+      - name: notice_date
+        description: 公告日期。
+        data_type: Date
+        data_tests:
+          - not_null
+      - name: equity_record_date
+        description: 股权登记日。
+        data_type: Date
+        data_tests:
+          - not_null
+      - name: ex_dividend_date
+        description: 除权除息日。
+        data_type: Date
+        data_tests:
+          - not_null
+      - name: issue_num
+        description: 配股数量。
+        data_type: Float64
+        data_tests:
+          - not_null
+      - name: total_raise_funds
+        description: 募集资金总额。
+        data_type: Float64
+        data_tests:
+          - not_null
+      - name: issue_price
+        description: 配股价格。
+        data_type: Float64
+        data_tests:
+          - not_null
+      - name: event_explain
+        description: 配股方案说明。
+        data_type: LowCardinality(String)

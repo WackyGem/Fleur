@@ -200,8 +200,8 @@ models:
                 table: eastmoney__dividend_main
                 column: DAT_YAGGR
 
-      - name: info_code
-        description: 公告编号。
+      - name: announcement_identifier
+        description: 公告业务标识。
         data_type: Nullable(String)
         config:
           meta:

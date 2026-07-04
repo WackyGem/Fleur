@@ -12,7 +12,7 @@ models:
           - security_code
           - report_date
           - holder_rank
-          - holder_eastmoney_code
+          - holder_identifier
           - holder_name
           - shares_type
         design_basis_zh:
@@ -34,7 +34,7 @@ models:
               - security_code
               - report_date
               - holder_rank
-              - holder_eastmoney_code
+              - holder_identifier
               - holder_name
               - shares_type
     columns:
@@ -81,8 +81,8 @@ models:
                 table: eastmoney__freeholders
                 column: HOLDER_RANK
 
-      - name: holder_eastmoney_code
-        description: 东方财富返回的股东标识文本；字段可能是数字编码，也可能直接是股东姓名，不能在 staging 层当作跨源稳定股东 ID。
+      - name: holder_identifier
+        description: 持有人业务标识文本；字段可能是数字编码，也可能直接是股东姓名，不能在 staging 层当作跨源稳定股东 ID。
         data_type: String
         data_tests:
           - not_null

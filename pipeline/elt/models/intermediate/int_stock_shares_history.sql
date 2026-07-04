@@ -20,7 +20,7 @@ freeholders_deduplicated as (
     select
         security_code,
         report_date as end_date,
-        holder_eastmoney_code,
+        holder_identifier,
         holder_name,
         shares_type,
         max(free_float_hold_shares) as free_float_hold_shares,
@@ -30,7 +30,7 @@ freeholders_deduplicated as (
     group by
         security_code,
         report_date,
-        holder_eastmoney_code,
+        holder_identifier,
         holder_name,
         shares_type
 ),

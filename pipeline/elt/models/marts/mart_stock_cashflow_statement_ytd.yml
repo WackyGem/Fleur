@@ -1,0 +1,807 @@
+version: 2
+models:
+  - name: mart_stock_cashflow_statement_ytd
+    description: 股票年初至今现金流量表 mart 透传模型，作为消费层读取该 F10 宽表的稳定入口。
+    config:
+      meta:
+        grain_zh: 每证券、每累计报告期一行。
+        business_logic_zh:
+          - 仅从对应 intermediate 模型选择稳定字段。
+          - 不裁剪财务宽表字段，不做口径合并、历史版本选择或指标重算。
+    data_tests:
+      - unique_combination_of_columns:
+          arguments:
+            combination_of_columns:
+              - security_code
+              - report_date
+    columns:
+      - name: security_code
+        description: '{{ doc(''field_security_code'') }}'
+        data_type: String
+        data_tests:
+          - not_null
+          - cn_security_code_format
+      - name: security_local_code
+        description: '{{ doc(''field_security_local_code'') }}'
+        data_type: String
+        data_tests:
+          - not_null
+      - name: security_name_abbr
+        description: 证券简称。
+        data_type: LowCardinality(String)
+      - name: org_code
+        description: 机构代码。
+        data_type: LowCardinality(String)
+      - name: org_type
+        description: 机构类型。
+        data_type: LowCardinality(String)
+        data_tests:
+          - accepted_values:
+              arguments:
+                values:
+                  - 通用
+      - name: report_date
+        description: 报告期。
+        data_type: Date
+        data_tests:
+          - not_null
+      - name: report_type
+        description: 报告类型。
+        data_type: LowCardinality(String)
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values:
+                  - 一季报
+                  - 中报
+                  - 三季报
+                  - 年报
+      - name: report_date_name
+        description: 报告期名称。
+        data_type: LowCardinality(String)
+      - name: security_type_code
+        description: 证券类型代码。
+        data_type: LowCardinality(String)
+      - name: notice_date
+        description: 公告日期。
+        data_type: Date
+        data_tests:
+          - not_null
+      - name: update_date
+        description: 更新日期。
+        data_type: Nullable(Date)
+      - name: currency
+        description: 现金流量表年初至报告期末金额使用的币种。
+        data_type: LowCardinality(Nullable(String))
+        data_tests:
+          - accepted_values:
+              arguments:
+                values:
+                  - CNY
+      - name: sales_services
+        description: 销售商品、提供劳务收到的现金。
+        data_type: Nullable(Float64)
+      - name: deposit_interbank_add
+        description: 同业存放净增加额。
+        data_type: Nullable(Float64)
+      - name: loan_pbc_add
+        description: 向央行借款净增加额。
+        data_type: Nullable(Float64)
+      - name: ofi_bf_add
+        description: 向其他金融机构拆入资金净增加额。
+        data_type: Nullable(Float64)
+      - name: receive_origic_premium
+        description: 收到原保险合同保费现金。
+        data_type: Nullable(Float64)
+      - name: receive_reinsure_net
+        description: 收到再保险业务现金净额。
+        data_type: Nullable(Float64)
+      - name: insured_invest_add
+        description: 保户储金及投资款净增加额。
+        data_type: Nullable(Float64)
+      - name: disposal_tfa_add
+        description: 处置交易性金融资产净增加额。
+        data_type: Nullable(Float64)
+      - name: receive_interest_commission
+        description: 收取利息和手续费现金。
+        data_type: Nullable(Float64)
+      - name: borrow_fund_add
+        description: 拆入资金净增加额。
+        data_type: Nullable(Float64)
+      - name: loan_advance_reduce
+        description: 发放贷款及垫款净减少额。
+        data_type: Nullable(Float64)
+      - name: repo_business_add
+        description: 回购业务资金净增加额。
+        data_type: Nullable(Float64)
+      - name: receive_tax_refund
+        description: 收到的税费返还。
+        data_type: Nullable(Float64)
+      - name: receive_other_operate
+        description: 收到其他与经营活动有关的现金。
+        data_type: Nullable(Float64)
+      - name: operate_inflow_other
+        description: 经营活动现金流入其他。
+        data_type: Nullable(Float64)
+      - name: operate_inflow_balance
+        description: 经营活动现金流入平衡项。
+        data_type: Nullable(Float64)
+      - name: total_operate_inflow
+        description: 经营活动现金流入小计。
+        data_type: Nullable(Float64)
+      - name: buy_services
+        description: 购买商品、接受劳务支付的现金。
+        data_type: Nullable(Float64)
+      - name: loan_advance_add
+        description: 发放贷款及垫款净增加额。
+        data_type: Nullable(Float64)
+      - name: pbc_interbank_add
+        description: 向央行借款净增加额。
+        data_type: Nullable(Float64)
+      - name: pay_origic_compensate
+        description: 支付原保险合同赔付款项现金。
+        data_type: Nullable(Float64)
+      - name: pay_interest_commission
+        description: 支付利息和手续费现金。
+        data_type: Nullable(Float64)
+      - name: pay_policy_bonus
+        description: 保单红利支出。
+        data_type: Nullable(Float64)
+      - name: pay_staff_cash
+        description: 支付给职工以及为职工支付的现金。
+        data_type: Nullable(Float64)
+      - name: pay_all_tax
+        description: 支付的各项税费。
+        data_type: Nullable(Float64)
+      - name: pay_other_operate
+        description: 支付其他与经营活动有关的现金。
+        data_type: Nullable(Float64)
+      - name: operate_outflow_other
+        description: 经营活动现金流出其他。
+        data_type: Nullable(Float64)
+      - name: operate_outflow_balance
+        description: 经营活动现金流出平衡项。
+        data_type: Nullable(Float64)
+      - name: total_operate_outflow
+        description: 经营活动现金流出小计。
+        data_type: Nullable(Float64)
+      - name: operate_netcash_other
+        description: 经营活动净现金流量其他。
+        data_type: Nullable(Float64)
+      - name: operate_netcash_balance
+        description: 经营活动净现金流量平衡项。
+        data_type: Nullable(Float64)
+      - name: netcash_operate
+        description: 经营活动产生的现金流量净额。
+        data_type: Nullable(Float64)
+      - name: withdraw_invest
+        description: 收回投资收到的现金。
+        data_type: Nullable(Float64)
+      - name: receive_invest_income
+        description: 取得投资收益收到的现金。
+        data_type: Nullable(Float64)
+      - name: disposal_long_asset
+        description: 处置固定资产等收回的现金净额。
+        data_type: Nullable(Float64)
+      - name: disposal_subsidiary_other
+        description: 处置子公司及其他营业单位收到的现金净额。
+        data_type: Nullable(Float64)
+      - name: reduce_pledge_timedeposits
+        description: 减少质押定期存款。
+        data_type: Nullable(Float64)
+      - name: receive_other_invest
+        description: 收到其他与投资活动有关的现金。
+        data_type: Nullable(Float64)
+      - name: invest_inflow_other
+        description: 投资活动现金流入其他。
+        data_type: Nullable(Float64)
+      - name: invest_inflow_balance
+        description: 投资活动现金流入平衡项。
+        data_type: Nullable(Float64)
+      - name: total_invest_inflow
+        description: 投资活动现金流入小计。
+        data_type: Nullable(Float64)
+      - name: construct_long_asset
+        description: 购建固定资产等支付的现金。
+        data_type: Nullable(Float64)
+      - name: invest_pay_cash
+        description: 投资支付的现金。
+        data_type: Nullable(Float64)
+      - name: pledge_loan_add
+        description: 质押贷款净增加额。
+        data_type: Nullable(Float64)
+      - name: obtain_subsidiary_other
+        description: 取得子公司及其他营业单位支付的现金净额。
+        data_type: Nullable(Float64)
+      - name: add_pledge_timedeposits
+        description: 增加质押定期存款。
+        data_type: Nullable(Float64)
+      - name: pay_other_invest
+        description: 支付其他与投资活动有关的现金。
+        data_type: Nullable(Float64)
+      - name: invest_outflow_other
+        description: 投资活动现金流出其他。
+        data_type: Nullable(Float64)
+      - name: invest_outflow_balance
+        description: 投资活动现金流出平衡项。
+        data_type: Nullable(Float64)
+      - name: total_invest_outflow
+        description: 投资活动现金流出小计。
+        data_type: Nullable(Float64)
+      - name: invest_netcash_other
+        description: 投资活动净现金流量其他。
+        data_type: Nullable(Float64)
+      - name: invest_netcash_balance
+        description: 投资活动净现金流量平衡项。
+        data_type: Nullable(Float64)
+      - name: netcash_invest
+        description: 投资活动产生的现金流量净额。
+        data_type: Nullable(Float64)
+      - name: accept_invest_cash
+        description: 吸收投资收到的现金。
+        data_type: Nullable(Float64)
+      - name: subsidiary_accept_invest
+        description: 子公司吸收少数股东投资收到的现金。
+        data_type: Nullable(Float64)
+      - name: receive_loan_cash
+        description: 取得借款收到的现金。
+        data_type: Nullable(Float64)
+      - name: issue_bond
+        description: 发行债券收到的现金。
+        data_type: Nullable(Float64)
+      - name: receive_other_finance
+        description: 收到其他与筹资活动有关的现金。
+        data_type: Nullable(Float64)
+      - name: finance_inflow_other
+        description: 筹资活动现金流入其他。
+        data_type: Nullable(Float64)
+      - name: finance_inflow_balance
+        description: 筹资活动现金流入平衡项。
+        data_type: Nullable(Float64)
+      - name: total_finance_inflow
+        description: 筹资活动现金流入小计。
+        data_type: Nullable(Float64)
+      - name: pay_debt_cash
+        description: 偿还债务支付的现金。
+        data_type: Nullable(Float64)
+      - name: assign_dividend_profit
+        description: 分配股利、利润或偿付利息支付的现金。
+        data_type: Nullable(Float64)
+      - name: subsidiary_pay_dividend
+        description: 子公司向少数股东支付的现金股利。
+        data_type: Nullable(Float64)
+      - name: buy_subsidiary_equity
+        description: 子公司减少现金。
+        data_type: Nullable(Float64)
+      - name: pay_other_finance
+        description: 支付其他与筹资活动有关的现金。
+        data_type: Nullable(Float64)
+      - name: subsidiary_reduce_cash
+        description: 子公司减少现金。
+        data_type: Nullable(Float64)
+      - name: finance_outflow_other
+        description: 筹资活动现金流出其他。
+        data_type: Nullable(Float64)
+      - name: finance_outflow_balance
+        description: 筹资活动现金流出平衡项。
+        data_type: Nullable(Float64)
+      - name: total_finance_outflow
+        description: 筹资活动现金流出小计。
+        data_type: Nullable(Float64)
+      - name: finance_netcash_other
+        description: 筹资活动净现金流量其他。
+        data_type: Nullable(Float64)
+      - name: finance_netcash_balance
+        description: 筹资活动净现金流量平衡项。
+        data_type: Nullable(Float64)
+      - name: netcash_finance
+        description: 筹资活动产生的现金流量净额。
+        data_type: Nullable(Float64)
+      - name: rate_change_effect
+        description: 汇率变动对现金及现金等价物的影响。
+        data_type: Nullable(Float64)
+      - name: cce_add_other
+        description: 现金及现金等价物净增加额其他。
+        data_type: Nullable(Float64)
+      - name: cce_add_balance
+        description: 现金及现金等价物净增加额平衡项。
+        data_type: Nullable(Float64)
+      - name: cce_add
+        description: 现金及现金等价物净增加额。
+        data_type: Nullable(Float64)
+      - name: begin_cce
+        description: 期初现金及现金等价物余额。
+        data_type: Nullable(Float64)
+      - name: end_cce_other
+        description: 期末现金及现金等价物余额其他。
+        data_type: Nullable(Float64)
+      - name: end_cce_balance
+        description: 期末现金及现金等价物余额平衡项。
+        data_type: Nullable(Float64)
+      - name: end_cce
+        description: 期末现金及现金等价物余额。
+        data_type: Nullable(Float64)
+      - name: netprofit
+        description: 净利润（间接法起点）。
+        data_type: Nullable(Float64)
+      - name: asset_impairment
+        description: 资产减值准备。
+        data_type: Nullable(Float64)
+      - name: fa_ir_depr
+        description: 固定资产折旧、油气资产折耗、生产性生物资产折旧。
+        data_type: Nullable(Float64)
+      - name: oilgas_biology_depr
+        description: 油气资产折耗、生产性生物资产折旧。
+        data_type: Nullable(Float64)
+      - name: ir_depr
+        description: 折旧与摊销。
+        data_type: Nullable(Float64)
+      - name: ia_amortize
+        description: 无形资产摊销。
+        data_type: Nullable(Float64)
+      - name: lpe_amortize
+        description: 长期待摊费用摊销。
+        data_type: Nullable(Float64)
+      - name: defer_income_amortize
+        description: 待摊费用减少（减：增加）。
+        data_type: Nullable(Float64)
+      - name: prepaid_expense_reduce
+        description: 预提费用增加（减：减少）。
+        data_type: Nullable(Float64)
+      - name: accrued_expense_add
+        description: 预提费用变动。
+        data_type: Nullable(Float64)
+      - name: disposal_longasset_loss
+        description: 处置固定资产等的损失。
+        data_type: Nullable(Float64)
+      - name: fa_scrap_loss
+        description: 固定资产报废损失。
+        data_type: Nullable(Float64)
+      - name: fairvalue_change_loss
+        description: 公允价值变动损失。
+        data_type: Nullable(Float64)
+      - name: finance_expense
+        description: 财务费用。
+        data_type: Nullable(Float64)
+      - name: invest_loss
+        description: 投资损失。
+        data_type: Nullable(Float64)
+      - name: defer_tax
+        description: 递延所得税资产减少（增加以"-"号填列）。
+        data_type: Nullable(Float64)
+      - name: dt_asset_reduce
+        description: 递延所得税资产减少。
+        data_type: Nullable(Float64)
+      - name: dt_liab_add
+        description: 递延所得税负债增加。
+        data_type: Nullable(Float64)
+      - name: predict_liab_add
+        description: 预计负债增加。
+        data_type: Nullable(Float64)
+      - name: inventory_reduce
+        description: 存货的减少（增加以"-"号填列）。
+        data_type: Nullable(Float64)
+      - name: operate_rece_reduce
+        description: 经营性应收项目的减少。
+        data_type: Nullable(Float64)
+      - name: operate_payable_add
+        description: 经营性应付项目的增加。
+        data_type: Nullable(Float64)
+      - name: other
+        description: 现金流量表年初至报告期末补充资料中的其他项目。
+        data_type: Nullable(Float64)
+      - name: operate_netcash_other_note
+        description: 经营活动产生的现金流量净额（附注）。
+        data_type: Nullable(Float64)
+      - name: operate_netcash_balance_note
+        description: 经营活动净现金流量（附注）平衡项。
+        data_type: Nullable(Float64)
+      - name: netcash_operate_note
+        description: 经营活动产生的现金流量净额（附注）。
+        data_type: Nullable(Float64)
+      - name: debt_transfer_capital
+        description: 债务转为资本。
+        data_type: Nullable(Float64)
+      - name: convert_bond_1year
+        description: 一年内到期的可转换公司债券。
+        data_type: Nullable(Float64)
+      - name: finlease_obtain_fa
+        description: 融资租入固定资产。
+        data_type: Nullable(Float64)
+      - name: uninvolve_investfin_other
+        description: 不涉及现金收支的投资和筹资活动其他。
+        data_type: Nullable(Float64)
+      - name: end_cash
+        description: 现金期末余额。
+        data_type: Nullable(Float64)
+      - name: begin_cash
+        description: 现金期初余额。
+        data_type: Nullable(Float64)
+      - name: end_cash_equivalents
+        description: 现金等价物期末余额。
+        data_type: Nullable(Float64)
+      - name: begin_cash_equivalents
+        description: 现金等价物期初余额。
+        data_type: Nullable(Float64)
+      - name: cce_add_other_note
+        description: 现金及现金等价物净增加额（附注）。
+        data_type: Nullable(Float64)
+      - name: cce_add_balance_note
+        description: 现金及现金等价物净增加额（附注）平衡项。
+        data_type: Nullable(Float64)
+      - name: cce_add_note
+        description: 现金及现金等价物净增加额（附注）。
+        data_type: Nullable(Float64)
+      - name: sales_services_yoy
+        description: 销售商品、提供劳务收到的现金同比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: deposit_interbank_add_yoy
+        description: 同业存放净增加额同比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: loan_pbc_add_yoy
+        description: 向央行借款净增加额同比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: ofi_bf_add_yoy
+        description: 向其他金融机构拆入资金净增加额同比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: receive_origic_premium_yoy
+        description: 收到原保险合同保费现金同比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: receive_reinsure_net_yoy
+        description: 收到再保险业务现金净额同比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: insured_invest_add_yoy
+        description: 保户储金及投资款净增加额同比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: disposal_tfa_add_yoy
+        description: 处置交易性金融资产净增加额同比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: receive_interest_commission_yoy
+        description: 收取利息和手续费现金同比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: borrow_fund_add_yoy
+        description: 拆入资金净增加额同比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: loan_advance_reduce_yoy
+        description: 发放贷款及垫款净减少额同比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: repo_business_add_yoy
+        description: 回购业务资金净增加额同比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: receive_tax_refund_yoy
+        description: 收到的税费返还同比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: receive_other_operate_yoy
+        description: 收到其他与经营活动有关的现金同比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: operate_inflow_other_yoy
+        description: 经营活动现金流入其他同比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: operate_inflow_balance_yoy
+        description: 经营活动现金流入平衡项同比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: total_operate_inflow_yoy
+        description: 经营活动现金流入小计同比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: buy_services_yoy
+        description: 购买商品、接受劳务支付的现金同比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: loan_advance_add_yoy
+        description: 发放贷款及垫款净增加额同比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: pbc_interbank_add_yoy
+        description: 向央行借款净增加额同比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: pay_origic_compensate_yoy
+        description: 支付原保险合同赔付款项现金同比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: pay_interest_commission_yoy
+        description: 支付利息和手续费现金同比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: pay_policy_bonus_yoy
+        description: 保单红利支出同比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: pay_staff_cash_yoy
+        description: 支付给职工以及为职工支付的现金同比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: pay_all_tax_yoy
+        description: 支付的各项税费同比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: pay_other_operate_yoy
+        description: 支付其他与经营活动有关的现金同比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: operate_outflow_other_yoy
+        description: 经营活动现金流出其他同比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: operate_outflow_balance_yoy
+        description: 经营活动现金流出平衡项同比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: total_operate_outflow_yoy
+        description: 经营活动现金流出小计同比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: operate_netcash_other_yoy
+        description: 经营活动净现金流量其他同比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: operate_netcash_balance_yoy
+        description: 经营活动净现金流量平衡项同比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: netcash_operate_yoy
+        description: 经营活动产生的现金流量净额同比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: withdraw_invest_yoy
+        description: 收回投资收到的现金同比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: receive_invest_income_yoy
+        description: 取得投资收益收到的现金同比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: disposal_long_asset_yoy
+        description: 处置固定资产等收回的现金净额同比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: disposal_subsidiary_other_yoy
+        description: 处置子公司及其他营业单位收到的现金净额同比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: reduce_pledge_timedeposits_yoy
+        description: 减少质押定期存款同比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: receive_other_invest_yoy
+        description: 收到其他与投资活动有关的现金同比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: invest_inflow_other_yoy
+        description: 投资活动现金流入其他同比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: invest_inflow_balance_yoy
+        description: 投资活动现金流入平衡项同比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: total_invest_inflow_yoy
+        description: 投资活动现金流入小计同比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: construct_long_asset_yoy
+        description: 购建固定资产等支付的现金同比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: invest_pay_cash_yoy
+        description: 投资支付的现金同比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: pledge_loan_add_yoy
+        description: 质押贷款净增加额同比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: obtain_subsidiary_other_yoy
+        description: 取得子公司及其他营业单位支付的现金净额同比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: add_pledge_timedeposits_yoy
+        description: 增加质押定期存款同比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: pay_other_invest_yoy
+        description: 支付其他与投资活动有关的现金同比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: invest_outflow_other_yoy
+        description: 投资活动现金流出其他同比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: invest_outflow_balance_yoy
+        description: 投资活动现金流出平衡项同比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: total_invest_outflow_yoy
+        description: 投资活动现金流出小计同比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: invest_netcash_other_yoy
+        description: 投资活动净现金流量其他同比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: invest_netcash_balance_yoy
+        description: 投资活动净现金流量平衡项同比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: netcash_invest_yoy
+        description: 投资活动产生的现金流量净额同比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: accept_invest_cash_yoy
+        description: 吸收投资收到的现金同比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: subsidiary_accept_invest_yoy
+        description: 子公司吸收少数股东投资收到的现金同比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: receive_loan_cash_yoy
+        description: 取得借款收到的现金同比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: issue_bond_yoy
+        description: 发行债券收到的现金同比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: receive_other_finance_yoy
+        description: 收到其他与筹资活动有关的现金同比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: finance_inflow_other_yoy
+        description: 筹资活动现金流入其他同比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: finance_inflow_balance_yoy
+        description: 筹资活动现金流入平衡项同比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: total_finance_inflow_yoy
+        description: 筹资活动现金流入小计同比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: pay_debt_cash_yoy
+        description: 偿还债务支付的现金同比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: assign_dividend_profit_yoy
+        description: 分配股利、利润或偿付利息支付的现金同比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: subsidiary_pay_dividend_yoy
+        description: 子公司向少数股东支付的现金股利同比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: buy_subsidiary_equity_yoy
+        description: 子公司减少现金同比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: pay_other_finance_yoy
+        description: 支付其他与筹资活动有关的现金同比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: subsidiary_reduce_cash_yoy
+        description: 子公司减少现金同比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: finance_outflow_other_yoy
+        description: 筹资活动现金流出其他同比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: finance_outflow_balance_yoy
+        description: 筹资活动现金流出平衡项同比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: total_finance_outflow_yoy
+        description: 筹资活动现金流出小计同比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: finance_netcash_other_yoy
+        description: 筹资活动净现金流量其他同比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: finance_netcash_balance_yoy
+        description: 筹资活动净现金流量平衡项同比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: netcash_finance_yoy
+        description: 筹资活动产生的现金流量净额同比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: rate_change_effect_yoy
+        description: 汇率变动对现金及现金等价物的影响同比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: cce_add_other_yoy
+        description: 现金及现金等价物净增加额其他同比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: cce_add_balance_yoy
+        description: 现金及现金等价物净增加额平衡项同比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: cce_add_yoy
+        description: 现金及现金等价物净增加额同比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: begin_cce_yoy
+        description: 期初现金及现金等价物余额同比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: end_cce_other_yoy
+        description: 期末现金及现金等价物余额其他同比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: end_cce_balance_yoy
+        description: 期末现金及现金等价物余额平衡项同比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: end_cce_yoy
+        description: 期末现金及现金等价物余额同比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: netprofit_yoy
+        description: 净利润同比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: asset_impairment_yoy
+        description: 资产减值准备同比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: fa_ir_depr_yoy
+        description: 固定资产折旧、油气资产折耗、生产性生物资产折旧同比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: oilgas_biology_depr_yoy
+        description: 油气资产折耗、生产性生物资产折旧同比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: ir_depr_yoy
+        description: 折旧与摊销同比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: ia_amortize_yoy
+        description: 无形资产摊销同比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: lpe_amortize_yoy
+        description: 长期待摊费用摊销同比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: defer_income_amortize_yoy
+        description: 待摊费用减少（减：增加）同比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: prepaid_expense_reduce_yoy
+        description: 预提费用增加（减：减少）同比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: accrued_expense_add_yoy
+        description: 预提费用变动同比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: disposal_longasset_loss_yoy
+        description: 处置固定资产等的损失同比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: fa_scrap_loss_yoy
+        description: 固定资产报废损失同比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: fairvalue_change_loss_yoy
+        description: 公允价值变动损失同比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: finance_expense_yoy
+        description: 财务费用同比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: invest_loss_yoy
+        description: 投资损失同比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: defer_tax_yoy
+        description: 递延所得税资产减少（增加以"-"号填列）同比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: dt_asset_reduce_yoy
+        description: 递延所得税资产减少同比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: dt_liab_add_yoy
+        description: 递延所得税负债增加同比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: predict_liab_add_yoy
+        description: 预计负债增加同比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: inventory_reduce_yoy
+        description: 存货的减少（增加以"-"号填列）同比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: operate_rece_reduce_yoy
+        description: 经营性应收项目的减少同比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: operate_payable_add_yoy
+        description: 经营性应付项目的增加同比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: other_yoy
+        description: 其他同比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: operate_netcash_other_note_yoy
+        description: 经营活动产生的现金流量净额（附注）同比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: operate_netcash_balance_note_yoy
+        description: 经营活动净现金流量（附注）平衡项同比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: netcash_operate_note_yoy
+        description: 经营活动产生的现金流量净额（附注）同比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: debt_transfer_capital_yoy
+        description: 债务转为资本同比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: convert_bond_1year_yoy
+        description: 一年内到期的可转换公司债券同比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: finlease_obtain_fa_yoy
+        description: 融资租入固定资产同比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: uninvolve_investfin_other_yoy
+        description: 不涉及现金收支的投资和筹资活动其他同比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: end_cash_yoy
+        description: 现金期末余额同比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: begin_cash_yoy
+        description: 现金期初余额同比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: end_cash_equivalents_yoy
+        description: 现金等价物期末余额同比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: begin_cash_equivalents_yoy
+        description: 现金等价物期初余额同比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: cce_add_other_note_yoy
+        description: 现金及现金等价物净增加额（附注）同比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: cce_add_balance_note_yoy
+        description: 现金及现金等价物净增加额（附注）平衡项同比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: cce_add_note_yoy
+        description: 现金及现金等价物净增加额（附注）同比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: opinion_type
+        description: 审计意见类型。
+        data_type: LowCardinality(Nullable(String))
+      - name: osopinion_type
+        description: 内控审计意见类型。
+        data_type: LowCardinality(Nullable(String))
+      - name: minority_interest
+        description: 少数股东损益。
+        data_type: Nullable(Float64)
+      - name: minority_interest_yoy
+        description: 少数股东损益同比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: use_right_asset_amortize
+        description: 使用权资产摊销。
+        data_type: Nullable(Float64)
+      - name: use_right_asset_amortize_yoy
+        description: 使用权资产摊销同比增长率（%）。
+        data_type: Nullable(Float64)

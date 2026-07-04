@@ -80,7 +80,7 @@
 | SECURITY_CODE | LowCardinality(String) | 0 | 空字符串 0 | 5,496 个本地代码；2,736,392 行全部为 6 位纯数字 | 已画像但不输出到当前 staging 模型。 |
 | END_DATE | Date | 0 | `1970-01-01` 0 | 2,287 个报告日期；2003-12-31 至 2026-06-03 | staging 保持为 `end_date`。 |
 | HOLDER_RANK | Int64 | 0 | 0 值 0，负数 0 | 1 至 50 | 不能限制为 1-10。 |
-| HOLDER_NEW | String | 0 | 空字符串 0 | 231,974 个值；383,590 行为 6 位纯数字格式 | 命名为 `holder_eastmoney_code`，不作为跨源稳定 ID。 |
+| HOLDER_NEW | String | 0 | 空字符串 0 | 231,974 个值；383,590 行为 6 位纯数字格式 | 命名为 `holder_identifier`，不作为跨源稳定 ID。 |
 | HOLDER_NAME | String | 0 | 空字符串 0 | 250,807 个股东名称 | 保留原始披露名称。 |
 | HOLDER_TYPE | LowCardinality(String) | 0 | 空字符串 0 | 25 类 | 保留供应商分类，不做同义归一。 |
 | SHARES_TYPE | LowCardinality(String) | 0 | 空字符串 0 | 12 类 | 保留供应商股份类别。 |
@@ -96,7 +96,7 @@
 - 已画像字段：`SECUCODE`, `SECURITY_CODE`, `HOLDER_NEW`
 - 观察到的格式：`SECUCODE` 全部为 `<6位>.<SH/SZ/BJ>`；`SECURITY_CODE` 全部为 6 位纯数字；`HOLDER_NEW` 混合数字编码和文本。
 - 无效样例：未发现 `SECUCODE` 或 `SECURITY_CODE` 空值/格式漂移。
-- 建议 staging 处理：`SECUCODE` 使用 `normalize_cn_security_code(..., input_format='eastmoney_suffix')` 标准化为 `security_code`；`SECURITY_CODE` 已画像但不输出到当前 staging 模型；`HOLDER_NEW` 仅重命名为 `holder_eastmoney_code`。
+- 建议 staging 处理：`SECUCODE` 使用 `normalize_cn_security_code(..., input_format='eastmoney_suffix')` 标准化为 `security_code`；`SECURITY_CODE` 已画像但不输出到当前 staging 模型；`HOLDER_NEW` 仅重命名为 `holder_identifier`。
 
 ### 日期与时间字段
 
@@ -126,7 +126,7 @@
 |------|----------|------|--------------|----------|
 | `SECUCODE + END_DATE + HOLDER_RANK` 不唯一 | 中 | 最高重复组 123 行；新候选键 0 重复 | 不添加旧候选键唯一测试；按股东编码/名称/股份类别保留明细 | 如后续要回到“每名次一行”，需在 intermediate 定义业务优先级 |
 | `HOLDER_RANK` 存在 11 至 50 | 低 | rank > 10 有 2,987 行 | 不过滤，不写 1-10 accepted_values | 下游如只要前十，应在业务模型显式过滤 |
-| `HOLDER_NEW` 不总是稳定数字编码 | 中 | 只有 383,590 行为 6 位纯数字，其余可能为文本 | 命名为 `holder_eastmoney_code`，不作为主数据 ID | 股东身份归并延后到 intermediate/mart |
+| `HOLDER_NEW` 不总是稳定数字编码 | 中 | 只有 383,590 行为 6 位纯数字，其余可能为文本 | 命名为 `holder_identifier`，不作为主数据 ID | 股东身份归并延后到 intermediate/mart |
 | `FREE_HOLDNUM_RATIO` 极少数超过 100 | 低 | 超过 100 的记录 3 行 | 透传并记录百分比单位 | 业务质量告警或修正需单独建规则 |
 | `CHANGE_RATIO` 大量为空 | 低 | 1,937,925 行为空，全部对应“不变”或“新进” | 保留 nullable，不填 0 | 需要解析变动方向时在 intermediate 定义 |
 
@@ -136,7 +136,7 @@
   - `SECUCODE` -> `security_code`
   - `END_DATE` -> `end_date`
   - `HOLDER_RANK` -> `holder_rank`
-  - `HOLDER_NEW` -> `holder_eastmoney_code`
+  - `HOLDER_NEW` -> `holder_identifier`
   - `HOLDER_NAME` -> `holder_name`
   - `HOLDER_TYPE` -> `holder_type`
   - `SHARES_TYPE` -> `shares_type`
@@ -147,7 +147,7 @@
 - 类型转换：raw ClickHouse 类型已经满足 staging 需求，staging 只保留 Date / Int64 / Float64 / Nullable(Float64) / String / LowCardinality(String)。
 - 标准化：证券代码字段使用现有 `normalize_cn_security_code` macro；其他字段只做 source-local rename。
 - NULL 处理：不对 `CHANGE_RATIO` 填 0；“不变”和“新进”的空变动比例保留为 NULL。
-- 测试：添加新候选键 `security_code + end_date + holder_rank + holder_eastmoney_code + holder_name + shares_type` 唯一测试；对证券代码、报告截止日、股东名次、股东标识、股东名称、股份类别、持股数量和持股比例添加高价值 not_null / format tests。
+- 测试：添加新候选键 `security_code + end_date + holder_rank + holder_identifier + holder_name + shares_type` 唯一测试；对证券代码、报告截止日、股东名次、股东标识、股东名称、股份类别、持股数量和持股比例添加高价值 not_null / format tests。
 - YAML 元数据：所有列记录 `config.meta.source_columns`；证券代码列记录 normalization metadata；百分比字段记录 `unit: percent` 和 `scale: percent_value_not_fraction`。
 
 ## 8. 延后到 Intermediate/Mart

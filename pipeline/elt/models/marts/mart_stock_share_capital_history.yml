@@ -1,0 +1,237 @@
+version: 2
+models:
+  - name: mart_stock_share_capital_history
+    description: 股票股本变动历史 mart 透传模型，作为消费层读取该 F10 宽表的稳定入口。
+    config:
+      meta:
+        grain_zh: 每证券、每股本变动截止日一行。
+        business_logic_zh:
+          - 仅从对应 intermediate 模型选择稳定字段。
+          - 不裁剪财务宽表字段，不做口径合并、历史版本选择或指标重算。
+    data_tests:
+      - unique_combination_of_columns:
+          arguments:
+            combination_of_columns:
+              - security_code
+              - end_date
+    columns:
+      - name: security_code
+        description: '{{ doc(''field_security_code'') }}'
+        data_type: String
+        data_tests:
+          - not_null
+          - cn_security_code_format
+      - name: security_local_code
+        description: '{{ doc(''field_security_local_code'') }}'
+        data_type: String
+        data_tests:
+          - not_null
+      - name: org_code
+        description: 机构代码。
+        data_type: LowCardinality(String)
+      - name: end_date
+        description: 股本变动截止日，非财报报告期。
+        data_type: Date
+        data_tests:
+          - not_null
+      - name: change_reason
+        description: 变动原因。
+        data_type: LowCardinality(String)
+      - name: limited_shares
+        description: 有限售条件股份。
+        data_type: Nullable(Float64)
+      - name: unlimited_shares
+        description: 无限售条件股份（已流通）。
+        data_type: Nullable(Float64)
+      - name: total_shares
+        description: 总股本。
+        data_type: Nullable(Float64)
+        data_tests:
+          - not_null
+      - name: limited_shares_ratio
+        description: 限售股比例（%）。
+        data_type: Nullable(Float64)
+      - name: listed_shares_ratio
+        description: 已流通股比例（%）。
+        data_type: Nullable(Float64)
+      - name: total_shares_ratio
+        description: 总股本比例（%）。
+        data_type: Float64
+      - name: listed_a_shares
+        description: 已上市流通 A 股。
+        data_type: Nullable(Float64)
+      - name: limited_a_shares
+        description: 限售 A 股。
+        data_type: Nullable(Float64)
+      - name: listed_a_shares_ratio
+        description: A 股流通比例（%）。
+        data_type: Nullable(Float64)
+      - name: limited_a_shares_ratio
+        description: 限售A股比例（%）。
+        data_type: Nullable(Float64)
+      - name: b_free_share
+        description: 已上市流通 B 股。
+        data_type: Nullable(Float64)
+      - name: h_free_share
+        description: 已上市流通 H 股。
+        data_type: Nullable(Float64)
+      - name: b_free_share_ratio
+        description: B股流通比例（%）。
+        data_type: Nullable(Float64)
+      - name: h_free_share_ratio
+        description: H 股流通比例（%）。
+        data_type: Nullable(Float64)
+      - name: security_type_code
+        description: 证券类型代码。
+        data_type: LowCardinality(String)
+      - name: non_free_shares
+        description: 非自由流通股。
+        data_type: Nullable(Float64)
+      - name: non_free_shares_ratio
+        description: 非自由流通股比例（%）。
+        data_type: Nullable(Float64)
+      - name: limited_b_shares
+        description: 限售 B 股。
+        data_type: Nullable(Float64)
+      - name: limited_b_shares_ratio
+        description: 限售B股比例（%）。
+        data_type: Nullable(Float64)
+      - name: other_free_shares
+        description: 其他已上市流通股。
+        data_type: Nullable(Float64)
+      - name: other_free_shares_ratio
+        description: 其他流通股比例（%）。
+        data_type: Nullable(Float64)
+      - name: limited_state_shares
+        description: 国家持股（限售）。
+        data_type: Nullable(Float64)
+      - name: limited_state_legal
+        description: 国有法人持股（限售）。
+        data_type: Nullable(Float64)
+      - name: limited_othars
+        description: 其他限售股份。
+        data_type: Nullable(Float64)
+      - name: limited_domestic_nostate
+        description: 境内非国有法人持股（限售）。
+        data_type: Nullable(Float64)
+      - name: limited_domestic_natural
+        description: 境内自然人持股（限售）。
+        data_type: Nullable(Float64)
+      - name: lock_shares
+        description: 锁定股份。
+        data_type: Nullable(Float64)
+      - name: limited_foreign_shares
+        description: 外资持股（限售）。
+        data_type: Nullable(Float64)
+      - name: limited_overseas_nostate
+        description: 境外非国有法人持股（限售）。
+        data_type: Nullable(Float64)
+      - name: limited_overseas_natural
+        description: 境外自然人持股（限售）。
+        data_type: Nullable(Float64)
+      - name: limited_h_shares
+        description: 限售 H 股。
+        data_type: Nullable(Float64)
+      - name: sponsor_shares
+        description: 发起人股份。
+        data_type: Nullable(Float64)
+      - name: state_sponsor_shares
+        description: 国家发起人股份。
+        data_type: Nullable(Float64)
+      - name: sponsor_social_shares
+        description: 社会发起人股份。
+        data_type: Nullable(Float64)
+      - name: raise_shares
+        description: 募集法人股份。
+        data_type: Nullable(Float64)
+      - name: raise_state_shares
+        description: 国家募集法人股份。
+        data_type: Nullable(Float64)
+      - name: raise_domestic_shares
+        description: 境内募集法人股份。
+        data_type: Nullable(Float64)
+      - name: raise_overseas_shares
+        description: 境外募集法人股份。
+        data_type: Nullable(Float64)
+      - name: notice_date
+        description: 公告披露日。
+        data_type: Date
+        data_tests:
+          - not_null
+      - name: listing_date
+        description: 上市流通日期。
+        data_type: Date
+        data_tests:
+          - not_null
+      - name: limited_shares_change
+        description: 限售股变动量。
+        data_type: Nullable(Float64)
+      - name: unlimited_shares_change
+        description: 流通股变动量。
+        data_type: Nullable(Float64)
+      - name: total_shares_change
+        description: 总股本变动量。
+        data_type: Nullable(Float64)
+      - name: listed_a_shares_change
+        description: 已上市流通A股变动量。
+        data_type: Nullable(Float64)
+      - name: limited_a_shares_change
+        description: 限售A股变动量。
+        data_type: Nullable(Float64)
+      - name: b_free_share_change
+        description: B股流通变动量。
+        data_type: Nullable(Float64)
+      - name: h_free_share_change
+        description: H股流通变动量。
+        data_type: Nullable(Float64)
+      - name: limited_b_shares_change
+        description: 限售B股变动量。
+        data_type: Nullable(Float64)
+      - name: non_free_shares_change
+        description: 非自由流通股变动量。
+        data_type: Nullable(Float64)
+      - name: other_free_shares_change
+        description: 其他流通股变动量。
+        data_type: Nullable(Float64)
+      - name: free_shares
+        description: 自由流通股本。
+        data_type: Nullable(Float64)
+      - name: change_reason_explain
+        description: 变动原因详细说明。
+        data_type: LowCardinality(String)
+      - name: limited_h_shares_ratio
+        description: 限售H股比例（%）。
+        data_type: Nullable(Float64)
+      - name: limited_h_shares_change
+        description: 限售H股变动量。
+        data_type: Nullable(Float64)
+      - name: is_free_window
+        description: 是否为自由流通窗口。
+        data_type: Bool
+      - name: is_limited_window
+        description: 是否限售窗口。
+        data_type: Bool
+      - name: listed_a_ratio_pc
+        description: A 股占已流通比例（%）。
+        data_type: Nullable(Float64)
+      - name: listed_b_ratio_pc
+        description: B股占已流通比例（%）。
+        data_type: Nullable(Float64)
+      - name: listed_h_ratio_pc
+        description: H 股占已流通比例（%）。
+        data_type: Nullable(Float64)
+      - name: listed_other_ratio_pc
+        description: 其他占已流通比例（%）。
+        data_type: Nullable(Float64)
+      - name: listed_sum_ratio_pc
+        description: 合计占已流通比例（%）。
+        data_type: Nullable(Float64)
+      - name: market_code
+        description: 市场代码。
+        data_type: LowCardinality(String)
+      - name: is_use
+        description: 是否有效。
+        data_type: Bool
+      - name: security_name_abbr
+        description: 证券简称。
+        data_type: LowCardinality(String)

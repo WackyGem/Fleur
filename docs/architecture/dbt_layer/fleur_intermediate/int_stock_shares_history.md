@@ -68,8 +68,8 @@ free_float_shares =
 
 - `stg_eastmoney__freeholders` 明确保留每证券、报告期、名次、股东标识/名称和股份类别的明细行，且 `security_code + end_date + holder_rank` 不唯一。
 - 本模型需要的是“同一报告期中大股东持有的流通 A 股数量合计”，不需要每名次一行。
-- 第一版按 `security_code`, `end_date`, `holder_eastmoney_code`, `holder_name`, `shares_type` 折叠同一股东同一股份类别；重复行中取 `max(free_float_hold_shares)` 和 `max(free_float_holdnum_ratio_pct)`，避免同一股东重复披露放大扣减额。
-- 不做 `holder_eastmoney_code` 与 `holder_name` 的跨源或跨期身份归并。
+- 第一版按 `security_code`, `end_date`, `holder_identifier`, `holder_name`, `shares_type` 折叠同一股东同一股份类别；重复行中取 `max(free_float_hold_shares)` 和 `max(free_float_holdnum_ratio_pct)`，避免同一股东重复披露放大扣减额。
+- 不做 `holder_identifier` 与 `holder_name` 的跨源或跨期身份归并。
 
 ## 4. 字段设计
 
@@ -113,7 +113,7 @@ freeholders_deduplicated as (
     select
         security_code,
         end_date,
-        holder_eastmoney_code,
+        holder_identifier,
         holder_name,
         shares_type,
         max(free_float_hold_shares) as free_float_hold_shares,
@@ -123,7 +123,7 @@ freeholders_deduplicated as (
     group by
         security_code,
         end_date,
-        holder_eastmoney_code,
+        holder_identifier,
         holder_name,
         shares_type
 ),

@@ -1,0 +1,942 @@
+version: 2
+models:
+  - name: mart_stock_income_statement_quarterly
+    description: 股票单季度利润表 mart 透传模型，作为消费层读取该 F10 宽表的稳定入口。
+    config:
+      meta:
+        grain_zh: 每证券、每单季度报告期一行。
+        business_logic_zh:
+          - 仅从对应 intermediate 模型选择稳定字段。
+          - 不裁剪财务宽表字段，不做口径合并、历史版本选择或指标重算。
+    data_tests:
+      - unique_combination_of_columns:
+          arguments:
+            combination_of_columns:
+              - security_code
+              - report_date
+    columns:
+      - name: security_code
+        description: '{{ doc(''field_security_code'') }}'
+        data_type: String
+        data_tests:
+          - not_null
+          - cn_security_code_format
+      - name: security_local_code
+        description: '{{ doc(''field_security_local_code'') }}'
+        data_type: String
+        data_tests:
+          - not_null
+      - name: security_name_abbr
+        description: 证券简称。
+        data_type: LowCardinality(String)
+      - name: org_code
+        description: 机构代码。
+        data_type: LowCardinality(String)
+      - name: org_type
+        description: 机构类型。
+        data_type: LowCardinality(String)
+        data_tests:
+          - accepted_values:
+              arguments:
+                values:
+                  - 通用
+      - name: report_date
+        description: 报告期。
+        data_type: Date
+        data_tests:
+          - not_null
+      - name: report_type
+        description: 报告类型。
+        data_type: LowCardinality(String)
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values:
+                  - 一季度
+                  - 二季度
+                  - 三季度
+                  - 四季度
+      - name: report_date_name
+        description: 报告期名称。
+        data_type: LowCardinality(String)
+      - name: security_type_code
+        description: 证券类型代码。
+        data_type: LowCardinality(String)
+      - name: notice_date
+        description: 公告日期。
+        data_type: Date
+        data_tests:
+          - not_null
+      - name: update_date
+        description: 更新日期。
+        data_type: Nullable(Date)
+      - name: currency
+        description: 利润表单季度金额使用的币种。
+        data_type: LowCardinality(Nullable(String))
+        data_tests:
+          - accepted_values:
+              arguments:
+                values:
+                  - CNY
+      - name: opinion_type
+        description: 审计意见类型。
+        data_type: LowCardinality(Nullable(String))
+      - name: osopinion_type
+        description: 内控审计意见类型。
+        data_type: LowCardinality(Nullable(String))
+      - name: total_operate_income
+        description: 营业总收入。
+        data_type: Nullable(Float64)
+      - name: total_operate_income_qoq
+        description: 营业总收入环比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: operate_income
+        description: 营业收入。
+        data_type: Nullable(Float64)
+      - name: operate_income_qoq
+        description: 营业收入环比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: interest_income
+        description: 利息收入。
+        data_type: Nullable(Float64)
+      - name: interest_income_qoq
+        description: 利息收入环比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: earned_premium
+        description: 已赚保费。
+        data_type: Nullable(Float64)
+      - name: earned_premium_qoq
+        description: 已赚保费环比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: fee_commission_income
+        description: 手续费及佣金收入。
+        data_type: Nullable(Float64)
+      - name: fee_commission_income_qoq
+        description: 手续费及佣金收入环比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: other_business_income
+        description: 其他业务收入。
+        data_type: Nullable(Float64)
+      - name: other_business_income_qoq
+        description: 其他业务收入环比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: toi_other
+        description: 营业总收入其他。
+        data_type: Nullable(Float64)
+      - name: toi_other_qoq
+        description: 营业总收入其他环比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: total_operate_cost
+        description: 营业总成本。
+        data_type: Nullable(Float64)
+      - name: total_operate_cost_qoq
+        description: 营业总成本环比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: operate_cost
+        description: 营业成本。
+        data_type: Nullable(Float64)
+      - name: operate_cost_qoq
+        description: 营业成本环比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: interest_expense
+        description: 利息支出。
+        data_type: Nullable(Float64)
+      - name: interest_expense_qoq
+        description: 利息支出环比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: fee_commission_expense
+        description: 手续费及佣金支出。
+        data_type: Nullable(Float64)
+      - name: fee_commission_expense_qoq
+        description: 手续费及佣金支出环比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: research_expense
+        description: 研发费用。
+        data_type: Nullable(Float64)
+      - name: research_expense_qoq
+        description: 研发费用环比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: surrender_value
+        description: 退保金。
+        data_type: Nullable(Float64)
+      - name: surrender_value_qoq
+        description: 退保金环比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: net_compensate_expense
+        description: 分保费用。
+        data_type: Nullable(Float64)
+      - name: net_compensate_expense_qoq
+        description: 分保费用环比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: net_contract_reserve
+        description: 提取保险合同准备金。
+        data_type: Nullable(Float64)
+      - name: net_contract_reserve_qoq
+        description: 提取保险合同准备金环比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: policy_bonus_expense
+        description: 保单红利支出。
+        data_type: Nullable(Float64)
+      - name: policy_bonus_expense_qoq
+        description: 保单红利支出环比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: reinsure_expense
+        description: 分保费用支出。
+        data_type: Nullable(Float64)
+      - name: reinsure_expense_qoq
+        description: 分保费用支出环比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: other_business_cost
+        description: 其他业务成本。
+        data_type: Nullable(Float64)
+      - name: other_business_cost_qoq
+        description: 其他业务成本环比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: operate_tax_add
+        description: 营业税金及附加。
+        data_type: Nullable(Float64)
+      - name: operate_tax_add_qoq
+        description: 营业税金及附加环比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: sale_expense
+        description: 销售费用。
+        data_type: Nullable(Float64)
+      - name: sale_expense_qoq
+        description: 销售费用环比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: manage_expense
+        description: 管理费用。
+        data_type: Nullable(Float64)
+      - name: manage_expense_qoq
+        description: 管理费用环比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: me_research_expense
+        description: 管理费用中的研发费用。
+        data_type: Nullable(Float64)
+      - name: me_research_expense_qoq
+        description: 管理费用中的研发费用环比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: finance_expense
+        description: 财务费用。
+        data_type: Nullable(Float64)
+      - name: finance_expense_qoq
+        description: 财务费用环比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: fe_interest_expense
+        description: 财务费用之利息费用。
+        data_type: Nullable(Float64)
+      - name: fe_interest_expense_qoq
+        description: 财务费用之利息费用环比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: fe_interest_income
+        description: 财务费用之利息收入。
+        data_type: Nullable(Float64)
+      - name: fe_interest_income_qoq
+        description: 财务费用之利息收入环比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: asset_impairment_loss
+        description: 资产减值损失。
+        data_type: Nullable(Float64)
+      - name: asset_impairment_loss_qoq
+        description: 资产减值损失环比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: credit_impairment_loss
+        description: 信用减值损失。
+        data_type: Nullable(Float64)
+      - name: credit_impairment_loss_qoq
+        description: 信用减值损失环比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: other_income
+        description: 其他收益。
+        data_type: Nullable(Float64)
+      - name: other_income_qoq
+        description: 其他收益环比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: toc_other
+        description: 营业总成本其他。
+        data_type: Nullable(Float64)
+      - name: toc_other_qoq
+        description: 营业总成本其他环比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: invest_income
+        description: 投资收益。
+        data_type: Nullable(Float64)
+      - name: invest_income_qoq
+        description: 投资收益环比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: invest_joint_income
+        description: 对联营企业和合营企业的投资收益。
+        data_type: Nullable(Float64)
+      - name: invest_joint_income_qoq
+        description: 对联营企业和合营企业的投资收益环比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: acf_end_income
+        description: 持续经营终止经营净损益。
+        data_type: Nullable(Float64)
+      - name: acf_end_income_qoq
+        description: 持续经营终止经营净损益环比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: exchange_income
+        description: 汇兑收益。
+        data_type: Nullable(Float64)
+      - name: exchange_income_qoq
+        description: 汇兑收益环比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: net_exposure_income
+        description: 净敞口收益。
+        data_type: Nullable(Float64)
+      - name: net_exposure_income_qoq
+        description: 净敞口收益环比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: fairvalue_change_income
+        description: 公允价值变动收益。
+        data_type: Nullable(Float64)
+      - name: fairvalue_change_income_qoq
+        description: 公允价值变动收益环比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: asset_disposal_income
+        description: 资产处置收益。
+        data_type: Nullable(Float64)
+      - name: asset_disposal_income_qoq
+        description: 资产处置收益环比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: credit_impairment_income
+        description: 信用减值收益。
+        data_type: Nullable(Float64)
+      - name: credit_impairment_income_qoq
+        description: 信用减值收益环比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: asset_impairment_income
+        description: 资产减值收益。
+        data_type: Nullable(Float64)
+      - name: asset_impairment_income_qoq
+        description: 资产减值收益环比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: operate_profit
+        description: 营业利润。
+        data_type: Nullable(Float64)
+      - name: operate_profit_qoq
+        description: 营业利润环比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: nonbusiness_income
+        description: 营业外收入。
+        data_type: Nullable(Float64)
+      - name: nonbusiness_income_qoq
+        description: 营业外收入环比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: noncurrent_disposal_income
+        description: 非流动资产处置净收益。
+        data_type: Nullable(Float64)
+      - name: noncurrent_disposal_income_qoq
+        description: 非流动资产处置净收益环比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: nonbusiness_expense
+        description: 营业外支出。
+        data_type: Nullable(Float64)
+      - name: nonbusiness_expense_qoq
+        description: 营业外支出环比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: noncurrent_disposal_loss
+        description: 非流动资产处置净损失。
+        data_type: Nullable(Float64)
+      - name: noncurrent_disposal_loss_qoq
+        description: 非流动资产处置净损失环比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: operate_profit_other
+        description: 营业利润其他。
+        data_type: Nullable(Float64)
+      - name: operate_profit_other_qoq
+        description: 营业利润其他环比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: operate_profit_balance
+        description: 营业利润平衡项。
+        data_type: Nullable(Float64)
+      - name: operate_profit_balance_qoq
+        description: 营业利润平衡项环比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: total_profit
+        description: 利润总额。
+        data_type: Nullable(Float64)
+      - name: total_profit_qoq
+        description: 利润总额环比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: effect_tp_other
+        description: 影响利润总额其他。
+        data_type: Nullable(Float64)
+      - name: effect_tp_other_qoq
+        description: 影响利润总额其他环比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: total_profit_balance
+        description: 利润总额平衡项。
+        data_type: Nullable(Float64)
+      - name: total_profit_balance_qoq
+        description: 利润总额平衡项环比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: income_tax
+        description: 所得税费用。
+        data_type: Nullable(Float64)
+      - name: income_tax_qoq
+        description: 所得税费用环比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: netprofit
+        description: 净利润。
+        data_type: Nullable(Float64)
+      - name: netprofit_qoq
+        description: 净利润环比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: continued_netprofit
+        description: 持续经营净利润。
+        data_type: Nullable(Float64)
+      - name: continued_netprofit_qoq
+        description: 持续经营净利润环比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: discontinued_netprofit
+        description: 终止经营净利润。
+        data_type: Nullable(Float64)
+      - name: discontinued_netprofit_qoq
+        description: 终止经营净利润环比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: netprofit_other
+        description: 净利润其他。
+        data_type: Nullable(Float64)
+      - name: netprofit_other_qoq
+        description: 净利润其他环比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: netprofit_balance
+        description: 净利润平衡项。
+        data_type: Nullable(Float64)
+      - name: netprofit_balance_qoq
+        description: 净利润平衡项环比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: effect_netprofit_other
+        description: 影响净利润其他。
+        data_type: Nullable(Float64)
+      - name: effect_netprofit_other_qoq
+        description: 影响净利润其他环比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: effect_netprofit_balance
+        description: 净利润平衡项。
+        data_type: Nullable(Float64)
+      - name: effect_netprofit_balance_qoq
+        description: 净利润平衡项环比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: unconfirm_invest_loss
+        description: 未确认投资损失。
+        data_type: Nullable(Float64)
+      - name: unconfirm_invest_loss_qoq
+        description: 未确认投资损失环比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: minority_interest
+        description: 少数股东损益。
+        data_type: Nullable(Float64)
+      - name: minority_interest_qoq
+        description: 少数股东损益环比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: parent_netprofit
+        description: 归属于母公司股东的净利润。
+        data_type: Nullable(Float64)
+      - name: parent_netprofit_qoq
+        description: 归属于母公司股东的净利润环比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: basic_eps
+        description: 基本每股收益（元/股）。
+        data_type: Nullable(Float64)
+      - name: basic_eps_qoq
+        description: 基本每股收益（元/股）环比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: diluted_eps
+        description: 稀释每股收益（元/股）。
+        data_type: Nullable(Float64)
+      - name: diluted_eps_qoq
+        description: 稀释每股收益（元/股）环比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: unable_oci
+        description: 以后将重分类进损益的其他综合收益。
+        data_type: Nullable(Float64)
+      - name: unable_oci_qoq
+        description: 以后将重分类进损益的其他综合收益环比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: creditrisk_fairvalue_change
+        description: 信用风险引起的公允价值变动。
+        data_type: Nullable(Float64)
+      - name: creditrisk_fairvalue_change_qoq
+        description: 信用风险引起的公允价值变动环比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: otherright_fairvalue_change
+        description: 其他权益工具公允价值变动。
+        data_type: Nullable(Float64)
+      - name: otherright_fairvalue_change_qoq
+        description: 其他权益工具公允价值变动环比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: setup_profit_change
+        description: 重分类调整变动。
+        data_type: Nullable(Float64)
+      - name: setup_profit_change_qoq
+        description: 重分类调整变动环比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: rightlaw_unable_oci
+        description: 权益法下不能重分类的其他综合收益。
+        data_type: Nullable(Float64)
+      - name: rightlaw_unable_oci_qoq
+        description: 权益法下不能重分类的其他综合收益环比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: unable_oci_other
+        description: 不能重分类其他综合收益其他。
+        data_type: Nullable(Float64)
+      - name: unable_oci_other_qoq
+        description: 不能重分类其他综合收益其他环比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: unable_oci_balance
+        description: 不能重分类其他综合收益平衡项。
+        data_type: Nullable(Float64)
+      - name: unable_oci_balance_qoq
+        description: 不能重分类其他综合收益平衡项环比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: able_oci
+        description: 以后将重分类进损益的其他综合收益（可重分类）。
+        data_type: Nullable(Float64)
+      - name: able_oci_qoq
+        description: 以后将重分类进损益的其他综合收益（可重分类）环比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: rightlaw_able_oci
+        description: 权益法下可重分类的其他综合收益。
+        data_type: Nullable(Float64)
+      - name: rightlaw_able_oci_qoq
+        description: 权益法下可重分类的其他综合收益环比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: afa_fairvalue_change
+        description: 可供出售金融资产公允价值变动。
+        data_type: Nullable(Float64)
+      - name: afa_fairvalue_change_qoq
+        description: 可供出售金融资产公允价值变动环比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: hmi_afa
+        description: 持有有待售资产公允价值变动。
+        data_type: Nullable(Float64)
+      - name: hmi_afa_qoq
+        description: 持有有待售资产公允价值变动环比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: cashflow_hedge_valid
+        description: 现金流量套期有效部分。
+        data_type: Nullable(Float64)
+      - name: cashflow_hedge_valid_qoq
+        description: 现金流量套期有效部分环比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: creditor_fairvalue_change
+        description: 债权投资公允价值变动。
+        data_type: Nullable(Float64)
+      - name: creditor_fairvalue_change_qoq
+        description: 债权投资公允价值变动环比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: creditor_impairment_reserve
+        description: 债权投资减值准备。
+        data_type: Nullable(Float64)
+      - name: creditor_impairment_reserve_qoq
+        description: 债权投资减值准备环比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: finance_oci_amt
+        description: 金融资产重分类金额。
+        data_type: Nullable(Float64)
+      - name: finance_oci_amt_qoq
+        description: 金融资产重分类金额环比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: convert_diff
+        description: 外币报表折算差额。
+        data_type: Nullable(Float64)
+      - name: convert_diff_qoq
+        description: 外币报表折算差额环比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: able_oci_other
+        description: 可重分类其他综合收益其他。
+        data_type: Nullable(Float64)
+      - name: able_oci_other_qoq
+        description: 可重分类其他综合收益其他环比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: able_oci_balance
+        description: 可重分类其他综合收益平衡项。
+        data_type: Nullable(Float64)
+      - name: able_oci_balance_qoq
+        description: 可重分类其他综合收益平衡项环比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: oci_other
+        description: 其他综合收益其他。
+        data_type: Nullable(Float64)
+      - name: oci_other_qoq
+        description: 其他综合收益其他环比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: oci_balance
+        description: 其他综合收益平衡项。
+        data_type: Nullable(Float64)
+      - name: oci_balance_qoq
+        description: 其他综合收益平衡项环比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: other_compre_income
+        description: 其他综合收益总额。
+        data_type: Nullable(Float64)
+      - name: other_compre_income_qoq
+        description: 其他综合收益总额环比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: parent_oci
+        description: 归属于母公司股东的其他综合收益。
+        data_type: Nullable(Float64)
+      - name: parent_oci_qoq
+        description: 归母其他综合收益环比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: minority_oci
+        description: 归属于少数股东的其他综合收益。
+        data_type: Nullable(Float64)
+      - name: minority_oci_qoq
+        description: 少数股东其他综合收益环比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: parent_oci_other
+        description: 归母其他综合收益其他。
+        data_type: Nullable(Float64)
+      - name: parent_oci_other_qoq
+        description: 归母其他综合收益其他环比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: parent_oci_balance
+        description: 归母其他综合收益平衡项。
+        data_type: Nullable(Float64)
+      - name: parent_oci_balance_qoq
+        description: 归母其他综合收益平衡项环比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: total_compre_income
+        description: 综合收益总额。
+        data_type: Nullable(Float64)
+      - name: total_compre_income_qoq
+        description: 综合收益总额环比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: parent_tci
+        description: 归属于母公司股东的综合收益总额。
+        data_type: Nullable(Float64)
+      - name: parent_tci_qoq
+        description: 归母综合收益总额环比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: minority_tci
+        description: 归属于少数股东的综合收益总额。
+        data_type: Nullable(Float64)
+      - name: minority_tci_qoq
+        description: 少数股东综合收益总额环比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: effect_tci_balance
+        description: 综合收益总额平衡项。
+        data_type: Nullable(Float64)
+      - name: effect_tci_balance_qoq
+        description: 综合收益总额平衡项环比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: tci_other
+        description: 综合收益总额其他。
+        data_type: Nullable(Float64)
+      - name: tci_other_qoq
+        description: 综合收益总额其他环比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: tci_balance
+        description: 综合收益总额平衡项。
+        data_type: Nullable(Float64)
+      - name: tci_balance_qoq
+        description: 综合收益总额平衡项环比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: precombine_profit
+        description: 合并前净损益。
+        data_type: Nullable(Float64)
+      - name: precombine_profit_qoq
+        description: 合并前净损益环比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: precombine_tci
+        description: 合并前综合收益总额。
+        data_type: Nullable(Float64)
+      - name: precombine_tci_qoq
+        description: 合并前综合收益总额环比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: deduct_parent_netprofit
+        description: 扣除非经常性损益后归属于母公司股东的净利润。
+        data_type: Nullable(Float64)
+      - name: deduct_parent_netprofit_qoq
+        description: 扣非归母净利润环比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: total_operate_income_yoy
+        description: 营业总收入同比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: operate_income_yoy
+        description: 营业收入同比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: interest_income_yoy
+        description: 利息收入同比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: earned_premium_yoy
+        description: 已赚保费同比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: fee_commission_income_yoy
+        description: 手续费及佣金收入同比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: other_business_income_yoy
+        description: 其他业务收入同比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: toi_other_yoy
+        description: 营业总收入其他同比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: total_operate_cost_yoy
+        description: 营业总成本同比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: operate_cost_yoy
+        description: 营业成本同比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: interest_expense_yoy
+        description: 利息支出同比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: fee_commission_expense_yoy
+        description: 手续费及佣金支出同比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: research_expense_yoy
+        description: 研发费用同比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: surrender_value_yoy
+        description: 退保金同比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: net_compensate_expense_yoy
+        description: 分保费用同比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: net_contract_reserve_yoy
+        description: 提取保险合同准备金同比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: policy_bonus_expense_yoy
+        description: 保单红利支出同比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: reinsure_expense_yoy
+        description: 分保费用支出同比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: other_business_cost_yoy
+        description: 其他业务成本同比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: operate_tax_add_yoy
+        description: 营业税金及附加同比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: sale_expense_yoy
+        description: 销售费用同比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: manage_expense_yoy
+        description: 管理费用同比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: me_research_expense_yoy
+        description: 管理费用中的研发费用同比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: finance_expense_yoy
+        description: 财务费用同比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: fe_interest_expense_yoy
+        description: 财务费用之利息费用同比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: fe_interest_income_yoy
+        description: 财务费用之利息收入同比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: asset_impairment_loss_yoy
+        description: 资产减值损失同比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: credit_impairment_loss_yoy
+        description: 信用减值损失同比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: other_income_yoy
+        description: 其他收益同比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: toc_other_yoy
+        description: 营业总成本其他同比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: invest_income_yoy
+        description: 投资收益同比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: invest_joint_income_yoy
+        description: 对联营企业和合营企业的投资收益同比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: acf_end_income_yoy
+        description: 持续经营终止经营净损益同比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: exchange_income_yoy
+        description: 汇兑收益同比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: net_exposure_income_yoy
+        description: 净敞口收益同比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: fairvalue_change_income_yoy
+        description: 公允价值变动收益同比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: asset_disposal_income_yoy
+        description: 资产处置收益同比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: credit_impairment_income_yoy
+        description: 信用减值收益同比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: asset_impairment_income_yoy
+        description: 资产减值收益同比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: operate_profit_yoy
+        description: 营业利润同比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: nonbusiness_income_yoy
+        description: 营业外收入同比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: noncurrent_disposal_income_yoy
+        description: 非流动资产处置净收益同比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: nonbusiness_expense_yoy
+        description: 营业外支出同比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: noncurrent_disposal_loss_yoy
+        description: 非流动资产处置净损失同比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: operate_profit_other_yoy
+        description: 营业利润其他同比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: operate_profit_balance_yoy
+        description: 营业利润平衡项同比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: total_profit_yoy
+        description: 利润总额同比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: effect_tp_other_yoy
+        description: 影响利润总额其他同比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: total_profit_balance_yoy
+        description: 利润总额平衡项同比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: income_tax_yoy
+        description: 所得税费用同比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: netprofit_yoy
+        description: 净利润同比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: continued_netprofit_yoy
+        description: 持续经营净利润同比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: discontinued_netprofit_yoy
+        description: 终止经营净利润同比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: netprofit_other_yoy
+        description: 净利润其他同比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: netprofit_balance_yoy
+        description: 净利润平衡项同比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: effect_netprofit_other_yoy
+        description: 影响净利润其他同比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: effect_netprofit_balance_yoy
+        description: 净利润平衡项同比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: unconfirm_invest_loss_yoy
+        description: 未确认投资损失同比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: minority_interest_yoy
+        description: 少数股东损益同比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: parent_netprofit_yoy
+        description: 归属于母公司股东的净利润同比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: basic_eps_yoy
+        description: 基本每股收益（元/股）同比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: diluted_eps_yoy
+        description: 稀释每股收益（元/股）同比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: unable_oci_yoy
+        description: 以后将重分类进损益的其他综合收益同比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: creditrisk_fairvalue_change_yoy
+        description: 信用风险引起的公允价值变动同比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: otherright_fairvalue_change_yoy
+        description: 其他权益工具公允价值变动同比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: setup_profit_change_yoy
+        description: 重分类调整变动同比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: rightlaw_unable_oci_yoy
+        description: 权益法下不能重分类的其他综合收益同比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: unable_oci_other_yoy
+        description: 不能重分类其他综合收益其他同比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: unable_oci_balance_yoy
+        description: 不能重分类其他综合收益平衡项同比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: able_oci_yoy
+        description: 以后将重分类进损益的其他综合收益（可重分类）同比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: rightlaw_able_oci_yoy
+        description: 权益法下可重分类的其他综合收益同比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: afa_fairvalue_change_yoy
+        description: 可供出售金融资产公允价值变动同比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: hmi_afa_yoy
+        description: 持有有待售资产公允价值变动同比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: cashflow_hedge_valid_yoy
+        description: 现金流量套期有效部分同比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: creditor_fairvalue_change_yoy
+        description: 债权投资公允价值变动同比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: creditor_impairment_reserve_yoy
+        description: 债权投资减值准备同比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: finance_oci_amt_yoy
+        description: 金融资产重分类金额同比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: convert_diff_yoy
+        description: 外币报表折算差额同比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: able_oci_other_yoy
+        description: 可重分类其他综合收益其他同比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: able_oci_balance_yoy
+        description: 可重分类其他综合收益平衡项同比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: oci_other_yoy
+        description: 其他综合收益其他同比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: oci_balance_yoy
+        description: 其他综合收益平衡项同比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: other_compre_income_yoy
+        description: 其他综合收益总额同比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: parent_oci_yoy
+        description: 归母其他综合收益同比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: minority_oci_yoy
+        description: 少数股东其他综合收益同比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: parent_oci_other_yoy
+        description: 归母其他综合收益其他同比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: parent_oci_balance_yoy
+        description: 归母其他综合收益平衡项同比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: total_compre_income_yoy
+        description: 综合收益总额同比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: parent_tci_yoy
+        description: 归母综合收益总额同比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: minority_tci_yoy
+        description: 少数股东综合收益总额同比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: effect_tci_balance_yoy
+        description: 综合收益总额平衡项同比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: tci_other_yoy
+        description: 综合收益总额其他同比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: tci_balance_yoy
+        description: 综合收益总额平衡项同比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: precombine_profit_yoy
+        description: 合并前净损益同比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: precombine_tci_yoy
+        description: 合并前综合收益总额同比增长率（%）。
+        data_type: Nullable(Float64)
+      - name: deduct_parent_netprofit_yoy
+        description: 扣非归母净利润同比增长率（%）。
+        data_type: Nullable(Float64)
