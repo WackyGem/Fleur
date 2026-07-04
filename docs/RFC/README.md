@@ -4,6 +4,7 @@
 
 ## Active RFCs
 
+- [0048-ths-chinabond-marts-passthrough.md](0048-ths-chinabond-marts-passthrough.md) | Implemented With Runtime Verification Follow-Up | 将同花顺涨停池、中债完整国债收益率曲线和东方财富 9 个 F10 数据集透传到 marts 层，并同步 source-to-marts controller scope；运行态 dbt build/show/profile 因 ClickHouse HTTP 502 待补跑，见 [2026-07-04 report](../jobs/reports/2026-07-04-ths-chinabond-f10-marts-passthrough.md)
 - [0047-production-compose-nginx-entrypoint.md](0047-production-compose-nginx-entrypoint.md) | Implemented | 将现有开发 Docker Compose 改名为 `docker-compose.dev.yaml`，重新设计生产 `docker-compose.yml`，通过 build 构建应用镜像，并引入 nginx 作为 Racingline 默认入口和 Dagster 统一入口；验收见 [2026-07-03 smoke report](../jobs/reports/2026-07-03-production-compose-nginx-smoke.md)
 
 ## Archive

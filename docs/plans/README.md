@@ -11,6 +11,7 @@
 
 | Plan | 状态 | 说明 |
 |---|---|---|
+| [0077](archive/0077-ths-chinabond-f10-marts-passthrough-plan.md) | Completed With Follow-Up | 基于 RFC 0048 完成 THS、ChinaBond 和 EastMoney F10 int/mart 透传、字段完整性核验脚本、source-to-marts controller scope 扩展和 Dagster state refresh；运行态 dbt build/show/profile 因 ClickHouse HTTP 502 待补跑，见 [2026-07-04 report](../jobs/reports/2026-07-04-ths-chinabond-f10-marts-passthrough.md) |
 | [0076](archive/0076-production-compose-nginx-implementation-plan.md) | Completed | 基于 RFC 0047 完成 dev/prod Compose 分离、production-like nginx 统一入口、应用 Dockerfile、one-shot migration/catalog sync、`34xxx`/`35xxx` 端口治理和 browser smoke；验收见 [2026-07-03 report](../jobs/reports/2026-07-03-production-compose-nginx-smoke.md) |
 | [0075](archive/0075-racingline-strategy-real-config-snapshot-correction-plan.md) | Completed | 纠偏 0074：策略详情页配置从 `rule_snapshot` + `execution_config` 派生，不再保存或依赖 `ui_display_snapshot` 展示字段；0051 example browser smoke 和前端门禁通过 |
 | [0074](archive/0074-racingline-strategy-detail-config-display-plan.md) | Completed With Follow-Up | Racingline 策略详情页页头新增 `策略配置方案` 按钮和 Dialog，但原验收存在 display-only/本地 DB 注入偏移；canonical 配置派生展示纠偏见 [0075](archive/0075-racingline-strategy-real-config-snapshot-correction-plan.md) |
