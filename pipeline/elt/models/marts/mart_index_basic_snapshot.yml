@@ -1,0 +1,61 @@
+version: 2
+
+models:
+  - name: mart_index_basic_snapshot
+    description: 指数基础显示信息 mart 当前快照，仅用于按指数代码补齐页面展示名称、交易所代码和当前上市状态。
+    config:
+      meta:
+        grain_zh: 每指数一行。
+        business_logic_zh:
+          - 从 int_index_basic_snapshot 透传指数代码、指数名称、交易所代码和当前上市状态。
+          - 仅暴露消费层显示字段，不透出 BaoStock source-local 类型编码、上市日期或退市日期。
+          - 当前上市状态来自 int_index_basic_snapshot，不在 mart 层重算或按历史交易日补齐。
+    data_tests:
+      - unique_combination_of_columns:
+          arguments:
+            combination_of_columns:
+              - security_code
+    columns:
+      - name: security_code
+        description: "{{ doc('field_security_code') }}"
+        data_type: String
+        data_tests:
+          - not_null
+          - unique
+          - cn_security_code_format
+
+      - name: security_local_code
+        description: "{{ doc('field_security_local_code') }}"
+        data_type: String
+
+      - name: index_name
+        description: BaoStock 当前快照中的指数名称，用于消费层展示。
+        data_type: String
+
+      - name: exchange_code
+        description: "{{ doc('field_exchange_code') }}"
+        data_type: LowCardinality(String)
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values:
+                  - SH
+                  - SZ
+                  - BJ
+
+      - name: listing_status
+        description: BaoStock 当前快照上市状态标签。
+        data_type: LowCardinality(String)
+        data_tests:
+          - accepted_values:
+              arguments:
+                values:
+                  - listed
+                  - delisted
+
+      - name: is_listed
+        description: 当前快照是否上市，透传自 int_index_basic_snapshot；不代表历史任意交易日状态。
+        data_type: Bool
+        data_tests:
+          - not_null

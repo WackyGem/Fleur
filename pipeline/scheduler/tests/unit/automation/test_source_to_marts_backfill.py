@@ -110,6 +110,8 @@ def test_baostock_plan_splits_source_raw_dbt_furnace_and_marts() -> None:
         )
         for op_config in ops.values()
     } == {("2024-01-01", "2024-12-31", "replace-cascade")}
+    mart_step = next(step for step in plan.steps if step.tags["backfill.stage"] == "dbt_marts")
+    assert {"mart_index_basic_snapshot", "mart_index_quotes_daily"} <= set(mart_step.asset_keys)
 
 
 def test_controller_dry_run_sets_furnace_child_config_to_dry_run() -> None:
@@ -246,6 +248,7 @@ def test_all_source_to_marts_scope_excludes_jiuyan_portfolio_and_covers_expected
 
     assert not {asset_key for asset_key in planned_assets if "jiuyan" in asset_key}
     assert not {asset_key for asset_key in planned_assets if "portfolio" in asset_key}
+    assert {"mart_index_basic_snapshot", "mart_index_quotes_daily"} <= planned_assets
     assert dbt_asset_keys_covered_by_all_source_to_marts_scope() == expected_dbt_coverage()
     assert calculation_asset_keys_covered_by_all_source_to_marts_scope() == {
         "fleur_calculation/calc_stock_kdj_daily",

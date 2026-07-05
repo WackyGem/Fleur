@@ -751,6 +751,8 @@ CALCULATION_WRAPPER_ASSET_KEYS = (
 BAOSTOCK_MART_ASSET_KEYS = (
     "mart_trade_calendar",
     "mart_stock_basic_snapshot",
+    "mart_index_basic_snapshot",
+    "mart_index_quotes_daily",
     "mart_benchmark_returns_daily",
     "mart_stock_quotes_daily",
     "mart_stock_trend_indicator_daily",

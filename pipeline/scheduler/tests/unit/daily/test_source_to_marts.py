@@ -162,6 +162,8 @@ def test_daily_plan_reuses_source_to_marts_registry_and_excludes_independent_dom
         planned_calculation_assets == calculation_asset_keys_covered_by_all_source_to_marts_scope()
     )
     assert {
+        "mart_index_basic_snapshot",
+        "mart_index_quotes_daily",
         "int_stock_limit_up_pool_daily",
         "mart_stock_limit_up_pool_daily",
         "mart_government_bond_yields_daily",
