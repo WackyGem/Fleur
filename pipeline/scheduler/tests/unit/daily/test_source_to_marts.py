@@ -31,6 +31,7 @@ from scheduler.defs.automation.source_to_marts_backfill import (
     calculation_asset_keys_covered_by_all_source_to_marts_scope,
     dbt_asset_keys_covered_by_all_source_to_marts_scope,
 )
+from scheduler.defs.daily import definitions as daily_definitions
 from scheduler.defs.daily.definitions import (
     DAILY_SCHEDULE_CRON,
     DAILY_SCHEDULE_NAME,
@@ -318,7 +319,10 @@ def test_daily_terminal_step_failure_fails_parent_execution() -> None:
     assert submitter.submitted_steps[-1].label == "portfolio live nav liquidation"
 
 
-def test_daily_schedule_is_stopped_and_emits_target_date_config() -> None:
+def test_daily_schedule_is_stopped_and_emits_target_date_config(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    set_daily_trade_dates(monkeypatch, {date(2026, 7, 1)})
     context = dg.build_schedule_context(
         scheduled_execution_time=datetime(
             2026,
@@ -359,6 +363,52 @@ def test_daily_schedule_is_stopped_and_emits_target_date_config() -> None:
     }
 
 
+def test_daily_schedule_skips_non_trade_date(monkeypatch: pytest.MonkeyPatch) -> None:
+    set_daily_trade_dates(monkeypatch, {date(2026, 7, 3)})
+    context = dg.build_schedule_context(
+        scheduled_execution_time=datetime(
+            2026,
+            7,
+            5,
+            17,
+            45,
+            tzinfo=ZoneInfo("Asia/Shanghai"),
+        )
+    )
+
+    tick = daily__fetch_history_sources_to_marts_schedule.evaluate_tick(context)
+
+    assert tick.run_requests == []
+    assert tick.skip_message == "2026-07-05 is not an A-share trade date"
+
+
+def test_daily_schedule_skips_when_trade_calendar_is_unavailable(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(
+        daily_definitions,
+        "daily_trade_calendar_reader_factory",
+        lambda: FailingTradeCalendarReader(RuntimeError("calendar unavailable")),
+    )
+    context = dg.build_schedule_context(
+        scheduled_execution_time=datetime(
+            2026,
+            7,
+            1,
+            17,
+            45,
+            tzinfo=ZoneInfo("Asia/Shanghai"),
+        )
+    )
+
+    tick = daily__fetch_history_sources_to_marts_schedule.evaluate_tick(context)
+
+    assert tick.run_requests == []
+    assert tick.skip_message is not None
+    assert "materialize sina__trade_calendar first" in tick.skip_message
+    assert "calendar unavailable" in tick.skip_message
+
+
 def only_step_for_stage(plan: DailyPlan, stage: str) -> DailyStep:
     matches = [step for step in plan.steps if step.stage == stage]
     assert len(matches) == 1
@@ -378,6 +428,14 @@ def config_schema_fields(
 
 class ConfigTypeWithFields(Protocol):
     fields: Mapping[str, Any]
+
+
+def set_daily_trade_dates(monkeypatch: pytest.MonkeyPatch, trade_dates: set[date]) -> None:
+    monkeypatch.setattr(
+        daily_definitions,
+        "daily_trade_calendar_reader_factory",
+        lambda: FakeTradeCalendarReader(trade_dates),
+    )
 
 
 def daily_request(
@@ -427,3 +485,19 @@ class FakeLog:
     def info(self, msg: object, *_args: object) -> None:
         _ = msg
         return None
+
+
+class FakeTradeCalendarReader:
+    def __init__(self, trade_dates: set[date]) -> None:
+        self._trade_dates = trade_dates
+
+    def read_trade_dates(self) -> set[date]:
+        return set(self._trade_dates)
+
+
+class FailingTradeCalendarReader:
+    def __init__(self, error: Exception) -> None:
+        self._error = error
+
+    def read_trade_dates(self) -> set[date]:
+        raise self._error
