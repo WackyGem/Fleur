@@ -90,7 +90,7 @@ function ComparisonFields({
         : "比较值"
 
   return (
-    <div className={cn("grid gap-2 lg:items-end", className)}>
+    <div className={cn("grid min-w-0 gap-2 *:min-w-0 lg:items-end", className)}>
       <Field>
         <FieldLabel>指标类型</FieldLabel>
         <Select
@@ -456,7 +456,8 @@ function ComparisonFields({
             </Select>
           </Field>
 
-          {metric.valueType === "number" && !isCrossingOperator(value.operator) ? (
+          {metric.valueType === "number" &&
+          !isCrossingOperator(value.operator) ? (
             <Field>
               <FieldLabel>对比倍数</FieldLabel>
               <Input

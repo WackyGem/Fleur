@@ -1513,8 +1513,7 @@ function BacktestNetValueChart({
     }
 
     const chart = createChart(container, {
-      width: container.clientWidth,
-      height: 240,
+      autoSize: true,
       layout: {
         background: { color: "transparent" },
         textColor: "rgba(99, 95, 89, 0.78)",
@@ -1572,27 +1571,17 @@ function BacktestNetValueChart({
     )
     chart.timeScale().fitContent()
 
-    const resizeObserver = new ResizeObserver((entries) => {
-      const entry = entries[0]
-
-      if (!entry) {
-        return
-      }
-
-      chart.applyOptions({
-        width: entry.contentRect.width,
-      })
-    })
-
-    resizeObserver.observe(container)
-
     return () => {
-      resizeObserver.disconnect()
       chart.remove()
     }
   }, [points])
 
-  return <div ref={containerRef} className="h-60 w-full bg-muted/10" />
+  return (
+    <div
+      ref={containerRef}
+      className="h-60 w-full min-w-0 overflow-hidden bg-muted/10"
+    />
+  )
 }
 
 function MetricsCatalogState({
@@ -2221,9 +2210,9 @@ export function StrategyPage() {
           onStepChange={changeStep}
         />
 
-        <main className="pt-4 lg:pt-0 lg:pl-6">
-          <div className="flex h-[calc(100svh-8rem)] min-h-0 flex-col">
-            <header className="flex h-9 items-center justify-between gap-3">
+        <main className="min-w-0 pt-4 lg:pt-0 lg:pl-6">
+          <div className="flex min-h-[calc(100svh-8rem)] min-w-0 flex-col lg:h-[calc(100svh-8rem)] lg:min-h-0">
+            <header className="flex min-h-9 items-center justify-between gap-3">
               <div>
                 <h2 className="text-lg font-medium">{content.title}</h2>
                 {content.description ? (
@@ -2238,7 +2227,7 @@ export function StrategyPage() {
 
             <div
               className={cn(
-                "min-h-0 flex-1 pr-1",
+                "min-h-0 min-w-0 flex-1 sm:pr-1",
                 isSplitStep && "[scrollbar-gutter:stable]",
                 !isSplitStep && "mt-5",
                 activeStep === "preview"
@@ -2276,7 +2265,7 @@ export function StrategyPage() {
                 </div>
               ) : activeStep === "weights" ? (
                 canEditWeights ? (
-                  <div className="flex h-full min-h-0 flex-col gap-3">
+                  <div className="flex h-full min-h-0 min-w-0 flex-col gap-3">
                     <WeightIndicatorsPanel
                       catalogOptions={strategyScoringCatalog}
                       weightIndicators={weightIndicators}
@@ -2610,8 +2599,7 @@ export function StrategyPage() {
                         !portfolioName.trim() ||
                         !canPublishPortfolio ||
                         !publishPreviewQuery.data?.can_publish ||
-                        !publishPreviewQuery.data
-                          .required_source_signal_date ||
+                        !publishPreviewQuery.data.required_source_signal_date ||
                         !publishPreviewQuery.data.planned_live_start_date ||
                         createPortfolioMutation.isPending
                       }

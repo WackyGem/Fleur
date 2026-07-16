@@ -18,7 +18,10 @@ import {
 import { AddDashedButton } from "@/features/strategy/components/add-dashed-button"
 import { ComparisonFields } from "@/features/strategy/components/comparison-fields"
 import { WeightScoreSlider } from "@/features/strategy/components/weight-score-slider"
-import type { IndicatorCatalog, WeightIndicator } from "@/features/strategy/types"
+import type {
+  IndicatorCatalog,
+  WeightIndicator,
+} from "@/features/strategy/types"
 import {
   clampScore,
   formatWeightIndicator,
@@ -44,22 +47,22 @@ function WeightIndicatorsPanel({
   weightIndicators,
 }: WeightIndicatorsPanelProps) {
   return (
-    <FieldSet className="h-full min-h-0">
+    <FieldSet className="h-full min-h-0 min-w-0">
       <FieldLegend>指标权重</FieldLegend>
-      <div className="flex min-h-0 flex-1 flex-col gap-3 pb-2">
-        <div className="min-h-0 flex-1 overflow-y-auto pr-1">
+      <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-3 pb-2">
+        <div className="min-h-0 min-w-0 flex-1 overflow-y-auto pr-1">
           {weightIndicators.length === 0 ? (
             <AddDashedButton label="新增指标权重" onClick={onAddIndicator} />
           ) : (
-            <div className="flex flex-col gap-2">
-              <FieldGroup className="gap-3">
+            <div className="flex min-w-0 flex-col gap-2">
+              <FieldGroup className="min-w-0 gap-3">
                 {weightIndicators.map((indicator) => {
                   const clampedScore = clampScore(indicator.score)
 
                   return (
                     <div
                       key={indicator.id}
-                      className="flex flex-col gap-2 bg-muted/10 p-2"
+                      className="flex min-w-0 flex-col gap-2 bg-muted/10 p-2"
                     >
                       <ComparisonFields
                         catalogOptions={catalogOptions}
@@ -116,7 +119,7 @@ function WeightIndicatorsPanel({
         </div>
 
         <Separator />
-        <div className="shrink-0 bg-background">
+        <div className="min-w-0 shrink-0 bg-background">
           <WeightScaleSummary
             catalogOptions={catalogOptions}
             weightIndicators={weightIndicators}
@@ -137,32 +140,32 @@ function WeightScaleSummary({
   const { indicators } = getScaledWeightIndicators(weightIndicators)
 
   return (
-    <div>
+    <div className="min-w-0">
       <div className="mb-2 text-sm font-medium">权重得分</div>
-      <Table className="w-auto min-w-[32rem]">
+      <Table className="w-full table-fixed sm:min-w-[32rem]">
         <TableHeader>
           <TableRow className="hover:bg-transparent">
             <TableHead>指标</TableHead>
-            <TableHead className="w-36 text-left">缩放得分</TableHead>
+            <TableHead className="w-24 text-left sm:w-36">缩放得分</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {indicators.length === 0 ? (
             <TableRow className="hover:bg-transparent">
-              <TableCell className="max-w-[36rem] truncate text-muted-foreground">
+              <TableCell className="truncate text-muted-foreground">
                 暂无指标得分。
               </TableCell>
-              <TableCell className="w-36 text-left text-muted-foreground tabular-nums">
+              <TableCell className="w-24 text-left text-muted-foreground tabular-nums sm:w-36">
                 --
               </TableCell>
             </TableRow>
           ) : (
             indicators.map((indicator) => (
               <TableRow key={indicator.id} className="hover:bg-transparent">
-                <TableCell className="max-w-[36rem] truncate font-medium">
+                <TableCell className="truncate font-medium">
                   {formatWeightIndicator(indicator, { catalogOptions })}
                 </TableCell>
-                <TableCell className="w-36 text-left tabular-nums">
+                <TableCell className="w-24 text-left tabular-nums sm:w-36">
                   {indicator.scaledScore.toFixed(1)}
                 </TableCell>
               </TableRow>

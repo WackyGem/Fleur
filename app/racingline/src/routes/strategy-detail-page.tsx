@@ -358,7 +358,7 @@ function StrategyDetailPage() {
 
   return (
     <section className="mx-auto flex min-h-[calc(100svh-8rem)] w-full max-w-[72rem] flex-col gap-4">
-      <div className="flex h-9 min-w-0 items-center gap-3">
+      <div className="grid min-w-0 grid-cols-[auto_minmax(0,1fr)_auto_auto] items-center gap-2 sm:flex sm:h-9 sm:gap-3">
         <Button
           render={<Link to="/dashboard" viewTransition />}
           nativeButton={false}
@@ -369,9 +369,14 @@ function StrategyDetailPage() {
         >
           <ArrowLeft />
         </Button>
-        <h1 className="truncate text-lg font-medium">{portfolio.name}</h1>
-        <div aria-hidden="true" className="h-5 w-px shrink-0 bg-border/90" />
-        <div className="flex min-w-0 flex-1 items-center gap-3 overflow-hidden text-xs text-muted-foreground tabular-nums">
+        <h1 className="min-w-0 truncate text-lg font-medium">
+          {portfolio.name}
+        </h1>
+        <div
+          aria-hidden="true"
+          className="hidden h-5 w-px shrink-0 bg-border/90 sm:block"
+        />
+        <div className="order-last col-span-full flex min-w-0 [scrollbar-width:none] items-center gap-3 overflow-x-auto pb-1 text-xs whitespace-nowrap text-muted-foreground tabular-nums sm:order-none sm:flex-1 sm:overflow-hidden sm:pb-0 [&::-webkit-scrollbar]:hidden">
           <span className="shrink-0">建仓: {portfolio.startDate}</span>
           <span className="shrink-0">运行: {portfolio.simulationDays} 天</span>
           {livePositionCount !== null ? (
@@ -385,12 +390,13 @@ function StrategyDetailPage() {
                 variant="ghost"
                 size="sm"
                 type="button"
-                className="shrink-0 font-normal"
+                className="size-8 shrink-0 p-0 font-normal sm:h-8 sm:w-auto sm:px-3"
+                aria-label="查看策略配置方案"
               />
             }
           >
             <SlidersHorizontal data-icon="inline-start" />
-            策略配置方案
+            <span className="hidden sm:inline">策略配置方案</span>
           </DialogTrigger>
           <DialogContent className="max-h-[min(42rem,calc(100svh-4rem))] grid-rows-[auto_auto_minmax(0,1fr)] overflow-hidden sm:max-w-3xl">
             <DialogHeader>
@@ -432,12 +438,13 @@ function StrategyDetailPage() {
                 variant="ghost"
                 size="sm"
                 type="button"
-                className="shrink-0 text-muted-foreground hover:bg-muted/60 hover:text-destructive"
+                className="size-8 shrink-0 p-0 text-muted-foreground hover:bg-muted/60 hover:text-destructive sm:h-8 sm:w-auto sm:px-3"
+                aria-label="删除策略"
               />
             }
           >
             <Trash2 data-icon="inline-start" />
-            删除
+            <span className="hidden sm:inline">删除</span>
           </DialogTrigger>
           <DialogContent>
             <DialogHeader>
@@ -491,7 +498,7 @@ function StrategyDetailPage() {
               </div>
 
               <div className="grid gap-4 xl:grid-cols-[minmax(0,3fr)_minmax(0,7fr)]">
-                <div className="flex min-h-0 flex-col gap-2">
+                <div className="flex min-h-0 min-w-0 flex-col gap-2">
                   <div className="text-xs font-medium text-muted-foreground">
                     历史信号数
                   </div>
@@ -506,7 +513,7 @@ function StrategyDetailPage() {
                 </div>
 
                 {selectedSignalPool ? (
-                  <div className="flex min-h-0 flex-col gap-2">
+                  <div className="flex min-h-0 min-w-0 flex-col gap-2">
                     <div className="grid h-[18px] shrink-0 gap-1 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end">
                       <div className="min-w-0">
                         <div className="text-sm font-medium tabular-nums">
@@ -670,7 +677,7 @@ function StrategyDetailPage() {
             <Separator className="bg-border/60" />
 
             <section className="flex flex-col gap-3">
-              <div className="flex items-center justify-between gap-3">
+              <div className="flex flex-col items-start gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
                 <div className="text-sm font-medium">净值走势</div>
                 <div className="flex items-center gap-4 text-xs text-muted-foreground">
                   <div className="inline-flex items-center gap-1.5">
@@ -684,11 +691,7 @@ function StrategyDetailPage() {
                 </div>
               </div>
               {portfolio.curve.length > 0 ? (
-                <NavBenchmarkChart
-                  className="h-60"
-                  height={240}
-                  points={portfolio.curve}
-                />
+                <NavBenchmarkChart className="h-60" points={portfolio.curve} />
               ) : (
                 <Empty className="h-60 border">
                   <EmptyHeader>
@@ -749,7 +752,7 @@ function StrategyDetailPage() {
 
               {selectedRebalanceRecord ? (
                 <div className="flex flex-col gap-2">
-                  <div className="flex items-end justify-between gap-3">
+                  <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between sm:gap-3">
                     <div className="text-sm font-medium tabular-nums">
                       {selectedRebalanceRecord.date}
                     </div>
@@ -1412,8 +1415,7 @@ function SignalCountChart({
     }
 
     const chart = createChart(container, {
-      width: container.clientWidth,
-      height: container.clientHeight,
+      autoSize: true,
       layout: {
         background: { color: "transparent" },
         textColor: "rgba(99, 95, 89, 0.78)",
@@ -1476,29 +1478,18 @@ function SignalCountChart({
 
     chart.subscribeClick(handleClick)
 
-    const resizeObserver = new ResizeObserver((entries) => {
-      const entry = entries[0]
-
-      if (!entry) {
-        return
-      }
-
-      chart.applyOptions({
-        height: entry.contentRect.height,
-        width: entry.contentRect.width,
-      })
-    })
-
-    resizeObserver.observe(container)
-
     return () => {
       chart.unsubscribeClick(handleClick)
-      resizeObserver.disconnect()
       chart.remove()
     }
   }, [onTimeSelect, points, selectedTime])
 
-  return <div ref={containerRef} className="h-56 w-full cursor-crosshair" />
+  return (
+    <div
+      ref={containerRef}
+      className="h-52 w-full min-w-0 cursor-crosshair overflow-hidden sm:h-56"
+    />
+  )
 }
 
 function buildDetailPortfolioView(

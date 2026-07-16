@@ -55,11 +55,9 @@ const EMPTY_RISK_METRICS: Metric[] = [
 
 function NavBenchmarkChart({
   className = "h-38",
-  height = 152,
   points,
 }: {
   className?: string
-  height?: number
   points: CurvePoint[]
 }) {
   const containerRef = useRef<HTMLDivElement | null>(null)
@@ -72,8 +70,7 @@ function NavBenchmarkChart({
     }
 
     const chart = createChart(container, {
-      width: container.clientWidth,
-      height,
+      autoSize: true,
       layout: {
         background: { color: "transparent" },
         textColor: "rgba(99, 95, 89, 0.78)",
@@ -123,27 +120,17 @@ function NavBenchmarkChart({
     )
     chart.timeScale().fitContent()
 
-    const resizeObserver = new ResizeObserver((entries) => {
-      const entry = entries[0]
-
-      if (!entry) {
-        return
-      }
-
-      chart.applyOptions({
-        width: entry.contentRect.width,
-      })
-    })
-
-    resizeObserver.observe(container)
-
     return () => {
-      resizeObserver.disconnect()
       chart.remove()
     }
-  }, [height, points])
+  }, [points])
 
-  return <div ref={containerRef} className={`${className} w-full`} />
+  return (
+    <div
+      ref={containerRef}
+      className={cn("w-full min-w-0 overflow-hidden", className)}
+    />
+  )
 }
 
 function MetricSection({
@@ -277,7 +264,7 @@ function PortfolioOverviewCard({
       size="sm"
       className="h-full py-0 transition-colors group-hover:border-foreground/35 group-hover:bg-muted/10"
     >
-      <CardHeader className="grid-cols-[minmax(0,1fr)_auto] gap-3 border-b border-border/70 py-4">
+      <CardHeader className="gap-3 border-b border-border/70 py-4 has-data-[slot=card-action]:grid-cols-1 sm:has-data-[slot=card-action]:grid-cols-[minmax(0,1fr)_auto]">
         <div className="flex min-w-0 flex-col gap-2">
           <CardTitle
             className="truncate text-xl leading-tight"
@@ -291,7 +278,7 @@ function PortfolioOverviewCard({
           </div>
         </div>
 
-        <CardAction className="flex shrink-0 flex-col items-end gap-1">
+        <CardAction className="col-start-1 row-span-1 row-start-2 flex w-full shrink-0 flex-row items-end justify-between gap-3 justify-self-stretch sm:col-start-2 sm:row-span-2 sm:row-start-1 sm:w-auto sm:flex-col sm:items-end sm:justify-start sm:gap-1 sm:justify-self-end">
           <div className="text-[11px] text-muted-foreground">最新净值</div>
           <div className="flex items-end justify-end gap-2">
             <div
@@ -333,7 +320,7 @@ function PortfolioOverviewCard({
         <Separator />
 
         <div className="flex flex-col gap-2">
-          <div className="flex items-center justify-between gap-3">
+          <div className="flex flex-col items-start gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
             <div className="text-[11px] font-medium text-muted-foreground">
               净值与基准
             </div>
@@ -366,12 +353,8 @@ function PortfolioOverviewCard({
 
 function PortfolioOverviewCardSkeleton() {
   return (
-    <Card
-      aria-hidden="true"
-      size="sm"
-      className="h-full min-h-[34rem] py-0"
-    >
-      <CardHeader className="grid-cols-[minmax(0,1fr)_auto] gap-3 border-b border-border/70 py-4">
+    <Card aria-hidden="true" size="sm" className="h-full min-h-[34rem] py-0">
+      <CardHeader className="gap-3 border-b border-border/70 py-4 has-data-[slot=card-action]:grid-cols-1 sm:has-data-[slot=card-action]:grid-cols-[minmax(0,1fr)_auto]">
         <div className="flex min-w-0 flex-col gap-2">
           <Skeleton className="h-6 w-2/3" />
           <div className="flex flex-wrap items-center gap-2">
@@ -380,7 +363,7 @@ function PortfolioOverviewCardSkeleton() {
           </div>
         </div>
 
-        <CardAction className="flex shrink-0 flex-col items-end gap-2">
+        <CardAction className="col-start-1 row-span-1 row-start-2 flex w-full shrink-0 items-center justify-between gap-2 justify-self-stretch sm:col-start-2 sm:row-span-2 sm:row-start-1 sm:w-auto sm:flex-col sm:items-end sm:justify-start sm:justify-self-end">
           <Skeleton className="h-3 w-14" />
           <Skeleton className="h-6 w-20" />
         </CardAction>
@@ -527,9 +510,12 @@ function useDelayedBoolean(value: boolean, delayMs: number) {
   const [delayedValue, setDelayedValue] = useState(false)
 
   useEffect(() => {
-    const timeout = window.setTimeout(() => {
-      setDelayedValue(value)
-    }, value ? delayMs : 0)
+    const timeout = window.setTimeout(
+      () => {
+        setDelayedValue(value)
+      },
+      value ? delayMs : 0
+    )
 
     return () => {
       window.clearTimeout(timeout)
@@ -552,7 +538,7 @@ export function PortfolioOverviewBoard() {
 
   return (
     <section className="mx-auto flex min-h-[calc(100svh-8rem)] w-full max-w-[88rem] flex-col gap-4">
-      <div className="flex h-9 items-center gap-4">
+      <div className="flex min-h-9 flex-wrap items-center gap-2 sm:gap-4">
         <h1 className="text-lg font-medium">策略看板</h1>
         <div aria-hidden="true" className="h-5 w-px shrink-0 bg-border/90" />
         <Button
@@ -568,9 +554,7 @@ export function PortfolioOverviewBoard() {
       </div>
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2 2xl:grid-cols-4">
-        {showLoadingPlaceholder ? (
-          <PortfolioOverviewCardSkeleton />
-        ) : null}
+        {showLoadingPlaceholder ? <PortfolioOverviewCardSkeleton /> : null}
         {dashboardQuery.isError ? (
           <div className="flex min-h-[34rem] items-center justify-center border border-border/70 bg-muted/10 px-6 py-8 text-center text-sm text-muted-foreground">
             策略组合加载失败

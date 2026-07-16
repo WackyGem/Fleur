@@ -56,10 +56,7 @@ import type {
 } from "@/features/strategy/types"
 import { StrategySplitPanel } from "@/features/strategy/components/strategy-split-panel"
 import { WeightScoreSlider } from "@/features/strategy/components/weight-score-slider"
-import {
-  clampScore,
-  formatWeightIndicator,
-} from "@/features/strategy/utils"
+import { clampScore, formatWeightIndicator } from "@/features/strategy/utils"
 import type {
   PreviewChartContextResponse,
   PreviewChartContextSeriesRow,
@@ -476,8 +473,7 @@ function CandlestickChart({
     }
 
     const chart = createChart(container, {
-      width: container.clientWidth,
-      height: Math.max(container.clientHeight, 180),
+      autoSize: true,
       layout: {
         attributionLogo: false,
         background: { color: "transparent" },
@@ -498,6 +494,9 @@ function CandlestickChart({
         borderVisible: false,
         fixLeftEdge: true,
         fixRightEdge: true,
+      },
+      handleScroll: {
+        vertTouchDrag: false,
       },
     })
 
@@ -558,8 +557,7 @@ function CandlestickChart({
       lineSeries.setData(
         series
           .map((row) => {
-            const value =
-              row.ma?.[window]
+            const value = row.ma?.[window]
 
             return typeof value === "number"
               ? {
@@ -599,18 +597,12 @@ function CandlestickChart({
       setHoveredRow(tradeDate ? (rowsByDate.get(tradeDate) ?? null) : null)
     })
 
-    const resizeObserver = new ResizeObserver((entries) => {
-      const entry = entries[0]
-
-      if (!entry) {
-        return
+    let resizeFrameId: number | null = null
+    const resizeObserver = new ResizeObserver(() => {
+      if (resizeFrameId !== null) {
+        window.cancelAnimationFrame(resizeFrameId)
       }
-
-      chart.applyOptions({
-        height: Math.max(entry.contentRect.height, 180),
-        width: entry.contentRect.width,
-      })
-      updateDateMarker()
+      resizeFrameId = window.requestAnimationFrame(updateDateMarker)
     })
 
     resizeObserver.observe(container)
@@ -618,13 +610,16 @@ function CandlestickChart({
     return () => {
       chart.timeScale().unsubscribeVisibleLogicalRangeChange(updateDateMarker)
       resizeObserver.disconnect()
+      if (resizeFrameId !== null) {
+        window.cancelAnimationFrame(resizeFrameId)
+      }
       chart.remove()
     }
   }, [selectedPoolDate, series, visibleTrendLines])
 
   return (
-    <div className="relative h-full min-h-[12rem] w-full">
-      <div ref={containerRef} className="h-full min-h-[12rem] w-full" />
+    <div className="relative h-full min-h-[12rem] w-full min-w-0">
+      <div ref={containerRef} className="h-full min-h-[12rem] w-full min-w-0" />
       {dateMarkerLeft !== null ? (
         <div
           aria-hidden
@@ -635,18 +630,33 @@ function CandlestickChart({
       ) : null}
       {displayedRow ? (
         <div
-          className="pointer-events-none absolute top-0 left-0 z-10 w-[7.25rem] border border-border/70 bg-background/92 px-1.5 py-1 shadow-sm backdrop-blur"
+          className="pointer-events-none absolute top-0 left-0 z-10 w-[6.75rem] border border-border/70 bg-background/92 px-1.5 py-1 shadow-sm backdrop-blur sm:w-[7.25rem]"
           data-chart-hover-row={displayedRow.trade_date}
         >
           <div className="border-b border-border/50 pb-0.5 text-[10px] leading-3 font-medium tabular-nums">
             {displayedRow.trade_date}
           </div>
           <div className="mt-1 grid gap-0.5 text-[9px] leading-3 text-muted-foreground tabular-nums">
-            <ChartHoverRow label="开盘" value={formatPrice(displayedRow.ohlc?.open)} />
-            <ChartHoverRow label="最高" value={formatPrice(displayedRow.ohlc?.high)} />
-            <ChartHoverRow label="最低" value={formatPrice(displayedRow.ohlc?.low)} />
-            <ChartHoverRow label="收盘" value={formatPrice(displayedRow.ohlc?.close)} />
-            <ChartHoverRow label="成交量" value={formatHoverVolume(displayedRow.volume)} />
+            <ChartHoverRow
+              label="开盘"
+              value={formatPrice(displayedRow.ohlc?.open)}
+            />
+            <ChartHoverRow
+              label="最高"
+              value={formatPrice(displayedRow.ohlc?.high)}
+            />
+            <ChartHoverRow
+              label="最低"
+              value={formatPrice(displayedRow.ohlc?.low)}
+            />
+            <ChartHoverRow
+              label="收盘"
+              value={formatPrice(displayedRow.ohlc?.close)}
+            />
+            <ChartHoverRow
+              label="成交量"
+              value={formatHoverVolume(displayedRow.volume)}
+            />
           </div>
         </div>
       ) : null}

@@ -31,14 +31,24 @@ function StrategySplitPanel({
       )}
       {...props}
     >
-      <div className={cn("flex min-h-0 flex-col gap-4 pt-5", mainClassName)}>
+      <div
+        className={cn(
+          "flex min-h-0 min-w-0 flex-col gap-4 pt-3 sm:pt-5",
+          mainClassName
+        )}
+      >
         {main}
       </div>
 
       <Separator className={cn("xl:hidden", mobileSeparatorClassName)} />
       <Separator className="hidden xl:block" orientation="vertical" />
 
-      <div className={cn("flex min-h-0 flex-col gap-4 pt-5", asideClassName)}>
+      <div
+        className={cn(
+          "flex min-h-0 min-w-0 flex-col gap-4 pt-3 sm:pt-5",
+          asideClassName
+        )}
+      >
         {aside}
       </div>
     </div>
