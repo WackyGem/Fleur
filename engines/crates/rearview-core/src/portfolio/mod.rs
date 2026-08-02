@@ -54,6 +54,8 @@ pub enum ExitRule {
     },
     IndicatorStopLoss {
         metric: String,
+        #[serde(default = "default_indicator_operator")]
+        operator: String,
     },
 }
 
@@ -733,9 +735,16 @@ pub fn simulate_portfolio_with_diagnostics(
                         &format!("indicator stop loss skipped because {metric} is missing"),
                     ));
                 }
-                if let Some(reason) =
-                    triggered_exit_reason(input, position, price_bar, trade_day_index)
-                    && let Some(next_trade_date) = calendar.next_trade_date(trade_date)
+                let prev_price_bar = calendar
+                    .prev_trade_date(trade_date)
+                    .and_then(|prev_date| prices.price_bar(prev_date, security_code));
+                if let Some(reason) = triggered_exit_reason(
+                    input,
+                    position,
+                    price_bar,
+                    prev_price_bar,
+                    trade_day_index,
+                ) && let Some(next_trade_date) = calendar.next_trade_date(trade_date)
                 {
                     pending_sells
                         .entry(next_trade_date)
@@ -873,7 +882,7 @@ fn validate_input(input: &PortfolioSimulationInput) -> RearviewResult<()> {
         }
     }
     for rule in &input.exit_rules {
-        if let ExitRule::IndicatorStopLoss { metric } = rule
+        if let ExitRule::IndicatorStopLoss { metric, .. } = rule
             && !is_supported_indicator_stop_loss_metric(metric)
         {
             return Err(RearviewError::Validation(format!(
@@ -967,6 +976,7 @@ impl<'a> PriceStore<'a> {
 struct TradeCalendarPlan {
     trade_dates: Vec<NaiveDate>,
     next_by_date: BTreeMap<NaiveDate, NaiveDate>,
+    prev_by_date: BTreeMap<NaiveDate, NaiveDate>,
 }
 
 impl TradeCalendarPlan {
@@ -975,9 +985,14 @@ impl TradeCalendarPlan {
             .windows(2)
             .map(|window| (window[0], window[1]))
             .collect();
+        let prev_by_date = trade_dates
+            .windows(2)
+            .map(|window| (window[1], window[0]))
+            .collect();
         Self {
             trade_dates: trade_dates.to_vec(),
             next_by_date,
+            prev_by_date,
         }
     }
 
@@ -987,6 +1002,10 @@ impl TradeCalendarPlan {
 
     fn next_trade_date(&self, trade_date: NaiveDate) -> Option<NaiveDate> {
         self.next_by_date.get(&trade_date).copied()
+    }
+
+    fn prev_trade_date(&self, trade_date: NaiveDate) -> Option<NaiveDate> {
+        self.prev_by_date.get(&trade_date).copied()
     }
 }
 
@@ -1114,6 +1133,7 @@ fn triggered_exit_reason(
     input: &PortfolioSimulationInput,
     position: &PositionState,
     price_bar: &PriceBar,
+    prev_price_bar: Option<&PriceBar>,
     trade_day_index: usize,
 ) -> Option<OrderReason> {
     let close_price = price_bar.close_price_backward_adj?;
@@ -1135,10 +1155,17 @@ fn triggered_exit_reason(
             {
                 return Some(OrderReason::TimeStopLoss);
             }
-            ExitRule::IndicatorStopLoss { metric }
-                if indicator_close_price(price_bar)
-                    .zip(trend_metric_value(price_bar, metric))
-                    .is_some_and(|(indicator_close, value)| indicator_close < value) =>
+            ExitRule::IndicatorStopLoss { metric, operator }
+                if operator == "close_below_metric"
+                    && indicator_close_price(price_bar)
+                        .zip(trend_metric_value(price_bar, metric))
+                        .is_some_and(|(indicator_close, value)| indicator_close < value) =>
+            {
+                return Some(OrderReason::IndicatorStopLoss);
+            }
+            ExitRule::IndicatorStopLoss { metric, operator }
+                if operator == "cross_below_metric"
+                    && indicator_down_cross(price_bar, prev_price_bar, metric) =>
             {
                 return Some(OrderReason::IndicatorStopLoss);
             }
@@ -1154,13 +1181,45 @@ fn indicator_close_price(price_bar: &PriceBar) -> Option<f64> {
         .or(price_bar.close_price_backward_adj)
 }
 
+fn default_indicator_operator() -> String {
+    "close_below_metric".to_string()
+}
+
+/// 下穿（down-cross）语义：当前 bar 收盘 < 当前 metric，且前一日 bar 收盘 ≥ 前一日 metric。
+/// 与 buy-side `CrossesBelow`（current `<` right AND previous `>=` right）一致。
+/// 无前日 bar 或任一指标缺失则不触发（建仓首日不评估）。
+fn indicator_down_cross(
+    current_bar: &PriceBar,
+    prev_price_bar: Option<&PriceBar>,
+    metric: &str,
+) -> bool {
+    let Some(prev_bar) = prev_price_bar else {
+        return false;
+    };
+    let (current_close, current_metric) = match (
+        indicator_close_price(current_bar),
+        trend_metric_value(current_bar, metric),
+    ) {
+        (Some(c), Some(m)) => (c, m),
+        _ => return false,
+    };
+    let (prev_close, prev_metric) = match (
+        indicator_close_price(prev_bar),
+        trend_metric_value(prev_bar, metric),
+    ) {
+        (Some(c), Some(m)) => (c, m),
+        _ => return false,
+    };
+    current_close < current_metric && prev_close >= prev_metric
+}
+
 fn missing_indicator_stop_loss_metric<'a>(
     input: &'a PortfolioSimulationInput,
     price_bar: &PriceBar,
 ) -> Option<&'a str> {
     indicator_close_price(price_bar)?;
     input.exit_rules.iter().find_map(|rule| {
-        if let ExitRule::IndicatorStopLoss { metric } = rule
+        if let ExitRule::IndicatorStopLoss { metric, .. } = rule
             && trend_metric_value(price_bar, metric).is_none()
         {
             Some(metric.as_str())
@@ -1558,6 +1617,7 @@ mod tests {
         input.max_positions = 1;
         input.exit_rules = vec![ExitRule::IndicatorStopLoss {
             metric: "price_ma_10".to_string(),
+            operator: "close_below_metric".to_string(),
         }];
         input.signals = vec![next_open_signal(d1, "AAA", 1)];
         input.prices = vec![
@@ -1585,6 +1645,7 @@ mod tests {
         input.max_positions = 1;
         input.exit_rules = vec![ExitRule::IndicatorStopLoss {
             metric: "price_avg_ma_3_6_12_24".to_string(),
+            operator: "close_below_metric".to_string(),
         }];
         input.signals = vec![next_open_signal(d1, "AAA", 1)];
         input.prices = vec![
@@ -1612,6 +1673,7 @@ mod tests {
         input.max_positions = 1;
         input.exit_rules = vec![ExitRule::IndicatorStopLoss {
             metric: "price_ema2_10".to_string(),
+            operator: "close_below_metric".to_string(),
         }];
         input.signals = vec![next_open_signal(d1, "AAA", 1)];
         input.prices = vec![
@@ -1639,6 +1701,7 @@ mod tests {
         input.max_positions = 1;
         input.exit_rules = vec![ExitRule::IndicatorStopLoss {
             metric: "price_ma_10".to_string(),
+            operator: "close_below_metric".to_string(),
         }];
         input.signals = vec![next_open_signal(d1, "AAA", 1)];
         input.prices = vec![
@@ -1657,6 +1720,102 @@ mod tests {
         assert!(output.events.iter().any(|event| {
             event.security_code.as_deref() == Some("AAA")
                 && event.event_type == PortfolioEventType::IndicatorMissing
+        }));
+    }
+
+    #[test]
+    fn cross_below_metric_sells_on_down_cross() {
+        let d1 = date(2024, 1, 2);
+        let d2 = date(2024, 1, 3);
+        let d3 = date(2024, 1, 4);
+        let d4 = date(2024, 1, 5);
+        let mut input = fixture_input();
+        input.max_positions = 1;
+        input.end_date = d4;
+        input.exit_rules = vec![ExitRule::IndicatorStopLoss {
+            metric: "price_ma_5".to_string(),
+            operator: "cross_below_metric".to_string(),
+        }];
+        input.signals = vec![next_open_signal(d1, "AAA", 1)];
+        // d1: 建仓日（无前日 bar，不评估 cross）
+        // d2: close(11) >= ma5(10)  —— 在均线上方
+        // d3: close(9)  <  ma5(10)  —— 从上方下穿，触发，次日 d4 开盘卖出
+        input.prices = vec![
+            price(d1, "AAA", 10.0, 10.0),
+            price_with_metric(d2, "AAA", 11.0, 11.0, "price_ma_5", Some(10.0)),
+            price_with_metric(d3, "AAA", 9.0, 9.0, "price_ma_5", Some(10.0)),
+            price(d4, "AAA", 9.0, 9.0),
+        ];
+
+        let output = simulate_portfolio(&input).expect("simulation should succeed");
+
+        assert!(output.trades.iter().any(|trade| {
+            trade.security_code == "AAA"
+                && trade.side == OrderSide::Sell
+                && trade.reason == OrderReason::IndicatorStopLoss
+                && trade.trade_date == d4
+        }));
+    }
+
+    #[test]
+    fn cross_below_metric_does_not_sell_when_still_below() {
+        let d1 = date(2024, 1, 2);
+        let d2 = date(2024, 1, 3);
+        let d3 = date(2024, 1, 4);
+        let d4 = date(2024, 1, 5);
+        let mut input = fixture_input();
+        input.max_positions = 1;
+        input.end_date = d4;
+        input.exit_rules = vec![ExitRule::IndicatorStopLoss {
+            metric: "price_ma_5".to_string(),
+            operator: "cross_below_metric".to_string(),
+        }];
+        input.signals = vec![next_open_signal(d1, "AAA", 1)];
+        // d1: 建仓日（无前日 bar，不评估 cross）
+        // d2: close(9) < ma5(10)  —— 已在均线下方
+        // d3: close(8) < ma5(10)  —— 仍 below，未发生下穿（从下方继续下跌不算），不触发
+        input.prices = vec![
+            price(d1, "AAA", 10.0, 10.0),
+            price_with_metric(d2, "AAA", 9.0, 9.0, "price_ma_5", Some(10.0)),
+            price_with_metric(d3, "AAA", 8.0, 8.0, "price_ma_5", Some(10.0)),
+            price(d4, "AAA", 8.0, 8.0),
+        ];
+
+        let output = simulate_portfolio(&input).expect("simulation should succeed");
+
+        assert!(!output.trades.iter().any(|trade| {
+            trade.security_code == "AAA"
+                && trade.side == OrderSide::Sell
+                && trade.reason == OrderReason::IndicatorStopLoss
+        }));
+    }
+
+    #[test]
+    fn cross_below_metric_does_not_sell_on_first_holding_day() {
+        let d1 = date(2024, 1, 2);
+        let d2 = date(2024, 1, 3);
+        let d3 = date(2024, 1, 4);
+        let mut input = fixture_input();
+        input.max_positions = 1;
+        input.end_date = d3;
+        input.exit_rules = vec![ExitRule::IndicatorStopLoss {
+            metric: "price_ma_5".to_string(),
+            operator: "cross_below_metric".to_string(),
+        }];
+        input.signals = vec![next_open_signal(d1, "AAA", 1)];
+        // d1 是建仓日（首个持仓日），即便 close(9) < ma5(10)，也无前日 bar 可判定"从上方下穿"，不触发
+        input.prices = vec![
+            price_with_metric(d1, "AAA", 9.0, 9.0, "price_ma_5", Some(10.0)),
+            price(d2, "AAA", 9.0, 9.0),
+            price(d3, "AAA", 9.0, 9.0),
+        ];
+
+        let output = simulate_portfolio(&input).expect("simulation should succeed");
+
+        assert!(!output.trades.iter().any(|trade| {
+            trade.security_code == "AAA"
+                && trade.side == OrderSide::Sell
+                && trade.reason == OrderReason::IndicatorStopLoss
         }));
     }
 
@@ -1891,6 +2050,7 @@ mod tests {
     ) -> PriceBar {
         let mut bar = price(trade_date, security_code, open, close);
         match metric {
+            "price_ma_5" => bar.price_ma_5 = value,
             "price_ma_10" => bar.price_ma_10 = value,
             "price_avg_ma_3_6_12_24" => bar.price_avg_ma_3_6_12_24 = value,
             "price_ema2_10" => bar.price_ema2_10 = value,

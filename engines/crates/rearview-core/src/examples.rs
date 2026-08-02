@@ -13,7 +13,7 @@ use crate::strategy_backtest::{
 };
 
 pub const RACINGLINE_0051_LOW_REVERSAL_CASE_ID: &str = "racingline_0051_low_reversal";
-pub const RACINGLINE_0051_LOW_REVERSAL_VERSION: &str = "v2";
+pub const RACINGLINE_0051_LOW_REVERSAL_VERSION: &str = "v8";
 pub const RACINGLINE_0051_LOW_REVERSAL_BENCHMARK: &str = "000905.SH";
 
 #[derive(Debug, Clone)]
@@ -94,10 +94,13 @@ fn racingline_0051_low_reversal_execution_config() -> BacktestExecutionConfig {
         },
         risk_exit_policy: BacktestRiskExitPolicy {
             trigger_timing: "close_confirm_next_open".to_string(),
-            exit_rules: vec![ExitRuleConfig::TimeStopLoss {
-                holding_days: 20,
-                max_return_pct: 0.0,
-            }],
+            exit_rules: vec![
+                ExitRuleConfig::TimeStopLoss {
+                    holding_days: 20,
+                    max_return_pct: 0.0,
+                },
+                ExitRuleConfig::TakeProfit { profit_pct: 0.08 },
+            ],
         },
         price_basis: "backward_adjusted".to_string(),
     }
@@ -296,7 +299,7 @@ mod tests {
             config.planned_live_start_date,
             date_ymd(2024, 1, 2).unwrap()
         );
-        assert_eq!(config.version, "v2");
+        assert_eq!(config.version, "v8");
         assert_eq!(config.benchmark_security_code, "000905.SH");
         assert_eq!(config.execution_config.signal_policy.buy_signal_top_n, 5);
         assert_eq!(config.execution_config.rebalance_policy.max_positions, 5);
@@ -310,15 +313,18 @@ mod tests {
     }
 
     #[test]
-    fn racingline_0051_config_should_only_enable_twenty_day_time_stop_loss() {
+    fn racingline_0051_config_should_enable_time_stop_loss_and_eight_pct_take_profit() {
         let config = racingline_0051_low_reversal_config().unwrap();
 
         assert_eq!(
             config.execution_config.risk_exit_policy.exit_rules,
-            vec![ExitRuleConfig::TimeStopLoss {
-                holding_days: 20,
-                max_return_pct: 0.0,
-            }]
+            vec![
+                ExitRuleConfig::TimeStopLoss {
+                    holding_days: 20,
+                    max_return_pct: 0.0,
+                },
+                ExitRuleConfig::TakeProfit { profit_pct: 0.08 },
+            ]
         );
     }
 
@@ -433,7 +439,7 @@ mod tests {
         );
         assert_eq!(
             execution_config_hash,
-            "6cf814ca48e47c76dcde0beff203b003377e7a5ce94bf0430d8343a4490aa0b3"
+            "7c28160ce1f2b8af2b721ccb527c37a55ac9ae45c7dd23cdd8691b7afd6f478d"
         );
     }
 

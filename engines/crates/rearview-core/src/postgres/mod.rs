@@ -35,7 +35,7 @@ impl RearviewPg {
             sqlx::query_scalar("select version_num from alembic_version limit 1")
                 .fetch_optional(&self.pool)
                 .await?;
-        if version.as_deref() != Some("0010_strategy_portfolio_example") {
+        if version.as_deref() != Some("0011_active_unique_idx") {
             return Err(RearviewError::Config(format!(
                 "rearview schema version is not compatible: {:?}",
                 version
@@ -1499,6 +1499,7 @@ impl RearviewPg {
             where source_kind = 'example'
               and example_case_id = $1
               and example_version = $2
+              and status = 'active'
             order by created_at
             limit 1
             "#,

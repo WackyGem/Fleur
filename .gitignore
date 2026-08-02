@@ -18,6 +18,7 @@ dbt_packages/
 .agents/
 .codex/
 .claude/
+.zcode/
 skills-lock.json
 
 # env

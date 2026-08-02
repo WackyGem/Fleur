@@ -1605,9 +1605,14 @@ impl RiskExitPolicy {
                     }),
                     "indicator_stop_loss" => {
                         validate_exact_str(&rule, "source", "trend")?;
-                        validate_exact_str(&rule, "operator", "close_below_metric")?;
+                        validate_one_of_str(
+                            &rule,
+                            "operator",
+                            &["close_below_metric", "cross_below_metric"],
+                        )?;
                         Ok(ExitRule::IndicatorStopLoss {
                             metric: read_str(&rule, "metric")?.to_string(),
+                            operator: read_str(&rule, "operator")?.to_string(),
                         })
                     }
                     other => Err(RearviewError::Validation(format!(
@@ -1647,6 +1652,18 @@ fn validate_exact_str(rule: &Value, key: &str, expected: &str) -> RearviewResult
     } else {
         Err(RearviewError::Validation(format!(
             "exit rule {key} must be {expected}"
+        )))
+    }
+}
+
+fn validate_one_of_str(rule: &Value, key: &str, expected: &[&str]) -> RearviewResult<()> {
+    let value = read_str(rule, key)?;
+    if expected.contains(&value) {
+        Ok(())
+    } else {
+        let allowed = expected.join(" or ");
+        Err(RearviewError::Validation(format!(
+            "exit rule {key} must be {allowed}"
         )))
     }
 }
@@ -1731,7 +1748,28 @@ mod tests {
 
         assert!(matches!(
             rules.as_slice(),
-            [ExitRule::IndicatorStopLoss { metric }] if metric == "price_ma_20"
+            [ExitRule::IndicatorStopLoss { metric, operator }] if metric == "price_ma_20" && operator == "close_below_metric"
+        ));
+    }
+
+    #[test]
+    fn exit_rules_should_convert_cross_below_metric_operator() {
+        let policy = RiskExitPolicy {
+            exit_rules: vec![serde_json::json!({
+                "type": "indicator_stop_loss",
+                "source": "trend",
+                "metric": "price_ma_5",
+                "operator": "cross_below_metric"
+            })],
+        };
+
+        let rules = policy
+            .exit_rules()
+            .expect("cross_below_metric rule should convert");
+
+        assert!(matches!(
+            rules.as_slice(),
+            [ExitRule::IndicatorStopLoss { metric, operator }] if metric == "price_ma_5" && operator == "cross_below_metric"
         ));
     }
 

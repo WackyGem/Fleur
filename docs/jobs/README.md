@@ -24,6 +24,7 @@ Snapshot 文档必须写明生成日期和生成命令。
 
 | 报告 | 范围 |
 |---|---|
+| [2026-08-02-example-portfolio-live-job-risk-exit-iteration.md](reports/2026-08-02-example-portfolio-live-job-risk-exit-iteration.md) | `example__portfolio_live_job` 的 `racingline_0051_low_reversal` example fixture 风控退出策略 v2→v8 完整迭代史：逐版本 exit_rules/哈希变更、引擎新增 `cross_below_metric` operator、部署事故（409/502/410）与修复、prod 实盘收益对照（v3 +42.04% 最优、唯一跑赢基准）及最终回退到 v3（v8）；延续 [issue #1](https://github.com/WackyGem/Fleur/issues/1) |
 | [2026-07-03-prod-docker-example-fixture-v2-deploy.md](reports/2026-07-03-prod-docker-example-fixture-v2-deploy.md) | 将 `example__portfolio_live_job` 使用的 `v2` example fixture 发布到 production-like Docker 栈，重建 `fleur/rearview:local` 和 `fleur/dagster:local` 并重建应用容器 |
 | [2026-07-03-example-portfolio-live-job-strategy-search-replacement.md](reports/2026-07-03-example-portfolio-live-job-strategy-search-replacement.md) | 将 2026-07-03 策略搜索报告中的“宽松低位反转 + 20 日时间止损”置换为 `example__portfolio_live_job` 使用的 `v2` example portfolio fixture |
 | [2026-07-03-strategy-backtest-search.md](reports/2026-07-03-strategy-backtest-search.md) | 基于当前策略选股、权重配置指标和模拟建仓风控方案，探索近一年 strategy backtest 候选并记录最佳样本内策略 |

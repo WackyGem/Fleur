@@ -380,10 +380,10 @@ impl ExitRuleConfig {
                     source,
                     "trend",
                 )?;
-                validate_exact_string(
+                validate_one_of_strings(
                     "execution_config.risk_exit_policy.indicator_stop_loss.operator",
                     operator,
-                    "close_below_metric",
+                    &["close_below_metric", "cross_below_metric"],
                 )?;
                 if TREND_STOP_LOSS_METRICS.contains(&metric.as_str()) {
                     Ok(())
@@ -411,6 +411,17 @@ fn validate_exact_string(field: &str, value: &str, expected: &str) -> RearviewRe
     } else {
         Err(RearviewError::Validation(format!(
             "{field} must be {expected}"
+        )))
+    }
+}
+
+fn validate_one_of_strings(field: &str, value: &str, expected: &[&str]) -> RearviewResult<()> {
+    if expected.contains(&value) {
+        Ok(())
+    } else {
+        let allowed = expected.join(" or ");
+        Err(RearviewError::Validation(format!(
+            "{field} must be {allowed}"
         )))
     }
 }
@@ -633,6 +644,20 @@ mod tests {
         let error = config.canonicalized().unwrap_err();
 
         assert!(error.to_string().contains("operator"));
+    }
+
+    #[test]
+    fn canonicalized_should_accept_cross_below_metric_operator() {
+        let mut config = fixture_config(10, 0.10);
+        config.risk_exit_policy.exit_rules = vec![ExitRuleConfig::IndicatorStopLoss {
+            source: "trend".to_string(),
+            metric: "price_ma_5".to_string(),
+            operator: "cross_below_metric".to_string(),
+        }];
+
+        config
+            .canonicalized()
+            .unwrap_or_else(|error| panic!("cross_below_metric should be accepted: {error}"));
     }
 
     #[test]
